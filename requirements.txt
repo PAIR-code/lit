@@ -1,0 +1,13 @@
+absl-py
+numpy
+scipy
+pandas
+scikit-learn
+tensorflow
+tensorflow-datasets
+lime
+sacrebleu
+umap-learn
+transformers
+google-cloud-translate
+

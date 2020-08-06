@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "allowJs": false,
+    "pretty": true,
+    "resolveJsonModule": true,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "target": "es5",
+    "module": "commonjs",
+    "strict": true,
+    "noImplicitAny": true,
+    "removeComments": true,
+    "allowUnreachableCode": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es2019"],
+    "strictPropertyInitialization": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "importsNotUsedAsValues": "preserve",
+    "types": ["node", "jasmine", "resize-observer-browser"],
+  },
+  "include": ["./"],
+  "compileOnSave": false
+}
+
