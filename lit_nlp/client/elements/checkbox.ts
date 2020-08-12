@@ -1,0 +1,106 @@
+/**
+ * @license
+ * Copyright 2020 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import {Checkbox} from '@material/mwc-checkbox';
+import {css, customElement, html, LitElement, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+
+/**
+ * A custom wrapper around the mwc-checkbox which is a) smaller and b) has a
+ * built-in label.
+ */
+@customElement('lit-checkbox')
+export class LitCheckbox extends LitElement {
+  @property({type: String}) label = '';
+  @property({type: Boolean}) checked = false;
+  @property({type: Boolean}) indeterminate = false;
+  @property({type: Boolean}) disabled = false;
+  @property({type: String}) value = '';
+
+  static get styles() {
+    return css`
+      :host {
+        outline: none;
+      }
+
+      .wrapper {
+        display: flex;
+        align-items: center;
+        font-size: 10pt;
+        height: 28px;
+        margin-left: -12px;
+      }
+
+      .wrapper.disabled {
+        opacity: 0.2;
+      }
+
+      lit-mwc-checkbox-internal {
+        transform: scale(0.7);
+        margin-right: -8px;
+      }
+    `;
+  }
+
+  render() {
+    const handleChange = (e: Event) => {
+      this.checked = (e.target as HTMLInputElement).checked;
+      const changeEvent = new Event('change');
+      this.dispatchEvent(changeEvent);
+    };
+
+    const wrapperClass = classMap({wrapper: true, disabled: this.disabled});
+
+    return html`
+      <div class=${wrapperClass}>
+        <lit-mwc-checkbox-internal
+          ?checked=${this.checked}
+          ?indeterminate=${this.indeterminate}
+          ?disabled=${this.disabled}
+          value=${this.value}
+          @change=${handleChange}
+        >
+        </lit-mwc-checkbox-internal>
+        ${this.label}
+      </div>
+    `;
+  }
+}
+
+
+/**
+ * Hackily overrides the `shouldRenderRipple` internal web component property
+ * to always return false, no matter how it gets updated via internal
+ * hover/focus logic.
+ */
+class MwcCheckboxOverride extends Checkbox {
+  constructor() {
+    super();
+    Object.defineProperty(this, 'shouldRenderRipple', {
+      get: () => false,
+      set: () => {},
+    });
+  }
+}
+
+customElements.define('lit-mwc-checkbox-internal', MwcCheckboxOverride);
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'lit-checkbox': LitCheckbox;
+  }
+}

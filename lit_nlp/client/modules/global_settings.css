@@ -1,0 +1,85 @@
+#global-settings-holder {
+  width: 0;
+  height: 0;
+  z-index: 3;
+  position: fixed;
+}
+
+#overlay {
+  background-color: black;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  opacity: .5;
+  transition: opacity 500ms;
+  pointer-events: none;
+}
+
+#overlay.hide {
+  opacity: 0;
+}
+
+#global-settings {
+  position: absolute;
+  top: 12vh;
+  left: 10vw;
+  height: 80vh;
+  width: 80vw;
+  padding: 12px 24px;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: scroll;
+}
+
+#global-settings.hide {
+  display: none;
+}
+
+#table-holder {
+  display: flex;
+}
+
+#table-holder>* {
+    padding: 12px;
+}
+
+.config-title {
+  font-size: 1.5rem;
+  border-bottom: 1px solid #dadce0;
+  margin-bottom: 12pt;
+}
+
+.config-line {
+  width: 100%;
+  min-width: max-content;
+  margin-left: -10px;
+}
+
+#buttons-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#error-message {
+  color: red;
+  padding-left: 6px;
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+
+#bottom-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5pt;
+}
+
+.first-button {
+  margin-left: 0;
+}

@@ -1,0 +1,14 @@
+
+.checkbox-holder {
+  display: flex;
+  justify-content: space-between;
+  margin-right: 4pt;
+}
+
+.facet-selector {
+  display: flex;
+}
+
+.facet-selector > .dropdown-label {
+  margin: 4pt;
+}

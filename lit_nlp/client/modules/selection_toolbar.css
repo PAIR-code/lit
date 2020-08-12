@@ -1,0 +1,123 @@
+/**
+ * Padding and margins attempt to match the offsets of the left-
+ * and right-most visual elements in the main app toolbar.
+ */
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 4pt;
+  padding-right: 4pt;
+}
+
+.toolbar button {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#main-toolbar {
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  background-color: white;
+  border-bottom: 1px solid #dadce0;
+}
+
+.togglable-toolbar-holder {
+  background-color: white;
+  width: fit-content; /* set to 100% to span page */
+  border: 1px solid;
+  border-radius: 2pt;
+  border-color: rgb(218, 220, 224);
+  position: absolute;
+}
+
+#slice-toolbar-container {
+  right: 0; /* remove to span page */
+}
+
+#status-group-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 4px;
+  max-height: 24px; /** To avoid page jumps when selections happen. **/
+}
+
+#button-holder-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  flex-grow: 2;
+  margin: 4px;
+}
+
+.selection-status-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+#primary-selection-status {
+  margin-left: 4pt;
+}
+
+#pair-controls {
+  margin-left: 12pt;
+}
+
+/**
+ * For standalone MWC icons as buttons.
+ * We don't use mwc-icon-button because this adds
+ * a large backdrop and extra whitespace.
+ */
+mwc-icon.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}
+
+/* For in-line icons in a <span> */
+[data-icon] {
+  margin: 0;
+}
+
+[data-icon]:before {
+  font-family: 'Material Icons';
+  content: attr(data-icon);
+  vertical-align: middle;
+}
+
+#favorite-button {
+  margin-left: 5pt;
+}
+
+#legend-container {
+  right: 0;
+  min-width: 300px;
+  top: 100%;
+  margin-left: -8pt; /* To account for button padding */
+  margin-top: 6px;
+  cursor: default;
+}
+
+.toolbar-holder {
+  position: relative;
+}
+
+#toggle-example-comparison.mode-active {
+  outline: 1px solid #2f8c9b;
+  background: #faf49f;
+}

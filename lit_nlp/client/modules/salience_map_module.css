@@ -1,0 +1,57 @@
+.group-label {
+  text-align: start;
+  vertical-align: baseline;
+  padding: 5px;
+}
+
+.group-container {
+  position: relative; /* to allow overlay div */
+  padding: 5px;
+}
+
+.tokens-holder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.salient-token {
+  padding: 5px;
+  margin: 5px;
+  background-color: #1c313a;
+  font-family: 'Share Tech Mono', monospace;
+  color: black;
+}
+
+.salience-tooltip {
+  position: fixed;
+  padding: 5px;
+  margin: auto;
+  text-align: center;
+  transform: translate(-50%, 5px);
+  background-color: #f2f9ff;
+  border-radius: 7px;
+  border-style: solid;
+  border-width: 1px;
+  z-index: 10000;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.loading {
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.spinner-container {
+  opacity: 1.0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}

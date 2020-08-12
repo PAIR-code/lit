@@ -1,0 +1,22 @@
+th {
+  font-size: 8pt;
+  padding-right: 8px;
+}
+
+td {
+  font-size: 10pt
+}
+
+.classification-cell {
+  position: relative;
+  display: flex;
+  width: 200px;
+}
+
+.classification-row-title {
+  font-size: 10pt;
+}
+
+.classification-row-holder {
+  padding-bottom: 10px;
+}

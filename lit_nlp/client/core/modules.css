@@ -1,0 +1,96 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-width: calc(min(1000px, 100vw));
+  align-self: --align-self;
+}
+
+#main-panel {
+  display: flex;
+  border-bottom: 1px solid #dadce0;
+}
+
+#component-groups{
+  position: relative;
+  flex: 1;
+}
+
+.components-group-holder {
+  position: absolute;
+  background: #f1f3f4;
+  overflow: auto;
+  display: flex;
+  visibility: hidden;
+  height: 100%;
+  width: 100%;
+}
+.components-group-holder.selected {
+  visibility: visible;
+  z-index: 1;
+}
+
+.component-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.component-column {
+  display: flex;
+  flex-direction: column;
+}
+.component-column > * {
+  flex: 1;
+  min-height: 125pt;
+}
+
+#center-bar {
+  padding: 0 40px;
+  color: #5f6368;
+  background: white;
+  display: flex;
+}
+
+
+#drag-container{
+  position:relative;
+  width: 50%;
+  height: 100%;
+  margin-left:auto;
+}
+
+#drag-handler {
+  width: 100%;
+  height: 100%;
+  cursor: ns-resize;
+  opacity: 0;
+}
+
+#tabs {
+  max-width: 100%;
+  display: flex;
+  font-size: 9pt;
+  margin-right: 38px;
+}
+
+.tab {
+  padding: 2pt 5pt;
+  width: 150px;
+  text-align: center;
+  border-bottom: 2px solid #dadce0;
+  white-space: nowrap;
+}
+.tab:hover{
+  background: #eee;
+}
+.tab.selected {
+  font-weight: bold;
+  border-bottom: 2px solid #1a73e8;
+  color: black;
+}
+.drag-icon {
+  pointer-events: none;
+  position: absolute;
+  left: 0%;
+}

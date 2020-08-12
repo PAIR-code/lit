@@ -1,0 +1,218 @@
+:host {
+  --table-header-height: 40px;
+  --toolbar-height: 43px;
+}
+
+.toolbar{
+  font-family: 'Google Sans', sans-serif !important;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  height: var(--toolbar-height);
+}
+
+#toolbar-buttons{
+  margin-bottom: 6px;
+}
+
+#holder{
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#table-container{
+  height: calc(100% - var(--toolbar-height));
+  overflow: visible;
+}
+
+#rows-container{
+  width: 100%;
+  height: calc(100% - var(--table-header-height));
+  overflow-y: auto;
+}
+
+#rows {
+  width: 100%;
+}
+
+#header-container {
+  width: 100%;
+  overflow-x:hidden;
+}
+
+#header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 100%;
+}
+
+.column-header {
+  background: #f5fcfc;
+  font-weight: 400;
+  font-size: 10pt;
+  line-height: 12pt;
+  color: #04394b;
+  border-bottom: solid 1px #dadce0;
+  padding: 5px 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+  box-sizing: border-box;
+  height: var(--table-header-height);
+}
+
+.header-text {
+  flex: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-height: 100%;
+}
+
+.arrow-container {
+  width: 20px;
+  height: 20px;
+  right: 2px;
+  position: relative;
+  user-select: none;
+}
+
+.arrow {
+  position: absolute;
+  --mdc-icon-size: 24px;
+  color: rgba(0,0,0,0.1);
+}
+
+.arrow.up {
+  top: -5px;
+}
+
+.arrow.down {
+  top: 3px;
+}
+
+.arrow.active {
+  color: var(--app-dark-color);
+}
+
+.arrow.inactive {
+  color: rgba(0,0,0,0);
+}
+
+.menu-button-container {
+  width: 20px;
+  height: 20px;
+  user-select: none;
+}
+
+.menu-button {
+  --mdc-icon-size: 20px;
+}
+
+.menu-button:hover {
+  opacity: .7;
+}
+
+.togglable-menu-holder {
+  background-color: #eff6f8; /* light gray-blue */
+  border: 1px solid;
+  border-radius: 2pt;
+  border-color: rgb(218, 220, 224);
+  position: absolute;
+}
+
+#search-menu-container {
+  width:100%;
+}
+
+table {
+  min-width: 100%;
+  border-spacing: 0;
+  font-family: 'Google Sans', sans-serif;
+  font-size: 10pt;
+  line-height: 12pt;
+  margin: 1px; /* don't clip outline if there's a reference selection */
+}
+
+thead {
+  display: table-header-group;
+  vertical-align: middle;
+  border-color: inherit;
+}
+
+tr {
+  display: table-row;
+  vertical-align: inherit;
+  border-color: inherit;
+}
+
+tr:hover {
+  background: #f8f9fa;
+}
+
+tr.selected {
+  background: #c5e4e8;
+  color: #04394b;
+  transition-duration: 0.2s;
+  transition-property: background-color;
+}
+
+tr.primary-selected {
+  background: #9bb7ba;
+  color: #04394b;
+  transition-duration: 0.2s;
+  transition-property: background-color;
+}
+
+tr.reference-selected {
+  outline: 1px solid #2f8c9b;
+}
+
+td {
+  vertical-align: middle;
+  min-width: 80px;
+  padding: 5px 10px;
+  box-sizing: border-box;
+}
+
+.n-rows {
+  margin-left: 20px;
+}
+
+/* For in-line icons in a <span> */
+[data-icon] {
+  margin: 0;
+}
+
+[data-icon]:before {
+  font-family: 'Material Icons';
+  content: attr(data-icon);
+  vertical-align: middle;
+}
+
+/* Column settings */
+.column-button {
+  position: absolute;
+  right: 15px;
+  top: 5px;
+  width: 100px;
+}
+
+.column-dropdown-hide {
+  visibility:hidden;
+  position: absolute;
+}
+
+.column-dropdown {
+  top: 50px;
+  right: 15px;
+  padding: 10px;
+  background: white;
+  border: 1px solid gray;
+  position: absolute;
+  visibility:visible;
+  z-index: 1000;
+}

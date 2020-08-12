@@ -1,0 +1,30 @@
+.staged-text {
+  margin-bottom: 10px;
+}
+
+#container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.input-box {
+  width: 95%;
+}
+
+.input-short {
+  width: 95%;
+}
+
+.button-holder {
+  display: flex;
+}
+
+.entry {
+  margin: 15px 5px;
+}
+
+textarea {
+  resize: vertical;
+  height: 100px;
+}

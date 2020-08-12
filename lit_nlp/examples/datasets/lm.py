@@ -1,0 +1,46 @@
+# Lint as: python3
+"""Language modeling datasets."""
+
+from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import types as lit_types
+
+import tensorflow_datasets as tfds
+
+import glob
+
+
+class PlaintextSents(lit_dataset.Dataset):
+  """Load sentences from a flat text file."""
+
+  def __init__(self, path_or_glob, skiplines=0):
+    self._examples = []
+    for path in glob.glob(path_or_glob):
+      with open(path) as fd:
+        for i, line in enumerate(fd):
+          if i < skiplines:  # skip header lines, if necessary
+            continue
+          line = line.strip()
+          if line:  # skip blank lines, these are usually document breaks
+            self._examples.append({'text': line})
+
+  def spec(self) -> lit_types.Spec:
+    """Should match MLM's input_spec()."""
+    return {'text': lit_types.TextSegment()}
+
+
+class BillionWordBenchmark(lit_dataset.Dataset):
+  """Billion Word Benchmark (lm1b); see http://www.statmt.org/lm-benchmark/."""
+
+  def __init__(self, split='train', max_examples=1000):
+    ds = tfds.load('lm1b', split=split)
+    if max_examples is not None:
+      # Normally we can just slice the resulting dataset, but lm1b is very large
+      # so we can use ds.take() to only load a portion of it.
+      ds = ds.take(max_examples)
+    raw_examples = list(tfds.as_numpy(ds))
+    self._examples = [{
+        'text': ex['text'].decode('utf-8')
+    } for ex in raw_examples]
+
+  def spec(self) -> lit_types.Spec:
+    return {'text': lit_types.TextSegment()}

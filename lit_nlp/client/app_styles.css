@@ -1,0 +1,22 @@
+:host {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  --app-drawer-width: 256px;
+  --app-primary-color: rgb(171, 241, 248);
+  --app-secondary-color: rgb(7, 163, 186);
+  --app-dark-color: rgb(5, 30, 37);
+  --app-dark-text-color: var(--app-secondary-color);
+  --app-light-text-color: white;
+  --app-section-even-color: #f7f7f7;
+  --app-section-odd-color: white;
+}
+
+.page {
+  display: none;
+}
+
+.page[active] {
+  display: block;
+}

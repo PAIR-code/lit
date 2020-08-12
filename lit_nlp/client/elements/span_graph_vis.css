@@ -1,0 +1,74 @@
+text.token-text {
+  alignment-baseline: middle;
+  dominant-baseline: central;
+}
+
+polyline.span-bracket {
+  fill: none;
+  stroke-width: 1.2px;
+  stroke: var(--group-color);
+}
+
+.selected polyline.span-bracket {
+  stroke-width: 1.8px;
+}
+
+path.arc-path {
+  stroke-width: 1.2px;
+  stroke: var(--group-color);
+  fill: none;
+}
+
+path.arc-path.arc-neg {
+  stroke-dasharray: 3,1;
+  stroke: gray;
+}
+
+.selected path.arc-path {
+  stroke-width: 1.8px;
+}
+
+path.arc-arrow {
+  stroke-width: 1.2px;
+  stroke: var(--group-color);
+  fill: var(--group-color);
+}
+
+path.arc-arrow.arc-neg {
+  stroke: gray;
+  fill: gray;
+}
+
+
+.layer-label text {
+  font-family: 'Share Tech Mono', monospace;
+  dominant-baseline: middle;
+  text-anchor: end;
+}
+
+foreignObject.span-label {
+  overflow: visible;
+}
+
+.span-label div {
+  background-color: white;
+  font-family: 'Share Tech Mono', monospace;
+  line-height: 1.0;
+  padding: 1px;
+  padding-right: 3px; /* for occluding labels on mouseover */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--group-color);
+}
+
+g.selected .span-label div {
+  background-color: white;
+  overflow-x: visible;
+  width: fit-content;  /* needed to include background when expanding */
+}
+
+.mousebox {
+  fill: white;
+  fill-opacity: 0.0;
+}

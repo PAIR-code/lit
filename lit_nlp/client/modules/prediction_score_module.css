@@ -1,0 +1,44 @@
+.label {
+  margin-bottom: 4px;
+}
+
+.primary-selected-point {
+  r: 4px;
+  opacity: 1.0;
+  stroke-width: 1px;
+  stroke: #000;
+}
+
+.selected-point {
+  r: 5px;
+  fill-opacity: 0.8;
+  stroke-width: 2px;
+  stroke: #fff;
+}
+
+.point {
+  r: 4px;
+  opacity: .25;
+}
+
+#container{
+  height: 100%;
+}
+
+.plot-holder {
+  margin-bottom: 15px;
+}
+
+.slider-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.slider-row div {
+  padding-top: 9px;
+}
+
+.slider-label {
+  width: 30px;
+}
+

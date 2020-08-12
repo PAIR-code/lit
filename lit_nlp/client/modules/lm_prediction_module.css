@@ -1,0 +1,49 @@
+#input-words {
+  display: flex;
+  flex-direction: row;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.token {
+  padding: 5px;
+  margin: 5px;
+  background-color: #1c313a;
+  color: white;
+}
+
+.token:hover {
+  background-color: #a4a4a4;
+  cursor: pointer;
+}
+
+.token.selected {
+  background-color: #fbc02d;
+}
+
+.token.masked {
+  text-decoration: line-through;
+}
+
+#outputs-container {
+  padding-bottom: 1rem;
+}
+
+.output {
+  width: max-content;
+  padding: 5px;
+  background-color: #fff263;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.output.same {
+  border: 3px solid #fbc02d;
+  box-sizing: border-box;
+}
+
+.instructions {
+  padding: 5px;
+}
+
+.hidden {
+  display: none;
+}

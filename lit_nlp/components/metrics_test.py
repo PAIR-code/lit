@@ -1,0 +1,247 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Tests for lit_nlp.components.metrics."""
+
+from absl.testing import absltest
+
+from lit_nlp.api import types
+from lit_nlp.components import metrics
+
+
+class RegressionMetricsTest(absltest.TestCase):
+
+  def test_is_compatible(self):
+    regression_metrics = metrics.RegressionMetrics()
+
+    # Only compatible with RegressionScore spec.
+    self.assertTrue(regression_metrics.is_compatible(types.RegressionScore()))
+    self.assertFalse(
+        regression_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(
+        regression_metrics.is_compatible(types.GeneratedText()))
+
+  def test_compute(self):
+    regression_metrics = metrics.RegressionMetrics()
+
+    # All correct predictions.
+    result = regression_metrics.compute(
+        [1, 2, 3, 4], [1, 2, 3, 4], types.RegressionScore(),
+        types.RegressionScore())
+    self.assertAlmostEqual(
+        result, {'mse': 0, 'pearsonr': 1.0, 'spearmanr': 1.0})
+
+    # Some incorrect predictions.
+    result = regression_metrics.compute(
+        [1, 2, 3, 4], [1, 2, 5.5, 6.3], types.RegressionScore(),
+        types.RegressionScore())
+    self.assertAlmostEqual(
+        result, {'mse': 2.885, 'pearsonr': 0.9656642444980974,
+                 'spearmanr': 1.0})
+
+    # All incorrect predictions (and not monotonic).
+    result = regression_metrics.compute(
+        [1, 2, 3, 4], [-5, -10, 5, 6], types.RegressionScore(),
+        types.RegressionScore())
+    self.assertAlmostEqual(
+        result, {'mse': 47.0, 'pearsonr': 0.795592252958155,
+                 'spearmanr': 0.7999999999999999})
+
+    # Empty labels and predictions
+    result = regression_metrics.compute(
+        [], [], types.RegressionScore(),
+        types.RegressionScore())
+    self.assertAlmostEqual(
+        result, {})
+
+
+class MulticlassMetricsTest(absltest.TestCase):
+
+  def test_is_compatible(self):
+    multiclass_metrics = metrics.MulticlassMetrics()
+
+    # Only compatible with MulticlassPreds spec.
+    self.assertTrue(
+        multiclass_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(multiclass_metrics.is_compatible(types.RegressionScore()))
+    self.assertFalse(
+        multiclass_metrics.is_compatible(types.GeneratedText()))
+
+  def test_compute(self):
+    multiclass_metrics = metrics.MulticlassMetrics()
+
+    # All correct predictions.
+    result = multiclass_metrics.compute(
+        ['1', '2', '0', '1'], [[0, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0]],
+        types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2'],
+                                                     null_idx=0))
+    self.assertAlmostEqual(
+        result, {'accuracy': 1.0, 'f1': 1.0, 'precision': 1.0, 'recall': 1.0})
+
+    # Some incorrect predictions.
+    result = multiclass_metrics.compute(
+        ['1', '2', '0', '1'],
+        [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
+        types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2'],
+                                                     null_idx=0))
+    self.assertAlmostEqual(
+        result, {'accuracy': 0.5, 'f1': 0.5714285714285715, 'precision': 0.5,
+                 'recall': 0.6666666666666666})
+
+    # All incorrect predictions.
+    result = multiclass_metrics.compute(
+        ['1', '2', '0', '1'],
+        [[.1, .4, .5], [.2, .7, .1], [.1, 0, .9], [1, 0, 0]],
+        types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2'],
+                                                     null_idx=0))
+    self.assertAlmostEqual(
+        result, {'accuracy': 0.0, 'f1': 0.0, 'precision': 0.0,
+                 'recall': 0.0})
+
+    # No null index.
+    result = multiclass_metrics.compute(
+        ['1', '2', '0', '1'],
+        [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
+        types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2']))
+    self.assertAlmostEqual(
+        result, {'accuracy': 0.5})
+
+    # Empty labels and predictions
+    result = multiclass_metrics.compute(
+        [], [],
+        types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2'],
+                                                     null_idx=0))
+    self.assertAlmostEqual(
+        result, {})
+
+
+class MulticlassPairedMetricsTest(absltest.TestCase):
+
+  def test_is_compatible(self):
+    multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
+
+    # Only compatible with MulticlassPreds spec.
+    self.assertTrue(
+        multiclass_paired_metrics.is_compatible(
+            types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(
+        multiclass_paired_metrics.is_compatible(types.RegressionScore()))
+    self.assertFalse(
+        multiclass_paired_metrics.is_compatible(types.GeneratedText()))
+
+  def test_compute(self):
+    multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
+
+    indices = ['7f7f85', '345ac4', '3a3112', '88bcda']
+    metas = [{'parentId': '345ac4'}, {}, {}, {'parentId': '3a3112'}]
+
+    # No swaps.
+    result = multiclass_paired_metrics.compute_with_metadata(
+        ['1', '1', '0', '0'],
+        [[0, 1], [0, 1], [1, 0], [1, 0]],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=0),
+        indices, metas)
+    self.assertAlmostEqual(
+        result, {'mean_jsd': 0.0, 'num_pairs': 2,
+                 'swap_rate': 0.0})
+
+    # One swap.
+    result = multiclass_paired_metrics.compute_with_metadata(
+        ['1', '1', '0', '0'],
+        [[0, 1], [1, 0], [1, 0], [1, 0]],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=0),
+        indices, metas)
+    self.assertAlmostEqual(
+        result, {'mean_jsd': 0.3465735902799726, 'num_pairs': 2,
+                 'swap_rate': 0.5})
+
+    # Two swaps.
+    result = multiclass_paired_metrics.compute_with_metadata(
+        ['1', '1', '0', '0'],
+        [[0, 1], [1, 0], [1, 0], [0, 1]],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=0),
+        indices, metas)
+    self.assertAlmostEqual(
+        result, {'mean_jsd': 0.6931471805599452, 'num_pairs': 2,
+                 'swap_rate': 1.0})
+
+    # Two swaps, no null index.
+    result = multiclass_paired_metrics.compute_with_metadata(
+        ['1', '1', '0', '0'],
+        [[0, 1], [1, 0], [1, 0], [0, 1]],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1']),
+        indices, metas)
+    self.assertAlmostEqual(
+        result, {'mean_jsd': 0.6931471805599452, 'num_pairs': 2,
+                 'swap_rate': 1.0})
+
+    # Empty predictions, indices, and meta.
+    result = multiclass_paired_metrics.compute_with_metadata(
+        [], [], types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=0), [], [])
+    self.assertAlmostEqual(
+        result, {})
+
+
+class CorpusBLEUTest(absltest.TestCase):
+
+  def test_is_compatible(self):
+    corpusblue_metrics = metrics.CorpusBLEU()
+
+    # Only compatible with GeneratedText spec.
+    self.assertTrue(
+        corpusblue_metrics.is_compatible(types.GeneratedText()))
+    self.assertFalse(
+        corpusblue_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(corpusblue_metrics.is_compatible(types.RegressionScore()))
+
+  def test_compute(self):
+    corpusblue_metrics = metrics.CorpusBLEU()
+
+    # All correct predictions.
+    result = corpusblue_metrics.compute(
+        ['This is a test.', 'Test two', 'A third test example'],
+        ['This is a test.', 'Test two', 'A third test example'],
+        types.GeneratedText(), types.GeneratedText())
+    self.assertAlmostEqual(
+        result, {'corpus_bleu': 100.00000000000004})
+
+    # Some incorrect predictions.
+    result = corpusblue_metrics.compute(
+        ['This is a test.', 'Test one', 'A third test'],
+        ['This is a test.', 'Test two', 'A third test example'],
+        types.GeneratedText(), types.GeneratedText())
+    self.assertAlmostEqual(
+        result, {'corpus_bleu': 68.037493331712})
+
+    # All incorrect predictions.
+    result = corpusblue_metrics.compute(
+        ['This is a test.', 'Test one', 'A third test'],
+        ['these test.', 'Test two', 'A third test example'],
+        types.GeneratedText(), types.GeneratedText())
+    self.assertAlmostEqual(
+        result, {'corpus_bleu': 0.0})
+
+    # Empty labels and predictions
+    result = corpusblue_metrics.compute(
+        [], [], types.GeneratedText(), types.GeneratedText())
+    self.assertAlmostEqual(
+        result, {})
+
+if __name__ == '__main__':
+  absltest.main()
