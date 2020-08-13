@@ -90,7 +90,7 @@ export const LAYOUTS: LitComponentLayouts = {
   /**
    * For masked language models
    */
-  'mlm':  {
+  'lm':  {
     components : {
       'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule],
       'Predictions': [

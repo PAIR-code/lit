@@ -18,7 +18,7 @@
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "importsNotUsedAsValues": "preserve",
-    "types": ["node", "jasmine", "resize-observer-browser"],
+    "types": ["node", "jasmine", "resize-observer-browser"]
   },
   "include": ["./"],
   "compileOnSave": false

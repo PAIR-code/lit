@@ -19,19 +19,19 @@ script that passes these to the LIT server. For example:
 
 ```py
 def main(_):
-  # MulitiNLIData implements lit.Dataset
+  # MulitiNLIData implements the Dataset API
   datasets = {
       'mnli_matched': MultiNLIData('/path/to/dev_matched.tsv'),
       'mnli_mismatched': MultiNLIData('/path/to/dev_mismatched.tsv'),
   }
 
-  # NLIModel implements lit.Model
+  # NLIModel implements the Model API
   models = {
       'model_foo': NLIModel('/path/to/model/foo/files'),
       'model_bar': NLIModel('/path/to/model/bar/files'),
   }
 
-  lit_demo = lit.Server(models, datasets, port=4321)
+  lit_demo = lit_nlp.dev_server.Server(models, datasets, port=4321)
   lit_demo.serve()
 
 if __name__ == '__main__':
@@ -39,29 +39,29 @@ if __name__ == '__main__':
 ```
 
 Conceptually, a dataset is just a list of examples and a model is just a
-function that takes examples and returns predictions. The
-[`lit.Dataset`](#datasets) and [`lit.Model`](#models) classes implement this,
-and provide metadata (see the [type system](development.md#type-system)) to
-describe themselves to other components.
+function that takes examples and returns predictions. The [`Dataset`](#datasets)
+and [`Model`](#models) classes implement this, and provide metadata (see the
+[type system](development.md#type-system)) to describe themselves to other
+components.
 
 For full examples, see ../lit_nlp/examples
 
 ## Datasets
 
-Datasets ([`lit.Dataset`](../lit_nlp/api/dataset.py))
-are just a list of examples, with associated type information following LIT's
+Datasets ([`Dataset`](../lit_nlp/api/dataset.py)) are
+just a list of examples, with associated type information following LIT's
 [type system](development.md#type-system).
 
 *   `spec()` should return a flat dict that describes the fields in each example
 *   `self._examples` should be a list of flat dicts
 
 Implementations should subclass
-[`lit.Dataset`](../lit_nlp/api/dataset.py). Usually
-this is just a few lines of code - for example, the following is a complete
-dataset loader for [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/):
+[`Dataset`](../lit_nlp/api/dataset.py). Usually this
+is just a few lines of code - for example, the following is a complete dataset
+loader for [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/):
 
 ```py
-class MultiNLIData(lit.Dataset):
+class MultiNLIData(Dataset):
   """Loader for MultiNLI development set."""
 
   NLI_LABELS = ['entailment', 'neutral', 'contradiction']
@@ -123,7 +123,7 @@ a `"text"` input via `Dataset.remap({"document":
 
 ## Models
 
-Models ([`lit.Model`](../lit_nlp/api/model.py)) are
+Models ([`Model`](../lit_nlp/api/model.py)) are
 functions which take inputs and produce outputs, with associated type
 information following LIT's [type system](development.md#type-system). The core
 API consists of three methods:
@@ -137,12 +137,11 @@ API consists of three methods:
     matching `output_spec()`.
 
 Implementations should subclass
-[`lit.Model`](../lit_nlp/api/model.py). An example
-for [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) might look something
-like:
+[`Model`](../lit_nlp/api/model.py). An example for
+[MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) might look something like:
 
 ```py
-class NLIModel(lit.Model):
+class NLIModel(Model):
   """Wrapper for a Natural Language Inference model."""
 
   NLI_LABELS = ['entailment', 'neutral', 'contradiction']
@@ -177,14 +176,14 @@ Unlike the dataset example, this model implementation is incomplete - you'll
 need to customize `predict()` (or `predict_minibatch()`) accordingly with any
 pre- or post-processing needed, such as tokenization.
 
-Note: The `lit.Model` base class implements simple batching, aided by the
+Note: The `Model` base class implements simple batching, aided by the
 `max_minibatch_size()` function. This is purely for convenience, since most deep
 learning models will want this behavior. But if you don't need it, you can
 simply override the `predict()` function directly and handle large inputs
 accordingly.
 
 Note: there are a few additional methods in the model API - see
-[`lit.Model`](../lit_nlp/api/model.py) for details.
+[`Model`](../lit_nlp/api/model.py) for details.
 
 ### Adding more outputs
 
@@ -242,9 +241,9 @@ aids like [UMAP](https://umap-learn.readthedocs.io/en/latest/), and
 counterfactual generator plug-ins.
 
 Most such components implement the
-[`lit.Interpreter`](../lit_nlp/api/components.py)
-API. Conceptually, this is any function that takes a set of datapoints and a
-model, and produces some output.[^identity-component] For example,
+[`Interpreter`](../lit_nlp/api/components.py) API.
+Conceptually, this is any function that takes a set of datapoints and a model,
+and produces some output.[^identity-component] For example,
 [local gradient-based salience](../lit_nlp/components/gradient_maps.py)
 processes the `TokenGradients` and `Tokens` returned by a model and produces a
 list of scores for each token.
@@ -361,9 +360,8 @@ Conceptually, a generator is just an interpreter that returns new input
 examples. These may depend on the input only, as for techniques such as
 backtranslation, or can involve feedback from the model, such as for adversarial
 attacks. Currently, generators use a separate API, subclassing
-[`lit.Generator`](../lit_nlp/api/components.py), but
-in the near future this will be merged into the `Interpreter` API described
-above.
+[`Generator`](../lit_nlp/api/components.py), but in
+the near future this will be merged into the `Interpreter` API described above.
 
 The core generator API is:
 

@@ -20,10 +20,10 @@ dependencies:
     - scipy
     - pandas
     - scikit-learn
-    - tensorflow
-    - tensorflow-datasets
     - pip
     - pip:
+        - tensorflow
+        - tensorflow-datasets
         - lime
         - sacrebleu
         - umap-learn

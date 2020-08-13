@@ -16,6 +16,7 @@
  */
 
 import '../elements/checkbox';
+
 // tslint:disable:no-new-decorators
 import {customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
@@ -24,7 +25,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelsMap, Spec, TopKResult} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, flatten} from '../lib/utils';
+import {doesOutputSpecContain, findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -68,17 +69,21 @@ export class LanguageModelPredictionModule extends LitModule {
   }
 
   @computed
-  private get outputTokenKey(): string {
+  private get outputTokensKey(): string {
     const spec = this.appState.getModelSpec(this.model);
     // This list is guaranteed to be non-empty due to checkModule()
     return spec.output[this.predKey].align as string;
   }
 
   @computed
-  private get inputTextKey(): string {
+  private get inputTokensKey(): string|null {
     const spec = this.appState.getModelSpec(this.model);
-    // TODO(lit-dev): ensure this is set in order to enable MLM mode.
-    return spec.output[this.outputTokenKey].parent!;
+    // Look for an input field matching the output tokens name.
+    if (spec.input.hasOwnProperty(this.outputTokensKey) &&
+        isLitSubtype(spec.input[this.outputTokensKey], 'Tokens')) {
+      return this.outputTokensKey;
+    }
+    return null;
   }
 
   firstUpdated() {
@@ -90,10 +95,10 @@ export class LanguageModelPredictionModule extends LitModule {
   }
 
   private async updateSelection(selectedInput: IndexedInput|null) {
+    this.selectedTokenIndex = null;
     if (selectedInput == null) {
       this.selectedInput = null;
       this.tokens = [];
-      this.selectedTokenIndex = null;
       this.lmResults = [];
       return;
     }
@@ -106,7 +111,7 @@ export class LanguageModelPredictionModule extends LitModule {
     if (results === null) return;
 
     const predictions = results[0];
-    this.tokens = predictions[this.outputTokenKey];
+    this.tokens = predictions[this.outputTokensKey];
     this.lmResults = predictions[this.predKey];
     this.selectedInput = selectedInput;
 
@@ -118,24 +123,23 @@ export class LanguageModelPredictionModule extends LitModule {
 
     // If there's nothing to show, enable click-to-mask by default.
     // TODO(lit-dev): infer this from something in the spec instead.
-    if (flatten(this.lmResults).length === 0) {
+    if (flatten(this.lmResults).length === 0 && this.inputTokensKey != null) {
       this.clickToMask = true;
     }
   }
 
   // TODO(lit-dev): unify this codepath with updateSelection()?
-  private async updateLmResults(index: number) {
+  private async updateLmResults(maskIndex: number) {
     if (this.selectedInput == null) return;
 
     if (this.clickToMask) {
+      if (this.inputTokensKey == null) return;
       const tokens = [...this.tokens];
-      tokens[index] = this.maskToken;
-      // TODO(lit-dev): detokenize properly, or feed tokens directly to model?
-      const input = tokens.join(' ');
+      tokens[maskIndex] = this.maskToken;
 
-      // Use empty id to disable caching on backend.
       const inputData = Object.assign(
-          {}, this.selectedInput.data, {[this.inputTextKey]: input});
+          {}, this.selectedInput.data, {[this.inputTokensKey]: tokens});
+      // Use empty id to disable caching on backend.
       const inputs: IndexedInput[] =
           [{'data': inputData, 'id': '', 'meta': {}}];
 
@@ -148,7 +152,7 @@ export class LanguageModelPredictionModule extends LitModule {
       this.lmResults = lmResults[0][this.predKey];
       this.maskApplied = true;
     }
-    this.selectedTokenIndex = index;
+    this.selectedTokenIndex = maskIndex;
   }
 
   updated() {
@@ -177,10 +181,12 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format off
     return html`
       <div id='controls'>
-        <lit-checkbox label="Click to mask?"
-          ?checked=${this.clickToMask}
-          @change=${() => { this.clickToMask = !this.clickToMask; }}
-        ></lit-checkbox>
+        ${this.inputTokensKey ? html`
+          <lit-checkbox label="Click to mask?"
+            ?checked=${this.clickToMask}
+            @change=${() => { this.clickToMask = !this.clickToMask; }}
+          ></lit-checkbox>
+        ` : null}
       </div>
     `;
     // clang-format on

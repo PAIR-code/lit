@@ -34,8 +34,10 @@ flags.DEFINE_string(
     "<models_path>/<task_name>, and in standard transformers format, e.g. as "
     "saved by model.save_pretrained() and tokenizer.save_pretrained().")
 
-flags.DEFINE_integer("max_examples", None,
-                     "Maximum number of examples to load into LIT.")
+flags.DEFINE_integer(
+    "max_examples", None, "Maximum number of examples to load into LIT. "
+    "Note: MNLI eval set is 10k examples, so will take a while to run and may "
+    "be slow on older machines. Set --max_examples=200 for a quick start.")
 
 
 def main(_):

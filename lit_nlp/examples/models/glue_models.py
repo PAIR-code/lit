@@ -79,9 +79,7 @@ class GlueModel(lit_model.Model):
           from_pt=True,
       )
 
-  def _preprocess(self,
-                  inputs: Iterable[JsonDict],
-                  do_trim: bool = True) -> Dict[str, tf.Tensor]:
+  def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
     segments = [
         (ex[self.config.text_a_name],
          ex[self.config.text_b_name] if self.config.text_b_name else None)
@@ -91,14 +89,17 @@ class GlueModel(lit_model.Model):
         segments,
         return_tensors="tf",
         add_special_tokens=True,
-        max_length=None if do_trim else self.config.max_seq_length,
+        max_length=self.config.max_seq_length,
         pad_to_max_length=True)
+    # Trim everything to the actual max length, to remove extra padding.
+    max_tokens = tf.reduce_max(
+        tf.reduce_sum(encoded_input["attention_mask"], axis=1))
+    encoded_input = {k: v[:, :max_tokens] for k, v in encoded_input.items()}
     return encoded_input
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
     """Make a tf.data.Dataset from inputs in LIT format."""
-    # Set do_trim=False to pad everything to max_seq_length.
-    encoded_input = self._preprocess(inputs, do_trim=False)
+    encoded_input = self._preprocess(inputs)
     if self.is_regression:
       labels = tf.constant([ex[self.config.label_name] for ex in inputs],
                            dtype=tf.float32)

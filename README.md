@@ -1,4 +1,4 @@
-# Language Interpretability Tool (LIT) :fire:
+# 🔥 Language Interpretability Tool (LIT)
 
 The Language Interpretability Tool (LIT) is a visual, interactive
 model-understanding tool for NLP models.
@@ -29,31 +29,52 @@ Features include:
     multi-head models and multiple input features out of the box.
 *   **Framework-agnostic** and compatible with TensorFlow, PyTorch, and more.
 
-For a broader overview, check out [our paper](TBD) and the
+For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
 [user guide](docs/user_guide.md).
 
-## Getting Started
+## Documentation
+
+*   [User Guide](docs/user_guide.md)
+*   [Developer Guide](docs/development.md)
+*   [FAQ](docs/faq.md)
+
+## Download and Installation
 
 Download the repo and set up a Python environment:
 
 ```sh
 git clone https://github.com/PAIR-code/lit.git ~/lit
+
+# Set up Python environment
 cd ~/lit
 conda env create -f environment.yml
 conda activate lit-nlp
+conda install cudnn cupti  # optional, for GPU support
+conda install -c pytorch pytorch  # optional, for PyTorch
+
+# Build the frontend
+cd ~/lit/lit_nlp/client
+yarn && yarn build
 ```
 
-Build the frontend (output will be in `~/lit/client/build`). You only need to do
-this once, unless you change the TypeScript or CSS files.
+## Running LIT
+
+### Quick-start: sentiment classifier
 
 ```sh
-cd ~/lit/lit_nlp/client
-yarn  # install deps
-yarn build --watch
+cd ~/lit
+python -m lit_nlp.examples.quickstart_sst_demo --port=5432
 ```
 
-And run a LIT server, such as those included in
-../lit_nlp/examples:
+This will fine-tune a [BERT-tiny](https://arxiv.org/abs/1908.08962) model on the
+[Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
+which should take less than 5 minutes on a GPU. After training completes, it'll
+start a LIT server on the development set; navigate to http://localhost:5432 for
+the UI.
+
+### Quick start: language modeling
+
+To explore predictions from a pretrained language model (BERT or GPT-2), run:
 
 ```sh
 cd ~/lit
@@ -61,30 +82,58 @@ python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased \
   --port=5432
 ```
 
-You can then access the LIT UI at http://localhost:5432.
+And navigate to http://localhost:5432 for the UI.
 
-## Full Documentation
+### More Examples
 
-[Click here for the full documentation site.](docs/index.md)
+See ../lit_nlp/examples. Run similarly to the above:
 
-To learn about the features of the tool as an end-user, check out the
-[user guide](docs/user_guide.md).
+```sh
+cd ~/lit
+python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
+```
+
+## User Guide
+
+To learn about LIT's features, check out the [user guide](user_guide.md), or
+watch this [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
+
+## Adding your own models or data
 
 You can easily run LIT with your own model by creating a custom `demo.py`
-launcher, similar to those in ../lit_nlp/examples. For a full
-walkthrough, see
-[adding models and data](docs/python_api.md#adding-models-and-data).
+launcher, similar to those in ../lit_nlp/examples. The basic
+steps are:
 
+*   Write a data loader which follows the
+    [`Dataset` API](python_api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](python_api.md#models)
+*   Pass models, datasets, and any additional
+    [components](python_api.md#interpretation-components) to the LIT server
+    class
+
+For a full walkthrough, see
+[adding models and data](python_api.md#adding-models-and-data).
+
+## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
 more, both on the frontend or the backend. See the
-[developer guide](docs/development.md) to get started.
+[developer guide](development.md) to get started.
 
 ## Citing LIT
 
 If you use LIT as part of your work, please cite:
 
-TODO: add BibTeX here once we're on arXiv
+```
+@misc{tenney2020language,
+    title={The Language Interpretability Tool: Extensible, Interactive Visualizations and Analysis for NLP Models},
+    author={Ian Tenney and James Wexler and Jasmijn Bastings and Tolga Bolukbasi and Andy Coenen and Sebastian Gehrmann and Ellen Jiang and Mahima Pushkarna and Carey Radebaugh and Emily Reif and Ann Yuan},
+    year={2020},
+    eprint={2008.05122},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
+```
 
 ## Disclaimer
 

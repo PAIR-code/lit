@@ -28,6 +28,8 @@ from lit_nlp.examples.models import pretrained_lms
 
 # NOTE: additional flags defined in server_flags.py
 
+FLAGS = flags.FLAGS
+
 flags.DEFINE_list(
     "models", ["bert-base-uncased"],
     "Models to load. Currently supports variants of BERT and GPT-2.")
@@ -45,7 +47,9 @@ flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
-FLAGS = flags.FLAGS
+# Set default layout to one better suited to language models.
+# You can also change this via URL param e.g. localhost:5432/?layout=default
+FLAGS.set_default("default_layout", "lm")
 
 
 def main(_):

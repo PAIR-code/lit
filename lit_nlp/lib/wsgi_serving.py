@@ -26,17 +26,19 @@ from werkzeug import serving as werkzeug_serving
 class BasicDevServer(object):
   """Basic development server; not recommended for deployment."""
 
-  def __init__(self, wsgi_app, port: int = 4321, **unused_kw):
+  def __init__(self, wsgi_app, port: int = 4321, host: Text = '127.0.0.1',
+               **unused_kw):
     self._port = port
+    self._host = host
     self._app = wsgi_app
     self.can_act_as_model_server = True
 
   def serve(self):
     logging.info(('\n\nStarting Server on port %d'
-                  '\nYou can navigate to http://127.0.0.1:%d\n\n'), self._port,
+                  '\nYou can navigate to %s:%d\n\n'), self._port, self._host,
                  self._port)
     werkzeug_serving.run_simple(
-        '127.0.0.1',
+        self._host,
         self._port,
         self._app,
         use_debugger=False,

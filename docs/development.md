@@ -39,12 +39,12 @@ browser:
 models = {'foo': FooModel(...),
           'bar': BarModel(...)}
 datasets = {'baz': BazDataset(...)}
-server = lit.Server(models, datasets, port=4321)
+server = lit_nlp.dev_server.Server(models, datasets, port=4321)
 server.serve()
 ```
 
-For more, see [adding models and data](python_api.md#adding-models-and-data) or the
-examples in ../lit_nlp/examples.
+For more, see [adding models and data](python_api.md#adding-models-and-data) or
+the examples in ../lit_nlp/examples.
 
 [^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
     not related to the lit-html or lit-element projects.
@@ -63,10 +63,10 @@ might define the following spec:
 ```python
 # dataset.spec()
 {
-  "premise": lit.TextSegment(),
-  "hypothesis": lit.TextSegment(),
-  "label": lit.CategoryLabel(vocab=["entailment", "neutral", "contradiction"]),
-  "genre": lit.CategoryLabel(),
+  "premise": lit_types.TextSegment(),
+  "hypothesis": lit_types.TextSegment(),
+  "label": lit_types.CategoryLabel(vocab=["entailment", "neutral", "contradiction"]),
+  "genre": lit_types.CategoryLabel(),
 }
 ```
 
@@ -88,8 +88,8 @@ subset of the dataset fields:
 ```python
 # model.input_spec()
 {
-  "premise": lit.TextSegment(),
-  "hypothesis": lit.TextSegment(),
+  "premise": lit_types.TextSegment(),
+  "hypothesis": lit_types.TextSegment(),
 }
 ```
 
@@ -98,8 +98,9 @@ And the output spec:
 ```python
 # model.output_spec()
 {
-  "probas": lit.MulticlassPreds(parent="label",
-                                vocab=["entailment", "neutral", "contradiction"]),
+  "probas": lit_types.MulticlassPreds(
+        parent="label",
+        vocab=["entailment", "neutral", "contradiction"]),
 }
 ```
 
@@ -126,7 +127,7 @@ defining multiple `TextSegment` fields as in the above example, while
 multi-headed models can simply define multiple output fields. Furthermore, new
 types can easily be added to support custom input modalities, output types, or
 to provide access to model internals. For a more detailed example, see the
-[`lit.Model` documentation](python_api#models).
+[`Model` documentation](python_api#models).
 
 The actual spec types, such as `MulticlassLabel`, are simple dataclasses (built
 using [`attr.s`](https://www.attrs.org/en/stable/). They are defined in Python,
@@ -134,7 +135,7 @@ but are available in the [TypeScript client](client.md) as well.
 
 [`utils.find_spec_keys()`](../lit_nlp/lib/utils.py)
 (Python) and
-[findSpecKeys()](../lit_nlp/client/lib/utils.ts)
+[`findSpecKeys()`](../lit_nlp/client/lib/utils.ts)
 (TypeScript) are commonly used to interact with a full spec and identify fields
 of interest. These recognize subclasses: for example,
 `utils.find_spec_keys(spec, Scalar)` will also match any `RegressionScore`
