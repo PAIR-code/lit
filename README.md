@@ -95,7 +95,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](user_guide.md), or
+To learn about LIT's features, check out the [user guide](docs/user_guide.md), or
 watch this [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 
 ## Adding your own models or data
@@ -105,20 +105,20 @@ launcher, similar to those in ../lit_nlp/examples. The basic
 steps are:
 
 *   Write a data loader which follows the
-    [`Dataset` API](python_api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](python_api.md#models)
+    [`Dataset` API](docs/python_api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](docs/python_api.md#models)
 *   Pass models, datasets, and any additional
-    [components](python_api.md#interpretation-components) to the LIT server
+    [components](docs/python_api.md#interpretation-components) to the LIT server
     class
 
 For a full walkthrough, see
-[adding models and data](python_api.md#adding-models-and-data).
+[adding models and data](docs/python_api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
 more, both on the frontend or the backend. See the
-[developer guide](development.md) to get started.
+[developer guide](docs/development.md) to get started.
 
 ## Citing LIT
 
