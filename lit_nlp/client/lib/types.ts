@@ -126,6 +126,12 @@ export interface TopKResult {
   1: number;
 }
 
+export interface SpanLabel {
+  'start': number;  // inclusive
+  'end': number;    // exclusive
+  'label': string;
+}
+
 /**
  * Type for d3 scale object used for datapoint coloring.
  */

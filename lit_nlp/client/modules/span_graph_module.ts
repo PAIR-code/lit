@@ -30,19 +30,13 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, EdgeLabel, SpanGraph} from '../elements/span_graph_vis';
-import {IndexedInput, Input, LitName, ModelsMap, Preds, Spec} from '../lib/types';
+import {IndexedInput, Input, LitName, ModelsMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
 
 interface FieldNameMultimap {
   [fieldName: string]: string[];
-}
-
-interface SpanLabel {
-  'start': number;  // inclusive
-  'end': number;    // exclusive
-  'label': string;
 }
 
 interface Annotations {

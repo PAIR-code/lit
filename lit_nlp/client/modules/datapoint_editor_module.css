@@ -28,3 +28,7 @@ textarea {
   resize: vertical;
   height: 100px;
 }
+
+.span-label {
+  font-family: Monospace;
+}

@@ -55,6 +55,12 @@ export function arrayContainsSame<T>(arrayA: T[], arrayB: T[]) {
  * and relies on exporting the Python class hierarchy in the __mro__ field.
  */
 export function isLitSubtype(litType: LitType, typesToFind: LitName|LitName[]) {
+  // TODO(lit-dev): figure out why this is occasionally called on an invalid
+  // spec. Likely due to skew between keys and specs in specific modules when
+  // dataset is changed, but worth diagnosing to make sure this doesn't mask a
+  // larger issue.
+  if (litType == null) return false;
+
   if (typeof typesToFind === 'string') {
     typesToFind = [typesToFind];
   }

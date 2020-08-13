@@ -101,6 +101,19 @@ export const LAYOUTS: LitComponentLayouts = {
     }
   },
   /**
+   * Simplified view for tagging/parsing models
+   */
+  'spangraph':  {
+    components : {
+      'Main': [DataTableModule, DatapointEditorModule],
+      'Predictions': [
+        SpanGraphGoldModule,
+        SpanGraphModule,
+      ],
+      'Counterfactuals': [GeneratorModule],
+    }
+  },
+  /**
    * A default layout for LIT Modules
    */
   'default':  {

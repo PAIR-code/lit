@@ -24,8 +24,8 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
-import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
+import {IndexedInput, LitType, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {compareArrays, findSpecKeys, isLitSubtype, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
 import {ClassificationService, RegressionService, SelectionService} from '../services/services';
@@ -60,6 +60,11 @@ export class DataTableModule extends LitModule {
   @observable modelPredToRegressionInfo = new Map<string, RegressionInfo[]>();
   @observable searchText = '';
   @observable filterSelected = false;
+
+  @computed
+  get dataSpec(): Spec {
+    return this.appState.currentDatasetSpec;
+  }
 
   @computed
   get keys(): string[] {
@@ -167,7 +172,8 @@ export class DataTableModule extends LitModule {
 
       return [
         index, displayId,
-        ...this.keys.map((key) => `${this.formatForDisplay(d.data[key])}`),
+        ...this.keys.map(
+            (key) => this.formatForDisplay(d.data[key], this.dataSpec[key])),
         ...predictionInfoEntries
       ];
     });
@@ -305,9 +311,22 @@ export class DataTableModule extends LitModule {
   /**
    * Formats the following types for display in the data table:
    * string, number, boolean, string[], number[], (string|number)[]
+   * TODO(lit-dev): allow passing custom HTML to table, not just strings.
    */
   // tslint:disable-next-line:no-any
-  formatForDisplay(input: any) {
+  formatForDisplay(input: any, fieldSpec?: LitType): string {
+    if (input == null) return '';
+
+    // Handle SpanLabels, if field spec given.
+    // TODO(lit-dev): handle more fields this way.
+    if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
+      const formattedTags =
+          (input as SpanLabel[])
+              .map((d: SpanLabel) => `[${d.start}, ${d.end}): ${d.label}`);
+      return formattedTags.join(', ');
+    }
+
+    // Generic data, based on type of input.
     if (Array.isArray(input)) {
       const maxWordLength = 25;
       const strings = input.map((item) => {
@@ -319,15 +338,21 @@ export class DataTableModule extends LitModule {
               item :
               item.substring(0, maxWordLength) + '...';
         }
-        return item;
+        return `${item}`;
       });
       return `${strings.join(', ')}`;
-    } else if (typeof input === 'boolean') {
+    }
+
+    if (typeof input === 'boolean') {
       return input ? '✔' : ' ';
-    } else if (typeof input === 'number') {
+    }
+
+    if (typeof input === 'number') {
       return input.toFixed(4).toString();
     }
-    return input;
+
+    // Fallback: just coerce to string.
+    return `${input}`;
   }
 
   /**

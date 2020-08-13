@@ -23,8 +23,8 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {Input, ModelsMap, Spec} from '../lib/types';
-import {handleEnterKey} from '../lib/utils';
+import {Input, LitName, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 
 import {styles} from './datapoint_editor_module.css';
@@ -32,7 +32,7 @@ import {styles as sharedStyles} from './shared_styles.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.
-type InputConverterFn = (s: string) => string|number;
+type InputConverterFn = (s: string) => string|number|string[];
 
 /**
  * A LIT module that allows the user to view and edit a datapoint.
@@ -141,6 +141,28 @@ export class DatapointEditorModule extends LitModule {
     }
   }
 
+  // TODO(lit-dev): move to utils or types.ts?
+  private defaultValueByField(key: string) {
+    const fieldSpec = this.appState.currentDatasetSpec[key];
+    if (isLitSubtype(fieldSpec, 'Scalar')) {
+      return 0;
+    }
+    const listFieldTypes: LitName[] =
+        ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels'];
+    if (isLitSubtype(fieldSpec, listFieldTypes)) {
+      return [];
+    }
+    const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
+    if (isLitSubtype(fieldSpec, stringFieldTypes)) {
+      return '';
+    }
+    console.log(
+        'Warning: default value requested for unrecognized input field type',
+        key, fieldSpec);
+    return '';
+  }
+
+
   private resetEditedData(selectedInputData: Input|null) {
     this.datapointEdited = false;
     const data: Input = {};
@@ -150,7 +172,8 @@ export class DatapointEditorModule extends LitModule {
         this.appState.currentInputDataKeys :
         Object.keys(selectedInputData);
     for (const key of keys) {
-      data[key] = selectedInputData == null ? '' : selectedInputData[key];
+      data[key] = selectedInputData == null ? this.defaultValueByField(key) :
+                                              selectedInputData[key];
     }
     this.editedData = data;
   }
@@ -221,7 +244,8 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  renderEntry(key: string, value: string, editable: boolean) {
+  // tslint:disable-next-line:no-any
+  renderEntry(key: string, value: any, editable: boolean) {
     const handleInputChange =
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
           this.datapointEdited = true;
@@ -276,14 +300,39 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}" .value=${value}></input>`;
     };
 
+    // Render tokens as space-separated, but re-split for editing.
+    const renderTokensInput = () => {
+      const handleTokensInput = (e: Event) => {
+        handleInputChange(e, (value: string) => {
+          return value.split(' ');
+        });
+      };
+      const valueAsString = value ? value.join(' ') : '';
+      return html`
+      <input type="text" class="input-short" @input=${handleTokensInput}
+        ?readonly="${!editable}" .value=${valueAsString}></input>`;
+    };
+
+    // Non-editable render for span labels.
+    const renderSpanLabelsNonEditable = () => {
+      const renderLabel = (d: SpanLabel) => html`<div class="span-label">[${
+          d.start}, ${d.end}): ${d.label}</div>`;
+      return html`${value ? (value as SpanLabel[]).map(renderLabel) : null}`;
+    };
+
     let renderInput = renderFreeformInput;  // default: free text
-    const vocab = this.appState.currentDatasetSpec[key]?.vocab;
+    const fieldSpec = this.appState.currentDatasetSpec[key];
+    const vocab = fieldSpec?.vocab;
     if (vocab != null) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
+    } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
+      renderInput = renderTokensInput;
+    } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
+      renderInput = renderSpanLabelsNonEditable;
     }
 
     const onKeyUp = (e: KeyboardEvent) => {
