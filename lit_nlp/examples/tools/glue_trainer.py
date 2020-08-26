@@ -30,7 +30,6 @@ import tensorflow as tf
 
 
 
-
 flags.DEFINE_string("encoder_name", "bert-base-uncased",
                     "Model name or path to pretrained (base) encoder.")
 flags.DEFINE_string("task", "sst2", "Name of task to fine-tune on.")

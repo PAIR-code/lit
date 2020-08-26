@@ -17,6 +17,17 @@ JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
 
 
+def _from_pretrained(cls, *args, **kw):
+  """Load a transformers model in TF2, with fallback to PyTorch weights."""
+  try:
+    return cls.from_pretrained(*args, **kw)
+  except OSError as e:
+    logging.warning("Caught OSError loading model: %s", e)
+    logging.warning(
+        "Re-trying to convert from PyTorch checkpoint (from_pt=True)")
+    return cls.from_pretrained(*args, from_pt=True, **kw)
+
+
 @attr.s(auto_attribs=True, kw_only=True)
 class GlueModelConfig(object):
   """Config options for a GlueModel."""
@@ -41,6 +52,10 @@ class GlueModel(lit_model.Model):
 
   This implements the LIT API for inference (e.g. input_spec(), output_spec(),
   and predict()), but also provides a train() method to run fine-tuning.
+
+  This is a full-featured implementation, which includes embeddings, attention,
+  gradients, as well as support for the different input and output types above.
+  For a more minimal example, see ../simple_tf2_demo.py.
   """
 
   @property
@@ -63,21 +78,10 @@ class GlueModel(lit_model.Model):
         output_hidden_states=(not for_training),
         output_attentions=(not for_training),
     )
-    model_cls = transformers.TFAutoModelForSequenceClassification
-    try:
-      self.model = model_cls.from_pretrained(
-          model_name_or_path,
-          config=model_config,
-      )
-    except OSError as e:
-      logging.warning("Caught OSError loading model: %s", e)
-      logging.warning(
-          "Re-trying to convert from PyTorch checkpoint (from_pt=True)")
-      self.model = model_cls.from_pretrained(
-          model_name_or_path,
-          config=model_config,
-          from_pt=True,
-      )
+    self.model = _from_pretrained(
+        transformers.TFAutoModelForSequenceClassification,
+        model_name_or_path,
+        config=model_config)
 
   def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
     segments = [

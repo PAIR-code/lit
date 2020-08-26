@@ -21,7 +21,6 @@ from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp.lib import wsgi_serving
 
-
 WSGI_SERVERS = {}
 WSGI_SERVERS['basic'] = wsgi_serving.BasicDevServer
 WSGI_SERVERS['default'] = wsgi_serving.BasicDevServer

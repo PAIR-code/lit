@@ -44,7 +44,7 @@ server.serve()
 ```
 
 For more, see [adding models and data](python_api.md#adding-models-and-data) or
-the examples in ../lit_nlp/examples.
+the examples in [lit_nlp/examples](../lit_nlp/examples).
 
 [^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
     not related to the lit-html or lit-element projects.
@@ -113,7 +113,7 @@ for which example predictions might be:
 }
 ```
 
-_For a more detailed example, see ../lit_nlp/examples._
+_For a more detailed example, see [lit_nlp/examples](../lit_nlp/examples)._
 
 LIT components use this spec to find and operate on relevant fields, as well as
 to access metadata like label vocabularies. For example, the multiclass metrics

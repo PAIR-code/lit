@@ -1,5 +1,7 @@
 # 🔥 Language Interpretability Tool (LIT)
 
+<!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
+
 The Language Interpretability Tool (LIT) is a visual, interactive
 model-understanding tool for NLP models.
 
@@ -57,6 +59,11 @@ cd ~/lit/lit_nlp/client
 yarn && yarn build
 ```
 
+Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
+running yarn on Ubuntu/Debian, be sure you have the
+[correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
+
+
 ## Running LIT
 
 ### Quick-start: sentiment classifier
@@ -86,7 +93,7 @@ And navigate to http://localhost:5432 for the UI.
 
 ### More Examples
 
-See ../lit_nlp/examples. Run similarly to the above:
+See [lit_nlp/examples](./lit_nlp/examples). Run similarly to the above:
 
 ```sh
 cd ~/lit
@@ -101,7 +108,7 @@ watch this [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 ## Adding your own models or data
 
 You can easily run LIT with your own model by creating a custom `demo.py`
-launcher, similar to those in ../lit_nlp/examples. The basic
+launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The basic
 steps are:
 
 *   Write a data loader which follows the
@@ -122,7 +129,7 @@ more, both on the frontend or the backend. See the
 
 ## Citing LIT
 
-If you use LIT as part of your work, please cite:
+If you use LIT as part of your work, please cite [our paper](https://arxiv.org/abs/2008.05122):
 
 ```
 @misc{tenney2020language,
@@ -138,3 +145,9 @@ If you use LIT as part of your work, please cite:
 ## Disclaimer
 
 This is not an official Google product.
+
+LIT is a research project, and under active development by a small team.
+There will be some bugs and rough edges, but we're releasing v0.1 because we
+think it's pretty useful already. We want LIT to be an open platform, not a
+walled garden, and we'd love your suggestions and feedback - drop us a line in
+the [issues](https://github.com/pair-code/lit/issues).

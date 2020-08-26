@@ -29,7 +29,6 @@ from google.cloud import translate_v2 as translate
 JsonDict = types.JsonDict
 
 
-
 class Backtranslator(lit_components.Generator):
   """Use Cloud Translate API as a Generator.
 
