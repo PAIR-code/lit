@@ -27,7 +27,6 @@ flags.
 """
 from absl import flags
 
-
 FLAGS = flags.FLAGS
 
 ##
@@ -36,7 +35,6 @@ flags.DEFINE_integer('port', 5432, 'What port to serve on.')
 flags.DEFINE_string('server_type', 'default',
                     'Webserver to use; see dev_server.py')
 flags.DEFINE_string('host', '127.0.0.1', 'What host address to serve on.')
-
 
 ##
 # LIT application flags, passed to app.LitApp constructor.

@@ -9,8 +9,8 @@ familarity with the basic [system design](development.md#design-overview) and
 the [type system](development.md#type-system).
 
 The following is intended to give a conceptual overview; for the most precise
-documentation, see the code in ../lit_nlp/api and examples
-in ../lit_nlp/examples.
+documentation, see the code in [lit_nlp/api](../lit_nlp/api) and examples
+in [lit_nlp/examples](../lit_nlp/examples).
 
 ## Adding Models and Data
 
@@ -44,7 +44,7 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 [type system](development.md#type-system)) to describe themselves to other
 components.
 
-For full examples, see ../lit_nlp/examples
+For full examples, see [lit_nlp/examples](../lit_nlp/examples)
 
 ## Datasets
 
@@ -396,6 +396,19 @@ from batched requests.
 As with other interpreter components, a generator can take custom arguments
 through `config`, such as the list of substitutions for the
 [word replacer](../lit_nlp/components/word_replacer.py).
+
+#### Backtranslator Generator
+
+The [backtranslator](../lit_nlp/components/backtranslator.py)
+generator translates text segment inputs into foreign languages and back to the
+source language in order to create paraphrases.
+It relies on the Google Cloud Translate API to perform those translations.
+To use it, you must have a Google Cloud project and set up Cloud Translation
+as described at https://cloud.google.com/translate/docs/setup.
+Then, download  your application credentials file locally and set the
+GOOGLE_APPLICATION_CREDENTIALS environment variable to point to that file.
+With that environment variable set to the correct path, LIT can make use of the
+backtranlator generator if you pass it as a generator in the Server constructor.
 
 ## LIT Application & Serving
 

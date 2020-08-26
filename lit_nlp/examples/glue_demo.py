@@ -1,7 +1,6 @@
 # Lint as: python3
 r"""Example demo loading a handful of GLUE models.
 
-
 To run locally:
   python -m lit_nlp.examples.glue_demo \
       --port=5432

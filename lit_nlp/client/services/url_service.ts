@@ -125,7 +125,7 @@ export class UrlService extends LitService {
   private setUrlParam(
       params: URLSearchParams, key: string, data: string|string[]) {
     const value = data instanceof Array ? data.join(',') : data;
-    if (value !== '') {
+    if (value !== '' && value != null) {
       params.set(key, value);
     }
   }
@@ -182,9 +182,8 @@ export class UrlService extends LitService {
       this.setUrlParam(
           urlParams, HIDDEN_MODULES_KEY, [...modulesService.hiddenModuleKeys]);
 
-      this.setUrlParam(urlParams, SELECTED_TAB_KEY, modulesService.selectedTab);
-
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
+      this.setUrlParam(urlParams, SELECTED_TAB_KEY, modulesService.selectedTab);
 
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;

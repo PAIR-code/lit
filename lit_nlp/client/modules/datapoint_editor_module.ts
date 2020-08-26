@@ -303,14 +303,16 @@ export class DatapointEditorModule extends LitModule {
     // Render tokens as space-separated, but re-split for editing.
     const renderTokensInput = () => {
       const handleTokensInput = (e: Event) => {
-        handleInputChange(e, (value: string) => {
-          return value.split(' ');
+        handleInputChange(e, (value: string): string[] => {
+          // If value is empty, return [] instead of ['']
+          return value ? value.split(' ') : [];
         });
       };
       const valueAsString = value ? value.join(' ') : '';
       return html`
-      <input type="text" class="input-short" @input=${handleTokensInput}
-        ?readonly="${!editable}" .value=${valueAsString}></input>`;
+      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
+          handleTokensInput}
+        ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
     // Non-editable render for span labels.

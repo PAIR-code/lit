@@ -21,12 +21,14 @@
 
 // tslint:disable:no-new-decorators
 import '../elements/spinner';
+import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {observable} from 'mobx';
+
 import {styles} from './widget.css';
 
 /**

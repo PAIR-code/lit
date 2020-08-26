@@ -22,7 +22,6 @@ from absl import logging
 from werkzeug import serving as werkzeug_serving
 
 
-
 class BasicDevServer(object):
   """Basic development server; not recommended for deployment."""
 
@@ -43,5 +42,3 @@ class BasicDevServer(object):
         self._app,
         use_debugger=False,
         use_reloader=False)
-
-
