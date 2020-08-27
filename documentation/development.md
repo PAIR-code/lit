@@ -180,6 +180,33 @@ Values can be plain data, NumPy arrays, or custom dataclasses - see
 [serialize.py](../lit_nlp/api/serialize.py) for
 further detail.
 
+### Type system conventions
+
+The semantics of each type are defined individually, and documented in
+[types.py](../lit_nlp/api/types.py); however, there
+are a few conventions we try to follow:
+
+*   The `align=` attribute references another field in the same spec: for
+    example, model output spec may contain `'tokens': lit_types.Tokens(...)` and
+    `'pos': lit_types.SequenceTags(align='tokens')` which references the tokens
+    field.
+
+*   The `parent=` attribute is _usually_ used in model output, and references a
+    field name in the _input_ (i.e. the Dataset spec) that this field can be
+    compared to. For example, the data spec may contain `'label':
+    lit_types.CategoryLabel()` and the model output spec may contain `'probas':
+    lit_types.MulticlassPreds(parent='label', ...)`.
+
+*   A field that appears in _both_ the model's input and output spec is assumed
+    to represent the same value. This pattern is used for model-based input
+    manipulation. For example, a
+    [language model](../lit_nlp/examples/models/pretrained_lms.py)
+    might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
+    input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
+    component could take output from the former, swap one or more tokens (e.g.
+    with `[MASK]`), and feed them in the corresponding input field to compute
+    masked fills.
+
 ## Development Tips
 
 If you're modifying any TypeScript code, you'll need to re-build the frontend.
