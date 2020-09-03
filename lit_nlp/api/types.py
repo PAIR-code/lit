@@ -141,6 +141,7 @@ class SpanLabels(LitType):
   sentence, and may overlap with each other.
   """
   align: Text  # name of Tokens field
+  parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

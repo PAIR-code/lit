@@ -1,6 +1,5 @@
 # Lint as: python3
 """Wrapper for fine-tuned HuggingFace models in LIT."""
-import os
 import re
 from typing import Optional, Dict, List, Iterable
 
@@ -12,6 +11,8 @@ from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
 import transformers
+
+
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
@@ -33,6 +34,7 @@ class GlueModelConfig(object):
   """Config options for a GlueModel."""
   # Preprocessing options
   max_seq_length: int = 128
+  inference_batch_size: int = 32
   # Input options
   text_a_name: str = "sentence1"
   text_b_name: Optional[str] = "sentence2"  # set to None for single-segment
@@ -225,7 +227,7 @@ class GlueModel(lit_model.Model):
   ##
   # LIT API implementation
   def max_minibatch_size(self):
-    return 32
+    return self.config.inference_batch_size
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
@@ -331,7 +333,7 @@ class MNLIModel(GlueModel):
         *args,
         text_a_name="premise",
         text_b_name="hypothesis",
-        labels=["contradiction", "entailment", "neutral"],
+        labels=["entailment", "neutral", "contradiction"],
         **kw)
 
 

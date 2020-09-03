@@ -50,6 +50,8 @@ def history_to_dict(keras_history):
 
 def train_and_save(model, train_data, val_data, train_path):
   """Run training and save model."""
+  # Set up logging for TensorBoard. To view, run:
+  #   tensorboard --log_dir=<train_path>/tensorboard
   keras_callbacks = [
       tf.keras.callbacks.TensorBoard(
           log_dir=os.path.join(train_path, "tensorboard"))
@@ -58,13 +60,17 @@ def train_and_save(model, train_data, val_data, train_path):
       train_data.examples,
       validation_inputs=val_data.examples,
       keras_callbacks=keras_callbacks)
+
   # Save training history too, since this is human-readable and more concise
   # than the TensorBoard log files.
   with open(os.path.join(train_path, "train.history.json"), "w") as fd:
     # Use LIT's custom JSON encoder to handle dicts containing NumPy data.
     fd.write(serialize.to_json(history_to_dict(history), simple=True, indent=2))
+
   # Save model weights and config files.
   model.save(train_path)
+  logging.info("Saved model files: \n  %s",
+               "\n  ".join(gfile.ListDir(train_path)))
 
 
 def main(_):

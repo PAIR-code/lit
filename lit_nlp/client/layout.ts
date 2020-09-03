@@ -110,6 +110,9 @@ export const LAYOUTS: LitComponentLayouts = {
         SpanGraphGoldModule,
         SpanGraphModule,
       ],
+      'Performance': [
+        MetricsModule,
+      ],
       'Counterfactuals': [GeneratorModule],
     }
   },

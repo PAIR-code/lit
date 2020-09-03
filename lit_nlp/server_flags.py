@@ -34,14 +34,15 @@ FLAGS = flags.FLAGS
 flags.DEFINE_integer('port', 5432, 'What port to serve on.')
 flags.DEFINE_string('server_type', 'default',
                     'Webserver to use; see dev_server.py')
-flags.DEFINE_string('host', '127.0.0.1', 'What host address to serve on.')
+flags.DEFINE_string(
+    'host', '127.0.0.1', 'What host address to serve on. Use 127.0.0.1 for '
+    'local development, or 0.0.0.0 to allow external connections.')
 
 ##
 # LIT application flags, passed to app.LitApp constructor.
 flags.DEFINE_string(
-    'data_dir', '/tmp/lit_data',
-    'Directory to store/lookup persisted data used by server, '
-    'such as cached predictions.')
+    'data_dir', '', 'Directory to store/lookup persisted data used by server, '
+    'such as cached predictions. If empty, will cache in-memory only.')
 flags.DEFINE_float(
     'warm_start', 0.0,
     'If 1, will run all (model, dataset) on startup to populate the cache. '
@@ -56,7 +57,7 @@ flags.DEFINE_bool(
     'saving generated datapoints to disk.')
 flags.DEFINE_string(
     'default_layout', 'default',
-    'Which layout to use by default (can be changed via url.) See layout.ts')
+    'Which layout to use by default (can be changed via url); see layout.ts')
 
 flags.DEFINE_string('client_root', './lit_nlp/client/build/',
                     'Path to frontend client.')

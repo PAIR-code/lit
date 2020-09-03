@@ -276,6 +276,7 @@ class LitApp(object):
       models: Mapping[Text, lit_model.Model],
       datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
+      interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,
@@ -304,24 +305,25 @@ class LitApp(object):
           'word_replacer': word_replacer.WordReplacer(),
       }
 
-    # TODO(iftenney): make this configurable.
-    self._interpreters = {
-        'grad_norm': gradient_maps.GradientNorm(),
-        'lime': lime_explainer.LIME(),
-        'counterfactual explainer': lemon_explainer.LEMON(),
-    }
-    metrics_group = lit_components.ComponentGroup({
-        'regression': metrics.RegressionMetrics(),
-        'multiclass': metrics.MulticlassMetrics(),
-        'paired': metrics.MulticlassPairedMetrics(),
-        'bleu': metrics.CorpusBLEU(),
-    })
-    self._interpreters['metrics'] = metrics_group
-
-    # Embedding projectors expose a standard interface, but get special
-    # handling so we can precompute the projections if requested.
-    self._interpreters['pca'] = projection.ProjectionManager(pca.PCAModel)
-    self._interpreters['umap'] = projection.ProjectionManager(umap.UmapModel)
+    if interpreters is not None:
+      self._interpreters = interpreters
+    else:
+      metrics_group = lit_components.ComponentGroup({
+          'regression': metrics.RegressionMetrics(),
+          'multiclass': metrics.MulticlassMetrics(),
+          'paired': metrics.MulticlassPairedMetrics(),
+          'bleu': metrics.CorpusBLEU(),
+      })
+      self._interpreters = {
+          'grad_norm': gradient_maps.GradientNorm(),
+          'lime': lime_explainer.LIME(),
+          'counterfactual explainer': lemon_explainer.LEMON(),
+          'metrics': metrics_group,
+          # Embedding projectors expose a standard interface, but get special
+          # handling so we can precompute the projections if requested.
+          'pca': projection.ProjectionManager(pca.PCAModel),
+          'umap': projection.ProjectionManager(umap.UmapModel),
+      }
 
     # Information on models and datasets.
     self._build_metadata()

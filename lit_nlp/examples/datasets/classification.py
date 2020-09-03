@@ -1,12 +1,23 @@
 # Lint as: python3
 """Text classification datasets, including single- and two-sentence tasks."""
+from typing import List
 
+from absl import logging
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 import pandas as pd
 import tensorflow_datasets as tfds
 
 
+
+
+def load_tfds(*args, **kw):
+  """Load from TFDS."""
+  # Materialize to NumPy arrays.
+  # This also ensures compatibility with TF1.x non-eager mode, which doesn't
+  # support direct iteration over a tf.data.Dataset.
+  return list(
+      tfds.as_numpy(tfds.load(*args, download=True, try_gcs=True, **kw)))
 
 
 class MNLIDataFromTSV(lit_dataset.Dataset):
@@ -20,7 +31,7 @@ class MNLIDataFromTSV(lit_dataset.Dataset):
   https://gluebenchmark.com/tasks, and provide a path to the .tsv file.
   """
 
-  LABELS3 = ["contradiction", "entailment", "neutral"]
+  LABELS3 = ["entailment", "neutral", "contradiction"]
   LABELS2 = ["non-entailment", "entailment"]
 
   def binarize_label(self, label):
@@ -48,6 +59,46 @@ class MNLIDataFromTSV(lit_dataset.Dataset):
         "label": lit_types.CategoryLabel(vocab=self.LABELS3),
         "label2": lit_types.CategoryLabel(vocab=self.LABELS2),
         "genre": lit_types.CategoryLabel(),
+    }
+
+
+class XNLIData(lit_dataset.Dataset):
+  """Cross-lingual NLI; see https://cims.nyu.edu/~sbowman/xnli/."""
+
+  LABELS = ["entailment", "neutral", "contradiction"]
+
+  def _process_example(self, ex, languages: List[str]):
+    # Hypothesis is stored as parallel arrays, so make a map.
+    hyp_map = {
+        lang.decode("utf-8"): hyp.decode("utf-8") for lang, hyp in zip(
+            ex["hypothesis"]["language"], ex["hypothesis"]["translation"])
+    }
+    for lang in languages:
+      if lang not in hyp_map:
+        logging.warning("Missing hypothesis (lang=%s) for premise '%s'", lang,
+                        ex["premise"]["lang"].decode("utf-8"))
+        continue
+      yield {
+          "premise": ex["premise"][lang].decode("utf-8"),
+          "hypothesis": hyp_map[lang],
+          "label": self.LABELS[ex["label"]],
+          "language": lang,
+      }
+
+  def __init__(self, split: str, languages=("en", "es", "hi", "zh")):
+    self._examples = []
+    for ex in load_tfds("xnli", split=split):
+      # Each TFDS example contains all the translations; we unpack to individual
+      # (premise, hypothesis) pairs that are compatible with a standard NLI
+      # model.
+      self._examples.extend(self._process_example(ex, languages))
+
+  def spec(self):
+    return {
+        "premise": lit_types.TextSegment(),
+        "hypothesis": lit_types.TextSegment(),
+        "label": lit_types.CategoryLabel(vocab=self.LABELS),
+        "language": lit_types.CategoryLabel(),
     }
 
 
@@ -87,8 +138,7 @@ class IMDBData(lit_dataset.Dataset):
 
   def __init__(self, split="test", max_seq_len=500):
     """Dataset constructor, loads the data into memory."""
-    ds = tfds.load("imdb_reviews", split=split, download=True, try_gcs=True)
-    raw_examples = list(tfds.as_numpy(ds))
+    raw_examples = load_tfds("imdb_reviews", split=split)
     self._examples = []  # populate this with data records
     for record in raw_examples:
       # format and truncate from the end to max_seq_len tokens.

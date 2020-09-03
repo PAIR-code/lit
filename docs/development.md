@@ -171,3 +171,39 @@ Values can be plain data, NumPy arrays, or custom dataclasses - see
 [dtypes.py](../lit_nlp/api/dtypes.py) and
 [serialize.py](../lit_nlp/api/serialize.py) for
 further detail.
+
+## Development Tips
+
+If you're modifying any TypeScript code, you'll need to re-build the frontend.
+You can have yarn do this automatically. In one terminal, run:
+
+```sh
+cd ~/lit/lit_nlp/client
+yarn
+yarn build --watch
+```
+
+And in the second, run the LIT server:
+
+```sh
+cd ~/lit
+python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
+```
+
+You can then access the LIT UI at http://localhost:5432.
+
+If you only change frontend files, you can use `Ctrl+Shift+R` to do a hard
+refresh in your browser, and it should automatically pick up the updated source
+from the build output.
+
+If you're modifying the Python backend, there is experimental support for
+hot-reloading the LIT application logic (`app.py`) and some dependencies without
+needing to re-load models or datasets. See
+../lit_nlp/dev_server.py for details.
+
+You can use the `--data_dir` flag (see
+../lit_nlp/server_flags.py) to save the predictions cache to
+disk, and automatically re-load it on a subsequent run. In conjunction with
+`--warm_start`, you can use this to avoid re-running inference during
+development - though if you modify the model at all, you should be sure to
+remove any stale cache files.

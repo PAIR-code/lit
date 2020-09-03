@@ -44,7 +44,12 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 [type system](development.md#type-system)) to describe themselves to other
 components.
 
-For full examples, see [lit_nlp/examples](../lit_nlp/examples)
+For full examples, see [lit_nlp/examples](../lit_nlp/examples). In particular:
+
+*   [`simple_tf2_demo.py`](../lit_nlp/examples/simple_tf2_demo.py)
+    for a self-contained Keras/TF2 model for sentiment analysis.
+*   [`simple_pytorch_demo.py`](../lit_nlp/examples/simple_pytorch_demo.py)
+    for a self-contained PyTorch model for sentiment analysis.
 
 ## Datasets
 
@@ -203,9 +208,9 @@ have the following `output_spec()`:
       'output_embs': lit_types.Embeddings(),      # from [CLS] token at top layer
       'mean_word_embs':  lit_types.Embeddings(),  # mean of input word embeddings
       # In LIT, we treat tokens as another model output. There can be more than one,
-      # and the 'align' field describes which input segment they correspond to.
-      'premise_tokens': lit_types.Tokens(align='premise'),
-      'hypothesis_tokens': lit_types.Tokens(align='hypothesis'),
+      # and the 'parent' field describes which input segment they correspond to.
+      'premise_tokens': lit_types.Tokens(parent='premise'),
+      'hypothesis_tokens': lit_types.Tokens(parent='hypothesis'),
       # Gradients are also returned by the model; 'align' here references a Tokens field.
       'premise_grad': lit_types.TokenGradients(align='premise_tokens'),
       'hypothesis_grad': lit_types.TokenGradients(align='hypothesis_tokens'),
