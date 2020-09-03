@@ -153,7 +153,7 @@ class MNLIData(lit_dataset.Dataset):
   See https://www.tensorflow.org/datasets/catalog/glue#gluemnli.
   """
 
-  LABELS = ['contradiction', 'entailment', 'neutral']
+  LABELS = ['entailment', 'neutral', 'contradiction']
 
   def __init__(self, split: str):
     self._examples = []
@@ -253,7 +253,7 @@ class DiagnosticNLIData(lit_dataset.Dataset):
   See https://www.tensorflow.org/datasets/catalog/glue#glueax.
   """
 
-  LABELS = ['contradiction', 'entailment', 'neutral']
+  LABELS = ['entailment', 'neutral', 'contradiction']
 
   def __init__(self, split: str):
     self._examples = []

@@ -80,7 +80,7 @@ export class MetricsModule extends LitModule {
     return html`<metrics-module></metrics-module>`;
   };
   static supportedPredTypes: LitName[] =
-      ['RegressionScore', 'MulticlassPreds', 'GeneratedText'];
+      ['RegressionScore', 'MulticlassPreds', 'GeneratedText', 'SpanLabels'];
 
   static duplicateForModelComparison = false;
 
