@@ -26,6 +26,8 @@ from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.models import pretrained_lms
 
+
+
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
@@ -47,6 +49,13 @@ flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
+flags.DEFINE_bool(
+    "use_pt", False,
+    "If true, will use tensorflow model, else use pytorch model."
+)
+
+# python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased --use_pt --port=5432
+
 # Set default layout to one better suited to language models.
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
@@ -63,21 +72,21 @@ def main(_):
     model_name = os.path.basename(model_name_or_path)
     if model_name.startswith("bert-"):
       models[model_name] = pretrained_lms.BertMLM(
-          model_name_or_path, top_k=FLAGS.top_k)
+          model_name_or_path, use_pt=FLAGS.use_pt, top_k=FLAGS.top_k)
     elif model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
       models[model_name] = pretrained_lms.GPT2LanguageModel(
-          model_name_or_path, top_k=FLAGS.top_k)
+          model_name_or_path, use_pt=FLAGS.use_pt, top_k=FLAGS.top_k)
     else:
       raise ValueError(
           f"Unsupported model name '{model_name}' from path '{model_name_or_path}'"
       )
 
   datasets = {
-      # Single sentences from movie reviews (SST dev set).
-      "sst_dev": glue.SST2Data("validation").remap({"sentence": "text"}),
-      # Longer passages from movie reviews (IMDB dataset, test split).
-      "imdb_train": classification.IMDBData("test"),
-      # Empty dataset, if you just want to type sentences into the UI.
+      # # Single sentences from movie reviews (SST dev set).
+      # "sst_dev": glue.SST2Data("validation").remap({"sentence": "text"}),
+      # # Longer passages from movie reviews (IMDB dataset, test split).
+      # "imdb_train": classification.IMDBData("test"),
+      # # Empty dataset, if you just want to type sentences into the UI.
       "blank": lm.PlaintextSents(""),
   }
   # Guard this with a flag, because TFDS will download and process 1.67 GB
