@@ -15,11 +15,9 @@ from lit_nlp.lib import utils
 
 import numpy as np
 import tensorflow as tf
-from transformers import GPT2LMHeadModel
 import torch
 import transformers
 
-from lit_nlp.examples.models.encoder import get_encoder
 
 class BertMLM(lit_model.Model):
   """BERT masked LM using Huggingface Transformers and TensorFlow 2."""
@@ -34,18 +32,19 @@ class BertMLM(lit_model.Model):
   def max_seq_length(self):
     return self.model.config.max_position_embeddings
 
-  def __init__(self, model_name="bert-base-uncased", use_tf=False, top_k=10):
+  def __init__(self, model_name="bert-base-uncased", use_pt=False, top_k=10):
     super().__init__()
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
-    self.use_tf = use_tf
+    self.use_pt = use_pt
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
-    if self.use_tf:
-      self.model = transformers.TFBertForMaskedLM.from_pretrained(
-            model_name, output_hidden_states=True, output_attentions=True)
-    else:
+    if self.use_pt:
       self.model = transformers.BertForMaskedLM.from_pretrained(
             model_name, output_hidden_states=True, output_attentions=True)
+    else:
+      self.model = transformers.TFBertForMaskedLM.from_pretrained(
+            model_name, output_hidden_states=True, output_attentions=True)
+
     self.top_k = top_k
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
@@ -109,20 +108,10 @@ class BertMLM(lit_model.Model):
         ex.get("tokens") or self.tokenizer.tokenize(ex["text"]) for ex in inputs
     ]
     # Process to ids, add special tokens, and compute segment ids and masks.
-
-    if self.use_tf:
-      encoded_input = self.tokenizer.batch_encode_plus(
+    encoded_input = self.tokenizer.batch_encode_plus(
             tokenized_texts,
             is_pretokenized=True,
-            return_tensors="tf",
-            add_special_tokens=True,
-            max_length=self.max_seq_length,
-            pad_to_max_length=True)
-    else:
-      encoded_input = self.tokenizer.batch_encode_plus(
-            tokenized_texts,
-            is_pretokenized=True,
-            return_tensors="pt",
+            return_tensors="pt" if self.use_pt else "tf",
             add_special_tokens=True,
             max_length=self.max_seq_length,
             pad_to_max_length=True)
@@ -132,12 +121,12 @@ class BertMLM(lit_model.Model):
     # that if the max is < model_max_length, we end up with extra padding.
     # Thee lines below strip this off.
     # TODO(lit-dev): submit a PR to make this possible with tokenizer options?
-    if self.use_tf:
-      max_tokens = tf.reduce_max(
-            tf.reduce_sum(encoded_input["attention_mask"], axis=1))
-    else:
+    if self.use_pt:
       max_tokens = torch.max(
             torch.sum(encoded_input["attention_mask"], dim=1))
+    else:
+      max_tokens = tf.reduce_max(
+            tf.reduce_sum(encoded_input["attention_mask"], axis=1))
     encoded_input = {k: v[:, :max_tokens] for k, v in encoded_input.items()}
 
 
@@ -148,24 +137,21 @@ class BertMLM(lit_model.Model):
     # attentions is a list of num_layers tensors, each
     #    <float32>[batch_size, num_heads, num_tokens, num_tokens]
 
-    if self.use_tf:
-      logits, embs, unused_attentions = self.model(encoded_input)
-    else:
+    if self.use_pt:
       with torch.no_grad():
-            logits, embs, unused_attentions = self.model(**encoded_input)
-
-    if self.use_tf:
+        logits, embs, unused_attentions = self.model(**encoded_input)
+      batched_outputs = {
+          "probas": torch.softmax(logits, dim=-1).numpy(),
+          "input_ids": encoded_input["input_ids"].numpy(),
+          "ntok": torch.sum(encoded_input["attention_mask"], dim=1).numpy(),
+          "cls_emb": embs[-1][:, 0].numpy(),  # last layer, first token
+      }
+    else:
+      logits, embs, unused_attentions = self.model(encoded_input)
       batched_outputs = {
             "probas": tf.nn.softmax(logits, axis=-1).numpy(),
             "input_ids": encoded_input["input_ids"].numpy(),
             "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1).numpy(),
-            "cls_emb": embs[-1][:, 0].numpy(),  # last layer, first token
-        }
-    else:
-      batched_outputs = {
-            "probas": torch.softmax(logits, dim=-1).numpy(),
-            "input_ids": encoded_input["input_ids"].numpy(),
-            "ntok": torch.sum(encoded_input["attention_mask"], dim=1).numpy(),
             "cls_emb": embs[-1][:, 0].numpy(),  # last layer, first token
         }
     # List of dicts, one per example.
@@ -208,7 +194,7 @@ class GPT2LanguageModel(lit_model.Model):
   def num_layers(self):
     return self.model.config.n_layer
 
-  def __init__(self, model_name="gpt2", use_tf=False, top_k=10):
+  def __init__(self, model_name="gpt2", use_pt=False, top_k=10):
     """Constructor for GPT2LanguageModel.
 
     Args:
@@ -220,14 +206,15 @@ class GPT2LanguageModel(lit_model.Model):
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name, pad_token="<pad>")
 
-    self.use_tf = use_tf
+    self.use_pt = use_pt
 
-    if self.use_tf:
-      self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
-            model_name, output_hidden_states=True, output_attentions=True)
-    else:
+    if self.use_pt:
       self.model = transformers.GPT2LMHeadModel.from_pretrained(
             model_name, output_hidden_states=True, output_attentions=True)
+    else:
+      self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
+            model_name, output_hidden_states=True, output_attentions=True)
+
     self.top_k = top_k
 
   @staticmethod
@@ -267,16 +254,7 @@ class GPT2LanguageModel(lit_model.Model):
     with torch.no_grad():
       logits, _, states, attentions = self.model(encoded_inputs["input_ids"])
 
-    if self.use_tf:
-      model_probs = tf.nn.softmax(logits, axis=-1)
-      top_k = tf.math.top_k(model_probs, k=self.top_k, sorted=True, name=None)
-      batched_outputs = {
-        "input_ids": encoded_inputs["input_ids"],
-        "ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
-        "top_k_indices": top_k.indices,
-        "top_k_probs": top_k.values,
-    }
-    else:
+    if self.use_pt:
       model_probs = torch.softmax(logits, dim=-1)
       value, indices = torch.topk(model_probs, k=self.top_k, sorted=True)
       batched_outputs = {
@@ -285,18 +263,26 @@ class GPT2LanguageModel(lit_model.Model):
             "top_k_indices": indices,
             "top_k_probs": value,
         }
+    else:
+      model_probs = tf.nn.softmax(logits, axis=-1)
+      top_k = tf.math.top_k(model_probs, k=self.top_k, sorted=True, name=None)
+      batched_outputs = {
+            "input_ids": encoded_inputs["input_ids"],
+            "ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
+            "top_k_indices": top_k.indices,
+            "top_k_probs": top_k.values,
+        }
 
     # Convert representations for each layer from tuples to single Tensor.
     for i in range(len(attentions)):
       batched_outputs[f"layer_{i:d}_attention"] = attentions[i]
     for i in range(len(states)):
-      if self.use_tf:
-        batched_outputs[f"layer_{i:d}_avg_embedding"] = tf.math.reduce_mean(
-              states[i], axis=1)
-      else:
+      if self.use_pt:
         batched_outputs[f"layer_{i:d}_avg_embedding"] = torch.mean(
               states[i], dim=1)
-
+      else:
+        batched_outputs[f"layer_{i:d}_avg_embedding"] = tf.math.reduce_mean(
+              states[i], axis=1)
     return batched_outputs
 
   def _postprocess(self, preds):
@@ -329,20 +315,12 @@ class GPT2LanguageModel(lit_model.Model):
     """Predict on a single minibatch of examples."""
     # Preprocess inputs.
     texts = [ex["text"] for ex in inputs]
-    if self.use_tf:
-        encoded_inputs = self.tokenizer.batch_encode_plus(
-            texts,
-            return_tensors="tf",
-            add_special_tokens=True,
-            add_prefix_space=True,
-            pad_to_max_length=True)
-    else:
-        encoded_inputs = self.tokenizer.batch_encode_plus(
-            texts,
-            return_tensors="pt",
-            add_special_tokens=True,
-            add_prefix_space=True,
-            pad_to_max_length=True)
+    encoded_inputs = self.tokenizer.batch_encode_plus(
+        texts,
+        return_tensors="pt" if self.use_pt else "tf",
+        add_special_tokens=True,
+        add_prefix_space=True,
+        pad_to_max_length=True)
     # Get the predictions.
     batched_outputs = self._pred(encoded_inputs)
     # Convert to numpy for post-processing.
@@ -367,7 +345,6 @@ class GPT2LanguageModel(lit_model.Model):
           align=("tokens", "tokens"))
       spec[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
     return spec
-
 
 
 
