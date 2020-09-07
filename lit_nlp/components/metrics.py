@@ -166,6 +166,10 @@ class RegressionMetrics(SimpleMetrics):
     if not labels or not preds:
       return {}
 
+    if len(labels)<2:
+      logging.warning("Number of selected items needs to be bigger than 2")
+      return {}
+
     mse = sklearn_metrics.mean_squared_error(labels, preds)
     pearsonr = scipy_stats.pearsonr(labels, preds)[0]
     spearmanr = scipy_stats.spearmanr(labels, preds)[0]
