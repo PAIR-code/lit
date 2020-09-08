@@ -145,10 +145,10 @@ class SimpleSentimentModel(lit_model.Model):
     for output in utils.unbatch_preds(detached_outputs):
       ntok = output.pop("ntok")
       output["tokens"] = self.tokenizer.convert_ids_to_tokens(
-          output.pop("input_ids")[1:ntok - 1])
+          output.pop("input_ids")[:ntok])
 
       if self.compute_grads:
-        output["token_grad_sentence"] = output["input_emb_grad"][1:ntok - 1]
+        output["token_grad_sentence"] = output["input_emb_grad"][:ntok]
       if self.use_attentions:
         # Process attention.
         for key in output:
