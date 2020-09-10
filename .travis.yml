@@ -1,0 +1,50 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+# Config file for Travis CI.
+language: python
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+install:
+  # Install/setup conda.
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source "$HOME/miniconda/etc/profile.d/conda.sh"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda.
+  - conda info -a
+
+  # Install yarn.
+  - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+  - echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+  - sudo apt update && sudo apt install yarn
+
+  # Create conda environment for LIT and install requirements.
+  - conda env create -f environment.yml
+  - conda activate lit-nlp
+
+  # Install other deps for the testing script below.
+  - pip install pytest
+
+script:
+  # Build front-end.
+  - pushd lit_nlp/client && yarn && yarn build && popd
+  # Test python code.
+  - pytest -v
+  # TODO(jwexler): Test typescript code.
