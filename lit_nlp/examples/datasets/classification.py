@@ -9,8 +9,6 @@ import pandas as pd
 import tensorflow_datasets as tfds
 
 
-
-
 def load_tfds(*args, **kw):
   """Load from TFDS."""
   # Materialize to NumPy arrays.

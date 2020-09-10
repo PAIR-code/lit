@@ -17,6 +17,7 @@
 
 import collections
 import functools
+import glob
 import os
 import pickle
 import random
@@ -42,7 +43,6 @@ from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
-import glob
 
 
 JsonDict = types.JsonDict

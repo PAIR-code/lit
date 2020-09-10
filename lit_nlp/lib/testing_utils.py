@@ -136,3 +136,11 @@ def fake_projection_input(n, num_dims):
   """Generates random embeddings in the correct format."""
   rng = np.random.RandomState(42)
   return [{'x': rng.rand(num_dims)} for i in range(n)]
+
+
+def assert_dicts_almost_equal(testcase, result, actual, places=3):
+  """Checks if provided dicts are almost equal."""
+  if set(result.keys()) != set(actual.keys()):
+    testcase.fail('results and actual have different keys')
+  for key in result:
+    testcase.assertAlmostEqual(result[key], actual[key], places=places)
