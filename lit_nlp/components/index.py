@@ -30,7 +30,6 @@ from lit_nlp.lib import caching
 from lit_nlp.lib import utils
 
 
-
 class Indexer(object):
   """Class to build and search annoy indices.
 

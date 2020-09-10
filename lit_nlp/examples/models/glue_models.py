@@ -1,5 +1,6 @@
 # Lint as: python3
 """Wrapper for fine-tuned HuggingFace models in LIT."""
+
 import os
 import re
 from typing import Optional, Dict, List, Iterable
@@ -12,8 +13,6 @@ from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
 import transformers
-
-
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec

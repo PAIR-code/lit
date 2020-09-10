@@ -28,8 +28,6 @@ from lit_nlp.examples.models import glue_models
 from lit_nlp.lib import serialize
 import tensorflow as tf
 
-
-
 flags.DEFINE_string("encoder_name", "bert-base-uncased",
                     "Model name or path to pretrained (base) encoder.")
 flags.DEFINE_string("task", "sst2", "Name of task to fine-tune on.")
@@ -70,7 +68,7 @@ def train_and_save(model, train_data, val_data, train_path):
   # Save model weights and config files.
   model.save(train_path)
   logging.info("Saved model files: \n  %s",
-               "\n  ".join(gfile.ListDir(train_path)))
+               "\n  ".join(os.listdir(train_path)))
 
 
 def main(_):

@@ -25,6 +25,10 @@ Usage:
 TODO(lit-dev): consider defining a single ConfigDict instead of individual
 flags.
 """
+
+import os
+import pathlib
+
 from absl import flags
 
 FLAGS = flags.FLAGS
@@ -59,8 +63,10 @@ flags.DEFINE_string(
     'default_layout', 'default',
     'Which layout to use by default (can be changed via url); see layout.ts')
 
-flags.DEFINE_string('client_root', './lit_nlp/client/build/',
-                    'Path to frontend client.')
+flags.DEFINE_string(
+    'client_root',
+    os.path.join(pathlib.Path(__file__).parent.absolute(), 'client', 'build'),
+   'Path to frontend client.')
 
 
 def get_flags():

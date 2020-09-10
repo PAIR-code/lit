@@ -28,7 +28,6 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import serialize
 
-
 JsonDict = types.JsonDict
 
 # Compound keys: (dataset_name, example_id)
