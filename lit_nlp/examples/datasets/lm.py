@@ -1,12 +1,11 @@
 # Lint as: python3
 """Language modeling datasets."""
 
+import glob
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 
 import tensorflow_datasets as tfds
-
-import glob
 
 
 class PlaintextSents(lit_dataset.Dataset):
