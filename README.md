@@ -42,6 +42,11 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 
 ## Download and Installation
 
+LIT can be installed via pip, or can be built from source. Building from source
+is necessary if you wish to update any of the front-end or core back-end code.
+
+### Install from source
+
 Download the repo and set up a Python environment:
 
 ```sh
@@ -63,6 +68,18 @@ Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
 running yarn on Ubuntu/Debian, be sure you have the
 [correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
 
+### pip installation
+
+```sh
+pip install lit-nlp
+```
+
+The pip installation will install all necessary prerequisite packages for use
+of the core LIT package. It also installs the code to run our demo examples.
+It does not install the prerequisites for those demos, so you need to install
+those yourself if you wish to run the demos. See
+[environment.yml](./environment.yml) for the list of all packages needed for
+running the demos.
 
 ## Running LIT
 
