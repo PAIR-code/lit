@@ -1,7 +1,7 @@
 #at-top {
   top: 0;
   position: sticky;
-  z-index: 1;
+  z-index: 3;
 }
 
 #toolbar {
