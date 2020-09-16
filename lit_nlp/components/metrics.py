@@ -30,7 +30,6 @@ import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
-import math
 
 JsonDict = types.JsonDict
 Spec = types.Spec
