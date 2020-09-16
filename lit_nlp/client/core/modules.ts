@@ -181,7 +181,9 @@ export class LitModules extends LitElement {
 
   renderComponentType(configGroup: RenderConfig[]) {
     const modulesInGroup = configGroup.length > 1;
-    const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
+    const duplicateAsRow = (configGroup.length > 0)
+      ? configGroup[0].moduleType.duplicateAsRow
+      : false;
     const componentsHTML = configGroup.map(
         config => this.renderModule(config, modulesInGroup && !duplicateAsRow));
     if (modulesInGroup) {
