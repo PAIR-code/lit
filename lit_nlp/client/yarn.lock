@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@adobe/lit-mobx@0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@adobe/lit-mobx/-/lit-mobx-0.0.3.tgz#1e48dfbc6e2e235aa2a7a1fc00f0b663ac01cf62"
-  integrity sha512-RZswTecu8rO5yBoivnc70Q8UDsMN3y9u1RylTCLoOivsyYcnjY/1zFxIk68s2ATYBj4bRq3o5kb7mhNCar5qvA==
+"@adobe/lit-mobx@0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@adobe/lit-mobx/-/lit-mobx-0.0.4.tgz#e874937d01c8b51aaf4129765d353acee5cec661"
+  integrity sha512-tA64LVBDWowxhHZA31QSzMo+Q9ka1s5Kmy2OfuPUOFiwnmOwiV0oo7++KzulRCfysjLg27Suy8DF6uz1Lo4eaQ==
 
 "@material/animation@7.0.0-canary.d92d8c93e.0":
   version "7.0.0-canary.d92d8c93e.0"
