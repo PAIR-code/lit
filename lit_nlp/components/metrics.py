@@ -30,6 +30,7 @@ import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
+import math
 
 JsonDict = types.JsonDict
 Spec = types.Spec
@@ -166,12 +167,11 @@ class RegressionMetrics(SimpleMetrics):
     if not labels or not preds:
       return {}
 
-    if len(labels)<2:
-      logging.warning("Number of selected items needs to be bigger than 2")
-      return {}
-
     mse = sklearn_metrics.mean_squared_error(labels, preds)
-    pearsonr = scipy_stats.pearsonr(labels, preds)[0]
+    if len(labels)<2: # Check if only one point selected.
+      pearsonr = np.nan
+    else:    
+      pearsonr = scipy_stats.pearsonr(labels, preds)[0]
     spearmanr = scipy_stats.spearmanr(labels, preds)[0]
     return {'mse': mse, 'pearsonr': pearsonr, 'spearmanr': spearmanr}
 
