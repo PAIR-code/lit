@@ -55,6 +55,14 @@ export class ColorService extends LitService {
   @observable selectedColorOption = this.defaultOption;
 
   @computed
+  get all() {
+    return [
+      this.selectedColorOption,
+      this.classificationService.allMarginSettings
+    ];
+  }
+
+  @computed
   get colorableOptions() {
     const catInputFeatureOptions =
         this.groupService.categoricalFeatureNames.map((feature: string) => {
