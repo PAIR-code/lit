@@ -212,7 +212,7 @@ export class DatapointEditorModule extends LitModule {
       const toCreate = [[this.editedData]];
       const ids = [this.selectionService.primarySelectedId!];
       const datapoints =
-          await this.appState.createNewDatapoints(toCreate, ids, 'manual');
+          await this.appState.createNewDatapoints(toCreate, ids, 'manual', '(manual)');
       this.selectionService.selectIds(datapoints.map(d => d.id));
     };
     const onClickReset = () => {

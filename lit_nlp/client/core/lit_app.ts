@@ -34,6 +34,7 @@ import {SliceService} from '../services/slice_service';
 import {AppState} from '../services/state_service';
 import {StatusService} from '../services/status_service';
 import {UrlService} from '../services/url_service';
+import {DeltasService} from '../services/deltas_service';
 
 
 /**
@@ -141,6 +142,8 @@ export class LITApp {
     const groupService = new GroupService(appState);
     const colorService = new ColorService(
         appState, groupService, classificationService, regressionService);
+    const deltasService = new DeltasService(
+        appState, selectionService, classificationService, regressionService);
 
     selectionService.setAppState(appState);
 
@@ -160,6 +163,7 @@ export class LITApp {
     this.services.set(SliceService, sliceService);
     this.services.set(StatusService, statusService);
     this.services.set(UrlService, urlService);
+    this.services.set(DeltasService, deltasService);
   }
 }
 

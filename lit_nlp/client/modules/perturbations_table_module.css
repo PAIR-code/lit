@@ -1,0 +1,36 @@
+.info {
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #3c4043;
+}
+
+.table-container {
+  padding-bottom: 20px;
+}
+
+.navigation-strip {
+  display: flex;
+  align-items: center;
+}
+
+.navigation-buttons {
+  height: 16px;
+  padding-left: 5px;
+}
+
+.icon-button {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+
+.icon-placeholder {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}

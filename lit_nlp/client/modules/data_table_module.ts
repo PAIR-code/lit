@@ -79,13 +79,6 @@ export class DataTableModule extends LitModule {
     return ['index', 'id', ...this.keys];
   }
 
-  @computed
-  get selectedRowIndices(): number[] {
-    return this.selectionService.selectedIds
-        .map((id) => this.appState.getIndexById(id))
-        .filter((index) => index !== -1);
-  }
-
   /**
    * Keys of the format 'rowName:columnName' (formatted with getTableKey()) map
    * to the cell value at this row and column location.
@@ -370,7 +363,6 @@ export class DataTableModule extends LitModule {
     return `${row}:${column}`;
   }
 
-
   onSelect(selectedRowIndices: number[]) {
     const ids = selectedRowIndices
                     .map(index => this.appState.currentInputData[index]?.id)
@@ -408,7 +400,7 @@ export class DataTableModule extends LitModule {
         <lit-data-table
           .columnVisibility=${this.columnVisibility}
           .data=${this.data}
-          .selectedIndices=${this.selectedRowIndices}
+          .selectedIndices=${this.selectionService.selectedRowIndices}
           .primarySelectedIndex=${primarySelectedIndex}
           .referenceSelectedIndex=${referenceSelectedIndex}
           .onSelect=${onSelect}

@@ -26,6 +26,7 @@ import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {customElement, html, property} from 'lit-element';
+import {TemplateResult} from 'lit-html';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -34,7 +35,7 @@ import {ReactiveElement} from '../lib/elements';
 import {styles} from './table.css';
 
 /** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number;
+export type TableEntry = string|number|TemplateResult;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[];
 
@@ -42,6 +43,12 @@ export type TableData = TableEntry[];
 export type OnSelectCallback = (selectedIndices: number[]) => void;
 /** Callback for primary datapoint selection */
 export type OnPrimarySelectCallback = (index: number) => void;
+/** Function for reading data index from a row */
+export type GetDataIndexFromRowFunction = (row: TableData) => number;
+/** Function for sorting a particular column by a value that's
+ * different than what's displayed */
+export type GetSortValue = (d: TableData, columnIndex: number) => any;
+
 
 enum SpanAnchor {
   START,
@@ -63,10 +70,14 @@ export class DataTable extends ReactiveElement {
   @observable
   @property({type: Object})
   columnVisibility = new Map<string, boolean>();
+  @property({type: String}) defaultSortName = 'default';
+  @property({type: Boolean}) defaultSortAscending = true;
 
   // Callbacks
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
+  @property({type: Object}) getDataIndexFromRow: GetDataIndexFromRowFunction = d => +d[0]
+  @property({type: Object}) getSortValue: GetSortValue = (d, columnIndex) => d[columnIndex]
 
   static get styles() {
     return [styles];
@@ -105,6 +116,11 @@ export class DataTable extends ReactiveElement {
     this.reactImmediately(() => this.rowFilteredData, filteredData => {
       this.stickySortedData = null;
     });
+
+    // TODO(lit-dev) not sure why this isn't working on its own
+    this.sortName = this.defaultSortName;
+    this.sortAscending = this.defaultSortAscending;
+    this.requestUpdate();
   }
 
   // tslint:disable-next-line:no-any
@@ -135,9 +151,9 @@ export class DataTable extends ReactiveElement {
   }
 
   @computed
-  get sortIndex(): number|undefined {
-    return (this.sortName == null) ? undefined :
-                                     this.columnNames.indexOf(this.sortName);
+  get sortIndex(): number {
+    const sortName = this.sortName || this.defaultSortName;
+    return (sortName == null) ? 0 : this.columnNames.indexOf(sortName);
   }
 
   /**
@@ -182,16 +198,16 @@ export class DataTable extends ReactiveElement {
   getSortedData(): TableData[] {
     const source = this.stickySortedData ?? this.rowFilteredData;
     let sortedData = source.slice();
-    if (this.sortName != null) {
-      sortedData = sortedData.sort(
-          (a, b) => (this.sortAscending ? ascending : descending)(
-              a[this.sortIndex!], b[this.sortIndex!]));
-    }
+    sortedData = sortedData.sort((a, b) => {
+      const compareFn = (this.sortAscending ? ascending : descending);
+      const aValue = this.getSortValue(a, this.sortIndex);
+      const bValue = this.getSortValue(b, this.sortIndex);
+      return compareFn(aValue, bValue);
+    });
 
     // Store a mapping from the row to data indices.
-    // TODO(lit-dev): remove hard-coded dependence on first column as index.
     this.rowIndexToDataIndex =
-        new Map(sortedData.map((d, index) => [index, +d[0]]));
+        new Map(sortedData.map((d, index) => [index, this.getDataIndexFromRow(d)]));
 
     this.stickySortedData = sortedData;
     return sortedData;
@@ -344,11 +360,16 @@ export class DataTable extends ReactiveElement {
       this.onSelect([...this.selectedIndices]);
     };
 
-    const isDefaultView = this.sortName === undefined &&
-        this.columnSearchQueries.size === 0 && !this.filterSelected;
+    const isDefaultView = (
+      (this.sortName === this.defaultSortName) &&
+      (this.sortAscending === this.defaultSortAscending) &&
+      (this.columnSearchQueries.size === 0) &&
+      !this.filterSelected
+    );
     const onClickResetView = () => {
       this.columnSearchQueries.clear();
-      this.sortName = undefined;  // reset to input ordering
+      this.sortName = this.defaultSortName;
+      this.sortAscending = this.defaultSortAscending;
       this.filterSelected = false;
     };
 

@@ -25,9 +25,12 @@ import {SelectionObservedByUrlService} from './url_service';
 
 /**
  * The AppState interface for working with the SelectionService
+ * TODO(lit-dev): not sure why this is here, other than possibly limiting
+ * circular dependencies.
  */
 export interface AppState {
   currentInputData: IndexedInput[];
+  getIndexById: (id: string|null) => number;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
   getExamplesById: (ids: string[]) => IndexedInput[];
 }
@@ -140,5 +143,12 @@ export class SelectionService extends LitService implements
   get selectedOrAllInputData(): IndexedInput[] {
     return this.selectedInputData.length > 0 ? this.selectedInputData :
                                                this.appState.currentInputData;
+  }
+
+  @computed
+  get selectedRowIndices(): number[] {
+    return this.selectedIds
+        .map((id) => this.appState.getIndexById(id))
+        .filter((index) => index !== -1);
   }
 }
