@@ -141,9 +141,9 @@ export class ModulesService extends LitService implements
   }
 
   private filterHiddenConfigs(configs: RenderConfig[][]): RenderConfig[][] {
-    return configs.map(configGroup => {
-      return configGroup.filter(config => !this.isConfigHidden(config));
-    }).filter(configGroup => configGroup.length > 0);
+    return configs.filter(configGroup => {
+      return (configGroup.length === 0) || !this.isConfigHidden(configGroup[0]);
+    });
   }
 
   private isConfigHidden(config: RenderConfig) {
