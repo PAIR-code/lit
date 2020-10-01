@@ -4,6 +4,10 @@
   flex-direction: column;
 }
 
+.hidden {
+  display: none;
+}
+
 .info {
   padding: 5px;
   display: flex;

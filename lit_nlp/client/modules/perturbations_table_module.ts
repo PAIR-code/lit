@@ -76,7 +76,8 @@ export class PerturbationsTableModule extends LitModule {
   private readonly SENTENCE_COLUMN = 1;
   private readonly DELTA_COLUMN = 5;
 
-  @observable private filterSelected = false;
+  @observable private filterSelected = true;
+  @observable private lastSelectedSourceIndex?: number;
 
   private onSelect(selectedRowIndices: number[]) {
     const ids = selectedRowIndices
@@ -110,13 +111,17 @@ export class PerturbationsTableModule extends LitModule {
   private renderHeaderAndTable(source: Source, sourceIndex: number) {
     const {fieldName} = source;
 
+    const rootClass = classMap({
+      'hidden': (sourceIndex !== (this.lastSelectedSourceIndex ?? 0)),
+      [sourceIndex]: true
+    });
     const {generationKeys, deltaRows} = this.deltasService.deltaInfoFromSource(source);
     const filteredDeltaRows = this.filteredDeltaRows(deltaRows);
     const tableRows = this.formattedTableRows(filteredDeltaRows);
     const deltaRowsById: DeltaRowsById = {};
     deltaRows.forEach(deltaRow => deltaRowsById[deltaRow.d.id] = deltaRow);
     return html`
-      <div class="root">
+      <div class=${rootClass}>
         ${this.renderHeader(generationKeys.length, tableRows.length, sourceIndex)}
         ${this.renderTable(source, tableRows, deltaRowsById)}
       </div>
@@ -138,7 +143,8 @@ export class PerturbationsTableModule extends LitModule {
             label="Only show if selected"
             ?checked=${this.filterSelected}
             @change=${toggleFilterSelected}
-        </span>
+          ></lit-checkbox>
+        </div>
         ${this.renderNavigationStrip(sourceIndex)}
        </div>
     `;
@@ -154,7 +160,7 @@ export class PerturbationsTableModule extends LitModule {
       const infos = this.shadowRoot!.querySelectorAll('.info');
       const nextIndex = sourceIndex + delta;
       if (nextIndex < infos.length && nextIndex >= 0) {
-        infos[nextIndex].scrollIntoView();
+        this.lastSelectedSourceIndex = nextIndex;
        }
     };
 
@@ -218,7 +224,7 @@ export class PerturbationsTableModule extends LitModule {
         beforeText=${before}
         afterText=${after}
         .includeBefore=${false}
-      /></lit-text-diff>
+      ></lit-text-diff>
     `;
   }
 
