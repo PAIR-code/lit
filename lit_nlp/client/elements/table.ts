@@ -400,6 +400,9 @@ export class DataTable extends ReactiveElement {
     const visibleColumns =
         this.columnNames.filter((key) => this.columnVisibility.get(key));
 
+    const tableContainerClass = classMap({
+      'size-with-room-for-controls': this.controlsEnabled
+    });
     // clang-format off
     return html`
       <div id="holder">
@@ -426,7 +429,7 @@ export class DataTable extends ReactiveElement {
           </div>
           ${this.renderColumnDropdown()}
         </div>` : null}
-        <div id="table-container">
+        <div id="table-container" class=${tableContainerClass}>
           <div id="header-container">
             <div id="header">
               ${visibleColumns.map((c, i) => this.renderColumnHeader(c, i))}

@@ -49,9 +49,11 @@ type DeltaRowsById = {
 @customElement('perturbations-table-module')
 export class PerturbationsTableModule extends LitModule {
   static title = 'Perturbations';
-  static numCols = 8;
-  static template = () => {
-    return html`<perturbations-table-module></perturbations-table-module>`;
+  static numCols = 4;
+  static duplicateForModelComparison = true;
+  static duplicateAsRow = false;
+  static template = (model = '') => {
+    return html`<perturbations-table-module model=${model}></perturbations-table-module>`;
   };
 
   static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
@@ -65,8 +67,6 @@ export class PerturbationsTableModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static duplicateForModelComparison = true;
-
   private readonly regressionService = app.getService(RegressionService);
   private readonly classificationService = app.getService(ClassificationService);
   private readonly deltasService = app.getService(DeltasService);
@@ -75,7 +75,9 @@ export class PerturbationsTableModule extends LitModule {
   private readonly ID_COLUMN = 0;
   private readonly SENTENCE_COLUMN = 1;
   private readonly DELTA_COLUMN = 5;
-  
+
+  @observable private filterSelected = false;
+
   private onSelect(selectedRowIndices: number[]) {
     const ids = selectedRowIndices
                     .map(index => this.appState.currentInputData[index]?.id)
@@ -99,7 +101,7 @@ export class PerturbationsTableModule extends LitModule {
     /* Consider classification and regression predictions, and fan out by
      * each (model, outputKey, fieldName)
      */
-    return this.deltasService.sources.map((source, index) => {
+    return this.deltasService.sourcesForModel(this.model).map((source, index) => {
       return this.renderHeaderAndTable(source, index);
     });
 
@@ -109,24 +111,33 @@ export class PerturbationsTableModule extends LitModule {
     const {fieldName} = source;
 
     const {generationKeys, deltaRows} = this.deltasService.deltaInfoFromSource(source);
-    const tableRows = this.formattedTableRows(deltaRows);
+    const filteredDeltaRows = this.filteredDeltaRows(deltaRows);
+    const tableRows = this.formattedTableRows(filteredDeltaRows);
     const deltaRowsById: DeltaRowsById = {};
     deltaRows.forEach(deltaRow => deltaRowsById[deltaRow.d.id] = deltaRow);
     return html`
-      <div>
+      <div class="root">
         ${this.renderHeader(generationKeys.length, tableRows.length, sourceIndex)}
         ${this.renderTable(source, tableRows, deltaRowsById)}
-        }
       </div>
     `;
   }
 
   private renderHeader(generationsCount: number, rowsCount: number, sourceIndex: number) {
+    const toggleFilterSelected = () => {
+      this.filterSelected = !this.filterSelected;
+    };
     return html`
       <div class="info">
-        <span>
-          Generated ${rowsCount === 1 ? '1 datapoint' : `${rowsCount} datapoints`}
-          from ${generationsCount === 1 ? '1 perturbation' : `${generationsCount} perturbations`}
+        <div class="header-and-actions">
+          <div class="header-text">
+            Generated ${rowsCount === 1 ? '1 datapoint' : `${rowsCount} datapoints`}
+            from ${generationsCount === 1 ? '1 perturbation' : `${generationsCount} perturbations`}
+          </div>
+          <lit-checkbox
+            label="Only show if selected"
+            ?checked=${this.filterSelected}
+            @change=${toggleFilterSelected}
         </span>
         ${this.renderNavigationStrip(sourceIndex)}
        </div>
@@ -134,7 +145,7 @@ export class PerturbationsTableModule extends LitModule {
   }
 
   private renderNavigationStrip(sourceIndex: number) {
-    const sources = this.deltasService.sources;
+    const sources = this.deltasService.sourcesForModel(this.model);
     if (sources.length === 1) {
       return null;
     }
@@ -169,6 +180,14 @@ export class PerturbationsTableModule extends LitModule {
         </span>
       </span>
     `;
+  }
+
+  /* Enforce selection */
+  private filteredDeltaRows(deltaRows: DeltaRow[]): DeltaRow[] {
+    return deltaRows.filter(deltaRow => {
+      return (this.selectionService.isIdSelected(deltaRow.d.id) ||
+        this.selectionService.isIdSelected(deltaRow.parent.id));
+    });
   }
 
   private formattedTableRows(deltaRows: DeltaRow[]): TableData[] {

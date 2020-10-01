@@ -62,16 +62,13 @@ export class DeltasService extends LitService {
    * fields of the output spec match regression or multiclass prediction, after
    * considering 0/1 multiclass predictions as a single source).
    */
-  @computed
-  get sources(): Source[] {
-    return this.appState.currentModels.flatMap((modelName: string): Source[] => {
-      const modelSpec = this.appState.getModelSpec(modelName);
-      const outputSpecKeys: LitName[] = ['RegressionScore', 'MulticlassPreds'];
-      return outputSpecKeys.flatMap(specKey => {
-        const fieldNames = findSpecKeys(modelSpec.output, [specKey]);
-        return fieldNames.map(fieldName => ({modelName, specKey, fieldName}));
-       });
-    });
+  public sourcesForModel(modelName: string): Source[] {
+    const modelSpec = this.appState.getModelSpec(modelName);
+    const outputSpecKeys: LitName[] = ['RegressionScore', 'MulticlassPreds'];
+    return outputSpecKeys.flatMap(specKey => {
+      const fieldNames = findSpecKeys(modelSpec.output, [specKey]);
+      return fieldNames.map(fieldName => ({modelName, specKey, fieldName}));
+     });
   }
 
   // Get a list of each time a generator was run, and the data points generated
