@@ -38,6 +38,9 @@ import {DeltaRow, DeltaInfo, Source} from '../services/deltas_service';
 import {styles} from './perturbations_table_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
+type DeltaRowsById = {
+  [id: string]: DeltaRow
+};
 
 /**
  * Module to sort generated countefactuals by the change in prediction for a
@@ -69,11 +72,9 @@ export class PerturbationsTableModule extends LitModule {
   private readonly deltasService = app.getService(DeltasService);
 
   /* These constants are for referring to table columns */
-  private readonly SENTENCE_COLUMN = 0;
-  private readonly DELTA_COLUMN = 4;
-  private readonly ID_COLUMN = 5;
-  private readonly NUMERIC_DELTA_COLUMN = 6;
-  private readonly PLAIN_TEXT_COLUMN = 7;
+  private readonly ID_COLUMN = 0;
+  private readonly SENTENCE_COLUMN = 1;
+  private readonly DELTA_COLUMN = 5;
   
   private onSelect(selectedRowIndices: number[]) {
     const ids = selectedRowIndices
@@ -109,10 +110,12 @@ export class PerturbationsTableModule extends LitModule {
 
     const {generationKeys, deltaRows} = this.deltasService.deltaInfoFromSource(source);
     const tableRows = this.formattedTableRows(deltaRows);
+    const deltaRowsById: DeltaRowsById = {};
+    deltaRows.forEach(deltaRow => deltaRowsById[deltaRow.d.id] = deltaRow);
     return html`
       <div>
         ${this.renderHeader(generationKeys.length, tableRows.length, sourceIndex)}
-        ${this.renderTable(source, tableRows)}
+        ${this.renderTable(source, tableRows, deltaRowsById)}
         }
       </div>
     `;
@@ -174,20 +177,16 @@ export class PerturbationsTableModule extends LitModule {
       return Math.abs(d.delta!);
     });
 
-    // Some columns are listed twice in different formats, one that's formatted
-    // to be user-facing, and another with values that are hidden but sortable
-    // for the table component.
+    // The id column is hidden, but used for lookups.
     return deltaRows.map((deltaRow: DeltaRow) => {
       const {before, after, delta, d, parent}  = deltaRow;
       const row: TableData = [
+        d.id, // ID_COLUMN
         this.renderSentenceWithDiff(parent.data.sentence, d.data.sentence), // SENTENCE_COLUMN
         d.meta.rule ? d.meta.rule : d.meta.source,
         before ? formatLabelNumber(before) : BLANK,
         after ? formatLabelNumber(after) : BLANK,
-        delta ? this.renderDeltaCell(delta, meanAbsDelta) : BLANK, // DELTA_COLUMN
-        d.id, // ID_COLUMN
-        delta ? delta : 0, // NUMERIC_DELTA_COLUMN
-        d.data.sentence // PLAIN_TEXT_COLUMN
+        delta ? this.renderDeltaCell(delta, meanAbsDelta) : BLANK // DELTA_COLUMN
       ];
 
       return row;
@@ -222,18 +221,16 @@ export class PerturbationsTableModule extends LitModule {
     `;
   }
 
-  private renderTable(source: Source, rows: TableData[]) {
+  private renderTable(source: Source, rows: TableData[], deltaRowsById: DeltaRowsById) {
     const {fieldName} = source;
 
     const columnVisibility = new Map<string, boolean>();
+    columnVisibility.set('id', false); // for lookups
     columnVisibility.set('generated sentence', true);
     columnVisibility.set(`source`, true);
     columnVisibility.set(`parent ${fieldName}`, true);
     columnVisibility.set(`${fieldName}`, true);
     columnVisibility.set('delta', true);
-    columnVisibility.set('id', false);
-    columnVisibility.set('numeric_delta', false);
-    columnVisibility.set('sentence plain text', false);
     
     const onSelect = (selectedRowIndices: number[]) => {
       this.onSelect(selectedRowIndices);
@@ -246,10 +243,12 @@ export class PerturbationsTableModule extends LitModule {
      * values (eg, HTML TemplateResult, or some other formatting)
      */
     const getSortValue = (row: TableData, column: number) => {
+      const id = row[this.ID_COLUMN] as string;
+      const deltaRow = deltaRowsById[id];
       if (column === this.SENTENCE_COLUMN) {
-        return row[this.PLAIN_TEXT_COLUMN];
+        return deltaRow.d.data.sentence;
       } else if (column === this.DELTA_COLUMN) {
-        return row[this.NUMERIC_DELTA_COLUMN];
+        return deltaRow.delta;
       }
       return row[column];
     }

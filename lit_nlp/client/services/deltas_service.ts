@@ -75,7 +75,7 @@ export class DeltasService extends LitService {
   }
 
   // Get a list of each time a generator was run, and the data points generated
-  public  deltaInfoFromSource(source: Source): DeltaInfo {
+  public deltaInfoFromSource(source: Source): DeltaInfo {
     const byGeneration: {[generationKey: string]: IndexedInput[]} = {};
     this.appState.generatedDataPoints.forEach((d: IndexedInput) => {
       const key = d.meta.creationId;
@@ -90,7 +90,7 @@ export class DeltasService extends LitService {
       generationKeys: Object.keys(byGeneration),
       deltaRows
     };
-  }
+  } 
 
   private deltaRowsForSource(source: Source, ds: IndexedInput[]): DeltaRow[] {
     const scoreReaders = this.getScoreReaders(source);
