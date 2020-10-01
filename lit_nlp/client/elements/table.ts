@@ -70,8 +70,8 @@ export class DataTable extends ReactiveElement {
   @observable
   @property({type: Object})
   columnVisibility = new Map<string, boolean>();
-  @property({type: String}) defaultSortName = 'default';
-  @property({type: Boolean}) defaultSortAscending = true;
+  @property({type: String}) defaultSortName = undefined;
+  @property({type: Boolean}) defaultSortAscending = undefined;
 
   // Callbacks
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
@@ -83,9 +83,10 @@ export class DataTable extends ReactiveElement {
     return [styles];
   }
 
-  // If sortName is undefined, we use the order of the input data.
-  @observable private sortName?: string;
-  @observable private sortAscending = true;
+  // These sort properties reflect the result of user interactions, which may not have
+  // happened on first render.  Use the computed properties to read state for sorting.
+  @observable private lastSelectedSortName?: string;
+  @observable private lastSelectedSortAscending?: boolean;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
@@ -116,11 +117,6 @@ export class DataTable extends ReactiveElement {
     this.reactImmediately(() => this.rowFilteredData, filteredData => {
       this.stickySortedData = null;
     });
-
-    // TODO(lit-dev) not sure why this isn't working on its own
-    this.sortName = this.defaultSortName;
-    this.sortAscending = this.defaultSortAscending;
-    this.requestUpdate();
   }
 
   // tslint:disable-next-line:no-any
@@ -154,6 +150,24 @@ export class DataTable extends ReactiveElement {
   get sortIndex(): number {
     const sortName = this.sortName || this.defaultSortName;
     return (sortName == null) ? 0 : this.columnNames.indexOf(sortName);
+  }
+
+  // Wrap reading the property, so that `render` considers the default.
+  // To start, sort by the name passed or by the first column if no default was set.
+  @computed
+  get sortName(): string {
+    return (this.lastSelectedSortName !== undefined)
+      ? this.lastSelectedSortName
+      : this.defaultSortName ?? this.columnNames[0];
+  }
+
+  // Wrap reading the property, so that `render` considers the default passed.
+  // To start, use ascending order.
+  @computed
+  get sortAscending(): boolean {
+    return (this.lastSelectedSortAscending !== undefined)
+      ? this.lastSelectedSortAscending
+      : this.defaultSortAscending ?? true;
   }
 
   /**
@@ -195,15 +209,17 @@ export class DataTable extends ReactiveElement {
     return rowFilteredData;
   }
 
+  sortFn(a: TableData, b: TableData) {
+    const compareFn = (this.sortAscending ? ascending : descending);
+    const aValue = this.getSortValue(a, this.sortIndex);
+    const bValue = this.getSortValue(b, this.sortIndex);
+    return compareFn(aValue, bValue);
+  }
+
   getSortedData(): TableData[] {
     const source = this.stickySortedData ?? this.rowFilteredData;
     let sortedData = source.slice();
-    sortedData = sortedData.sort((a, b) => {
-      const compareFn = (this.sortAscending ? ascending : descending);
-      const aValue = this.getSortValue(a, this.sortIndex);
-      const bValue = this.getSortValue(b, this.sortIndex);
-      return compareFn(aValue, bValue);
-    });
+    sortedData = sortedData.sort((a, b) => this.sortFn(a, b));
 
     // Store a mapping from the row to data indices.
     this.rowIndexToDataIndex =
@@ -368,8 +384,8 @@ export class DataTable extends ReactiveElement {
     );
     const onClickResetView = () => {
       this.columnSearchQueries.clear();
-      this.sortName = this.defaultSortName;
-      this.sortAscending = this.defaultSortAscending;
+      this.lastSelectedSortName = this.defaultSortName;
+      this.lastSelectedSortAscending = this.defaultSortAscending;
       this.filterSelected = false;
     };
 
@@ -444,10 +460,10 @@ export class DataTable extends ReactiveElement {
 
     const handleClick = () => {
       if (this.sortName === title) {
-        this.sortAscending = !this.sortAscending;
+        this.lastSelectedSortAscending = !this.sortAscending;
       } else {
-        this.sortName = title;
-        this.sortAscending = true;
+        this.lastSelectedSortName = title;
+        this.lastSelectedSortAscending = true;
       }
     };
 
