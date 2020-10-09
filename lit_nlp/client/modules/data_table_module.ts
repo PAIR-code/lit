@@ -331,7 +331,8 @@ export class DataTableModule extends LitModule {
       const maxWordLength = 25;
       const strings = input.map((item) => {
         if (typeof item === 'number') {
-          return item.toFixed(4).toString();
+          return Number.isInteger(item) ? item.toString() :
+                                          item.toFixed(4).toString();
         }
         if (typeof item === 'string') {
           return item.length < maxWordLength ?
@@ -348,7 +349,8 @@ export class DataTableModule extends LitModule {
     }
 
     if (typeof input === 'number') {
-      return input.toFixed(4).toString();
+      return Number.isInteger(input) ? input.toString() :
+                                       input.toFixed(4).toString();
     }
 
     // Fallback: just coerce to string.

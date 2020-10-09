@@ -48,16 +48,31 @@ class WordReplacerTest(absltest.TestCase):
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
 
-    # Capitalization
-    input_dict = {'text': 'Capitalization is important.'}
+    # Ignore capitalization
+    input_dict = {'text': 'Capitalization is ignored.'}
     config_dict = {'subs': 'Capitalization -> blank'}
+    expected = [{'text': 'blank is ignored.'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    input_dict = {'text': 'Capitalization is ignored.'}
+    config_dict = {'subs': 'capitalization -> blank'}
+    expected = [{'text': 'blank is ignored.'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # Do not Ignore capitalization
+    input_dict = {'text': 'Capitalization is important.'}
+    config_dict = {'subs': 'Capitalization -> blank', 'ignore_casing': False}
     expected = [{'text': 'blank is important.'}]
     self.assertEqual(
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
 
     input_dict = {'text': 'Capitalization is important.'}
-    config_dict = {'subs': 'capitalization -> blank'}
+    config_dict = {'subs': 'capitalization -> blank', 'ignore_casing': False}
     expected = []
     self.assertEqual(
         generator.generate(input_dict, model, dataset, config=config_dict),
@@ -89,10 +104,35 @@ class WordReplacerTest(absltest.TestCase):
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
 
+    input_dict = {'text': 'A.catastrophic. storm'}
+    config_dict = {'subs': '. -> -'}
+    expected = [{'text': 'A-catastrophic. storm'},
+                {'text': 'A.catastrophic- storm'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    input_dict = {'text': 'A...catastrophic.... storm'}
+    config_dict = {'subs': '.. -> --'}
+    expected = [{'text': 'A--.catastrophic.... storm'},
+                {'text': 'A...catastrophic--.. storm'},
+                {'text': 'A...catastrophic..-- storm'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
     # Underscore
     input_dict = {'text': 'A catastrophic_storm is raging.'}
     config_dict = {'subs': 'catastrophic_storm -> nice_storm'}
     expected = [{'text': 'A nice_storm is raging.'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # Deletion
+    input_dict = {'text': 'A storm is raging.'}
+    config_dict = {'subs': 'storm -> '}
+    expected = [{'text': 'A  is raging.'}]
     self.assertEqual(
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
@@ -105,8 +145,17 @@ class WordReplacerTest(absltest.TestCase):
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
 
+    # Multiple target tokens.
+    input_dict = {'text': 'It`s raining cats and dogs.'}
+    config_dict = {'subs': 'dogs -> horses|donkeys'}
+    expected = [{'text': 'It`s raining cats and horses.'},
+                {'text': 'It`s raining cats and donkeys.'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
     ## Test default_replacements applied at init.
-    replacements = {'tree': 'car'}
+    replacements = {'tree': ['car']}
     generator = word_replacer.WordReplacer(replacements=replacements)
     input_dict = {'text': 'black truck hit the tree'}
     expected = [{'text': 'black truck hit the car'}]
@@ -122,16 +171,29 @@ class WordReplacerTest(absltest.TestCase):
     self.assertEqual(
         generator.generate(input_dict, model, dataset), expected)
 
+    # Multi word match.
+    input_dict = {'text': 'A red cat is coming.'}
+    config_dict = {'subs': 'red cat -> black dog'}
+    expected = [{'text': 'A black dog is coming.'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
   def test_parse_sub_string(self):
     generator = word_replacer.WordReplacer()
 
     query_string = 'foo -> bar, spam -> eggs'
-    expected = {'foo': 'bar', 'spam': 'eggs'}
+    expected = {'foo': ['bar'], 'spam': ['eggs']}
     self.assertDictEqual(generator.parse_subs_string(query_string), expected)
 
     # Should ignore the malformed rule
     query_string = 'foo -> bar, spam eggs'
-    expected = {'foo': 'bar'}
+    expected = {'foo': ['bar']}
+    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
+
+    # Multiple target tokens.
+    query_string = 'foo -> bar, spam -> eggs|donuts | cream'
+    expected = {'foo': ['bar'], 'spam': ['eggs', 'donuts', 'cream']}
     self.assertDictEqual(generator.parse_subs_string(query_string), expected)
 
     query_string = ''
@@ -139,7 +201,7 @@ class WordReplacerTest(absltest.TestCase):
     self.assertDictEqual(generator.parse_subs_string(query_string), expected)
 
     query_string = '♞ -> ♟'
-    expected = {'♞': '♟'}
+    expected = {'♞': ['♟']}
     self.assertDictEqual(generator.parse_subs_string(query_string), expected)
 
 if __name__ == '__main__':

@@ -16,23 +16,23 @@
  */
 
 // Import Modules
-import {LitModuleType} from './core/lit_module';
-import {AttentionModule} from './modules/attention_module';
-import {ClassificationModule} from './modules/classification_module';
-import {ConfusionMatrixModule} from './modules/confusion_matrix_module';
-import {CounterfactualExplainerModule} from './modules/counterfactual_explainer_module';
-import {DataTableModule} from './modules/data_table_module';
-import {DatapointEditorModule} from './modules/datapoint_editor_module';
-import {EmbeddingsModule} from './modules/embeddings_module';
-import {GeneratedTextModule} from './modules/generated_text_module';
-import {GeneratorModule} from './modules/generator_module';
-import {LanguageModelPredictionModule} from './modules/lm_prediction_module';
-import {MetricsModule} from './modules/metrics_module';
-import {PredictionScoreModule} from './modules/prediction_score_module';
-import {RegressionModule} from './modules/regression_module';
-import {SalienceMapModule} from './modules/salience_map_module';
-import {SpanGraphGoldModule, SpanGraphModule} from './modules/span_graph_module';
-import {LitComponentLayouts} from './services/modules_service';
+import {LitModuleType} from '../core/lit_module';
+import {AttentionModule} from '../modules/attention_module';
+import {ClassificationModule} from '../modules/classification_module';
+import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
+import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
+import {DataTableModule} from '../modules/data_table_module';
+import {DatapointEditorModule} from '../modules/datapoint_editor_module';
+import {EmbeddingsModule} from '../modules/embeddings_module';
+import {GeneratedTextModule} from '../modules/generated_text_module';
+import {GeneratorModule} from '../modules/generator_module';
+import {LanguageModelPredictionModule} from '../modules/lm_prediction_module';
+import {MetricsModule} from '../modules/metrics_module';
+import {RegressionModule} from '../modules/regression_module';
+import {SalienceMapModule} from '../modules/salience_map_module';
+import {ScalarModule} from '../modules/scalar_module';
+import {SpanGraphGoldModule, SpanGraphModule} from '../modules/span_graph_module';
+import {LitComponentLayouts} from '../services/modules_service';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
@@ -57,13 +57,13 @@ export const LAYOUTS: LitComponentLayouts = {
     components : {
       'Main': [
         DatapointEditorModule,
-        ...MODEL_PREDS_MODULES
       ],
+      'Predictions': [ ...MODEL_PREDS_MODULES],
       'Data': [DataTableModule],
     },
     layoutSettings: {
       hideToolbar: true,
-      mainHeight: 90,
+      mainHeight: 20,
       centerPage: true
     }
   },
@@ -79,7 +79,7 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Counterfactuals': [GeneratorModule],
       'Predictions': [
-        PredictionScoreModule,
+        ScalarModule,
         ...MODEL_PREDS_MODULES,
       ],
       'Explanations': [
@@ -128,7 +128,7 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
-        PredictionScoreModule,
+        ScalarModule,
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,

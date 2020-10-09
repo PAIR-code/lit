@@ -19,16 +19,17 @@
  * Client-side (UI) code for the LIT tool.
  */
 
-import './modules/app_statusbar';
-import './modules/app_toolbar';
-import './core/modules';
+import '../modules/app_statusbar';
+import '../modules/app_toolbar';
+import '../core/modules';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, property} from 'lit-element';
 
+import {app} from '../core/lit_app';
+import {AppState} from '../services/services';
+
 import {styles} from './app_styles.css';
-import {app} from './core/lit_app';
-import {AppState} from './services/services';
 
 /**
  * The main LIT app. Contains app-level infrastructure (such as the header,

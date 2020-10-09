@@ -1,37 +1,27 @@
 :host {
   display: flex;
   position: relative;
-  padding: 4pt;
   box-sizing: border-box;
+  height: 100%;
+  background: white;
 }
 
 .holder {
   display: flex;
   flex-direction: column;
   position: relative;
-  background-color: white;
-  border-radius: 2pt;
-  border-width: 1px;
-  border-style: solid;
-  border-color: rgb(218, 220, 224);
-  border-image: initial;
+  border: 1px solid rgb(218, 220, 224);
+  border-top: 0px;
   width: 100%;
+  box-sizing: border-box;
 }
 
-.maximized {
-  margin: 14px 45px;
-  position: fixed;
-  z-index: 2;
-  left: 0;
-  top: 92px;
-  box-shadow: rgba(0, 0, 0, 0.14) 0px 2px 2px 0px, rgba(0, 0, 0, 0.2) 0px 3px 1px -2px, rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
-}
 
 .container {
   position: relative;
-  min-height: 40px;
   display: flex;
   flex: 1;
+  height: 0px; /** Height must be explicitly set **/
 }
 
 .content {
@@ -47,31 +37,23 @@
 
 .header {
   color: rgb(32, 33, 36);
-  line-height: 20pt;
+  line-height: 16pt;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding-left: 4pt;
+  padding: 0pt 4pt;
   border-bottom: 1px solid rgb(218, 220, 224);
 }
 
-.header.highlight {
-  background-color: #f1f3f4;
-}
-
 .holder.highlight {
-  outline: 1px solid #2f8c9b;
-}
-
-.title {
-  font-size: 10pt;
+  border: 1px solid #2f8c9b;
+  box-sizing: border-box;
 }
 
 .subtitle {
   font-size: 8pt;
   color: gray;
-  margin-left: 10px;
 }
 
 .spinner-container {
@@ -83,15 +65,4 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-}
-mwc-icon.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-  cursor: pointer;
-}
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
 }

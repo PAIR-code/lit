@@ -82,6 +82,7 @@ export interface LitMetadata {
   models: ModelsMap;
   demoMode: boolean;
   defaultLayout: string;
+  canonicalURL?: string;
 }
 
 export interface Input {

@@ -75,7 +75,7 @@ const layout: LitComponentLayout = {
     ],
     'Counterfactuals': [GeneratorModule],
     'Predictions': [
-      PredictionScoreModule,
+      ScalarModule,
       ClassificationModule,
     ],
     'Explanations': [

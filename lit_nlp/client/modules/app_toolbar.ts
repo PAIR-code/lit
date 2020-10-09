@@ -33,6 +33,8 @@ import {AppState, ModulesService, StatusService} from '../services/services';
 import {styles} from './app_toolbar.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
+import { copyToClipboard } from '../lib/utils';
+
 /**
  * The header/toolbar of the LIT app.
  */
@@ -56,6 +58,10 @@ export class ToolbarComponent extends MobxLitElement {
     const onSettingsClick = () => {
       this.isGlobalSettingsOpen = !this.isGlobalSettingsOpen;
     };
+    const onCopyLinkClick = () => {
+      const urlBase = (this.appState.metadata.canonicalURL || window.location.host);
+      copyToClipboard(urlBase + window.location.search);
+    };
     const renderToolbar =
         (this.appState.initialized &&
          !this.modulesService.getSetting('hideToolbar'));
@@ -75,6 +81,9 @@ export class ToolbarComponent extends MobxLitElement {
             </div>
             <div class="headline-section">
               <div title="Edit models and dataset" id="config">
+                <mwc-icon class="icon-button" @click=${onCopyLinkClick}>
+                  link
+                </mwc-icon>
                 <mwc-icon class="icon-button" @click=${onSettingsClick}>
                   settings
                 </mwc-icon>

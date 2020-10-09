@@ -79,9 +79,6 @@ export class MetricsModule extends LitModule {
   static template = () => {
     return html`<metrics-module></metrics-module>`;
   };
-  static supportedPredTypes: LitName[] =
-      ['RegressionScore', 'MulticlassPreds', 'GeneratedText', 'SpanLabels'];
-
   static duplicateForModelComparison = false;
 
   static get styles() {
@@ -399,7 +396,7 @@ export class MetricsModule extends LitModule {
   }
 
   static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, this.supportedPredTypes);
+    return true;
   }
 }
 
