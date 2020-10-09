@@ -14,6 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ /*
+ - need default entry point but also custom entry points for clients with custom main.ts and custom LIT module.
+ - separate build dirs per those entry points so clients can use --client_root URL param to point to the right front-end code build that they want
+ - ts config needs to be able to compile the custom front-end code in lit_nlp/examples/..., might need to move this compilation code up a dir to make that work.
+ */
 const path = require('path');
 const webpack = require('webpack');
 const litCssLoader = require('./lit-css-loader');
@@ -59,7 +64,7 @@ module.exports = (env = {}) => {
       modules: ['node_modules'],
       extensions: ['.ts', '.js'],
     },
-    entry: resolveDir('../main.ts'),
+    entry: resolveDir('../default/main.ts'),
     output: {
       filename: '[name].js',
       path: resolveDir('../build'),
