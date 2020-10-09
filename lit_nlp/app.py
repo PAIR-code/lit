@@ -368,7 +368,6 @@ class LitApp(object):
         # Wrap endpoint fns to take (handler, request)
         handlers={k: make_handler(v) for k, v in handlers.items()},
         project_root=client_root,
-        index_file='static/index.html',
     )
 
   def save_cache(self):

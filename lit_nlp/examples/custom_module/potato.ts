@@ -4,10 +4,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {app} from '../lit_nlp/client/core/lit_app';
-import {LitModule} from '../lit_nlp/client/core/lit_module';
-import {ModelsMap, Spec} from '../lit_nlp/client/lib/types';
-import {customElement, html, property} from 'lit-element';
+import {LitModule} from '../../client/core/lit_module';
+import {ModelsMap, Spec} from '../../client/lib/types';
+import {customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 
 /** Custom LIT module. */

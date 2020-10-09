@@ -12,6 +12,8 @@ Training should take less than 5 minutes on a single GPU. Once you see the
 ASCII-art LIT logo, navigate to localhost:5432 to access the demo UI.
 """
 import tempfile
+import os
+import pathlib
 
 from absl import app
 from absl import flags
@@ -33,9 +35,7 @@ flags.DEFINE_string(
 flags.DEFINE_string("model_path", None, "Path to save trained model.")
 
 # Use our custom frontend build from this directory.
-FLAGS.set_default(
-    "client_root",
-    os.path.join(pathlib.Path(__file__).parent.absolute(), 'examples', 'custom_module', 'build'))
+FLAGS.set_default("client_root", os.path.join(pathlib.Path(__file__).parent.absolute(), 'build'))
 FLAGS.set_default("default_layout", "potato")
 
 def run_finetuning(train_path):
@@ -50,11 +50,11 @@ def run_finetuning(train_path):
 def main(_):
   model_path = FLAGS.model_path or tempfile.mkdtemp()
   logging.info("Working directory: %s", model_path)
-  run_finetuning(model_path)
+  # run_finetuning(model_path)
 
   # Load our trained model.
-  models = {"sst": glue_models.SST2Model(model_path)}
-  datasets = {"sst_dev": glue.SST2Data("validation")}
+  models = {}
+  datasets = {}
 
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
