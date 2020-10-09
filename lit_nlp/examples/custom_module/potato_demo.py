@@ -12,6 +12,8 @@ Training should take less than 5 minutes on a single GPU. Once you see the
 ASCII-art LIT logo, navigate to localhost:5432 to access the demo UI.
 """
 import tempfile
+import os
+import pathlib
 
 from absl import app
 from absl import flags
@@ -32,18 +34,18 @@ flags.DEFINE_string(
 
 flags.DEFINE_string("model_path", None, "Path to save trained model.")
 
+print('🔥🔥🔥🔥', os.path.join(pathlib.Path(__file__).parent.absolute(), 'build'))
+
 # Use our custom frontend build from this directory.
-FLAGS.set_default(
-    "client_root",
-    os.path.join(pathlib.Path(__file__).parent.absolute(), 'examples', 'custom_module', 'build'))
+FLAGS.set_default("client_root", os.path.join(pathlib.Path(__file__).parent.absolute(), 'build'))
 FLAGS.set_default("default_layout", "potato")
 
 def run_finetuning(train_path):
   """Fine-tune a transformer model."""
   train_data = glue.SST2Data("train")
   val_data = glue.SST2Data("validation")
-  model = glue_models.SST2Model(FLAGS.encoder_name, for_training=True)
-  model.train(train_data.examples, validation_inputs=val_data.examples)
+  model = glue_models.SST2Model(FLAGS.encoder_name)
+  # model.train(train_data.examples, validation_inputs=val_data.examples)
   model.save(train_path)
 
 
