@@ -16,25 +16,25 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable, reaction} from 'mobx';
-
-import {LitName, IndexedInput, ServiceUser} from '../lib/types';
-import {arrayContainsSame, findSpecKeys} from '../lib/utils';
+import {LitName, IndexedInput} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
 import {LitService} from './lit_service';
 import {AppState, SelectionService, RegressionService, ClassificationService} from './services';
 
-export type Source = {
-  modelName: string,
+type OutputField = {
   specKey: LitName,
   fieldName: string
 };
 
-type ScoreReader = (id: string) => number | undefined;
-
-export type DeltaInfo = {
-  generationKeys: string[]
-  deltaRows: DeltaRow[]
+export type Source = {
+  modelName: string,
+  specKey: LitName,
+  fieldName: string,
+  readScoreFn: ScoreReader,
+  predictionLabel?: string
 };
+
+type ScoreReader = (id: string) => number | undefined;
 
 export type DeltaRow = {
   before?: number,
@@ -44,6 +44,10 @@ export type DeltaRow = {
   parent: IndexedInput
 };
 
+type GeneratorInterpretation = {
+  generationKey: string,
+  ruleText: string
+};
 
 /**
  * A singleton service for computing deltas between example data points
@@ -58,94 +62,104 @@ export class DeltasService extends LitService {
     super();
   }
 
+  /* For grouping outputs from a generator or describing them in user-facing terms */
+  public interpretGenerator(d: IndexedInput): GeneratorInterpretation {
+    const generationKey = d.meta.creationId;
+    const ruleText = d.meta.rule ? d.meta.rule : d.meta.source;
+    return {generationKey, ruleText};
+  }
+
+  /* Filter by selection */
+  public selectedDeltaRows(deltaRows: DeltaRow[]): DeltaRow[] {
+    return deltaRows.filter(deltaRow => {
+      return this.selectionService.isIdSelected(deltaRow.d.id);
+    });
+  }
+      
   /* Get a list of sources for where to read values for deltas from (eg, which
    * fields of the output spec match regression or multiclass prediction, after
    * considering 0/1 multiclass predictions as a single source).
    */
   public sourcesForModel(modelName: string): Source[] {
+    return this.findOutputFields(modelName).flatMap(outputField => {
+      return this.createSourcesFor(modelName, outputField);
+    });
+  }
+
+  private findOutputFields(modelName: string): OutputField[] {
     const modelSpec = this.appState.getModelSpec(modelName);
     const outputSpecKeys: LitName[] = ['RegressionScore', 'MulticlassPreds'];
     return outputSpecKeys.flatMap(specKey => {
       const fieldNames = findSpecKeys(modelSpec.output, [specKey]);
-      return fieldNames.map(fieldName => ({modelName, specKey, fieldName}));
-     });
+      return fieldNames.map(fieldName => ({fieldName, specKey}));
+    });
   }
 
-  // Get a list of each time a generator was run, and the data points generated
-  public deltaInfoFromSource(source: Source): DeltaInfo {
-    const byGeneration: {[generationKey: string]: IndexedInput[]} = {};
-    this.appState.generatedDataPoints.forEach((d: IndexedInput) => {
-      const key = d.meta.creationId;
-      byGeneration[key] = (byGeneration[key] || []).concat([d]);
-    });
-
-    const deltaRows = Object.keys(byGeneration).flatMap(generationKey => {
-      const ds = byGeneration[generationKey];
-      return this.deltaRowsForSource(source, ds)
-    });
-    return {
-      generationKeys: Object.keys(byGeneration),
-      deltaRows
+  private createSourcesFor(modelName: string, outputField: OutputField): Source[] {
+    const {specKey, fieldName} = outputField;
+    const createSource = (readScoreFn: ScoreReader, predictionLabel?: string) => {
+      return {
+        ...outputField, 
+        modelName,
+        readScoreFn,
+        predictionLabel
+      };
     };
-  } 
-
-  private deltaRowsForSource(source: Source, ds: IndexedInput[]): DeltaRow[] {
-    const scoreReaders = this.getScoreReaders(source);
-    return scoreReaders.flatMap(scoreReader => {
-      return this.readDeltaRows(ds, source, scoreReader);
-    });
-  }
-
-  private readDeltaRows(ds: IndexedInput[], source: Source, readScore: ScoreReader): DeltaRow[] {
-    return ds.flatMap(d => {
-      const parent = this.appState.getCurrentInputDataById(d.meta.parentId);
-      if (parent == null) return [];
-      
-      const before = readScore(parent.id);
-      const after = readScore(d.id);
-      const delta = (before != null && after != null)
-        ? after - before
-        : undefined;
-      const deltaRow: DeltaRow = {before,after,delta,d,parent};
-      return [deltaRow];
-    });
-  }
-
-  private getScoreReaders(source: Source): ScoreReader[] {
-    const {modelName, specKey, fieldName} = source;
 
     // Check for regression scores
     if (specKey === 'RegressionScore') {
       const readScoreForRegression: ScoreReader = id => {
         return this.regressionService.regressionInfo[id]?.[modelName]?.[fieldName]?.prediction;
       };
-      return [readScoreForRegression];
+      return [createSource(readScoreForRegression)];
     }
 
-    // Also support multiclass for multiple classes or binary
+    // Also support multiclass predictions
     if (specKey === 'MulticlassPreds') {
       const spec = this.appState.getModelSpec(modelName);
       const predictionLabels = spec.output[fieldName].vocab!;
       const margins = this.classificationService.marginSettings[modelName] || {};
 
+      // This is really just binary classification
       const nullIdx = spec.output[fieldName].null_idx;
       if (predictionLabels.length === 2 && nullIdx != null) {
          const readScoreForMultiClassBinary: ScoreReader = id => {
            return this.classificationService.classificationInfo[id]?.[modelName]?.[fieldName]?.predictions[1 - nullIdx];
         };
-        return [readScoreForMultiClassBinary];
+        return [createSource(readScoreForMultiClassBinary)];
       }
 
-      // Multiple classes for multiple tables.
-      predictionLabels.map((predictionLabel, index) => {
+      // Multiple classes => one source each
+      return predictionLabels.map((predictionLabel, index) => {
         const readScoreForMultipleClasses: ScoreReader = id => {
            return this.classificationService.classificationInfo[id]?.[modelName]?.[fieldName]?.predictions[index];
         };
-        return readScoreForMultipleClasses;
+        return createSource(readScoreForMultipleClasses, predictionLabel);
       });
     }
 
     // should never reach
     return [];
+  }
+
+  /* Get each DeltaRow for a source */
+  public readDeltaRowsForSource(source: Source): DeltaRow[] {
+    const {readScoreFn} = source;
+    const ds = this.appState.generatedDataPoints;
+    return ds.flatMap(d => this.readDeltaRows(d, readScoreFn));
+  }
+
+  /* For each datapoint, read the score and form a DeltaRow */
+  private readDeltaRows(d: IndexedInput, readScore: ScoreReader): DeltaRow[] {
+    const parent = this.appState.getCurrentInputDataById(d.meta.parentId);
+    if (parent == null) return [];
+    
+    const before = readScore(parent.id);
+    const after = readScore(d.id);
+    const delta = (before != null && after != null)
+      ? after - before
+      : undefined;
+    const deltaRow: DeltaRow = {before,after,delta,d,parent};
+    return [deltaRow];
   }
 }

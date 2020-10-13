@@ -19,8 +19,8 @@
 import '@material/mwc-icon';
 
 import * as d3 from 'd3';
-import {customElement, html} from 'lit-element';
-import {computed, observable} from 'mobx';
+import {customElement, html, TemplateResult} from 'lit-element';
+import {observable} from 'mobx';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 
@@ -28,12 +28,10 @@ import '../elements/text_diff';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {CallConfig, FacetMap, GroupedExamples, IndexedInput, LitName, ModelsMap, Spec} from '../lib/types';
+import {LitName, ModelsMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, formatLabelNumber, findSpecKeys} from '../lib/utils';
-import {GroupService} from '../services/group_service';
-import {DeltasService, RegressionService, ClassificationService, SliceService} from '../services/services';
-import {RegressionInfo} from '../services/regression_service';
-import {DeltaRow, DeltaInfo, Source} from '../services/deltas_service';
+import {DeltasService} from '../services/services';
+import {DeltaRow, Source} from '../services/deltas_service';
 
 import {styles} from './perturbations_table_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -42,9 +40,24 @@ type DeltaRowsById = {
   [id: string]: DeltaRow
 };
 
+type InputSource = {
+  modelName: string
+  specKey: string
+  fieldName: string
+};
+
+type TableSortFn = (row: TableData, column: number) => any;
+
+type FormattedTableData = {
+  rows: TableData[]
+  columns: Map<string, boolean>
+  getId: (row: TableData) => string
+  sortFn: TableSortFn
+}
+
 /**
  * Module to sort generated countefactuals by the change in prediction for a
- regression or multiclass classification model.
+ * regression or multiclass classification model.
  */
 @customElement('perturbations-table-module')
 export class PerturbationsTableModule extends LitModule {
@@ -56,28 +69,45 @@ export class PerturbationsTableModule extends LitModule {
     return html`<perturbations-table-module model=${model}></perturbations-table-module>`;
   };
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, [
-      'RegressionScore',
-      'MulticlassPreds'
-    ]);
-  }
-
   static get styles() {
     return [sharedStyles, styles];
   }
 
-  private readonly regressionService = app.getService(RegressionService);
-  private readonly classificationService = app.getService(ClassificationService);
   private readonly deltasService = app.getService(DeltasService);
 
-  /* These constants are for referring to table columns */
-  private readonly ID_COLUMN = 0;
-  private readonly SENTENCE_COLUMN = 1;
-  private readonly DELTA_COLUMN = 5;
-
-  @observable private filterSelected = true;
+  @observable private filterSelected = false;
   @observable private lastSelectedSourceIndex?: number;
+
+  /* Enforce datapoint selection */
+  private filteredDeltaRows(deltaRows: DeltaRow[]): DeltaRow[] {
+    return (this.filterSelected)
+      ? this.deltasService.selectedDeltaRows(deltaRows)
+      : deltaRows;
+  }
+
+  /* Default to the first source if none has been selected yet */
+  private selectedSourceIndex(): number {
+    return this.lastSelectedSourceIndex ?? 0;
+  };
+
+
+  /* Examples may have various text input fields that are relevant to show */
+  private findInputTextFields(): InputSource[] {
+    const modelName = this.model;
+    const modelSpec = this.appState.getModelSpec(modelName);
+    const inputSpecKeys: LitName[] = ['TextSegment', 'GeneratedText'];
+    return inputSpecKeys.flatMap(specKey => {
+      const fieldNames = findSpecKeys(modelSpec.input, [specKey]);
+      return fieldNames.map(fieldName => ({modelName, specKey, fieldName}));
+     });
+  }
+  
+  private formatSourceName(source: Source) {
+    const {modelName, specKey, fieldName, predictionLabel} = source;
+    return (predictionLabel != null)
+      ? `${fieldName}:${predictionLabel}`
+      : fieldName;
+  }
 
   private onSelect(selectedRowIndices: number[]) {
     const ids = selectedRowIndices
@@ -99,123 +129,93 @@ export class PerturbationsTableModule extends LitModule {
       return html`<div class="info">No counterfactuals created yet.</div>`;
     }
 
-    /* Consider classification and regression predictions, and fan out by
-     * each (model, outputKey, fieldName)
+    /* Consider classification and regression predictions, and fan out to
+     * each (model, outputKey, fieldName, predictionLabel) and show only
+     * the selected source.
      */
-    return this.deltasService.sourcesForModel(this.model).map((source, index) => {
-      return this.renderHeaderAndTable(source, index);
-    });
-
+    const sources = this.deltasService.sourcesForModel(this.model);
+    const sourceIndex = this.selectedSourceIndex();
+    const source = sources[sourceIndex];
+    const navigationStrip = this.renderNavigationStrip(sources);
+    return this.renderHeaderAndTable(source, sourceIndex, navigationStrip);
   }
 
-  private renderHeaderAndTable(source: Source, sourceIndex: number) {
-    const {fieldName} = source;
+  private renderHeaderAndTable(
+    source: Source,
+    sourceIndex: number,
+    navigationStrip?: TemplateResult
+  ) {
+    const allDeltaRows = this.deltasService.readDeltaRowsForSource(source);
+    const filteredDeltaRows = this.filteredDeltaRows(allDeltaRows);
+    const deltaRowsById: DeltaRowsById = {};
+    allDeltaRows.forEach(deltaRow => deltaRowsById[deltaRow.d.id] = deltaRow);
+    const formattedTableData = this.formattedTable(source, filteredDeltaRows, deltaRowsById);
 
     const rootClass = classMap({
-      'hidden': (sourceIndex !== (this.lastSelectedSourceIndex ?? 0)),
+      'hidden': (sourceIndex !== (this.selectedSourceIndex())),
       [sourceIndex]: true
     });
-    const {generationKeys, deltaRows} = this.deltasService.deltaInfoFromSource(source);
-    const filteredDeltaRows = this.filteredDeltaRows(deltaRows);
-    const tableRows = this.formattedTableRows(filteredDeltaRows);
-    const deltaRowsById: DeltaRowsById = {};
-    deltaRows.forEach(deltaRow => deltaRowsById[deltaRow.d.id] = deltaRow);
     return html`
       <div class=${rootClass}>
-        ${this.renderHeader(generationKeys.length, tableRows.length, sourceIndex)}
-        ${this.renderTable(source, tableRows, deltaRowsById)}
+        ${this.renderHeader(allDeltaRows, navigationStrip)}
+        ${this.renderTable(source, formattedTableData)}
       </div>
     `;
   }
 
-  private renderHeader(generationsCount: number, rowsCount: number, sourceIndex: number) {
+  private renderHeader(deltaRows: DeltaRow[], navigationStrip?: TemplateResult) {
     const toggleFilterSelected = () => {
       this.filterSelected = !this.filterSelected;
+    };
+    const onSelectGenerated = () => {
+      const ids = this.appState.generatedDataPoints.map(d => d.id);
+      this.selectionService.selectIds(ids);
     };
     return html`
       <div class="info">
         <div class="header-and-actions">
           <div class="header-text">
-            Generated ${rowsCount === 1 ? '1 datapoint' : `${rowsCount} datapoints`}
-            from ${generationsCount === 1 ? '1 perturbation' : `${generationsCount} perturbations`}
+            Generated ${deltaRows.length === 1 ? '1 datapoint' : `${deltaRows.length} datapoints`}
           </div>
           <lit-checkbox
-            label="Only show if selected"
+            label="Only show selected"
             ?checked=${this.filterSelected}
             @change=${toggleFilterSelected}
           ></lit-checkbox>
+          <button class="plain" @click=${onSelectGenerated}>Select generated</button>
         </div>
-        ${this.renderNavigationStrip(sourceIndex)}
+        ${navigationStrip ?? null}
        </div>
     `;
   }
 
-  private renderNavigationStrip(sourceIndex: number) {
-    const sources = this.deltasService.sourcesForModel(this.model);
+  private renderNavigationStrip(sources: Source[]) {
     if (sources.length === 1) {
-      return null;
+      return undefined;
     }
 
-    const onChangeOffset = (delta: number) => {
-      const infos = this.shadowRoot!.querySelectorAll('.info');
-      const nextIndex = sourceIndex + delta;
-      if (nextIndex < infos.length && nextIndex >= 0) {
-        this.lastSelectedSourceIndex = nextIndex;
-       }
+    const onChangeSource = (e: Event) => {
+      const select = (e.target as HTMLSelectElement);
+      this.lastSelectedSourceIndex = +select.selectedIndex;
     };
 
-    const previousButton = html`
-      <mwc-icon class='icon-button'
-        @click=${() => {onChangeOffset(-1);}}>
-        chevron_left
-      </mwc-icon>
-    `;
-    const nextButton = html`
-      <mwc-icon class='icon-button'
-        @click=${() => {onChangeOffset(1);}}>
-        chevron_right
-      </mwc-icon>
-    `;
-    const placeholderButton = html`<div class="icon-placeholder"> </div>`;
+    const options = sources.map((source, index) => {
+      const text = this.formatSourceName(source);
+      return {
+        text,
+        value: index
+      };
+    });
     return html`
-      <span class="navigation-strip">
-        ${sourceIndex + 1} of ${sources.length} fields
-        <span class="navigation-buttons">
-          ${sourceIndex - 1 >= 0 ? previousButton : placeholderButton}
-          ${sourceIndex + 1 < sources.length ? nextButton : placeholderButton}
-        </span>
-      </span>
+      <div class="dropdown-holder">
+        <label class="dropdown-label">Field</label>
+        <select class="dropdown" @change=${onChangeSource} .value=${this.selectedSourceIndex()}>
+          ${options.map(option => html`
+            <option value=${option.value}>${option.text}</option>
+          `)}
+        </select>
+      </div>
     `;
-  }
-
-  /* Enforce selection */
-  private filteredDeltaRows(deltaRows: DeltaRow[]): DeltaRow[] {
-    return deltaRows.filter(deltaRow => {
-      return (this.selectionService.isIdSelected(deltaRow.d.id) ||
-        this.selectionService.isIdSelected(deltaRow.parent.id));
-    });
-  }
-
-  private formattedTableRows(deltaRows: DeltaRow[]): TableData[] {
-    const BLANK = '-';
-    const meanAbsDelta = d3.mean(deltaRows.filter(d => d.delta != null), d => {
-      return Math.abs(d.delta!);
-    });
-
-    // The id column is hidden, but used for lookups.
-    return deltaRows.map((deltaRow: DeltaRow) => {
-      const {before, after, delta, d, parent}  = deltaRow;
-      const row: TableData = [
-        d.id, // ID_COLUMN
-        this.renderSentenceWithDiff(parent.data.sentence, d.data.sentence), // SENTENCE_COLUMN
-        d.meta.rule ? d.meta.rule : d.meta.source,
-        before ? formatLabelNumber(before) : BLANK,
-        after ? formatLabelNumber(after) : BLANK,
-        delta ? this.renderDeltaCell(delta, meanAbsDelta) : BLANK // DELTA_COLUMN
-      ];
-
-      return row;
-    });
   }
 
   private renderSentenceWithDiff(before: string, after: string) {
@@ -238,7 +238,7 @@ export class PerturbationsTableModule extends LitModule {
     });
     return html`
       <div>
-        <mwc-icon class="HUGE" style=${styles}>
+        <mwc-icon style=${styles}>
           ${delta > 0 ? 'arrow_upward' : 'arrow_downward'}
         </mwc-icon>
         ${formatLabelNumber(Math.abs(delta))}
@@ -246,50 +246,106 @@ export class PerturbationsTableModule extends LitModule {
     `;
   }
 
-  private renderTable(source: Source, rows: TableData[], deltaRowsById: DeltaRowsById) {
-    const {fieldName} = source;
 
-    const columnVisibility = new Map<string, boolean>();
-    columnVisibility.set('id', false); // for lookups
-    columnVisibility.set('generated sentence', true);
-    columnVisibility.set(`source`, true);
-    columnVisibility.set(`parent ${fieldName}`, true);
-    columnVisibility.set(`${fieldName}`, true);
-    columnVisibility.set('delta', true);
-    
+  /* The definition of the columns, the formatting of the rows, and the sort function
+   * are all inherently coupled, so they're isolated and defined jointly in this method */
+  private formattedTable(
+    source: Source,
+    deltaRows: DeltaRow[],
+    deltaRowsById: DeltaRowsById
+  ): FormattedTableData {
+    // Column indexes change, since the number of input fields is variable  
+    const ID_COLUMN = 0;
+    const COLUMNS_BEFORE_TEXT = 1;
+    const DELTA_IS_N_COLUMNS_AFTER_TEXT = 4;
+    const inputTextFields = this.findInputTextFields();
+
+    // Define the columns
+    const columns = new Map<string, boolean>();
+    columns.set('id', false); // hidden, and used for lookups
+    inputTextFields.forEach(input => {
+      columns.set(`generated ${input.fieldName}`, true);
+    });
+    columns.set(`source`, true);
+    columns.set(`parent ${source.fieldName}`, true);
+    columns.set(`${source.fieldName}`, true);
+    columns.set('delta', true);
+
+    // Format each row of data
+    const BLANK = '-';
+    const meanAbsDelta = d3.mean(deltaRows.filter(d => d.delta != null), d => {
+      return Math.abs(d.delta!);
+    });
+    const rows = deltaRows.map((deltaRow: DeltaRow) => {
+      const {before, after, delta, d, parent}  = deltaRow;
+      const textCells = inputTextFields.map(({fieldName}) => {
+        return this.renderSentenceWithDiff(parent.data[fieldName], d.data[fieldName]);
+      });
+      const {ruleText} = this.deltasService.interpretGenerator(d);
+
+      // When changing the order here, check that references to these constants still
+      // make sense throughout the rest of this method.
+      return [
+        d.id, // ID_COLUMN
+        ...textCells,  // COLUMNS_BEFORE_TEXT
+        ruleText,
+        before ? formatLabelNumber(before) : BLANK,
+        after ? formatLabelNumber(after) : BLANK,
+        delta ? this.renderDeltaCell(delta, meanAbsDelta) : BLANK // DELTA_IS_N_COLUMNS_AFTER_TEXT
+      ];
+    });
+
+    // Describe sorting for each column, since some can't naively sort on HTML
+    const getId = (row: TableData)=> row[ID_COLUMN] as string;
+    const sortFn = (row: TableData, column: number) => {
+      const id = getId(row);
+      const deltaRow = deltaRowsById[id];
+
+      // input text fields should sort by value, not the rendered HTML diff
+      const maybeTextColumnIndex = column - COLUMNS_BEFORE_TEXT;
+      if (maybeTextColumnIndex >= 0 && maybeTextColumnIndex < inputTextFields.length) {
+        const {fieldName} = inputTextFields[maybeTextColumnIndex];
+        return deltaRow.d.data[fieldName];
+      }
+      
+      // deltas should sort numeric, not by rendered HTML with symbols
+      const deltaColumnIndex = inputTextFields.length + DELTA_IS_N_COLUMNS_AFTER_TEXT;
+      if (column === deltaColumnIndex) {
+        return deltaRow.delta;
+      }
+
+      return row[column];
+    };
+
+    return {rows, columns, getId, sortFn};
+  }
+
+  private renderTable(output: Source, tableData: FormattedTableData) {
+    const {rows, columns, sortFn, getId} = tableData;
+
+    const primarySelectedIndex =
+      this.appState.getIndexById(this.selectionService.primarySelectedId);
     const onSelect = (selectedRowIndices: number[]) => {
       this.onSelect(selectedRowIndices);
     };
     const onPrimarySelect = (index: number) => {
       this.onPrimarySelect(index);
     };
-    
-    /* Adjust how sorting is done, for columns that include non-sortable
-     * values (eg, HTML TemplateResult, or some other formatting)
-     */
     const getSortValue = (row: TableData, column: number) => {
-      const id = row[this.ID_COLUMN] as string;
-      const deltaRow = deltaRowsById[id];
-      if (column === this.SENTENCE_COLUMN) {
-        return deltaRow.d.data.sentence;
-      } else if (column === this.DELTA_COLUMN) {
-        return deltaRow.delta;
-      }
-      return row[column];
-    }
+      return sortFn(row, column)
+    };
     const getDataIndexFromRow = (row: TableData) => {
-      const id = row[this.ID_COLUMN];
+      const id = getId(row);
       return this.appState.getIndexById(id as string);
     };
-    const primarySelectedIndex =
-      this.appState.getIndexById(this.selectionService.primarySelectedId);
 
     return html`
       <div class="table-container">
         <lit-data-table
+          class="table"
           defaultSortName="delta"
           .defaultSortAscending=${false}
-          .columnVisibility=${columnVisibility}
+          .columnVisibility=${columns}
           .data=${rows}
           .selectedIndices=${this.selectionService.selectedRowIndices}
           .primarySelectedIndex=${primarySelectedIndex}
@@ -300,6 +356,13 @@ export class PerturbationsTableModule extends LitModule {
         ></lit-data-table>
       </div>
     `;
+  }
+
+  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+    return doesOutputSpecContain(modelSpecs, [
+      'RegressionScore',
+      'MulticlassPreds'
+    ]);
   }
 }
 

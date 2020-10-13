@@ -1,7 +1,7 @@
 /**
  * Shared styles for all modules.
  */
-button {
+button:not(.plain) {
   width: fit-content;
   max-height: 100%;
   background: lightgrey;
@@ -15,11 +15,11 @@ button {
   border-radius: 3px;
 }
 
-button:hover {
+button:not(.plain):hover {
   background: #faf49f;
 }
 
-button:disabled {
+button:not(.plain):disabled {
   background: darkgrey;
   color: lightgrey;
   pointer-events: none;

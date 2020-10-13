@@ -25,8 +25,6 @@ import {SelectionObservedByUrlService} from './url_service';
 
 /**
  * The AppState interface for working with the SelectionService
- * TODO(lit-dev): not sure why this is here, other than possibly limiting
- * circular dependencies.
  */
 export interface AppState {
   currentInputData: IndexedInput[];
