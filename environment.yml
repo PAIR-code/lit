@@ -20,6 +20,7 @@ dependencies:
     - scipy
     - pandas
     - scikit-learn
+    - gunicorn
     - pip
     - pip:
         - tensorflow

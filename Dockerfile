@@ -49,4 +49,5 @@ WORKDIR $APP_HOME
 
 # Run LIT server
 #CMD exec python -m lit_nlp.examples.glue_demo --models_path=./bert-tiny --host 0.0.0.0 --demo_mode --port 8080 
-CMD exec python -m lit_nlp.examples.pretrained_lm_demo -top_k 10 --host 0.0.0.0 --max_examples 5000 --demo_mode --port 8080
+#CMD exec python -m lit_nlp.examples.pretrained_lm_demo -top_k 10 --host 0.0.0.0 --max_examples 5000 --demo_mode --port 8080
+CMD exec gunicorn -c lit_nlp/examples/config.py 'lit_nlp.examples.pretrained_lm_demo:g_serve()'

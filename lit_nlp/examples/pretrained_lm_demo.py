@@ -12,6 +12,7 @@ To run locally:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+import sys
 import os
 
 from absl import app
@@ -38,7 +39,7 @@ flags.DEFINE_integer("top_k", 10,
                      "Rank to which the output distribution is pruned.")
 
 flags.DEFINE_integer(
-    "max_examples", None,
+    "max_examples", 1000,
     "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
 )
 
@@ -51,6 +52,10 @@ flags.DEFINE_bool(
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
 
+def g_serve():
+  FLAGS.set_default('serve', False)
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
 
 def main(_):
 
@@ -95,6 +100,8 @@ def main(_):
 
   lit_demo = dev_server.Server(
       models, datasets, generators=generators, **server_flags.get_flags())
+  if not FLAGS.serve:
+    return lit_demo.create_lit_app()
   lit_demo.serve()
 
 

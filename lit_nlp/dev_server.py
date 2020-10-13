@@ -73,12 +73,15 @@ class Server(object):
     self._server_kw = kw
     self._server_fn = WSGI_SERVERS[server_type]
 
+  def create_lit_app(self):
+      return lit_app.LitApp(*self._app_args, **self._app_kw)
+
   def serve(self):
     """Run server, with optional reload loop and cache saving."""
     while True:
       logging.info(get_lit_logo())
       logging.info('Starting LIT server...')
-      app = lit_app.LitApp(*self._app_args, **self._app_kw)
+      app = self.create_lit_app()
       server = self._server_fn(app, **self._server_kw)
 
       # The underlying TSServer registers a SIGINT handler,
