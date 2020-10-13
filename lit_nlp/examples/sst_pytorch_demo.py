@@ -44,6 +44,7 @@ from lit_nlp.lib import utils
 
 import torch
 import transformers
+import re
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -70,6 +71,7 @@ class SimpleSentimentModel(lit_model.Model):
   """Simple sentiment analysis model."""
 
   LABELS = ["0", "1"]  # negative, positive
+  compute_grads: bool = True # if True, compute and return gradients.
 
   def __init__(self, model_name_or_path):
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -96,6 +98,7 @@ class SimpleSentimentModel(lit_model.Model):
     return 32
 
   def predict_minibatch(self, inputs):
+
     # Preprocess to ids and masks, and make the input batch.
     encoded_input = self.tokenizer.batch_encode_plus(
         [ex["sentence"] for ex in inputs],
@@ -103,14 +106,15 @@ class SimpleSentimentModel(lit_model.Model):
         add_special_tokens=True,
         max_length=128,
         pad_to_max_length=True)
-  
+
     # Check and send to cuda (GPU) if available
     if torch.cuda.is_available():
       self.model.cuda()
       for tensor in encoded_input:
         encoded_input[tensor] = encoded_input[tensor].cuda()
+
     # Run a forward pass.
-    with torch.no_grad():  # remove this if you need gradients.
+    with torch.set_grad_enabled(self.compute_grads): # Conditional to use gradients
       logits, embs, unused_attentions = self.model(**encoded_input)
 
     # Post-process outputs.
@@ -120,13 +124,45 @@ class SimpleSentimentModel(lit_model.Model):
         "ntok": torch.sum(encoded_input["attention_mask"], dim=1),
         "cls_emb": embs[-1][:, 0],  # last layer, first token
     }
+
+    # Add attention layers to batched_outputs
+    assert len(unused_attentions) == self.model.config.num_hidden_layers
+    for i, layer_attention in enumerate(unused_attentions):
+      batched_outputs[f"layer_{i}/attention"] = layer_attention
+
+    # Request gradients after the forward pass.
+    # Note: embs[0] includes position and segment encodings, as well as subword
+    # embeddings.
+    if self.compute_grads:
+      # <torch.float32>[batch_size, num_tokens, emb_dim]
+      scalar_pred_for_gradients = torch.max(batched_outputs["probas"], dim=1, keepdim=False, out=None)[0]
+      batched_outputs["input_emb_grad"] = torch.autograd.grad(scalar_pred_for_gradients, embs[0], grad_outputs = torch.ones_like(scalar_pred_for_gradients))[0]
+   
+    # Post-process outputs.
     # Return as NumPy for further processing.
     detached_outputs = {k: v.cpu().detach().numpy() for k, v in batched_outputs.items()}
+    
     # Unbatch outputs so we get one record per input example.
     for output in utils.unbatch_preds(detached_outputs):
       ntok = output.pop("ntok")
       output["tokens"] = self.tokenizer.convert_ids_to_tokens(
-          output.pop("input_ids")[1:ntok - 1])
+          output.pop("input_ids")[:ntok])
+
+      # set token gradients
+      if self.compute_grads:
+        output["token_grad_sentence"] = output["input_emb_grad"][:ntok]
+
+      # Process attention.
+      for key in output:
+        if not re.match(r"layer_(\d+)/attention", key):
+          continue
+        # Select only real tokens, since most of this matrix is padding.
+        # <float32>[num_heads, max_seq_length, max_seq_length]
+        # -> <float32>[num_heads, num_tokens, num_tokens]
+        output[key] = output[key][:, :ntok, :ntok].transpose((0, 2, 1))
+        # Make a copy of this array to avoid memory leaks, since NumPy otherwise
+        # keeps a pointer around that prevents the source array from being GCed.
+        output[key] = output[key].copy()
       yield output
 
   def input_spec(self) -> lit_types.Spec:
@@ -136,11 +172,21 @@ class SimpleSentimentModel(lit_model.Model):
     }
 
   def output_spec(self) -> lit_types.Spec:
-    return {
+    ret = {
         "tokens": lit_types.Tokens(),
         "probas": lit_types.MulticlassPreds(parent="label", vocab=self.LABELS),
         "cls_emb": lit_types.Embeddings()
     }
+    # Gradients, if requested.
+    if self.compute_grads:
+      ret["token_grad_sentence"] = lit_types.TokenGradients(
+          align="tokens")
+
+    # Attention heads, one field for each layer.
+    for i in range(self.model.config.num_hidden_layers):
+      ret[f"layer_{i}/attention"] = lit_types.AttentionHeads(
+          align=("tokens", "tokens"))
+    return ret
 
 
 def main(_):
