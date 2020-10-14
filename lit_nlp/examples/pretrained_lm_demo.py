@@ -48,12 +48,16 @@ flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
+flags.DEFINE_bool('serve', True, 'Whether to serve as a dev server.')
+
 # Set default layout to one better suited to language models.
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
 
-def g_serve():
+def get_wsgi_app():
   FLAGS.set_default('serve', False)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
   return main(unused)
 
@@ -100,9 +104,10 @@ def main(_):
 
   lit_demo = dev_server.Server(
       models, datasets, generators=generators, **server_flags.get_flags())
-  if not FLAGS.serve:
+  if FLAGS.serve:
+    lit_demo.serve()
+  else:
     return lit_demo.create_lit_app()
-  lit_demo.serve()
 
 
 if __name__ == "__main__":

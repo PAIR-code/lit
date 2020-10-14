@@ -34,6 +34,7 @@ from six.moves.urllib.parse import urlparse
 from werkzeug import wrappers
 
 
+
 def _LoadResource(path):
   """Load the resource at given path.
 
@@ -47,6 +48,7 @@ def _LoadResource(path):
     ValueError: If the path is not set up correctly.
     IOError: If the path is not found, or the resource can't be opened.
   """
+
 
   try:
     with open(path,"rb") as f:
