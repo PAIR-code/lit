@@ -800,7 +800,7 @@ export class PredictionScoreModule extends LitModule {
         <div class='plot-holder'>${svg`
           <svg class='scatterplot' data-key='${key}'
                                    data-label='${label}'
-                                   data-axisTitle='${axisTitle}'>
+                                   data-axis-title='${axisTitle}'>
           </svg>`}
         </div>
       `;
