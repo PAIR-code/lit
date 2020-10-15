@@ -68,6 +68,10 @@
   min-width: 65px;
 }
 
+.counterfactuals-count {
+  padding-bottom: 5px;
+}
+
 #header{
   height: 35px;
   display: flex;

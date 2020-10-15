@@ -184,6 +184,9 @@ export class GeneratorModule extends LitModule {
     // clang-format off
     return html`
         <div id='generated-holder'>
+          ${this.appliedGenerator === null || isGenerating || nothingGenerated ?
+            null :
+            html`<div class="counterfactuals-count">Generated ${this.totalNumGenerated} ${this.totalNumGenerated === 1 ? 'counterfactual' : 'counterfactuals'}.</div>`}
           ${this.renderHeader()}
           <div class="entries">
             ${isGenerating ? html`<div>Generating...</div>` : null}
@@ -247,7 +250,7 @@ export class GeneratorModule extends LitModule {
         ${this.renderKeys()}
         ${this.totalNumGenerated <= 0 ? null : html`
           <button class='button add-button' @click=${onAddAll}>
-             Add (${this.totalNumGenerated})
+             Add all
           </button>
           <button class='button' @click=${this.resetEditedData}>
              Clear
