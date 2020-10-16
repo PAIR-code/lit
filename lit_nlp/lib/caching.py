@@ -172,14 +172,16 @@ class CachingModelWrapper(lit_model.Model):
 
   def predict_minibatch(self, *args, **kw):
     logging.warning(
-        "CachingModelWrapper.predict_minibatch() bypasses the cache - if this is not intended, use predict_with_metadata() instead to access cache via example IDs."
-    )
+        "CachingModelWrapper.predict_minibatch() bypasses the cache - "
+        "if this is not intended, use predict_with_metadata() instead "
+        "to access cache via example IDs.")
     return self._model.predict_minibatch(*args, **kw)
 
   def predict(self, *args, **kw):
     logging.warning(
-        "CachingModelWrapper.predict() bypasses the cache - if this is not intended, use predict_with_metadata() instead to access cache via example IDs."
-    )
+        "CachingModelWrapper.predict() bypasses the cache - "
+        "if this is not intended, use predict_with_metadata() instead "
+        "to access cache via example IDs.")
     return self._model.predict(*args, **kw)
 
   def input_spec(self):
@@ -188,10 +190,19 @@ class CachingModelWrapper(lit_model.Model):
   def output_spec(self):
     return self._model.output_spec()
 
-  def predict_with_metadata(self,
-                            indexed_inputs: List[JsonDict],
-                            dataset_name: Optional[Text] = None,
-                            **kw) -> List[JsonDict]:
+  def predict_with_metadata(self, *args, **kw):
+    """As predict(), but inputs are IndexedInput."""
+    # Lock for the entire request, to avoid running the model more than once
+    # on the same inputs. This shouldn't cause much of a performance hit, since
+    # models are generally compute-bound anyway.
+    with self._cache.lock:
+      results = self._predict_with_metadata(*args, **kw)
+    return results
+
+  def _predict_with_metadata(self,
+                             indexed_inputs: List[JsonDict],
+                             dataset_name: Optional[Text] = None,
+                             **kw) -> List[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     # TODO(lit-dev): consider moving this to example level
     # (null keys skip cache), and removing this codepath.
@@ -203,8 +214,7 @@ class CachingModelWrapper(lit_model.Model):
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
 
     # Try to get results from the cache.
-    with self._cache.lock:
-      results = [self._cache.get(key_fn(d)) for d in indexed_inputs]
+    results = [self._cache.get(key_fn(d)) for d in indexed_inputs]
     miss_idxs = [i for i, v in enumerate(results) if v is None]
     logging.info("%s: misses (dataset=%s): %s", self._log_prefix, dataset_name,
                  str([indexed_inputs[i]["id"] for i in miss_idxs]))
@@ -219,9 +229,8 @@ class CachingModelWrapper(lit_model.Model):
     logging.info("Received %d predictions from model", len(model_preds))
 
     # Merge results back into the output list.
-    with self._cache.lock:
-      for i, orig_idx in enumerate(miss_idxs):
-        self._cache.put(model_preds[i], key_fn(indexed_inputs[orig_idx]))
-        results[orig_idx] = model_preds[i]
+    for i, orig_idx in enumerate(miss_idxs):
+      self._cache.put(model_preds[i], key_fn(indexed_inputs[orig_idx]))
+      results[orig_idx] = model_preds[i]
 
     return results

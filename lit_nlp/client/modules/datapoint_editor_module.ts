@@ -23,7 +23,7 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {Input, LitName, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {Input, defaultValueByField, ModelsMap, SpanLabel, Spec} from '../lib/types';
 import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 
@@ -56,6 +56,7 @@ export class DatapointEditorModule extends LitModule {
   }
 
   private resizeObserver!: ResizeObserver;
+  private isShiftPressed = false; /** Newline edits are shift + enter */
 
   @observable editedData: Input = {};
   @observable datapointEdited: boolean = false;
@@ -135,33 +136,16 @@ export class DatapointEditorModule extends LitModule {
       const characterWidth = 13;  // estimate for character width in pixels
       const numLines = Math.ceil(
           characterWidth * defaultCharLength / inputBoxElement.clientWidth);
-
+      const pad = 1;
       // Set 2 ex per line.
-      this.inputHeights[key] = `${2 * numLines}ex`;
+      this.inputHeights[key] = `${2 * numLines + pad}ex`;
     }
   }
 
-  // TODO(lit-dev): move to utils or types.ts?
-  private defaultValueByField(key: string) {
-    const fieldSpec = this.appState.currentDatasetSpec[key];
-    if (isLitSubtype(fieldSpec, 'Scalar')) {
-      return 0;
-    }
-    const listFieldTypes: LitName[] =
-        ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels'];
-    if (isLitSubtype(fieldSpec, listFieldTypes)) {
-      return [];
-    }
-    const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
-    if (isLitSubtype(fieldSpec, stringFieldTypes)) {
-      return '';
-    }
-    console.log(
-        'Warning: default value requested for unrecognized input field type',
-        key, fieldSpec);
-    return '';
+  private growToTextSize(e: KeyboardEvent) {
+    const elt = e.target as HTMLElement;
+    elt.style.height = `${elt.scrollHeight}px`;
   }
-
 
   private resetEditedData(selectedInputData: Input|null) {
     this.datapointEdited = false;
@@ -171,8 +155,9 @@ export class DatapointEditorModule extends LitModule {
     const keys = selectedInputData == null ?
         this.appState.currentInputDataKeys :
         Object.keys(selectedInputData);
+    const spec = this.appState.currentDatasetSpec;
     for (const key of keys) {
-      data[key] = selectedInputData == null ? this.defaultValueByField(key) :
+      data[key] = selectedInputData == null ? defaultValueByField(key, spec) :
                                               selectedInputData[key];
     }
     this.editedData = data;
@@ -207,8 +192,10 @@ export class DatapointEditorModule extends LitModule {
   renderMakeResetButtons() {
     const makeEnabled = this.datapointEdited && this.allRequiredInputsFilledOut;
     const resetEnabled = this.datapointEdited;
+    const clearEnabled = !!this.selectionService.primarySelectedInputData;
 
     const onClickNew = async () => {
+
       const toCreate = [[this.editedData]];
       const ids = [this.selectionService.primarySelectedId!];
       const datapoints =
@@ -219,14 +206,20 @@ export class DatapointEditorModule extends LitModule {
       this.resetEditedData(
           this.selectionService.primarySelectedInputData!.data);
     };
+    const onClickClear = () => {
+      this.selectionService.selectIds([]);
+    };
     return html`
       <div class="button-holder">
         <button id="make"  @click=${onClickNew} ?disabled="${!makeEnabled}">
-          Make new Datapoint
+          Analyze new datapoint
         </button>
         <button id="reset" @click=${onClickReset}  ?disabled="${!resetEnabled}">
           Reset
         </button>
+        <button id="reset" @click=${onClickClear}  ?disabled="${!clearEnabled}">
+          Clear
+      </button>
       </div>
     `;
   }
@@ -337,10 +330,18 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderSpanLabelsNonEditable;
     }
 
+    // Shift + enter creates a newline; enter alone creates a new datapoint.
     const onKeyUp = (e: KeyboardEvent) => {
-      handleEnterKey(e, () => {
-        this.shadowRoot!.getElementById('make')!.click();
-      });
+      if (e.key === 'Shift') this.isShiftPressed = false;
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') this.isShiftPressed = true;
+      if (e.key === 'Enter') {
+        if (!this.isShiftPressed) {
+          e.preventDefault();
+          this.shadowRoot!.getElementById('make')!.click();
+        }
+      }
     };
 
     // TODO(lit-team): Have better indication of model inputs vs other fields.
@@ -348,12 +349,17 @@ export class DatapointEditorModule extends LitModule {
     // in the dataset? b/157985221.
     const isRequiredModelInput =
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
+
     const displayKey = `${key}${isRequiredModelInput ? '(*)' : ''}`;
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
     return html`
-      <div class="entry" @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}>
+      <div class="entry"
+        @input=${(e: KeyboardEvent) => {this.growToTextSize(e);}}
+        @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
+        @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
+        >
         <div><label>${displayKey}: </label></div>
         <div>
           ${renderInput()}

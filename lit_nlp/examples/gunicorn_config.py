@@ -12,23 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-name: lit-nlp
-dependencies:
-    - python=3.7
-    - absl-py
-    - numpy
-    - scipy
-    - pandas
-    - scikit-learn
-    - gunicorn
-    - pip
-    - pip:
-        - tensorflow
-        - tensorflow-datasets
-        - lime
-        - rouge-score
-        - sacrebleu
-        - umap-learn
-        - transformers==2.11.0
-        - google-cloud-translate
+"""Config for gunicorn for cloud-hosted demos."""
 
+timeout = 500
+bind = '0.0.0.0:8080'
+threads = 8
+worker_class = 'gthread'

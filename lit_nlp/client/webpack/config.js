@@ -59,7 +59,7 @@ module.exports = (env = {}) => {
       modules: ['node_modules'],
       extensions: ['.ts', '.js'],
     },
-    entry: resolveDir('../main.ts'),
+    entry: resolveDir('../default/main.ts'),
     output: {
       filename: '[name].js',
       path: resolveDir('../build'),

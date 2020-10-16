@@ -7,6 +7,7 @@ This wrapper loads a model into memory and implements the a number of helper
 functions to predict a batch of examples and extract information such as
 hidden states and attention.
 """
+import re
 from typing import Dict, List, Tuple
 
 from lit_nlp.api import model as lit_model
@@ -238,6 +239,18 @@ class GPT2LanguageModel(lit_model.Model):
       token_pred_words = self._detokenize(token_pred_ids)
       token_topk_preds.append(list(zip(token_pred_words, token_pred_probs)))
     preds["pred_tokens"] = token_topk_preds
+
+    # Process attention.
+    for key in preds:
+      if not re.match(r"layer_(\d+)/attention", key):
+        continue
+      # Select only real tokens, since most of this matrix is padding.
+      # <float32>[num_heads, max_seq_length, max_seq_length]
+      # -> <float32>[num_heads, num_tokens, num_tokens]
+      preds[key] = preds[key][:, :ntok, :ntok].transpose((0, 2, 1))
+      # Make a copy of this array to avoid memory leaks, since NumPy otherwise
+      # keeps a pointer around that prevents the source array from being GCed.
+      preds[key] = preds[key].copy()
 
     return preds
 

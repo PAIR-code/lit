@@ -18,6 +18,7 @@
 // tslint:disable:no-new-decorators
 import {property} from 'lit-element';
 import {computed} from 'mobx';
+import { observable } from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {LitStaticProperties} from '../lib/types';
@@ -60,7 +61,7 @@ export abstract class LitModule extends ReactiveElement {
 
 
   @property({type: String}) model = '';
-  @property({type: Number}) selectionServiceIndex = 0;
+  @observable @property({type: Number}) selectionServiceIndex = 0;
 
   // tslint:disable-next-line:no-any
   private readonly latestLoadPromises = new Map<string, Promise<any>>();

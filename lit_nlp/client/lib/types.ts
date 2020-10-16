@@ -19,6 +19,7 @@
 import * as d3 from 'd3';
 
 import {TemplateResult} from 'lit-html';
+import {isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
@@ -82,6 +83,7 @@ export interface LitMetadata {
   models: ModelsMap;
   demoMode: boolean;
   defaultLayout: string;
+  canonicalURL?: string;
 }
 
 export interface Input {
@@ -196,4 +198,27 @@ export interface LitStaticProperties {
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
   numCols: number;
+}
+
+/**
+ * Get the default value for a spec field.
+ */
+export function defaultValueByField(key: string, spec: Spec) {
+  const fieldSpec = spec[key];
+  if (isLitSubtype(fieldSpec, 'Scalar')) {
+    return 0;
+  }
+  const listFieldTypes: LitName[] =
+      ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels'];
+  if (isLitSubtype(fieldSpec, listFieldTypes)) {
+    return [];
+  }
+  const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
+  if (isLitSubtype(fieldSpec, stringFieldTypes)) {
+    return '';
+  }
+  console.log(
+      'Warning: default value requested for unrecognized input field type',
+      key, fieldSpec);
+  return '';
 }

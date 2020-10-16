@@ -37,7 +37,9 @@ FLAGS = flags.FLAGS
 # Server flags, passed to the WSGI server.
 flags.DEFINE_integer('port', 5432, 'What port to serve on.')
 flags.DEFINE_string('server_type', 'default',
-                    'Webserver to use; see dev_server.py')
+                    'Webserver to use. Use "external" when using an external  '
+                    'webserver, like gunicorn. See dev_server.py for other '
+                    'options.')
 flags.DEFINE_string(
     'host', '127.0.0.1', 'What host address to serve on. Use 127.0.0.1 for '
     'local development, or 0.0.0.0 to allow external connections.')
@@ -62,6 +64,10 @@ flags.DEFINE_bool(
 flags.DEFINE_string(
     'default_layout', 'default',
     'Which layout to use by default (can be changed via url); see layout.ts')
+flags.DEFINE_string(
+    'canonical_url', None,
+    'What url base to use when copying the LIT url (e.g., something other '
+    'than just a local server address.')
 
 flags.DEFINE_string(
     'client_root',

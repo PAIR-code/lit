@@ -39,7 +39,7 @@ which modules to render).
 The LIT app bootstrapping takes place in two steps: First, the served
 [`index.html`](../lit_nlp/client/static/index.html)
 page contains a single web component for the
-[`<lit-app>`](../lit_nlp/client/app.ts). This
+[`<lit-app>`](../lit_nlp/client/app/app.ts). This
 component is responsible for the overall layout of the app, including the
 toolbar, footer, and the
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)
@@ -48,14 +48,15 @@ and rendering the various `LitModule` components, a process about which we'll go
 into greater detail later.
 
 The JS bundle entry point is
-[`main.ts`](../lit_nlp/client/main.ts), which first
-imports the loaded, the `<lit-app>` web component is declared, and attaches
-itself to the DOM, waiting for the app to be initialized.
+[`main.ts`](../lit_nlp/client/default/main.ts), which
+first imports the loaded, the `<lit-app>` web component is declared, and
+attaches itself to the DOM, waiting for the app to be initialized.
 
 The second step is kicking off app initialization. The
-[`LitApp`](../lit_nlp/client/app.ts) singleton class
-is provided with a layout declaring which `LitModule` components to use, then
-builds the app services and kicks off app initialization and loading data.
+[`LitApp`](../lit_nlp/client/core/lit_app.ts)
+singleton class is provided with a layout declaring which `LitModule` components
+to use, then builds the app services and kicks off app initialization and
+loading data.
 
 ### Layout
 
@@ -75,7 +76,7 @@ const layout: LitComponentLayout = {
     ],
     'Counterfactuals': [GeneratorModule],
     'Predictions': [
-      PredictionScoreModule,
+      ScalarModule,
       ClassificationModule,
     ],
     'Explanations': [
@@ -86,8 +87,13 @@ const layout: LitComponentLayout = {
   }
 };
 ```
+
 The full layouts are defined in
-[layout.ts](../lit_nlp/client/layout.ts). To use a specific layout for a given LIT instance, pass the key (e.g., "simple" or "mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The layout can be set on-the-fly a URL param (the url param overrides the server flag).
+[layout.ts](../lit_nlp/client/default/layout.ts). To
+use a specific layout for a given LIT instance, pass the key (e.g., "simple" or
+"mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
+layout can be set on-the-fly a URL param (the url param overrides the server
+flag).
 
 The actual layout of components in
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)

@@ -15,17 +15,17 @@ class GigawordData(lit_dataset.Dataset):
     self._examples = []  # populate this with data records
     for record in ds.take(max_examples):
       input_text = record["document"].numpy().decode("utf-8")
-      output_text = record["summary"].numpy().decode("utf-8")
+      target_text = record["summary"].numpy().decode("utf-8")
       self._examples.append({
           "input_text": input_text,
-          "output_text": output_text,
+          "target_text": target_text,
       })
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
     return {
         "input_text": lit_types.TextSegment(),
-        "output_text": lit_types.TextSegment(),
+        "target_text": lit_types.TextSegment(),
     }
 
 
@@ -44,15 +44,15 @@ class CNNDMData(lit_dataset.Dataset):
                         .decode("utf-8")\
                         .replace("<br />", "")\
                         .split()[-max_seq_len:])
-      output_text = record["highlights"].numpy().decode("utf-8")
+      target_text = record["highlights"].numpy().decode("utf-8")
       self._examples.append({
           "input_text": input_text,
-          "output_text": output_text,
+          "target_text": target_text,
       })
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
     return {
         "input_text": lit_types.TextSegment(),
-        "output_text": lit_types.TextSegment(),
+        "target_text": lit_types.TextSegment(),
     }
