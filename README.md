@@ -39,6 +39,7 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 *   [User Guide](docs/user_guide.md)
 *   [Developer Guide](docs/development.md)
 *   [FAQ](docs/faq.md)
+*   [Release notes](./RELEASE.md)
 
 ## Download and Installation
 
