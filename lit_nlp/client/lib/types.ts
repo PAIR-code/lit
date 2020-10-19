@@ -28,7 +28,7 @@ export type LitClass = 'LitType';
 export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
     'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
     'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads';
+    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel';
 
 export interface LitType {
   __class__: LitClass;
@@ -208,8 +208,9 @@ export function defaultValueByField(key: string, spec: Spec) {
   if (isLitSubtype(fieldSpec, 'Scalar')) {
     return 0;
   }
-  const listFieldTypes: LitName[] =
-      ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels'];
+  const listFieldTypes: LitName[] = [
+    'Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'
+  ];
   if (isLitSubtype(fieldSpec, listFieldTypes)) {
     return [];
   }

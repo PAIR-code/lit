@@ -308,6 +308,21 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
+    // Render multi-label inputs as comma-separated, but re-split for editing.
+    const renderSparseMultilabelInput = () => {
+      const handleSparseMultilabelInput = (e: Event) => {
+        handleInputChange(e, (value: string): string[] => {
+          // If value is empty, return [] instead of ['']
+          return value ? value.split(',') : [];
+        });
+      };
+      const valueAsString = value ? value.join(',') : '';
+      return html`
+      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
+          handleSparseMultilabelInput}
+        ?readonly="${!editable}">${valueAsString}</textarea>`;
+    };
+
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
       const renderLabel = (d: SpanLabel) => html`<div class="span-label">[${
@@ -328,6 +343,8 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderTokensInput;
     } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
+    } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+      renderInput = renderSparseMultilabelInput;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.

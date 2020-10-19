@@ -16,8 +16,8 @@
  */
 
 // tslint:disable:no-new-decorators
-import {css, customElement, html, property} from 'lit-element';
-import {observable, reaction} from 'mobx';
+import {customElement, html} from 'lit-element';
+import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
@@ -25,10 +25,16 @@ import {IndexedInput, ModelsMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {RegressionService} from '../services/services';
 
+import {styles} from './regression_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
 interface RegressionResult {
   [key: string]: number;
+}
+
+interface ResultElement {
+  'header': string;
+  'result': string;
 }
 
 /**
@@ -45,14 +51,7 @@ export class RegressionModule extends LitModule {
   };
 
   static get styles() {
-    return [
-      sharedStyles,
-      css`
-        td {
-          padding-right: 4px;
-        }
-      `,
-    ];
+    return [sharedStyles, styles];
   }
 
   private readonly regressionService = app.getService(RegressionService);
@@ -103,66 +102,58 @@ export class RegressionModule extends LitModule {
     if (primarySelectedInputData == null) {
       return null;
     }
-    const inputs = [primarySelectedInputData];
-
+    // We only show the primary selection, so input is always one example.
+    const input = primarySelectedInputData;
 
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
-    const textFields: string[] = findSpecKeys(spec.input, 'TextSegment');
     const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
 
-    const headers: string[] = [];
-    const rows: Array<Array<string|number>> = [];
-    inputs.forEach((input) => {
-      rows.push([] as Array<string|number>);
-    });
-    // Add columns for score fields and the parent label fields.
+
+    const rows: ResultElement[][] = [];
+    // Display parent field, score and error on the same row per output.
     for (const scoreField of scoreFields) {
-      // Target score to compare against.
-      const parentField = spec.output[scoreField].parent! || '-';
-      headers.push(parentField);
-      headers.push(scoreField);
-      headers.push('error');
-      rows.forEach((row, i) => {
-        row.push(
-            inputs[i].data[parentField] == null ?
-                '-' :
-                inputs[i].data[parentField].toFixed(4));
-        row.push(
-            (this.results.length === 0 || this.results[i][scoreField] == null) ?
-                '-' :
-                this.results[i][scoreField].toFixed(4));
-        row.push(
-            (this.results.length === 0 ||
-             this.results[i][this.regressionService.getErrorKey(scoreField)] ==
-                 null) ?
-                '-' :
-                this.results[i][this.regressionService.getErrorKey(scoreField)]
-                    .toFixed(4));
-      });
-    }
-    if (inputs.length > 1) {
-      // Add columns for text fields, so we can see which example each score
-      // corresponds to.
-      // TODO(lit-team): clip text if too long, or there are many input fields.
-      for (const textField of textFields) {
-        headers.push(textField);
-        rows.forEach((row, i) => {
-          row.push(inputs[i].data[textField]);
-        });
+      // Add new row for each output from the model.
+      const row = [] as ResultElement[];
+      const score =
+          (this.results.length === 0 || this.results[0][scoreField] == null) ?
+          '' :
+          this.results[0][scoreField].toFixed(4);
+      if (score) {
+        row.push({'header': scoreField, 'result': score} as ResultElement);
       }
+      // Target score to compare against.
+      const parentField = spec.output[scoreField].parent! || '';
+      const parentScore = input.data[parentField] == null ?
+          '' :
+          input.data[parentField].toFixed(4);
+      if (parentField && parentScore) {
+        row.push(
+            {'header': parentField, 'result': parentScore} as ResultElement);
+      }
+      const errorScore =
+          (this.results.length === 0 ||
+           this.results[0][this.regressionService.getErrorKey(scoreField)] ==
+               null) ?
+          '' :
+          this.results[0][this.regressionService.getErrorKey(scoreField)]
+              .toFixed(4);
+      if (errorScore) {
+        row.push({'header': 'error', 'result': errorScore} as ResultElement);
+      }
+      rows.push(row);
     }
 
-    const renderRow = (row: Array<string|number>) => html`
+    const renderRow = (row: ResultElement[]) => html`
       <tr>
-        ${row.map((entry) => html`<td>${entry}</td>`)}
+        ${row.map((entry) => html`<th>${entry.header}</th>`)}
+      </tr>
+      <tr>
+        ${row.map((entry) => html`<td>${entry.result}</td>`)}
       </tr>`;
 
     return html`
         <table>
-          <tr>
-            ${headers.map((header) => html`<th>${header}</th>`)}
-          </tr>
           ${rows.map((row) => renderRow(row))}
         </table>`;
   }
