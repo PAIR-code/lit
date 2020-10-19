@@ -178,7 +178,7 @@ If you're modifying any TypeScript code, you'll need to re-build the frontend.
 You can have yarn do this automatically. In one terminal, run:
 
 ```sh
-cd ~/lit/lit_nlp/client
+cd ~/lit/lit_nlp
 yarn
 yarn build --watch
 ```
@@ -207,3 +207,16 @@ disk, and automatically re-load it on a subsequent run. In conjunction with
 `--warm_start`, you can use this to avoid re-running inference during
 development - though if you modify the model at all, you should be sure to
 remove any stale cache files.
+
+## Custom Client / Modules
+
+An example of a custom LIT client application, including a custom 
+(potato-themed) module can be found in `lit_nlp/examples/custom_module`. In 
+short, to build and serve a custom LIT client application, create a new 
+directory containing a `main.ts` entrypoint. Then, build the app, specifying
+the directory to build with the `env.build` flag. For example, to build the 
+`custom_module` demo app:
+
+```sh
+yarn build --env.build=examples/custom_demo
+```
