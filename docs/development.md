@@ -44,7 +44,7 @@ server.serve()
 ```
 
 For more, see [adding models and data](python_api.md#adding-models-and-data) or
-the examples in [lit_nlp/examples](../lit_nlp/examples).
+the [examples](../lit_nlp/examples).
 
 [^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
     not related to the lit-html or lit-element projects.
@@ -113,7 +113,8 @@ for which example predictions might be:
 }
 ```
 
-_For a more detailed example, see [lit_nlp/examples](../lit_nlp/examples)._
+_For a more detailed example, see the
+[examples](../lit_nlp/examples)._
 
 LIT components use this spec to find and operate on relevant fields, as well as
 to access metadata like label vocabularies. For example, the multiclass metrics
@@ -199,10 +200,10 @@ from the build output.
 If you're modifying the Python backend, there is experimental support for
 hot-reloading the LIT application logic (`app.py`) and some dependencies without
 needing to re-load models or datasets. See
-../lit_nlp/dev_server.py for details.
+[dev_server.py](../lit_nlp/dev_server.py) for details.
 
 You can use the `--data_dir` flag (see
-../lit_nlp/server_flags.py) to save the predictions cache to
+[server_flags.py](../lit_nlp/server_flags.py) to save the predictions cache to
 disk, and automatically re-load it on a subsequent run. In conjunction with
 `--warm_start`, you can use this to avoid re-running inference during
 development - though if you modify the model at all, you should be sure to

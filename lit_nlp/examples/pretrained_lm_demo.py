@@ -7,8 +7,7 @@ Currently supports the following model types:
 
 To run locally:
   python -m lit_nlp.examples.pretrained_lm_demo \
-      --models=bert-base-uncased --top_k 10 \
-      --port=5432
+      --models=bert-base-uncased --top_k 10 --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """

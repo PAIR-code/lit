@@ -3,8 +3,8 @@ r"""Example demo loading a T5 model for a summarization task.
 
 To run locally:
   python -m lit_nlp.examples.t5_summarization_demo \
-      --port=5432 --warm_start 1.0 \
-      --top_k 10 --use_indexer --initialize_index --data_dir=/tmp/t5_index
+      --port=5432 --warm_start 1.0 --top_k 10 --use_indexer --initialize_index \
+      --data_dir=/tmp/t5_index
 
 Then navigate to localhost:5432 to access the demo UI.
 """

@@ -6,8 +6,7 @@ Treebank (SST-2), and starts a LIT server. It also uses a custom frontend build,
 which has a fun potato module!
 
 To run locally:
-  python -m lit_nlp.examples.potato_demo \
-      --port=5432
+  python -m lit_nlp.examples.potato_demo --port=5432
 
 Training should take less than 5 minutes on a single GPU. Once you see the
 ASCII-art LIT logo, navigate to localhost:5432 to access the demo UI.
