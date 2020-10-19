@@ -182,6 +182,11 @@ td {
   margin-left: 20px;
 }
 
+td div {
+  max-height: 150px;
+  overflow: auto;
+}
+
 /* For in-line icons in a <span> */
 [data-icon] {
   margin: 0;
