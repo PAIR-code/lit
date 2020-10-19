@@ -169,11 +169,17 @@ class Embeddings(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class TokenEmbeddings(LitType):
+  """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
+  align: Optional[Text] = None  # path to tokens or other sequence field
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(LitType):
   """Gradients with respect to inputs, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # path to tokens or other sequence field
-  # TODO(lit-team): add pointer to an input embedding field, for implementing
-  # things like path-integrated gradients?
+  grad_for: Optional[Text] = None  # name of input embedding field
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

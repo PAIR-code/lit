@@ -103,6 +103,45 @@ class TestIdentityRegressionModel(lit_model.Model):
     return self._count
 
 
+class TestModelClassification(lit_model.Model):
+  """Implements lit.Model interface for testing classification models.
+
+     Returns the same output for every input.
+  """
+
+  # LIT API implementation
+  def input_spec(self):
+    return {'input_embs': lit_types.TokenEmbeddings(align='tokens',
+                                                    required=False),
+            'segment': lit_types.TextSegment,
+            'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])}
+
+  def output_spec(self):
+    return {'probas': lit_types.MulticlassPreds(
+        parent='label',
+        vocab=['0', '1'],
+        null_idx=0),
+            'input_embs': lit_types.TokenEmbeddings(align='tokens'),
+            'input_embs_grad': lit_types.TokenGradients(align='tokens',
+                                                        grad_for='input_embs',
+                                                        grad_target='grad_class'
+                                                        ),
+            'tokens': lit_types.Tokens(),
+            'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])
+            }
+
+  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+    output = {'probas': np.array([0.2, 0.8]),
+              'input_embs': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
+                                      [0, 0, 0, 0], [0, 0, 0, 0]]),
+              'input_embs_grad': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
+                                           [0, 0, 0, 0], [0, 0, 0, 0]]),
+              'tokens': ['test'],
+              'grad_class': '1'
+              }
+    return map(lambda x: output, inputs)
+
+
 class TestModelBatched(lit_model.Model):
   """Implements lit.Model interface for testing with a max minibatch size of 3.
   """

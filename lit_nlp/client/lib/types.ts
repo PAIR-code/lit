@@ -25,10 +25,10 @@ import {isLitSubtype} from './utils';
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName =
-    'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|'TokenTopKPreds'|'Scalar'|
-    'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
-    'SpanLabels'|'EdgeLabels'|'Embeddings'|'TokenGradients'|'AttentionHeads';
+export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
+    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
+    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
+    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads';
 
 export interface LitType {
   __class__: LitClass;

@@ -320,6 +320,7 @@ class LitApp(object):
       self._interpreters = {
           'grad_norm': gradient_maps.GradientNorm(),
           'lime': lime_explainer.LIME(),
+          'integrated gradients': gradient_maps.IntegratedGradients(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'metrics': metrics_group,
           # Embedding projectors expose a standard interface, but get special
