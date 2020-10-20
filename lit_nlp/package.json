@@ -5,8 +5,8 @@
   "source": "main.ts",
   "main": "src/bundle.js",
   "scripts": {
-    "build": "rm -rf ./build && webpack --env.production --config ./webpack/config.js",
-    "watch": "rm -rf ./build && webpack --config ./webpack/config.js"
+    "build": "rm -rf ./build && webpack --env.production --config ./client/webpack/config.js",
+    "watch": "rm -rf ./build && webpack --config ./client/webpack/config.js"
   },
   "author": "",
   "license": "Apache 2",
