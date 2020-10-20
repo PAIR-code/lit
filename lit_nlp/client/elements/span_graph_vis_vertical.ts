@@ -144,7 +144,6 @@ export class SpanGraphVis extends ReactiveElement {
       'hidden': hidden
     });
 
-    const headerStyles = styleMap({ color: VizColor.getColor('deep', i).color });
     const headerClasses = classMap({ 'layer-label-vert': true, hidden });
     const onClick = () =>
       this.columnVisibility[layer.name] = !this.columnVisibility[layer.name];
@@ -153,7 +152,7 @@ export class SpanGraphVis extends ReactiveElement {
     return html`
     <div class=layer style=${layerStyles} @click=${onClick}>
       ${this.showLayerLabel ? html`
-      <div class=${headerClasses} style=${headerStyles}>
+      <div class=${headerClasses}>
         ${layer.name}
       </div>` : null}
       <div style=${colStyles} class=${columnClasses}>

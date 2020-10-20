@@ -16,6 +16,7 @@
   transform: rotate(0deg);
   transition: .25s transform;
   transform-origin: 10px 10px;
+  color: var(--group-color);
 }
 .layer-label-vert.hidden {
   transform: rotate(-90deg);
