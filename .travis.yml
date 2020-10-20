@@ -44,7 +44,7 @@ install:
 
 script:
   # Build front-end.
-  - pushd lit_nlp/client && yarn && yarn build && popd
+  - pushd lit_nlp && yarn && yarn build && popd
   # Test python code.
   - pytest -v
   # TODO(jwexler): Test typescript code.

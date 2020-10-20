@@ -8,10 +8,11 @@
  */
 
 // tslint:disable:no-new-decorators
-import {LitModule} from '../../core/lit_module';
-import {ModelsMap, Spec} from '../../lib/types';
 import {customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
+
+import {LitModule} from '../../client/core/lit_module';
+import {ModelsMap, Spec} from '../../client/lib/types';
 
 /** Custom LIT module. Delicious baked, mashed, or fried. */
 @customElement('potato-module')

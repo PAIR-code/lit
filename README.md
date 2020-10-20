@@ -61,7 +61,7 @@ conda install cudnn cupti  # optional, for GPU support
 conda install -c pytorch pytorch  # optional, for PyTorch
 
 # Build the frontend
-cd ~/lit/lit_nlp/client
+cd ~/lit/lit_nlp
 yarn && yarn build
 ```
 

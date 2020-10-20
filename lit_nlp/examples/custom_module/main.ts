@@ -4,14 +4,14 @@
 
 // Imports the main LIT App web component, which is declared here then attached
 // to the DOM as <lit-app>
-import '../../app/app';
+import '../../client/app/app';
 
-import {app} from '../../core/lit_app';
-import {LAYOUTS} from '../../default/layout';
+import {app} from '../../client/core/lit_app';
+import {LAYOUTS} from '../../client/default/layout';
 
-import {ClassificationModule} from '../../modules/classification_module';
-import {DataTableModule} from '../../modules/data_table_module';
-import {DatapointEditorModule} from '../../modules/datapoint_editor_module';
+import {ClassificationModule} from '../../client/modules/classification_module';
+import {DataTableModule} from '../../client/modules/data_table_module';
+import {DatapointEditorModule} from '../../client/modules/datapoint_editor_module';
 import {PotatoModule} from './potato';
 
 // Define a custom layout which includes our spud-tastic potato module!

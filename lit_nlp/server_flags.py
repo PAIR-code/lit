@@ -71,8 +71,10 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     'client_root',
-    os.path.join(pathlib.Path(__file__).parent.absolute(), 'client', 'build'),
-   'Path to frontend client.')
+    os.path.join(
+        pathlib.Path(__file__).parent.absolute(), 'client', 'build',
+        'default'),
+    'Path to frontend client.')
 
 
 def get_flags():

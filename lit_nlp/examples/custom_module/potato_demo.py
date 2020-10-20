@@ -11,12 +11,13 @@ To run locally:
 Training should take less than 5 minutes on a single GPU. Once you see the
 ASCII-art LIT logo, navigate to localhost:5432 to access the demo UI.
 """
+import os
+import pathlib
 import tempfile
 
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import glue
@@ -33,6 +34,9 @@ flags.DEFINE_string(
 flags.DEFINE_string("model_path", None, "Path to save trained model.")
 
 # Use our custom frontend build from this directory.
+FLAGS.set_default(
+    "client_root",
+    os.path.join(pathlib.Path(__file__).parent.absolute(), "build"))
 FLAGS.set_default("default_layout", "potato")
 
 
