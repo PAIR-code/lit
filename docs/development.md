@@ -1,10 +1,10 @@
 # Developer Guide
 
-
+<!-- developer docs placeholder - DO NOT REMOVE -->
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 For specific API documentation, see:
 

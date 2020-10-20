@@ -7,7 +7,7 @@ This is a user guide for the Language Interpretability Tool (LIT).
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## Running LIT
 
@@ -97,7 +97,7 @@ the new datapoints were saved and how many of those datapoints there were.
 To load these saved datapoints into a LIT session, just provide that same path
 and click **"Load new datapoints"**.
 
-![LIT global settings](./images/lit-settings.png "LIT global settings")
+![LIT global settings](./images/lit-settings.png "LIT global settings")<!-- DO NOT REMOVE {width="600"} -->
 
 ### Selection Toolbar
 
@@ -222,7 +222,7 @@ addition to predictions, the embedding projector will show all datapoints by
 their embeddings projected down to 3 dimentions. This is useful for exploring
 and understanding clusters of datapoints.
 
-![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")
+![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")<!-- DO NOT REMOVE {width="500"} -->
 
 The specific embedding used to generate the projection can be selected in a
 dropdown, along with the method of projection (either UMAP or PCA). An
@@ -274,7 +274,7 @@ The below data table shows one sorted by the "label" field, with the "passage"
 field being filtered to only those datapoints that contain the word "sound" in
 them.
 
-![LIT data table](./images/lit-datatable.png "LIT data table")
+![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Datapoint Editor
 
@@ -403,7 +403,7 @@ The below screenshot shows this module for a binary classification task where
 the positive classification threshold has been changed and the datapoints near
 the decision boundary have been selected for further analysis.
 
-![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")
+![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Model Output
 
@@ -419,7 +419,7 @@ For structured prediction tasks like span labeling, a span graph module can
 display all tagged spans returned by the model, along with a visualization of
 the ground truth spans if one is available in the dataset.
 
-![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction")
+![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction")<!-- DO NOT REMOVE {width="800"} -->
 
 ### Salience Maps
 
@@ -499,7 +499,7 @@ depression-era gangster movie.”, while replacing “ultimate” to get “It�
 worst depression-era gangster movie.” elicits a mildly positive score from our
 model.
 
-![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")
+![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Gender Bias in Coreference
 
@@ -523,7 +523,7 @@ stereotype - e.g. when the answer is the occupation term, male pronouns are
 correctly resolved 83% of the time, compared to female pronouns only 37.5% of
 the time (screenshot section (c)).
 
-![Winogender analysis](./images/lit-winogender.png "Winogender analysis")
+![Winogender analysis](./images/lit-winogender.png "Winogender analysis")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Debugging Text Generation
 
@@ -545,4 +545,4 @@ We see that the words “captain” and “former” appear 34 and 16 times in t
 examples–along with 3 occurrences of “replaced by” (screenshot section (e)),
 suggesting a strong prior toward our erroneous phrase.
 
-![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis")
+![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis")<!-- DO NOT REMOVE {width="500"} -->

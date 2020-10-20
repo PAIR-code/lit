@@ -1,13 +1,13 @@
 # Frontend Client
 
-
+<!-- client docs placeholder - DO NOT REMOVE -->
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
 
 This document aims to describe the current LIT frontend system, including
 conventions, best practices, and gotchas.
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## High Level Overview
 
