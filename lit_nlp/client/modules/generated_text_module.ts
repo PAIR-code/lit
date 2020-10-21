@@ -153,108 +153,19 @@ export class GeneratedTextModule extends LitModule {
   renderDiffText(
       targetField: string, targetText: string, outputKey: string,
       outputText: string) {
-    // textDiff contains arrays of parsed segments from both strings, and an
-    // array of booleans indicating whether the corresponding change type is
-    // 'equal.'
-    const byWord = this.isChecked;
-    const textDiff = getTextDiff(targetText, outputText, byWord);
-
-
-    // Highlight strings as bold if they don't match (and the changetype is
-    // not 'equal').
-    // clang-format off
     return html`
-      ${this.renderDiffString(
-            targetField, textDiff.inputStrings, textDiff.equal, byWord)}
-      ${this.renderDiffString(
-            outputKey, textDiff.outputStrings, textDiff.equal, byWord)}
-      <br>
+      <lit-text-diff
+        beforeLabel=${targetField}
+        beforeText=${targetText}        
+        afterLabel=${outputKey}
+        afterText=${outputText}
+      /></lit-text-diff>
     `;
-    // clang-format on
-  }
-
-  renderDiffString(
-      key: string, strings: string[], equal: boolean[], byWord: boolean) {
-    let displayStrings = strings;
-
-    // Add spaces between strings for the word-wise character diffs.
-    if (byWord) {
-      const lastIndex = strings.length - 1;
-      displayStrings = strings.map((item, i) => {
-        if (i !== lastIndex) {
-          return item.concat(' ');
-        }
-        return item;
-      });
-    }
-
-    // clang-format off
-    return html`
-      <div class="output">
-        <div class="key">${key} </div>
-        <div class="value">
-          ${displayStrings.map((output, i) => {
-            const classes = classMap({
-              highlighted: !equal[i],
-            });
-            return html`<span class=${classes}>${output}</span>`;
-          })}
-        </div>
-      </div>
-    `;
-    // clang-format on
   }
 
   static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'GeneratedText');
   }
-}
-
-/**
- * Uses difflib library to compute character differences between the input
- * strings and returns a TextDiff object, which contains arrays of parsed
- * segments from both strings and an array of booleans indicating whether the
- * corresponding change type is 'equal.'
- */
-export function getTextDiff(
-    targetText: string, outputText: string, byWord: boolean): TextDiff {
-  // Use difflib library to compute opcodes, which contain a group of changes
-  // between the two input strings. Each opcode contains the change type and
-  // the start/end of the concerned characters/words in each string.
-  const targetWords = targetText.split(' ');
-  const outputWords = outputText.split(' ');
-
-  const matcher = byWord ?
-      new difflib.SequenceMatcher(() => false, targetWords, outputWords) :
-      new difflib.SequenceMatcher(() => false, targetText, outputText);
-  const opcodes = matcher.getOpcodes();
-
-  // Store an array of the parsed segments from both strings and whether
-  // the change type is 'equal.'
-  const inputStrings: string[] = [];
-  const outputStrings: string[] = [];
-  const equal: boolean[] = [];
-
-  for (const opcode of opcodes) {
-    const changeType = opcode[0];
-    const startA = Number(opcode[1]);
-    const endA = Number(opcode[2]);
-    const startB = Number(opcode[3]);
-    const endB = Number(opcode[4]);
-
-    equal.push((changeType === 'equal'));
-
-    if (byWord) {
-      inputStrings.push(targetWords.slice(startA, endA).join(' '));
-      outputStrings.push(outputWords.slice(startB, endB).join(' '));
-    } else {
-      inputStrings.push(targetText.slice(startA, endA));
-      outputStrings.push(outputText.slice(startB, endB));
-    }
-  }
-
-  const textDiff: TextDiff = {inputStrings, outputStrings, equal};
-  return textDiff;
 }
 
 declare global {

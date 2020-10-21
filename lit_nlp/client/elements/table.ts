@@ -26,6 +26,7 @@ import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {customElement, html, property} from 'lit-element';
+import {TemplateResult} from 'lit-html';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -34,7 +35,7 @@ import {ReactiveElement} from '../lib/elements';
 import {styles} from './table.css';
 
 /** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number;
+export type TableEntry = string|number|TemplateResult;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[];
 
@@ -42,6 +43,12 @@ export type TableData = TableEntry[];
 export type OnSelectCallback = (selectedIndices: number[]) => void;
 /** Callback for primary datapoint selection */
 export type OnPrimarySelectCallback = (index: number) => void;
+/** Function for reading data index from a row */
+export type GetDataIndexFromRowFunction = (row: TableData) => number;
+/** Function for sorting a particular column by a value that's
+ * different than what's displayed */
+export type GetSortValue = (d: TableData, columnIndex: number) => any;
+
 
 enum SpanAnchor {
   START,
@@ -63,18 +70,23 @@ export class DataTable extends ReactiveElement {
   @observable
   @property({type: Object})
   columnVisibility = new Map<string, boolean>();
+  @property({type: String}) defaultSortName = undefined;
+  @property({type: Boolean}) defaultSortAscending = undefined;
 
   // Callbacks
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
+  @property({type: Object}) getDataIndexFromRow: GetDataIndexFromRowFunction = d => +d[0]
+  @property({type: Object}) getSortValue: GetSortValue = (d, columnIndex) => d[columnIndex]
 
   static get styles() {
     return [styles];
   }
 
-  // If sortName is undefined, we use the order of the input data.
-  @observable private sortName?: string;
-  @observable private sortAscending = true;
+  // These sort properties reflect the result of user interactions, which may not have
+  // happened on first render.  Use the computed properties to read state for sorting.
+  @observable private lastSelectedSortName?: string;
+  @observable private lastSelectedSortAscending?: boolean;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
@@ -135,9 +147,27 @@ export class DataTable extends ReactiveElement {
   }
 
   @computed
-  get sortIndex(): number|undefined {
-    return (this.sortName == null) ? undefined :
-                                     this.columnNames.indexOf(this.sortName);
+  get sortIndex(): number {
+    const sortName = this.sortName || this.defaultSortName;
+    return (sortName == null) ? 0 : this.columnNames.indexOf(sortName);
+  }
+
+  // Wrap reading the property, so that `render` considers the default.
+  // To start, sort by the name passed or by the first column if no default was set.
+  @computed
+  get sortName(): string {
+    return (this.lastSelectedSortName !== undefined)
+      ? this.lastSelectedSortName
+      : this.defaultSortName ?? this.columnNames[0];
+  }
+
+  // Wrap reading the property, so that `render` considers the default passed.
+  // To start, use ascending order.
+  @computed
+  get sortAscending(): boolean {
+    return (this.lastSelectedSortAscending !== undefined)
+      ? this.lastSelectedSortAscending
+      : this.defaultSortAscending ?? true;
   }
 
   /**
@@ -179,19 +209,21 @@ export class DataTable extends ReactiveElement {
     return rowFilteredData;
   }
 
+  sortFn(a: TableData, b: TableData) {
+    const compareFn = (this.sortAscending ? ascending : descending);
+    const aValue = this.getSortValue(a, this.sortIndex);
+    const bValue = this.getSortValue(b, this.sortIndex);
+    return compareFn(aValue, bValue);
+  }
+
   getSortedData(): TableData[] {
     const source = this.stickySortedData ?? this.rowFilteredData;
     let sortedData = source.slice();
-    if (this.sortName != null) {
-      sortedData = sortedData.sort(
-          (a, b) => (this.sortAscending ? ascending : descending)(
-              a[this.sortIndex!], b[this.sortIndex!]));
-    }
+    sortedData = sortedData.sort((a, b) => this.sortFn(a, b));
 
     // Store a mapping from the row to data indices.
-    // TODO(lit-dev): remove hard-coded dependence on first column as index.
     this.rowIndexToDataIndex =
-        new Map(sortedData.map((d, index) => [index, +d[0]]));
+        new Map(sortedData.map((d, index) => [index, this.getDataIndexFromRow(d)]));
 
     this.stickySortedData = sortedData;
     return sortedData;
@@ -344,11 +376,16 @@ export class DataTable extends ReactiveElement {
       this.onSelect([...this.selectedIndices]);
     };
 
-    const isDefaultView = this.sortName === undefined &&
-        this.columnSearchQueries.size === 0 && !this.filterSelected;
+    const isDefaultView = (
+      (this.sortName === this.defaultSortName) &&
+      (this.sortAscending === this.defaultSortAscending) &&
+      (this.columnSearchQueries.size === 0) &&
+      !this.filterSelected
+    );
     const onClickResetView = () => {
       this.columnSearchQueries.clear();
-      this.sortName = undefined;  // reset to input ordering
+      this.lastSelectedSortName = this.defaultSortName;
+      this.lastSelectedSortAscending = this.defaultSortAscending;
       this.filterSelected = false;
     };
 
@@ -363,6 +400,9 @@ export class DataTable extends ReactiveElement {
     const visibleColumns =
         this.columnNames.filter((key) => this.columnVisibility.get(key));
 
+    const tableContainerClass = classMap({
+      'size-with-room-for-controls': this.controlsEnabled
+    });
     // clang-format off
     return html`
       <div id="holder">
@@ -389,7 +429,7 @@ export class DataTable extends ReactiveElement {
           </div>
           ${this.renderColumnDropdown()}
         </div>` : null}
-        <div id="table-container">
+        <div id="table-container" class=${tableContainerClass}>
           <div id="header-container">
             <div id="header">
               ${visibleColumns.map((c, i) => this.renderColumnHeader(c, i))}
@@ -423,10 +463,10 @@ export class DataTable extends ReactiveElement {
 
     const handleClick = () => {
       if (this.sortName === title) {
-        this.sortAscending = !this.sortAscending;
+        this.lastSelectedSortAscending = !this.sortAscending;
       } else {
-        this.sortName = title;
-        this.sortAscending = true;
+        this.lastSelectedSortName = title;
+        this.lastSelectedSortAscending = true;
       }
     };
 

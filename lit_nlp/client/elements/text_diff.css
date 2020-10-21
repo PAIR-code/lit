@@ -1,0 +1,8 @@
+.output {
+  display: flex;
+}
+
+.highlighted {
+  color: #ffa500;
+  font-weight: bold;
+}

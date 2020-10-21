@@ -16,7 +16,7 @@
  */
 
 import 'jasmine';
-import {getTextDiff} from './generated_text_module';
+import {getTextDiff} from './text_diff';
 
 describe('getTextDiff test', () => {
   /** Character diff tests */

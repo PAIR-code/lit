@@ -28,6 +28,7 @@ import {GeneratedTextModule} from './modules/generated_text_module';
 import {GeneratorModule} from './modules/generator_module';
 import {LanguageModelPredictionModule} from './modules/lm_prediction_module';
 import {MetricsModule} from './modules/metrics_module';
+import {PerturbationsTableModule} from './modules/perturbations_table_module';
 import {PredictionScoreModule} from './modules/prediction_score_module';
 import {RegressionModule} from './modules/regression_module';
 import {SalienceMapModule} from './modules/salience_map_module';
@@ -129,6 +130,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         PredictionScoreModule,
+
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,
@@ -137,6 +139,9 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Counterfactuals': [GeneratorModule],
       'Counterfactual Explanation': [CounterfactualExplainerModule],
+      'Counterfactual Changes': [
+        PerturbationsTableModule
+      ]
     }
   },
 };

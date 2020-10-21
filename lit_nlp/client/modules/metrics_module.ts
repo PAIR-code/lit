@@ -24,7 +24,7 @@ import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, FacetMap, GroupedExamples, IndexedInput, LitName, ModelsMap, Spec} from '../lib/types';
-import {doesOutputSpecContain} from '../lib/utils';
+import {doesOutputSpecContain, formatLabelNumber} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
@@ -132,11 +132,7 @@ export class MetricsModule extends LitModule {
       // Add the metrics columns.
       const rowMetrics = metricNames.map((key: string) => {
         const num = d.metrics[key] ?? '-';
-        // If the metric is not a whole number, then round to 3 decimal places.
-        if (typeof num === 'number' && num % 1 !== 0) {
-          return num.toFixed(3);
-        }
-        return num;
+        return formatLabelNumber(num);
       });
 
       // Add the "Facet by" columns.

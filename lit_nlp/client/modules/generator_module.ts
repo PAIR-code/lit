@@ -145,8 +145,9 @@ export class GeneratorModule extends LitModule {
 
   private async createNewDatapoints(
       data: Input[][], parentIds: string[], source: string) {
+    const rule = (this.appliedGenerator === 'word_replacer') ? this.substitutions : undefined;
     const newExamples =
-        await this.appState.createNewDatapoints(data, parentIds, source);
+        await this.appState.createNewDatapoints(data, parentIds, source, rule);
     const newIds = newExamples.map(d => d.id);
     if (newIds.length === 0) return;
 

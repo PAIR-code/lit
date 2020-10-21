@@ -22,8 +22,12 @@
 }
 
 #table-container{
-  height: calc(100% - var(--toolbar-height));
+  height: 100%;
   overflow: visible;
+}
+
+#table-container.size-with-room-for-controls {
+  height: calc(100% - var(--toolbar-height));
 }
 
 #rows-container{

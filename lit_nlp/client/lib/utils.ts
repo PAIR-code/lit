@@ -228,3 +228,13 @@ export function roundToDecimalPlaces(num: number, places: number) {
   const numForPlaces = Math.pow(10, places);
   return Math.round((num + Number.EPSILON) * numForPlaces) / numForPlaces;
 }
+
+/**
+ * Format for showing the user; may be a regression score or classification index.
+ */
+export function formatLabelNumber(num: number) {
+  if (typeof num === 'number' && num % 1 !== 0) {
+    return num.toFixed(3);
+  }
+  return num;
+}

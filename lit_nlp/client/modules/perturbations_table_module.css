@@ -1,0 +1,39 @@
+.hidden {
+  display: none;
+}
+
+.info {
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #3c4043;
+}
+
+.table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  min-height: 0;
+}
+
+.header-and-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-text {
+  margin-right: 10px;
+}
+
+button {
+  margin-left: 5px;
+  margin-right: 5px;
+}
+
+.table {
+  width: 100%;
+}
+
