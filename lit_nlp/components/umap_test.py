@@ -37,7 +37,7 @@ class UmapTest(absltest.TestCase):
     # Check that the _fitted flag has been flipped.
     self.assertTrue(umap_model._fitted)
 
-    # Check output shape correctness.
+    # Test output shape correctness.
     output_np = np.array([o['z'] for o in outputs_list])
     shape = output_np.shape
     expected_shape = (n, 3)
