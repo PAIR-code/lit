@@ -195,8 +195,8 @@ Note: there are a few additional methods in the model API - see
 The above example defined a black-box model, with predictions but no access to
 internals. If we want a richer view into the model's behavior, we can add
 additional return fields corresponding to hidden-state activations, gradients,
-or attention. For example, a BERT-based model with several such features might
-have the following `output_spec()`:
+word embeddings, or attention. For example, a BERT-based model with several such
+features might have the following `output_spec()`:
 
 ```py
   def output_spec(self):
@@ -249,9 +249,14 @@ Most such components implement the
 [`Interpreter`](../lit_nlp/api/components.py) API.
 Conceptually, this is any function that takes a set of datapoints and a model,
 and produces some output.[^identity-component] For example,
-[local gradient-based salience](../lit_nlp/components/gradient_maps.py)
+[local gradient-based salience (GradientNorm)](../lit_nlp/components/gradient_maps.py)
 processes the `TokenGradients` and `Tokens` returned by a model and produces a
-list of scores for each token.
+list of scores for each token. The Integrated Gradients saliency method
+additionally requires a `TokenEmbeddings` input and corresponding output, as
+well as a label field `Target` to pin the gradient target to the same class as
+an input and corresponding output. See the
+[GLUE models class](../lit_nlp/examples/models/glue_models.py)
+for an example of these spec requirements.
 
 The core API involves implementing the `run()` method:
 
