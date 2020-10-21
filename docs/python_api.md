@@ -9,8 +9,8 @@ familarity with the basic [system design](development.md#design-overview) and
 the [type system](development.md#type-system).
 
 The following is intended to give a conceptual overview; for the most precise
-documentation, see the code in [lit_nlp/api](../lit_nlp/api) and examples
-in [lit_nlp/examples](../lit_nlp/examples).
+documentation, see the code in [api](../lit_nlp/api)
+and [examples](../lit_nlp/examples).
 
 ## Adding Models and Data
 
@@ -44,7 +44,8 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 [type system](development.md#type-system)) to describe themselves to other
 components.
 
-For full examples, see [lit_nlp/examples](../lit_nlp/examples). In particular:
+For full examples, see
+[examples](../lit_nlp/examples). In particular:
 
 *   [`simple_tf2_demo.py`](../lit_nlp/examples/simple_tf2_demo.py)
     for a self-contained Keras/TF2 model for sentiment analysis.
