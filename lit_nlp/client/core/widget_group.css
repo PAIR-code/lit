@@ -1,0 +1,134 @@
+:host{
+  flex: var(--flex);
+  min-width: var(--width);
+  width: var(--width);
+  transition: all .25s;
+}
+
+
+:host([minimized]) {
+  width: 36px !important;
+  min-width: 36px !important;
+  flex: unset !important;
+}
+
+:host([maximized]) {
+  transition: none;
+  margin: 15px 45px;
+  padding: 0;
+  width: calc(100vw - 90px) !important;
+  height: calc(100vh - 130px);
+  position: fixed;
+  z-index: 2;
+  left: 0;
+  top: 82px;
+  box-shadow: rgba(0, 0, 0, 0.14) 0px 2px 2px 0px, rgba(0, 0, 0, 0.2) 0px 3px 1px -2px, rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
+}
+
+:host([dragging]) {
+  transition: none;
+}
+
+.wrapper {
+  padding: 4pt;
+  height: 100%;
+  box-sizing: border-box;
+  background-color: white;
+  background-clip: content-box;
+  display: flex;
+  flex-direction: column;
+}
+
+:host([maximized]) .wrapper {
+  padding: 0;
+}
+
+.holder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex: 1;
+}
+
+.header {
+  display: flex;
+  padding-left: 2pt;
+  line-height: 20pt;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgb(218, 220, 224);
+}
+
+.title {
+  font-size: 10pt;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.component-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.component-column {
+  display: flex;
+  flex-direction: column;
+}
+
+lit-widget {
+  flex: 1;
+  min-height: 125pt;
+}
+
+.min-button {
+  flex: 1;
+  text-align: right;  
+}
+
+.minimized .min-button{
+  text-align: left;  
+}
+
+mwc-icon.icon-button {
+  height: 24px;
+  width: 24px;
+  min-width: 24px;
+  --mdc-icon-size: 24px;
+  color: rgb(95, 99, 104);
+  cursor: pointer;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+
+.minimized lit-widget{
+  display: none;
+}
+
+.minimized .header {
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  flex-direction: row-reverse;
+  height: 100%;
+  padding: 0pt 0pt 2pt 0pt;
+}
+
+.expander {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  height: 90%;
+  width: 10px;
+  cursor: ew-resize;
+}
+
+.expander-drag-target{
+  position: absolute;
+  width: 100%;
+  height:100%;
+  opacity: 0;
+}

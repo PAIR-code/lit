@@ -7,7 +7,7 @@ This is a user guide for the Language Interpretability Tool (LIT).
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## Running LIT
 
@@ -41,7 +41,7 @@ dataset.
 There are two selection concepts that LIT users need to be aware of. The first
 concept is the current selection, which consists of one or more datapoints that
 are selected through one of the interactive modules (such as the *Data Table*,
-*Embeddings*, *Prediction Score*, or *Confusion Matrix* module). When a set of
+*Embeddings*, *Scalars*, or *Confusion Matrix* module). When a set of
 datapoints are selected in a module, this selection is reflected across all
 other modules, along with the selection toolbar. For example, the *Metrics*
 module shows model metrics not just across the entire dataset, but also for the
@@ -97,7 +97,7 @@ the new datapoints were saved and how many of those datapoints there were.
 To load these saved datapoints into a LIT session, just provide that same path
 and click **"Load new datapoints"**.
 
-![LIT global settings](./images/lit-settings.png "LIT global settings")
+![LIT global settings](./images/lit-settings.png "LIT global settings")<!-- DO NOT REMOVE {width="600"} -->
 
 ### Selection Toolbar
 
@@ -130,7 +130,7 @@ The right side of the selection toolbars contains a number of controls.
     [below](#comparing-datapoints).
 *   The **"Datapoint color"** dropdown enables setting of the color of each
     datapoint in the modules that visualize all datapoints (such as the
-    *Embeddings* and *Prediction Score* modules) by any number of datapoint
+    *Embeddings* and *Scalars* modules) by any number of datapoint
     features or model outputs on those datapoints (such as coloring by some
     categorical input feature, or by prediction error for a regression task).
     The dropdown also contains a color legend for the current color setting.
@@ -200,7 +200,11 @@ counterfactual datapoints, or any other datapoint from the loaded dataset.
 Many states of the LIT app, such as models and datasets loaded, datapoints
 selected, and modules disabled, are all stored in URL parameters. In this way,
 if a user wants to share the tool with a specific view set up with someone else,
-they can copy the URL as a means of sharing it.
+they can copy the URL (either manually or via the share link button) as a means 
+of sharing it.
+
+The base url that will be copied with the share link button can be configured by 
+passing the `--canonical_url=<url base>` flag to the server.
 
 ## Module Details
 
@@ -218,7 +222,7 @@ addition to predictions, the embedding projector will show all datapoints by
 their embeddings projected down to 3 dimentions. This is useful for exploring
 and understanding clusters of datapoints.
 
-![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")
+![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")<!-- DO NOT REMOVE {width="500"} -->
 
 The specific embedding used to generate the projection can be selected in a
 dropdown, along with the method of projection (either UMAP or PCA). An
@@ -270,7 +274,7 @@ The below data table shows one sorted by the "label" field, with the "passage"
 field being filtered to only those datapoints that contain the word "sound" in
 them.
 
-![LIT data table](./images/lit-datatable.png "LIT data table")
+![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Datapoint Editor
 
@@ -306,9 +310,12 @@ Generators built into LIT include:
     token-based gradients, this generator will change the token with the highest
     influence on the prediction to the token with the most opposite influence.
 *   **Word replacer**: Provides a text box to define a comma-separated set of
-    replacements to perform (such as "great -> terrible,hi -> hello").
+    replacements to perform (such as "great -> terrible, hi -> hello").
     Counterfactual datapoints are created for any datapoint found that contains
-    the source word, with it replaced with the provided result word.
+    the source word, with it replaced with the provided result word. Word
+    replacer also supports multiple targets per word with "|" separator. For
+    example, "great -> terrible | bad" will produce two outputs where "great" is
+    replaced with "terrible" and "bad".
 
 The non-text fields in the generated datapoints can be edited before adding them
 to the dataset. This is important in case some datapoint feature is no longer
@@ -365,9 +372,9 @@ two models being compared disagree on classification.
 
 ![LIT confusion matrix](./images/lit-conf-matrix.png "LIT confusion matrix")
 
-### Prediction Score
+### Scalars
 
-The prediction score module shows a set of scatter or jitter plots, one for each
+The scalars module shows a set of scatter or jitter plots, one for each
 scalar output of a loaded model (such as a regression score, or a classification
 score for a specific class). Each of them contains all datapoints in the
 dataset, laid out horizontally by the score. For classification scores, the Y
@@ -396,7 +403,7 @@ The below screenshot shows this module for a binary classification task where
 the positive classification threshold has been changed and the datapoints near
 the decision boundary have been selected for further analysis.
 
-![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")
+![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Model Output
 
@@ -412,7 +419,7 @@ For structured prediction tasks like span labeling, a span graph module can
 display all tagged spans returned by the model, along with a visualization of
 the ground truth spans if one is available in the dataset.
 
-![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction")
+![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction")<!-- DO NOT REMOVE {width="800"} -->
 
 ### Salience Maps
 
@@ -492,7 +499,7 @@ depression-era gangster movie.”, while replacing “ultimate” to get “It�
 worst depression-era gangster movie.” elicits a mildly positive score from our
 model.
 
-![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")
+![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Gender Bias in Coreference
 
@@ -505,7 +512,7 @@ probabilities for each candidate. We can explore the model’s sensitivity to
 pronouns by comparing two examples side-by-side (see screenshot section (a).) We
 can see how commonly the model makes similar errors by paging through the
 dataset, or by selecting specific slices of interest. For example, we can use
-the *Prediction Score* module (screenshot section (b)) to select datapoints
+the *Scalars* module (screenshot section (b)) to select datapoints
 where the occupation term is associated with a high proportion of (fe)male
 workers, according to the U.S. Bureau of Labor Statistics.
 
@@ -516,12 +523,12 @@ stereotype - e.g. when the answer is the occupation term, male pronouns are
 correctly resolved 83% of the time, compared to female pronouns only 37.5% of
 the time (screenshot section (c)).
 
-![Winogender analysis](./images/lit-winogender.png "Winogender analysis")
+![Winogender analysis](./images/lit-winogender.png "Winogender analysis")<!-- DO NOT REMOVE {width="500"} -->
 
 ### Debugging Text Generation
 
 Does the training data explain a particular error in text generation? We analyze
-a T5 model on the CNN-DM summarization task. LIT’s *Prediction Score* module
+a T5 model on the CNN-DM summarization task. LIT’s *Scalars* module
 allows us to look at per-example ROUGE scores, and quickly select an example
 with middling performance (screenshot section (a)). We find the generated text
 (screenshot section (b)) contains an erroneous constituent: “alastair cook was
@@ -538,4 +545,4 @@ We see that the words “captain” and “former” appear 34 and 16 times in t
 examples–along with 3 occurrences of “replaced by” (screenshot section (e)),
 suggesting a strong prior toward our erroneous phrase.
 
-![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis")
+![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis")<!-- DO NOT REMOVE {width="500"} -->

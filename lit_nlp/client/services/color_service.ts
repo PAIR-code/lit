@@ -54,6 +54,8 @@ export class ColorService extends LitService {
   // features.
   @observable selectedColorOption = this.defaultOption;
 
+  // All variables that affect color settings, so clients can listen for when
+  // they may need to rerender.
   @computed
   get all() {
     return [

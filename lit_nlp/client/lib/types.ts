@@ -19,15 +19,16 @@
 import * as d3 from 'd3';
 
 import {TemplateResult} from 'lit-html';
+import {isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName =
-    'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|'TokenTopKPreds'|'Scalar'|
-    'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
-    'SpanLabels'|'EdgeLabels'|'Embeddings'|'TokenGradients'|'AttentionHeads';
+export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
+    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
+    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
+    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel';
 
 export interface LitType {
   __class__: LitClass;
@@ -82,6 +83,7 @@ export interface LitMetadata {
   models: ModelsMap;
   demoMode: boolean;
   defaultLayout: string;
+  canonicalURL?: string;
 }
 
 export interface Input {
@@ -196,4 +198,28 @@ export interface LitStaticProperties {
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
   numCols: number;
+}
+
+/**
+ * Get the default value for a spec field.
+ */
+export function defaultValueByField(key: string, spec: Spec) {
+  const fieldSpec = spec[key];
+  if (isLitSubtype(fieldSpec, 'Scalar')) {
+    return 0;
+  }
+  const listFieldTypes: LitName[] = [
+    'Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'
+  ];
+  if (isLitSubtype(fieldSpec, listFieldTypes)) {
+    return [];
+  }
+  const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
+  if (isLitSubtype(fieldSpec, stringFieldTypes)) {
+    return '';
+  }
+  console.log(
+      'Warning: default value requested for unrecognized input field type',
+      key, fieldSpec);
+  return '';
 }

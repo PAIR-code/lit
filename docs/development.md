@@ -1,10 +1,10 @@
 # Developer Guide
 
-
+<!-- developer docs placeholder - DO NOT REMOVE -->
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 For specific API documentation, see:
 
@@ -44,7 +44,7 @@ server.serve()
 ```
 
 For more, see [adding models and data](python_api.md#adding-models-and-data) or
-the examples in [lit_nlp/examples](../lit_nlp/examples).
+the [examples](../lit_nlp/examples).
 
 [^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
     not related to the lit-html or lit-element projects.
@@ -113,7 +113,8 @@ for which example predictions might be:
 }
 ```
 
-_For a more detailed example, see [lit_nlp/examples](../lit_nlp/examples)._
+_For a more detailed example, see the
+[examples](../lit_nlp/examples)._
 
 LIT components use this spec to find and operate on relevant fields, as well as
 to access metadata like label vocabularies. For example, the multiclass metrics
@@ -178,7 +179,7 @@ If you're modifying any TypeScript code, you'll need to re-build the frontend.
 You can have yarn do this automatically. In one terminal, run:
 
 ```sh
-cd ~/lit/lit_nlp/client
+cd ~/lit/lit_nlp
 yarn
 yarn build --watch
 ```
@@ -199,11 +200,55 @@ from the build output.
 If you're modifying the Python backend, there is experimental support for
 hot-reloading the LIT application logic (`app.py`) and some dependencies without
 needing to re-load models or datasets. See
-../lit_nlp/dev_server.py for details.
+[dev_server.py](../lit_nlp/dev_server.py) for details.
 
 You can use the `--data_dir` flag (see
-../lit_nlp/server_flags.py) to save the predictions cache to
+[server_flags.py](../lit_nlp/server_flags.py) to save the predictions cache to
 disk, and automatically re-load it on a subsequent run. In conjunction with
 `--warm_start`, you can use this to avoid re-running inference during
 development - though if you modify the model at all, you should be sure to
 remove any stale cache files.
+
+## Custom Client / Modules
+
+An example of a custom LIT client application, including a custom 
+(potato-themed) module can be found in `lit_nlp/examples/custom_module`. In 
+short, to build and serve a custom LIT client application, create a new 
+directory containing a `main.ts` entrypoint. This should import any custom
+modules, define a layout that includes them, and call `app.initialize`. For 
+example:
+
+```ts
+import {PotatoModule} from './potato';
+
+LAYOUTS = {};  // or import existing set from client/default/layout.ts
+LAYOUTS['potato'] = {
+  components: {
+    'Main': [DatapointEditorModule, ClassificationModule],
+    'Data': [DataTableModule, PotatoModule],
+  },
+};
+app.initialize(LAYOUTS);
+```
+
+Then, build the app, specifying
+the directory to build with the `env.build` flag. For example, to build the 
+`custom_module` demo app:
+
+```sh
+yarn build --env.build=examples/custom_module
+```
+
+This builds the client app and moves all static assets to a `build` directory in
+the specified directory containing the `main.ts` file 
+(`examples/custom_module/build`).
+
+Finally, to serve the bundle, set the `client_root` flag in your python code 
+to point to this build directory. For this example we specify the build 
+directory in `examples/custom_module/potato_demo.py`. 
+
+```python
+# Here, client build/ is in the same directory as this file
+parent_dir = os.path.join(pathlib.Path(__file__).parent.absolute()
+FLAGS.set_default("client_root", parent_dir, "build"))
+```

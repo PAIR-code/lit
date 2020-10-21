@@ -26,12 +26,13 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Dict, Text, Tuple, Sequence, Optional, Any
+from typing import Dict, Text, Tuple, Sequence, Optional, Any, List
 
 import attr
 
 JsonDict = Dict[Text, Any]
 ExampleId = Text
+TokenTopKPredsList = List[List[Tuple[str, float]]]
 
 
 ##
@@ -85,6 +86,7 @@ class TokenTopKPreds(LitType):
   (word, probability) in descending order.
   """
   align: Text = None  # name of a Tokens field in the model output
+  parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -167,14 +169,26 @@ class Embeddings(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class TokenEmbeddings(LitType):
+  """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
+  align: Optional[Text] = None  # path to tokens or other sequence field
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(LitType):
   """Gradients with respect to inputs, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # path to tokens or other sequence field
-  # TODO(lit-team): add pointer to an input embedding field, for implementing
-  # things like path-integrated gradients?
+  grad_for: Optional[Text] = None  # name of input embedding field
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class AttentionHeads(LitType):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
   align: Tuple[Text, Text]  # paths to tokens fields
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SparseMultilabel(LitType):
+  """Sparse multi-label represented as a list of strings, as List[str]."""
+  pass

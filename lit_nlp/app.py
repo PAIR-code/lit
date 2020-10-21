@@ -116,6 +116,7 @@ class LitApp(object):
         'interpreters': list(self._interpreters.keys()),
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
+        'canonicalURL': self._canonical_url,
     }
 
   def _get_spec(self, model_name: Text):
@@ -284,12 +285,14 @@ class LitApp(object):
       client_root: Optional[Text] = None,
       demo_mode: bool = False,
       default_layout: str = None,
+      canonical_url: str = None,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
 
     self._demo_mode = demo_mode
     self._default_layout = default_layout
+    self._canonical_url = canonical_url
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
     self._models = {
@@ -317,6 +320,7 @@ class LitApp(object):
       self._interpreters = {
           'grad_norm': gradient_maps.GradientNorm(),
           'lime': lime_explainer.LIME(),
+          'integrated gradients': gradient_maps.IntegratedGradients(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'metrics': metrics_group,
           # Embedding projectors expose a standard interface, but get special

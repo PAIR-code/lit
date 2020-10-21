@@ -29,7 +29,7 @@ import {D3Selection, IndexedInput, ModelsMap, NumericSetting, Preds, Spec} from 
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {ClassificationService, ColorService, RegressionService} from '../services/services';
 
-import {styles} from './prediction_score_module.css';
+import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
 /**
@@ -43,16 +43,16 @@ interface BrushObject {
 }
 
 /**
- * A LIT module that visualizes prediction scores.
+ * A LIT module that visualizes prediction scores and other scalar values.
  */
-@customElement('prediction-score-module')
-export class PredictionScoreModule extends LitModule {
-  static title = 'Prediction Score';
+@customElement('scalar-module')
+export class ScalarModule extends LitModule {
+  static title = 'Scalars';
   static numCols = 4;
   static template = (model = '') => {
     return html`
-      <prediction-score-module model=${model}>
-      </prediction-score-module>`;
+      <scalar-module model=${model}>
+      </scalar-module>`;
   };
   static maxPlotWidth = 900;
   static minPlotHeight = 100;
@@ -84,8 +84,8 @@ export class PredictionScoreModule extends LitModule {
   private readonly brushObjects: BrushObject[] = [];
 
   @observable private preds: Preds[] = [];
-  @observable private plotWidth = PredictionScoreModule.maxPlotWidth;
-  @observable private plotHeight = PredictionScoreModule.minPlotHeight;
+  @observable private plotWidth = ScalarModule.maxPlotWidth;
+  @observable private plotHeight = ScalarModule.minPlotHeight;
 
   @computed
   private get scalarKeys() {
@@ -327,9 +327,8 @@ export class PredictionScoreModule extends LitModule {
 
   /**
    * Returns the scale function for the scatter plot's x axis, for a given
-   * prediction key. If the key is for regression, we set the score
-   * range to be between the min and max values of the regression score
-   * predictions.
+   * key. If the key is for regression, we set the score range to be between the
+   * min and max values of the regression scores.
    */
   private getXScale(key: string) {
     let scoreRange = [0, 1];
@@ -341,7 +340,7 @@ export class PredictionScoreModule extends LitModule {
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
-      0, this.plotWidth - PredictionScoreModule.plotLeftMargin
+      0, this.plotWidth - ScalarModule.plotLeftMargin
     ]);
   }
 
@@ -360,7 +359,7 @@ export class PredictionScoreModule extends LitModule {
       }
     }
     return d3.scaleLinear().domain(scoreRange).range([
-      this.plotHeight - PredictionScoreModule.plotBottomMargin, 0
+      this.plotHeight - ScalarModule.plotBottomMargin, 0
     ]);
   }
 
@@ -408,7 +407,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('x2', xScale(threshold))
           .attr(
               'y2',
-              yScale(this.plotHeight - PredictionScoreModule.plotBottomMargin))
+              yScale(this.plotHeight - ScalarModule.plotBottomMargin))
           .style('stroke', 'black');
     }
   }
@@ -451,18 +450,18 @@ export class PredictionScoreModule extends LitModule {
       return;
     }
     this.plotWidth =
-        container.offsetWidth - PredictionScoreModule.plotLeftMargin * 2;
+        container.offsetWidth - ScalarModule.plotLeftMargin * 2;
 
     // TODO(lit-dev): replace this with something that looks at the containing
     // div instead of estimating from the full module container.
     const perRowMargin = 15;  // should match .plot_holder margin-bottom in css
     const proposedPlotHeight =
-        (container.offsetHeight - PredictionScoreModule.plotBottomMargin) /
+        (container.offsetHeight - ScalarModule.plotBottomMargin) /
             scatterplots.length -
         perRowMargin;
     this.plotHeight = Math.min(
-        Math.max(PredictionScoreModule.minPlotHeight, proposedPlotHeight),
-        PredictionScoreModule.maxPlotHeight);
+        Math.max(ScalarModule.minPlotHeight, proposedPlotHeight),
+        ScalarModule.maxPlotHeight);
 
     for (const item of Array.from(scatterplots)) {
       const key = (item as HTMLElement).dataset['key'];
@@ -482,7 +481,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'threshold')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ',0)');
       this.updateThreshold();
 
@@ -492,7 +491,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'dataPoints')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ',0)');
 
       // Add group for overlaying selected points.
@@ -501,7 +500,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'overlay')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ',0)');
 
       // Add group for overlaying primary selected points.
@@ -510,7 +509,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'primaryOverlay')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ',0)');
 
       this.updateAllScatterplotColors(scatterplot);
@@ -518,7 +517,7 @@ export class PredictionScoreModule extends LitModule {
   }
 
   /**
-   * Sets up brush and updates datapoints to reflect the current predictions.
+   * Sets up brush and updates datapoints to reflect the current scalars.
    */
   private updatePlotData() {
     const scatterplots = this.shadowRoot!.querySelectorAll('.scatterplot');
@@ -558,9 +557,9 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'xAxis')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ',' +
-                  (this.plotHeight - PredictionScoreModule.plotBottomMargin)
+                  (this.plotHeight - ScalarModule.plotBottomMargin)
                       .toString() +
                   ')')
           .call(d3.axisBottom(xScale));
@@ -578,7 +577,7 @@ export class PredictionScoreModule extends LitModule {
           .attr('id', 'yAxis')
           .attr(
               'transform',
-              'translate(' + PredictionScoreModule.plotLeftMargin.toString() +
+              'translate(' + ScalarModule.plotLeftMargin.toString() +
                   ', 0)')
           .call(axisGenerator);
 
@@ -588,8 +587,8 @@ export class PredictionScoreModule extends LitModule {
           .attr(
               'transform',
               'translate(' + (this.plotWidth / 2).toString() + ' ,' +
-                  (this.plotHeight - PredictionScoreModule.plotBottomMargin +
-                   PredictionScoreModule.xLabelOffsetY)
+                  (this.plotHeight - ScalarModule.plotBottomMargin +
+                   ScalarModule.xLabelOffsetY)
                       .toString() +
                   ')')
           .style('text-anchor', 'middle')
@@ -603,11 +602,11 @@ export class PredictionScoreModule extends LitModule {
             .attr(
                 'transform',
                 'translate(' +
-                    (PredictionScoreModule.plotLeftMargin +
-                     PredictionScoreModule.yLabelOffsetX)
+                    (ScalarModule.plotLeftMargin +
+                     ScalarModule.yLabelOffsetX)
                         .toString() +
                     ', ' +
-                    (this.plotHeight / 2 + PredictionScoreModule.yLabelOffsetY)
+                    (this.plotHeight / 2 + ScalarModule.yLabelOffsetY)
                         .toString() +
                     ') rotate(270)')
             .style('text-anchor', 'middle')
@@ -621,17 +620,17 @@ export class PredictionScoreModule extends LitModule {
         if (yRange[0] < 0 && yRange[1] > 0) {
           d3.select(scatterplot)
               .append('line')
-              .attr('x1', PredictionScoreModule.plotLeftMargin)
+              .attr('x1', ScalarModule.plotLeftMargin)
               .attr(
                   'y1',
-                  (this.plotHeight - PredictionScoreModule.plotBottomMargin) /
+                  (this.plotHeight - ScalarModule.plotBottomMargin) /
                       2)
-              .attr('x2', this.plotWidth + PredictionScoreModule.plotLeftMargin)
+              .attr('x2', this.plotWidth + ScalarModule.plotLeftMargin)
               .attr(
                   'y2',
-                  (this.plotHeight - PredictionScoreModule.plotBottomMargin) /
+                  (this.plotHeight - ScalarModule.plotBottomMargin) /
                       2)
-              .style('stroke', PredictionScoreModule.zeroLineColor);
+              .style('stroke', ScalarModule.zeroLineColor);
         }
       }
 
@@ -643,8 +642,8 @@ export class PredictionScoreModule extends LitModule {
           .extent([
             [0, 0],
             [
-              this.plotWidth - PredictionScoreModule.plotLeftMargin,
-              this.plotHeight - PredictionScoreModule.plotBottomMargin
+              this.plotWidth - ScalarModule.plotLeftMargin,
+              this.plotHeight - ScalarModule.plotBottomMargin
             ]
           ])
           .on('start end', () => {
@@ -660,7 +659,7 @@ export class PredictionScoreModule extends LitModule {
               .attr(
                   'transform',
                   'translate(' +
-                      PredictionScoreModule.plotLeftMargin.toString() + ',0)')
+                      ScalarModule.plotLeftMargin.toString() + ',0)')
               .call(newBrush);
 
       // Store brush and selection group to be used for clearing the brush.
@@ -872,6 +871,6 @@ export class PredictionScoreModule extends LitModule {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'prediction-score-module': PredictionScoreModule;
+    'scalar-module': ScalarModule;
   }
 }

@@ -22,6 +22,7 @@
 
 // tslint:disable:no-new-decorators
 import '../elements/span_graph_vis';
+import '../elements/span_graph_vis_vertical';
 
 import * as d3 from 'd3';
 import {css, customElement, html, property} from 'lit-element';
@@ -49,17 +50,21 @@ const moduleStyles = css`
     display: flex;
     flex-direction: column;
     justify-content: center;
-    height: 100%;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
   }
 
   .token-group {
     padding-left: 5px;
+    padding-top: 30pt;
   }
 
   #pred-group {
     outline: 1px dashed gray;
+  }
+
+  #gold-group{
+    margin-top: 17pt;
   }
 `;
 
@@ -139,8 +144,8 @@ function renderTokenGroups(data: Annotations, spec: Spec) {
     return html`
       <div id=${tokenKey} class="token-group">
         ${labelHere ? html`<div>${data[tokenKey].layers[0].name}</div>` : null}
-        <span-graph-vis .data=${data[tokenKey]} .showLayerLabel=${!labelHere}>
-        </span-graph-vis>
+        <span-graph-vis-vertical .data=${data[tokenKey]} .showLayerLabel=${!labelHere}>
+        </span-graph-vis-vertical>
       </div>
     `;
   })}`;
@@ -152,6 +157,7 @@ export class SpanGraphGoldModule extends LitModule {
   static title = 'Structured Prediction (gold)';
   static duplicateForExampleComparison = true;
   static duplicateForModelComparison = false;
+  static duplicateAsRow = true;
   static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module selectionServiceIndex=${
@@ -198,6 +204,7 @@ export class SpanGraphGoldModule extends LitModule {
 export class SpanGraphModule extends LitModule {
   static title = 'Structured Prediction (model preds)';
   static duplicateForExampleComparison = true;
+  static duplicateAsRow = true;
   static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module model=${model} selectionServiceIndex=${

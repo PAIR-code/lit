@@ -1,5 +1,8 @@
 .output {
   display: flex;
+  margin-top: 10px;
+  margin-left: 5px;
+  min-height: 45px;
 }
 
 .key {

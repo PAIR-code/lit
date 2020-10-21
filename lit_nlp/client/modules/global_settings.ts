@@ -20,9 +20,9 @@
  */
 
 // tslint:disable:no-new-decorators
-
-
-
+// mwc-radio import placeholder - DO NOT REMOVE
+// mwc-formfield import placeholder - DO NOT REMOVE
+// mwc-textfield import placeholder - DO NOT REMOVE
 import '@material/mwc-formfield';
 import '@material/mwc-radio';
 import '@material/mwc-textfield';

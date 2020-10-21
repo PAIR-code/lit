@@ -14,20 +14,55 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 const path = require('path');
 const webpack = require('webpack');
-const litCssLoader = require('./lit-css-loader');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
+const FileManagerPlugin = require('filemanager-webpack-plugin');
+
+
 module.exports = (env = {}) => {
   const isProd = !!env.production;
   const isDev = !isProd;
-  console.log('⭐️ Packing web...');
-  console.log('🍕', { isProd });
-  const cssExtractPlugin = new MiniCssExtractPlugin({
-    filename: '[name].css',
+  console.log('⭐️ Packing web...', env);
+
+  const buildStr = env.build || '';
+  const toBuild = buildStr.split(',').filter(x => x.length > 0);
+
+  /**
+   * Make the default entry and FileManagerPlugin params objects, which will
+   * determine which output bundles to build and where to move them to
+   */
+  const entry = {
+    default: resolveDir('../default/main.ts'),
+  };
+  const fileManagerParams = {
+    onEnd: {
+      copy: [{
+        source: resolveDir('../static'),
+        destination: resolveDir('../build/default/static')
+      }],
+      move: [],
+    },
+  };
+
+  toBuild.forEach(path => {
+    const splitPath = path.split('/');
+    const moduleName = splitPath[splitPath.length -1];
+    entry[moduleName] = resolveDir(`../../${path}/main.ts`);
+
+    fileManagerParams.onEnd.copy.push({
+      source: resolveDir('../static'),
+      destination: resolveDir(`../../${path}/build/static`)
+    });
+    fileManagerParams.onEnd.move.push({
+      source: resolveDir(`../build/${moduleName}/main.js`),
+      destination: resolveDir(`../../${path}/build/main.js`)
+    });
+
+    fileManagerParams.onEnd.delete = fileManagerParams.onEnd.delete || [];
+    fileManagerParams.onEnd.delete.push(resolveDir(`../build/${moduleName}`));
   });
+
   return {
     mode: isDev ? 'development' : 'production',
     devtool: isDev ? 'inline-source-map' : 'none',
@@ -59,29 +94,21 @@ module.exports = (env = {}) => {
       modules: ['node_modules'],
       extensions: ['.ts', '.js'],
     },
-    entry: resolveDir('../main.ts'),
+    entry,
     output: {
-      filename: '[name].js',
+      filename: '[name]/main.js',
       path: resolveDir('../build'),
     },
     plugins: [
       new webpack.DefinePlugin({
         PRODUCTION: isProd,
       }),
-      cssExtractPlugin,
-      new HtmlWebpackPlugin({
-        template: resolveDir(`../static/index.html`),
-        filename: resolveDir(`../build/index.html`),
-      }),
-      new CopyWebpackPlugin([{from: 'static', to: 'static'}]),
+      new FileManagerPlugin(fileManagerParams)
     ],
     watch: isDev,
   };
 };
-function insertIf(condition, ...elements) {
-  return condition ? elements : [];
-}
+
 function resolveDir(relativeDir) {
   return path.resolve(__dirname, relativeDir);
 }
-

@@ -19,20 +19,19 @@
  * Client-side (UI) code for the LIT tool.
  */
 
-import {css, customElement, html, LitElement, property} from 'lit-element';
+import {customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
+import '@material/mwc-icon';
 
-import {LitStaticProperties} from '../lib/types';
 import {LitRenderConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
 import {app} from './lit_app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
-import {LitWidget} from './widget';
+import {LitWidget} from './widget_group';
 
-const NUM_COLS = 12;
 
 /**
  * The component responsible for rendering the selected and available lit
@@ -44,7 +43,6 @@ export class LitModules extends LitElement {
   private readonly modulesService = app.getService(ModulesService);
   @property({type: Number})
   mainSectionHeight = this.modulesService.getSetting('mainHeight') || 45;
-
 
   static get styles() {
     return styles;
@@ -143,7 +141,9 @@ export class LitModules extends LitElement {
     return compGroupNames.map((compGroupName) => {
       const configs = layout[compGroupName];
       const componentsHTML =
-          configs.map(configGroup => this.renderComponentType(configGroup));
+          configs.map(configGroup => 
+            html`
+            <lit-widget-group .configGroup=${configGroup}></lit-widget-group>`);
       const selected = this.modulesService.selectedTab === compGroupName;
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
@@ -176,94 +176,7 @@ export class LitModules extends LitElement {
   }
 
   renderMainPanel(configs: RenderConfig[][]) {
-    return configs.map(configGroup => this.renderComponentType(configGroup));
-  }
-
-  renderComponentType(configGroup: RenderConfig[]) {
-    const modulesInGroup = configGroup.length > 1;
-    const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
-    const componentsHTML = configGroup.map(
-        config => this.renderModule(config, modulesInGroup && !duplicateAsRow));
-    if (modulesInGroup) {
-      const divClass = duplicateAsRow ? 'component-row' : 'component-column';
-      const groupStyle =
-          this.setComponentGroupNumCols(configGroup, duplicateAsRow);
-      return html`
-      <div class=${divClass} style=${groupStyle}>
-        ${componentsHTML}
-      </div>
-      `;
-    }
-    return componentsHTML;
-  }
-
-  renderModule(config: RenderConfig, moduleInColumnGroup: boolean) {
-    return this.renderModuleWidget(
-        config.moduleType, moduleInColumnGroup, config.modelName,
-        config.selectionServiceIndex);
-  }
-
-  renderModuleWidget(
-      moduleType: LitStaticProperties, moduleInColumnGroup: boolean,
-      modelName?: string, selectionServiceIndex?: number) {
-    const widgetStyle = this.setNumCols(moduleType, moduleInColumnGroup);
-    let subtitle = modelName ?? '';
-    /**
-     * If defined, modules show "Main" for 0 and "Reference for 1,
-     * If undefined, modules do not show selectionService related info in their
-     * titles (when compare examples mode is disabled)."
-     */
-    if (typeof selectionServiceIndex !== 'undefined') {
-      subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
-          selectionServiceIndex ? 'Reference' : 'Main'}`);
-    }
-    return html`
-      <lit-widget
-        displayTitle=${moduleType.title}
-        subtitle=${subtitle}
-        style=${widgetStyle}
-        ?highlight=${selectionServiceIndex === 1}
-      >
-        ${moduleType.template(modelName, selectionServiceIndex)}
-      </lit-widget>
-    `;
-  }
-
-  setNumCols(moduleType: LitStaticProperties, moduleInColumnGroup: boolean) {
-    const styleInfo: {[name: string]: string} = {
-      // If there's extra space, have the modules stretch to fill that space
-      // at the ratios set with numCols.
-      'flex': moduleType.numCols.toString()
-    };
-    // Set width parameters if this module is not in a grouped column. If in a
-    // group, the widths will be set on the group container.
-    if (!moduleInColumnGroup) {
-      const width = this.flexGrowToWidth(moduleType.numCols);
-      styleInfo['width'] = width;
-      styleInfo['min-width'] = width;
-    }
-    return styleMap(styleInfo);
-  }
-
-  /** Returns styling with flex set based off of max columns of all configs. */
-  setComponentGroupNumCols(configs: RenderConfig[], duplicateAsRow: boolean) {
-    const numColsList = configs.map(config => config.moduleType.numCols);
-    // In row duplication, the flex should be the sum of the child flexes, and
-    // in column duplication, it should be the maximum of the child flexes.
-    const maxFlex = duplicateAsRow ? numColsList.reduce((a, b) => a + b, 0) :
-                                     Math.max(...numColsList);
-    const width = this.flexGrowToWidth(maxFlex);
-    return styleMap({
-      // If there's extra space, have the modules stretch to fill that space
-      // at the ratios set with numCols.
-      'flex': maxFlex.toString(),
-      'width': width,
-      'min-width': width,
-    });
-  }
-
-  private flexGrowToWidth(flexGrow: number) {
-    return (flexGrow / NUM_COLS * 100).toFixed(3).toString() + 'vw';
+    return configs.map(configGroup =>html`<lit-widget-group .configGroup=${configGroup}></lit-widget-group>`);
   }
 }
 

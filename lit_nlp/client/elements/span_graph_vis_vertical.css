@@ -1,0 +1,103 @@
+.holder {
+  display: flex;
+  font-family: 'Share Tech Mono', monospace;
+  position: relative;
+  color: #555;
+}
+.layer {
+  cursor: pointer;
+  color: var(--group-color);
+}
+.layer-label-vert {
+  top: calc(0px - var(--line-height));
+  position: absolute;
+  padding-left: 5pt;
+  display: flex;
+  transform: rotate(0deg);
+  transition: .25s transform;
+  transform-origin: 10px 10px;
+  color: var(--group-color);
+}
+.layer-label-vert.hidden {
+  transform: rotate(-90deg);
+}
+.column {
+  position: relative;
+  height: 100%;
+  transition: .25s width;
+}
+.column.hidden {
+  width: 10pt !important;
+  opacity: 0;
+}
+.tokens {
+  z-index: 1;
+}
+.line {
+  height: var(--line-height);
+  box-sizing: border-box;
+  padding: 0 5pt;
+  text-align: right;
+  white-space: nowrap;
+}
+.token.selected{
+  color: black;
+}
+.child {
+  font-weight: bold;
+  filter: hue-rotate(-40deg);
+  border-width: 2pt
+}
+.parent {
+  font-weight: bold;
+  filter: hue-rotate(40deg);
+  border-width: 2pt;
+}
+.selected {
+  font-weight: bold;
+  border-width: 2pt;
+}
+
+.gray {
+  border-color: #ddd !important;
+  color: #ddd
+}
+
+.edge {
+  position: absolute;
+}
+.edge-line {
+  border: 1pt solid var(--group-color);
+  border-left: 0;
+  width: 2pt;
+  left: -2pt;
+}
+.arrow-head {
+  border: 5px solid transparent;
+  border-right: 5px solid var(--group-color);
+  width: 0;
+  height: 0;
+  top: -4pt;
+  left: -4pt;
+  position: absolute;
+}
+.gray .arrow-head{
+  border-right-color: #ddd;
+}
+.arrow-head.bottom{
+  bottom: -4pt;
+  top: unset;
+}
+.background-lines{
+  position: absolute;
+  width: 100%;
+  top: -2pt;
+}
+.background-line {
+  height: var(--line-height);
+  width: 100%;
+  padding: 0 5pt;
+}
+.background-line:nth-child(odd){
+  background: #f5f5f5;
+}

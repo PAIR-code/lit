@@ -10,6 +10,7 @@
 #main-panel {
   display: flex;
   border-bottom: 1px solid #dadce0;
+  overflow-x: scroll;
 }
 
 #component-groups{
@@ -29,20 +30,6 @@
 .components-group-holder.selected {
   visibility: visible;
   z-index: 1;
-}
-
-.component-row {
-  display: flex;
-  flex-direction: row;
-}
-
-.component-column {
-  display: flex;
-  flex-direction: column;
-}
-.component-column > * {
-  flex: 1;
-  min-height: 125pt;
 }
 
 #center-bar {

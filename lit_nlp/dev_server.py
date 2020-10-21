@@ -70,15 +70,30 @@ class Server(object):
     }
     # Remaining keywords passed to the webserver class.
     self._server_kw = kw
-    self._server_fn = WSGI_SERVERS[server_type]
+    self._server_type = server_type
 
   def serve(self):
-    """Run server, with optional reload loop and cache saving."""
+    """Run server, with optional reload loop and cache saving.
+
+    If the server type is 'external', then the app is returned instead of
+    served by this module.
+
+    Returns:
+      WSGI app if the server type is 'external', otherwise None when
+      serving is complete.
+    """
     while True:
       logging.info(get_lit_logo())
       logging.info('Starting LIT server...')
       app = lit_app.LitApp(*self._app_args, **self._app_kw)
-      server = self._server_fn(app, **self._server_kw)
+
+      # If using a separate server program to serve the app, such as gunicorn,
+      # then just return the WSGI app instead of serving it directly.
+      if self._server_type == 'external':
+        return app
+
+      server_fn = WSGI_SERVERS[self._server_type]
+      server = server_fn(app, **self._server_kw)
 
       # The underlying TSServer registers a SIGINT handler,
       # so if you hit Ctrl+C it will return.

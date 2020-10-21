@@ -69,6 +69,12 @@ export class LITApp {
       selectionService.setAppState(appState);
       selectionServices.push(selectionService);
     }
+
+    /**
+     * Select the initial datapoint, if one was set in the url.
+     */
+    await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
+
     /**
      * Reaction to sync other selection services to selections of the main one.
      */

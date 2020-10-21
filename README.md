@@ -39,6 +39,7 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 *   [User Guide](docs/user_guide.md)
 *   [Developer Guide](docs/development.md)
 *   [FAQ](docs/faq.md)
+*   [Release notes](./RELEASE.md)
 
 ## Download and Installation
 
@@ -60,7 +61,7 @@ conda install cudnn cupti  # optional, for GPU support
 conda install -c pytorch pytorch  # optional, for PyTorch
 
 # Build the frontend
-cd ~/lit/lit_nlp/client
+cd ~/lit/lit_nlp
 yarn && yarn build
 ```
 

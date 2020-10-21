@@ -16,6 +16,9 @@
  */
 
 import {autorun} from 'mobx';
+
+import {defaultValueByField, IndexedInput, Input, Spec} from '../lib/types';
+
 import {LitService} from './lit_service';
 
 /**
@@ -26,6 +29,11 @@ export class UrlConfiguration {
   selectedModels: string[] = [];
   selectedData: string[] = [];
   primarySelectedData?: string;
+  /**
+   * For datapoints that are not in the original dataset, the fields
+   * and their values are added directly into the url.
+   */
+  dataFields: Input = {};
   selectedDataset?: string;
   hiddenModules: string[] = [];
   compareExamplesEnabled?: boolean;
@@ -39,8 +47,14 @@ export interface StateObservedByUrlService {
   currentModels: string[];
   currentDataset: string;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
+  getUrlConfiguration: () => UrlConfiguration;
+  currentDatasetSpec: Spec;
   compareExamplesEnabled: boolean;
   layoutName: string;
+  getCurrentInputDataById: (id: string) => IndexedInput | null;
+  createNewDatapoints: (
+    data: Input[][], parentIds: string[],
+    source: string) => Promise<IndexedInput[]>;
 }
 
 /**
@@ -57,6 +71,7 @@ export interface ModulesObservedByUrlService {
  */
 export interface SelectionObservedByUrlService {
   readonly primarySelectedId: string|null;
+  readonly primarySelectedInputData: IndexedInput|null;
   setPrimarySelection: (id: string) => void;
   readonly selectedIds: string[];
   selectIds: (ids: string[]) => void;
@@ -70,8 +85,13 @@ const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
 const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
 const LAYOUT_KEY = 'layout';
+const DATA_FIELDS_KEY_SUBSTRING = 'data';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
+
+const makeDataFieldKey = (key: string) => `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
+const parseDataFieldKey = (key: string) =>
+    key.replace(`${DATA_FIELDS_KEY_SUBSTRING}_`, '');
 
 /**
  * Singleton service responsible for deserializing / serializing state to / from
@@ -115,6 +135,9 @@ export class UrlService extends LitService {
         urlConfiguration.selectedTab = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layout = this.urlParseString(value);
+      } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
+        const fieldKey = parseDataFieldKey(key);
+        urlConfiguration.dataFields[fieldKey] = this.urlParseString(value);
       }
     });
 
@@ -127,6 +150,21 @@ export class UrlService extends LitService {
     const value = data instanceof Array ? data.join(',') : data;
     if (value !== '' && value != null) {
       params.set(key, value);
+    }
+  }
+
+  /**
+   * If the datapoint was generated (not in the initial dataset),
+   * set the data values themselves in the url.
+   */
+  setDataFieldURLParams(
+      params: URLSearchParams, id: string,
+      appState: StateObservedByUrlService) {
+    const data = appState.getCurrentInputDataById(id);
+    if (data !== null && data.meta['added']) {
+      Object.keys(data.data).forEach((key: string) => {
+        this.setUrlParam(params, makeDataFieldKey(key), data.data[key]);
+      });
     }
   }
 
@@ -145,10 +183,7 @@ export class UrlService extends LitService {
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
     selectionService.selectIds(urlSelectedIds);
-    if (urlConfiguration.primarySelectedData != null) {
-      selectionService.setPrimarySelection(
-          urlConfiguration.primarySelectedData);
-    }
+
     // TODO(lit-dev) Add compared examples to URL parameters.
     // Only enable compare example mode if both selections and compare mode
     // exist in URL.
@@ -165,10 +200,11 @@ export class UrlService extends LitService {
       if (selectionService.selectedIds.length <= MAX_IDS_IN_URL_SELECTION) {
         this.setUrlParam(
             urlParams, SELECTED_DATA_KEY, selectionService.selectedIds);
-        if (selectionService.primarySelectedId != null) {
-          this.setUrlParam(
-              urlParams, PRIMARY_SELECTED_DATA_KEY,
-              selectionService.primarySelectedId);
+
+        const id = selectionService.primarySelectedId;
+        if (id != null) {
+          this.setUrlParam(urlParams, PRIMARY_SELECTED_DATA_KEY, id);
+          this.setDataFieldURLParams(urlParams, id, appState);
         }
       }
       this.setUrlParam(
@@ -190,5 +226,40 @@ export class UrlService extends LitService {
         window.history.replaceState({}, '', newUrl);
       }
     });
+  }
+
+
+  /**
+   * Syncing the selected datapoint in the URL is done separately from
+   * the rest of the URL params. This is for when the selected
+   * datapoint was not part of the original dataset: in this case, we
+   * have to first load the dataset, and then create a new datapoint
+   * from the fields stored in the url, and then select it.
+   */
+  async syncSelectedDatapointToUrl(
+      appState: StateObservedByUrlService,
+      selectionService: SelectionObservedByUrlService,
+  ) {
+    const urlConfiguration = appState.getUrlConfiguration();
+    const fields = urlConfiguration.dataFields;
+
+    // If there are data fields set in the url, make a new datapoint
+    // from them.
+    if (Object.keys(fields).length) {
+      const spec = appState.currentDatasetSpec;
+      Object.keys(spec).forEach(key => {
+        fields[key] = fields[key] ?? defaultValueByField(key, spec);
+      });
+      const data = await appState.createNewDatapoints([[fields]], [], 'manual');
+      selectionService.setPrimarySelection(data[0].id);
+    }
+
+    // Otherwise, use the primary selected datapoint url param directly.
+    else {
+      const id = urlConfiguration.primarySelectedData;
+      if (id !== undefined) {
+        selectionService.setPrimarySelection(id);
+      }
+    }
   }
 }

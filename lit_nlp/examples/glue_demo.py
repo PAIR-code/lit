@@ -2,8 +2,7 @@
 r"""Example demo loading a handful of GLUE models.
 
 To run locally:
-  python -m lit_nlp.examples.glue_demo \
-      --port=5432
+  python -m lit_nlp.examples.glue_demo --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """

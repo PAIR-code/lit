@@ -5,8 +5,7 @@ This demo fine-tunes a small Transformer (BERT-tiny) on the Stanford Sentiment
 Treebank (SST-2), and starts a LIT server.
 
 To run locally:
-  python -m lit_nlp.examples.quickstart_sst_demo \
-      --port=5432
+  python -m lit_nlp.examples.quickstart_sst_demo --port=5432
 
 Training should take less than 5 minutes on a single GPU. Once you see the
 ASCII-art LIT logo, navigate to localhost:5432 to access the demo UI.

@@ -32,7 +32,7 @@ import {styles as sharedStyles} from './shared_styles.css';
 
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
-
+// difflib declare placeholder - DO NOT REMOVE
 
 interface GeneratedTextResult {
   [key: string]: string;

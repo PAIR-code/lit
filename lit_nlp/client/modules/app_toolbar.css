@@ -68,10 +68,15 @@ mwc-icon.icon-button {
   min-width: 24px;
   --mdc-icon-size: 24px;
   cursor: pointer;
+  margin-left: 5pt;
 }
 
 mwc-icon.icon-button:hover {
   opacity: .7;
+}
+
+mwc-icon.icon-button:active {
+  opacity: .4;
 }
 
 .status-emoji {

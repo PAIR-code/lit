@@ -103,7 +103,7 @@ class SimpleSentimentModel(lit_model.Model):
         add_special_tokens=True,
         max_length=128,
         pad_to_max_length=True)
-  
+
     # Check and send to cuda (GPU) if available
     if torch.cuda.is_available():
       self.model.cuda()
@@ -121,7 +121,7 @@ class SimpleSentimentModel(lit_model.Model):
         "cls_emb": embs[-1][:, 0],  # last layer, first token
     }
     # Return as NumPy for further processing.
-    detached_outputs = {k: v.cpu().detach().numpy() for k, v in batched_outputs.items()}
+    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     # Unbatch outputs so we get one record per input example.
     for output in utils.unbatch_preds(detached_outputs):
       ntok = output.pop("ntok")

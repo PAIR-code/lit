@@ -7,12 +7,12 @@ Currently supports the following model types:
 
 To run locally:
   python -m lit_nlp.examples.pretrained_lm_demo \
-      --models=bert-base-uncased --top_k 10 \
-      --port=5432
+      --models=bert-base-uncased --top_k 10 --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
 import os
+import sys
 
 from absl import app
 from absl import flags
@@ -38,7 +38,7 @@ flags.DEFINE_integer("top_k", 10,
                      "Rank to which the output distribution is pruned.")
 
 flags.DEFINE_integer(
-    "max_examples", None,
+    "max_examples", 1000,
     "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
 )
 
@@ -50,6 +50,14 @@ flags.DEFINE_bool(
 # Set default layout to one better suited to language models.
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
+
+
+def get_wsgi_app():
+  FLAGS.set_default("server_type", "external")
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
 
 
 def main(_):
@@ -94,7 +102,7 @@ def main(_):
 
   lit_demo = dev_server.Server(
       models, datasets, generators=generators, **server_flags.get_flags())
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 if __name__ == "__main__":

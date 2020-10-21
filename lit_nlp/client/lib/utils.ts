@@ -228,3 +228,15 @@ export function roundToDecimalPlaces(num: number, places: number) {
   const numForPlaces = Math.pow(10, places);
   return Math.round((num + Number.EPSILON) * numForPlaces) / numForPlaces;
 }
+
+/**
+ * Copies a value to the user's clipboard.
+ */
+export function copyToClipboard(value: string) {
+  const tempInput = document.createElement("input");
+  tempInput.value = value;
+  document.body.appendChild(tempInput);
+  tempInput.select();
+  document.execCommand("copy");
+  document.body.removeChild(tempInput);
+}

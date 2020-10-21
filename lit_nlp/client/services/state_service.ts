@@ -351,4 +351,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   setUrlConfiguration(urlConfiguration: UrlConfiguration) {
     this.urlConfiguration = {...urlConfiguration};
   }
+  getUrlConfiguration() {
+    return this.urlConfiguration;
+  }
 }

@@ -23,10 +23,11 @@ lime.run([dataset.examples[0]], model, dataset)
 
 For the frontend, it's a little more difficult. In order to respond to and
 interact with the shared UI state, there's a lot more "framework" code involved.
-We're working on refactoring the LIT modules
-(../lit_nlp/client/modules) to separate framework and API
-code from the visualizations (e.g.
-../lit_nlp/client/elements), which can then be re-used in
+We're working on refactoring the LIT
+[modules](../lit_nlp/client/modules) to separate
+framework and API code from the visualizations (e.g.
+[elements](../lit_nlp/client/elements)),
+which can then be re-used in
 other environments.
 
 ### Can LIT work with `<giant transformer model>`?

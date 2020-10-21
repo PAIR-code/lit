@@ -63,7 +63,7 @@ export class StatusbarComponent extends MobxLitElement {
             <div class="signature">
               <div>Made with <img src="static/favicon.png" class="emoji"> by the LIT team</div>
               <div title="Send feedback" id="feedback">
-                <a href="http://github.com/pair-code/lit/README.md" target="_blank">
+                <a href="https://github.com/PAIR-code/lit" target="_blank">
                   <mwc-icon class="icon-button">
                     feedback
                   </mwc-icon>

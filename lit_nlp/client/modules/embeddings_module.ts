@@ -194,7 +194,7 @@ export class EmbeddingsModule extends LitModule {
   private setupReactions() {
     // Don't react immediately; we'll wait and make a single update.
     const getColorAll = () => this.colorService.all;
-    this.react(getColorAll, selectedColorOption => {
+    this.react(getColorAll, allColorOptions => {
       // pointColorer uses the latest settings from colorService automatically,
       // so to pick up the colors we just need to trigger a rerender on
       // scatterGL.

@@ -186,7 +186,13 @@ export class GeneratorModule extends LitModule {
         <div id='generated-holder'>
           ${this.appliedGenerator === null || isGenerating || nothingGenerated ?
             null :
-            html`<div class="counterfactuals-count">Generated ${this.totalNumGenerated} ${this.totalNumGenerated === 1 ? 'counterfactual' : 'counterfactuals'}.</div>`}
+            html`
+              <div class="counterfactuals-count">
+                Generated ${this.totalNumGenerated}
+                ${this.totalNumGenerated === 1 ?
+                'counterfactual' : 'counterfactuals'}.
+              </div>
+            `}
           ${this.renderHeader()}
           <div class="entries">
             ${isGenerating ? html`<div>Generating...</div>` : null}

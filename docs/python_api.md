@@ -2,7 +2,7 @@
 
 <!--* freshness: { owner: 'lit-dev' } *-->
 
-
+<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 This page describes the available APIs for LIT's Python backend. It assumes some
 familarity with the basic [system design](development.md#design-overview) and

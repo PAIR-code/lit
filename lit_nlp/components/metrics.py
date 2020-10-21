@@ -167,9 +167,9 @@ class RegressionMetrics(SimpleMetrics):
       return {}
 
     mse = sklearn_metrics.mean_squared_error(labels, preds)
-    if len(labels) < 2: # Check if only one point selected.
+    if len(labels) < 2:  # Check if only one point selected.
       pearsonr = np.nan
-    else:    
+    else:
       pearsonr = scipy_stats.pearsonr(labels, preds)[0]
     spearmanr = scipy_stats.spearmanr(labels, preds)[0]
     return {'mse': mse, 'pearsonr': pearsonr, 'spearmanr': spearmanr}

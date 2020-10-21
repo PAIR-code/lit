@@ -5,12 +5,8 @@ This demo shows how to use a custom model with LIT, in just a few lines of code.
 We'll use a transformers model, with a minimal amount of code to implement the
 LIT API. Compared to models/glue_models.py, this has fewer features, but the
 code is more readable.
-
-This demo is equivalent in functionality to simple_tf2_demo.py, but uses PyTorch
-instead of TensorFlow 2. The models behave identically as far as LIT is
-concerned, and the implementation is quite similar - to see changes, run:
-  git diff --no-index simple_tf2_demo.py simple_pytorch_demo.py
-
+This demo is similar in functionality to simple_tf2_demo.py, but uses PyTorch
+instead of TensorFlow 2.
 The transformers library can load weights from either,
 so you can use any saved model compatible with the underlying model class
 (AutoModelForSequenceClassification). To train something for this demo, you can:
@@ -18,33 +14,28 @@ so you can use any saved model compatible with the underlying model class
 - Or: Use tools/glue_trainer.py
 - Or: Use any fine-tuning code that works with transformers, such as
 https://github.com/huggingface/transformers#quick-tour-of-the-fine-tuningusage-scripts
-
 To run locally:
   python -m lit_nlp.examples.simple_pytorch_demo \
       --port=5432 --model_path=/path/to/saved/model
-
 Then navigate to localhost:5432 to access the demo UI.
-
 NOTE: this demo still uses TensorFlow Datasets (which depends on TensorFlow) to
 load the data. However, the output of glue.SST2Data is just NumPy arrays and
 plain Python data, and you can easily replace this with a different library or
 directly loading from CSV.
 """
+import re
+
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-# Use the regular GLUE data loaders, because these are very simple already.
 from lit_nlp.examples.datasets import glue
 from lit_nlp.lib import utils
-
 import torch
 import transformers
-import re
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -71,7 +62,7 @@ class SimpleSentimentModel(lit_model.Model):
   """Simple sentiment analysis model."""
 
   LABELS = ["0", "1"]  # negative, positive
-  compute_grads: bool = True # if True, compute and return gradients.
+  compute_grads: bool = True  # if True, compute and return gradients.
 
   def __init__(self, model_name_or_path):
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -114,7 +105,7 @@ class SimpleSentimentModel(lit_model.Model):
         encoded_input[tensor] = encoded_input[tensor].cuda()
 
     # Run a forward pass.
-    with torch.set_grad_enabled(self.compute_grads): # Conditional to use gradients
+    with torch.set_grad_enabled(self.compute_grads):
       logits, embs, unused_attentions = self.model(**encoded_input)
 
     # Post-process outputs.
@@ -135,13 +126,17 @@ class SimpleSentimentModel(lit_model.Model):
     # embeddings.
     if self.compute_grads:
       # <torch.float32>[batch_size, num_tokens, emb_dim]
-      scalar_pred_for_gradients = torch.max(batched_outputs["probas"], dim=1, keepdim=False, out=None)[0]
-      batched_outputs["input_emb_grad"] = torch.autograd.grad(scalar_pred_for_gradients, embs[0], grad_outputs = torch.ones_like(scalar_pred_for_gradients))[0]
-   
+      scalar_pred_for_gradients = torch.max(
+          batched_outputs["probas"], dim=1, keepdim=False, out=None)[0]
+      batched_outputs["input_emb_grad"] = torch.autograd.grad(
+          scalar_pred_for_gradients, embs[0],
+          grad_outputs=torch.ones_like(scalar_pred_for_gradients))[0]
+
     # Post-process outputs.
     # Return as NumPy for further processing.
-    detached_outputs = {k: v.cpu().detach().numpy() for k, v in batched_outputs.items()}
-    
+    detached_outputs = {
+        k: v.cpu().detach().numpy() for k, v in batched_outputs.items()}
+
     # Unbatch outputs so we get one record per input example.
     for output in utils.unbatch_preds(detached_outputs):
       ntok = output.pop("ntok")
