@@ -3,8 +3,7 @@
  * they get that way under-ground...
  *
  * This defines a custom module, which we'll import in main.ts to include in
- * the LIT app. See https://github.com/PAIR-code/lit/blob/main/docs/client.md
- * on the available APIs for building your own.
+ * the LIT app.
  */
 
 // tslint:disable:no-new-decorators
