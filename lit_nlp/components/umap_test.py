@@ -24,7 +24,7 @@ class UmapTest(absltest.TestCase):
   def test_fit_transform(self):
     umap_model = umap.UmapModel(n_components=3)
 
-    # Make dummy embeddings.
+    # Make fake embeddings.
     n = 100
     inputs = testing_utils.fake_projection_input(n, 10)
 
