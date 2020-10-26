@@ -31,6 +31,7 @@ export interface UpdateSettingsParams {
   models?: string[];
   dataset?: string;
   hiddenModuleKeys?: Set<string>;
+  layoutName?: string;
 }
 
 /**
@@ -96,6 +97,7 @@ export class SettingsService extends LitService {
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextHiddenModuleKeys =
         updateParams.hiddenModuleKeys ?? this.modulesService.hiddenModuleKeys;
+    const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
 
     // Compare the updated models
     const haveModelsChanged =
@@ -117,6 +119,15 @@ export class SettingsService extends LitService {
           nextDataset, /** load data */
           true);
     }
+
+    // If the entire layout has changed, reinitialize the layout.
+    if (this.appState.layoutName !== nextLayout) {
+      this.appState.layoutName = nextLayout;
+      this.modulesService.initializeLayout(
+        this.appState.layout, this.appState.currentModelSpecs,
+        this.appState.currentDatasetSpec, this.appState.compareExamplesEnabled);
+    }
+
 
     // Only update hiddenModules if the set is different, to avoid unnecessary
     // relayouts. We also need to explicitly call renderModules to trigger

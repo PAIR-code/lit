@@ -64,13 +64,6 @@ export class LitModules extends LitElement {
     this.modulesService.setRenderModulesCallback(() => {});
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.style.setProperty(
-        'align-self',
-        this.modulesService.getSetting('centerPage') ? `center` : `unset`);
-  }
-
   updated() {
     // Since the widget parent element is responsible for displaying the load
     // status of its child litModule, and we can't provide a callback to a
@@ -96,8 +89,14 @@ export class LitModules extends LitElement {
     const mainPanelConfig = layout['Main'];
     const compGroupNames = Object.keys(layout).filter(k => k !== 'Main');
 
-    // Initially set the selected tab to the first tab.
-    if (this.modulesService.selectedTab === '') {
+    // Set the centerPage custom value from settings.
+    this.style.setProperty(
+      'align-self',
+      this.modulesService.getSetting('centerPage') ? `center` : `unset`);
+
+    // By default, set the selected tab to the first tab.
+    const tab = this.modulesService.selectedTab;
+    if (tab === '' || !compGroupNames.includes(tab)) {
       this.modulesService.selectedTab = compGroupNames[0];
     }
 

@@ -58,6 +58,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   private readonly settingsService = app.getService(SettingsService);
 
   @observable private selectedDataset: string = '';
+  @observable private selectedLayout: string = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
   @observable
   private readonly moduleCheckboxValues = new Map<string, boolean>();
@@ -101,6 +102,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     });
 
     this.selectedDataset = this.appState.currentDataset;
+    this.selectedLayout = this.appState.layoutName;
 
     this.modulesService.allModuleKeys.forEach(key => {
       const visible = !this.modulesService.hiddenModuleKeys.has(key);
@@ -112,6 +114,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   submitSettings() {
     const models = this.selectedModels;
     const dataset = this.selectedDataset;
+    const layoutName = this.selectedLayout;
 
     const hiddenModuleKeys = new Set<string>();
     this.moduleCheckboxValues.forEach((isVisible, key) => {
@@ -122,6 +125,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
       models,
       dataset,
       hiddenModuleKeys,
+      layoutName,
     });
   }
 
@@ -137,6 +141,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
             ${this.renderModelsConfig()}
             ${this.renderDatasetConfig()}
             ${this.renderComponentsConfig()}
+            ${this.renderLayoutConfig()}
             ${this.appState.metadata.demoMode ?
               null : this.renderDatapointsConfig()}
           </div>
@@ -378,7 +383,31 @@ export class GlobalSettingsComponent extends MobxLitElement {
       </div>
     `;
   }
+  renderLayoutConfig() {
+    const layouts = Object.keys(this.appState.layouts);
+    const renderLayoutOption = (name: string) => html`
+    <div class="config-line">
+      <mwc-formfield label=${name}>
+        <mwc-radio
+          name="layouts"
+          ?checked=${this.selectedLayout === name}
+          @change=${() => this.selectedLayout = name}
+        >
+        </mwc-radio>
+      </mwc-formfield>
+    </div>
+  `;
+
+    return html`
+      <div id="layout-config">
+        <div class="config-title">Layout</div>
+        <div>
+          ${layouts.map(name => renderLayoutOption(name))}
+        </div>
+      </div>
+    `;  }
 }
+
 
 declare global {
   interface HTMLElementTagNameMap {

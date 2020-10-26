@@ -32,7 +32,7 @@ import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SpanGraphGoldModule, SpanGraphModule} from '../modules/span_graph_module';
-import {LitComponentLayouts} from '../services/modules_service';
+import {LitComponentLayouts} from '../lib/types';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [

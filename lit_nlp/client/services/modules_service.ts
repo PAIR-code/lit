@@ -18,38 +18,10 @@
 // tslint:disable:no-new-decorators
 import {action, observable} from 'mobx';
 
-import {LitStaticProperties, ModelsMap, Spec} from '../lib/types';
+import {LitModuleClass, ModelsMap, Spec} from '../lib/types';
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
-
-/**
- * Miscellaneous render settings (e.g., whether to render a toolbar)
- * for a given layout.
- */
-export declare interface LayoutSettings {
-  hideToolbar?: boolean;
-  mainHeight?: number;
-  centerPage?: boolean;
-}
-
-/**
- * A layout is defined by a set of main components that are always visible,
- * (designated in the object by the "main" key)
- * and a set of tabs that each contain a group other components.
- *
- * LitComponentLayout is a mapping of tab names to module types.
- */
-export declare interface LitComponentLayout {
-  components: {[name: string]: LitStaticProperties[];};
-  layoutSettings?: LayoutSettings;
-}
-
-/**
- * Dictionary of lit layouts. See LitComponentLayout
- */
-export declare interface LitComponentLayouts {
-  [key: string] : LitComponentLayout;
-}
+import {LitComponentLayout, LayoutSettings} from '../lib/types';
 
 /**
  * A layout is defined by a set of main components that are always visible,
@@ -70,7 +42,7 @@ export interface LitRenderConfig {
  * to render and whether it renders on a per-model basis.
  */
 export interface RenderConfig {
-  moduleType: LitStaticProperties;
+  moduleType: LitModuleClass;
   modelName?: string;
   selectionServiceIndex?: number;
 }
@@ -206,7 +178,7 @@ export class ModulesService extends LitService implements
    * to render.
    */
   private getRenderConfigs(
-      modules: LitStaticProperties[], currentModelSpecs: ModelsMap,
+      modules: LitModuleClass[], currentModelSpecs: ModelsMap,
       datasetSpec: Spec, compareExamples: boolean) {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
@@ -248,7 +220,7 @@ export class ModulesService extends LitService implements
   }
 
   private makeRenderConfig(
-      moduleType: LitStaticProperties, modelName?: string,
+      moduleType: LitModuleClass, modelName?: string,
       selectionServiceIndex?: number): RenderConfig {
     return {
       moduleType,
@@ -257,7 +229,7 @@ export class ModulesService extends LitService implements
     };
   }
 
-  private getModuleKey(moduleType: LitStaticProperties) {
+  private getModuleKey(moduleType: LitModuleClass) {
     return moduleType.title;
   }
 

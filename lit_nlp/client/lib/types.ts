@@ -189,7 +189,7 @@ export type ServiceUser = object|null;
  * We can't define abstract static properties/methods in typescript, so we
  * define an interface to emulate the LitModuleType.
  */
-export interface LitStaticProperties {
+export interface LitModuleClass {
   title: string;
   template:
       (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
@@ -222,4 +222,33 @@ export function defaultValueByField(key: string, spec: Spec) {
       'Warning: default value requested for unrecognized input field type',
       key, fieldSpec);
   return '';
+}
+
+/**
+ * Dictionary of lit layouts. See LitComponentLayout
+ */
+export declare interface LitComponentLayouts {
+  [key: string] : LitComponentLayout;
+}
+
+/**
+ * A layout is defined by a set of main components that are always visible,
+ * (designated in the object by the "main" key)
+ * and a set of tabs that each contain a group other components.
+ *
+ * LitComponentLayout is a mapping of tab names to module types.
+ */
+export declare interface LitComponentLayout {
+  components: {[name: string]: LitModuleClass[];};
+  layoutSettings?: LayoutSettings;
+}
+
+/**
+ * Miscellaneous render settings (e.g., whether to render a toolbar)
+ * for a given layout.
+ */
+export declare interface LayoutSettings {
+  hideToolbar?: boolean;
+  mainHeight?: number;
+  centerPage?: boolean;
 }
