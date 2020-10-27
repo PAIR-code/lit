@@ -43,6 +43,7 @@ export interface LitRenderConfig {
  */
 export interface RenderConfig {
   moduleType: LitModuleClass;
+  tab: string;
   modelName?: string;
   selectionServiceIndex?: number;
 }
@@ -112,15 +113,18 @@ export class ModulesService extends LitService implements
     this.selectedTab = urlConfiguration.selectedTab ?? '';
   }
 
-  private filterHiddenConfigs(configs: RenderConfig[][]): RenderConfig[][] {
-    return configs.filter(configGroup => {
-      return (configGroup.length === 0) || !this.isConfigHidden(configGroup[0]);
-    });
+  isModuleGroupHidden(config: RenderConfig) {
+    const key = this.getModuleKey(config);
+    return this.hiddenModuleKeys.has(key);
   }
 
-  private isConfigHidden(config: RenderConfig) {
-    const key = this.getModuleKey(config.moduleType);
-    return this.hiddenModuleKeys.has(key);
+  toggleHiddenModule(config: RenderConfig, isHidden: boolean) {
+    const key = this.getModuleKey(config);
+    if (isHidden) {
+      this.hiddenModuleKeys.add(key);
+    } else {
+      this.hiddenModuleKeys.delete(key);
+    }
   }
 
   getRenderLayout() {
@@ -147,15 +151,15 @@ export class ModulesService extends LitService implements
       const components = this.declaredLayout.components[groupName];
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
-      let configs = this.getRenderConfigs(
-          components, currentModelSpecs, datasetSpec, compareExamples);
+      const configs = this.getRenderConfigs(
+          components, currentModelSpecs, datasetSpec, compareExamples, groupName);
       configs.forEach(configGroup => {
+        
         configGroup.forEach(config => {
-          const key = this.getModuleKey(config.moduleType);
+          const key = this.getModuleKey(config);
           allModuleKeys.add(key);
         });
       });
-      configs = this.filterHiddenConfigs(configs);
       renderLayout[groupName] = configs;
     });
 
@@ -179,7 +183,7 @@ export class ModulesService extends LitService implements
    */
   private getRenderConfigs(
       modules: LitModuleClass[], currentModelSpecs: ModelsMap,
-      datasetSpec: Spec, compareExamples: boolean) {
+      datasetSpec: Spec, compareExamples: boolean, tab: string) {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
     // modules that display one per model.
@@ -192,11 +196,11 @@ export class ModulesService extends LitService implements
       } else if (!moduleType.duplicateForModelComparison) {
         const config: RenderConfig[] = [];
         if (compare) {
-          config.push(this.makeRenderConfig(moduleType, undefined, 1));
-          config.push(this.makeRenderConfig(moduleType, undefined, 0));
+          config.push(this.makeRenderConfig(moduleType, tab, undefined, 1));
+          config.push(this.makeRenderConfig(moduleType, tab, undefined, 0));
         } else {
           config.push(this.makeRenderConfig(
-              moduleType, undefined, compareExamples ? 0 : undefined));
+              moduleType, tab, undefined, compareExamples ? 0 : undefined));
         }
         renderConfigs.push(config);
       } else {
@@ -204,11 +208,11 @@ export class ModulesService extends LitService implements
         const configs =
             selectedModels.reduce((accArray: RenderConfig[], modelName) => {
               if (compare) {
-                accArray.push(this.makeRenderConfig(moduleType, modelName, 1));
-                accArray.push(this.makeRenderConfig(moduleType, modelName, 0));
+                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 1));
+                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 0));
               } else {
                 accArray.push(this.makeRenderConfig(
-                    moduleType, modelName, compareExamples ? 0 : undefined));
+                    moduleType, tab, modelName, compareExamples ? 0 : undefined));
               }
               return accArray;
             }, []);
@@ -220,17 +224,18 @@ export class ModulesService extends LitService implements
   }
 
   private makeRenderConfig(
-      moduleType: LitModuleClass, modelName?: string,
+      moduleType: LitModuleClass, tab: string, modelName?: string,
       selectionServiceIndex?: number): RenderConfig {
     return {
       moduleType,
+      tab,
       modelName,
       selectionServiceIndex,
     };
   }
 
-  private getModuleKey(moduleType: LitModuleClass) {
-    return moduleType.title;
+  private getModuleKey(config: RenderConfig) {
+    return `${config.tab}_${config.moduleType.title}`;
   }
 
   setModuleLayout(layout: LitComponentLayout) {

@@ -51,15 +51,12 @@ describe('updateSettings test', () => {
     // Set up services
     const app = new LITApp();
     const appState = app.getService(AppState);
-    const modulesService = app.getService(ModulesService);
     // Use mock data.
     appState.metadata = mockMetadata;
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness.)
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     const settingsService = app.getService(SettingsService);
-
-    spyOn(modulesService, 'setHiddenModules');
 
     // Update the data
     const hiddenModuleKeys = new Set(['moduleKey0', 'moduleKey1']);
@@ -71,14 +68,5 @@ describe('updateSettings test', () => {
     // Check the currentDataset and currentModels values directly.
     expect(appState.currentDataset).toEqual(dataset);
     expect(appState.currentModels).toEqual(models);
-
-    // Check that the modules setHiddenModules was called correctly.
-    // Note: there's post-processing internal to modules_service that filters
-    // out keys that aren't instantiated modules on LIT; since we don't want to
-    // actually instantuate all of LIT here (and since that should be tested in
-    // modules_service_test), we just check that the method has been called with
-    // the correct arguments.
-    expect(modulesService.setHiddenModules)
-        .toHaveBeenCalledWith(hiddenModuleKeys);
   });
 });

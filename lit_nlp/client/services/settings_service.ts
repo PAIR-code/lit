@@ -30,7 +30,6 @@ import {AppState, ModulesService, SelectionService} from './services';
 export interface UpdateSettingsParams {
   models?: string[];
   dataset?: string;
-  hiddenModuleKeys?: Set<string>;
   layoutName?: string;
 }
 
@@ -95,8 +94,6 @@ export class SettingsService extends LitService {
     await this.raf();
     const nextModels = updateParams.models ?? this.appState.currentModels;
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
-    const nextHiddenModuleKeys =
-        updateParams.hiddenModuleKeys ?? this.modulesService.hiddenModuleKeys;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
 
     // Compare the updated models
@@ -129,13 +126,6 @@ export class SettingsService extends LitService {
     }
 
 
-    // Only update hiddenModules if the set is different, to avoid unnecessary
-    // relayouts. We also need to explicitly call renderModules to trigger
-    // a rerender of the lit-modules layout component.
-    const currentHiddenModuleKeys = this.modulesService.hiddenModuleKeys;
-    if (!setEquals(nextHiddenModuleKeys, currentHiddenModuleKeys)) {
-      this.modulesService.setHiddenModules(nextHiddenModuleKeys);
-    }
     // Recompute layout.
     this.updateLayout();
   }

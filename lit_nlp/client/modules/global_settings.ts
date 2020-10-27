@@ -35,7 +35,7 @@ import {styleMap} from 'lit-html/directives/style-map';
 import {action, computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
-import {ApiService, AppState, ModulesService, SettingsService} from '../services/services';
+import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -54,14 +54,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   private readonly apiService = app.getService(ApiService);
   private readonly appState = app.getService(AppState);
-  private readonly modulesService = app.getService(ModulesService);
   private readonly settingsService = app.getService(SettingsService);
 
   @observable private selectedDataset: string = '';
   @observable private selectedLayout: string = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
-  @observable
-  private readonly moduleCheckboxValues = new Map<string, boolean>();
   @observable private pathForDatapoints: string = '';
   @observable private datapointsStatus: string = '';
 
@@ -103,11 +100,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     this.selectedDataset = this.appState.currentDataset;
     this.selectedLayout = this.appState.layoutName;
-
-    this.modulesService.allModuleKeys.forEach(key => {
-      const visible = !this.modulesService.hiddenModuleKeys.has(key);
-      this.moduleCheckboxValues.set(key, visible);
-    });
   }
 
   @action
@@ -116,15 +108,9 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const dataset = this.selectedDataset;
     const layoutName = this.selectedLayout;
 
-    const hiddenModuleKeys = new Set<string>();
-    this.moduleCheckboxValues.forEach((isVisible, key) => {
-      if (!isVisible) hiddenModuleKeys.add(key);
-    });
-
     this.settingsService.updateSettings({
       models,
       dataset,
-      hiddenModuleKeys,
       layoutName,
     });
   }
@@ -140,7 +126,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
           <div id="table-holder">
             ${this.renderModelsConfig()}
             ${this.renderDatasetConfig()}
-            ${this.renderComponentsConfig()}
             ${this.renderLayoutConfig()}
             ${this.appState.metadata.demoMode ?
               null : this.renderDatapointsConfig()}
@@ -284,34 +269,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
         <div class="config-title">Dataset</div>
         <div class="config-datasets-list">
           ${allDatasets.map(name => renderDatasetSelect(name))}
-        </div>
-      </div>
-    `;
-  }
-
-  renderComponentsConfig() {
-    const availableComponents = [...this.modulesService.allModuleKeys];
-
-    const renderComponentSelect = (name: string) => {
-      const checked = !this.modulesService.hiddenModuleKeys.has(name);
-      const change = (e: Event) => {
-        this.moduleCheckboxValues.set(
-            name, (e.target as HTMLInputElement).checked);
-      };
-      return html`
-        <div class="config-line">
-          <mwc-formfield label=${name}>
-            <lit-checkbox ?checked=${checked} @change=${change}></lit-checkbox>
-          </mwc-formfield>
-        </div>
-      `;
-    };
-
-    return html`
-      <div id="models-config">
-        <div class="config-title">Components</div>
-        <div class="config-components-list">
-          ${availableComponents.map(name => renderComponentSelect(name))}
         </div>
       </div>
     `;

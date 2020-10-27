@@ -90,7 +90,7 @@ describe('modules service test', async () => {
     // Check that the two modules we added to the layout are reflected in
     // allModuleKeys.
     const keys =
-        new Set([DatapointEditorModule.title, SalienceMapModule.title]);
+        new Set([`Main_${DatapointEditorModule.title}`, `internals_${SalienceMapModule.title}`]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 

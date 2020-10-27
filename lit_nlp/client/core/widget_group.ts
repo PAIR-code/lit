@@ -21,7 +21,8 @@ import {styles as widgetStyles} from './widget.css';
 import { customElement, html, LitElement, property } from 'lit-element';
 import { MobxLitElement } from '@adobe/lit-mobx';
 import { classMap } from 'lit-html/directives/class-map';
-import { styleMap } from 'lit-html/directives/style-map';
+import {app} from '../core/lit_app';
+import {ModulesService} from '../services/services';
 
 
 import '@material/mwc-icon';
@@ -33,6 +34,7 @@ const NUM_COLS = 12;
  */
 @customElement('lit-widget-group')
 export class WidgetGroup extends LitElement {
+  private readonly modulesService = app.getService(ModulesService);
   @property({ type: Array }) configGroup: RenderConfig[] = [];
   @property({ type: Boolean, reflect: true }) minimized = false;
   @property({ type: Boolean, reflect: true }) maximized = false;
@@ -41,6 +43,11 @@ export class WidgetGroup extends LitElement {
 
   static get styles() {
     return [widgetGroupStyles];
+  }
+
+  firstUpdated() {
+    // Set the initial minimization from modulesService.
+    this.minimized = this.initMinimized();
   }
 
   render() {
@@ -57,13 +64,13 @@ export class WidgetGroup extends LitElement {
     const maxIconName = this.maximized ? 'fullscreen_exit' : 'fullscreen';
     const onMaxClick = () => {
       this.maximized = !this.maximized;
-      this.minimized = false;
+      this.setMinimized(false);
     };
 
     // Minimization.
     const minIconName = this.minimized ? 'south_east' : 'south_west'; //Icons for arrows.
     const onMinClick = () => {
-      this.minimized = !this.minimized;
+      this.setMinimized(!this.minimized);
       this.maximized = false;
     };
 
@@ -213,6 +220,17 @@ export class WidgetGroup extends LitElement {
 
   private flexGrowToWidth(flexGrow: number) {
     return (flexGrow / NUM_COLS * 100).toFixed(3).toString() + '%';
+  }
+
+  private initMinimized() {
+    const config = this.configGroup[0];
+    return this.modulesService.isModuleGroupHidden(config);
+  }
+
+  private setMinimized(isMinimized: boolean) {
+    const config = this.configGroup[0];
+    this.modulesService.toggleHiddenModule(config, isMinimized);
+    this.minimized = isMinimized;
   }
 }
 
