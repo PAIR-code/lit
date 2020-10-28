@@ -28,7 +28,8 @@ export type LitClass = 'LitType';
 export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
     'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
     'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel';
+    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
+    'FieldMatcher';
 
 export interface LitType {
   __class__: LitClass;
@@ -39,6 +40,9 @@ export interface LitType {
   vocab?: string[];
   null_idx?: number;
   required?: boolean;
+  default? : string|string[]|number|number[];
+  spec?: string;
+  type?: LitName;
 }
 
 export interface Spec {
@@ -55,6 +59,9 @@ export interface DatasetsMap {
   [datasetName: string]: DatasetSpec;
 }
 
+export interface GeneratorsMap {
+  [generatorName: string]: Spec;
+}
 
 export interface CallConfig {
   [option: string]: string|number|boolean|CallConfig;
@@ -78,7 +85,7 @@ export interface ModelsMap {
 
 export interface LitMetadata {
   datasets: DatasetsMap;
-  generators: string[];
+  generators: GeneratorsMap;
   interpreters: string[];
   models: ModelsMap;
   demoMode: boolean;

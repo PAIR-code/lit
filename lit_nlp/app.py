@@ -15,7 +15,6 @@
 # Lint as: python3
 """LIT backend, as a standard WSGI app."""
 
-import collections
 import functools
 import glob
 import os
@@ -86,7 +85,7 @@ class LitApp(object):
 
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
-    info_by_model = collections.OrderedDict()
+    info_by_model = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
       info = {}
@@ -104,15 +103,18 @@ class LitApp(object):
       info['interpreters'] = list(self._interpreters.keys())
       info_by_model[name] = info
 
-    info_by_dataset = collections.OrderedDict()
+    info_by_dataset = {}
     for name, ds in self._datasets.items():
       info_by_dataset[name] = {'spec': ds.spec()}
+    generator_info = {}
+    for gen_name in self._generators.keys():
+      generator_info[gen_name] = self._generators[gen_name].spec()
 
     self._info = {
         'models': info_by_model,
         'datasets': info_by_dataset,
         # TODO(lit-team): return more spec information here?
-        'generators': list(self._generators.keys()),
+        'generators': generator_info,
         'interpreters': list(self._interpreters.keys()),
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,

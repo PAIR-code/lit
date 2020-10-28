@@ -56,9 +56,15 @@ class SimilaritySearcher(lit_components.Generator):
     """Find similar examples for an example/model/dataset."""
     model_name = config['model_name']
     dataset_name = config['dataset_name']
-    embedding_name = config['field_name']
+    embedding_name = config['Embedding Field']
     embedding = self._get_embedding(model, example, embedding_name,
                                     dataset_name)
     neighbors = self._find_nn(model_name, dataset_name, embedding_name,
                               embedding)
     return neighbors
+
+  def spec(self) -> types.Spec:
+    return {
+        # Requires an embedding layer specified from a model.
+        'Embedding Field': types.FieldMatcher(spec='output', type='Embeddings')
+    }

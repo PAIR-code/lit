@@ -18,7 +18,8 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {IndexedInput, Input, LitMetadata, ModelsMap, ModelSpec, Spec, LitComponentLayouts, LitComponentLayout} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
+import {IndexedInput, Input, LitMetadata, LitType, ModelsMap, ModelSpec, Spec, LitComponentLayouts, LitComponentLayout} from '../lib/types';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -217,6 +218,19 @@ export class AppState extends LitService implements StateObservedByUrlService {
     output: Spec,
   } {
     return this.metadata.models[modelName].spec;
+  }
+
+  /**
+   * Get the spec keys matching the info from the provided FieldMatcher.
+   */
+  getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
+    let spec = this.currentDatasetSpec;
+    if (matcher.spec === 'output') {
+      spec = this.currentModelSpecs[modelName].spec.output;
+    } else if (matcher.spec === 'input') {
+      spec = this.currentModelSpecs[modelName].spec.input;
+    }
+    return findSpecKeys(spec, matcher.type!);
   }
 
   //=================================== Generation logic

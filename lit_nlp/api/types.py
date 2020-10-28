@@ -41,6 +41,8 @@ TokenTopKPredsList = List[List[Tuple[str, float]]]
 class LitType(metaclass=abc.ABCMeta):
   """Base class for LIT Types."""
   required: bool = True  # for input fields, mark if required by the model.
+  # TODO(lit-dev): Add defaults for all LitTypes
+  default = None  # an optional default value for a given type.
 
   def is_compatible(self, other):
     """Check equality, ignoring some fields."""
@@ -62,6 +64,7 @@ Spec = Dict[Text, LitType]
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TextSegment(LitType):
   """Text input (untokenized), a single string."""
+  default: Text = ''
   pass
 
 
@@ -74,6 +77,7 @@ class GeneratedText(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(LitType):
   """Tokenized text, as List[str]."""
+  default: List[Text] = []
   # TODO(lit-dev): should we use 'align' here?
   parent: Optional[Text] = None  # name of a TextSegment field in the input
 
@@ -192,3 +196,10 @@ class AttentionHeads(LitType):
 class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
   pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class FieldMatcher(LitType):
+  """For matching spec fields."""
+  spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
+  type: Text  # type of LitType to match in the spec.
