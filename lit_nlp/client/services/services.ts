@@ -27,3 +27,4 @@ export {AppState} from './state_service';
 export {StatusService} from './status_service';
 export {UrlService} from './url_service';
 export {DeltasService} from './deltas_service';
+export {PredictionsService} from './predictions_service';

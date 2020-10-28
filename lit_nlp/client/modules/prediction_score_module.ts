@@ -27,7 +27,7 @@ import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {D3Selection, IndexedInput, ModelsMap, NumericSetting, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
-import {ClassificationService, ColorService, RegressionService} from '../services/services';
+import {PredictionsService, ClassificationService, ColorService, RegressionService} from '../services/services';
 
 import {styles} from './prediction_score_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -72,6 +72,7 @@ export class PredictionScoreModule extends LitModule {
   }
 
   private readonly colorService = app.getService(ColorService);
+  private readonly predictionsService = app.getService(PredictionsService);
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly regressionService = app.getService(RegressionService);
@@ -115,7 +116,7 @@ export class PredictionScoreModule extends LitModule {
       if (currentInputData != null) {
         // Get predictions from the backend for all input data and
         // display them by prediction score in the plot.
-        this.updatePredictions(currentInputData);
+        this.updatePredictions();
       }
     });
 
@@ -269,60 +270,13 @@ export class PredictionScoreModule extends LitModule {
    * Get predictions from the backend for all input data and display by
    * prediction score in the plot.
    */
-  private async updatePredictions(currentInputData: IndexedInput[]) {
-    if (currentInputData == null) {
-      return;
+  private async updatePredictions() {
+    const promise = this.predictionsService.ensurePredictionsFetched(this.model);
+    const preds = await this.loadLatest('ensurePredictionsFetched', promise);
+    if (preds) {
+      this.preds = preds;
+      this.updatePlotData();
     }
-
-    // TODO(lit-dev): consolidate to a single call here, with client-side cache.
-    const dataset = this.appState.currentDataset;
-    const promise = Promise.all([
-      this.classificationService.getClassificationPreds(
-          currentInputData, this.model, dataset),
-      this.regressionService.getRegressionPreds(
-          currentInputData, this.model, dataset),
-      this.apiService.getPreds(
-          currentInputData, this.model, dataset, ['Scalar']),
-    ]);
-    const results = await this.loadLatest('predictionScores', promise);
-    if (results === null) {
-      return;
-    }
-    const classificationPreds = results[0];
-    const regressionPreds = results[1];
-    const scalarPreds = results[2];
-    if (classificationPreds == null && regressionPreds == null &&
-        scalarPreds == null) {
-      return;
-    }
-
-    const preds: Preds[] = [];
-    for (let i = 0; i < classificationPreds.length; i++) {
-      const currId = currentInputData[i].id;
-      // TODO(lit-dev): structure this as a proper IndexedInput,
-      // rather than having 'id' as a regular field.
-      const pred = Object.assign(
-          {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
-          {id: currId});
-      preds.push(pred);
-    }
-
-    // Add the error info for any regression keys.
-    if (regressionPreds != null) {
-      const ids = currentInputData.map(data => data.id);
-      const regressionKeys = Object.keys(regressionPreds[0]);
-      for (let j = 0; j < regressionKeys.length; j++) {
-        const regressionInfo = await this.regressionService.getResults(
-            ids, this.model, regressionKeys[j]);
-        for (let i = 0; i < preds.length; i++) {
-          preds[i][this.regressionService.getErrorKey(regressionKeys[j])] =
-              regressionInfo[i].error;
-        }
-      }
-    }
-
-    this.preds = preds;
-    this.updatePlotData();
   }
 
   /**

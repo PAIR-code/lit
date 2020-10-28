@@ -30,7 +30,7 @@ import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {LitName, ModelsMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, formatLabelNumber, findSpecKeys} from '../lib/utils';
-import {DeltasService} from '../services/services';
+import {DeltasService, PredictionsService} from '../services/services';
 import {DeltaRow, Source} from '../services/deltas_service';
 
 import {styles} from './perturbations_table_module.css';
@@ -74,9 +74,18 @@ export class PerturbationsTableModule extends LitModule {
   }
 
   private readonly deltasService = app.getService(DeltasService);
+  private readonly predictionsService = app.getService(PredictionsService);
 
   @observable private filterSelected = false;
   @observable private lastSelectedSourceIndex?: number;
+
+  firstUpdated() {
+    const getCurrentInputData = () => this.appState.currentInputData;
+    this.reactImmediately(getCurrentInputData, async currentInputData => {
+      const promise = this.predictionsService.ensurePredictionsFetched(this.model);
+      await this.loadLatest('ensurePredictionsFetched', promise);
+    });
+  }
 
   /* Enforce datapoint selection */
   private filteredDeltaRows(deltaRows: DeltaRow[]): DeltaRow[] {

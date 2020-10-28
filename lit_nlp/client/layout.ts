@@ -130,7 +130,6 @@ export const LAYOUTS: LitComponentLayouts = {
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         PredictionScoreModule,
-
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,

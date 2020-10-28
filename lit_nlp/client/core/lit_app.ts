@@ -31,6 +31,7 @@ import {RegressionService} from '../services/regression_service';
 import {SelectionService} from '../services/selection_service';
 import {SettingsService} from '../services/settings_service';
 import {SliceService} from '../services/slice_service';
+import {PredictionsService} from '../services/predictions_service';
 import {AppState} from '../services/state_service';
 import {StatusService} from '../services/status_service';
 import {UrlService} from '../services/url_service';
@@ -144,7 +145,8 @@ export class LITApp {
         appState, groupService, classificationService, regressionService);
     const deltasService = new DeltasService(
         appState, selectionService, classificationService, regressionService);
-
+    const predictionsService = new PredictionsService(appState, apiService,
+        classificationService, regressionService);
     selectionService.setAppState(appState);
 
     // Initialize url syncing of state
@@ -164,6 +166,7 @@ export class LITApp {
     this.services.set(StatusService, statusService);
     this.services.set(UrlService, urlService);
     this.services.set(DeltasService, deltasService);
+    this.services.set(PredictionsService, predictionsService);
   }
 }
 
