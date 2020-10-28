@@ -289,7 +289,6 @@ class LitApp(object):
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
-
     self._demo_mode = demo_mode
     self._default_layout = default_layout
     self._canonical_url = canonical_url
@@ -320,6 +319,7 @@ class LitApp(object):
       self._interpreters = {
           'grad_norm': gradient_maps.GradientNorm(),
           'lime': lime_explainer.LIME(),
+          'grad_dot_input': gradient_maps.GradientDotInput(),
           'integrated gradients': gradient_maps.IntegratedGradients(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'metrics': metrics_group,
