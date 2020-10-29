@@ -325,19 +325,14 @@ export class DataTableModule extends LitModule {
               .map((d: SpanLabel) => `[${d.start}, ${d.end}): ${d.label}`);
       return formattedTags.join(', ');
     }
+    const formatNumber = (item: number) =>
+      Number.isInteger(item) ? item.toString() : item.toFixed(4).toString();
 
     // Generic data, based on type of input.
     if (Array.isArray(input)) {
-      const maxWordLength = 25;
       const strings = input.map((item) => {
         if (typeof item === 'number') {
-          return Number.isInteger(item) ? item.toString() :
-                                          item.toFixed(4).toString();
-        }
-        if (typeof item === 'string') {
-          return item.length < maxWordLength ?
-              item :
-              item.substring(0, maxWordLength) + '...';
+          return formatNumber(item);
         }
         return `${item}`;
       });
@@ -349,8 +344,7 @@ export class DataTableModule extends LitModule {
     }
 
     if (typeof input === 'number') {
-      return Number.isInteger(input) ? input.toString() :
-                                       input.toFixed(4).toString();
+      return formatNumber(input);
     }
 
     // Fallback: just coerce to string.

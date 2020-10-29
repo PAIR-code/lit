@@ -130,28 +130,6 @@ export class DataTable extends ReactiveElement {
     }
   }
 
-  /**
-   * The max width of a cell is 1/(number of "cells with long data").
-   */
-  @computed
-  get cellMaxWidth() {
-    if (!this.data.length) return '100vw';
-    let numLongFields = 0;
-    const numCols = this.data[0].length;
-
-    // Get a rough estimate column data length by averaging the first n
-    // datapoints.
-    const threshold = 50; // In characters.
-    const n = Math.min(this.data.length, 50);
-    range(numCols).forEach((colIdx: number) => {
-      const colVals =
-          range(n).map((i: number) => this.data[i][colIdx].toString().length);
-      const avgValue = colVals.reduce((a, b) => a + b) / colVals.length;
-      if (avgValue > threshold) numLongFields++;
-    });
-    return `${1 / numLongFields * 100}vw`;
-  }
-
   @computed
   get columnNames(): string[] {
     return Array.from(this.columnVisibility.keys());
@@ -530,6 +508,23 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
+  /**
+   * Chunks a long word into shorter pieces so that the table won't stretch
+   * to fit the entire word length, as it normally would
+   * (https://www.w3schools.com/cssref/pr_tab_table-layout.asp).
+   * TODO(lit-dev): find a more long-term solution to this, since adding a
+   * NPWS will make copy/pasting from the table behave strangely.
+   */
+  private chunkWord(word: string) {
+    const maxLen = 15;
+    const chunks = [];
+    for (let i=0; i<word.length; i+=maxLen) {
+      chunks.push(word.slice(i, i+maxLen));
+    }
+    // This is not an empty string, it is a non-printing space.
+    const zeroWidthSpace = '​';
+    return chunks.join(zeroWidthSpace);
+  }
 
   renderRow(data: TableData, rowIndex: number) {
     const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
@@ -547,12 +542,15 @@ export class DataTable extends ReactiveElement {
       if (this.selectionDisabled) return;
       this.handleRowClick(e, rowIndex);
     };
-    const style = styleMap({'max-width': this.cellMaxWidth});
+
+    const formatData = (d: string) =>
+      d.split(' ').map(word => this.chunkWord(word)).join(' ');
+
     return html`
-        <tr class="${rowClass}" @mousedown=${mouseDown}>
-          ${data.map(d => html`<td><div style=${style}>${d}</div></td>`)}
-        </tr>
-      `;
+      <tr class="${rowClass}" @mousedown=${mouseDown}>
+        ${data.map(d => html`<td><div>${formatData(d.toString())}</div></td>`)}
+      </tr>
+    `;
   }
 
   renderColumnDropdown() {
