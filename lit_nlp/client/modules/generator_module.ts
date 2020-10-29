@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '../elements/generator_controls';
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
