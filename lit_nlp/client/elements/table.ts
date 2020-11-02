@@ -517,7 +517,7 @@ export class DataTable extends ReactiveElement {
    */
   private chunkWord(word: string) {
     const maxLen = 15;
-    const chunks = [];
+    const chunks: string[] = [];
     for (let i=0; i<word.length; i+=maxLen) {
       chunks.push(word.slice(i, i+maxLen));
     }
