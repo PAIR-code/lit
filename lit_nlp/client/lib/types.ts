@@ -205,6 +205,7 @@ export interface LitModuleClass {
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
   numCols: number;
+  collapseByDefault: boolean;
 }
 
 /**

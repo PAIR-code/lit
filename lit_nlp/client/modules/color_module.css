@@ -99,6 +99,16 @@ mwc-icon.mdi-outlined {
   margin-left: -8pt; /* To account for button padding */
   cursor: default;
 }
+
+.dropdown-container {
+  margin-top: 5px;
+}
+
+.dropdown-label {
+  margin-left: 3px;
+  margin-right: 2px;
+}
+
 .legend-line {
   display: flex;
   align-items: center;
@@ -109,20 +119,24 @@ mwc-icon.mdi-outlined {
   margin: 5px;
 }
 .legend-pixel {
-  height: 10pt;
-  width: 1px;
-  border-bottom: 1px solid black;
+  height: 1px;
+  width: 10px;
+  border-left: 1px solid black;
 }
 .numeric-legend {
   display: flex;
+  flex-direction: column;
 }
 .numeric-legend-holder {
-  margin: 5px 30px;
+  display: flex;
+  margin-top: 25px;
+  margin-left: 50px;
 }
 .tick {
-  width: 1;
-  border-left: 1px solid black;
-  height: 8pt;
+  width: 8px;
+  border-top: 1px solid black;
+  height: 1px;
+  margin-left: -19px;
 }
 .tick-legend {
   position: relative;
@@ -131,14 +145,17 @@ mwc-icon.mdi-outlined {
 }
 .tick-label {
   font-size: 8pt;
-  margin-left: -10px;
+  margin-left: -50px;
+  margin-top: -8px;
 }
 .color-dropdown {
-  min-width: 150px;
+  min-width: 60px;
+  margin-left: 3px;
 }
 .top-holder {
   display: flex;
+  flex-direction: column;
 }
 .line-holder {
-  padding-right: 20px;
+  margin-top: 20px;
 }

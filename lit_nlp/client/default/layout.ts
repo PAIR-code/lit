@@ -17,8 +17,10 @@
 
 // Import Modules
 import {LitModuleType} from '../core/lit_module';
+import {LitComponentLayouts} from '../lib/types';
 import {AttentionModule} from '../modules/attention_module';
 import {ClassificationModule} from '../modules/classification_module';
+import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
 import {DataTableModule} from '../modules/data_table_module';
@@ -32,7 +34,6 @@ import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SpanGraphGoldModule, SpanGraphModule} from '../modules/span_graph_module';
-import {LitComponentLayouts} from '../lib/types';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
@@ -73,7 +74,7 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'classifier':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule],
+      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
       'Classifiers': [
         ConfusionMatrixModule,
       ],
@@ -92,7 +93,8 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'lm':  {
     components : {
-      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule],
+      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
+               ColorModule],
       'Predictions': [
         LanguageModelPredictionModule,
         ConfusionMatrixModule,
@@ -105,7 +107,7 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'spangraph':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule],
+      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
       'Predictions': [
         SpanGraphGoldModule,
         SpanGraphModule,
@@ -121,7 +123,7 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'default_no_projector':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule],
+      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
@@ -144,7 +146,8 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'default':  {
     components : {
-      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule],
+      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
+               ColorModule],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,

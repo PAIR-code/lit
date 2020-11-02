@@ -16,31 +16,41 @@
  */
 
 /**
- * LIT App legend toolbar
+ * LIT App legend module
  */
 
 // tslint:disable:no-new-decorators
-import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 
 import {app} from '../core/lit_app';
+import {LitModule} from '../core/lit_module';
+import {ModelsMap, Spec} from '../lib/types';
 import {D3Scale} from '../lib/types';
 import {range} from '../lib/utils';
 import {ColorService} from '../services/services';
 
-import {styles} from './legend_toolbar.css';
+import {styles} from './color_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
 
 /**
- * The selection controls toolbar
+ * The color module
  */
-@customElement('lit-legend-toolbar')
-export class LitLegendToolbar extends MobxLitElement {
+@customElement('color-module')
+export class ColorModule extends LitModule {
   static get styles() {
     return [sharedStyles, styles];
   }
+
+  static title = 'Color';
+  static numCols = 1;
+  static collapseByDefault = true;
+  static duplicateForModelComparison = false;
+
+  static template = () => {
+    return html`<color-module></color-module>`;
+  };
 
   private readonly colorService = app.getService(ColorService);
 
@@ -74,13 +84,13 @@ export class LitLegendToolbar extends MobxLitElement {
 
     return html`
       <div class="top-holder">
-        ${renderLegend()}
         <div class="dropdown-container">
-          <label class="dropdown-label">Color datapoints by</label>
+          <label class="dropdown-label">Color by</label>
           <select class="dropdown color-dropdown" @change=${handleChange}>
             ${htmlOptions}
           </select>
         </div>
+        ${renderLegend()}
       </div>
       `;
   }
@@ -108,8 +118,8 @@ export class LitLegendToolbar extends MobxLitElement {
   }
 
   renderNumericScale(scale: D3Scale) {
-    const width = 300;
-    const widthArray = range(width);
+    const height = 200;
+    const heightArray = range(height);
     const numTicks = 5;
     const ticksArray = range(numTicks);
     const domain = scale.domain() as number[];
@@ -118,16 +128,16 @@ export class LitLegendToolbar extends MobxLitElement {
     return html`
       <div class='numeric-legend-holder'>
         <div class='numeric-legend'>
-          ${widthArray.map((i: number) => {
-            const background = scale(domain[0] + i / width * domainSize);
+          ${heightArray.map((i: number) => {
+            const background = scale(domain[0] + i / height * domainSize);
             const style = styleMap({background});
             return html`<div class='legend-pixel' style=${style}></div>`;
           })}
         </div>
         <div class='tick-legend'>
         ${ticksArray.map((i: number) => {
-          const left = i / (numTicks - 1) * width;
-          const style = styleMap({left: `${left}px`, position: 'absolute'});
+          const top = i / (numTicks - 1) * height;
+          const style = styleMap({top: `${top}px`, position: 'absolute'});
           const val = domain[0] + i / (numTicks - 1) * domainSize;
           return html`
               <div class='tick-holder' style=${style}>
@@ -139,10 +149,14 @@ export class LitLegendToolbar extends MobxLitElement {
       </div>`;
     // clang-format on
   }
+
+  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+    return true;
+  }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-legend-toolbar': LitLegendToolbar;
+    'color-module': ColorModule;
   }
 }

@@ -154,10 +154,13 @@ export class ModulesService extends LitService implements
       const configs = this.getRenderConfigs(
           components, currentModelSpecs, datasetSpec, compareExamples, groupName);
       configs.forEach(configGroup => {
-        
         configGroup.forEach(config => {
           const key = this.getModuleKey(config);
           allModuleKeys.add(key);
+
+          if (config.moduleType.collapseByDefault) {
+            this.hiddenModuleKeys.add(key);
+          }
         });
       });
       renderLayout[groupName] = configs;

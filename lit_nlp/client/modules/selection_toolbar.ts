@@ -20,7 +20,6 @@
  */
 
 import '@material/mwc-icon';
-import './legend_toolbar';
 import './slice_toolbar';
 
 // tslint:disable:no-new-decorators
@@ -54,7 +53,6 @@ export class LitSelectionToolbar extends MobxLitElement {
   private readonly colorService = app.getService(ColorService);
 
   @observable private sliceToolbarVisible: boolean = false;
-  @observable private legendVisible: boolean = false;
   @observable private highlightFavorite: boolean = false;
 
   /**
@@ -334,30 +332,6 @@ export class LitSelectionToolbar extends MobxLitElement {
     // clang-format on
   }
 
-  // Render the legend for the selected color scheme.
-  renderColorLegend() {
-    const toggleLegend = () => {
-      this.legendVisible = !this.legendVisible;
-    };
-
-    const legendStyle =
-        styleMap({'visibility': (this.legendVisible ? 'visible' : 'hidden')});
-
-    // clang-format off
-    return html`
-    <div class="toolbar-holder">
-      <button @click=${toggleLegend}>
-        Datapoint color <span data-icon=${
-            this.legendVisible ? 'expand_less' : 'expand_more'}></span>
-      </button>
-      <div class='togglable-toolbar-holder' id='legend-container' style=${legendStyle}>
-        <lit-legend-toolbar></lit-legend-toolbar>
-      </div>
-    </div>
-    `;
-    // clang-format on
-  }
-
   render() {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
@@ -400,7 +374,6 @@ export class LitSelectionToolbar extends MobxLitElement {
           Compare Datapoints
         </button>
         ${this.renderSliceToolbar()}
-        ${this.renderColorLegend()}
       </div>
     </div>
     `;

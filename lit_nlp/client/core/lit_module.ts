@@ -50,6 +50,9 @@ export abstract class LitModule extends ReactiveElement {
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
 
+  // Whether to collapse this module by default.
+  static collapseByDefault: boolean = false;
+
   // If true, duplicate this module in example comparison mode.
   static duplicateForExampleComparison: boolean = false;
 
