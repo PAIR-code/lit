@@ -13,7 +13,7 @@ LIT is built to answer questions such as:
 *   **Does my model behave consistently** if I change things like textual style,
     verb tense, or pronoun gender?
 
-![Example of LIT UI](docs/images/figure-1.png)
+![Example of LIT UI](documentation/images/figure-1.png)
 
 LIT supports a variety of debugging workflows through a browser-based UI.
 Features include:
@@ -32,13 +32,13 @@ Features include:
 *   **Framework-agnostic** and compatible with TensorFlow, PyTorch, and more.
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](docs/user_guide.md).
+[user guide](documentation/user_guide.md).
 
 ## Documentation
 
-*   [User Guide](docs/user_guide.md)
-*   [Developer Guide](docs/development.md)
-*   [FAQ](docs/faq.md)
+*   [User Guide](documentation/user_guide.md)
+*   [Developer Guide](documentation/development.md)
+*   [FAQ](documentation/faq.md)
 *   [Release notes](./RELEASE.md)
 
 ## Download and Installation
@@ -120,7 +120,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](docs/user_guide.md), or
+To learn about LIT's features, check out the [user guide](documentation/user_guide.md), or
 watch this [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 
 ## Adding your own models or data
@@ -130,20 +130,20 @@ launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The basic
 steps are:
 
 *   Write a data loader which follows the
-    [`Dataset` API](docs/python_api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](docs/python_api.md#models)
+    [`Dataset` API](documentation/python_api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](documentation/python_api.md#models)
 *   Pass models, datasets, and any additional
-    [components](docs/python_api.md#interpretation-components) to the LIT server
+    [components](documentation/python_api.md#interpretation-components) to the LIT server
     class
 
 For a full walkthrough, see
-[adding models and data](docs/python_api.md#adding-models-and-data).
+[adding models and data](documentation/python_api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
 more, both on the frontend or the backend. See the
-[developer guide](docs/development.md) to get started.
+[developer guide](documentation/development.md) to get started.
 
 ## Citing LIT
 
