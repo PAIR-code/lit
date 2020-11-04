@@ -16,12 +16,14 @@
  */
 
 // tslint:disable:no-new-decorators
+import 'checkbox';
 import '@material/mwc-icon';
 import {customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
 
 import {LitType, Spec} from '../lib/types';
+import {isLitSubtype} from '../lib/utils';
 import {styles} from './generator_controls.css';
 import {styles as sharedStyles} from '../modules/shared_styles.css';
 
@@ -32,7 +34,7 @@ import {styles as sharedStyles} from '../modules/shared_styles.css';
 export class GeneratorControls extends LitElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
-  settings: {[name: string]: string} = {};
+  settings: {[name: string]: string|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static get styles() {
@@ -81,7 +83,10 @@ export class GeneratorControls extends LitElement {
 
       // Ensure a default value for any of the options provided for setting.
       if (this.settings[name] == null) {
-        if (spec[name].vocab) {
+        if (isLitSubtype(spec[name], 'SparseMultilabel')) {
+          this.settings[name] = spec[name].default as string[];
+        }
+        else if (isLitSubtype(spec[name], 'CategoryLabel')) {
           this.settings[name] = spec[name].vocab![0];
         }
         else {
@@ -98,18 +103,40 @@ export class GeneratorControls extends LitElement {
   }
 
   renderControl(name: string, controlType: LitType) {
-    if (controlType.vocab) {
-      // When provided a vocab, render a dropdown, with the first item selected.
+    if (isLitSubtype(controlType, 'SparseMultilabel')) {
+      // Render checkboxes, with the first item selected.
+      const renderCheckboxes =
+          () => controlType.vocab!.map(option => {
+        // tslint:disable-next-line:no-any
+        const change = (e: any) => {
+          if (e.target.checked) {
+            (this.settings[name] as string[]).push(option);
+          } else {
+            this.settings[name] = (this.settings[name] as string[]).filter(
+                item => item !== option);
+          }
+        };
+        const isSelected = this.settings[name].indexOf(option) !== -1;
+        return html`
+          <lit-checkbox ?checked=${isSelected} @change=${change}
+            label=${option} class='checkbox-control'>
+          </lit-checkbox>
+        `;
+      });
+      return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
+     }
+     else if (isLitSubtype(controlType, 'CategoryLabel')) {
+      // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);
         this.settings[name] = controlType.vocab![select?.selectedIndex || 0];
       };
-      const options = controlType.vocab.map((option, optionIndex) => {
+      const options = controlType.vocab!.map((option, optionIndex) => {
         return html`
           <option value=${optionIndex}>${option}</option>
         `;
       });
-      const defaultValue = controlType.vocab[0];
+      const defaultValue = controlType.vocab![0];
       return html`<select class="dropdown control" @change=${updateDropdown}
           .value=${defaultValue}>
         ${options}

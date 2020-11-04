@@ -65,7 +65,6 @@ Spec = Dict[Text, LitType]
 class TextSegment(LitType):
   """Text input (untokenized), a single string."""
   default: Text = ''
-  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -195,7 +194,8 @@ class AttentionHeads(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
-  pass
+  vocab: Optional[Sequence[Text]] = None  # label names
+  default: Sequence[Text] = []
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

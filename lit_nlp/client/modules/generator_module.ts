@@ -150,12 +150,16 @@ export class GeneratorModule extends LitModule {
       generator: string, modelName: string, config?: CallConfig) {
     this.isGenerating = true;
     this.sourceExamples = this.selectionService.selectedOrAllInputData;
-    const generated = await this.apiService.getGenerated(
-        this.sourceExamples, modelName, this.appState.currentDataset, generator,
-        config);
-    this.generated = generated;
-    this.appliedGenerator = generator;
-    this.isGenerating = false;
+    try {
+      const generated = await this.apiService.getGenerated(
+          this.sourceExamples, modelName, this.appState.currentDataset, generator,
+          config);
+      this.generated = generated;
+      this.appliedGenerator = generator;
+      this.isGenerating = false;
+    } catch (err) {
+      this.isGenerating = false;
+    }
   }
 
   private async createNewDatapoints(
