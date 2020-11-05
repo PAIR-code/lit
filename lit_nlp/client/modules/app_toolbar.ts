@@ -21,19 +21,18 @@
 
 import '@material/mwc-icon';
 import './global_settings';
-import './selection_toolbar';
+import './main_toolbar';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, property} from 'lit-element';
 
 import {app} from '../core/lit_app';
+import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, StatusService} from '../services/services';
 
 import {styles} from './app_toolbar.css';
 import {styles as sharedStyles} from './shared_styles.css';
-
-import { copyToClipboard } from '../lib/utils';
 
 /**
  * The header/toolbar of the LIT app.
@@ -91,7 +90,7 @@ export class ToolbarComponent extends MobxLitElement {
             </div>
           </div>
         </div>
-        ${renderToolbar? this.renderSelectionToolbar() : null}
+        ${renderToolbar? this.renderMainToolbar() : null}
       </div>
     `;
     // clang-format on
@@ -106,9 +105,9 @@ export class ToolbarComponent extends MobxLitElement {
     `;
   }
 
-  renderSelectionToolbar() {
+  renderMainToolbar() {
     return html`
-      <lit-selection-toolbar></lit-selection-toolbar>
+      <lit-main-toolbar></lit-main-toolbar>
     `;
   }
 }

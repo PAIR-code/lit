@@ -21,6 +21,7 @@
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
   background-color: white;
   border-bottom: 1px solid #dadce0;
+  height: 40px;
 }
 
 .togglable-toolbar-holder {
@@ -60,7 +61,7 @@
 }
 
 #primary-selection-status {
-  margin-left: 4pt;
+  margin-right: 4pt;
 }
 
 #pair-controls {
@@ -106,7 +107,7 @@ mwc-icon.mdi-outlined {
 
 #legend-container {
   right: 0;
-  min-width: 300px;
+  min-width: 150px;
   top: 100%;
   margin-left: -8pt; /* To account for button padding */
   margin-top: 6px;
@@ -120,4 +121,21 @@ mwc-icon.mdi-outlined {
 #toggle-example-comparison.mode-active {
   outline: 1px solid #2f8c9b;
   background: #faf49f;
+}
+
+#primary-text {
+  width: 160px;
+  text-align: right;
+}
+
+#select-random-button {
+  margin: 0 0 0 12px;
+}
+
+#select-random-icon {
+  vertical-align: middle;
+}
+
+#select-random-text {
+  vertical-align: middle;
 }

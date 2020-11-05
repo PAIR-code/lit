@@ -30,19 +30,20 @@ import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
+import {MenuItem} from '../elements/menu';
 import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
 import {FAVORITES_SLICE_NAME} from '../services/slice_service';
 
-import {styles} from './selection_toolbar.css';
+import {styles} from './main_toolbar.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
 
 /**
  * The selection controls toolbar
  */
-@customElement('lit-selection-toolbar')
-export class LitSelectionToolbar extends MobxLitElement {
+@customElement('lit-main-menu')
+export class LitMainMenu extends MobxLitElement {
   static get styles() {
     return [sharedStyles, styles];
   }
@@ -51,19 +52,6 @@ export class LitSelectionToolbar extends MobxLitElement {
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
   private readonly colorService = app.getService(ColorService);
-
-  @observable private sliceToolbarVisible: boolean = false;
-  @observable private highlightFavorite: boolean = false;
-
-  /**
-   * ID pairs, as [child, parent], from current selection or the whole dataset.
-   */
-  @computed
-  get selectedIdPairs() {
-    const data = this.selectionService.selectedOrAllInputData;
-    return data.filter(d => d.meta['parentId'])
-        .map(d => [d.id, d.meta['parentId']]);
-  }
 
   private findAllParents() {
     // This may contain duplicates, but it's fine because selectionService
@@ -93,6 +81,172 @@ export class LitSelectionToolbar extends MobxLitElement {
     // selectionService will de-duplicate automatically.
     this.selectionService.selectIds(
         [...this.findAllParents(), ...this.findAllChildren()]);
+  }
+
+  // Returns items for the select menu.
+  getSelectItems() {
+    const selectRandomDatapoint = () => {
+      const nextIndex = randInt(0, this.appState.currentInputData.length);
+      const nextId = this.appState.currentInputData[nextIndex].id;
+      this.selectionService.selectIds([nextId]);
+    };
+    const selectAllRelatedCallback = () => {
+      this.selectRelated();
+    };
+    const selectAllParentsCallback = () => {
+      this.selectionService.selectIds([...this.findAllParents()]);
+    };
+    const selectAllChildrenCallback = () => {
+      this.selectionService.selectIds([...this.findAllChildren()]);
+    };
+    const selectAllFavoritedCallback = () => {
+      this.sliceService.selectNamedSlice(FAVORITES_SLICE_NAME);
+    };
+    const selectNone = () => {
+      this.selectionService.selectIds([]);
+    };
+    const noAction = () => {};
+
+    const hasStarredPoints =
+        !this.sliceService.isSliceEmpty(FAVORITES_SLICE_NAME);
+    const hasParents = this.findAllParents().length > 1;
+    const hasChildren = this.findAllChildren().length > 1;
+    const hasRelatives = hasParents || hasChildren;
+    const pointSelected = this.selectionService.selectedIds.length > 0;
+
+    return [
+      {
+        itemText: 'Random datapoint',
+        displayIcon: false,
+        menu: [],
+        onClick: selectRandomDatapoint,
+        disabled: false,
+      },
+      {
+        itemText: 'All related',
+        displayIcon: false,
+        menu: [],
+        onClick: hasRelatives ? selectAllRelatedCallback :
+                                noAction,  // make this check more specific
+        disabled: !hasRelatives,
+      },
+      {
+        itemText: 'Parent datapoints',
+        displayIcon: false,
+        menu: [],
+        onClick: hasParents ? selectAllParentsCallback : noAction,
+        disabled: !hasParents,
+      },
+      {
+        itemText: 'Children datapoints',
+        displayIcon: false,
+        menu: [],
+        onClick: hasChildren ? selectAllChildrenCallback : noAction,
+        disabled: !hasChildren,
+      },
+      {
+        itemText: 'Favorite datapoints',
+        displayIcon: false,
+        menu: [],
+        onClick: hasStarredPoints ? selectAllFavoritedCallback : noAction,
+        disabled: !hasStarredPoints
+      },
+      // TODO(lit-dev): Add find siblings option.
+      {
+        itemText: 'Clear selection',
+        displayIcon: false,
+        menu: [],
+        onClick: selectNone,
+        disabled: !pointSelected,
+      },
+    ];
+  }
+
+  // Returns items for the datapoint menu.
+  getColorOptionItems() {
+    const colorOptions = this.colorService.colorableOptions.map((option) => {
+      const isSelected =
+          option.name === this.colorService.selectedColorOption.name;
+      return {
+        itemText: option.name,
+        displayIcon: isSelected,
+        menu: [],
+        onClick: () => {
+          this.colorService.selectedColorOption = option;
+        },
+        disabled: false,
+      };
+    });
+
+    return colorOptions;
+  }
+
+  // Returns items for the slice menu.
+  getSliceItems() {
+    const sliceNames = Array.from(this.sliceService.namedSlices.keys());
+    const sliceItems = sliceNames.map((name) => {
+      const isSelected = this.sliceService.selectedSliceName === name;
+      return {
+        itemText: name,
+        displayIcon: isSelected,
+        menu: [],
+        onClick: () => {
+          this.sliceService.selectNamedSlice(name);
+        },
+        disabled: false
+      };
+    });
+
+    return [
+      {
+        itemText: 'Select slice',
+        displayIcon: false,
+        menu: sliceItems,
+        onClick: () => {},
+        disabled: false,
+      },
+    ];
+  }
+
+  // Returns menu data for the menu toolbar.
+  getMenuData() {
+    const menuData = new Map<string, MenuItem[]>();
+    menuData.set('Select', this.getSelectItems());
+    menuData.set('Color by', this.getColorOptionItems());
+    menuData.set('Slices', this.getSliceItems());
+    return menuData;
+  }
+
+  render() {
+    return html`<lit-menu-toolbar .menuData=${
+        this.getMenuData()}></lit-menu-toolbar>`;
+  }
+}
+
+/**
+ * The selection controls toolbar
+ */
+@customElement('lit-main-toolbar')
+export class LitMainToolbar extends MobxLitElement {
+  static get styles() {
+    return [sharedStyles, styles];
+  }
+
+  private readonly appState = app.getService(AppState);
+  private readonly selectionService = app.getService(SelectionService);
+  private readonly sliceService = app.getService(SliceService);
+
+  @observable private sliceToolbarVisible: boolean = false;
+  @observable private highlightFavorite: boolean = false;
+
+  /**
+   * ID pairs, as [child, parent], from current selection or the whole dataset.
+   */
+  @computed
+  get selectedIdPairs() {
+    const data = this.selectionService.selectedOrAllInputData;
+    return data.filter(d => d.meta['parentId'])
+        .map(d => [d.id, d.meta['parentId']]);
   }
 
   private toggleFavorited() {
@@ -131,8 +285,12 @@ export class LitSelectionToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-      <button id='im-feeling-lucky' @click=${selectRandom}>
-        I'm feeling lucky
+      <button id='select-random-button' class='text-button'
+        @click=${selectRandom}>
+        <mwc-icon class='mdi-outlined icon-button' id='select-random-icon'>
+          casino
+        </mwc-icon>
+        <span id='select-random-text'>Select Random</span>
       </button>
     `;
     // clang-format on
@@ -198,8 +356,10 @@ export class LitSelectionToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <div id='primary-selection-status' class='selection-status-group'>
-        (primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
-        ... [${primaryIndex}]
+        <span id='primary-text'>
+          (primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
+          ... [${primaryIndex}]
+        </span>
         ${numSelected > 1 ? html`
           <mwc-icon class='icon-button' id='select-prev'
             @click=${() => {selectOffset(-1);}}>
@@ -350,7 +510,8 @@ export class LitSelectionToolbar extends MobxLitElement {
     // clang-format off
     return html`
     <div class='toolbar' id='main-toolbar'>
-      <div id='status-group-left'>
+      <lit-main-menu></lit-main-menu>
+        <div id='status-group-left'>
         <div>
           ${numSelected} of ${numTotal} selected
         </div>
@@ -358,13 +519,7 @@ export class LitSelectionToolbar extends MobxLitElement {
         ${numSelected === 1 ? this.renderSelectionArrows() : null}
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
         ${this.appState.compareExamplesEnabled ? this.renderPairControls() : null}
-      </div>
-      <div id='button-holder-right'>
-        <button id="select-related" @click=${() => { this.selectRelated(); }}
-          ?disabled="${numSelected === 0}">
-          Select related
-        </button>
-        <button id="clear-selection" @click=${clearSelection}
+        <button id="clear-selection" class="text-button" @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
         </button>
@@ -383,6 +538,6 @@ export class LitSelectionToolbar extends MobxLitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-selection-toolbar': LitSelectionToolbar;
+    'lit-main-toolbar': LitMainToolbar;
   }
 }
