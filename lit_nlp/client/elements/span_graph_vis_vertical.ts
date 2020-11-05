@@ -65,6 +65,13 @@ export interface EdgeLabel {
   'label': string | number;
 }
 
+function formatEdgeLabel(label: string|number): string {
+  if (typeof (label) === 'number') {
+    return label.toFixed(3);
+  }
+  return `${label}`;
+}
+
 /** Structured prediction (SpanGraph) visualization class. */
 @customElement('span-graph-vis-vertical')
 export class SpanGraphVis extends ReactiveElement {
@@ -134,8 +141,12 @@ export class SpanGraphVis extends ReactiveElement {
     });
 
     // The column width is the width of the longest label, in pixels.
-    const colWidth = Math.max(layer.name.length, ...layer.edges.map(
-      e => `${e.label}`.length)) * this.approxFontSize + this.viewPad * 2;
+    const colWidth =
+        Math.max(
+            layer.name.length,
+            ...layer.edges.map(e => formatEdgeLabel(e.label).length)) *
+            this.approxFontSize +
+        this.viewPad * 2;
 
     const colStyles = styleMap({ width: `${colWidth}pt` });
     const hidden = this.columnVisibility[layer.name];
@@ -185,8 +196,11 @@ export class SpanGraphVis extends ReactiveElement {
     const grayLine = tokSelected && !(selected || child);
     const grayLabel = grayLine && !(parent);
 
+    // Edge labels can be either strings or numbers; format the latter nicely.
+    const formattedLabel = formatEdgeLabel(edge.label);
+
     // Styling for the label text.
-    const labelWidthInPx = `${edge.label}`.length * this.approxFontSize;
+    const labelWidthInPx = formattedLabel.length * this.approxFontSize;
     const labelStyle = styleMap({
       top: `${span0 * this.lineHeight}pt`,
       left: isArc ? `${colWidth - labelWidthInPx - this.viewPad}pt` : '',
@@ -239,10 +253,9 @@ export class SpanGraphVis extends ReactiveElement {
     </div>
     <div class=${labelClasses}
       style=${labelStyle}>
-      ${edge.label} 
+      ${formattedLabel}
     </div>
     `;
-
   }
 
   /**
