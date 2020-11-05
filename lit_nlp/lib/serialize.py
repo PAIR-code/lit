@@ -17,7 +17,6 @@
 import json
 from typing import cast, Optional, Text
 
-import attr
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
 import numpy as np
@@ -38,16 +37,9 @@ def _obj_to_json(o: object):
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    return {
-        '__class__': 'LitType',
-        '__name__': o.__class__.__name__,
-        '__value__': attr.asdict(o),
-    }
+    return o.to_json()
   elif isinstance(o, dtypes.DataTuple):
-    return {
-        '__class__': o.__class__.__name__,
-        '__value__': attr.asdict(o),
-    }
+    return o.to_json()
   elif isinstance(o, tuple):
     return {
         '__class__': 'tuple',
@@ -68,15 +60,9 @@ def _obj_to_json_simple(o: object):
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    d = attr.asdict(o)
-    d['__class__'] = 'LitType'
-    d['__name__'] = o.__class__.__name__
-    # All parent classes, from method resolution order (mro).
-    # Use this to check inheritance on the frontend.
-    d['__mro__'] = [a.__name__ for a in o.__class__.__mro__]
-    return d
+    return o.to_json()
   elif isinstance(o, dtypes.DataTuple):
-    return attr.asdict(o)
+    return o.to_json()
   elif isinstance(o, tuple):
     return list(o)
   else:
@@ -89,11 +75,9 @@ def _obj_from_json(d: JsonDict):
   if obj_class == 'np.ndarray':
     return np.array(d['__value__'])
   elif obj_class == 'LitType':
-    cls = getattr(types, d['__name__'])
-    return cls(**d['__value__'])
+    return types.LitType.from_json(d)
   elif obj_class == 'DataTuple':
-    cls = getattr(dtypes, d['__name__'])
-    return cls(**d['__value__'])
+    return dtypes.DataTuple.from_json(d)
   elif obj_class == 'tuple':
     return tuple(d['__value__'])
   else:

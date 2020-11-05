@@ -54,6 +54,24 @@ class LitType(metaclass=abc.ABCMeta):
     d2.pop('required', None)
     return d1 == d2
 
+  def to_json(self) -> JsonDict:
+    """Used by serialize.py."""
+    d = attr.asdict(self)
+    d['__class__'] = 'LitType'
+    d['__name__'] = self.__class__.__name__
+    # All parent classes, from method resolution order (mro).
+    # Use this to check inheritance on the frontend.
+    d['__mro__'] = [a.__name__ for a in self.__class__.__mro__]
+    return d
+
+  @staticmethod
+  def from_json(d: JsonDict):
+    """Used by serialize.py."""
+    cls = globals()[d.pop('__name__')]  # class by name from this module
+    del d['__mro__']
+    return cls(**d)
+
+
 Spec = Dict[Text, LitType]
 
 
