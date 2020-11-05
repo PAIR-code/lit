@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import 'checkbox';
+import './checkbox';
 import '@material/mwc-icon';
 import {customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
