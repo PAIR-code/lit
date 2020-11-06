@@ -53,7 +53,9 @@ class T5GenerationModel(lit_model.Model):
     self.config = T5ModelConfig(**config_kw)
     self.tokenizer = transformers.T5Tokenizer.from_pretrained(model_name)
     self.model = transformers.TFT5ForConditionalGeneration.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True)
+        model_name,
+        output_hidden_states=True,
+        output_attentions=self.config.output_attention)
 
     # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
@@ -70,13 +72,16 @@ class T5GenerationModel(lit_model.Model):
       decoder_past_key_value_states: tuple with cached outputs.
       dec_states: tuple[len:dec_layers]:
                   batch_size x dec_len x hid_size
-      dec_attn: tuple[len:dec_layers+1]
+      dec_attn: [optional] tuple[len:dec_layers+1]
                 batch_size x num_heads x dec_len x dec_len
       enc_final_state: batch_size x enc_len x hid_size
       enc_states: tuple[len:enc_layers]:
                   batch_size x enc_len x hid_size
-      enc_attn: tuple[len:enc_layers+1]
+      enc_attn: [optional] tuple[len:enc_layers+1]
                 batch_size x num_heads x enc_len x enc_len
+
+    The two optional attention fields are only returned if
+    config.output_attention is set.
 
     Args:
       encoded_inputs: Dict as returned from Tokenizer for inputs.
@@ -85,13 +90,18 @@ class T5GenerationModel(lit_model.Model):
     Returns:
       batched_outputs: Dict[str, tf.Tensor]
     """
-    (logits, _, dec_states, dec_attn, enc_final_state, enc_states,
-     enc_attn) = self.model(
-         inputs=encoded_inputs["input_ids"],
-         decoder_input_ids=encoded_targets["input_ids"],
-         attention_mask=encoded_inputs["attention_mask"],
-         decoder_attention_mask=encoded_targets["attention_mask"],
-         lm_label=encoded_targets["input_ids"])
+    results = self.model(
+        inputs=encoded_inputs["input_ids"],
+        decoder_input_ids=encoded_targets["input_ids"],
+        attention_mask=encoded_inputs["attention_mask"],
+        decoder_attention_mask=encoded_targets["attention_mask"],
+        lm_label=encoded_targets["input_ids"])
+    if self.config.output_attention:
+      # Access the optional positional returns.
+      dec_attn = results.pop(3)
+      enc_attn = results.pop()
+    logits, _, dec_states, enc_final_state, enc_states = results
+    # While we are not using them, the deleted embeddings could be processed.
     del dec_states
     del enc_states
 
@@ -185,10 +195,16 @@ class T5GenerationModel(lit_model.Model):
     # Force-decode on target text, and also get encoder embs and attention.
     batched_outputs = self._force_decode(encoded_inputs, encoded_targets)
     # Get the conditional generation from the model.
+    # Workaround for output_hidden not being compatible with generate.
+    # See https://github.com/huggingface/transformers/issues/8361
+    self.model.encoder.output_hidden_states = False
+    self.model.decoder.output_hidden_states = False
     batched_outputs["generated_ids"] = self.model.generate(
         encoded_inputs["input_ids"],
         attention_mask=encoded_inputs["attention_mask"],
         max_length=self.config.max_gen_length)
+    self.model.encoder.output_hidden_states = True
+    self.model.decoder.output_hidden_states = True
 
     # Convert to numpy for post-processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
