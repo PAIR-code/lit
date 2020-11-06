@@ -29,16 +29,25 @@ import '@material/mwc-textfield';
 import '../elements/checkbox';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html, property} from 'lit-element';
+import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
 import {action, computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
-import {ApiService, AppState, SettingsService} from '../services/services';
+import {AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
 import {styles as sharedStyles} from './shared_styles.css';
+
+type TabName = 'Models'|'Dataset'|'Layout';
+const MODEL_DESC = 'Select models to explore in LIT.';
+const DATASET_DESC =
+    'Select a compatible dataset to use with the selected models.';
+const LAYOUT_DESC = 'Use a preset layout to optimize your workflow';
+
+const SELECTED_TXT = 'Selected';
+const COMPATIBLE_TXT = 'Compatible';
+const INCOMPATIBLE_TXT = 'Incompatible';
 
 /**
  * The global settings menu
@@ -51,18 +60,18 @@ export class GlobalSettingsComponent extends MobxLitElement {
   static get styles() {
     return [sharedStyles, styles];
   }
-
-  private readonly apiService = app.getService(ApiService);
   private readonly appState = app.getService(AppState);
   private readonly settingsService = app.getService(SettingsService);
 
   @observable private selectedDataset: string = '';
   @observable private selectedLayout: string = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
-  @observable private pathForDatapoints: string = '';
-  @observable private datapointsStatus: string = '';
+  @observable private selectedTab: TabName = 'Models';
 
-  @observable private hoveredModel: string = '';
+  // tslint:disable:no-inferrable-new-expression
+  @observable private readonly openModelKeys: Set<string> = new Set();
+  @observable private readonly openDatasetKeys: Set<string> = new Set();
+  @observable private readonly openLayoutKeys: Set<string> = new Set();
 
   @computed
   get selectedModels() {
@@ -81,11 +90,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
       this.initializeLocalState();
       this.requestUpdate();
     }
-  }
-
-  @computed
-  get datapointButtonsDisabled() {
-    return this.pathForDatapoints === '';
   }
 
   @action
@@ -117,254 +121,429 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   render() {
     const hiddenClassMap = classMap({hide: !this.isOpen});
-
     // clang-format off
     return html`
       <div id="global-settings-holder">
         <div id="overlay" class=${hiddenClassMap}></div>
         <div id="global-settings" class=${hiddenClassMap}>
-          <div id="table-holder">
-            ${this.renderModelsConfig()}
-            ${this.renderDatasetConfig()}
-            ${this.renderLayoutConfig()}
-            ${this.appState.metadata.demoMode ?
-              null : this.renderDatapointsConfig()}
+        <div id="title-bar">Configure LIT</div>
+        <div id="holder">
+          <div id="sidebar">
+            ${this.renderTabs()}
+            ${this.renderLinks()}
           </div>
-          ${this.renderButtons()}
+          <div id="main-panel">
+            ${this.renderConfig()}
+            ${this.renderBottomBar()}
+          </div>
+        </div>
         </div>
       </div>
     `;
     // clang-format on
   }
 
-  renderButtons() {
+  /** Render the control tabs. */
+  private renderTabs() {
+    const tabs: TabName[] = ['Models', 'Dataset', 'Layout'];
+    const renderTab = (tab: TabName) => {
+      const click = () => this.selectedTab = tab;
+      const classes = classMap({tab: true, selected: this.selectedTab === tab});
+      return html`<div class=${classes} @click=${click}>${tab}</div>`;
+    };
+    return html`
+    <div id="tabs">
+      ${tabs.map(tab => renderTab(tab))}
+    </div>
+    `;
+  }
+
+  /** Render the links at the bottom of the page. */
+  private renderLinks() {
+    // TODO(lit-dev): update link when website is live.
+    const help =
+        'https://github.com/PAIR-code/lit/blob/main/docs/user_guide.md';
+    const github = 'https://github.com/PAIR-code/lit';
+    return html`
+    <div id="links">
+      <a href=${github} target="_blank">
+        Github
+      </a>
+      •
+      <a href=${help} target="_blank">
+        Help & Tutorials
+      </a>
+    </div>
+    `;
+  }
+
+  /**
+   * Render the bottom bar with the currently selected options, as well as
+   * buttons.
+   */
+  private renderBottomBar() {
+    const noModelsSelected = this.selectedModels.length === 0;
+    const datasetValid = this.settingsService.isDatasetValidForModels(
+        this.selectedDataset, this.selectedModels);
+
+    const modelClasses = classMap({
+      info: true,
+      disabled: !this.selectedModels.length,
+      error: noModelsSelected
+    });
+    const modelsStr = this.selectedModels.length ?
+        this.selectedModels.join(', ') :
+        'No models selected';
+
+    const datasetClasses = classMap({info: true, error: !datasetValid});
+    const datasetStr = datasetValid ?
+        this.selectedDataset :
+        'Selected model(s) are incompatible with selected dataset. Defaulting to no dataset.';
+
+    return html`
+    <div id="bottombar">
+      <div id="state">
+        <div> selected model(s):
+          <span class=${modelClasses}> ${modelsStr} </span>
+        </div>
+        <div> selected dataset(s):
+          <span class=${datasetClasses}> ${datasetStr} </span>
+        </div>
+      </div>
+      <div> ${this.renderButtons(noModelsSelected, datasetValid)} </div>
+    </div>
+  `;
+  }
+
+  /** Render the submit and cancel buttons. */
+  private renderButtons(noModelsSelected: boolean, datasetValid: boolean) {
     const cancel = () => {
+      this.selectedTab = 'Models';
       this.close();
     };
 
     const submit = () => {
       this.submitSettings();
+      this.selectedTab = 'Models';
       this.close();
     };
 
-    const noModelsSelected = this.selectedModels.length === 0;
-    const dataset = this.selectedDataset;
-    const datasetValid = this.settingsService.isDatasetValidForModels(
-        dataset, this.selectedModels);
     const submitDisabled = noModelsSelected || !datasetValid;
-
-    let errorMessage = '';
-    if (noModelsSelected) {
-      errorMessage = 'No models selected...';
-    } else if (!datasetValid) {
-      errorMessage = 'Selected models incompatible with selected dataset...';
-    }
-
     return html`
       <div id="buttons-container">
-        <div id="error-message">${errorMessage}</div>
         <div id="buttons">
+          <button @click=${cancel}>Cancel</button>
           <button
+            class='accent'
             ?disabled=${submitDisabled}
             @click=${submit}>Submit
           </button>
-          <button @click=${cancel}>Cancel</button>
         </div>
       </div>
     `;
   }
 
+  /** Render the config main page. */
+  private renderConfig() {
+    const tab = this.selectedTab;
+    const configLayout = tab === 'Models' ?
+        this.renderModelsConfig() :
+        (tab === 'Dataset' ? this.renderDatasetConfig() :
+                             this.renderLayoutConfig());
+    return html`
+    <div id="config">
+      ${configLayout}
+    </div>
+    `;
+  }
+
+  /** Render the models page content. */
   renderModelsConfig() {
     const availableModels = [...this.modelCheckboxValues.keys()];
-
-    const renderModelSelect = (modelName: string) => {
-      const checked = this.modelCheckboxValues.get(modelName) === true;
+    const renderModelSelect = (name: string) => {
+      const selected = this.modelCheckboxValues.get(name) === true;
+      const disabled = false;
+      const expanderOpen = this.openModelKeys.has(name);
+      const onExpanderClick = () => {
+        this.toggleInSet(this.openModelKeys, name);
+      };
       // tslint:disable-next-line:no-any
       const change = (e: any) => {
-        this.modelCheckboxValues.set(modelName, e.target.checked);
+        this.modelCheckboxValues.set(name, e.target.checked);
+        // If the currently-selected dataset is now invalid given the selected
+        // models then search for a valid dataset to be pre-selected.
+        if (!this.settingsService.isDatasetValidForModels(
+                this.selectedDataset, this.selectedModels)) {
+          this.selectedDataset = '';
+        }
       };
-      const mouseEnter = () => {
-        this.hoveredModel = modelName;
-      };
-      const mouseLeave = () => {
-        this.hoveredModel = '';
-      };
-
-      return html`
-        <div class="config-line">
-          <mwc-formfield
-            label=${modelName}
-            @mouseenter=${mouseEnter}
-            @mouseleave=${mouseLeave}
-          >
-            <lit-checkbox ?checked=${checked} @change=${change}></lit-checkbox>
+      const renderSelector = () => html`
+          <mwc-formfield label=${name}>
+            <lit-checkbox
+              class='checkbox'
+              ?checked=${selected}
+              @change=${change}></lit-checkbox>
           </mwc-formfield>
-        </div>
       `;
+
+      // Render the expanded info section, which holds the comparable
+      // datasets and the description of the model.
+      const allDatasets = Object.keys(this.appState.metadata.datasets);
+      // clang-format off
+      const expandedInfoHtml = html`
+        <div class='info-group-title'>
+          Dataset Compatibility
+        </div>
+        ${allDatasets.map((datasetName: string) => {
+          const compatible = this.settingsService.isDatasetValidForModels(
+            datasetName, [name]);
+          const error = !compatible && (this.selectedDataset === datasetName);
+          const classes = classMap({compatible, error, 'info-line': true});
+          const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
+          return html`
+            <div class=${classes}>
+              <mwc-icon>${icon}</mwc-icon>
+              ${datasetName} 
+            </div>`;
+        })}`;
+      const description = this.appState.metadata.models[name].description;
+      return this.renderLine(
+          name, renderSelector, selected, disabled, expanderOpen,
+          onExpanderClick, false, expandedInfoHtml, description);
     };
 
-    return html`
-      <div id="models-config">
-        <div class="config-title">Models</div>
-        <div class="config-models-list">
-          ${availableModels.map(name => renderModelSelect(name))}
-        </div>
-      </div>
-    `;
+    const configListHTML = availableModels.map(name => renderModelSelect(name));
+    const buttonsHTML = html`${this.nextPrevButton('Dataset', true)}`;
+    return this.renderConfigPage('Models', MODEL_DESC, configListHTML, buttonsHTML);
   }
 
+  /** Render the datasets page content. */
   renderDatasetConfig() {
     const allDatasets = Object.keys(this.appState.metadata.datasets);
-
-    // If the currently-selected dataset is now invalid given the selected
-    // models then search for a valid dataset to be pre-selected.
-    if (!this.settingsService.isDatasetValidForModels(
-            this.selectedDataset, this.selectedModels)) {
-      for (let i = 0; i < allDatasets.length; i++) {
-        const dataset = allDatasets[i];
-        if (this.settingsService.isDatasetValidForModels(
-                dataset, this.selectedModels)) {
-          this.selectedDataset = dataset;
-          break;
-        }
-      }
-    }
-
-    const renderDatasetSelect = (dataset: string) => {
+    const renderDatasetSelect = (name: string) => {
       const handleDatasetChange = () => {
-        this.selectedDataset = dataset;
+        this.selectedDataset = name;
       };
 
-      const checked = this.selectedDataset === dataset;
-      const modelsToCheck = [
-        ...this.selectedModels,
-        ...(this.hoveredModel ? [this.hoveredModel] : []),
-      ];
+      const selected = this.selectedDataset === name;
+      const disabled = !this.settingsService.isDatasetValidForModels(
+          name, this.selectedModels);
 
-      const disabled =
-          !this.settingsService.isDatasetValidForModels(dataset, modelsToCheck);
+      const expanderOpen = this.openDatasetKeys.has(name);
+      const onExpanderClick = () => {
+          this.toggleInSet(this.openDatasetKeys, name);
+        };
+      const renderSelector = () => html`
+            <mwc-formfield label=${name}>
+              <mwc-radio
+                name="dataset"
+                class="select-dataset"
+                data-dataset=${name}
+                ?checked=${selected}
+                ?disabled=${disabled}
+                @change=${handleDatasetChange}>
+              </mwc-radio>
+            </mwc-formfield>
+        `;
 
-      const radioStyle = {
-        opacity: disabled ? '0.2' : '1',
-      };
-      return html`
-        <div class="config-line" style=${styleMap(radioStyle)}>
-          <mwc-formfield label=${dataset}>
-            <mwc-radio
-              name="dataset"
-              class="select-dataset"
-              data-dataset=${dataset}
-              ?checked=${checked}
-              ?disabled=${disabled}
-              @change=${handleDatasetChange}
-            >
-            </mwc-radio>
-          </mwc-formfield>
+      // Expanded info contains available datasets.
+      const allModels = [...this.modelCheckboxValues.keys()];
+      // clang-format off
+      const expandedInfoHtml = html`
+        <div class='info-group-title'>
+          Model Compatibility
         </div>
-      `;
+        ${allModels.map((modelName: string) => {
+        const compatible = this.settingsService.isDatasetValidForModels(
+          name, [modelName]);
+        const error = !compatible && (this.selectedModels.includes(modelName));
+        const classes = classMap({compatible, error, 'info-line': true});
+        const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
+        return html`
+        <div class=${classes}>
+          <mwc-icon>${icon}</mwc-icon>
+          ${modelName} 
+        </div>`;
+      })}`;
+      const description = this.appState.metadata.datasets[name].description;
+      // clang-format on
+      return this.renderLine(
+          name, renderSelector, selected, disabled, expanderOpen,
+          onExpanderClick, true, expandedInfoHtml, description);
     };
-
-    return html`
-      <div id="models-config">
-        <div class="config-title">Dataset</div>
-        <div class="config-datasets-list">
-          ${allDatasets.map(name => renderDatasetSelect(name))}
-        </div>
-      </div>
+    const configListHTML = allDatasets.map(name => renderDatasetSelect(name));
+    // clang-format off
+    const buttonsHTML = html`
+      ${this.nextPrevButton('Models', false)}
+      ${this.nextPrevButton('Layout', true)}
     `;
+    // clang-format on
+
+    return this.renderConfigPage(
+        'Dataset', DATASET_DESC, configListHTML, buttonsHTML);
   }
 
-  renderDatapointsConfig() {
-    const updatePath = (e: Event) => {
-      const input = e.target! as HTMLInputElement;
-      this.pathForDatapoints = input.value;
-    };
-    const save = async () => {
-      const newDatapoints = this.appState.currentInputData.filter(
-          input => input.meta['added'] === 1);
-      if (newDatapoints.length === 0) {
-        this.datapointsStatus = 'No new datapoints to save';
-        return;
-      }
-      const newPath = await this.apiService.saveDatapoints(
-          newDatapoints, this.appState.currentDataset, this.pathForDatapoints);
-      for (const datapoint of newDatapoints) {
-        datapoint.meta['added'] = 0;
-      }
-      this.datapointsStatus =
-          `Saved ${newDatapoints.length} datapoints at ${newPath}`;
-    };
-
-    const load = async () => {
-      const dataset = this.appState.currentDataset;
-      const models = this.appState.currentModels;
-      const datapoints =
-          await this.apiService.loadDatapoints(dataset, this.pathForDatapoints);
-      if (datapoints == null || datapoints.length === 0) {
-        this.datapointsStatus =
-            `No persisted datapoints found in ${this.pathForDatapoints}`;
-        return;
-      }
-      for (const datapoint of datapoints) {
-        datapoint.meta['added'] = 0;
-      }
-      // Update input data for new datapoints.
-      // TODO(lit-dev): consolidate this update logic in appState.
-      datapoints.forEach(entry => {
-        this.appState.currentInputDataById.set(entry.id, entry);
-      });
-      this.datapointsStatus = `Loaded ${datapoints.length} datapoints from ${
-          this.pathForDatapoints}`;
-    };
-
-    return html`
-      <div id="datapoints-config">
-        <div class="config-title">Generated Datapoints</div>
-        <label for="path">Path for new datapoints:</label><br>
-        <input type="text" name="path" value=${this.pathForDatapoints} @input=${
-        updatePath}><br>
-        <div>
-          <button class="first-button"
-            ?disabled=${this.datapointButtonsDisabled}
-            @click=${save}
-          >Save new datapoints
-          </button>
-          <button
-            ?disabled=${this.datapointButtonsDisabled}
-            @click=${load}
-          >Load new datapoints
-          </button>
-        </div>
-        <div>${this.datapointsStatus}</div>
-        </div>
-      </div>
-    `;
-  }
   renderLayoutConfig() {
     const layouts = Object.keys(this.appState.layouts);
-    const renderLayoutOption = (name: string) => html`
-    <div class="config-line">
-      <mwc-formfield label=${name}>
-        <mwc-radio
-          name="layouts"
-          ?checked=${this.selectedLayout === name}
-          @change=${() => this.selectedLayout = name}
-        >
-        </mwc-radio>
-      </mwc-formfield>
-    </div>
-  `;
+    const renderLayoutOption =
+        (name: string) => {
+          const checked = this.selectedLayout === name;
+          // clang-format off
+          const renderSelector = () => html`
+            <mwc-formfield label=${name}>
+              <mwc-radio
+                name="layouts"
+                ?checked=${checked}
+                @change=${() => this.selectedLayout = name}>
+              </mwc-radio>
+            </mwc-formfield>
+            `;
+          // clang-format on
 
+          const expanderOpen = this.openLayoutKeys.has(name);
+          const onExpanderClick = () => {
+              this.toggleInSet(this.openLayoutKeys, name);
+          };
+          const selected = this.selectedLayout === name;
+          const disabled = false;
+
+          // The expanded info contains info about the components.
+          const groups = this.appState.layouts[name].components;
+          // clang-format off
+          const expandedInfoHtml = html`
+          <div class='info-group-title'>
+            Modules
+          </div>
+          ${
+            Object.keys(groups).map((groupName: string) => 
+              html`
+              <div class='info-group'> 
+                <div class='info-group-subtitle'>
+                  ${groupName}
+                </div>
+                ${groups[groupName].map(module => 
+                  html`<div class='indent-line'>${module.title}</div>`)}
+              </div>`
+          )}`;
+          // clang-format on
+          const description = this.appState.layouts[name].description || '';
+          return this.renderLine(
+              name, renderSelector, selected, disabled, expanderOpen,
+              onExpanderClick, false, expandedInfoHtml, description);
+        };
+
+    const configListHTML = layouts.map(name => renderLayoutOption(name));
+    // clang-format off
+    const buttonsHTML = html`${this.nextPrevButton('Dataset', false)}`;
+    // clang-format on
+    return this.renderConfigPage(
+        'Layout', LAYOUT_DESC, configListHTML, buttonsHTML);
+  }
+
+  /** Render the "compatible", "selected", or "incompatible" status. */
+  private renderStatus(selected = true, disabled = false) {
+    const statusIcon = selected ?
+        'check_circle' :
+        (disabled ? 'warning_amber' : 'check_circle_outline');
+    const statusText = selected ?
+        SELECTED_TXT :
+        (disabled ? INCOMPATIBLE_TXT : COMPATIBLE_TXT);
+
+    const statusClasses = classMap({status: true, selected, error: disabled});
+    // clang-format off
     return html`
-      <div id="layout-config">
-        <div class="config-title">Layout</div>
-        <div>
-          ${layouts.map(name => renderLayoutOption(name))}
+    <div class=${statusClasses}> 
+      <mwc-icon>
+        ${statusIcon}
+      </mwc-icon>
+      ${statusText}
+    </div>`;
+    // clang-format on
+  }
+
+  private renderLine(
+      name: string, renderSelector: (name: string) => TemplateResult, selected: boolean,
+      disabled: boolean, expanderOpen: boolean, onExpanderClick: () => void,
+      renderStatus: boolean, expandedInfoHtml: TemplateResult,
+      description = '') {
+    const expanderIcon =
+        expanderOpen ? 'expand_less' : 'expand_more';  // Icons for arrows.
+
+    const classes = classMap({
+      'config-line': true,
+      selected,
+      disabled,
+    });
+
+    const expandedInfoClasses =
+        classMap({'expanded-info': true, open: expanderOpen});
+    const status = renderStatus ? this.renderStatus(selected, disabled) : '';
+    return html`
+      <div class=${classes}>
+        <div class='one-col'>
+          ${renderSelector(name)}
+        </div>
+        <div class='one-col description-preview'>
+         ${description}
+        </div>
+        <div class='one-col col-end'>
+            ${status}
+          <div class=expander>
+            <mwc-icon @click=${onExpanderClick}>
+              ${expanderIcon}
+            </mwc-icon>
+          </div>
         </div>
       </div>
-    `;  }
-}
+      <div class=${expandedInfoClasses}>
+        <div class='one-col'>
+          <div class='left-offset'>
+            ${expandedInfoHtml}
+          </div>
+        </div>
+        <div class='two-col'>
+          <div class=info-group-title> Description </div>
+          <div>${description}</div>
+        </div>
+      </div>
+    `;
+  }
 
+  private toggleInSet(set: Set<string>, elt: string) {
+    if (set.has(elt)) {
+      set.delete(elt);
+    } else {
+      set.add(elt);
+    }
+  }
+
+  private nextPrevButton(tab: TabName, next = true) {
+    const icon = next ? 'east' : 'west';  // Arrow direction.
+    const classes = classMap({'next': next, 'prev': !next});
+    const onClick = () => this.selectedTab = tab;
+    // clang-format off
+    return html`
+     <button class=${classes} @click=${onClick}>
+      <mwc-icon>${icon}</mwc-icon>
+      ${tab}
+    </button>
+    `;
+    // clang-format on
+  }
+
+  private renderConfigPage(
+      title: TabName, description: string, configListHTML: TemplateResult[],
+      buttonsHTML: TemplateResult) {
+    return html`
+      <div class="config-title">${title}</div>
+      <div class="description"> ${description} </div>
+      <div class="config-list">
+        ${configListHTML}
+      </div>
+      <div class='prev-next-buttons'>${buttonsHTML} </div>
+    `;
+  }
+}
 
 declare global {
   interface HTMLElementTagNameMap {

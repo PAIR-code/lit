@@ -4,7 +4,7 @@
 button {
   width: fit-content;
   max-height: 100%;
-  background: lightgrey;
+  background: white;
   pointer-events: auto;
   cursor: pointer;
   border: 1px solid darkgrey;
@@ -13,7 +13,21 @@ button {
   padding: 5px 10px;
   font-size: 10pt;
   border-radius: 3px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
 }
+
+button.accent {
+  background: rgb(47, 140, 155);
+  border: none;
+  color: white;
+}
+
+button.accent:hover {
+  background: rgb(33, 98, 108);
+}
+
 
 button:hover {
   background: #faf49f;

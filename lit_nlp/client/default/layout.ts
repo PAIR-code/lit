@@ -66,7 +66,8 @@ export const LAYOUTS: LitComponentLayouts = {
       hideToolbar: true,
       mainHeight: 30,
       centerPage: true
-    }
+    },
+    description: 'A basic layout just containing a datapoint creator/editor, the predictions, and the data table. There are also some visual simplifications: the toolbar is hidden, and the modules are centered on the page rather than being full width.'
   },
   /**
    * A "simple demo server" layout for classifier models.
@@ -86,7 +87,8 @@ export const LAYOUTS: LitComponentLayouts = {
       'Explanations': [
         SalienceMapModule,
       ]
-    }
+    },
+    description: "A default layout for classification results, which shows the data table and datapoint editor, as well as the predictions and counterfactuals."
   },
   /**
    * For masked language models
@@ -100,7 +102,8 @@ export const LAYOUTS: LitComponentLayouts = {
         ConfusionMatrixModule,
       ],
       'Counterfactuals': [GeneratorModule],
-    }
+    },
+    description: "A layout optimized for language modeling, which includes the language modeling and confusion matrix modules, as well as the standard the embedding projector, data table, datapoint module, and counterfactuals."
   },
   /**
    * Simplified view for tagging/parsing models
@@ -116,7 +119,8 @@ export const LAYOUTS: LitComponentLayouts = {
         MetricsModule,
       ],
       'Counterfactuals': [GeneratorModule],
-    }
+    },
+    description: "A layout optimized for span graph prediction, which includes the span graph module, as well as the standard data table, datapoint module, and counterfactuals."
   },
   /**
    * A default layout for LIT Modules without EmbeddingsModule
@@ -139,7 +143,8 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Counterfactuals': [GeneratorModule],
       'Counterfactual Explanation': [CounterfactualExplainerModule],
-    }
+    },
+    description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
   },
   /**
    * A default layout for LIT Modules
@@ -163,7 +168,8 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Counterfactuals': [GeneratorModule],
       'Counterfactual Explanation': [CounterfactualExplainerModule],
-    }
+    },
+    description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
   },
 };
 // clang-format on

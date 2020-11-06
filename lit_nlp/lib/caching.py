@@ -190,6 +190,9 @@ class CachingModelWrapper(lit_model.Model):
   def output_spec(self):
     return self._model.output_spec()
 
+  def get_model(self):
+    return self._model
+
   def predict_with_metadata(self, *args, **kw):
     """As predict(), but inputs are IndexedInput."""
     # Lock for the entire request, to avoid running the model more than once

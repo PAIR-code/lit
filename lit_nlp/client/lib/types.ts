@@ -53,6 +53,7 @@ export interface Spec {
 // field.
 export interface DatasetSpec {
   spec: Spec;
+  description?: string;
 }
 
 export interface DatasetsMap {
@@ -77,6 +78,7 @@ export interface ModelSpec {
     input: Spec,
     output: Spec,
   };
+  description?: string;
 }
 
 export interface ModelsMap {
@@ -275,6 +277,7 @@ export declare interface LitComponentLayouts {
 export declare interface LitComponentLayout {
   components: {[name: string]: LitModuleClass[];};
   layoutSettings?: LayoutSettings;
+  description ?: string;
 }
 
 /**
