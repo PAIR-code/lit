@@ -25,6 +25,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 
 import {VizColor} from '../lib/colors';
+import {EdgeLabel} from '../lib/types';
 
 import {styles} from './span_graph_vis.css';
 
@@ -48,17 +49,6 @@ export interface SpanGraph {
 export interface AnnotationLayer {
   'name': string;
   'edges': EdgeLabel[];
-}
-
-/**
- * Represents a directed edge between two mentions.
- * If span2 is null, interpret as a single span label.
- * See https://arxiv.org/abs/1905.06316 for more on this formalism.
- */
-export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string|number;
 }
 
 /* Compute points for a polyline bracket. */

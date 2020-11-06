@@ -21,16 +21,18 @@
 
 // tslint:disable:no-new-decorators
 
-import { customElement, html, property } from 'lit-element';
-import { classMap } from 'lit-html/directives/class-map';
-import { styleMap } from 'lit-html/directives/style-map';
-import { observable } from 'mobx';
 import '@material/mwc-icon';
 
-import { VizColor } from '../lib/colors';
+import {customElement, html, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+import {styleMap} from 'lit-html/directives/style-map';
+import {observable} from 'mobx';
 
-import { styles } from './span_graph_vis_vertical.css';
-import { ReactiveElement } from '../lib/elements';
+import {VizColor} from '../lib/colors';
+import {ReactiveElement} from '../lib/elements';
+import {EdgeLabel} from '../lib/types';
+
+import {styles} from './span_graph_vis_vertical.css';
 
 
 /**
@@ -52,17 +54,6 @@ export interface SpanGraph {
 export interface AnnotationLayer {
   'name': string;
   'edges': EdgeLabel[];
-}
-
-/**
- * Represents a directed edge between two mentions.
- * If span2 is null, interpret as a single span label.
- * See https://arxiv.org/abs/1905.06316 for more on this formalism.
- */
-export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string | number;
 }
 
 function formatEdgeLabel(label: string|number): string {

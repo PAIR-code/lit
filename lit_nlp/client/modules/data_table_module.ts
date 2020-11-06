@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, LitType, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, LitType, ModelsMap, SpanLabel, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, isLitSubtype, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
@@ -320,9 +320,12 @@ export class DataTableModule extends LitModule {
     // Handle SpanLabels, if field spec given.
     // TODO(lit-dev): handle more fields this way.
     if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
-      const formattedTags =
-          (input as SpanLabel[])
-              .map((d: SpanLabel) => `[${d.start}, ${d.end}): ${d.label}`);
+      const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
+      return formattedTags.join(', ');
+    }
+    // Handle EdgeLabels, if field spec given.
+    if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
+      const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
       return formattedTags.join(', ');
     }
     const formatNumber = (item: number) =>

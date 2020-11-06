@@ -140,6 +140,32 @@ export interface SpanLabel {
   'end': number;    // exclusive
   'label': string;
 }
+export function formatSpanLabel(s: SpanLabel): string {
+  // Add non-breaking control chars to keep this on one line
+  // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
+  return `[${s.start}, ${s.end})\u2060: ${s.label}`.replace(
+      /\ /g, '\u00a0' /* &nbsp; */);
+}
+
+/**
+ * Represents a directed edge between two mentions.
+ * If span2 is null, interpret as a single span label.
+ * See https://arxiv.org/abs/1905.06316 for more on this formalism.
+ */
+export interface EdgeLabel {
+  'span1': [number, number];   // inclusive, exclusive
+  'span2'?: [number, number];  // inclusive, exclusive
+  'label': string|number;
+}
+export function formatEdgeLabel(e: EdgeLabel): string {
+  const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
+  const span1Text = formatSpan(e.span1);
+  const span2Text = e.span2 ? ' ← ' + formatSpan(e.span2) : '';
+  // Add non-breaking control chars to keep this on one line
+  // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
+  return `${span1Text}${span2Text}\u2060: ${e.label}`.replace(
+      /\ /g, '\u00a0' /* &nbsp; */);
+}
 
 /**
  * Type for d3 scale object used for datapoint coloring.

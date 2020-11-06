@@ -24,14 +24,12 @@
 import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
-import * as d3 from 'd3';
-import {css, customElement, html, property} from 'lit-element';
+import {css, customElement, html} from 'lit-element';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {AnnotationLayer, EdgeLabel, SpanGraph} from '../elements/span_graph_vis';
-import {IndexedInput, Input, LitName, ModelsMap, Preds, SpanLabel, Spec} from '../lib/types';
+import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
+import {EdgeLabel, IndexedInput, Input, LitName, ModelsMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
