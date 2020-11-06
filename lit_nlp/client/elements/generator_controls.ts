@@ -86,7 +86,8 @@ export class GeneratorControls extends LitElement {
         if (isLitSubtype(spec[name], 'SparseMultilabel')) {
           this.settings[name] = spec[name].default as string[];
         }
-        else if (isLitSubtype(spec[name], 'CategoryLabel')) {
+        // FieldMatcher has its vocab set in generator_module.
+        else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
           this.settings[name] = spec[name].vocab![0];
         }
         else {
@@ -125,7 +126,7 @@ export class GeneratorControls extends LitElement {
       });
       return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
      }
-     else if (isLitSubtype(controlType, 'CategoryLabel')) {
+     else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);

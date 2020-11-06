@@ -218,6 +218,11 @@ class SparseMultilabel(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class FieldMatcher(LitType):
-  """For matching spec fields."""
+  """For matching spec fields.
+
+  The front-end will perform spec matching and fill in the vocab field
+  accordingly.
+  """
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   type: Text  # type of LitType to match in the spec.
+  vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
