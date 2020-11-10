@@ -32,6 +32,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {action, computed, observable} from 'mobx';
+import {NONE_DS_DICT_KEY, NONE_DS_DISPLAY_NAME} from '../lib/types';
 
 import {app} from '../core/lit_app';
 import {AppState, SettingsService} from '../services/services';
@@ -196,9 +197,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
         'No models selected';
 
     const datasetClasses = classMap({info: true, error: !datasetValid});
-    const datasetStr = datasetValid ?
-        this.selectedDataset :
-        'Selected model(s) are incompatible with selected dataset. Defaulting to no dataset.';
 
     return html`
     <div id="bottombar">
@@ -207,7 +205,9 @@ export class GlobalSettingsComponent extends MobxLitElement {
           <span class=${modelClasses}> ${modelsStr} </span>
         </div>
         <div> selected dataset(s):
-          <span class=${datasetClasses}> ${datasetStr} </span>
+          <span class=${datasetClasses}>
+            ${this.displayName(this.selectedDataset)}
+          </span>
         </div>
       </div>
       <div> ${this.renderButtons(noModelsSelected, datasetValid)} </div>
@@ -274,7 +274,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         // models then search for a valid dataset to be pre-selected.
         if (!this.settingsService.isDatasetValidForModels(
                 this.selectedDataset, this.selectedModels)) {
-          this.selectedDataset = '';
+          this.selectedDataset = NONE_DS_DICT_KEY;
         }
       };
       const renderSelector = () => html`
@@ -303,7 +303,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           return html`
             <div class=${classes}>
               <mwc-icon>${icon}</mwc-icon>
-              ${datasetName} 
+              ${this.displayName(datasetName)} 
             </div>`;
         })}`;
       const description = this.appState.metadata.models[name].description;
@@ -321,6 +321,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   renderDatasetConfig() {
     const allDatasets = Object.keys(this.appState.metadata.datasets);
     const renderDatasetSelect = (name: string) => {
+      const displayName = this.displayName(name);
       const handleDatasetChange = () => {
         this.selectedDataset = name;
       };
@@ -334,11 +335,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
           this.toggleInSet(this.openDatasetKeys, name);
         };
       const renderSelector = () => html`
-            <mwc-formfield label=${name}>
+            <mwc-formfield label=${displayName}>
               <mwc-radio
                 name="dataset"
                 class="select-dataset"
-                data-dataset=${name}
+                data-dataset=${displayName}
                 ?checked=${selected}
                 ?disabled=${disabled}
                 @change=${handleDatasetChange}>
@@ -507,6 +508,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
         </div>
       </div>
     `;
+  }
+
+  private displayName(name: string) {
+    return name === NONE_DS_DICT_KEY ? NONE_DS_DISPLAY_NAME : name;
   }
 
   private toggleInSet(set: Set<string>, elt: string) {

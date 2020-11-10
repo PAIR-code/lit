@@ -22,7 +22,7 @@ import os
 import pickle
 import random
 import time
-from typing import Optional, Text, List, Mapping
+from typing import Optional, Text, List, Mapping, MutableMapping
 
 from absl import logging
 
@@ -43,7 +43,6 @@ from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
-
 
 JsonDict = types.JsonDict
 
@@ -284,7 +283,7 @@ class LitApp(object):
   def __init__(
       self,
       models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_dataset.Dataset],
+      datasets: MutableMapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       # General server config; see server_flags.py.
@@ -308,6 +307,7 @@ class LitApp(object):
         for name, model in models.items()
     }
     self._datasets = datasets
+    self._datasets['_union_empty'] = NoneDataset(self._models)
     if generators is not None:
       self._generators = generators
     else:
@@ -389,3 +389,22 @@ class LitApp(object):
   def __call__(self, environ, start_response):
     """Implementation of the WSGI interface."""
     return self._wsgi_app(environ, start_response)
+
+
+class NoneDataset(lit_dataset.Dataset):
+  """Default for simple model exploration."""
+
+  def __init__(self, models):
+    self._examples = []
+    self._models = models
+
+  def spec(self):
+    combined_spec = {}
+    for _, model in self._models.items():
+      req_inputs = {
+          k: v for (k, v) in model.spec().input.items() if v.required
+      }
+      assert model.spec().is_compatible_with_dataset(combined_spec)
+      combined_spec.update(req_inputs)
+
+    return combined_spec

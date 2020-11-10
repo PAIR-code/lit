@@ -80,12 +80,8 @@ export class DatapointEditorModule extends LitModule {
     for (const key of keys) {
       const lengths = this.appState.currentInputData.map(
           indexedInput => indexedInput.data[key]?.length);
-      const defaultLength = d3.quantile(lengths, percentileForDefault);
-      if (defaultLength == null) continue;
-
-      defaultLengths[key] = defaultLength;
+      defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
     }
-
     return defaultLengths;
   }
 

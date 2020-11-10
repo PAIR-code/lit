@@ -308,7 +308,7 @@ export class ScalarModule extends LitModule {
     }
 
     // Add the error info for any regression keys.
-    if (regressionPreds != null) {
+    if (regressionPreds != null && regressionPreds.length) {
       const ids = currentInputData.map(data => data.id);
       const regressionKeys = Object.keys(regressionPreds[0]);
       for (let j = 0; j < regressionKeys.length; j++) {

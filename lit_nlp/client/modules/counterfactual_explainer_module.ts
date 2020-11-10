@@ -305,6 +305,10 @@ export class CounterfactualExplainerModule extends LitModule {
     // prediction key to be displayed as dropdown options.
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     const predKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
+    if (!predKeys.length) {
+      return;
+    }
+
     if (!predKeys.includes(this.selectedPredKey)) {
       this.selectedPredKey = predKeys[0];
     }

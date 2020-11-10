@@ -289,3 +289,8 @@ export declare interface LayoutSettings {
   mainHeight?: number;
   centerPage?: boolean;
 }
+
+/** Display name for the "no dataset" dataset in settings. */
+export const NONE_DS_DISPLAY_NAME = 'none';
+/** Key for thhe "no dataset" dataset in settings. */
+export const NONE_DS_DICT_KEY = '_union_empty';
