@@ -20,7 +20,6 @@
  */
 
 import '@material/mwc-icon';
-import './slice_toolbar';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
@@ -236,7 +235,6 @@ export class LitMainToolbar extends MobxLitElement {
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
 
-  @observable private sliceToolbarVisible: boolean = false;
   @observable private highlightFavorite: boolean = false;
 
   /**
@@ -468,30 +466,6 @@ export class LitMainToolbar extends MobxLitElement {
           </mwc-icon>`;
   }
 
-  // Render the slice toolbar.
-  renderSliceToolbar() {
-    const toggleSliceToolbar = () => {
-      this.sliceToolbarVisible = !this.sliceToolbarVisible;
-    };
-    const sliceToolbarStyle = styleMap(
-        {'visibility': (this.sliceToolbarVisible ? 'visible' : 'hidden')});
-
-    // clang-format off
-    return html`
-    <div class="toolbar-holder">
-      <button id='toggle-slice-toolbar' @click=${toggleSliceToolbar}>
-        Slices <span data-icon=${
-          this.sliceToolbarVisible ? "expand_less" : "expand_more"}></span>
-      </button>
-      <div class='togglable-toolbar-holder' id='slice-toolbar-container'
-        style=${sliceToolbarStyle}>
-        <lit-slice-toolbar></lit-slice-toolbar>
-      </div>
-    </div>
-    `;
-    // clang-format on
-  }
-
   render() {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
@@ -528,7 +502,6 @@ export class LitMainToolbar extends MobxLitElement {
           ?disabled="${!this.appState.compareExamplesEnabled && numSelected === 0}">
           Compare Datapoints
         </button>
-        ${this.renderSliceToolbar()}
       </div>
     </div>
     `;

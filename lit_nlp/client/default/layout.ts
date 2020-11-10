@@ -33,6 +33,7 @@ import {MetricsModule} from '../modules/metrics_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
+import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModule, SpanGraphModule} from '../modules/span_graph_module';
 
 // clang-format off
@@ -75,7 +76,8 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'classifier':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
+      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
+               ColorModule],
       'Classifiers': [
         ConfusionMatrixModule,
       ],
@@ -96,7 +98,7 @@ export const LAYOUTS: LitComponentLayouts = {
   'lm':  {
     components : {
       'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
-               ColorModule],
+               SliceModule, ColorModule],
       'Predictions': [
         LanguageModelPredictionModule,
         ConfusionMatrixModule,
@@ -110,7 +112,8 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'spangraph':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
+      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
+               ColorModule],
       'Predictions': [
         SpanGraphGoldModule,
         SpanGraphModule,
@@ -127,7 +130,8 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'default_no_projector':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule, ColorModule],
+      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
+               ColorModule],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
@@ -152,7 +156,7 @@ export const LAYOUTS: LitComponentLayouts = {
   'default':  {
     components : {
       'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
-               ColorModule],
+               SliceModule, ColorModule],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,

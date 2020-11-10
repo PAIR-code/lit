@@ -1,0 +1,128 @@
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  padding-left: 4pt;
+  align-items: center;
+  width: 100%;
+}
+
+#slice-selector {
+  width: 95%;
+  height: 250px;
+  border: 1px solid rgb(218, 220, 224);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#selector-container {
+  padding-right: 4pt;
+  align-items: center;
+}
+
+.selector-item {
+  padding: 8px;
+}
+
+.selector-item:hover {
+  background: #f8f9fa;
+}
+
+.selected {
+  background: rgb(197, 228, 232);
+}
+
+.selected:hover {
+  background: rgb(197, 228, 232);
+}
+
+.toolbar > * {
+  margin: 4pt;
+}
+
+.checkbox-holder{
+  display: flex;
+  justify-content: space-between;
+}
+
+.checkbox-title{
+  font-size: 12px;
+}
+
+#input-box {
+  width: 52%;
+}
+
+#create-container {
+  margin-top: 8px;
+}
+
+#create {
+  width: 100px;
+}
+
+#select-container {
+  margin-top: 10px;
+  width: 100%;
+}
+
+#delete {
+  margin-top: 8px;
+  margin-left: 0px;
+}
+
+.checkbox-holder {
+  margin: 0 7px;
+}
+
+.slice-name {
+  max-width: calc(100% - 130px);
+  display: inline-block;
+  overflow: auto;
+}
+
+.number-label {
+  float: right;
+  color: #5f6368;
+  max-width: 120px;
+}
+
+/* For in-line icons in a <span> */
+[data-icon] {
+  margin: 0;
+}
+
+[data-icon]:before {
+  font-family: 'Material Icons';
+  content: attr(data-icon);
+  vertical-align: middle;
+}
+
+.delete-icon {
+  font-size: 18px;
+  vertical-align: middle;
+  margin-left: 3px;
+  margin-bottom: 5px;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
+/**
+ * For standalone MWC icons as buttons.
+ * We don't use mwc-icon-button because this adds
+ * a large backdrop and extra whitespace.
+ */
+mwc-icon.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}

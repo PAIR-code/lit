@@ -40,7 +40,7 @@ type InputConverterFn = (s: string) => string|number|string[];
 @customElement('datapoint-editor-module')
 export class DatapointEditorModule extends LitModule {
   static title = 'Datapoint Editor';
-  static numCols = 3;
+  static numCols = 2;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></datapoint-editor-module>`;

@@ -43,7 +43,7 @@ export class DataTableModule extends LitModule {
   static template = () => {
     return html`<data-table-module></data-table-module>`;
   };
-  static numCols = 5;
+  static numCols = 4;
   static get styles() {
     return [sharedStyles, styles];
   }
