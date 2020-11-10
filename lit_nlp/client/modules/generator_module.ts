@@ -244,11 +244,15 @@ export class GeneratorModule extends LitModule {
         const keys = Object.keys(generated);
 
         // render values for each datapoint.
-        const editable = false;
         // clang-format off
         return html`
           <div class='row'>
-            ${keys.map((key) => this.renderEntry(key, generated[key], editable))}
+            ${keys.map((key) => {
+              const editable =
+                  !this.appState.currentModelRequiredInputSpecKeys.includes(
+                      key);
+              return this.renderEntry(key, generated[key], editable);
+            })}
             <button class="button add-button" @click=${addPoint}>Add</button>
             <button class="button" @click=${removePoint}>Remove</button>
           </div>
