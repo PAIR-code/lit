@@ -20,6 +20,7 @@
  */
 
 import '@material/mwc-icon';
+import '@material/mwc-switch';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
@@ -474,9 +475,6 @@ export class LitMainToolbar extends MobxLitElement {
     const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
 
-    const compareExamplesClass =
-        classMap({'mode-active': this.appState.compareExamplesEnabled});
-
     const toggleExampleComparison = () => {
       this.appState.compareExamplesEnabled =
           !this.appState.compareExamplesEnabled;
@@ -484,8 +482,17 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
     <div class='toolbar' id='main-toolbar'>
-      <lit-main-menu></lit-main-menu>
-        <div id='status-group-left'>
+      <div id='left-container'>
+        <lit-main-menu></lit-main-menu>
+        <div id='toggle-example-comparison'>
+          Compare Datapoints
+        </div>
+        <mwc-switch @change=${toggleExampleComparison} id='compare-switch'
+          ?disabled='${!this.appState.compareExamplesEnabled && numSelected === 0}'
+          .checked=${this.appState.compareExamplesEnabled}>
+        </mwc-switch>
+      </div>
+      <div id='right-container'>
         <div>
           ${numSelected} of ${numTotal} selected
         </div>
@@ -496,11 +503,6 @@ export class LitMainToolbar extends MobxLitElement {
         <button id="clear-selection" class="text-button" @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
-        </button>
-        <button id='toggle-example-comparison'
-          @click=${toggleExampleComparison} class=${compareExamplesClass}
-          ?disabled="${!this.appState.compareExamplesEnabled && numSelected === 0}">
-          Compare Datapoints
         </button>
       </div>
     </div>

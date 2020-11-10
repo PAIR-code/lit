@@ -16,6 +16,7 @@
     "@material/mwc-list": "^0.15.0",
     "@material/mwc-menu": "^0.15.0",
     "@material/mwc-radio": "^0.15.0",
+    "@material/mwc-switch": "^0.15.0",
     "@material/mwc-textfield": "^0.15.0",
     "d3": "^5.16.0",
     "difflib": "^0.2.4",

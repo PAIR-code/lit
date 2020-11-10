@@ -37,7 +37,11 @@
   right: 0; /* remove to span page */
 }
 
-#status-group-left {
+#left-container {
+  display: flex;
+}
+
+#right-container {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -118,9 +122,15 @@ mwc-icon.mdi-outlined {
   position: relative;
 }
 
-#toggle-example-comparison.mode-active {
-  outline: 1px solid #2f8c9b;
-  background: #faf49f;
+#toggle-example-comparison {
+  font-family: Roboto;
+  font-size: 14px;
+  color: #3C4043;
+  padding: 3px 8px;
+}
+
+#compare-switch {
+  margin-top: 6px;
 }
 
 #primary-text {
@@ -138,4 +148,11 @@ mwc-icon.mdi-outlined {
 
 #select-random-text {
   vertical-align: middle;
+}
+
+/* Disable Material ripple */
+mwc-switch {
+  --mdc-ripple-hover-opacity: 0;
+  --mdc-ripple-press-opacity: 0;
+  --mdc-ripple-focus-opacity: 0;
 }
