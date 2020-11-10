@@ -404,7 +404,14 @@ class NoneDataset(lit_dataset.Dataset):
       req_inputs = {
           k: v for (k, v) in model.spec().input.items() if v.required
       }
-      assert model.spec().is_compatible_with_dataset(combined_spec)
+      # Ensure that there are no conflicting spec keys.
+      assert not self.has_conflicting_keys(combined_spec, req_inputs)
       combined_spec.update(req_inputs)
 
     return combined_spec
+
+  def has_conflicting_keys(self, spec0: types.Spec, spec1: types.Spec):
+    for k, v in spec0.items():
+      if k in spec1 and spec1[k] != v:
+        return True
+    return False
