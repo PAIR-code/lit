@@ -12,7 +12,7 @@ COPY . ./
 
 # Update Ubuntu packages and install basic utils
 RUN apt-get update
-RUN apt-get install -y wget curl gnupg2
+RUN apt-get install -y wget curl gnupg2 gcc g++
 
 # Install yarn
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -

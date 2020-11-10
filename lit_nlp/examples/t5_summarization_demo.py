@@ -9,6 +9,7 @@ To run locally:
 Then navigate to localhost:5432 to access the demo UI.
 """
 import os
+import sys
 
 from absl import app
 from absl import flags
@@ -45,6 +46,16 @@ flags.DEFINE_boolean(
     "--use_indexer is False.")
 
 FLAGS = flags.FLAGS
+
+
+def get_wsgi_app():
+  FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("data_dir", "./t5_data/")
+  FLAGS.set_default("initialize_index", False)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
 
 
 def main(_):
@@ -110,7 +121,7 @@ def main(_):
   # components constructed above.
   lit_demo = dev_server.Server(
       models, datasets, generators=generators, **server_flags.get_flags())
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 if __name__ == "__main__":

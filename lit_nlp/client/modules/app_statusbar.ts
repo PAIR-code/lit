@@ -21,7 +21,6 @@
 
 import '@material/mwc-icon';
 import './global_settings';
-import './selection_toolbar';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
