@@ -133,8 +133,8 @@ table {
   border-spacing: 0;
   font-family: 'Google Sans', sans-serif;
   font-size: 10pt;
-  line-height: 12pt;
-  margin: 1px; /* don't clip outline if there's a reference selection */
+  line-height: 130%;
+  padding: 1px; /* don't clip outline if there's a reference selection */
 }
 
 thead {

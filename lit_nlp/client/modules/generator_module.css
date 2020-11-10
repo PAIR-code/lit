@@ -62,6 +62,8 @@
 
 .entry > div {
   width: 100%;
+  max-height: 150px;
+  overflow: auto;
 }
 
 .add-button {
