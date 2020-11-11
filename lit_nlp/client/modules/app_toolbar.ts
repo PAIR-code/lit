@@ -79,10 +79,12 @@ export class ToolbarComponent extends MobxLitElement {
               </div>
             </div>
             <div class="headline-section">
-              <div title="Edit models and dataset" id="config">
+              <div title="Copy link to this page" id="share">
                 <mwc-icon class="icon-button" @click=${onCopyLinkClick}>
                   link
                 </mwc-icon>
+              </div>
+              <div title="Edit models and dataset" id="config">
                 <mwc-icon class="icon-button" @click=${onSettingsClick}>
                   settings
                 </mwc-icon>

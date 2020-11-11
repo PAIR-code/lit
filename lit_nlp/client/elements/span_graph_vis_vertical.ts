@@ -58,7 +58,8 @@ export interface AnnotationLayer {
 
 function formatEdgeLabel(label: string|number): string {
   if (typeof (label) === 'number') {
-    return label.toFixed(3);
+    return Number.isInteger(label) ? label.toString() :
+                                     label.toFixed(3).toString();
   }
   return `${label}`;
 }

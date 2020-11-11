@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {CallConfig, IndexedInput, Input, ModelsMap, Spec} from '../lib/types';
-import {handleEnterKey} from '../lib/utils';
+import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/services';
 
@@ -314,7 +314,7 @@ export class GeneratorModule extends LitModule {
             Object.keys(generator).forEach(name => {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (generator[name].__name__ as string === 'FieldMatcher') {
+              if (isLitSubtype(generator[name], 'FieldMatcher')) {
                 generator[name].vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
                         generator[name], this.modelName);

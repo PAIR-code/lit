@@ -240,7 +240,12 @@ export interface LitModuleClass {
  * Get the default value for a spec field.
  */
 export function defaultValueByField(key: string, spec: Spec) {
-  const fieldSpec = spec[key];
+  const fieldSpec: LitType = spec[key];
+  // Explicitly check against undefined, as this value is often false-y if set.
+  if (fieldSpec.default !== undefined) {
+    return fieldSpec.default;
+  }
+  // TODO(lit-dev): remove these and always use the spec default value.
   if (isLitSubtype(fieldSpec, 'Scalar')) {
     return 0;
   }
