@@ -59,3 +59,15 @@ embeddings from the model. But, a couple caveats:
     `Embeddings` fields to visualize - this runs in the browser using WebGL (via
     [ScatterGL](https://github.com/PAIR-code/scatter-gl)), and so may be slow on
     older machines if you have more than a few thousand points.
+
+### Can I train models with LIT?
+
+No reason you can't! LIT is an evaluation/inference tool so we don't provide any
+official training APIs, but you can easily add training methods to your model
+class. In fact, several of our demos do exactly this, using LIT's `Dataset`
+objects to manage training data along with standard training APIs (such as
+Keras' `model.fit()`). See
+[`quickstart_sst_demo.py`](../lit_nlp/examples/quickstart_sst_demo.py)
+and
+[`glue_models.py`](../lit_nlp/examples/models/glue_models.py)
+for an example.

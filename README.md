@@ -61,8 +61,7 @@ conda install cudnn cupti  # optional, for GPU support
 conda install -c pytorch pytorch  # optional, for PyTorch
 
 # Build the frontend
-cd ~/lit/lit_nlp
-yarn && yarn build
+pushd lit_nlp; yarn && yarn build; popd
 ```
 
 Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
