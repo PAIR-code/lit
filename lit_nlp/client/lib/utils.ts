@@ -215,7 +215,7 @@ export function doesOutputSpecContain(
  * Sorts object keys, so order of object does not matter.
  */
 export function objToDictKey(dict: FacetMap) {
-  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join('/');
+  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join(' ');
 }
 
 /**
