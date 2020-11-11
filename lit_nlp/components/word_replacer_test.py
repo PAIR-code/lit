@@ -156,6 +156,66 @@ class WordReplacerTest(absltest.TestCase):
         generator.generate(input_dict, model, dataset, config=config_dict),
         expected)
 
+    # Negative lookbehind.
+    config_dict = {'Substitutions': '(?<!large )foo -> bar'}
+    input_dict = {'text': 'large foo hit the foo'}
+    expected = [{'text': 'large foo hit the bar'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # Positive lookbehind.
+    config_dict = {'Substitutions': '(?<=large )foo -> bar'}
+    input_dict = {'text': 'large foo hit the foo'}
+    expected = [{'text': 'large bar hit the foo'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # negative lookahead.
+    config_dict = {'Substitutions': 'foo(?! hit) -> bar'}
+    input_dict = {'text': 'large foo hit the foo'}
+    expected = [{'text': 'large foo hit the bar'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # positive lookahead.
+    config_dict = {'Substitutions': 'foo(?= hit) -> bar'}
+    input_dict = {'text': 'large foo hit the foo'}
+    expected = [{'text': 'large bar hit the foo'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # all lookarounds, one match.
+    config_dict = {'Substitutions': '(?<=baz )foo(?= baz) -> bar'}
+    input_dict = {'text': 'baz foo baz foo foo baz'}
+    expected = [{'text': 'baz bar baz foo foo baz'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # all lookarounds, multiple matches.
+    config_dict = {'Substitutions': '(?<=baz )foo(?= baz) -> bar'}
+    input_dict = {'text': 'baz foo baz foo baz baz'}
+    expected = [{
+        'text': 'baz bar baz foo baz baz'
+    }, {
+        'text': 'baz foo baz bar baz baz'
+    }]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
+    # lookahead with special symbol.
+    config_dict = {'Substitutions': 'foo(?=_ _) -> bar'}
+    input_dict = {'text': 'baz foo_ _baz foo_ foo_ baz'}
+    expected = [{'text': 'baz bar_ _baz foo_ foo_ baz'}]
+    self.assertEqual(
+        generator.generate(input_dict, model, dataset, config=config_dict),
+        expected)
+
     ## Test default_replacements applied at init.
     replacements = {'tree': ['car']}
     generator = word_replacer.WordReplacer(replacements=replacements)
@@ -205,6 +265,7 @@ class WordReplacerTest(absltest.TestCase):
     query_string = '♞ -> ♟'
     expected = {'♞': ['♟']}
     self.assertDictEqual(generator.parse_subs_string(query_string), expected)
+
 
 if __name__ == '__main__':
   absltest.main()
