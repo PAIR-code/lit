@@ -126,7 +126,27 @@ export const LAYOUTS: LitComponentLayouts = {
     description: "A layout optimized for span graph prediction, which includes the span graph module, as well as the standard data table, datapoint module, and counterfactuals."
   },
   /**
+   * Custom view used for the coreference demo
+   * TODO(lit-dev): move to a custom frontend build
+   */
+  'winogender':  {
+    components : {
+      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
+               ColorModule],
+      'Predictions': [
+        SpanGraphGoldModule,
+        SpanGraphModule, ClassificationModule
+      ],
+      'Performance': [
+        MetricsModule, ScalarModule, ConfusionMatrixModule,
+      ],
+    },
+    description: "A layout optimized for the Winogender coreference demo."
+  },
+  /**
    * A default layout for LIT Modules without EmbeddingsModule
+   * TODO(lit-dev): move to a custom frontend build,
+   * or remove this if b/159186274 is resolved to speed up page load.
    */
   'default_no_projector':  {
     components : {

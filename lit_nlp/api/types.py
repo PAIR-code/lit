@@ -210,6 +210,16 @@ class AttentionHeads(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SubwordOffsets(LitType):
+  """Offsets to align input tokens to wordpieces or characters, as List[int].
+
+  offsets[i] should be the index of the first wordpiece for input token i.
+  """
+  align_in: Text  # name of field in data spec
+  align_out: Text  # name of field in model output spec
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
   vocab: Optional[Sequence[Text]] = None  # label names
