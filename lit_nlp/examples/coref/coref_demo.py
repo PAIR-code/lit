@@ -28,8 +28,9 @@ JSON format. See
 https://github.com/nyu-mll/jiant-v1-legacy/tree/master/probing/data#ontonotes
 for instructions. Then run:
   blaze run -c opt --config=cuda examples/coref:coref_demo -- \
-    --do_train --model_path=/tmp/lit_coref_model \
+    --encoder_name=bert-base-uncased --do_train \
     --ontonotes_edgeprobe_path=/path/to/ontonotes/coref/ \
+    --model_path=/tmp/lit_coref_model \
     --do_serve --port=5432
 
 To start LIT with a pre-trained classifier, run:
