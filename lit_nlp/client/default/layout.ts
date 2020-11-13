@@ -34,12 +34,12 @@ import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SliceModule} from '../modules/slice_module';
-import {SpanGraphGoldModule, SpanGraphModule} from '../modules/span_graph_module';
+import {SpanGraphGoldModule, SpanGraphGoldModuleVertical, SpanGraphModule, SpanGraphModuleVertical} from '../modules/span_graph_module';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
-  SpanGraphGoldModule,
-  SpanGraphModule,
+  SpanGraphGoldModuleVertical,
+  SpanGraphModuleVertical,
   ClassificationModule,
   RegressionModule,
   LanguageModelPredictionModule,
@@ -115,8 +115,8 @@ export const LAYOUTS: LitComponentLayouts = {
       'Main': [DataTableModule, DatapointEditorModule, SliceModule,
                ColorModule],
       'Predictions': [
-        SpanGraphGoldModule,
-        SpanGraphModule,
+        SpanGraphGoldModuleVertical,
+        SpanGraphModuleVertical,
       ],
       'Performance': [
         MetricsModule,

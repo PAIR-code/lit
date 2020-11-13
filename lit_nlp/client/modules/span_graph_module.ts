@@ -25,6 +25,7 @@ import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
 import {css, customElement, html} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -61,7 +62,7 @@ const moduleStyles = css`
     outline: 1px dashed gray;
   }
 
-  #gold-group{
+  .offset-for-header {
     margin-top: 17pt;
   }
 `;
@@ -135,15 +136,24 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
   return ret;
 }
 
-function renderTokenGroups(data: Annotations, spec: Spec) {
+function renderTokenGroups(
+    data: Annotations, spec: Spec, orientation: 'horizontal'|'vertical') {
   const tokenToTags = mapTokenToTags(spec);
+  const visElement = (data: SpanGraph, showLayerLabel: boolean) => {
+    if (orientation === 'vertical') {
+      return html`<span-graph-vis-vertical .data=${data} .showLayerLabel=${
+          showLayerLabel}></span-graph-vis-vertical>`;
+    } else {
+      return html`<span-graph-vis .data=${data} .showLayerLabel=${
+          showLayerLabel}></span-graph-vis>`;
+    }
+  };
   return html`${Object.keys(tokenToTags).map(tokenKey => {
     const labelHere = data[tokenKey]?.layers?.length === 1;
     return html`
       <div id=${tokenKey} class="token-group">
         ${labelHere ? html`<div>${data[tokenKey].layers[0].name}</div>` : null}
-        <span-graph-vis-vertical .data=${data[tokenKey]} .showLayerLabel=${!labelHere}>
-        </span-graph-vis-vertical>
+        ${visElement(data[tokenKey], !labelHere)}
       </div>
     `;
   })}`;
@@ -155,12 +165,13 @@ export class SpanGraphGoldModule extends LitModule {
   static title = 'Structured Prediction (gold)';
   static duplicateForExampleComparison = true;
   static duplicateForModelComparison = false;
-  static duplicateAsRow = true;
+  static duplicateAsRow = false;
   static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module>`;
   };
+  static orientation = 'horizontal';
 
   @computed
   get dataSpec() {
@@ -181,13 +192,27 @@ export class SpanGraphGoldModule extends LitModule {
     return [sharedStyles, moduleStyles];
   }
 
+  // tslint:disable:no-any
   render() {
+    // Hack: Normally, this module doesn't get the extra module header row
+    // that lists the active model, since it doesn't depend on the model.
+    // However, we want the content to align with the SpanGraphModule which
+    // does, so use the offset-for-header class to shift content down. In
+    // comparison mode, however, we get a header too, so disable this.
+    const goldGroupClass = classMap({
+      'outer-container': true,
+      'offset-for-header': !this.appState.compareExamplesEnabled
+    });
     return html`
-      <div id="gold-group" class='outer-container'>
-        ${renderTokenGroups(this.goldDisplayData, this.dataSpec)}
+      <div id="gold-group" class=${goldGroupClass}>
+        ${
+        renderTokenGroups(
+            this.goldDisplayData, this.dataSpec,
+            (this.constructor as any).orientation)}
       </div>
     `;
   }
+  // tslint:enable:no-any
 
   static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
     const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
@@ -202,12 +227,13 @@ export class SpanGraphGoldModule extends LitModule {
 export class SpanGraphModule extends LitModule {
   static title = 'Structured Prediction (model preds)';
   static duplicateForExampleComparison = true;
-  static duplicateAsRow = true;
+  static duplicateAsRow = false;
   static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module>`;
   };
+  static orientation = 'horizontal';
 
   @computed
   get predSpec() {
@@ -243,13 +269,18 @@ export class SpanGraphModule extends LitModule {
         });
   }
 
+  // tslint:disable:no-any
   render() {
     return html`
       <div id="pred-group" class='outer-container'>
-        ${renderTokenGroups(this.predDisplayData, this.predSpec)}
+        ${
+        renderTokenGroups(
+            this.predDisplayData, this.predSpec,
+            (this.constructor as any).orientation)}
       </div>
     `;
   }
+  // tslint:enable:no-any
 
   static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
     const models = Object.keys(modelSpecs);
@@ -266,9 +297,41 @@ export class SpanGraphModule extends LitModule {
   }
 }
 
+// tslint:disable:class-as-namespace
+
+/** Gold predictions module class. */
+@customElement('span-graph-gold-module-vertical')
+export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
+  static duplicateAsRow = true;
+  static orientation = 'vertical';
+  static numCols = 4;
+  static template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-gold-module-vertical selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-gold-module-vertical>`;
+  };
+}
+
+/** Model output module class. */
+@customElement('span-graph-module-vertical')
+export class SpanGraphModuleVertical extends SpanGraphModule {
+  static duplicateAsRow = true;
+  static orientation = 'vertical';
+  static template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-module-vertical model=${
+        model} selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-module-vertical>`;
+  };
+}
+
+// tslint:enable:class-as-namespace
+
 declare global {
   interface HTMLElementTagNameMap {
     'span-graph-gold-module': SpanGraphGoldModule;
     'span-graph-module': SpanGraphModule;
+    // TODO(b/172979677): make these parameterized versions, rather than
+    // separate classes.
+    'span-graph-gold-module-vertical': SpanGraphGoldModuleVertical;
+    'span-graph-module-vertical': SpanGraphModuleVertical;
   }
 }
