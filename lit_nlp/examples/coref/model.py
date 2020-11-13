@@ -1,4 +1,5 @@
 """LIT model implementation for frozen-encoder coreference."""
+import os
 from typing import List
 
 from absl import logging
@@ -6,6 +7,7 @@ from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.coref import edge_predictor
+from lit_nlp.examples.coref import encoders
 from lit_nlp.examples.coref.datasets import winogender
 from lit_nlp.lib import utils
 import numpy as np
@@ -18,7 +20,16 @@ JsonDict = lit_types.JsonDict
 class FrozenEncoderCoref(lit_model.Model):
   """Frozen-encoder coreference model."""
 
-  def __init__(self, encoder: lit_model.Model,
+  @classmethod
+  def from_saved(cls, path: str, encoder_cls, classifier_cls):
+    """Reload from the output of .save()."""
+    encoder_path = os.path.join(path, 'encoder')
+    encoder = encoder_cls(encoder_path)
+    classifier_path = os.path.join(path, 'classifier')
+    classifier = classifier_cls(classifier_path)
+    return cls(encoder, classifier)
+
+  def __init__(self, encoder: encoders.BertEncoderWithOffsets,
                classifier: edge_predictor.SingleEdgePredictor):
     self.encoder = encoder
     self.classifier = classifier
@@ -58,6 +69,12 @@ class FrozenEncoderCoref(lit_model.Model):
     history = self.classifier.train(train_edges.examples,
                                     validation_edges.examples, **train_kw)
     return history
+
+  def save(self, path: str):
+    if not os.path.isdir(path):
+      os.mkdir(path)
+    self.classifier.save(os.path.join(path, 'classifier'))
+    self.encoder.save(os.path.join(path, 'encoder'))
 
   ##
   # LIT API implementations

@@ -77,7 +77,7 @@ flags.DEFINE_bool(
 flags.DEFINE_string("model_path", None, "Path to save or load trained model.")
 
 ##
-# Training-only flags
+# Training-only flags; these are ignored if only serving a pre-trained model.
 flags.DEFINE_string(
     "encoder_name", "bert-base-uncased",
     "Name of BERT variant to use for fine-tuning. See https://huggingface.co/models."
@@ -90,9 +90,9 @@ flags.DEFINE_string(
 
 
 def get_wsgi_app():
+  # Set defaults for container-hosted demo.
   FLAGS.set_default("server_type", "external")
-  FLAGS.set_default("model_path", "./classifier")
-  FLAGS.set_default("encoder_name", "./encoder")
+  FLAGS.set_default("model_path", "./saved_model")
   FLAGS.set_default("do_train", False)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
@@ -116,7 +116,7 @@ def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
   return lit_dataset.Dataset(dataset.spec(), examples)
 
 
-def train(encoder, classifier_save_path: str):
+def train(save_path: str):
   """Train a coreference model using encoder features over OntoNotes."""
   # Load OntoNotes data for training.
   ontonotes_train = ontonotes.OntonotesCorefDataset(
@@ -125,6 +125,7 @@ def train(encoder, classifier_save_path: str):
       os.path.join(FLAGS.ontonotes_edgeprobe_path, "development.json"))
 
   # Assemble our model.
+  encoder = encoders.BertEncoderWithOffsets(FLAGS.encoder_name)
   input_dim = encoder.model.config.hidden_size
   classifier = edge_predictor.SingleEdgePredictor(
       input_dim=input_dim, hidden_dim=min(input_dim, 256))
@@ -137,14 +138,17 @@ def train(encoder, classifier_save_path: str):
       ontonotes_dev.examples,
       batch_size=128,
       num_epochs=15)
-  full_model.classifier.save(classifier_save_path)
+  # Save classifier and encoder
+  full_model.save(save_path)
 
 
-def run_server(encoder, classifier_load_path: str):
+def run_server(load_path: str):
   """Run a LIT server with the trained coreference model."""
-  # Assemble our model for inference, loading the classifier from disk.
-  classifier = edge_predictor.SingleEdgePredictor(classifier_load_path)
-  full_model = model.FrozenEncoderCoref(encoder, classifier)
+  # Load model from disk.
+  full_model = model.FrozenEncoderCoref.from_saved(
+      load_path,
+      encoder_cls=encoders.BertEncoderWithOffsets,
+      classifier_cls=edge_predictor.SingleEdgePredictor)
 
   # Set up the LIT server.
   models = {"model": full_model}
@@ -158,15 +162,14 @@ def run_server(encoder, classifier_load_path: str):
 
 
 def main(_):
-  assert FLAGS.model_path
-  # Load BERT here so we only load it once.
-  encoder = encoders.BertEncoderWithOffsets(FLAGS.encoder_name)
+  assert FLAGS.model_path, "Must specify --model_path to run."
 
   if FLAGS.do_train:
-    train(encoder, FLAGS.model_path)
+    train(FLAGS.model_path)
 
   if FLAGS.do_serve:
-    return run_server(encoder, FLAGS.model_path)
+    return run_server(FLAGS.model_path)
+
 
 if __name__ == "__main__":
   app.run(main)

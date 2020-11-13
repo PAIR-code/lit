@@ -1,4 +1,5 @@
 """Encoder implementation for frozen-encoder coref."""
+import os
 from typing import Dict
 
 from absl import logging
@@ -47,6 +48,12 @@ class BertEncoderWithOffsets(lit_model.Model):
     # <float>[num_tokens, emb_dim]
     output['top_layer_embs'] = output['top_layer_embs'][slicer]
     return output
+
+  def save(self, path: str):
+    if not os.path.isdir(path):
+      os.mkdir(path)
+    self.tokenizer.save_pretrained(path)  # configs and vocab files
+    self.model.save_pretrained(path)  # as HDF5 weights file + config
 
   ##
   # LIT API implementations.
