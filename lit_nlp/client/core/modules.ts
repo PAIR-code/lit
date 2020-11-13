@@ -112,7 +112,7 @@ export class LitModules extends LitElement {
           ${this.renderTabs(compGroupNames)}
         </div>
         <div id='drag-container'>
-          <mwc-icon class="drag-icon">menu</mwc-icon>
+          <mwc-icon class="drag-icon">drag_handle</mwc-icon>
           <div id='drag-handler' draggable='true'
               @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
           </div>

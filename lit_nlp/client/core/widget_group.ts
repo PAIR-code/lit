@@ -61,7 +61,7 @@ export class WidgetGroup extends LitElement {
     const title = configGroup[0].moduleType.title;
 
     // Maximization.
-    const maxIconName = this.maximized ? 'fullscreen_exit' : 'fullscreen';
+    const maxIconName = this.maximized ? 'close_fullscreen' : 'open_in_full';
     const onMaxClick = () => {
       this.maximized = !this.maximized;
       this.setMinimized(false);
