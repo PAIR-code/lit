@@ -30,7 +30,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
-import {range} from '../lib/utils';
+import {chunkWords} from '../lib/utils';
 
 import {styles} from './table.css';
 
@@ -508,23 +508,6 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
-  /**
-   * Chunks a long word into shorter pieces so that the table won't stretch
-   * to fit the entire word length, as it normally would
-   * (https://www.w3schools.com/cssref/pr_tab_table-layout.asp).
-   * TODO(lit-dev): find a more long-term solution to this, since adding a
-   * NPWS will make copy/pasting from the table behave strangely.
-   */
-  private chunkWord(word: string) {
-    const maxLen = 15;
-    const chunks: string[] = [];
-    for (let i=0; i<word.length; i+=maxLen) {
-      chunks.push(word.slice(i, i+maxLen));
-    }
-    // This is not an empty string, it is a non-printing space.
-    const zeroWidthSpace = '​';
-    return chunks.join(zeroWidthSpace);
-  }
 
   renderRow(data: TableData, rowIndex: number) {
     const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
@@ -543,12 +526,9 @@ export class DataTable extends ReactiveElement {
       this.handleRowClick(e, rowIndex);
     };
 
-    const formatData = (d: string) =>
-      d.split(' ').map(word => this.chunkWord(word)).join(' ');
-
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown}>
-        ${data.map(d => html`<td><div>${formatData(d.toString())}</div></td>`)}
+        ${data.map(d => html`<td><div>${chunkWords(d.toString())}</div></td>`)}
       </tr>
     `;
   }

@@ -240,3 +240,25 @@ export function copyToClipboard(value: string) {
   document.execCommand("copy");
   document.body.removeChild(tempInput);
 }
+
+/**
+ * Processes a sentence so that no word exceeds a certain length by
+ * chunking a long word into shorter pieces. This is useful when rendering
+ * a table-- normally a table will stretch to fit the entire word length
+ * (https://www.w3schools.com/cssref/pr_tab_table-layout.asp).
+ * TODO(lit-dev): find a more long-term solution to this, since adding a
+ * NPWS will make copy/pasting from the table behave strangely.
+ */
+export function chunkWords(sent: string) {
+  const chunkWord = (word: string) => {
+    const maxLen = 15;
+    const chunks: string[] = [];
+    for (let i=0; i<word.length; i+=maxLen) {
+      chunks.push(word.slice(i, i+maxLen));
+    }
+    // This is not an empty string, it is a non-printing space.
+    const zeroWidthSpace = '​';
+    return chunks.join(zeroWidthSpace);
+  };
+  return sent.split(' ').map(word => chunkWord(word)).join(' ');
+}

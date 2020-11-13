@@ -23,7 +23,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, IndexedInput, Input, ModelsMap, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, Input, ModelsMap, Spec, formatForDisplay, LitName} from '../lib/types';
 import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/services';
@@ -37,7 +37,7 @@ import {styles as sharedStyles} from './shared_styles.css';
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static title = 'Datapoint Generator';
-  static numCols = 12;
+  static numCols = 10;
 
   static template = () => {
     return html`<generator-module></generator-module>`;
@@ -361,11 +361,16 @@ export class GeneratorModule extends LitModule {
     };
 
     // For non-categorical outputs, render an editable textfield.
+    // TODO(lit-dev): Consolidate this logic with the datapoint editor,
+    // ideally as part of b/172597999.
     const renderFreeformInput = () => {
+      const fieldSpec = this.appState.currentDatasetSpec[key];
+      const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
+      editable =  editable && !isLitSubtype(fieldSpec, nonEditableSpecs);
+      const formattedVal = formatForDisplay(value, fieldSpec);
       return editable ? html`
       <input type="text" class="input-box" @input=${handleInputChange}
-      .value="${value}" />` :
-                        html`<div>${value}</div>`;
+      .value="${formattedVal}" />` : html`<div>${formattedVal}</div>`;
     };
 
     const onKeyUp = (e: KeyboardEvent) => {

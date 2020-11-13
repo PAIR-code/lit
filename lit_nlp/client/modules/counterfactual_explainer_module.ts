@@ -98,7 +98,8 @@ export class SignedSalienceCmap extends SalienceCmap {
 @customElement('counterfactual-explainer-module')
 export class CounterfactualExplainerModule extends LitModule {
   static title = 'Counterfactual Explanation';
-  static numCols = 6;
+  static numCols = 10;
+  static collapseByDefault = true;
   static duplicateForExampleComparison = true;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<counterfactual-explainer-module model=${
@@ -344,23 +345,24 @@ export class CounterfactualExplainerModule extends LitModule {
 
     // clang-format off
     return html`
-      <label class="dropdown-label">Class to explain:</label>
-      <select class="dropdown options-dropdown" @change=${classChanged}>
-         ${classOptions}
-      </select>
-      <label class="dropdown-label">Model head:</label>
-      <select class="dropdown options-dropdown" @change=${predKeyChanged}>
-         ${predKeyOptions}
-      </select>
+      <div class='config'>
+        <label class="dropdown-label">Class to explain:</label>
+        <select class="dropdown options-dropdown" @change=${classChanged}>
+          ${classOptions}
+        </select>
+        <label class="dropdown-label">Model head:</label>
+        <select class="dropdown options-dropdown" @change=${predKeyChanged}>
+          ${predKeyOptions}
+        </select>
+        <div class='group-label'>
+          <lit-checkbox label="autorun"
+            ?checked=${this.state.autorun}
+            @change=${() => { this.state.autorun = !this.state.autorun;}}
+          ></lit-checkbox>
+        </div>
+      </div>
       <table>
         <tr>
-          <th class='group-label'>
-            ${COUNTERFACTUAL_INTERPRETER_NAME}
-            <lit-checkbox label="autorun"
-              ?checked=${this.state.autorun}
-              @change=${() => { this.state.autorun = !this.state.autorun;}}
-            ></lit-checkbox>
-          </th>
           <td class=${classMap({'group-container': true,
                                 'loading': this.state.isLoading})}>
             ${Object.keys(salience).map(gradKey =>

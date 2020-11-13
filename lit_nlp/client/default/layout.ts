@@ -165,8 +165,7 @@ export const LAYOUTS: LitComponentLayouts = {
         SalienceMapModule,
         AttentionModule,
       ],
-      'Counterfactuals': [GeneratorModule],
-      'Counterfactual Explanation': [CounterfactualExplainerModule],
+      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
     },
     description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
   },
@@ -190,8 +189,7 @@ export const LAYOUTS: LitComponentLayouts = {
         SalienceMapModule,
         AttentionModule,
       ],
-      'Counterfactuals': [GeneratorModule],
-      'Counterfactual Explanation': [CounterfactualExplainerModule],
+      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
     },
     description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
   },

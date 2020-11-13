@@ -299,3 +299,49 @@ export declare interface LayoutSettings {
 export const NONE_DS_DISPLAY_NAME = 'none';
 /** Key for thhe "no dataset" dataset in settings. */
 export const NONE_DS_DICT_KEY = '_union_empty';
+
+/**
+ * Formats the following types for display in the data table:
+ * string, number, boolean, string[], number[], (string|number)[]
+ * TODO(lit-dev): allow passing custom HTML to table, not just strings.
+ */
+// tslint:disable-next-line:no-any
+export function formatForDisplay(input: any, fieldSpec?: LitType): string {
+  if (input == null) return '';
+
+  // Handle SpanLabels, if field spec given.
+  // TODO(lit-dev): handle more fields this way.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
+    const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
+    return formattedTags.join(', ');
+  }
+  // Handle EdgeLabels, if field spec given.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
+    const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
+    return formattedTags.join(', ');
+  }
+  const formatNumber = (item: number) =>
+    Number.isInteger(item) ? item.toString() : item.toFixed(4).toString();
+
+  // Generic data, based on type of input.
+  if (Array.isArray(input)) {
+    const strings = input.map((item) => {
+      if (typeof item === 'number') {
+        return formatNumber(item);
+      }
+      return `${item}`;
+    });
+    return `${strings.join(', ')}`;
+  }
+
+  if (typeof input === 'boolean') {
+    return input ? '✔' : ' ';
+  }
+
+  if (typeof input === 'number') {
+    return formatNumber(input);
+  }
+
+  // Fallback: just coerce to string.
+  return `${input}`;
+}
