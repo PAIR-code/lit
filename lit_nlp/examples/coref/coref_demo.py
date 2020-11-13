@@ -46,6 +46,7 @@ match Figure 3 of the paper.
 """
 import copy
 import os
+import sys
 
 from absl import app
 from absl import flags
@@ -84,6 +85,17 @@ flags.DEFINE_string(
     "This is needed for training, and optional for running LIT.")
 
 FLAGS.set_default("default_layout", "winogender")
+
+
+def get_wsgi_app():
+  FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("model_path", "./classifier")
+  FLAGS.set_default("encoder_name", "./encoder")
+  FLAGS.set_default("do_train", False)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
 
 
 def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
@@ -140,7 +152,7 @@ def run_server(encoder, classifier_load_path: str):
         os.path.join(FLAGS.ontonotes_edgeprobe_path, "development.json"))
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 def main(_):
@@ -152,7 +164,7 @@ def main(_):
     train(encoder, FLAGS.model_path)
 
   if FLAGS.do_serve:
-    run_server(encoder, FLAGS.model_path)
+    return run_server(encoder, FLAGS.model_path)
 
 if __name__ == "__main__":
   app.run(main)
