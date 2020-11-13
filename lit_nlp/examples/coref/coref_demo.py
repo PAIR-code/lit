@@ -23,6 +23,10 @@ Bureau of Labor Statistics.
 For more details on the analysis, see the case study in Section 3 of
 the LIT paper (https://arxiv.org/abs/2008.05122).
 
+To start LIT with a pre-trained classifier, run:
+  blaze run -c opt --config=cuda examples/coref:coref_demo -- \
+    --model_path=/tmp/lit_coref_model --port=5432
+
 To train the model, you'll need the OntoNotes 5.0 dataset in the edge probing
 JSON format. See
 https://github.com/nyu-mll/jiant-v1-legacy/tree/master/probing/data#ontonotes
@@ -32,11 +36,6 @@ for instructions. Then run:
     --ontonotes_edgeprobe_path=/path/to/ontonotes/coref/ \
     --model_path=/tmp/lit_coref_model \
     --do_serve --port=5432
-
-To start LIT with a pre-trained classifier, run:
-  blaze run -c opt --config=cuda examples/coref:coref_demo -- \
-    --do_train=False --do_serve \
-    --model_path=/tmp/lit_coref_model --port=5432
 
 With bert-base-uncased on a single Titan Xp GPU, it takes about 10-12 minutes
 to train this model, including the time to extract representations, and should
@@ -67,24 +66,27 @@ from lit_nlp.lib import utils
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string(
-    "encoder_name", "bert-base-uncased",
-    "Name of BERT variant to use for fine-tuning. See https://huggingface.co/models."
-)
+FLAGS.set_default("default_layout", "winogender")
 
-flags.DEFINE_string("model_path", None, "Path to save or load trained model.")
-flags.DEFINE_bool("do_train", True,
+flags.DEFINE_bool("do_train", False,
                   "If true, train a new model and save to FLAGS.model_path.")
 flags.DEFINE_bool(
     "do_serve", True,
     "If true, start a LIT server with the model at FLAGS.model_path.")
 
+flags.DEFINE_string("model_path", None, "Path to save or load trained model.")
+
+##
+# Training-only flags
+flags.DEFINE_string(
+    "encoder_name", "bert-base-uncased",
+    "Name of BERT variant to use for fine-tuning. See https://huggingface.co/models."
+)
+
 flags.DEFINE_string(
     "ontonotes_edgeprobe_path", None,
     "Path to OntoNotes coreference data in edge probing JSON format. "
     "This is needed for training, and optional for running LIT.")
-
-FLAGS.set_default("default_layout", "winogender")
 
 
 def get_wsgi_app():
