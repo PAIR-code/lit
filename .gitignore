@@ -1,5 +1,5 @@
-lit_nlp/node_modules/**
 lit_nlp/yarn-error.log
 **/build/**
+**/node_modules/**
 **/__pycache__/**
 **/*.pyc
