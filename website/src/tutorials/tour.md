@@ -14,7 +14,7 @@ time: "7 minutes"
 takeaways: "Get familiar with the interface of the Language Interpretability Tool."
 ---
 
-## A Quick Tour of the What-If Tool
+## A Quick Tour of the Language Interpretability Tool
 
 <div class="video-container">
   <iframe src="https://www.youtube.com/embed/CuRI_VK83dU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
