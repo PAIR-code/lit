@@ -16,7 +16,9 @@ takeaways: "Learn about how to debug a prediction on a datapoint by searching fo
 
 ## Debugging a Text Generator
 
-[Explore this demo yourself.](../../demos/t5.html)
+{% include partials/link-out link: "../../demos/t5.html", text: "Explore this demo yourself." %}
+
+Or, run your own with [`examples/t5_summarization_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_summarization_demo.py)
 
 Does the training data explain a particular error in text generation? We can use LIT to analyze a T5 model on the CNN-DM summarization task. LIT’s scalar plot module allows us to look at per-example ROUGE scores, and quickly select an example with middling performance.
 

@@ -1,11 +1,11 @@
 ---
-title: LIT - Learn
+title: LIT - Tutorials
 layout: layouts/sub.liquid
 
 hero-height: 245
 hero-image: /assets/images/LIT_Tutorials_Banner.png
-hero-title: "Model probing for understandable, reliable, and fair machine learning"
-hero-copy: "Learn how to navigate LIT and how LIT enables analysis of NLP models. "
+hero-title: "Model probing for understandable, reliable, and fair NLP"
+hero-copy: "Learn how to navigate LIT and use it to analyze different types of models. "
 
 sub-nav: '<a href="#basics">Basics</a><a href="#analysis">Conducting analysis</a>'
 color: "#fef0f7"

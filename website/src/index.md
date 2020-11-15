@@ -5,7 +5,7 @@ layout: layouts/main.liquid
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-{% include partials/display1 text:"The Language Interpretability Tool is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %} 
+{% include partials/display1 text:"The Language Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
 
 {% include partials/home-cta-button text:"Take a tour", link:"/tutorials/tour" %}
 {% include partials/home-cta-button text:"Setup LIT", link:"/setup" %}
@@ -56,21 +56,6 @@ Embedding visualization
 And more...
 
 " %}
-{% include partials/one-of-three-column title:"Framework agnostic", text: "
-
-TensorFlow 1.x
-
-TensorFlow 2.x
-
-PyTorch
-
-Custom inference code
-
-Remote Procedure Calls
-
-And more...
-
-" %}
 {% include partials/one-of-three-column title:"Supported task types", text: "
 
 Classification
@@ -84,6 +69,21 @@ Masked language models
 Span labeling
 
 Multi-headed models
+
+And more...
+
+" %}
+{% include partials/one-of-three-column title:"Framework agnostic", text: "
+
+TensorFlow 1.x
+
+TensorFlow 2.x
+
+PyTorch
+
+Custom inference code
+
+Remote Procedure Calls
 
 And more...
 
