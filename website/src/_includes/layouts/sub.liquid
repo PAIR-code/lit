@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    {% include partials/analytics %}
+
+    <title>{{ title }}</title>
+    
+    {% include partials/header-includes %}
+    <style>
+      .sub-title, .sub-copy {
+        color: {{ color }};
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      {% include partials/header %}
+      
+      <main class="mdl-layout__content hero-banner">
+        {% include partials/hero-element type:"sub" %}
+        <div class="sub-page-container mdl-grid">
+          <div class="mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+          {{ content }}
+          </div>
+          <div class="fixed-sub-navigation hide-me">
+            {{ sub-nav }}
+          </div>
+        </div>
+        
+        {% include partials/footer %}
+      </main>
+    </div>
+  </body>
+
+  {% include partials/footer-includes %}
+</html>
