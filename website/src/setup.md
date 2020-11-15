@@ -5,9 +5,9 @@ layout: layouts/sub.liquid
 hero-height: 245
 hero-image: /assets/images/LIT_FAQs_Banner.png
 hero-title: "LIT is simple to use"
-hero-copy: "Get up and running quickly, and run the demos or run LIT on your own models and data"
+hero-copy: "Get up and running quickly, with pre-built examples or your own models and data."
 
-sub-nav: '<a href="#install">Installation</a><a href="#demos">Run demos</a><a href="#custom">LIT with your own models and data</a>'
+sub-nav: '<a href="#install">Installation</a><a href="#demos">Included demos</a><a href="#custom">Custom models and data</a>'
 color: "#fef0f7"
 ---
 

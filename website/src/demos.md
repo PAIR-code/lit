@@ -17,12 +17,12 @@ color: "#49596c"
   c-data-source: "Stanford Sentiment Treebank,  Multi-Genre NLI Corpus, Semantic Textual Similarity Benchmark"
   c-copy: "Use LIT with any of three tasks from the General Language Understanding Evaluation (GLUE) benchmark suite. This demo contains binary classification (for sentiment analysis, using SST2), multi-class classification (for textual entailment, using MultiNLI), and regression (for measuringtext similarity, using STS-B).", tags: "BERT, binary classification, multi-class classification, regression", external:"true" %}
 
+  {% include partials/demo-card c-title: "Gender bias in coreference systems", link: "/demos/coref.html",
+  c-data-source: "Winogender schemas", c-copy: "Use LIT to explore gendered associations in a coreference system, which matches pronouns to their antecedents. This demo highlights how LIT can work with structured prediction models (edge classification), and its capability for disaggregated analysis.", tags: "BERT, coreference, fairness, Winogender", external:"true" %}
+
   {% include partials/demo-card c-title: "Fill in the blanks", link: "/demos/lm.html",
   c-data-source: "Stanford Sentiment Treebank, Movie Reviews", c-copy: "Explore a BERT-based masked-language model. See what tokens the model predicts should fill in the blank when any token from an example sentence is masked out.", tags: "BERT, masked language model", external:"true" %}
 
   {% include partials/demo-card c-title: "Text generation", link: "/demos/t5.html",
   c-data-source: "CNN / Daily Mail", c-copy: "Use a T5 model to summarize text. For any example of interest, quickly find similar examples from the training set, using an approximate nearest-neighbors index.", tags: "T5, generation", external:"true" %}
-
-  {% include partials/demo-card c-title: "Gender bias in coreference systems", link: "/demos/coref.html",
-  c-data-source: "Winogender schemas", c-copy: "Use LIT to explore gendered associations in a coreference system, which matches pronouns to their antecedents. This demo highlights how LIT can work with structured prediction models (edge classification), and its capability for disaggregated analysis.", tags: "BERT, coreference, fairness, Winogender", external:"true" %}
   </div>

@@ -181,7 +181,7 @@ h5 {
 }
 
 .hero-container, .main-page-container, .sub-page-container, .tutorial-page-container, .footer-container {
-  margin: 0 auto; 
+  margin: 0 auto;
   max-width:950px;
 }
 
@@ -301,7 +301,7 @@ h5 {
   font-size: 16px;
   line-height: 16px;
   letter-spacing: 0.8px;
-  text-transform: uppercase; 
+  text-transform: uppercase;
   color: #E8710A;
 } */
 
@@ -575,7 +575,7 @@ h5 {
 
 .footer-container img {
   width: 100px;
-  margin-top: -8px;
+  /* margin-top: -8px; */
 }
 
 .footer-icons a {
@@ -632,4 +632,10 @@ h5 {
   .home-card-desc {
     height: 125px;
   }
+}
+
+img.status-emoji {
+  width: 24px;
+  height: 24px;
+  padding-right: 4px;
 }

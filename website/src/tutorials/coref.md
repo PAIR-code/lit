@@ -16,7 +16,9 @@ takeaways: "Learn about how to explore fairness using datapoint comparison and m
 
 ## Gender Bias in Coreference
 
-[Explore this demo yourself.](../../demos/coref.html)
+{% include partials/link-out link: "../../demos/coref.html", text: "Explore this demo yourself." %}
+
+Or, run your own with [`examples/coref/coref_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/coref/coref_demo.py)
 
 Does a system encode gendered associations, which might lead to incorrect predictions? We explore this for coreference, the task of identifying whether two mentions refer to the same (real-world) entity. For example, in the sentence "The technician told the customer that they could pay with cash.", we understand from the context that "they" refers to "the customer", the one paying.
 

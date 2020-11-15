@@ -15,10 +15,13 @@ takeaways: "Get familiar with the interface of the Language Interpretability Too
 ---
 
 ## A Quick Tour of the Language Interpretability Tool
+{% include partials/link-out link: "../../demos/glue.html", text: "Follow along in the hosted demo." %}
+{% include partials/spacer height:10 %}
 
 <div class="video-container">
   <iframe src="https://www.youtube.com/embed/CuRI_VK83dU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
+{% include partials/spacer height:10 %}
 
 The Language Interpretability Tool (LIT)  is a modular and extensible interface to interactively analyze a variety of NLP models for model understanding. LIT brings together common machine learning performance checks with interpretability methods specifically for language models.
 
