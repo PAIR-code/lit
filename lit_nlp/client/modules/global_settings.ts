@@ -32,15 +32,18 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {action, computed, observable} from 'mobx';
-import {NONE_DS_DICT_KEY, NONE_DS_DISPLAY_NAME} from '../lib/types';
 
 import {app} from '../core/lit_app';
+import {datasetDisplayName, NONE_DS_DICT_KEY} from '../lib/types';
 import {AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
 import {styles as sharedStyles} from './shared_styles.css';
 
-type TabName = 'Models'|'Dataset'|'Layout';
+/**
+ * Names of available settings tabs.
+ */
+export type TabName = 'Models'|'Dataset'|'Layout';
 const MODEL_DESC = 'Select models to explore in LIT.';
 const DATASET_DESC =
     'Select a compatible dataset to use with the selected models.';
@@ -56,7 +59,6 @@ const INCOMPATIBLE_TXT = 'Incompatible';
 @customElement('lit-global-settings')
 export class GlobalSettingsComponent extends MobxLitElement {
   @property({type: Boolean}) isOpen = false;
-  @property({type: Object}) close = () => {};
 
   static get styles() {
     return [sharedStyles, styles];
@@ -67,7 +69,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @observable private selectedDataset: string = '';
   @observable private selectedLayout: string = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
-  @observable private selectedTab: TabName = 'Models';
+  @observable selectedTab: TabName = 'Models';
 
   // tslint:disable:no-inferrable-new-expression
   @observable private readonly openModelKeys: Set<string> = new Set();
@@ -81,16 +83,21 @@ export class GlobalSettingsComponent extends MobxLitElement {
         .map(([modelName, isSelected]) => modelName);
   }
 
+  /**
+   * Open the settings menu.
+   */
+  open() {
+    // Initialize local state (selected models, data, etc.) from app state.
+    this.initializeLocalState();
+    this.requestUpdate();
+    this.isOpen = true;
+  }
 
-  // tslint:disable-next-line:no-any
-  updated(changedProperties: Map<string, any>) {
-    // Because this component is always rendered, it just changes from open to
-    // closed state, we want to initialize it's local state and rerender
-    // whenever it changes from closed to open.
-    if (changedProperties.has('isOpen') && this.isOpen) {
-      this.initializeLocalState();
-      this.requestUpdate();
-    }
+  /**
+   * Close the settings menu.
+   */
+  close() {
+    this.isOpen = false;
   }
 
   @action
@@ -206,7 +213,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         </div>
         <div> selected dataset(s):
           <span class=${datasetClasses}>
-            ${this.displayName(this.selectedDataset)}
+            ${datasetDisplayName(this.selectedDataset)}
           </span>
         </div>
       </div>
@@ -303,7 +310,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           return html`
             <div class=${classes}>
               <mwc-icon>${icon}</mwc-icon>
-              ${this.displayName(datasetName)} 
+              ${datasetDisplayName(datasetName)}
             </div>`;
         })}`;
       const description = this.appState.metadata.models[name].description;
@@ -321,7 +328,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   renderDatasetConfig() {
     const allDatasets = Object.keys(this.appState.metadata.datasets);
     const renderDatasetSelect = (name: string) => {
-      const displayName = this.displayName(name);
+      const displayName = datasetDisplayName(name);
       const handleDatasetChange = () => {
         this.selectedDataset = name;
       };
@@ -508,10 +515,6 @@ export class GlobalSettingsComponent extends MobxLitElement {
         </div>
       </div>
     `;
-  }
-
-  private displayName(name: string) {
-    return name === NONE_DS_DICT_KEY ? NONE_DS_DISPLAY_NAME : name;
   }
 
   private toggleInSet(set: Set<string>, elt: string) {

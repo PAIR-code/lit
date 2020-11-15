@@ -297,8 +297,15 @@ export declare interface LayoutSettings {
 
 /** Display name for the "no dataset" dataset in settings. */
 export const NONE_DS_DISPLAY_NAME = 'none';
-/** Key for thhe "no dataset" dataset in settings. */
+/** Key for the "no dataset" dataset in settings. */
 export const NONE_DS_DICT_KEY = '_union_empty';
+
+/**
+ * Display name for dataset.
+ */
+export function datasetDisplayName(name: string): string {
+  return name === NONE_DS_DICT_KEY ? NONE_DS_DISPLAY_NAME : name;
+}
 
 /**
  * Formats the following types for display in the data table:

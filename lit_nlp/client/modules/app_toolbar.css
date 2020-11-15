@@ -34,34 +34,6 @@
   align-items: center;
 }
 
-.spinner-holder {
-  padding-left: 12pt;
-}
-
-#status {
-  font-family: 'Google Sans' !important;
-}
-
-#status.info {
-  font-size: 14pt;
-  letter-spacing: 0.25;
-  line-height: 20pt;
-  color: white;
-}
-
-#status.error {
-  font-size: 12pt;
-  color: yellow;
-}
-
-#link {
-  margin-right: 8pt;
-}
-
-#clear-errors{
-  color: yellow;
-}
-
 mwc-icon.icon-button {
   height: 24px;
   width: 24px;
@@ -83,5 +55,14 @@ mwc-icon.icon-button:active {
   width: 20px;
   height: 20px;
   padding-right: 4px;
+}
+
+.status-item {
+  margin-left: 1em;
+  font-size: 12pt;
+}
+
+.status-text-underline {
+  text-decoration: underline;
 }
 
