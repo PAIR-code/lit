@@ -64,6 +64,11 @@
   font-size: 10pt;
   white-space: nowrap;
   overflow: hidden;
+  flex: 1;
+}
+
+.minimized .title {
+  text-align: right;
   cursor: pointer;
 }
 
@@ -83,12 +88,12 @@ lit-widget {
 }
 
 .min-button {
-  flex: 1;
-  text-align: right;  
+  text-align: right;
+  flex: 0.2; /* add some clickable whitespace */
 }
 
-.minimized .min-button{
-  text-align: left;  
+.minimized .min-button {
+  text-align: left;
 }
 
 mwc-icon.icon-button {

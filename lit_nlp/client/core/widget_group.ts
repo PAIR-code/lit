@@ -74,16 +74,26 @@ export class WidgetGroup extends LitElement {
       this.maximized = false;
     };
 
+    // Titlebar: restore if minimized, otherwise nothing.
+    const onTitleClick = () => {
+      if (this.minimized) {
+        this.setMinimized(false);
+        this.maximized = false;
+      }
+    };
+
+    // clang-format off
     return html`
-    <div class=header>
-      <div class="title" @click=${onMinClick}>${title}</div>
-      <mwc-icon class="icon-button min-button" @click=${onMinClick}>
-        ${minIconName}
-      </mwc-icon>
-      <mwc-icon class="icon-button" @click=${onMaxClick}>
-        ${maxIconName}
+      <div class=header>
+        <div class="title" @click=${onTitleClick}>${title}</div>
+        <mwc-icon class="icon-button min-button" @click=${onMinClick}>
+          ${minIconName}
         </mwc-icon>
-    </div>`;
+        <mwc-icon class="icon-button" @click=${onMaxClick}>
+          ${maxIconName}
+        </mwc-icon>
+      </div>`;
+    // clang-format on
   }
 
   /**
