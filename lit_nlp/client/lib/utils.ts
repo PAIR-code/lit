@@ -21,6 +21,7 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
+import {html, TemplateResult} from 'lit-element';
 import {FacetMap, LitName, LitType, ModelsMap, Spec} from './types';
 
 /**
@@ -261,4 +262,27 @@ export function chunkWords(sent: string) {
     return chunks.join(zeroWidthSpace);
   };
   return sent.split(' ').map(word => chunkWord(word)).join(' ');
+}
+
+/**
+ * Converts any URLs into clickable links.
+ * TODO(lit-dev): write unit tests for this.
+ */
+export function linkifyUrls(
+    text: string,
+    target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
+  const formatLink = (url: string) =>
+      html`<a href=${url} target=${target}>${url}</a>`;
+  const ret: Array<string|TemplateResult> = [];  // return segments
+  let lastIndex = 0;  // index of last character added to return segments
+  // Find https (yes, only https) urls and make them real links.
+  // Similar to gmail and other apps, this assumes terminal punctuation is
+  // not part of the url.
+  for (const match of text.matchAll(/https:\/\/[^\s]+[^.?!\s]/g)) {
+    ret.push(text.slice(lastIndex, match.index));
+    lastIndex = match.index! + match[0].length;
+    ret.push(formatLink(text.slice(match.index, lastIndex)));
+  }
+  ret.push(text.slice(lastIndex, text.length));
+  return html`${ret}`;
 }

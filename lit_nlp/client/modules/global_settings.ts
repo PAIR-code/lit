@@ -35,6 +35,7 @@ import {action, computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {datasetDisplayName, NONE_DS_DICT_KEY} from '../lib/types';
+import {linkifyUrls} from '../lib/utils';
 import {AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
@@ -485,6 +486,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     // In collapsed bar, show the first line only.
     const descriptionPreview = description.split('\n')[0];
+    // Make any links clickable.
+    const formattedDescription = linkifyUrls(description, '_blank');
 
     const expandedInfoClasses =
         classMap({'expanded-info': true, open: expanderOpen});
@@ -514,7 +517,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         </div>
         <div class='two-col'>
           <div class=info-group-title> Description </div>
-          <div class='description-text'>${description}</div>
+          <div class='description-text'>${formattedDescription}</div>
         </div>
       </div>
     `;
