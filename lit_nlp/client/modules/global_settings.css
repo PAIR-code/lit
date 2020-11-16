@@ -68,9 +68,13 @@
 }
 
 a {
+  color: var(--app-dark-text-color);
+  text-decoration: none;
+}
+
+a.link-out {
   color: #888;
   padding: 0 5pt;
-  text-decoration: none;
 }
 
 mwc-icon {
@@ -247,6 +251,10 @@ a:hover {
 .description {
   padding: 0 12pt 0 12pt;
   color: #888;
+}
+
+.description-text {
+  white-space: pre-wrap; /* preserve newlines */
 }
 
 .status {

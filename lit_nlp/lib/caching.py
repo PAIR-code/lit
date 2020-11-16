@@ -164,6 +164,10 @@ class CachingModelWrapper(lit_model.Model):
 
   ##
   # LIT model API implementation.
+  def description(self) -> str:
+    """Pass-through underlying model description."""
+    return self._model.description()
+
   def max_minibatch_size(self, config=None):
     return self._model.max_minibatch_size(config)
 
@@ -189,9 +193,6 @@ class CachingModelWrapper(lit_model.Model):
 
   def output_spec(self):
     return self._model.output_spec()
-
-  def get_model(self):
-    return self._model
 
   def predict_with_metadata(self, *args, **kw):
     """As predict(), but inputs are IndexedInput."""

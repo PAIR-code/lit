@@ -15,6 +15,7 @@
 # Lint as: python3
 """Base classes for LIT models."""
 import abc
+import inspect
 from typing import List, Tuple, Iterable, Iterator, Text
 
 import attr
@@ -86,6 +87,18 @@ class ModelSpec(object):
 
 class Model(metaclass=abc.ABCMeta):
   """Base class for LIT models."""
+
+  def description(self) -> str:
+    """Return a human-readable description of this component.
+
+    Defaults to class docstring, but subclass may override this to be
+    instance-dependent - for example, including the path from which the model
+    was loaded.
+
+    Returns:
+      (string) A human-readable description for display in the UI.
+    """
+    return inspect.getdoc(self) or ''
 
   # pylint: disable=unused-argument
   def max_minibatch_size(self, config=None) -> int:

@@ -174,11 +174,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const github = 'https://github.com/PAIR-code/lit';
     return html`
     <div id="links">
-      <a href=${github} target="_blank">
+      <a href=${github} class='link-out' target="_blank">
         Github
       </a>
       •
-      <a href=${help} target="_blank">
+      <a href=${help} class='link-out' target="_blank">
         Help & Tutorials
       </a>
     </div>
@@ -483,6 +483,9 @@ export class GlobalSettingsComponent extends MobxLitElement {
       disabled,
     });
 
+    // In collapsed bar, show the first line only.
+    const descriptionPreview = description.split('\n')[0];
+
     const expandedInfoClasses =
         classMap({'expanded-info': true, open: expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
@@ -492,7 +495,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           ${renderSelector(name)}
         </div>
         <div class='one-col description-preview'>
-         ${description}
+         ${descriptionPreview}
         </div>
         <div class='one-col col-end'>
             ${status}
@@ -511,7 +514,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         </div>
         <div class='two-col'>
           <div class=info-group-title> Description </div>
-          <div>${description}</div>
+          <div class='description-text'>${description}</div>
         </div>
       </div>
     `;

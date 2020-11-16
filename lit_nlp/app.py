@@ -16,7 +16,6 @@
 """LIT backend, as a standard WSGI app."""
 
 import functools
-import inspect
 import glob
 import os
 import pickle
@@ -101,16 +100,14 @@ class LitApp(object):
       # with models, or just do this on frontend?
       info['generators'] = list(self._generators.keys())
       info['interpreters'] = list(self._interpreters.keys())
-      # Add description (for now, by gdoc)
-      # TODO(lit-dev): make this description configurable.
-      info['description'] = inspect.getdoc(m.get_model())
+      info['description'] = m.description()
       info_by_model[name] = info
 
     info_by_dataset = {}
     for name, ds in self._datasets.items():
       info_by_dataset[name] = {
           'spec': ds.spec(),
-          'description': inspect.getdoc(ds)
+          'description': ds.description(),
       }
     generator_info = {}
     for gen_name in self._generators.keys():
