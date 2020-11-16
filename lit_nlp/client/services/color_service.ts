@@ -45,7 +45,7 @@ export class ColorService extends LitService {
   private readonly defaultColor = d3.schemeCategory10[0];
 
   private readonly defaultOption: ColorOption = {
-    name: 'none',
+    name: 'None',
     getValue: (input: IndexedInput) => 'all',
     scale: d3.scaleOrdinal([this.defaultColor]).domain(['all']) as D3Scale,
   };

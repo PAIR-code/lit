@@ -26,7 +26,7 @@ import {ModelsMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SliceService} from '../services/services';
-import {FAVORITES_SLICE_NAME} from '../services/slice_service';
+import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 
 import {styles as sharedStyles} from './shared_styles.css';
@@ -158,7 +158,7 @@ export class SliceModule extends LitModule {
     const iconClass = classMap({
       'delete-icon': true,
       'icon-button': true,
-      'hidden': sliceName === FAVORITES_SLICE_NAME
+      'hidden': sliceName === STARRED_SLICE_NAME
     });
     const deleteClicked = () => {
       this.sliceService.deleteNamedSlice(sliceName);

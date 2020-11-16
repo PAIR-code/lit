@@ -33,7 +33,7 @@ import {app} from '../core/lit_app';
 import {MenuItem} from '../elements/menu';
 import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
-import {FAVORITES_SLICE_NAME} from '../services/slice_service';
+import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './main_toolbar.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -99,16 +99,11 @@ export class LitMainMenu extends MobxLitElement {
     const selectAllChildrenCallback = () => {
       this.selectionService.selectIds([...this.findAllChildren()]);
     };
-    const selectAllFavoritedCallback = () => {
-      this.sliceService.selectNamedSlice(FAVORITES_SLICE_NAME);
-    };
     const selectNone = () => {
       this.selectionService.selectIds([]);
     };
     const noAction = () => {};
 
-    const hasStarredPoints =
-        !this.sliceService.isSliceEmpty(FAVORITES_SLICE_NAME);
     const hasParents = this.findAllParents().length > 1;
     const hasChildren = this.findAllChildren().length > 1;
     const hasRelatives = hasParents || hasChildren;
@@ -116,7 +111,7 @@ export class LitMainMenu extends MobxLitElement {
 
     return [
       {
-        itemText: 'Random datapoint',
+        itemText: 'Random',
         displayIcon: false,
         menu: [],
         onClick: selectRandomDatapoint,
@@ -131,26 +126,20 @@ export class LitMainMenu extends MobxLitElement {
         disabled: !hasRelatives,
       },
       {
-        itemText: 'Parent datapoints',
+        itemText: 'Parents',
         displayIcon: false,
         menu: [],
         onClick: hasParents ? selectAllParentsCallback : noAction,
         disabled: !hasParents,
       },
       {
-        itemText: 'Children datapoints',
+        itemText: 'Children',
         displayIcon: false,
         menu: [],
         onClick: hasChildren ? selectAllChildrenCallback : noAction,
         disabled: !hasChildren,
       },
-      {
-        itemText: 'Favorite datapoints',
-        displayIcon: false,
-        menu: [],
-        onClick: hasStarredPoints ? selectAllFavoritedCallback : noAction,
-        disabled: !hasStarredPoints
-      },
+      this.getSliceItem(),
       // TODO(lit-dev): Add find siblings option.
       {
         itemText: 'Clear selection',
@@ -182,7 +171,7 @@ export class LitMainMenu extends MobxLitElement {
   }
 
   // Returns items for the slice menu.
-  getSliceItems() {
+  getSliceItem() {
     const sliceNames = Array.from(this.sliceService.namedSlices.keys());
     const sliceItems = sliceNames.map((name) => {
       const isSelected = this.sliceService.selectedSliceName === name;
@@ -197,23 +186,20 @@ export class LitMainMenu extends MobxLitElement {
       };
     });
 
-    return [
-      {
-        itemText: 'Select slice',
-        displayIcon: false,
-        menu: sliceItems,
-        onClick: () => {},
-        disabled: false,
-      },
-    ];
+    return {
+      itemText: 'Slices',
+      displayIcon: false,
+      menu: sliceItems,
+      onClick: () => {},
+      disabled: false,
+    };
   }
 
   // Returns menu data for the menu toolbar.
   getMenuData() {
     const menuData = new Map<string, MenuItem[]>();
-    menuData.set('Select', this.getSelectItems());
+    menuData.set('Select datapoint', this.getSelectItems());
     menuData.set('Color by', this.getColorOptionItems());
-    menuData.set('Slices', this.getSliceItems());
     return menuData;
   }
 
@@ -236,7 +222,8 @@ export class LitMainToolbar extends MobxLitElement {
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
 
-  @observable private highlightFavorite: boolean = false;
+  @observable private highlightStar: boolean = false;
+  @observable private displayTooltip: boolean = false;
 
   /**
    * ID pairs, as [child, parent], from current selection or the whole dataset.
@@ -248,28 +235,29 @@ export class LitMainToolbar extends MobxLitElement {
         .map(d => [d.id, d.meta['parentId']]);
   }
 
-  private toggleFavorited() {
+  private toggleStarred() {
     const data = this.selectionService.primarySelectedInputData;
     if (data == null) {
       return;
     }
+    // TODO(b/173253274): Store the starred state in a single source of truth
+    // (i.e. only store as slice membership and not in data.meta).
+    if (data.meta['isStarred'] != null) {
+      data.meta['isStarred'] = !data.meta['isStarred'];
 
-    if (data.meta['isFavorited'] != null) {
-      data.meta['isFavorited'] = !data.meta['isFavorited'];
-
-      if (data.meta['isFavorited']) {
-        this.sliceService.addIdsToSlice(FAVORITES_SLICE_NAME, [data.id]);
+      if (data.meta['isStarred']) {
+        this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [data.id]);
       } else {
-        this.sliceService.removeIdsFromSlice(FAVORITES_SLICE_NAME, [data.id]);
+        this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [data.id]);
       }
 
-      // If the favorites slice is selected, update the selection to include
+      // If the stars slice is selected, update the selection to include
       // the addition/removal of this id.
-      if (this.sliceService.selectedSliceName === FAVORITES_SLICE_NAME) {
-        this.sliceService.selectNamedSlice(FAVORITES_SLICE_NAME);
+      if (this.sliceService.selectedSliceName === STARRED_SLICE_NAME) {
+        this.sliceService.selectNamedSlice(STARRED_SLICE_NAME);
       }
 
-      this.highlightFavorite = data.meta['isFavorited'];
+      this.highlightStar = data.meta['isStarred'];
     }
   }
 
@@ -284,12 +272,9 @@ export class LitMainToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-      <button id='select-random-button' class='text-button'
+      <button id='select-random-button' class='hairline-button'
         @click=${selectRandom}>
-        <mwc-icon class='mdi-outlined icon-button' id='select-random-icon'>
-          casino
-        </mwc-icon>
-        <span id='select-random-text'>Select Random</span>
+        <span id='select-random-text'>Select random</span>
       </button>
     `;
     // clang-format on
@@ -300,7 +285,7 @@ export class LitMainToolbar extends MobxLitElement {
    * Controls to page through the dataset.
    * Assume exactly one point is selected.
    */
-  renderSelectionArrows() {
+  renderSelectionDisplay(numSelected: number, numTotal: number) {
     const primaryId = this.selectionService.primarySelectedId;
     const selectedIndex =
         this.appState.currentInputData.findIndex(ex => ex.id === primaryId);
@@ -313,18 +298,20 @@ export class LitMainToolbar extends MobxLitElement {
       const nextId = this.appState.currentInputData[nextIndex].id;
       this.selectionService.selectIds([nextId]);
     };
+    const arrowsDisabled = numSelected === 0;
+    const iconClass =
+        classMap({'icon-button': true, 'disabled': arrowsDisabled});
     // clang-format off
     return html`
-      <mwc-icon class='icon-button' id='ds-select-prev'
-        @click=${() => {selectOffset(-1);}}>
+      <mwc-icon class=${iconClass} id='ds-select-prev'
+        @click=${arrowsDisabled ? null: () => {selectOffset(-1);}}>
         chevron_left
       </mwc-icon>
-      <mwc-icon class='icon-button mdi-outlined' id='ds-select-random'
-        @click=${() => {selectOffset(randInt(1, numExamples));}}>
-        casino
-      </mwc-icon>
-      <mwc-icon class='icon-button' id='ds-select-next'
-        @click=${() => {selectOffset(1);}}>
+      <div id='number-selected'>
+        <span id='num-selected-text'>${numSelected}</span> of <span>${numTotal}</span> selected
+      </div>
+      <mwc-icon class=${iconClass} id='ds-select-next'
+        @click=${arrowsDisabled ? null: () => {selectOffset(1);}}>
         chevron_right
       </mwc-icon>
     `;
@@ -355,25 +342,22 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <div id='primary-selection-status' class='selection-status-group'>
-        <span id='primary-text'>
-          (primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
-          ... [${primaryIndex}]
-        </span>
-        ${numSelected > 1 ? html`
+        (${numSelected > 1 ? html`
           <mwc-icon class='icon-button' id='select-prev'
             @click=${() => {selectOffset(-1);}}>
             chevron_left
           </mwc-icon>
-          <mwc-icon class='icon-button mdi-outlined' id='select-random'
-            @click=${() => {selectOffset(randInt(1, numSelected));}}>
-            casino
-          </mwc-icon>
+        ` : null}
+        <span id='primary-text'>
+          primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
+          ... [<span class='monospace'>${primaryIndex}</span>]
+        </span>
+        ${numSelected > 1 ? html`
           <mwc-icon class='icon-button' id='select-next'
             @click=${() => {selectOffset(1);}}>
             chevron_right
           </mwc-icon>
-        ` : null}
-         ${this.renderFavoriteButton()} )
+        ` : null})
       </div>
     `;
     // clang-format on
@@ -450,20 +434,22 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-  renderFavoriteButton() {
+  renderStarButton(numSelected: number) {
     const primarySelectedInputData =
         this.selectionService.primarySelectedInputData;
-    if (primarySelectedInputData == null) {
-      return;
-    }
-    this.highlightFavorite = primarySelectedInputData.meta['isFavorited'];
+    this.highlightStar = (primarySelectedInputData == null) ?
+        false :
+        primarySelectedInputData.meta['isStarred'];
 
-    const favoriteOnClick = () => {
-      this.toggleFavorited();
+    const disabled = numSelected === 0;
+    const iconClass = classMap({'icon-button': true, 'disabled': disabled});
+
+    const starOnClick = () => {
+      this.toggleStarred();
     };
-    return html`<mwc-icon class='icon-button' id='favorite-button' @click=${
-        favoriteOnClick}>
-            ${this.highlightFavorite ? 'favorite' : 'favorite_border'}
+    return html`<mwc-icon class=${iconClass} id='star-button' @click=${
+        starOnClick}>
+            ${this.highlightStar ? 'star' : 'star_border'}
           </mwc-icon>`;
   }
 
@@ -479,31 +465,54 @@ export class LitMainToolbar extends MobxLitElement {
       this.appState.compareExamplesEnabled =
           !this.appState.compareExamplesEnabled;
     };
+    const compareDisabled =
+        !this.appState.compareExamplesEnabled && numSelected === 0;
+    const compareTextClass = classMap(
+        {'toggle-example-comparison': true, 'text-disabled': compareDisabled});
+    const tooltipStyle =
+        styleMap({visibility: this.displayTooltip ? 'visible' : 'hidden'});
+    const disableClicked = () => {
+      this.displayTooltip = true;
+    };
+    const disableMouseout = () => {
+      this.displayTooltip = false;
+    };
     // clang-format off
     return html`
     <div class='toolbar' id='main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
-        <div id='toggle-example-comparison'>
-          Compare Datapoints
+        <div class='compare-container' @click=${compareDisabled ? null:
+          toggleExampleComparison}
+          @mouseover=${compareDisabled ?
+            disableClicked: null}
+          @mouseout=${compareDisabled ? disableMouseout: null}>
+          <div class=${compareTextClass}>
+            Compare Datapoints
+          </div>
+          <mwc-switch id='compare-switch'
+            ?disabled='${compareDisabled}'
+            .checked=${this.appState.compareExamplesEnabled}
+          >
+          </mwc-switch>
         </div>
-        <mwc-switch @change=${toggleExampleComparison} id='compare-switch'
-          ?disabled='${!this.appState.compareExamplesEnabled && numSelected === 0}'
-          .checked=${this.appState.compareExamplesEnabled}>
-        </mwc-switch>
+        <div class='compare-tooltip tooltip' style=${tooltipStyle}>
+          <mwc-icon class='tooltip-icon'>error_outline</mwc-icon>
+          <span class='tooltip-text'>
+            Select a datapoint to use this feature.
+          </span>
+        </div>
       </div>
       <div id='right-container'>
-        <div>
-          ${numSelected} of ${numTotal} selected
-        </div>
-        ${numSelected === 0 ? this.renderLuckyButton() : null}
-        ${numSelected === 1 ? this.renderSelectionArrows() : null}
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
+        ${this.renderStarButton(numSelected)}
+        ${this.renderSelectionDisplay(numSelected, numTotal)}
         ${this.appState.compareExamplesEnabled ? this.renderPairControls() : null}
         <button id="clear-selection" class="text-button" @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
         </button>
+        ${this.renderLuckyButton()}
       </div>
     </div>
     `;

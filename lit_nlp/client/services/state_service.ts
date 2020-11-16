@@ -257,7 +257,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
             'parentId': parentIds[i],
             'source': source,
             'added': 1,
-            'isFavorited': false
+            'isStarred': false
           }
         };
 

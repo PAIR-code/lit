@@ -27,7 +27,7 @@ import {AppState, SelectionService} from './services';
 /**
  * The name of the slice containing user-favorited items.
  */
-export const FAVORITES_SLICE_NAME = 'favorites';
+export const STARRED_SLICE_NAME = 'Starred';
 
 type SliceName = string;
 type Id = string;
@@ -56,7 +56,7 @@ export class SliceService extends LitService {
 
   // Initialize with an empty slice to hold favorited items.
   @observable
-  namedSlices = new Map<SliceName, Id[]>([[FAVORITES_SLICE_NAME, []]]);
+  namedSlices = new Map<SliceName, Id[]>([[STARRED_SLICE_NAME, []]]);
   @observable private selectedSliceNameInternal: string|null = null;
 
   @action
