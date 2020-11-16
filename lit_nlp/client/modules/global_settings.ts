@@ -169,9 +169,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   /** Render the links at the bottom of the page. */
   private renderLinks() {
-    // TODO(lit-dev): update link when website is live.
     const help =
-        'https://github.com/PAIR-code/lit/blob/main/docs/user_guide.md';
+        'https://pair-code.github.io/lit/tutorials';
     const github = 'https://github.com/PAIR-code/lit';
     return html`
     <div id="links">
