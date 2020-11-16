@@ -80,34 +80,34 @@
   <iframe src="https://www.youtube.com/embed/CuRI_VK83dU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 </div>
 <div class="spacer" style="height:10px;"></div>
-<p>The Language Interpretability Tool (LIT)  is a modular and extensible interface to interactively analyze a variety of NLP models for model understanding. LIT brings together common machine learning performance checks with interpretability methods specifically for language models.</p>
+<p>The Language Interpretability Tool (LIT)  is a modular and extensible tool to interactively analyze and debug a variety of NLP models. LIT brings together common machine learning performance checks with interpretability methods specifically designed for NLP.</p>
 <h3>Building blocks - modules, groups, and workspaces</h3>
-<p><strong>Modules, groups, and workspaces</strong> form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can compare the results of different interpretability methods side-by-side.</p>
+<p><strong>Modules, groups, and workspaces</strong> form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
   <img class="tutorial-image" src="/lit/assets/images/lit-workspaces.jpg"/>
   <div class="tutorial-caption">Above: Building blocks of the Language Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.</div>
 </div>
-<p>LIT is divided into two workspaces - a static workspace in the upper half of the interface, and a Group-based workspace in the lower half.</p>
+<p>LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.</p>
 <p>The Main workspace contains core modules that play a role in many analyses. By default, these include:</p>
 <ul>
 <li><strong>Embeddings</strong> - explore UMAP and TSNE embeddings from your model.</li>
-<li><strong>Data Table</strong> -  explore, navigate, and make selections in your loaded dataset.</li>
+<li><strong>Data Table</strong> -  explore, navigate, and make selections from your dataset.</li>
 <li><strong>Datapoint Editor</strong> - deep-dive into individual examples from your dataset.</li>
 <li><strong>Slice Editor</strong> - create and manage slices of interest from your dataset through your LIT session.</li>
 </ul>
-<p>In the Group-based workspace, modules that offer related insights are organized together under tabs. By default, LIT offers a few default groups based on a common analysis and model types: performance, predictions, explanations, and counterfactuals.</p>
+<p>In the Group-based workspace, modules that offer related insights are organized together under tabs. By default, LIT offers a few default groups based on common analysis workflows: performance, predictions, explanations, and counterfactuals.</p>
 <ul>
 <li>Use the <strong>Performance</strong> group to compare the performance of models across the entire dataset, or on individual slices.</li>
 <li>Explore model results on individual data points in the <strong>Predictions</strong> group.</li>
 <li>Investigate salience maps and attention for different data points in the <strong>Explanations</strong> group.</li>
-<li>Generate datapoints using automated generators in the <strong>Counterfactuals</strong> group, and evaluate your model on them instantly.</li>
+<li>Generate data points using automated generators in the <strong>Counterfactuals</strong> group, and evaluate your model on them instantly.</li>
 </ul>
-<p>You can organize modules into groups and customize names to your preferences when you <a href="../../setup#custom">set up your LIT server</a>.</p>
+<p>You can organize modules into groups and define your own layout when you <a href="../../setup#custom">set up your LIT server</a>.</p>
 <h3>Toolbars</h3>
 <p>At the very top, you’ll see the LIT toolbar. Here, you can quickly check which models have been loaded, configure LIT, or share a URL to your session. Below that is a toolbar which makes it easier to perform actions applied across all of LIT. Here you can:</p>
 <ul>
 <li>Select data points by relationship, or by slice.</li>
-<li>Decide which feature to color your datapoint by.</li>
+<li>Choose a feature to color data points, across all modules.</li>
 <li>Track the datapoint you’re looking at, navigate to the next, mark a datapoint as a favorite, or clear your selection.</li>
 <li>Select the active models and dataset, including multiple models to compare.</li>
 </ul>

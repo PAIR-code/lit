@@ -106,6 +106,6 @@ And more...
 
   {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH', 
   title: 'Demo Paper at EMNLP ‘20', desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.', 
-  cta-text:"Read the paper", link: 'https://arxiv.org/abs/2008.05122' external:"true" %}
+  cta-text:"Read the paper", link: 'https://www.aclweb.org/anthology/2020.emnlp-demos.15.pdf' external:"true" %}
 
 </div>

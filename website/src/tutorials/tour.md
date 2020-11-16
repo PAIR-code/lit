@@ -23,37 +23,36 @@ takeaways: "Get familiar with the interface of the Language Interpretability Too
 </div>
 {% include partials/spacer height:10 %}
 
-The Language Interpretability Tool (LIT)  is a modular and extensible interface to interactively analyze a variety of NLP models for model understanding. LIT brings together common machine learning performance checks with interpretability methods specifically for language models.
+The Language Interpretability Tool (LIT)  is a modular and extensible tool to interactively analyze and debug a variety of NLP models. LIT brings together common machine learning performance checks with interpretability methods specifically designed for NLP.
 
 ### Building blocks - modules, groups, and workspaces
 
-**Modules, groups, and workspaces** form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can compare the results of different interpretability methods side-by-side.
-
+**Modules, groups, and workspaces** form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.
 
 {% include partials/inset-image image: '/assets/images/lit-workspaces.jpg', 
   caption: 'Above: Building blocks of the Language Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.'%}
 
-LIT is divided into two workspaces - a static workspace in the upper half of the interface, and a Group-based workspace in the lower half.
+LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.
 
 The Main workspace contains core modules that play a role in many analyses. By default, these include:
 - **Embeddings** - explore UMAP and TSNE embeddings from your model.
-- **Data Table** -  explore, navigate, and make selections in your loaded dataset.
+- **Data Table** -  explore, navigate, and make selections from your dataset.
 - **Datapoint Editor** - deep-dive into individual examples from your dataset.
 - **Slice Editor** - create and manage slices of interest from your dataset through your LIT session. 
 
-In the Group-based workspace, modules that offer related insights are organized together under tabs. By default, LIT offers a few default groups based on a common analysis and model types: performance, predictions, explanations, and counterfactuals. 
+In the Group-based workspace, modules that offer related insights are organized together under tabs. By default, LIT offers a few default groups based on common analysis workflows: performance, predictions, explanations, and counterfactuals.
 - Use the **Performance** group to compare the performance of models across the entire dataset, or on individual slices. 
 - Explore model results on individual data points in the **Predictions** group.
 - Investigate salience maps and attention for different data points in the **Explanations** group.
-- Generate datapoints using automated generators in the **Counterfactuals** group, and evaluate your model on them instantly.
+- Generate data points using automated generators in the **Counterfactuals** group, and evaluate your model on them instantly.
 
-You can organize modules into groups and customize names to your preferences when you [set up your LIT server](../../setup#custom).
+You can organize modules into groups and define your own layout when you [set up your LIT server](../../setup#custom).
 
 ### Toolbars
 
 At the very top, you’ll see the LIT toolbar. Here, you can quickly check which models have been loaded, configure LIT, or share a URL to your session. Below that is a toolbar which makes it easier to perform actions applied across all of LIT. Here you can:
 - Select data points by relationship, or by slice.
-- Decide which feature to color your datapoint by.
+- Choose a feature to color data points, across all modules.
 - Track the datapoint you’re looking at, navigate to the next, mark a datapoint as a favorite, or clear your selection.
 - Select the active models and dataset, including multiple models to compare.
 

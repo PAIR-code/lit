@@ -139,6 +139,8 @@ For full examples, see
     for a self-contained Keras/TF2 model for sentiment analysis.
 *   [`simple_pytorch_demo.py`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py)
     for a self-contained PyTorch model for sentiment analysis.
+  
+You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/blob/main/documentation/development.md#custom-client--modules) for more.
 
 <a name="datasets"></a>
 ## Datasets
