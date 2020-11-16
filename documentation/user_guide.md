@@ -5,7 +5,7 @@
 This is a user guide for the Language Interpretability Tool (LIT).
 
 For a quick video tour of LIT, check out this
-[video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
+[video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -58,16 +58,17 @@ in the selection toolbar or by clicking another datapoint in the selection. The
 primary selection is highlighted in a darker blue in the *Data Table* module and
 its ID is displayed in the selection toolbar.
 
-A selection of datapoints can be saved as a "slice" through the selection
-toolbar. Saving a selection as a slice allows for easy navigation back to that
+A selection of datapoints can be saved as a "slice" through the *Slice Editor*.
+Saving a selection as a slice allows for easy navigation back to that
 selection in the future. It also allows for comparison of metrics across subsets
 of datapoints, as described in the *[Metrics Module](#metrics-table)* section.
 
 ## Toolbars
 
-There are three toolbars in the LIT tool. A top bar that includes the tool name
-and a settings button, the selection toolbar below that, and a status bar at the
-bottom of the page.
+There are three toolbars in the LIT tool. The top bar includes the tool name,
+selected model(s) and dataset, and a settings button. Below that is the main
+toolbar with the menus and controls for navigation and selection control.
+At the bottom of the page is a status bar.
 
 ### Global Settings
 
@@ -81,28 +82,40 @@ use (i.e. two different toxicity classifiers can be analyzed together for
 comparison). Once a model or models is selected, you can then select from any
 dataset compatible with those models.
 
-The settings dialog also contains controls for hiding any of the modules. This
-can help de-clutter the UI when analysis doesn't require all of the compatible
-modules that LIT contains.
-
-Lastly, the settings dialog contains controls for saving and loading additional
-datapoints. As described later in this guide ([here](#datapoint-editor) and
-[here](#datapoint-generator)), new datapoints can be created using LIT, either
-by manual editing or through a number of datapoint generators. If you want to
-save these new datapoints for either use outside of LIT, or for loading into LIT
-during another use, you can provide a directory to which to save the datapoints
-and click the **"Save new datapoints"** button. The dialog will display where
-the new datapoints were saved and how many of those datapoints there were.
-
-To load these saved datapoints into a LIT session, just provide that same path
-and click **"Load new datapoints"**.
+The settings dialog also contains controls switching the layout of the tool.
+This can help de-clutter the UI when analysis doesn't require all of the
+compatible modules that LIT contains.
 
 ![LIT global settings](./images/lit-settings.png "LIT global settings")<!-- DO NOT REMOVE {width="600"} -->
 
-### Selection Toolbar
+### Main Toolbar
 
-The selection toolbar is right below the top bar and contains a number of
-different controls and information. On the left side of the toolbar, it displays
+The main toolbar is right below the top bar and contains a number of
+different controls and information. On the left side of the toolbar, it contains
+a set of menus for quick controlling of datapoint selection and coloring. This
+includes controls such as:
+
+*   The **"Select related"** option looks at all the datapoints in the current
+    selection and adds any datapoints "related" to them to the current
+    selection. In LIT, "related" is defined as datapoints created from some
+    source datapoint (through manual editing or a datapoint generator), or a
+    source datapoint that a selected datapoint was created from.
+*   The **"Clear selection"** button deselects all selected datapoints.
+    The dropdown also contains a color legend for the current color setting.
+*   The **Slices** option allows quick selection of an already-created slice of
+    datapoints.
+*   The **"Datapoint color"** menu enables setting of the color of each
+    datapoint in the modules that visualize all datapoints (such as the
+    *Embeddings* and *Scalars* modules) by any number of datapoint
+    features or model outputs on those datapoints (such as coloring by some
+    categorical input feature, or by prediction error for a regression task).
+
+Next to the menus is a **"Compare datapoints"** switch. Enabling this puts LIT
+into datapoint comparison mode, where two datapoints can be compared against
+each other, across all applicable modules. This mode is described in more detail
+[below](#comparing-datapoints).
+
+On the right side of the toolbar, it displays
 how many datapoints are in the loaded dataset and how many of those are
 currently selected. The ID of the primary selected datapoint is displayed, along
 with a favorite button to mark this datapoint as a favorite. Favorited
@@ -115,48 +128,6 @@ datapoints is the primary selected datapoint, cycling through the datapoints in
 the current selection. A **"random"** button between the arrows allows selection
 of a random datapoint, as opposed to the ordered cycling done through the left
 and right arrows.
-
-The right side of the selection toolbars contains a number of controls.
-
-*   The **"Select related"** button looks at all the datapoints in the current
-    selection and adds any datapoints "related" to them to the current
-    selection. In LIT, "related" is defined as datapoints created from some
-    source datapoint (through manual editing or a datapoint generator), or a
-    source datapoint that a selected datapoint was created from.
-*   The **"Clear selection"** button deselects all selected datapoints.
-*   The **"Compare datapoints"** button puts LIT into datapoint comparison mode,
-    where two datapoints can be compared against each other, across all
-    applicable modules. This mode is described in more detail
-    [below](#comparing-datapoints).
-*   The **"Datapoint color"** dropdown enables setting of the color of each
-    datapoint in the modules that visualize all datapoints (such as the
-    *Embeddings* and *Scalars* modules) by any number of datapoint
-    features or model outputs on those datapoints (such as coloring by some
-    categorical input feature, or by prediction error for a regression task).
-    The dropdown also contains a color legend for the current color setting.
-*   The **Slices** dropdown opens the slices controls which allow control over
-    the dataset slices saved in the LIT tool.
-
-#### Slices
-
-The slice controls allow for creating, editing, selecting, and deleting of
-slices. The current selection can be saved as a slice by giving it a name and
-clicking "Create slice". The dropdown on the right allows you to select any of
-the previously-saved slices. This includes the "Favorites" slice that is
-described above in the [Selection Toolbar](#selection-toolbar) section.
-
-The feature checkboxes enable the user to facet the data by input feature when
-creating a slice. In the screenshot below, we are creating a new slice named
-"interesting", and have selected the checkbox to facet by the "label" feature.
-In this example, the "label" feature is a feature in the dataset that for each
-datapoint describes which ground truth class it belongs to for some
-classification task (either "0" or "1" for this binary classification example).
-So, by creating a slice with this checkbox enabled, the tool will actually
-create two slices: one named "interesting label:0" for datapoints with their
-label set to 0, and one named "interesting label:1" for those with their label
-set to "1".
-
-![LIT slice controls](./images/lit-slices.png "LIT slice controls")
 
 ### Status Bar
 
@@ -181,7 +152,7 @@ models.
 
 ## Comparing Datapoints
 
-Toggling the **"Compare datapoints"** button in the selection toolbar puts LIT
+Toggling the **"Compare datapoints"** switch in the mail toolbar puts LIT
 into **datapoint comparison mode**. In this mode, the primary datapoint
 selection is used a reference datapoint, and any subsequent setting of the
 primary selection causes it to be compared against the reference point. The
@@ -195,10 +166,31 @@ counterfactual datapoints, or any other datapoint from the loaded dataset.
 
 ![LIT datapoint comparison](./images/lit-datapoint-compare.png "LIT datapoint comparison")
 
+## Slices
+
+The *Slice Editor* allows for creating, editing, selecting, and deleting of
+slices. The current selection can be saved as a slice by giving it a name and
+clicking "Create slice". The slice list allows you to select any of
+the previously-saved slices. This includes the "Favorites" slice that is
+described above in the [Main Toolbar](#main-toolbar) section.
+
+The feature checkboxes enable the user to facet the data by input feature when
+creating a slice. In the screenshot below, we are creating a new slice named
+"interesting", and have selected the checkbox to facet by the "label" feature.
+In this example, the "label" feature is a feature in the dataset that for each
+datapoint describes which ground truth class it belongs to for some
+classification task (either "0" or "1" for this binary classification example).
+So, by creating a slice with this checkbox enabled, the tool will actually
+create two slices: one named "interesting label:0" for datapoints with their
+label set to 0, and one named "interesting label:1" for those with their label
+set to "1".
+
+![LIT slice controls](./images/lit-slices.png "LIT slice controls")
+
 ## URL Sharing
 
 Many states of the LIT app, such as models and datasets loaded, datapoints
-selected, and modules disabled, are all stored in URL parameters. In this way,
+selected, and modules minimized, are all stored in URL parameters. In this way,
 if a user wants to share the tool with a specific view set up with someone else,
 they can copy the URL (either manually or via the share link button) as a means 
 of sharing it.
