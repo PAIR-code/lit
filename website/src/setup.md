@@ -64,20 +64,28 @@ pushd lit_nlp; yarn && yarn build; popd
 
 LIT ships with a number of demos that can easily be run after installation.
 
-## Sentiment classifier
+## Quick-start: Classification and regression
+
+To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
 
 ```bash
-python -m lit_nlp.examples.quickstart_sst_demo --port=5432
+python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
 ```
 
-This will fine-tune a [BERT-tiny](https://arxiv.org/abs/1908.08962) model on the [Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html), which should take less than 5 minutes on a GPU.
-After training completes, it'll start a LIT server on the development set.
-Navigate to http://localhost:5432 for the UI.
+Navigate to http://localhost:5432 to access the LIT UI. 
+
+Your default view will be a 
+[small BERT-based model](https://arxiv.org/abs/1908.08962) fine-tuned on the
+[Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
+but you can switch to 
+[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the gear icon in 
+the upper right.
 
 ## Language modeling
 
 ```bash
-python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased --port=5432
+python -m lit_nlp.examples.pretrained_lm_demo \
+  --models=bert-base-uncased --port=5432
 ```
 
 In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).

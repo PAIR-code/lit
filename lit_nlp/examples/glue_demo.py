@@ -1,7 +1,11 @@
 # Lint as: python3
 r"""Example demo loading a handful of GLUE models.
 
-To run locally:
+For a quick-start set of models, run:
+  python -m lit_nlp.examples.glue_demo \
+    --quickstart --port=5432
+
+To run with the 'normal' defaults, including full-size BERT models:
   python -m lit_nlp.examples.glue_demo --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
@@ -22,6 +26,10 @@ import transformers  # for path caching
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
+
+flags.DEFINE_bool(
+    "quickstart", False,
+    "Quick-start mode, loads smaller models and a subset of the full data.")
 
 flags.DEFINE_list(
     "models", [
@@ -46,6 +54,14 @@ MODELS_BY_TASK = {
     "mnli": glue_models.MNLIModel,
 }
 
+# Pre-specified set of small models, which will load and run much faster.
+QUICK_START_MODELS = (
+    "sst2_tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
+    "sst2_small:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_small.tar.gz",
+    "stsb_tiny:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz",
+    "mnli_small:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_small.tar.gz",
+)
+
 
 def get_wsgi_app():
   """Return WSGI app for container-hosted demos."""
@@ -63,6 +79,11 @@ def get_wsgi_app():
 
 
 def main(_):
+  # Quick-start mode.
+  if FLAGS.quickstart:
+    FLAGS.models = QUICK_START_MODELS  # smaller, faster models
+    FLAGS.max_examples = 1000  # truncate the larger eval sets
+    logging.info("Quick-start mode; overriding --models and --max_examples.")
 
   models = {}
   datasets = {}

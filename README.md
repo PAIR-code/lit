@@ -83,25 +83,29 @@ running the demos.
 
 ## Running LIT
 
-### Quick-start: sentiment classifier
+### Quick-start: classification and regression
+
+To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
 
 ```sh
-cd ~/lit
-python -m lit_nlp.examples.quickstart_sst_demo --port=5432
+python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
 ```
 
-This will fine-tune a [BERT-tiny](https://arxiv.org/abs/1908.08962) model on the
+Navigate to http://localhost:5432 to access the LIT UI. 
+
+Your default view will be a 
+[small BERT-based model](https://arxiv.org/abs/1908.08962) fine-tuned on the
 [Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
-which should take less than 5 minutes on a GPU. After training completes, it'll
-start a LIT server on the development set; navigate to http://localhost:5432 for
-the UI.
+but you can switch to 
+[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the gear icon in 
+the upper right.
+
 
 ### Quick start: language modeling
 
 To explore predictions from a pretrained language model (BERT or GPT-2), run:
 
 ```sh
-cd ~/lit
 python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased \
   --port=5432
 ```
@@ -113,7 +117,6 @@ And navigate to http://localhost:5432 for the UI.
 See [lit_nlp/examples](./lit_nlp/examples). Run similarly to the above:
 
 ```sh
-cd ~/lit
 python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 ```
 
