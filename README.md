@@ -123,7 +123,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 ## User Guide
 
 To learn about LIT's features, check out the [user guide](documentation/user_guide.md), or
-watch this [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
+watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
 
@@ -149,16 +149,17 @@ more, both on the frontend or the backend. See the
 
 ## Citing LIT
 
-If you use LIT as part of your work, please cite [our paper](https://arxiv.org/abs/2008.05122):
+If you use LIT as part of your work, please cite [our EMNLP paper](https://arxiv.org/abs/2008.05122):
 
 ```
 @misc{tenney2020language,
-    title={The Language Interpretability Tool: Extensible, Interactive Visualizations and Analysis for NLP Models},
+    title={The Language Interpretability Tool: Extensible, Interactive Visualizations and Analysis for {NLP} Models},
     author={Ian Tenney and James Wexler and Jasmijn Bastings and Tolga Bolukbasi and Andy Coenen and Sebastian Gehrmann and Ellen Jiang and Mahima Pushkarna and Carey Radebaugh and Emily Reif and Ann Yuan},
-    year={2020},
-    eprint={2008.05122},
-    archivePrefix={arXiv},
-    primaryClass={cs.CL}
+    booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    year = "2020",
+    publisher = "Association for Computational Linguistics",
+    pages = "107--118",
+    url = "https://www.aclweb.org/anthology/2020.emnlp-demos.15",
 }
 ```
 
@@ -167,7 +168,7 @@ If you use LIT as part of your work, please cite [our paper](https://arxiv.org/a
 This is not an official Google product.
 
 LIT is a research project, and under active development by a small team.
-There will be some bugs and rough edges, but we're releasing v0.1 because we
-think it's pretty useful already. We want LIT to be an open platform, not a
-walled garden, and we'd love your suggestions and feedback - drop us a line in
-the [issues](https://github.com/pair-code/lit/issues).
+There will be some bugs and rough edges, but we're releasing at an early stage
+because we think it's pretty useful already. We want LIT to be an open platform,
+not a walled garden, and we'd love your suggestions and feedback - drop us a
+line in the [issues](https://github.com/pair-code/lit/issues).
