@@ -1,5 +1,8 @@
 r"""Coreference demo, trainer and LIT server.
 
+To run LIT locally with a pre-trained model:
+  blaze run -c opt --config=cuda examples/coref:coref_demo -- --port=5432
+
 This demo shows a simple gold-mention coreference model, highlighting how LIT
 can support intersectional analysis for fairness evaluation. It also
 demonstrates a multi-headed model, with both a structured prediction head
@@ -23,10 +26,6 @@ Bureau of Labor Statistics.
 For more details on the analysis, see the case study in Section 3 of
 the LIT paper (https://arxiv.org/abs/2008.05122).
 
-To start LIT with a pre-trained classifier, run:
-  blaze run -c opt --config=cuda examples/coref:coref_demo -- \
-    --model_path=/tmp/lit_coref_model --port=5432
-
 To train the model, you'll need the OntoNotes 5.0 dataset in the edge probing
 JSON format. See
 https://github.com/nyu-mll/jiant-v1-legacy/tree/master/probing/data#ontonotes
@@ -34,7 +33,7 @@ for instructions. Then run:
   blaze run -c opt --config=cuda examples/coref:coref_demo -- \
     --encoder_name=bert-base-uncased --do_train \
     --ontonotes_edgeprobe_path=/path/to/ontonotes/coref/ \
-    --model_path=/tmp/lit_coref_model \
+    --model_path=/path/to/save/model \
     --do_serve --port=5432
 
 With bert-base-uncased on a single Titan Xp GPU, it takes about 10-12 minutes
@@ -62,6 +61,8 @@ from lit_nlp.examples.coref.datasets import ontonotes
 from lit_nlp.examples.coref.datasets import winogender
 from lit_nlp.lib import utils
 
+import transformers  # for path caching
+
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
@@ -74,7 +75,10 @@ flags.DEFINE_bool(
     "do_serve", True,
     "If true, start a LIT server with the model at FLAGS.model_path.")
 
-flags.DEFINE_string("model_path", None, "Path to save or load trained model.")
+flags.DEFINE_string(
+    "model_path",
+    "https://storage.googleapis.com/what-if-tool-resources/lit-models/coref_base.tar.gz",
+    "Path to save or load trained model.")
 
 ##
 # Training-only flags; these are ignored if only serving a pre-trained model.
@@ -144,6 +148,11 @@ def train(save_path: str):
 
 def run_server(load_path: str):
   """Run a LIT server with the trained coreference model."""
+  # Normally path is a directory; if it's an archive file, download and
+  # extract to the transformers cache.
+  if load_path.endswith(".tar.gz"):
+    load_path = transformers.file_utils.cached_path(
+        load_path, extract_compressed_file=True)
   # Load model from disk.
   full_model = model.FrozenEncoderCoref.from_saved(
       load_path,

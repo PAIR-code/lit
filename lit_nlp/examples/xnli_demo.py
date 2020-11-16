@@ -1,16 +1,14 @@
 # Lint as: python3
 r"""Example demo for multilingual NLI on the XNLI eval set.
 
+To run locally with our trained model:
+  python -m lit_nlp.examples.xnli_demo --port=5432
+
+Then navigate to localhost:5432 to access the demo UI.
+
 To train a model for this task, use tools/glue_trainer.py or your favorite
 trainer script to fine-tune a multilingual encoder, such as
 bert-base-multilingual-cased, on the mnli task.
-
-To run locally:
-  python -m lit_nlp.examples.xnli_demo \
-      --model_path=/path/to/multilingual/mnli/model \
-      --port=5432
-
-Then navigate to localhost:5432 to access the demo UI.
 
 Note: the LIT UI can handle around 10k examples comfortably, depending on your
 hardware. The monolingual (english) eval sets for MNLI are about 9.8k each,
@@ -27,6 +25,8 @@ from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
 
+import transformers  # for path caching
+
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
@@ -37,7 +37,8 @@ flags.DEFINE_list(
     "ar,bg,de,el,en,es,fr,hi,ru,sw,th,tr,ur,zh,vi")
 
 flags.DEFINE_string(
-    "model_path", None,
+    "model_path",
+    "https://storage.googleapis.com/what-if-tool-resources/lit-models/mbert_mnli.tar.gz",
     "Path to fine-tuned model files. Expects model to be in standard "
     "transformers format, e.g. as saved by model.save_pretrained() and "
     "tokenizer.save_pretrained().")
@@ -49,10 +50,14 @@ flags.DEFINE_integer(
 
 
 def main(_):
+  # Normally path is a directory; if it's an archive file, download and
+  # extract to the transformers cache.
+  model_path = FLAGS.model_path
+  if model_path.endswith(".tar.gz"):
+    model_path = transformers.file_utils.cached_path(
+        model_path, extract_compressed_file=True)
 
-  models = {
-      "nli": glue_models.MNLIModel(FLAGS.model_path, inference_batch_size=16)
-  }
+  models = {"nli": glue_models.MNLIModel(model_path, inference_batch_size=16)}
   datasets = {
       "xnli": classification.XNLIData("validation", FLAGS.languages),
       "mnli_dev": glue.MNLIData("validation_matched"),
