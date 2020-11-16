@@ -33,8 +33,8 @@ flags.DEFINE_bool(
 
 flags.DEFINE_list(
     "models", [
-        "sst2_tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
-        "sst2_base:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_base.tar.gz",
+        "sst2-tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
+        "sst2-base:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_base.tar.gz",
         "stsb:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_base.tar.gz",
         "mnli:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_base.tar.gz",
     ], "List of models to load, as <name>:<task>:<path>. "
@@ -56,21 +56,21 @@ MODELS_BY_TASK = {
 
 # Pre-specified set of small models, which will load and run much faster.
 QUICK_START_MODELS = (
-    "sst2_tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
-    "sst2_small:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_small.tar.gz",
-    "stsb_tiny:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz",
-    "mnli_small:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_small.tar.gz",
+    "sst2-tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
+    "sst2-small:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_small.tar.gz",
+    "stsb-tiny:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz",
+    "mnli-small:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_small.tar.gz",
 )
 
 
 def get_wsgi_app():
   """Return WSGI app for container-hosted demos."""
   FLAGS.set_default("server_type", "external")
-  # TODO(lit-dev): add larger model for MNLI and comparison for SST2.
   FLAGS.set_default("models", [
-      "sst2:sst2:./bert-tiny/sst2",
-      "stsb:stsb:./bert-tiny/stsb",
-      "mnli:mnli:./bert-tiny/mnli",
+      "sst2-tiny:sst2:./bert-tiny/sst2_tiny",
+      "sst2-small:sst2:./bert-tiny/sst2_small",
+      "stsb:stsb:./bert-tiny/stsb_tiny",
+      "mnli:mnli:./bert-tiny/mnli_small",
   ])
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
