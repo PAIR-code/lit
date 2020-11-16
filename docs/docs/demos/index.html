@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>LIT - Demos</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+    <style>
+      .sub-title, .sub-copy {
+        color: #49596c;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="sub-hero-container" style="background-image:url( /lit/assets/images/LIT_Demos_Banner.png );">
+  <div class="hero-container mdl-grid">
+    <div class="mdl-cell--8-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+
+      <div class="sub-title">Take the Language Interpretability Tool for a spin!</div>
+      <div class="sub-copy">Get a feel for LIT in a variety of hosted demos.</div>
+    </div>
+  </div>
+</div>
+        <div class="sub-page-container mdl-grid">
+          <div class="mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+  <div class="mdl-grid no-padding">
+<div class="demo-card mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--4-col-phone">
+  <div class="demo-card-title"><a href="/lit/demos/glue.html" target="_blank">Classification and regression models</a></div>
+  <div class="demo-card-tags"> <span class="demo-tag"> BERT </span>  <span class="demo-tag"> binary classification </span>  <span class="demo-tag"> multi-class classification </span>  <span class="demo-tag"> regression </span> 
+  </div>
+  <div class="demo-card-data-source-title">DATA SOURCES</div>
+  <div class="demo-card-data-source">
+    Stanford Sentiment Treebank,  Multi-Genre NLI Corpus, Semantic Textual Similarity Benchmark
+  </div>
+  <div class="demo-card-copy">Use LIT with any of three tasks from the General Language Understanding Evaluation (GLUE) benchmark suite. This demo contains binary classification (for sentiment analysis, using SST2), multi-class classification (for textual entailment, using MultiNLI), and regression (for measuringtext similarity, using STS-B).</div>
+  <div class="demo-card-cta-button"><a href="/lit/demos/glue.html"></a></div>
+</div>
+<div class="demo-card mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--4-col-phone">
+  <div class="demo-card-title"><a href="/lit/demos/coref.html" target="_blank">Gender bias in coreference systems</a></div>
+  <div class="demo-card-tags"> <span class="demo-tag"> BERT </span>  <span class="demo-tag"> coreference </span>  <span class="demo-tag"> fairness </span>  <span class="demo-tag"> Winogender </span> 
+  </div>
+  <div class="demo-card-data-source-title">DATA SOURCES</div>
+  <div class="demo-card-data-source">
+    Winogender schemas
+  </div>
+  <div class="demo-card-copy">Use LIT to explore gendered associations in a coreference system, which matches pronouns to their antecedents. This demo highlights how LIT can work with structured prediction models (edge classification), and its capability for disaggregated analysis.</div>
+  <div class="demo-card-cta-button"><a href="/lit/demos/coref.html"></a></div>
+</div>
+<div class="demo-card mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--4-col-phone">
+  <div class="demo-card-title"><a href="/lit/demos/lm.html" target="_blank">Fill in the blanks</a></div>
+  <div class="demo-card-tags"> <span class="demo-tag"> BERT </span>  <span class="demo-tag"> masked language model </span> 
+  </div>
+  <div class="demo-card-data-source-title">DATA SOURCES</div>
+  <div class="demo-card-data-source">
+    Stanford Sentiment Treebank, Movie Reviews
+  </div>
+  <div class="demo-card-copy">Explore a BERT-based masked-language model. See what tokens the model predicts should fill in the blank when any token from an example sentence is masked out.</div>
+  <div class="demo-card-cta-button"><a href="/lit/demos/lm.html"></a></div>
+</div>
+<div class="demo-card mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--4-col-phone">
+  <div class="demo-card-title"><a href="/lit/demos/t5.html" target="_blank">Text generation</a></div>
+  <div class="demo-card-tags"> <span class="demo-tag"> T5 </span>  <span class="demo-tag"> generation </span> 
+  </div>
+  <div class="demo-card-data-source-title">DATA SOURCES</div>
+  <div class="demo-card-data-source">
+    CNN / Daily Mail
+  </div>
+  <div class="demo-card-copy">Use a T5 model to summarize text. For any example of interest, quickly find similar examples from the training set, using an approximate nearest-neighbors index.</div>
+  <div class="demo-card-cta-button"><a href="/lit/demos/t5.html"></a></div>
+</div>
+  </div>
+
+          </div>
+          <div class="fixed-sub-navigation hide-me">
+            
+          </div>
+        </div>
+        
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

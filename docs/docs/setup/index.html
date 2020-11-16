@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>LIT - Setup Guide</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+    <style>
+      .sub-title, .sub-copy {
+        color: #fef0f7;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="sub-hero-container" style="background-image:url( /lit/assets/images/LIT_FAQs_Banner.png ); height: 245px; ">
+  <div class="hero-container mdl-grid">
+    <div class="mdl-cell--8-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+
+      <div class="sub-title">LIT is simple to use</div>
+      <div class="sub-copy">Get up and running quickly, with pre-built examples or your own models and data.</div>
+    </div>
+  </div>
+</div>
+        <div class="sub-page-container mdl-grid">
+          <div class="mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+<p><a name="install"></a></p>
+<h1>Install LIT</h1>
+<p>LIT can be installed via pip, or can be built from source.</p>
+<h2>Install via pip</h2>
+<pre class="language-bash"><code class="language-bash">pip <span class="token function">install</span> lit-nlp</code></pre>
+<p>The pip installation will install all necessary prerequisite packages for use of the core LIT package. It also installs the code to run our demo examples. It does not install the prerequisites for those demos, so you need to install those yourself if you wish to run the demos. To install those, we recommend using conda with our included <a href="https://github.com/PAIR-code/lit/blob/main/environment.yml">environment.yml</a>.</p>
+<pre class="language-bash"><code class="language-bash"><span class="token comment"># Set up Python environment</span><br><span class="token builtin class-name">cd</span> ~/lit<br>conda <span class="token function">env</span> create -f environment.yml<br>conda activate lit-nlp<br>conda <span class="token function">install</span> cudnn cupti  <span class="token comment"># optional, for GPU support</span><br>conda <span class="token function">install</span> -c pytorch pytorch  <span class="token comment"># optional, for PyTorch</span></code></pre>
+<p>If you want to update any of the frontend or core code, you can install a local copy from source:</p>
+<h2>Install from source</h2>
+<p>Download the code from our <a href="https://github.com/PAIR-code/lit/">GitHub repo</a> and set up a Python environment:</p>
+<pre class="language-bash"><code class="language-bash"><span class="token function">git</span> clone https://github.com/PAIR-code/lit.git ~/lit<br><br><span class="token comment"># Set up Python environment</span><br><span class="token builtin class-name">cd</span> ~/lit<br>conda <span class="token function">env</span> create -f environment.yml<br>conda activate lit-nlp<br>conda <span class="token function">install</span> cudnn cupti  <span class="token comment"># optional, for GPU support</span><br>conda <span class="token function">install</span> -c pytorch pytorch  <span class="token comment"># optional, for PyTorch</span><br><br><span class="token comment"># Build the frontend</span><br><span class="token function">pushd</span> lit_nlp<span class="token punctuation">;</span> <span class="token function">yarn</span> <span class="token operator">&amp;&amp;</span> <span class="token function">yarn</span> build<span class="token punctuation">;</span> <span class="token function">popd</span></code></pre>
+<div class="spacer" style="height:50px;"></div>
+<p><a name="demos"></a></p>
+<h1>Run the included demos</h1>
+<p>LIT ships with a number of demos that can easily be run after installation.</p>
+<h2>Quick-start: Classification and regression</h2>
+<p>To explore classification and regression models tasks from the popular <a href="https://gluebenchmark.com/">GLUE benchmark</a>:</p>
+<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.glue_demo --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
+<p>Navigate to http://localhost:5432 to access the LIT UI.</p>
+<p>Your default view will be a
+<a href="https://arxiv.org/abs/1908.08962">small BERT-based model</a> fine-tuned on the
+<a href="https://nlp.stanford.edu/sentiment/treebank.html">Stanford Sentiment Treebank</a>,
+but you can switch to
+<a href="http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark">STS-B</a> or <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> using the toolbar or the gear icon in
+the upper right.</p>
+<h2>Language modeling</h2>
+<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.pretrained_lm_demo <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
+<p>In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).
+Navigate to http://localhost:5432 for the UI.</p>
+<h2>More examples</h2>
+<p>The <a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples">examples</a> directory contains additional examples to explore, all of which can be run similarly to those above.</p>
+<div class="spacer" style="height:50px;"></div>
+<p><a name="custom"></a></p>
+<h1>Use LIT on your own models and data</h1>
+<p>This is a brief overview of how to run LIT with your own models and datasets.
+For more details, see the documentation in the <a href="https://github.com/pair-code/lit">code repository</a>.</p>
+<p>To run LIT with your own models and data, you can create a custom <code>demo.py</code>
+script that passes these to the LIT server. For example:</p>
+<pre class="language-py"><code class="language-py"><span class="token keyword">def</span> <span class="token function">main</span><span class="token punctuation">(</span>_<span class="token punctuation">)</span><span class="token punctuation">:</span><br>  <span class="token comment"># MulitiNLIData implements the Dataset API</span><br>  datasets <span class="token operator">=</span> <span class="token punctuation">{</span><br>      <span class="token string">'mnli_matched'</span><span class="token punctuation">:</span> MultiNLIData<span class="token punctuation">(</span><span class="token string">'/path/to/dev_matched.tsv'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'mnli_mismatched'</span><span class="token punctuation">:</span> MultiNLIData<span class="token punctuation">(</span><span class="token string">'/path/to/dev_mismatched.tsv'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>  <span class="token punctuation">}</span><br><br>  <span class="token comment"># NLIModel implements the Model API</span><br>  models <span class="token operator">=</span> <span class="token punctuation">{</span><br>      <span class="token string">'model_foo'</span><span class="token punctuation">:</span> NLIModel<span class="token punctuation">(</span><span class="token string">'/path/to/model/foo/files'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'model_bar'</span><span class="token punctuation">:</span> NLIModel<span class="token punctuation">(</span><span class="token string">'/path/to/model/bar/files'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>  <span class="token punctuation">}</span><br><br>  lit_demo <span class="token operator">=</span> lit_nlp<span class="token punctuation">.</span>dev_server<span class="token punctuation">.</span>Server<span class="token punctuation">(</span>models<span class="token punctuation">,</span> datasets<span class="token punctuation">,</span> port<span class="token operator">=</span><span class="token number">4321</span><span class="token punctuation">)</span><br>  <span class="token keyword">return</span> lit_demo<span class="token punctuation">.</span>serve<span class="token punctuation">(</span><span class="token punctuation">)</span><br><br><span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span><br>  main<span class="token punctuation">(</span><span class="token punctuation">)</span></code></pre>
+<p>Conceptually, a dataset is just a list of examples and a model is just a
+function that takes examples and returns predictions. The <a href="#datasets"><code>Dataset</code></a>
+and <a href="#models"><code>Model</code></a> classes implement this, and provide metadata to describe themselves to other
+components.</p>
+<p>For full examples, see
+<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples">examples</a>. In particular:</p>
+<ul>
+<li><a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_tf2_demo.py"><code>simple_tf2_demo.py</code></a>
+for a self-contained Keras/TF2 model for sentiment analysis.</li>
+<li><a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py"><code>simple_pytorch_demo.py</code></a>
+for a self-contained PyTorch model for sentiment analysis.</li>
+</ul>
+<p><a name="datasets"></a></p>
+<h2>Datasets</h2>
+<p>Datasets (<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py"><code>Dataset</code></a>) are
+just a list of examples, with associated type information following LIT's type system.</p>
+<ul>
+<li><code>spec()</code> should return a flat dict that describes the fields in each example</li>
+<li><code>self._examples</code> should be a list of flat dicts</li>
+</ul>
+<p>Implementations should subclass
+<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py"><code>Dataset</code></a>. Usually this
+is just a few lines of code - for example, the following is a complete dataset
+loader for <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a>:</p>
+<pre class="language-py"><code class="language-py"><span class="token keyword">class</span> <span class="token class-name">MultiNLIData</span><span class="token punctuation">(</span>Dataset<span class="token punctuation">)</span><span class="token punctuation">:</span><br>  <span class="token triple-quoted-string string">"""Loader for MultiNLI development set."""</span><br><br>  NLI_LABELS <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">'entailment'</span><span class="token punctuation">,</span> <span class="token string">'neutral'</span><span class="token punctuation">,</span> <span class="token string">'contradiction'</span><span class="token punctuation">]</span><br><br>  <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> path<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token comment"># Read the eval set from a .tsv file as distributed with the GLUE benchmark.</span><br>    df <span class="token operator">=</span> pandas<span class="token punctuation">.</span>read_csv<span class="token punctuation">(</span>path<span class="token punctuation">,</span> sep<span class="token operator">=</span><span class="token string">'\t'</span><span class="token punctuation">)</span><br>    <span class="token comment"># Store as a list of dicts, conforming to self.spec()</span><br>    self<span class="token punctuation">.</span>_examples <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token punctuation">{</span><br>      <span class="token string">'premise'</span><span class="token punctuation">:</span> row<span class="token punctuation">[</span><span class="token string">'sentence1'</span><span class="token punctuation">]</span><span class="token punctuation">,</span><br>      <span class="token string">'hypothesis'</span><span class="token punctuation">:</span> row<span class="token punctuation">[</span><span class="token string">'sentence2'</span><span class="token punctuation">]</span><span class="token punctuation">,</span><br>      <span class="token string">'label'</span><span class="token punctuation">:</span> row<span class="token punctuation">[</span><span class="token string">'gold_label'</span><span class="token punctuation">]</span><span class="token punctuation">,</span><br>      <span class="token string">'genre'</span><span class="token punctuation">:</span> row<span class="token punctuation">[</span><span class="token string">'genre'</span><span class="token punctuation">]</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span> <span class="token keyword">for</span> _<span class="token punctuation">,</span> row <span class="token keyword">in</span> df<span class="token punctuation">.</span>iterrows<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">]</span><br><br>  <span class="token keyword">def</span> <span class="token function">spec</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token keyword">return</span> <span class="token punctuation">{</span><br>      <span class="token string">'premise'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'hypothesis'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'label'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>Label<span class="token punctuation">(</span>vocab<span class="token operator">=</span>self<span class="token punctuation">.</span>NLI_LABELS<span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token comment"># We can include additional fields, which don't have to be used by the model.</span><br>      <span class="token string">'genre'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>Label<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span></code></pre>
+<p>This implementation uses Pandas to read a TSV file, but you can also use
+services like <a href="https://www.tensorflow.org/datasets">TensorFlow Datasets</a> -
+simply wrap them in your <code>__init__()</code> function.</p>
+<p>Note that you can freely add additional features - such as <code>genre</code> in the
+example above - which the model may not be aware of. The LIT UI will recognize
+these features for slicing, binning, etc., and they will also be available to
+interpretation components such as custom metrics.</p>
+<p><a name="models"></a></p>
+<h2>Models</h2>
+<p>Models (<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py"><code>Model</code></a>) are
+functions which take inputs and produce outputs, with associated type
+information following LIT's type system. The core
+API consists of three methods:</p>
+<ul>
+<li><code>input_spec()</code> should return a flat dict that describes necessary input
+fields</li>
+<li><code>output_spec()</code> should return a flat dict that describes the model's
+predictions and any additional outputs</li>
+<li><code>predict_minibatch()</code> and/or <code>predict()</code> should take a sequence of inputs
+(satisfying <code>input_spec()</code>) and yields a parallel sequence of outputs
+matching <code>output_spec()</code>.</li>
+</ul>
+<p>Implementations should subclass
+<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py"><code>Model</code></a>. An example for
+<a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> might look something like:</p>
+<pre class="language-py"><code class="language-py"><span class="token keyword">class</span> <span class="token class-name">NLIModel</span><span class="token punctuation">(</span>Model<span class="token punctuation">)</span><span class="token punctuation">:</span><br>  <span class="token triple-quoted-string string">"""Wrapper for a Natural Language Inference model."""</span><br><br>  NLI_LABELS <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">'entailment'</span><span class="token punctuation">,</span> <span class="token string">'neutral'</span><span class="token punctuation">,</span> <span class="token string">'contradiction'</span><span class="token punctuation">]</span><br><br>  <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> model_path<span class="token punctuation">,</span> <span class="token operator">**</span>kw<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token comment"># Load the model into memory so we're ready for interactive use.</span><br>    self<span class="token punctuation">.</span>_model <span class="token operator">=</span> _load_my_model<span class="token punctuation">(</span>model_path<span class="token punctuation">,</span> <span class="token operator">**</span>kw<span class="token punctuation">)</span><br><br>  <span class="token comment">##</span><br>  <span class="token comment"># LIT API implementations</span><br>  <span class="token keyword">def</span> <span class="token function">predict</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> inputs<span class="token punctuation">:</span> List<span class="token punctuation">[</span>Input<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">-</span><span class="token operator">></span> Iterable<span class="token punctuation">[</span>Preds<span class="token punctuation">]</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Predict on a single minibatch of examples."""</span><br>    examples <span class="token operator">=</span> <span class="token punctuation">[</span>self<span class="token punctuation">.</span>_model<span class="token punctuation">.</span>convert_dict_input<span class="token punctuation">(</span>d<span class="token punctuation">)</span> <span class="token keyword">for</span> d <span class="token keyword">in</span> inputs<span class="token punctuation">]</span>  <span class="token comment"># any custom preprocessing</span><br>    <span class="token keyword">return</span> self<span class="token punctuation">.</span>_model<span class="token punctuation">.</span>predict_examples<span class="token punctuation">(</span>examples<span class="token punctuation">)</span>  <span class="token comment"># returns a dict for each input</span><br><br>  <span class="token keyword">def</span> <span class="token function">input_spec</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Describe the inputs to the model."""</span><br>    <span class="token keyword">return</span> <span class="token punctuation">{</span><br>        <span class="token string">'premise'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>        <span class="token string">'hypothesis'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span><br><br>  <span class="token keyword">def</span> <span class="token function">output_spec</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Describe the model outputs."""</span><br>    <span class="token keyword">return</span> <span class="token punctuation">{</span><br>      <span class="token comment"># The 'parent' keyword tells LIT where to look for gold labels when computing metrics.</span><br>      <span class="token string">'probas'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>MulticlassPreds<span class="token punctuation">(</span>vocab<span class="token operator">=</span>NLI_LABELS<span class="token punctuation">,</span> parent<span class="token operator">=</span><span class="token string">'label'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span></code></pre>
+<p>Unlike the dataset example, this model implementation is incomplete - you'll
+need to customize <code>predict()</code> (or <code>predict_minibatch()</code>) accordingly with any
+pre- or post-processing needed, such as tokenization.</p>
+<p>Note: The <code>Model</code> base class implements simple batching, aided by the
+<code>max_minibatch_size()</code> function. This is purely for convenience, since most deep
+learning models will want this behavior. But if you don't need it, you can
+simply override the <code>predict()</code> function directly and handle large inputs
+accordingly.</p>
+<p>Note: there are a few additional methods in the model API - see
+<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py"><code>Model</code></a> for details.</p>
+</div>
+
+          </div>
+          <div class="fixed-sub-navigation hide-me">
+            <a href="#install">Installation</a><a href="#demos">Included demos</a><a href="#custom">Custom models and data</a>
+          </div>
+        </div>
+        
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

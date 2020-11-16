@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>Gender Bias in Coreference</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="tutorial-page-container mdl-grid">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="tutorial-breadcrumbs">
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Coreference
+</div>
+            <h2>Gender Bias in Coreference</h2>
+<div class="link-out"><a href="../../demos/coref.html" target="_blank">Explore this demo yourself.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<p>Or, run your own with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/coref/coref_demo.py"><code>examples/coref/coref_demo.py</code></a></p>
+<p>Does a system encode gendered associations, which might lead to incorrect predictions? We explore this for coreference, the task of identifying whether two mentions refer to the same (real-world) entity. For example, in the sentence &quot;The technician told the customer that they could pay with cash.&quot;, we understand from the context that &quot;they&quot; refers to &quot;the customer&quot;, the one paying.</p>
+<p>The Winogender dataset introduced by Rudinger et al. 2018 presents a set of challenging coreference examples designed to explore gender bias. It consists of 120 templates, each with semantic context that makes it easy for humans to tell the answer. Each template is instantiated with different pronouns, in order to give a minimal pair:</p>
+<ul>
+<li>&quot;The technician told the customer that <strong>he</strong> could pay with cash.&quot;</li>
+<li>&quot;The technician told the customer that <strong>she</strong> could pay with cash.&quot;</li>
+</ul>
+<p>In both cases, the pronoun should refer to the customer - but does our model agree? Or does it fall back on stereotypes about who can be a technician, or a customer? We can use LIT to explore this interactively, making use of the side-by-side functionality, structured prediction visualization, and powerful features for aggregate analysis to validate our findings.</p>
+<p>We load our coreference model into LIT, along with a copy of the Winogender dataset. Our model predicts probabilities for each mention pair - in this case the (occupation, pronoun) and (participant, pronoun) pairs - and LIT renders this as a pair of edges:</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-pred.png"/>
+  <div class="tutorial-caption">Above: A coreference prediction.</div>
+</div>
+<p>We can select an example by clicking the row in the data table in the top left of the UI; the predictions will display automatically in the &quot;Predictions&quot; tab below. To look at two predictions side-by-side, we can enable &quot;Compare datapoints&quot; mode in the toolbar, which will pin our first selection as a &quot;reference&quot; and allow us to select another point to compare:</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-select.png"/>
+  <div class="tutorial-caption">Above: Selecting two datapoints to compare.</div>
+</div>
+<p>We see that LIT automatically replicates the predictions view, allowing us to see how our model handles &quot;he&quot; and &quot;she&quot; differently on these two sentences:</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-compare.png"/>
+  <div class="tutorial-caption">Above: Comparing coreference predictions of two datapoints.</div>
+</div>
+<p>To see why this might be, we can make use of some additional information from the U.S. Bureau of Labor Statistics (BLS), which tabulates the gender percentages in different occupations. Our example loads this along with the dataset, and LIT shows this as a column in the data table:</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-data.png"/>
+  <div class="tutorial-caption">Above: Datapoints with extra informational feature columns.</div>
+</div>
+<p>We see that &quot;technician&quot; is only 40% female, suggesting that our model might be picking up on social biases with its eagerness to identify &quot;he&quot; as the technician in the example above.</p>
+<p>Is this a pattern? In addition to individual instances, we can use LIT to see if this holds on larger slices of the data. Turning to the &quot;Performance&quot; tab, we see that our model gets around 63% accuracy overall.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-metric-top.png"/>
+  <div class="tutorial-caption">Above: Overall model accuracy in the metrics table.</div>
+</div>
+<p>Let's see how this breaks down. On the right, the Scalars module lets us select data based on scalar values, such as the percent female of each profession according to BLS. Let's select the points on the left, with professions that are stereotypically male (&lt; 25% female). Additionally, we'll stratify our metrics based on the pronoun group, and whether the answer should be the occupation term or the other, neutral, participant:</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-coref-metrics.png"/>
+  <div class="tutorial-caption">Above: Metrics faceted into sub-groups and scalar results plots.</div>
+</div>
+<p>We can see that on this slice, our model performs very well when the ground truth agrees with the stereotype - i.e. when the answer is the occupation term, our model resolves male pronouns correctly 91% of the time, while only matching female pronouns 37% of the time in exactly the same contexts.</p>
+
+          </div>
+          <div class="mdl-cell--4-col hide-me">
+            <div class="tutorial-info-container">
+              <div class="tutorial-info-header">time to read</div>
+              <div class="tutorial-info-copy">10 minutes</div>
+              <div class="tutorial-info-header">takeaways</div>
+              <div class="tutorial-info-copy">Learn about how to explore fairness using datapoint comparison and metrics comparisons.</div>
+            </div>
+          </div>
+          <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            The Language Interpretability Tool is being actively developed and documentation is likely to change as we improve the tool. We want to hear from you! Leave us a note, feedback, or suggestion on our <a href="https://github.com/pair-code/lit/issues/new" target="_blank">Github</a>.
+          </div>
+        </div>
+
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

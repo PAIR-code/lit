@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>Language Interpretability Tool</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+    <style>
+      .main-bg { background-image:url(/lit/assets/images/LIT_Home_Banner.png); }
+    </style>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner main-bg">
+        <div class="mdl_grid main-page-container">
+          <div class="mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+          <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
+<div class="display1">The Language Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>.</div>
+<a class="home-cta-button" href="/lit/tutorials/tour" >
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+  Take a tour
+  </button>
+</a>
+<a class="home-cta-button" href="/lit/setup" >
+  <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">
+  Setup LIT
+  </button>
+</a>
+<div class="spacer" style="height:60px;"></div>
+</div>
+<p><img src="/lit/assets/images/lit-tweet.gif" alt="overview of LIT"></p>
+<div class="spacer" style="height:60px;"></div>
+<div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
+<p>The Language Interpretability Tool (LIT) is for researchers and practitioners looking to understand NLP model behavior through a visual, interactive, and extensible tool.</p>
+<p>Use LIT to ask and answer questions like:</p>
+<ul>
+<li>What kind of examples does my model perform poorly on?</li>
+<li>Why did my model make this prediction? Can it attribute it to adversarial behavior, or undesirable priors from the training set?</li>
+<li>Does my model behave consistently if I change things like textual style, verb tense, or pronoun gender?</li>
+</ul>
+<p>LIT contains many built-in capabilities but is also customizable, with the ability to add custom interpretability techniques, metrics calculations, counterfactual generators, visualizations, and more.</p>
+<p>For a similar tool to explore general-purpose machine learning models, check out the <a href="https://whatif-tool.dev">What-If Tool</a>.</p>
+</div>
+<div class="spacer" style="height:50px;"></div>
+<div class="display2">Flexible and powerful model probing</div>
+<div class="mdl-grid no-padding">
+<div class="mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+  <h3>Built-in capabilities</h3>
+  <div>
+<p>Salience maps</p>
+<p>Attention visualization</p>
+<p>Metrics calculations</p>
+<p>Counterfactual generation</p>
+<p>Model and datapoint comparison</p>
+<p>Embedding visualization</p>
+<p>And more...</p>
+</div>
+</div>
+<div class="mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+  <h3>Supported task types</h3>
+  <div>
+<p>Classification</p>
+<p>Regression</p>
+<p>Text generation / seq2seq</p>
+<p>Masked language models</p>
+<p>Span labeling</p>
+<p>Multi-headed models</p>
+<p>And more...</p>
+</div>
+</div>
+<div class="mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--6-col-phone">
+  <h3>Framework agnostic</h3>
+  <div>
+<p>TensorFlow 1.x</p>
+<p>TensorFlow 2.x</p>
+<p>PyTorch</p>
+<p>Custom inference code</p>
+<p>Remote Procedure Calls</p>
+<p>And more...</p>
+</div>
+</div>
+</div>
+<div class="spacer" style="height:50px;"></div>
+<h2>What’s the latest</h2>
+<div class="mdl-grid no-padding">
+<div class="mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--8-col-phone">
+  <img class="home-card-image" src="/lit/assets/images/LIT_Contribute.png"/>
+  <div class="home-card-action">CODE</div>
+  <h3 class="home-card-title">Contribute to LIT</h3>
+  <div class="home-card-desc">LIT is open to anyone who wants to help develop and improve it!</div>
+  <div class="home-card-cta-button"><a href="https://github.com/PAIR-code/lit/blob/main/documentation/development.md" target="_blank" >View developer guide</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+</div>
+<div class="mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--8-col-phone">
+  <img class="home-card-image" src="/lit/assets/images/LIT_Updates.png"/>
+  <div class="home-card-action">UPDATES</div>
+  <h3 class="home-card-title">Latest updates</h3>
+  <div class="home-card-desc">New features, updates, and improvements to LIT.</div>
+  <div class="home-card-cta-button"><a href="https://github.com/PAIR-code/lit/blob/main/RELEASE.md" target="_blank" >See release notes</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+</div>
+<div class="mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--8-col-phone">
+  <img class="home-card-image" src="/lit/assets/images/LIT_Paper.png"/>
+  <div class="home-card-action">RESEARCH</div>
+  <h3 class="home-card-title">Demo Paper at EMNLP ‘20</h3>
+  <div class="home-card-desc">Read about what went into LIT in our demo paper, presented at EMNLP ‘20.</div>
+  <div class="home-card-cta-button"><a href="https://arxiv.org/abs/2008.05122" target="_blank" >Read the paper</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+</div>
+</div>
+
+          </div>
+
+          <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+        </div>
+      </main>
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>
