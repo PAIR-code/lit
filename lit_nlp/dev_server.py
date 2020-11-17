@@ -91,6 +91,12 @@ class Server(object):
       # then just return the WSGI app instead of serving it directly.
       if self._server_type == 'external':
         return app
+      # Pre-bake mode runs any warm-start functions, saves the cache,
+      # and exits. Designed to be used in container setup for faster launching.
+      if self._server_type == 'prebake':
+        app.save_cache()
+        logging.info('Pre-bake completed; exiting server.')
+        return
 
       server_fn = WSGI_SERVERS[self._server_type]
       server = server_fn(app, **self._server_kw)

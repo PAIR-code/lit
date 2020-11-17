@@ -36,10 +36,11 @@ FLAGS = flags.FLAGS
 ##
 # Server flags, passed to the WSGI server.
 flags.DEFINE_integer('port', 5432, 'What port to serve on.')
-flags.DEFINE_string('server_type', 'default',
-                    'Webserver to use. Use "external" when using an external  '
-                    'webserver, like gunicorn. See dev_server.py for other '
-                    'options.')
+flags.DEFINE_string(
+    'server_type', 'default',
+    'Webserver to use; see dev_server.py for options. Use "external" when '
+    'using an external webserver like gunicorn, or "prebake" to run start-up '
+    'tasks (like warm start and caching data) without starting a server.')
 flags.DEFINE_string(
     'host', '127.0.0.1', 'What host address to serve on. Use 127.0.0.1 for '
     'local development, or 0.0.0.0 to allow external connections.')
