@@ -38,7 +38,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="lit-nlp",
-    version="0.1.1",
+    version="0.2",
     description="Language Interpretability Tool.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -47,5 +47,10 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     license="Apache 2.0",
     install_requires=REQUIRED_PACKAGES,
-    package_data={"lit_nlp": ["client/build/*", "client/build/static/*"]},
+    package_data={
+        "lit_nlp": [
+            "client/build/*", "client/build/default/*",
+            "client/build/default/static/*"
+        ]
+    },
 )
