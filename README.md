@@ -31,6 +31,12 @@ Features include:
     multi-head models and multiple input features out of the box.
 *   **Framework-agnostic** and compatible with TensorFlow, PyTorch, and more.
 
+LIT has a [website](https://pair-code.github.io/lit) with live demos, tutorials,
+a setup guide and more.
+
+Stay up to date on LIT by joining the
+[lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
+
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
 [user guide](documentation/user_guide.md).
 
@@ -82,6 +88,9 @@ those yourself if you wish to run the demos. See
 running the demos.
 
 ## Running LIT
+
+Explore a collection of hosted demos on the
+[LIT website demos page](https://pair-code.github.io/lit/demos).
 
 ### Quick-start: classification and regression
 
