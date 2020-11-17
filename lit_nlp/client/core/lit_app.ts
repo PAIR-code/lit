@@ -19,14 +19,14 @@
 // Import and add injection functionality to LitModule
 import {reaction} from 'mobx';
 
-import {Constructor} from '../lib/types';
+import {Constructor, LitComponentLayouts} from '../lib/types';
 
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
-import {ModulesService, LitComponentLayouts} from '../services/modules_service';
+import {ModulesService} from '../services/modules_service';
 import {RegressionService} from '../services/regression_service';
 import {SelectionService} from '../services/selection_service';
 import {SettingsService} from '../services/settings_service';
@@ -51,12 +51,12 @@ export class LITApp {
   async initialize(layouts: LitComponentLayouts) {
     const appState = this.getService(AppState);
     const modulesService = this.getService(ModulesService);
+    appState.layouts = layouts;
 
     await appState.initialize();
-    const layout = layouts[appState.layoutName];
     modulesService.initializeLayout(
-        layout, appState.currentModelSpecs, appState.currentDatasetSpec,
-        appState.compareExamplesEnabled);
+        appState.layout, appState.currentModelSpecs,
+        appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
     /**
      * If we need more than one selectionService, create and append it to the

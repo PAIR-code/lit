@@ -21,16 +21,18 @@
 
 // tslint:disable:no-new-decorators
 
-import { customElement, html, property } from 'lit-element';
-import { classMap } from 'lit-html/directives/class-map';
-import { styleMap } from 'lit-html/directives/style-map';
-import { observable } from 'mobx';
 import '@material/mwc-icon';
 
-import { VizColor } from '../lib/colors';
+import {customElement, html, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+import {styleMap} from 'lit-html/directives/style-map';
+import {observable} from 'mobx';
 
-import { styles } from './span_graph_vis_vertical.css';
-import { ReactiveElement } from '../lib/elements';
+import {VizColor} from '../lib/colors';
+import {ReactiveElement} from '../lib/elements';
+import {EdgeLabel} from '../lib/types';
+
+import {styles} from './span_graph_vis_vertical.css';
 
 
 /**
@@ -54,15 +56,12 @@ export interface AnnotationLayer {
   'edges': EdgeLabel[];
 }
 
-/**
- * Represents a directed edge between two mentions.
- * If span2 is null, interpret as a single span label.
- * See https://arxiv.org/abs/1905.06316 for more on this formalism.
- */
-export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string | number;
+function formatEdgeLabel(label: string|number): string {
+  if (typeof (label) === 'number') {
+    return Number.isInteger(label) ? label.toString() :
+                                     label.toFixed(3).toString();
+  }
+  return `${label}`;
 }
 
 /** Structured prediction (SpanGraph) visualization class. */
@@ -134,8 +133,12 @@ export class SpanGraphVis extends ReactiveElement {
     });
 
     // The column width is the width of the longest label, in pixels.
-    const colWidth = Math.max(layer.name.length, ...layer.edges.map(
-      e => `${e.label}`.length)) * this.approxFontSize + this.viewPad * 2;
+    const colWidth =
+        Math.max(
+            layer.name.length,
+            ...layer.edges.map(e => formatEdgeLabel(e.label).length)) *
+            this.approxFontSize +
+        this.viewPad * 2;
 
     const colStyles = styleMap({ width: `${colWidth}pt` });
     const hidden = this.columnVisibility[layer.name];
@@ -185,8 +188,11 @@ export class SpanGraphVis extends ReactiveElement {
     const grayLine = tokSelected && !(selected || child);
     const grayLabel = grayLine && !(parent);
 
+    // Edge labels can be either strings or numbers; format the latter nicely.
+    const formattedLabel = formatEdgeLabel(edge.label);
+
     // Styling for the label text.
-    const labelWidthInPx = `${edge.label}`.length * this.approxFontSize;
+    const labelWidthInPx = formattedLabel.length * this.approxFontSize;
     const labelStyle = styleMap({
       top: `${span0 * this.lineHeight}pt`,
       left: isArc ? `${colWidth - labelWidthInPx - this.viewPad}pt` : '',
@@ -239,10 +245,9 @@ export class SpanGraphVis extends ReactiveElement {
     </div>
     <div class=${labelClasses}
       style=${labelStyle}>
-      ${edge.label} 
+      ${formattedLabel}
     </div>
     `;
-
   }
 
   /**

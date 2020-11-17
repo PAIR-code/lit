@@ -1,0 +1,211 @@
+/**
+ * Padding and margins attempt to match the offsets of the left-
+ * and right-most visual elements in the main app toolbar.
+ */
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 4pt;
+  padding-right: 4pt;
+}
+
+.toolbar button {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+#main-toolbar {
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  background-color: white;
+  border-bottom: 1px solid #dadce0;
+  height: 40px;
+}
+
+.togglable-toolbar-holder {
+  background-color: white;
+  width: fit-content; /* set to 100% to span page */
+  border: 1px solid;
+  border-radius: 2pt;
+  border-color: rgb(218, 220, 224);
+  position: absolute;
+}
+
+#slice-toolbar-container {
+  right: 0; /* remove to span page */
+}
+
+#left-container {
+  display: flex;
+}
+
+#right-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 4px;
+  max-height: 24px; /** To avoid page jumps when selections happen. **/
+  font-family: Roboto;
+  font-size: 14px;
+}
+
+#button-holder-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  flex-grow: 2;
+  margin: 4px;
+}
+
+.selection-status-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+#primary-selection-status {
+  margin-right: 4pt;
+}
+
+#pair-controls {
+  margin-left: 12pt;
+}
+
+/**
+ * For standalone MWC icons as buttons.
+ * We don't use mwc-icon-button because this adds
+ * a large backdrop and extra whitespace.
+ */
+mwc-icon.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}
+
+mwc-icon.disabled {
+  cursor: default;
+  color: rgba(60, 64, 67, 0.38);
+}
+
+mwc-icon.disabled:hover {
+  opacity: 1;
+}
+
+/* For in-line icons in a <span> */
+[data-icon] {
+  margin: 0;
+}
+
+[data-icon]:before {
+  font-family: 'Material Icons';
+  content: attr(data-icon);
+  vertical-align: middle;
+}
+
+#star-button {
+  margin-top: -4px;
+  margin-right: 6pt;
+  --mdc-icon-size: 20px;
+}
+
+#legend-container {
+  right: 0;
+  min-width: 150px;
+  top: 100%;
+  margin-left: -8pt; /* To account for button padding */
+  margin-top: 6px;
+  cursor: default;
+}
+
+.toolbar-holder {
+  position: relative;
+}
+
+.toggle-example-comparison {
+  font-family: Roboto;
+  font-size: 14px;
+  color: #3C4043;
+  cursor: pointer;
+  padding: 3px 8px;
+  user-select: none;
+}
+
+.text-disabled {
+  color: rgba(60, 64, 67, 0.38);
+}
+
+.compare-container {
+  display: flex;
+  width: 200px;
+  height:100%;
+}
+
+.compare-tooltip {
+  position: absolute;
+  left: 372px;
+  width: 256px;
+  top: 75px;
+  font-family: Roboto;
+  font-size: 12px;
+  background: rgba(32, 33, 36, 0.9);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #FFFFFF;
+  display: flex;
+}
+
+.tooltip-icon {
+  --mdc-icon-size: 20px;
+  margin-top: 6px;
+  margin-left: 10px;
+}
+
+.tooltip-text {
+  margin: 8px 12px;
+}
+
+#compare-switch {
+  margin-top: 6px;
+}
+
+#primary-text {
+  text-align: right;
+}
+
+#number-selected {
+}
+
+#select-random-icon {
+  vertical-align: middle;
+}
+
+#select-random-text {
+  vertical-align: middle;
+}
+
+#num-selected-text {
+  min-width: 10px;
+  text-align: right;
+  display: inline-block;
+}
+
+/* Disable Material ripple */
+mwc-switch {
+  --mdc-ripple-hover-opacity: 0;
+  --mdc-ripple-press-opacity: 0;
+  --mdc-ripple-focus-opacity: 0;
+}

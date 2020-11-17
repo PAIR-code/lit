@@ -15,14 +15,13 @@
 # Lint as: python3
 """LIT backend, as a standard WSGI app."""
 
-import collections
 import functools
 import glob
 import os
 import pickle
 import random
 import time
-from typing import Optional, Text, List, Mapping
+from typing import Optional, Text, List, Mapping, MutableMapping
 
 from absl import logging
 
@@ -43,7 +42,6 @@ from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
-
 
 JsonDict = types.JsonDict
 
@@ -86,7 +84,7 @@ class LitApp(object):
 
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
-    info_by_model = collections.OrderedDict()
+    info_by_model = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
       info = {}
@@ -102,17 +100,24 @@ class LitApp(object):
       # with models, or just do this on frontend?
       info['generators'] = list(self._generators.keys())
       info['interpreters'] = list(self._interpreters.keys())
+      info['description'] = m.description()
       info_by_model[name] = info
 
-    info_by_dataset = collections.OrderedDict()
+    info_by_dataset = {}
     for name, ds in self._datasets.items():
-      info_by_dataset[name] = {'spec': ds.spec()}
+      info_by_dataset[name] = {
+          'spec': ds.spec(),
+          'description': ds.description(),
+      }
+    generator_info = {}
+    for gen_name in self._generators.keys():
+      generator_info[gen_name] = self._generators[gen_name].spec()
 
     self._info = {
         'models': info_by_model,
         'datasets': info_by_dataset,
         # TODO(lit-team): return more spec information here?
-        'generators': list(self._generators.keys()),
+        'generators': generator_info,
         'interpreters': list(self._interpreters.keys()),
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
@@ -275,7 +280,7 @@ class LitApp(object):
   def __init__(
       self,
       models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_dataset.Dataset],
+      datasets: MutableMapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       # General server config; see server_flags.py.
@@ -289,7 +294,6 @@ class LitApp(object):
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
-
     self._demo_mode = demo_mode
     self._default_layout = default_layout
     self._canonical_url = canonical_url
@@ -300,6 +304,7 @@ class LitApp(object):
         for name, model in models.items()
     }
     self._datasets = datasets
+    self._datasets['_union_empty'] = NoneDataset(self._models)
     if generators is not None:
       self._generators = generators
     else:
@@ -320,6 +325,7 @@ class LitApp(object):
       self._interpreters = {
           'grad_norm': gradient_maps.GradientNorm(),
           'lime': lime_explainer.LIME(),
+          'grad_dot_input': gradient_maps.GradientDotInput(),
           'integrated gradients': gradient_maps.IntegratedGradients(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'metrics': metrics_group,
@@ -380,3 +386,29 @@ class LitApp(object):
   def __call__(self, environ, start_response):
     """Implementation of the WSGI interface."""
     return self._wsgi_app(environ, start_response)
+
+
+class NoneDataset(lit_dataset.Dataset):
+  """Default for simple model exploration."""
+
+  def __init__(self, models):
+    self._examples = []
+    self._models = models
+
+  def spec(self):
+    combined_spec = {}
+    for _, model in self._models.items():
+      req_inputs = {
+          k: v for (k, v) in model.spec().input.items() if v.required
+      }
+      # Ensure that there are no conflicting spec keys.
+      assert not self.has_conflicting_keys(combined_spec, req_inputs)
+      combined_spec.update(req_inputs)
+
+    return combined_spec
+
+  def has_conflicting_keys(self, spec0: types.Spec, spec1: types.Spec):
+    for k, v in spec0.items():
+      if k in spec1 and spec1[k] != v:
+        return True
+    return False

@@ -24,8 +24,8 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, LitType, ModelsMap, SpanLabel, Spec} from '../lib/types';
-import {compareArrays, findSpecKeys, isLitSubtype, shortenId} from '../lib/utils';
+import {IndexedInput, ModelsMap, formatForDisplay, Spec} from '../lib/types';
+import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
 import {ClassificationService, RegressionService, SelectionService} from '../services/services';
@@ -43,7 +43,7 @@ export class DataTableModule extends LitModule {
   static template = () => {
     return html`<data-table-module></data-table-module>`;
   };
-  static numCols = 5;
+  static numCols = 4;
   static get styles() {
     return [sharedStyles, styles];
   }
@@ -173,7 +173,7 @@ export class DataTableModule extends LitModule {
       return [
         index, displayId,
         ...this.keys.map(
-            (key) => this.formatForDisplay(d.data[key], this.dataSpec[key])),
+            (key) => formatForDisplay(d.data[key], this.dataSpec[key])),
         ...predictionInfoEntries
       ];
     });
@@ -297,7 +297,7 @@ export class DataTableModule extends LitModule {
         // tslint:disable-next-line:no-any
         entries.forEach((entry: any, i: number) => {
           const displayInfoName = displayNames[i];
-          const displayInfoValue = this.formatForDisplay(entry[1]);
+          const displayInfoValue = formatForDisplay(entry[1]);
           if (displayInfoName == null) return;
           keysToTableEntry.set(
               this.getTableKey(
@@ -306,55 +306,6 @@ export class DataTableModule extends LitModule {
         });
       });
     });
-  }
-
-  /**
-   * Formats the following types for display in the data table:
-   * string, number, boolean, string[], number[], (string|number)[]
-   * TODO(lit-dev): allow passing custom HTML to table, not just strings.
-   */
-  // tslint:disable-next-line:no-any
-  formatForDisplay(input: any, fieldSpec?: LitType): string {
-    if (input == null) return '';
-
-    // Handle SpanLabels, if field spec given.
-    // TODO(lit-dev): handle more fields this way.
-    if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
-      const formattedTags =
-          (input as SpanLabel[])
-              .map((d: SpanLabel) => `[${d.start}, ${d.end}): ${d.label}`);
-      return formattedTags.join(', ');
-    }
-
-    // Generic data, based on type of input.
-    if (Array.isArray(input)) {
-      const maxWordLength = 25;
-      const strings = input.map((item) => {
-        if (typeof item === 'number') {
-          return Number.isInteger(item) ? item.toString() :
-                                          item.toFixed(4).toString();
-        }
-        if (typeof item === 'string') {
-          return item.length < maxWordLength ?
-              item :
-              item.substring(0, maxWordLength) + '...';
-        }
-        return `${item}`;
-      });
-      return `${strings.join(', ')}`;
-    }
-
-    if (typeof input === 'boolean') {
-      return input ? '✔' : ' ';
-    }
-
-    if (typeof input === 'number') {
-      return Number.isInteger(input) ? input.toString() :
-                                       input.toFixed(4).toString();
-    }
-
-    // Fallback: just coerce to string.
-    return `${input}`;
   }
 
   /**

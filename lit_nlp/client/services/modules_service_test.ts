@@ -25,8 +25,9 @@ import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 
 import {ApiService} from './api_service';
-import {LitComponentLayout, ModulesService} from './modules_service';
+import {ModulesService} from './modules_service';
 import {AppState} from './state_service';
+import {LitComponentLayout} from '../lib/types';
 
 const MOCK_LAYOUT: LitComponentLayout = {
   components: {
@@ -89,7 +90,7 @@ describe('modules service test', async () => {
     // Check that the two modules we added to the layout are reflected in
     // allModuleKeys.
     const keys =
-        new Set([DatapointEditorModule.title, SalienceMapModule.title]);
+        new Set([`Main_${DatapointEditorModule.title}`, `internals_${SalienceMapModule.title}`]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 

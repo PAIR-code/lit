@@ -21,6 +21,7 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
+import {html, TemplateResult} from 'lit-element';
 import {FacetMap, LitName, LitType, ModelsMap, Spec} from './types';
 
 /**
@@ -215,7 +216,7 @@ export function doesOutputSpecContain(
  * Sorts object keys, so order of object does not matter.
  */
 export function objToDictKey(dict: FacetMap) {
-  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join('/');
+  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join(' ');
 }
 
 /**
@@ -239,4 +240,49 @@ export function copyToClipboard(value: string) {
   tempInput.select();
   document.execCommand("copy");
   document.body.removeChild(tempInput);
+}
+
+/**
+ * Processes a sentence so that no word exceeds a certain length by
+ * chunking a long word into shorter pieces. This is useful when rendering
+ * a table-- normally a table will stretch to fit the entire word length
+ * (https://www.w3schools.com/cssref/pr_tab_table-layout.asp).
+ * TODO(lit-dev): find a more long-term solution to this, since adding a
+ * NPWS will make copy/pasting from the table behave strangely.
+ */
+export function chunkWords(sent: string) {
+  const chunkWord = (word: string) => {
+    const maxLen = 15;
+    const chunks: string[] = [];
+    for (let i=0; i<word.length; i+=maxLen) {
+      chunks.push(word.slice(i, i+maxLen));
+    }
+    // This is not an empty string, it is a non-printing space.
+    const zeroWidthSpace = '​';
+    return chunks.join(zeroWidthSpace);
+  };
+  return sent.split(' ').map(word => chunkWord(word)).join(' ');
+}
+
+/**
+ * Converts any URLs into clickable links.
+ * TODO(lit-dev): write unit tests for this.
+ */
+export function linkifyUrls(
+    text: string,
+    target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
+  const formatLink = (url: string) =>
+      html`<a href=${url} target=${target}>${url}</a>`;
+  const ret: Array<string|TemplateResult> = [];  // return segments
+  let lastIndex = 0;  // index of last character added to return segments
+  // Find https (yes, only https) urls and make them real links.
+  // Similar to gmail and other apps, this assumes terminal punctuation is
+  // not part of the url.
+  for (const match of text.matchAll(/https:\/\/[^\s]+[^.?!\s]/g)) {
+    ret.push(text.slice(lastIndex, match.index));
+    lastIndex = match.index! + match[0].length;
+    ret.push(formatLink(text.slice(match.index, lastIndex)));
+  }
+  ret.push(text.slice(lastIndex, text.length));
+  return html`${ret}`;
 }

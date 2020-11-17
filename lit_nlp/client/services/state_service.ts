@@ -18,7 +18,8 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {IndexedInput, Input, LitMetadata, ModelsMap, ModelSpec, Spec} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
+import {IndexedInput, Input, LitMetadata, LitType, ModelsMap, ModelSpec, Spec, LitComponentLayouts, LitComponentLayout} from '../lib/types';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -54,6 +55,11 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled: boolean = false;
   @observable layoutName!: string;
+  @observable layouts!: LitComponentLayouts;
+  @computed
+  get layout(): LitComponentLayout {
+    return this.layouts[this.layoutName];
+  }
 
   /**
    * Enforce setting currentDataset through the setCurrentDataset method by
@@ -214,6 +220,19 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return this.metadata.models[modelName].spec;
   }
 
+  /**
+   * Get the spec keys matching the info from the provided FieldMatcher.
+   */
+  getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
+    let spec = this.currentDatasetSpec;
+    if (matcher.spec === 'output') {
+      spec = this.currentModelSpecs[modelName].spec.output;
+    } else if (matcher.spec === 'input') {
+      spec = this.currentModelSpecs[modelName].spec.input;
+    }
+    return findSpecKeys(spec, matcher.type!);
+  }
+
   //=================================== Generation logic
   /**
    * Create and add new datapoints from the output of a generator.
@@ -238,7 +257,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
             'parentId': parentIds[i],
             'source': source,
             'added': 1,
-            'isFavorited': false
+            'isStarred': false
           }
         };
 
@@ -284,7 +303,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const info = await this.apiService.getInfo();
     console.log('[LIT - metadata]', toJS(info));
     this.metadata = info;
-    this.layoutName = urlConfiguration.layout || this.metadata.defaultLayout;
+    this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
     this.setCurrentDataset(

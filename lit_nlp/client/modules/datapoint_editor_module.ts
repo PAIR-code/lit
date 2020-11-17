@@ -17,14 +17,14 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {Input, defaultValueByField, ModelsMap, SpanLabel, Spec} from '../lib/types';
-import {handleEnterKey, isLitSubtype} from '../lib/utils';
+import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, Input, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 
 import {styles} from './datapoint_editor_module.css';
@@ -40,7 +40,7 @@ type InputConverterFn = (s: string) => string|number|string[];
 @customElement('datapoint-editor-module')
 export class DatapointEditorModule extends LitModule {
   static title = 'Datapoint Editor';
-  static numCols = 3;
+  static numCols = 2;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></datapoint-editor-module>`;
@@ -80,12 +80,8 @@ export class DatapointEditorModule extends LitModule {
     for (const key of keys) {
       const lengths = this.appState.currentInputData.map(
           indexedInput => indexedInput.data[key]?.length);
-      const defaultLength = d3.quantile(lengths, percentileForDefault);
-      if (defaultLength == null) continue;
-
-      defaultLengths[key] = defaultLength;
+      defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
     }
-
     return defaultLengths;
   }
 
@@ -101,6 +97,7 @@ export class DatapointEditorModule extends LitModule {
     this.reactImmediately(getCurrentDataset, () => {
       when(() => this.appState.currentInputDataIsLoaded, () => {
         this.resize();
+        this.resetEditedData(null);
       });
     });
 
@@ -325,9 +322,16 @@ export class DatapointEditorModule extends LitModule {
 
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
-      const renderLabel = (d: SpanLabel) => html`<div class="span-label">[${
-          d.start}, ${d.end}): ${d.label}</div>`;
+      const renderLabel = (d: SpanLabel) =>
+          html`<div class="span-label">${formatSpanLabel(d)}</div>`;
       return html`${value ? (value as SpanLabel[]).map(renderLabel) : null}`;
+    };
+    // Non-editable render for edge labels.
+    const renderEdgeLabelsNonEditable = () => {
+      const renderLabel = (d: EdgeLabel) => {
+        return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
+      };
+      return html`${value ? (value as EdgeLabel[]).map(renderLabel) : null}`;
     };
 
     let renderInput = renderFreeformInput;  // default: free text
@@ -343,6 +347,8 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderTokensInput;
     } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
+    } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
+      renderInput = renderEdgeLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput = renderSparseMultilabelInput;
     }

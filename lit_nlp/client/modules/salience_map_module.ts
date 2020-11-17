@@ -149,6 +149,18 @@ export class SalienceMapModule extends LitModule {
       canRun: (modelSpec: Spec) =>
           findSpecKeys(modelSpec, 'TokenGradients').length > 0
     },
+    'grad_dot_input': {
+      autorun: true,
+      isLoading: false,
+      salience: {},
+      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
+      // TODO(lit-dev): Should also check that this aligns with a token field,
+      // here and in checkModule. Perhaps move component compatibility somewhere
+      // central.
+      canRun: (modelSpec: Spec) =>
+          findSpecKeys(modelSpec, 'TokenGradients').length > 0 &&
+          findSpecKeys(modelSpec, 'TokenEmbeddings').length > 0
+    },
     'integrated gradients': {
       autorun: false,
       isLoading: false,

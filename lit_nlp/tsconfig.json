@@ -13,7 +13,7 @@
     "removeComments": true,
     "allowUnreachableCode": true,
     "downlevelIteration": true,
-    "lib": ["dom", "es2019"],
+    "lib": ["dom", "es2019", "es2020.string"],
     "strictPropertyInitialization": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,

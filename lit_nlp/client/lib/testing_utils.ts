@@ -232,7 +232,12 @@ export const mockMetadata: LitMetadata = {
       }
     }
   },
-  'generators': ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
+  'generators': {
+    'word_replacer': {},
+    'scrambler': {},
+    'backtranslation': {},
+    'hotflip': {}
+  },
   'interpreters': ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
   'demoMode': false,
   'defaultLayout': 'default',

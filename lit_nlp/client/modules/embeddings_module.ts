@@ -60,6 +60,9 @@ export class EmbeddingsModule extends LitModule {
     'pca': {displayName: 'PCA', interpreterName: 'pca'},
     'umap': {displayName: 'UMAP', interpreterName: 'umap'},
   };
+
+  static numCols = 3;
+
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
   @computed

@@ -164,6 +164,10 @@ class CachingModelWrapper(lit_model.Model):
 
   ##
   # LIT model API implementation.
+  def description(self) -> str:
+    """Pass-through underlying model description."""
+    return self._model.description()
+
   def max_minibatch_size(self, config=None):
     return self._model.max_minibatch_size(config)
 

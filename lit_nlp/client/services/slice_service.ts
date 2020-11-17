@@ -27,7 +27,7 @@ import {AppState, SelectionService} from './services';
 /**
  * The name of the slice containing user-favorited items.
  */
-export const FAVORITES_SLICE_NAME = 'favorites';
+export const STARRED_SLICE_NAME = 'Starred';
 
 type SliceName = string;
 type Id = string;
@@ -44,33 +44,35 @@ export class SliceService extends LitService {
     reaction(() => selectionService.selectedInputData, selectedInputData => {
       // If selection doesn't match a slice, then reset selected slice to
       // no slice.
+      if (this.selectedSliceName == null) return;
       if (this.namedSlices.has(this.selectedSliceName) &&
           !arrayContainsSame(
               selectedInputData.map(input => input.id),
               this.namedSlices.get(this.selectedSliceName)!)) {
-        this.setSelectedSliceName('');
+        this.setSelectedSliceName(null);
       }
     });
   }
 
   // Initialize with an empty slice to hold favorited items.
   @observable
-  namedSlices = new Map<SliceName, Id[]>([[FAVORITES_SLICE_NAME, []]]);
-  @observable private selectedSliceNameInternal: string = '';
+  namedSlices = new Map<SliceName, Id[]>([[STARRED_SLICE_NAME, []]]);
+  @observable private selectedSliceNameInternal: string|null = null;
 
   @action
-  setSelectedSliceName(name: SliceName) {
+  setSelectedSliceName(name: string|null) {
     this.selectedSliceNameInternal = name;
   }
 
   @computed
-  get selectedSliceName(): string {
+  get selectedSliceName(): string|null {
     return this.selectedSliceNameInternal;
   }
 
   @action
-  selectNamedSlice(name: SliceName, user: ServiceUser = null) {
-    if (name === '') {
+  selectNamedSlice(name: string|null, user: ServiceUser = null) {
+    if (name === null) {
+      this.setSelectedSliceName(name);
       this.selectionService.selectIds([], user);
       return;
     }
@@ -79,8 +81,8 @@ export class SliceService extends LitService {
     if (sliceIds === null) {
       return;
     }
-    this.setSelectedSliceName(name);
     this.selectionService.selectIds(sliceIds, user);
+    this.setSelectedSliceName(name);
   }
 
   @action
@@ -121,22 +123,22 @@ export class SliceService extends LitService {
   }
 
   @computed
-  get sliceNames(): string[] {
+  get sliceNames(): SliceName[] {
     return [...this.namedSlices.keys()];
   }
 
-  getSliceByName(sliceName: string): string[]|null {
+  getSliceByName(sliceName: SliceName): string[]|null {
     const sliceIds = this.namedSlices.get(sliceName);
     return sliceIds ? sliceIds : null;
   }
 
 
-  getSliceDataByName(sliceName: string): IndexedInput[] {
+  getSliceDataByName(sliceName: SliceName): IndexedInput[] {
     const ids = this.getSliceByName(sliceName);
     return this.appState.getExamplesById(ids!);
   }
 
-  isSliceEmpty(sliceName: string): boolean {
+  isSliceEmpty(sliceName: SliceName): boolean {
     const slice = this.getSliceByName(sliceName);
     if (slice == null) return true;
 

@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
+import '../elements/generator_controls';
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
-import {computed, observable, reaction} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, IndexedInput, Input, ModelsMap, Spec} from '../lib/types';
-import {findSpecKeys, handleEnterKey} from '../lib/utils';
+import {CallConfig, IndexedInput, Input, ModelsMap, Spec, formatForDisplay, LitName} from '../lib/types';
+import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/services';
 
@@ -37,7 +37,7 @@ import {styles as sharedStyles} from './shared_styles.css';
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static title = 'Datapoint Generator';
-  static numCols = 12;
+  static numCols = 10;
 
   static template = () => {
     return html`<generator-module></generator-module>`;
@@ -76,13 +76,6 @@ export class GeneratorModule extends LitModule {
   }
 
   @computed
-  get embeddingFields() {
-    const modelName = this.appState.currentModels[0];
-    const modelSpec = this.appState.currentModelSpecs[modelName].spec;
-    return findSpecKeys(modelSpec.output, 'Embeddings');
-  }
-
-  @computed
   get totalNumGenerated() {
     return this.generated.reduce((a, b) => a + b.length, 0);
   }
@@ -117,6 +110,28 @@ export class GeneratorModule extends LitModule {
         (child as HTMLElement).style.minWidth = `${width}px`;
       }
     }
+
+    // Add event listeners for generation events from individual generators.
+    const onGenClick = (event: Event) => {
+      const globalParams = {
+        'model_name': this.modelName,
+        'dataset_name': this.datasetName,
+      };
+      // tslint:disable-next-line:no-any
+      const generatorParams: {[setting: string]: string} = (event as any)
+          .detail.settings;
+      // tslint:disable-next-line:no-any
+      const generatorName =  (event as any).detail.name;
+
+      // Add user-specified parameters from the applied generator.
+      const allParams = Object.assign({}, globalParams, generatorParams);
+      this.handleGeneratorClick(generatorName, allParams);
+    };
+    const controls =
+        this.shadowRoot!.querySelectorAll('lit-generator-controls');
+    for (let i = 0; i < controls.length; i++) {
+      controls[i].addEventListener('generator-click', onGenClick);
+    }
   }
 
   private resetEditedData() {
@@ -135,12 +150,16 @@ export class GeneratorModule extends LitModule {
       generator: string, modelName: string, config?: CallConfig) {
     this.isGenerating = true;
     this.sourceExamples = this.selectionService.selectedOrAllInputData;
-    const generated = await this.apiService.getGenerated(
-        this.sourceExamples, modelName, this.appState.currentDataset, generator,
-        config);
-    this.generated = generated;
-    this.appliedGenerator = generator;
-    this.isGenerating = false;
+    try {
+      const generated = await this.apiService.getGenerated(
+          this.sourceExamples, modelName, this.appState.currentDataset, generator,
+          config);
+      this.generated = generated;
+      this.appliedGenerator = generator;
+      this.isGenerating = false;
+    } catch (err) {
+      this.isGenerating = false;
+    }
   }
 
   private async createNewDatapoints(
@@ -225,11 +244,15 @@ export class GeneratorModule extends LitModule {
         const keys = Object.keys(generated);
 
         // render values for each datapoint.
-        const editable = false;
         // clang-format off
         return html`
           <div class='row'>
-            ${keys.map((key) => this.renderEntry(key, generated[key], editable))}
+            ${keys.map((key) => {
+              const editable =
+                  !this.appState.currentModelRequiredInputSpecKeys.includes(
+                      key);
+              return this.renderEntry(key, generated[key], editable);
+            })}
             <button class="button add-button" @click=${addPoint}>Add</button>
             <button class="button" @click=${removePoint}>Remove</button>
           </div>
@@ -275,94 +298,32 @@ export class GeneratorModule extends LitModule {
 
   renderGeneratorButtons() {
     const data = this.selectionService.selectedOrAllInputData;
-    const generators = this.appState.metadata.generators;
-    const text = this.appState.metadata.generators.length > 0 ?
+    const generatorsInfo = this.appState.metadata.generators;
+    const generators = Object.keys(generatorsInfo);
+    const text = generators.length > 0 ?
         `Generate counterfactuals for current selection (${
             data.length} datapoint${data.length === 1 ? '' : `s`}):` :
         'No generators provided by the server.';
-    // TODO(lit-team): Add configurable controls for each generator.
-    const updateSubstitutions = (e: Event) => {
-      const input = e.target! as HTMLInputElement;
-      this.substitutions = input.value;
-    };
 
-    const renderEmbeddingSelection = (embeddingFieldNames: string[]) => {
-      const updateEmbeddingSelection = (e: Event) => {
-        const select = (e.target as HTMLSelectElement);
-        this.embeddingSelection = select?.selectedIndex || 0;
-      };
-      const options = embeddingFieldNames.map((option, optionIndex) => {
-        return html`
-          <option value=${optionIndex}>${option}</option>
-        `;
-      });
-      const defaultValue = embeddingFieldNames[0];
-
-      return html`
-      <span class="dropdown-container">
-        <label class="dropdown-label">Embedding</label>
-        <select class="dropdown" @change=${updateEmbeddingSelection} .value=${
-          defaultValue}>
-          ${options}
-        </select>
-      </span>
-    `;
-    };
-
-    const genericGenerator = (generator: string) => {
-      const onClick = () => {
-        this.handleGeneratorClick(generator);
-      };
-      // clang-format off
-      return html`
-        <div class='generator-control'>
-          <button @click=${onClick}>${generator}</button>
-        </div>`;
-      // clang-format on
-    };
-    const similaritySearcher = (generator: string) => {
-      const onClick = () => {
-        this.handleGeneratorClick(generator, {
-          'model_name': this.modelName,
-          'dataset_name': this.datasetName,
-          'field_name': this.embeddingFields[this.embeddingSelection],
-        });
-      };
-      return html`
-        <div>
-          <button @click=${onClick}>${generator}</button>
-          ${renderEmbeddingSelection(this.embeddingFields)}
-        </div>`;
-    };
-    const wordReplacer = (generator: string) => {
-      const onClick = () => {
-        this.handleGeneratorClick(generator, {'subs': this.substitutions});
-      };
-      // clang-format off
-      return html`
-        <div class='generator-control'>
-          <button @click=${onClick}>${generator}</button>
-          <label class="input-label">Substitutions: </label>
-          <input type="text" style=${styleMap({width: "40%"})}
-            @input=${updateSubstitutions}
-            .value="${this.substitutions}" />
-        </div>`;
-      // clang-format on
-    };
     // clang-format off
     return html`
         <div id="generators">
           <div>${text}</div>
-          ${generators.map(generator => {
-      if (generator === 'similarity_searcher') {
-        return similaritySearcher(generator);
-      }
-      if (generator === 'word_replacer') {
-        return wordReplacer(generator);
-      } else {
-        return genericGenerator(generator);
-      }
-    })}
+          ${generators.map(genName => {
+            const generator = generatorsInfo[genName];
+            Object.keys(generator).forEach(name => {
+              // If the generator uses a field matcher, then get the matching
+              // field names from the specified spec and use them as the vocab.
+              if (isLitSubtype(generator[name], 'FieldMatcher')) {
+                generator[name].vocab =
+                    this.appState.getSpecKeysFromFieldMatcher(
+                        generator[name], this.modelName);
+              }
+            });
+            return html`
+                <lit-generator-controls .spec=${generator} .name=${genName}>
+                </lit-generator-controls>`;
+          })}
         </div>
     `;
     // clang-format on
@@ -400,11 +361,16 @@ export class GeneratorModule extends LitModule {
     };
 
     // For non-categorical outputs, render an editable textfield.
+    // TODO(lit-dev): Consolidate this logic with the datapoint editor,
+    // ideally as part of b/172597999.
     const renderFreeformInput = () => {
+      const fieldSpec = this.appState.currentDatasetSpec[key];
+      const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
+      editable =  editable && !isLitSubtype(fieldSpec, nonEditableSpecs);
+      const formattedVal = formatForDisplay(value, fieldSpec);
       return editable ? html`
       <input type="text" class="input-box" @input=${handleInputChange}
-      .value="${value}" />` :
-                        html`<div>${value}</div>`;
+      .value="${formattedVal}" />` : html`<div>${formattedVal}</div>`;
     };
 
     const onKeyUp = (e: KeyboardEvent) => {

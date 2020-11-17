@@ -41,6 +41,8 @@ TokenTopKPredsList = List[List[Tuple[str, float]]]
 class LitType(metaclass=abc.ABCMeta):
   """Base class for LIT Types."""
   required: bool = True  # for input fields, mark if required by the model.
+  # TODO(lit-dev): Add defaults for all LitTypes
+  default = None  # an optional default value for a given type.
 
   def is_compatible(self, other):
     """Check equality, ignoring some fields."""
@@ -52,6 +54,24 @@ class LitType(metaclass=abc.ABCMeta):
     d2.pop('required', None)
     return d1 == d2
 
+  def to_json(self) -> JsonDict:
+    """Used by serialize.py."""
+    d = attr.asdict(self)
+    d['__class__'] = 'LitType'
+    d['__name__'] = self.__class__.__name__
+    # All parent classes, from method resolution order (mro).
+    # Use this to check inheritance on the frontend.
+    d['__mro__'] = [a.__name__ for a in self.__class__.__mro__]
+    return d
+
+  @staticmethod
+  def from_json(d: JsonDict):
+    """Used by serialize.py."""
+    cls = globals()[d.pop('__name__')]  # class by name from this module
+    del d['__mro__']
+    return cls(**d)
+
+
 Spec = Dict[Text, LitType]
 
 
@@ -62,7 +82,7 @@ Spec = Dict[Text, LitType]
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TextSegment(LitType):
   """Text input (untokenized), a single string."""
-  pass
+  default: Text = ''
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -74,6 +94,7 @@ class GeneratedText(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(LitType):
   """Tokenized text, as List[str]."""
+  default: List[Text] = []
   # TODO(lit-dev): should we use 'align' here?
   parent: Optional[Text] = None  # name of a TextSegment field in the input
 
@@ -189,6 +210,29 @@ class AttentionHeads(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SubwordOffsets(LitType):
+  """Offsets to align input tokens to wordpieces or characters, as List[int].
+
+  offsets[i] should be the index of the first wordpiece for input token i.
+  """
+  align_in: Text  # name of field in data spec
+  align_out: Text  # name of field in model output spec
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
-  pass
+  vocab: Optional[Sequence[Text]] = None  # label names
+  default: Sequence[Text] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class FieldMatcher(LitType):
+  """For matching spec fields.
+
+  The front-end will perform spec matching and fill in the vocab field
+  accordingly.
+  """
+  spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
+  type: Text  # type of LitType to match in the spec.
+  vocab: Optional[Sequence[Text]] = None  # names matched from the spec.

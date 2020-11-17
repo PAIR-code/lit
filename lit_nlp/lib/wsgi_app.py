@@ -163,11 +163,11 @@ class App(object):
       path: The path to check for safety.
 
     Returns:
-      True if the given path stays within the current directory, and false
+      True if the given path stays within the project directory, and false
       if it would escape to a higher directory. E.g. _path_is_safe('index.html')
       returns true, but _path_is_safe('../../../etc/password') returns false.
     """
-    base = os.path.abspath(os.curdir)
+    base = os.path.abspath(self._project_root)
     absolute_path = os.path.abspath(path)
     prefix = os.path.commonprefix([base, absolute_path])
     return prefix == base

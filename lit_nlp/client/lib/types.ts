@@ -28,7 +28,8 @@ export type LitClass = 'LitType';
 export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
     'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
     'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel';
+    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
+    'FieldMatcher';
 
 export interface LitType {
   __class__: LitClass;
@@ -39,6 +40,9 @@ export interface LitType {
   vocab?: string[];
   null_idx?: number;
   required?: boolean;
+  default? : string|string[]|number|number[];
+  spec?: string;
+  type?: LitName;
 }
 
 export interface Spec {
@@ -49,12 +53,16 @@ export interface Spec {
 // field.
 export interface DatasetSpec {
   spec: Spec;
+  description?: string;
 }
 
 export interface DatasetsMap {
   [datasetName: string]: DatasetSpec;
 }
 
+export interface GeneratorsMap {
+  [generatorName: string]: Spec;
+}
 
 export interface CallConfig {
   [option: string]: string|number|boolean|CallConfig;
@@ -70,6 +78,7 @@ export interface ModelSpec {
     input: Spec,
     output: Spec,
   };
+  description?: string;
 }
 
 export interface ModelsMap {
@@ -78,7 +87,7 @@ export interface ModelsMap {
 
 export interface LitMetadata {
   datasets: DatasetsMap;
-  generators: string[];
+  generators: GeneratorsMap;
   interpreters: string[];
   models: ModelsMap;
   demoMode: boolean;
@@ -132,6 +141,32 @@ export interface SpanLabel {
   'start': number;  // inclusive
   'end': number;    // exclusive
   'label': string;
+}
+export function formatSpanLabel(s: SpanLabel): string {
+  // Add non-breaking control chars to keep this on one line
+  // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
+  return `[${s.start}, ${s.end})\u2060: ${s.label}`.replace(
+      /\ /g, '\u00a0' /* &nbsp; */);
+}
+
+/**
+ * Represents a directed edge between two mentions.
+ * If span2 is null, interpret as a single span label.
+ * See https://arxiv.org/abs/1905.06316 for more on this formalism.
+ */
+export interface EdgeLabel {
+  'span1': [number, number];   // inclusive, exclusive
+  'span2'?: [number, number];  // inclusive, exclusive
+  'label': string|number;
+}
+export function formatEdgeLabel(e: EdgeLabel): string {
+  const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
+  const span1Text = formatSpan(e.span1);
+  const span2Text = e.span2 ? ' ← ' + formatSpan(e.span2) : '';
+  // Add non-breaking control chars to keep this on one line
+  // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
+  return `${span1Text}${span2Text}\u2060: ${e.label}`.replace(
+      /\ /g, '\u00a0' /* &nbsp; */);
 }
 
 /**
@@ -189,7 +224,7 @@ export type ServiceUser = object|null;
  * We can't define abstract static properties/methods in typescript, so we
  * define an interface to emulate the LitModuleType.
  */
-export interface LitStaticProperties {
+export interface LitModuleClass {
   title: string;
   template:
       (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
@@ -198,13 +233,19 @@ export interface LitStaticProperties {
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
   numCols: number;
+  collapseByDefault: boolean;
 }
 
 /**
  * Get the default value for a spec field.
  */
 export function defaultValueByField(key: string, spec: Spec) {
-  const fieldSpec = spec[key];
+  const fieldSpec: LitType = spec[key];
+  // Explicitly check against undefined, as this value is often false-y if set.
+  if (fieldSpec.default !== undefined) {
+    return fieldSpec.default;
+  }
+  // TODO(lit-dev): remove these and always use the spec default value.
   if (isLitSubtype(fieldSpec, 'Scalar')) {
     return 0;
   }
@@ -222,4 +263,92 @@ export function defaultValueByField(key: string, spec: Spec) {
       'Warning: default value requested for unrecognized input field type',
       key, fieldSpec);
   return '';
+}
+
+/**
+ * Dictionary of lit layouts. See LitComponentLayout
+ */
+export declare interface LitComponentLayouts {
+  [key: string] : LitComponentLayout;
+}
+
+/**
+ * A layout is defined by a set of main components that are always visible,
+ * (designated in the object by the "main" key)
+ * and a set of tabs that each contain a group other components.
+ *
+ * LitComponentLayout is a mapping of tab names to module types.
+ */
+export declare interface LitComponentLayout {
+  components: {[name: string]: LitModuleClass[];};
+  layoutSettings?: LayoutSettings;
+  description ?: string;
+}
+
+/**
+ * Miscellaneous render settings (e.g., whether to render a toolbar)
+ * for a given layout.
+ */
+export declare interface LayoutSettings {
+  hideToolbar?: boolean;
+  mainHeight?: number;
+  centerPage?: boolean;
+}
+
+/** Display name for the "no dataset" dataset in settings. */
+export const NONE_DS_DISPLAY_NAME = 'none';
+/** Key for the "no dataset" dataset in settings. */
+export const NONE_DS_DICT_KEY = '_union_empty';
+
+/**
+ * Display name for dataset.
+ */
+export function datasetDisplayName(name: string): string {
+  return name === NONE_DS_DICT_KEY ? NONE_DS_DISPLAY_NAME : name;
+}
+
+/**
+ * Formats the following types for display in the data table:
+ * string, number, boolean, string[], number[], (string|number)[]
+ * TODO(lit-dev): allow passing custom HTML to table, not just strings.
+ */
+// tslint:disable-next-line:no-any
+export function formatForDisplay(input: any, fieldSpec?: LitType): string {
+  if (input == null) return '';
+
+  // Handle SpanLabels, if field spec given.
+  // TODO(lit-dev): handle more fields this way.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
+    const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
+    return formattedTags.join(', ');
+  }
+  // Handle EdgeLabels, if field spec given.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
+    const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
+    return formattedTags.join(', ');
+  }
+  const formatNumber = (item: number) =>
+    Number.isInteger(item) ? item.toString() : item.toFixed(4).toString();
+
+  // Generic data, based on type of input.
+  if (Array.isArray(input)) {
+    const strings = input.map((item) => {
+      if (typeof item === 'number') {
+        return formatNumber(item);
+      }
+      return `${item}`;
+    });
+    return `${strings.join(', ')}`;
+  }
+
+  if (typeof input === 'boolean') {
+    return input ? '✔' : ' ';
+  }
+
+  if (typeof input === 'number') {
+    return formatNumber(input);
+  }
+
+  // Fallback: just coerce to string.
+  return `${input}`;
 }

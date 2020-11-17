@@ -30,9 +30,11 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import List, Text, Tuple, Union
+from typing import Any, Dict, List, Text, Tuple, Union
 
 import attr
+
+JsonDict = Dict[Text, Any]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -45,7 +47,19 @@ class DataTuple(metaclass=abc.ABCMeta):
   Contrast with LitType and descendants, which are used in model and dataset
   /specs/ to represent types and metadata.
   """
-  pass
+
+  def to_json(self) -> JsonDict:
+    """Used by serialize.py."""
+    d = attr.asdict(self)
+    d['__class__'] = 'DataTuple'
+    d['__name__'] = self.__class__.__name__
+    return d
+
+  @staticmethod
+  def from_json(d: JsonDict):
+    """Used by serialize.py."""
+    cls = globals()[d.pop('__name__')]  # class by name from this module
+    return cls(**d)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

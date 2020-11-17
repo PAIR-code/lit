@@ -55,3 +55,8 @@
   align-items: center;
   justify-content: center;
 }
+
+.config {
+  display: flex;
+  align-items: center;
+}

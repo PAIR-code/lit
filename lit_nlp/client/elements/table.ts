@@ -30,7 +30,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
-import {range} from '../lib/utils';
+import {chunkWords} from '../lib/utils';
 
 import {styles} from './table.css';
 
@@ -128,28 +128,6 @@ export class DataTable extends ReactiveElement {
         return child.getBoundingClientRect().width;
       });
     }
-  }
-
-  /**
-   * The max width of a cell is 1/(number of "cells with long data").
-   */
-  @computed
-  get cellMaxWidth() {
-    if (!this.data.length) return '100vw';
-    let numLongFields = 0;
-    const numCols = this.data[0].length;
-
-    // Get a rough estimate column data length by averaging the first n
-    // datapoints.
-    const threshold = 50; // In characters.
-    const n = Math.min(this.data.length, 50);
-    range(numCols).forEach((colIdx: number) => {
-      const colVals =
-          range(n).map((i: number) => this.data[i][colIdx].toString().length);
-      const avgValue = colVals.reduce((a, b) => a + b) / colVals.length;
-      if (avgValue > threshold) numLongFields++;
-    });
-    return `${1 / numLongFields * 100}vw`;
   }
 
   @computed
@@ -547,12 +525,12 @@ export class DataTable extends ReactiveElement {
       if (this.selectionDisabled) return;
       this.handleRowClick(e, rowIndex);
     };
-    const style = styleMap({'max-width': this.cellMaxWidth});
+
     return html`
-        <tr class="${rowClass}" @mousedown=${mouseDown}>
-          ${data.map(d => html`<td><div style=${style}>${d}</div></td>`)}
-        </tr>
-      `;
+      <tr class="${rowClass}" @mousedown=${mouseDown}>
+        ${data.map(d => html`<td><div>${chunkWords(d.toString())}</div></td>`)}
+      </tr>
+    `;
   }
 
   renderColumnDropdown() {

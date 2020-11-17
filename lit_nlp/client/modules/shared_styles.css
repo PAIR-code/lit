@@ -4,7 +4,7 @@
 button {
   width: fit-content;
   max-height: 100%;
-  background: lightgrey;
+  background: white;
   pointer-events: auto;
   cursor: pointer;
   border: 1px solid darkgrey;
@@ -13,7 +13,21 @@ button {
   padding: 5px 10px;
   font-size: 10pt;
   border-radius: 3px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
 }
+
+button.accent {
+  background: rgb(47, 140, 155);
+  border: none;
+  color: white;
+}
+
+button.accent:hover {
+  background: rgb(33, 98, 108);
+}
+
 
 button:hover {
   background: #faf49f;
@@ -66,4 +80,69 @@ mwc-textfield {
   height: 15pt;
   width: 15pt;
   padding: 2pt;
+}
+
+/* 'Text' Button Style */
+.text-button {
+  margin: 0 4px;
+  background: transparent;
+  border-radius: 4px;
+  border: none;
+  color: #1A73E8;
+  font-family: Roboto;
+}
+
+.text-button:hover {
+  background: rgba(26, 115, 232, 0.04);
+}
+
+.text-button:focus {
+  background: rgba(138, 180, 248, 0.12);
+  border: none;
+  outline: none;
+}
+
+.text-button:active {
+  background: #E8F0FE;
+  box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3),
+    0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+  border: none;
+}
+
+.text-button:disabled {
+  color: rgba(60, 64, 67, 0.38);
+  background: transparent;
+}
+
+/* 'Hairline' Button Style */
+.hairline-button {
+  margin: 0 4px;
+  background: transparent;
+  border-radius: 4px;
+  border: 1px solid #BDC1C6;
+  color: #1A73E8;
+  font-family: Roboto;
+}
+
+.hairline-button:hover {
+  background: linear-gradient(0deg, rgba(26, 115, 232, 0.04),
+    rgba(26, 115, 232, 0.04)), #FFFFFF;
+  border: 1px solid #DADCE0;
+}
+
+.hairline-button:focus {
+  background: transparent;
+  border: 1px solid #1967D2;
+  outline: none;
+}
+
+.hairline-button:disabled {
+  color: rgba(60, 64, 67, 0.38);
+  background: transparent;
+  border: 1px solid #E7E8E8;
+}
+
+.hairline-button:active {
+  background: rgba(26, 115, 232, 0.1);
+  border: 1px solid #DADCE0;
 }

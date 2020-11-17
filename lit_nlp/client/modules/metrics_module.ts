@@ -271,6 +271,7 @@ export class MetricsModule extends LitModule {
     if (this.facetBySlice) {
       this.sliceService.sliceNames.forEach(name => {
         // For each slice, get the data and metrics.
+        if (name == null) return;
         facetedData[name] = {
           displayName: 'Slice : ' + name,
           data: this.sliceService.getSliceDataByName(name)

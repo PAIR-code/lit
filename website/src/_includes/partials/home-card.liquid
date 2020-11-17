@@ -1,0 +1,8 @@
+
+<div class="mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--8-col-phone">
+  <img class="home-card-image" src="{% root %}{{ image }}"/>
+  <div class="home-card-action">{{ action }}</div>
+  <h3 class="home-card-title">{{ title }}</h3>
+  <div class="home-card-desc">{{ desc }}</div>
+  <div class="home-card-cta-button"><a href="{{ link }}" {% if external %}target="_blank"{% endif %} >{{ cta-text }}</a>{% if external %}<img class="external-arrow" src="{% root %}/assets/images/arrow-link-out.png"/>{% else %}<span class="home-card-icon material-icons">arrow_right_alt</span>{% endif %}</div>
+</div>

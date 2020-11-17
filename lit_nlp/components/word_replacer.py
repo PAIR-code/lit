@@ -137,7 +137,7 @@ class WordReplacer(lit_components.Generator):
     del model  # Unused.
 
     ignore_casing = config.get('ignore_casing', True) if config else True
-    subs_string = config.get('subs') if config else None
+    subs_string = config.get('Substitutions') if config else None
     if subs_string:
       replacements = self.parse_subs_string(
           subs_string, ignore_casing=ignore_casing)
@@ -165,3 +165,9 @@ class WordReplacer(lit_components.Generator):
         new_examples.append(new_example)
 
     return new_examples
+
+  def spec(self) -> types.Spec:
+    return {
+        # Requires a substitution string. Include a default.
+        'Substitutions': types.TextSegment(default='great -> terrible')
+    }

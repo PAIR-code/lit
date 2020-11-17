@@ -39,11 +39,7 @@ export class ApiService extends LitService {
         '/get_dataset', {'dataset_name': dataset}, [], loadMessage);
     const toProcess = ensureArrayData(inputResponse);
     return toProcess.map((data, index) => {
-      return {
-        data: data.data,
-        id: data.id,
-        meta: {added: 0, isFavorited: false}
-      };
+      return {data: data.data, id: data.id, meta: {added: 0, isStarred: false}};
     });
   };
 

@@ -104,3 +104,14 @@ class Generator(metaclass=abc.ABCMeta):
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Return a list of generated examples."""
     return
+
+  def spec(self) -> types.Spec:
+    """Return the configuration spec for the generator.
+
+    If there are configuration options for the generator that can be set in the
+    UI, then list them and their type in this spec.
+
+    Returns:
+      Spec of configuration options. Defaults to an empty spec.
+    """
+    return {}

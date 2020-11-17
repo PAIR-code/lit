@@ -14,8 +14,9 @@
 # ==============================================================================
 # Lint as: python3
 """Base classes for LIT models."""
+import inspect
 import random
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from absl import logging
 
@@ -43,9 +44,25 @@ class Dataset(object):
   on the fly in Dataset.examples() if desired.
   """
 
-  def __init__(self, spec, examples):
+  _examples: List[JsonDict] = []
+  _description: Optional[str] = None
+
+  def __init__(self, spec, examples, description: Optional[str] = None):
     self._spec = spec
     self._examples = examples
+    self._description = description
+
+  def description(self) -> str:
+    """Return a human-readable description of this component.
+
+    Defaults to class docstring, but subclass may override this (or simply set
+    self._description) to be instance-dependent - for example, including the
+    path from which the data was loaded.
+
+    Returns:
+      (string) A human-readable description for display in the UI.
+    """
+    return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
   def spec(self) -> Spec:
     """Return a spec describing dataset elements."""
@@ -62,8 +79,11 @@ class Dataset(object):
   @property
   def slice(self):
     """Syntactic sugar, allows dataset.slice[i:j] to return a new Dataset."""
-    slicer = lambda slice_obj: Dataset(self.spec(), self.examples[slice_obj])
-    return SliceWrapper(slicer)
+
+    def _slicer(slice_obj):
+      return Dataset(self.spec(), self.examples[slice_obj], self.description())
+
+    return SliceWrapper(_slicer)
 
   def sample(self, n, seed=42):
     """Return a new dataset with a random subset of examples."""
@@ -75,7 +95,7 @@ class Dataset(object):
           'Requested sample %d is larger than dataset size %d; returning full dataset.',
           n, len(self.examples))
       examples = list(self.examples)
-    return Dataset(self.spec(), examples)
+    return Dataset(self.spec(), examples, self.description())
 
   def shuffle(self, seed=42):
     """Return a new dataset with randomized example order."""
@@ -86,4 +106,4 @@ class Dataset(object):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
-    return Dataset(new_spec, new_examples)
+    return Dataset(new_spec, new_examples, self.description())

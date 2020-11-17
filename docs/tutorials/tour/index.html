@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>A Quick Tour of the Language Interpretability Tool</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="tutorial-page-container mdl-grid">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="tutorial-breadcrumbs">
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#basics">Basics</a> > Tour
+</div>
+            <h2>A Quick Tour of the Language Interpretability Tool</h2>
+<div class="link-out"><a href="../../demos/glue.html" target="_blank">Follow along in the hosted demo.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<div class="spacer" style="height:10px;"></div>
+<div class="video-container">
+  <iframe src="https://www.youtube.com/embed/CuRI_VK83dU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</div>
+<div class="spacer" style="height:10px;"></div>
+<p>The Language Interpretability Tool (LIT)  is a modular and extensible tool to interactively analyze and debug a variety of NLP models. LIT brings together common machine learning performance checks with interpretability methods specifically designed for NLP.</p>
+<h3>Building blocks - modules, groups, and workspaces</h3>
+<p><strong>Modules, groups, and workspaces</strong> form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-workspaces.jpg"/>
+  <div class="tutorial-caption">Above: Building blocks of the Language Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.</div>
+</div>
+<p>LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.</p>
+<p>The Main workspace contains core modules that play a role in many analyses. By default, these include:</p>
+<ul>
+<li><strong>Embeddings</strong> - explore UMAP and TSNE embeddings from your model.</li>
+<li><strong>Data Table</strong> -  explore, navigate, and make selections from your dataset.</li>
+<li><strong>Datapoint Editor</strong> - deep-dive into individual examples from your dataset.</li>
+<li><strong>Slice Editor</strong> - create and manage slices of interest from your dataset through your LIT session.</li>
+</ul>
+<p>In the Group-based workspace, modules that offer related insights are organized together under tabs. By default, LIT offers a few default groups based on common analysis workflows: performance, predictions, explanations, and counterfactuals.</p>
+<ul>
+<li>Use the <strong>Performance</strong> group to compare the performance of models across the entire dataset, or on individual slices.</li>
+<li>Explore model results on individual data points in the <strong>Predictions</strong> group.</li>
+<li>Investigate salience maps and attention for different data points in the <strong>Explanations</strong> group.</li>
+<li>Generate data points using automated generators in the <strong>Counterfactuals</strong> group, and evaluate your model on them instantly.</li>
+</ul>
+<p>You can organize modules into groups and define your own layout when you <a href="../../setup#custom">set up your LIT server</a>.</p>
+<h3>Toolbars</h3>
+<p>At the very top, you’ll see the LIT toolbar. Here, you can quickly check which models have been loaded, configure LIT, or share a URL to your session. Below that is a toolbar which makes it easier to perform actions applied across all of LIT. Here you can:</p>
+<ul>
+<li>Select data points by relationship, or by slice.</li>
+<li>Choose a feature to color data points, across all modules.</li>
+<li>Track the datapoint you’re looking at, navigate to the next, mark a datapoint as a favorite, or clear your selection.</li>
+<li>Select the active models and dataset, including multiple models to compare.</li>
+</ul>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-toolbars.gif"/>
+  <div class="tutorial-caption">Above: Use toolbars to quickly select or re-color data points, and switch to comparison mode.</div>
+</div>
+<p>The footer at the very bottom of the interface will display any error messages. If anything goes wrong, you can also use the feedback button to let us know on GitHub.</p>
+<h3>Using Modules</h3>
+<p>LIT makes it easy to interact within and across modules. Many modules in LIT have their own toolbars which contain controls and selections for that module. The results of actions performed in one module can impact other modules. For example, if you select five data points in the <strong>Data Table</strong> module, other modules (such as the <strong>Scalars</strong> module) will respond to your selection. Similarly, the active selection, no matter where it was triggered from, can be saved as a slice in the <strong>Slice Editor</strong>. Model performance for this new slice will now show up in the <strong>Metrics</strong> module.</p>
+<p>Finally, you can easily expand and collapse individual modules using the icons on the top-right of each module.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Visualizations that scale</div>
+  <div class="info-box-text">Visualizations and results within modules can scale depending on if you're looking at one data point, multiple data points, one or multiple models. For instance, turning on the “compare datapoints” toggle allows you to compare a selected datapoint (known as the reference datapoint) to others by presenting individual results side-by-side within relevant modules.</div>
+</div>
+<p>Now that you’re familiar with LIT’s interface, take LIT for a spin in our <a href="../../demos">demos</a> or explore different <a href="../">case studies</a>.</p>
+
+          </div>
+          <div class="mdl-cell--4-col hide-me">
+            <div class="tutorial-info-container">
+              <div class="tutorial-info-header">time to read</div>
+              <div class="tutorial-info-copy">7 minutes</div>
+              <div class="tutorial-info-header">takeaways</div>
+              <div class="tutorial-info-copy">Get familiar with the interface of the Language Interpretability Tool.</div>
+            </div>
+          </div>
+          <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            The Language Interpretability Tool is being actively developed and documentation is likely to change as we improve the tool. We want to hear from you! Leave us a note, feedback, or suggestion on our <a href="https://github.com/pair-code/lit/issues/new" target="_blank">Github</a>.
+          </div>
+        </div>
+
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

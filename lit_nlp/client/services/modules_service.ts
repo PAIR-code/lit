@@ -18,38 +18,10 @@
 // tslint:disable:no-new-decorators
 import {action, observable} from 'mobx';
 
-import {LitStaticProperties, ModelsMap, Spec} from '../lib/types';
+import {LitModuleClass, ModelsMap, Spec} from '../lib/types';
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
-
-/**
- * Miscellaneous render settings (e.g., whether to render a toolbar)
- * for a given layout.
- */
-export declare interface LayoutSettings {
-  hideToolbar?: boolean;
-  mainHeight?: number;
-  centerPage?: boolean;
-}
-
-/**
- * A layout is defined by a set of main components that are always visible,
- * (designated in the object by the "main" key)
- * and a set of tabs that each contain a group other components.
- *
- * LitComponentLayout is a mapping of tab names to module types.
- */
-export declare interface LitComponentLayout {
-  components: {[name: string]: LitStaticProperties[];};
-  layoutSettings?: LayoutSettings;
-}
-
-/**
- * Dictionary of lit layouts. See LitComponentLayout
- */
-export declare interface LitComponentLayouts {
-  [key: string] : LitComponentLayout;
-}
+import {LitComponentLayout, LayoutSettings} from '../lib/types';
 
 /**
  * A layout is defined by a set of main components that are always visible,
@@ -70,7 +42,8 @@ export interface LitRenderConfig {
  * to render and whether it renders on a per-model basis.
  */
 export interface RenderConfig {
-  moduleType: LitStaticProperties;
+  moduleType: LitModuleClass;
+  tab: string;
   modelName?: string;
   selectionServiceIndex?: number;
 }
@@ -140,15 +113,18 @@ export class ModulesService extends LitService implements
     this.selectedTab = urlConfiguration.selectedTab ?? '';
   }
 
-  private filterHiddenConfigs(configs: RenderConfig[][]): RenderConfig[][] {
-    return configs.filter(configGroup => {
-      return (configGroup.length === 0) || !this.isConfigHidden(configGroup[0]);
-    });
+  isModuleGroupHidden(config: RenderConfig) {
+    const key = this.getModuleKey(config);
+    return this.hiddenModuleKeys.has(key);
   }
 
-  private isConfigHidden(config: RenderConfig) {
-    const key = this.getModuleKey(config.moduleType);
-    return this.hiddenModuleKeys.has(key);
+  toggleHiddenModule(config: RenderConfig, isHidden: boolean) {
+    const key = this.getModuleKey(config);
+    if (isHidden) {
+      this.hiddenModuleKeys.add(key);
+    } else {
+      this.hiddenModuleKeys.delete(key);
+    }
   }
 
   getRenderLayout() {
@@ -175,15 +151,18 @@ export class ModulesService extends LitService implements
       const components = this.declaredLayout.components[groupName];
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
-      let configs = this.getRenderConfigs(
-          components, currentModelSpecs, datasetSpec, compareExamples);
+      const configs = this.getRenderConfigs(
+          components, currentModelSpecs, datasetSpec, compareExamples, groupName);
       configs.forEach(configGroup => {
         configGroup.forEach(config => {
-          const key = this.getModuleKey(config.moduleType);
+          const key = this.getModuleKey(config);
           allModuleKeys.add(key);
+
+          if (config.moduleType.collapseByDefault) {
+            this.hiddenModuleKeys.add(key);
+          }
         });
       });
-      configs = this.filterHiddenConfigs(configs);
       renderLayout[groupName] = configs;
     });
 
@@ -206,8 +185,8 @@ export class ModulesService extends LitService implements
    * to render.
    */
   private getRenderConfigs(
-      modules: LitStaticProperties[], currentModelSpecs: ModelsMap,
-      datasetSpec: Spec, compareExamples: boolean) {
+      modules: LitModuleClass[], currentModelSpecs: ModelsMap,
+      datasetSpec: Spec, compareExamples: boolean, tab: string) {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
     // modules that display one per model.
@@ -220,11 +199,11 @@ export class ModulesService extends LitService implements
       } else if (!moduleType.duplicateForModelComparison) {
         const config: RenderConfig[] = [];
         if (compare) {
-          config.push(this.makeRenderConfig(moduleType, undefined, 1));
-          config.push(this.makeRenderConfig(moduleType, undefined, 0));
+          config.push(this.makeRenderConfig(moduleType, tab, undefined, 1));
+          config.push(this.makeRenderConfig(moduleType, tab, undefined, 0));
         } else {
           config.push(this.makeRenderConfig(
-              moduleType, undefined, compareExamples ? 0 : undefined));
+              moduleType, tab, undefined, compareExamples ? 0 : undefined));
         }
         renderConfigs.push(config);
       } else {
@@ -232,11 +211,11 @@ export class ModulesService extends LitService implements
         const configs =
             selectedModels.reduce((accArray: RenderConfig[], modelName) => {
               if (compare) {
-                accArray.push(this.makeRenderConfig(moduleType, modelName, 1));
-                accArray.push(this.makeRenderConfig(moduleType, modelName, 0));
+                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 1));
+                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 0));
               } else {
                 accArray.push(this.makeRenderConfig(
-                    moduleType, modelName, compareExamples ? 0 : undefined));
+                    moduleType, tab, modelName, compareExamples ? 0 : undefined));
               }
               return accArray;
             }, []);
@@ -248,17 +227,18 @@ export class ModulesService extends LitService implements
   }
 
   private makeRenderConfig(
-      moduleType: LitStaticProperties, modelName?: string,
+      moduleType: LitModuleClass, tab: string, modelName?: string,
       selectionServiceIndex?: number): RenderConfig {
     return {
       moduleType,
+      tab,
       modelName,
       selectionServiceIndex,
     };
   }
 
-  private getModuleKey(moduleType: LitStaticProperties) {
-    return moduleType.title;
+  private getModuleKey(config: RenderConfig) {
+    return `${config.tab}_${config.moduleType.title}`;
   }
 
   setModuleLayout(layout: LitComponentLayout) {

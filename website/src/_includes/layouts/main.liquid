@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    {% include partials/analytics %}
+
+    <title>{{ title }}</title>
+    
+    {% include partials/header-includes %}
+    <style>
+      .main-bg { background-image:url({% root %}/assets/images/LIT_Home_Banner.png); }
+    </style>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      {% include partials/header %}
+      
+      <main class="mdl-layout__content hero-banner main-bg">
+        <div class="mdl_grid main-page-container">
+          <div class="mdl-cell--12-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+          {{ content }}
+          </div>
+
+          {% include partials/footer %}
+        </div>
+      </main>
+    </div>
+  </body>
+
+  {% include partials/footer-includes %}
+</html>

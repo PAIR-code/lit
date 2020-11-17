@@ -1,0 +1,14 @@
+
+<div class="demo-card mdl-cell mdl-cell--6-col mdl-cell--4-col-tablet mdl-cell--4-col-phone">
+  <div class="demo-card-title"><a href="{{ link }}" {% if external %}target="_blank"{% endif %}>{{ c-title }}</a></div>
+  <div class="demo-card-tags">
+    {%- assign t = tags | split: ", " -%}
+    {% for item in t %} <span class="demo-tag"> {{ item }} </span> {% endfor %}
+  </div>
+  <div class="demo-card-data-source-title">DATA SOURCE</div>
+  <div class="demo-card-data-source">
+    <a href="{{ c-data-source-url }}" target="_blank">{{ c-data-source }}</a>
+  </div>
+  <div class="demo-card-copy">{{ c-copy | markdownify }}</div>
+  <div class="demo-card-cta-button"><a href="{{ link }}">{{ cta-copy }}</a></div>
+</div>

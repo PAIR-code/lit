@@ -1,0 +1,331 @@
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+/*Hero Banner*/
+.hero {
+  min-height: 22vw;
+}
+.hero-banner {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.77)), url(/assets/images/WIT-static.png);
+  background-size: contain;
+  margin-bottom: 12px;
+}
+.mask {
+  background: #ffffff;
+  border-top: solid 1px #DADCE0;
+}
+
+.page-content{
+  max-width: 1600px;
+  margin: 0 auto;
+
+  overflow-x: auto;
+}
+
+.big-title {
+  padding: 64px 0px;
+}
+
+/*Typography*/
+
+.section-name {
+  margin: 36px auto;
+  padding: 36px auto;
+}
+/* banner title What-If Title*/
+.mdl-typography--display-4 {
+  color: #FF9801;
+}
+/*banner Subtile*/
+.mdl-typography--display-2 {
+  font-weight: 300;
+  color: #3C4043;
+  line-height: 1.4em;
+}
+/*section names*/
+.mdl-typography--display-1 {
+  font-weight: 300;
+  color: #3C4043;
+  line-height: 1.4em;
+  /*background-color: yellow;*/
+}
+
+/*emphasis paragraph, demo names*/
+.mdl-typography--headline {
+  font-weight: 300;
+  margin-bottom: 12px;
+  /*background-color: pink;*/
+  line-height: 1.6em;
+}
+
+.mdl-typography--title {
+  /*background-color: aliceblue;*/
+  font-weight: 400;
+  color: #3C4043;
+  margin: 12px auto;
+}
+
+.mdl-typography--body-1 {
+  font-size: 16px;
+  line-height: 1.8em;
+  color: #202124;
+  font-weight: 300;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.mdl-typography--body-2 {
+  color: #5F6368;
+  font-weight: 400;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.citation {
+  vertical-align: super;
+  font-size: smaller;
+  text-decoration: underline;
+  color: #5F6368;
+  padding-left: 4px;
+  line-height: 24px;
+}
+
+.inline {
+  background: rgba(255,179,68,0.2);
+  color: #3C4043;
+  padding: 2px 2px 2px 2px;
+  text-decoration: none;
+}
+
+.inline:hover {
+  color: #202124;
+  background: rgba(255,179,68,0.7);
+
+}
+
+/*introduction*/
+.introduction-content {
+  margin: 24px auto;
+}
+
+.tutorial-video {
+  padding: 24px;
+}
+
+/*features*/
+
+.feature-list-item {
+  background-color: #ffffff;
+  margin-bottom: 24px;
+}
+.feature-list-item__content {
+  padding: 12px;
+  color: #5F6368;
+}
+
+.feature-list-item__content > .mdl-typography--display-1 {
+  font-size: 24px;
+  color: #5F6368;
+  margin-bottom: 12px;
+}
+
+
+/*feature images container*/
+.feature-list-item__image {
+  width: 320px;
+  height: 240px;
+
+}
+
+/*individual feature images*/
+.visualize-inference-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-1.png');
+  background-position: center;
+  background-size: cover;
+}
+.visualize-attribution-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-9.png');
+  background-position: center;
+  background-size: cover;
+}
+.edit-example-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-2.png');
+  background-position: center;
+  background-size: cover;
+}
+.pd-plot-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-3.png');
+  background-position: center;
+  background-size: cover;
+}
+.counterfactual-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-4.png');
+  background-position: center;
+  background-size: cover;
+}
+.distance-feature-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-5.png');
+  background-position: center;
+  background-size: cover;
+}
+.performance-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-6.png');
+  background-position: center;
+  background-size: cover;
+}
+.fairness-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-7.png');
+  background-position: center;
+  background-size: cover;
+}
+.compare-feature > .feature-list-item__image {
+  background-image: url('/assets/images/WIT-illustration-8.png');
+  background-position: center;
+  background-size: cover;
+}
+
+
+/*demo cards*/
+.page-section {
+  padding: 48px 0;
+}
+
+.demo-section-title {
+  margin-bottom: 24px;
+}
+
+.demo-tabs {
+  margin: 48px;
+}
+
+.demo-container {
+  margin: auto 48px;
+}
+
+#demo-panel-all > .mdl-grid {
+  overflow-x: auto;
+  overflow-y: none;
+}
+
+.demo-card-cell {
+  border: 1px solid #DADCE0;
+  border-radius: 4px;
+  padding: 12px;
+  max-width: 400px;
+}
+
+.demo-card-cell:hover {
+  box-shadow: 0px 1px 2px 0px rgba(60, 64, 67, 0.3), 0px 2px 6px 2px rgba(60, 64, 67, 0.15);
+  border-radius: 4px;
+}
+
+.demo-title {
+  color: #202124;
+  padding: 12px 0px;
+  margin: 0px;
+
+}
+
+.demo-content {
+  color: #3C4043;
+  /*padding: 12px;*/
+  min-height: 140px;
+}
+.demo-links {
+  margin-top: 24px;
+}
+
+
+/*demo card images*/
+
+.binary-classification-demo > .mdl-card__title {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.77)
+    ),
+  url('/assets/images/over50k-bins.png');
+  background-position: center;
+  background-size: cover;
+  border-bottom: solid 1px #DADCE0;
+}
+.image-binary-classification-demo > .mdl-card__title {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.77)
+    ),
+  url('/assets/images/images-conf-matrix.png');
+  background-position: center;
+  background-size: cover;
+  border-bottom: solid 1px #DADCE0;
+}
+.regression-demo > .mdl-card__title {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.77)
+    ),
+  url('/assets/images/age-scatter.png');
+  background-position: center;
+  background-size: cover;
+  border-bottom: solid 1px #DADCE0;
+}
+.multiclass-classification-demo > .mdl-card__title {
+  background-image: linear-gradient(
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.57),
+    rgba(255, 255, 255, 0.77)
+    ),
+  url('/assets/images/iris-scatter.png');
+  background-position: center;
+  background-size: cover;
+  border-bottom: solid 1px #DADCE0;
+}
+
+.join-community {
+  padding: 12px;
+  border: solid 1px #E4F7FB;
+  color: #007B83;
+  margin: 24px auto;
+  line-height: 1.6em;
+}
+.join-community:hover {
+  padding: 12px;
+  background-color: #E4F7FB;
+  color: #007B83;
+  margin: 24px auto;
+  line-height: 1.6em;
+}
+
+/*to organize */
+.chip {
+  padding: 0 0 16px 16px;
+}
+.mdl-chip {
+  background: #ffffff;
+  border: solid 1px #DADCE0;
+  color: #80868B;
+  border-radius: 3px;
+}
+/*.mdl-grid {
+  margin-bottom: 120px;
+  }*/
+  .icon-style {
+    margin: auto 4px;
+    font-size: 1.2em;
+  }
+  .button-style {
+    margin: auto 6px;
+  }
+  .button-style > .icon-style {
+    margin: auto 4px auto 8px;
+    font-size: 1.6em;
+  }

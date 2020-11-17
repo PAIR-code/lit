@@ -37,7 +37,7 @@ export class UrlConfiguration {
   selectedDataset?: string;
   hiddenModules: string[] = [];
   compareExamplesEnabled?: boolean;
-  layout?: string;
+  layoutName?: string;
 }
 
 /**
@@ -134,7 +134,7 @@ export class UrlService extends LitService {
       } else if (key === SELECTED_TAB_KEY) {
         urlConfiguration.selectedTab = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
-        urlConfiguration.layout = this.urlParseString(value);
+        urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
         const fieldKey = parseDataFieldKey(key);
         urlConfiguration.dataFields[fieldKey] = this.urlParseString(value);

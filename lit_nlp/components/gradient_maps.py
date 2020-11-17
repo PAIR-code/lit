@@ -87,6 +87,78 @@ class GradientNorm(lit_components.Interpreter):
     return all_results
 
 
+class GradientDotInput(lit_components.Interpreter):
+  """Salience map using the values of gradient * input as attribution."""
+
+  def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
+    # Find TokenGradients fields
+    grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
+
+    # Check that these are aligned to Tokens fields
+    aligned_fields = []
+    for f in grad_fields:
+      tokens_field = output_spec[f].align  # pytype: disable=attribute-error
+      assert tokens_field in output_spec
+      assert isinstance(output_spec[tokens_field], types.Tokens)
+
+      embeddings_field = output_spec[f].grad_for
+      if embeddings_field is not None:
+        assert embeddings_field in input_spec
+        assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
+        assert embeddings_field in output_spec
+        assert isinstance(output_spec[embeddings_field], types.TokenEmbeddings)
+
+        aligned_fields.append(f)
+      else:
+        logging.info('Skipping %s since embeddings field not found.', str(f))
+    return aligned_fields
+
+  def _interpret(self, grads: np.ndarray, embs: np.ndarray):
+    assert grads.shape == embs.shape
+
+    # dot product of gradients and embeddings
+    # <float32>[num_tokens]
+    grad_dot_input = np.sum(grads * embs, axis=-1)
+    scores = citrus_utils.normalize_scores(grad_dot_input)
+    return scores
+
+  def run(self,
+          inputs: List[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[List[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+    """Run this component, given a model and input(s)."""
+    # Find gradient fields to interpret
+    input_spec = model.input_spec()
+    output_spec = model.output_spec()
+    grad_fields = self.find_fields(input_spec, output_spec)
+    logging.info('Found fields for gradient attribution: %s', str(grad_fields))
+    if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
+      return None
+
+    # Run model, if needed.
+    if model_outputs is None:
+      model_outputs = list(model.predict(inputs))
+    assert len(model_outputs) == len(inputs)
+
+    all_results = []
+    for o in model_outputs:
+      # Dict[field name -> interpretations]
+      result = {}
+      for grad_field in grad_fields:
+        embeddings_field = cast(types.TokenGradients,
+                                output_spec[grad_field]).grad_for
+        scores = self._interpret(o[grad_field], o[embeddings_field])
+
+        token_field = cast(types.TokenGradients, output_spec[grad_field]).align
+        tokens = o[token_field]
+        result[grad_field] = dtypes.SalienceMap(tokens, scores)
+      all_results.append(result)
+
+    return all_results
+
+
 class IntegratedGradients(lit_components.Interpreter):
   """Salience map from Integrated Gradients.
 

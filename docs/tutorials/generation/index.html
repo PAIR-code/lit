@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>Debugging a Text Generator</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Language Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="tutorial-page-container mdl-grid">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="tutorial-breadcrumbs">
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Generator
+</div>
+            <h2>Debugging a Text Generator</h2>
+<div class="link-out"><a href="../../demos/t5.html" target="_blank">Explore this demo yourself.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<p>Or, run your own with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_summarization_demo.py"><code>examples/t5_summarization_demo.py</code></a></p>
+<p>Does the training data explain a particular error in text generation? We can use LIT to analyze a T5 model on the CNN-DM summarization task. LIT’s scalar plot module allows us to look at per-example ROUGE scores, and quickly select an example with middling performance.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-t5.png"/>
+  <div class="tutorial-caption">Above: The datapoint of interest, with its inaccurate summarization.</div>
+</div>
+<p>We find the generated text contains an erroneous subject: &quot;[A]lastair [C]ook was replaced as captain by former captain ...&quot;. In reading the input text, we can see that he was replaced as captain by Eoin Morgan, and not by a former captain. Another former captain does have a quote in the input text, and the model seemed to confuse these two subjects when generating its summary.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-sim-search.png"/>
+  <div class="tutorial-caption">Above: Finding the most similar datapoints from the training set.</div>
+</div>
+<p>To investigate how T5 arrived at this prediction, we utilize the “similarity searcher” component through the counterfactual generator tab. This performs a fast approximate nearest-neighbor lookup from a pre-built index over the training corpus, using embeddings
+from the T5 decoder. With one click, we retrieve the 25 nearest neighbors to our datapoint of interest from the training set and add them to the LIT UI for inspection. We can see through the search capability in the data table that the words “captain” and “former” appear 34 and 16 times in these examples–along with 3 occurrences of “replaced by” and two occurrences of “by former”. This suggests a strong prior toward our erroneous phrase from the training data most related to our datapoint of interest.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/lit-datatable-search.png"/>
+  <div class="tutorial-caption">Above: An example of the existance of "by former" in a similar datapoint from the training set.</div>
+</div>
+
+          </div>
+          <div class="mdl-cell--4-col hide-me">
+            <div class="tutorial-info-container">
+              <div class="tutorial-info-header">time to read</div>
+              <div class="tutorial-info-copy">3 minutes</div>
+              <div class="tutorial-info-header">takeaways</div>
+              <div class="tutorial-info-copy">Learn about how to debug a prediction on a datapoint by searching for similar datapoints from the training set.</div>
+            </div>
+          </div>
+          <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            The Language Interpretability Tool is being actively developed and documentation is likely to change as we improve the tool. We want to hear from you! Leave us a note, feedback, or suggestion on our <a href="https://github.com/pair-code/lit/issues/new" target="_blank">Github</a>.
+          </div>
+        </div>
+
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

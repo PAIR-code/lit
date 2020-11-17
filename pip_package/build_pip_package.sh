@@ -28,7 +28,7 @@ mkdir -p "$dest"
 
 source_dir="$PWD/.."
 
-pushd ../lit_nlp/client
+pushd ../lit_nlp
 yarn && yarn build
 popd
 

@@ -21,7 +21,7 @@ import {computed} from 'mobx';
 import { observable } from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {LitStaticProperties} from '../lib/types';
+import {LitModuleClass} from '../lib/types';
 import {ApiService, AppState, SelectionService} from '../services/services';
 
 import {app} from './lit_app';
@@ -49,6 +49,9 @@ export abstract class LitModule extends ReactiveElement {
 
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
+
+  // Whether to collapse this module by default.
+  static collapseByDefault: boolean = false;
 
   // If true, duplicate this module in example comparison mode.
   static duplicateForExampleComparison: boolean = false;
@@ -100,4 +103,4 @@ export abstract class LitModule extends ReactiveElement {
  * A type representing the constructor / class of a LitModule, extended with the
  * static properties that need to be defined on a LitModule.
  */
-export type LitModuleType = typeof LitModule&LitStaticProperties;
+export type LitModuleType = typeof LitModule&LitModuleClass;

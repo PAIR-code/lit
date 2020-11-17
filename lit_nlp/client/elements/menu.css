@@ -1,0 +1,123 @@
+:host {
+  --item-top-padding: 5px;
+  --item-bottom-padding: 0px;
+  --item-height: 32px;
+  --item-vertical-offset:
+      calc(var(--item-top-padding) +
+        var(--item-bottom-padding) +
+        var(--item-height));
+}
+
+#menu-toolbar {
+  display: flex;
+}
+
+.item {
+  background: white;
+  height: var(--item-height);
+  width: 260px;
+  padding:var(--item-top-padding) 5px var(--item-bottom-padding) 7px;
+  font-size: 14px;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}
+
+.item-text{
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 14px;
+}
+
+.check{
+  vertical-align: middle;
+  padding: 0 6px;
+  color: #5F6368;
+}
+
+.item:hover{
+  background: #E4F7FB;
+}
+
+.disabled:hover{
+  background: white;
+}
+
+.text-disabled{
+  color: #aaa;
+}
+
+
+button {
+  background: white;
+  border: white;
+  border-radius: 3px;
+  padding: 2px 5px 3px 5px;
+  margin-right: 4.5px;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 14px;
+  line-height: 20px;
+  color: #3C4043;
+
+}
+
+button:focus {
+  outline: none;
+  background: #F1F3F4;
+  color: #098591;
+}
+
+.button-focus{
+  outline: none;
+  background: #F1F3F4;
+  color: #098591;
+}
+
+button:hover {
+  background: #F1F3F4;
+}
+
+/* For in-line icons in a <span> */
+[data-icon] {
+  margin: 0;
+}
+
+[data-icon]:before {
+  font-family: 'Material Icons';
+  content: attr(data-icon);
+  vertical-align: middle;
+}
+
+.dropdown-icon {
+  font-size: 18px;
+  color: #5F6368;
+}
+
+.icon-focus {
+  color: #098591;
+}
+
+#menu-holder {
+  position: absolute;
+}
+
+.menu-container {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(var(--submenu-index) * var(--item-vertical-offset));
+}
+
+/* Only displays icons (e.g. checkmark) where the element is selected. */
+[mwc-list-item][group]:not([selected]) [slot="graphic"] {
+  display: none;
+}
+
+ul.mdc-list {
+  padding: 4px 0;
+}
