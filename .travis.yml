@@ -45,6 +45,9 @@ install:
   # Install other deps for the testing script below.
   - pip install pytest
 
+  # Dependencies only needed for testing.
+  - pip install lime
+
 script:
   # Build front-end.
   - pushd lit_nlp && yarn && yarn build && popd

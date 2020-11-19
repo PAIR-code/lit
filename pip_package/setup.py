@@ -27,7 +27,6 @@ REQUIRED_PACKAGES = [
     "scipy",
     "pandas",
     "scikit-learn",
-    "lime",
     "sacrebleu",
     "umap-learn",
     "Werkzeug",
