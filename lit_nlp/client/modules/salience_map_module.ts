@@ -344,7 +344,8 @@ export class SalienceMapModule extends LitModule {
       const outputSpec = modelSpecs[model].spec.output;
       const supportsGrads = (findSpecKeys(outputSpec, 'TokenGradients').length);
       const supportsLime = (findSpecKeys(inputSpec, 'TextSegment').length) &&
-          (findSpecKeys(outputSpec, 'MulticlassPreds').length);
+          ((findSpecKeys(outputSpec, 'MulticlassPreds').length) ||
+           (findSpecKeys(outputSpec, 'RegressionScore').length));
       if (supportsGrads || supportsLime) {
         return true;
       }
