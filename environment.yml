@@ -30,5 +30,5 @@ dependencies:
         - umap-learn
         - transformers==2.11.0
         - google-cloud-translate
-        - rouge-score
+        - portpicker
         - annoy

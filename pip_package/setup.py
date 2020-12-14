@@ -26,6 +26,7 @@ REQUIRED_PACKAGES = [
     "numpy",
     "scipy",
     "pandas",
+    "portpicker",
     "scikit-learn",
     "sacrebleu",
     "umap-learn",

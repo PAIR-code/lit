@@ -49,7 +49,7 @@ def _LoadResource(path):
   """
 
   try:
-    with open(path,"rb") as f:
+    with open(path, 'rb') as f:
       return f.read()
   except IOError as e:
     logging.warning('IOError %s on path %s', e, path)
