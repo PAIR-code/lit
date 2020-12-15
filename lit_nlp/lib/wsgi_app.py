@@ -172,8 +172,8 @@ class App(object):
     prefix = os.path.commonprefix([base, absolute_path])
     return prefix == base
 
-  def _ServeCustomHandler(self, request, clean_path):
-    return self._handlers[clean_path](self, request)
+  def _ServeCustomHandler(self, request, clean_path, environ):
+    return self._handlers[clean_path](self, request, environ)
 
   def __call__(self, environ, start_response):
     """Implementation of the WSGI interface."""
@@ -188,8 +188,8 @@ class App(object):
         clean_path = clean_path[:-1]
 
       if clean_path in self._handlers:
-        return self._ServeCustomHandler(request, clean_path)(environ,
-                                                             start_response)
+        return self._ServeCustomHandler(request, clean_path, environ)(
+            environ, start_response)
       else:
         is_index = not clean_path or clean_path == '/index.html'
         if is_index:

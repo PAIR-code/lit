@@ -49,36 +49,6 @@ JsonDict = types.JsonDict
 PredsCache = caching.PredsCache
 
 
-def make_handler(fn):
-  """Convenience wrapper to handle args and serialization.
-
-  This is a thin shim between server (handler, request) and model logic
-  (inputs, args, outputs).
-
-  Args:
-    fn: function (JsonDict, **kw) -> JsonDict
-
-  Returns:
-    fn wrapped as a request handler
-  """
-
-  @functools.wraps(fn)
-  def _handler(handler, request):
-    logging.info('Request received: %s', request.full_path)
-    kw = request.args.to_dict()
-    # The frontend needs "simple" data (e.g. NumPy arrays converted to lists),
-    # but for requests from Python we may want to use the invertible encoding
-    # so that datatypes from remote models are the same as local ones.
-    response_simple_json = utils.coerce_bool(
-        kw.pop('response_simple_json', True))
-    data = serialize.from_json(request.data) if len(request.data) else None
-    outputs = fn(data, **kw)
-    response_body = serialize.to_json(outputs, simple=response_simple_json)
-    return handler.respond(request, response_body, 'application/json', 200)
-
-  return _handler
-
-
 class LitApp(object):
   """LIT WSGI application."""
 
@@ -209,7 +179,7 @@ class LitApp(object):
       examples.append(example)
     return examples
 
-  def _get_dataset(self, unused_data, dataset_name: Text = None):
+  def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
 
     # TODO(lit-team): add functionality to load data from a given path, as
@@ -276,6 +246,35 @@ class LitApp(object):
           for interpreter_name in interpreters:
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
+
+  def make_handler(self, fn):
+    """Convenience wrapper to handle args and serialization.
+
+    This is a thin shim between server (handler, request, environ) and model
+    logic (inputs, args, outputs).
+
+    Args:
+      fn: function (JsonDict, **kw) -> JsonDict
+
+    Returns:
+      fn wrapped as a request handler
+    """
+
+    @functools.wraps(fn)
+    def _handler(handler, request, environ):
+      kw = request.args.to_dict()
+      # The frontend needs "simple" data (e.g. NumPy arrays converted to lists),
+      # but for requests from Python we may want to use the invertible encoding
+      # so that datatypes from remote models are the same as local ones.
+      response_simple_json = utils.coerce_bool(
+          kw.pop('response_simple_json', True))
+      data = serialize.from_json(request.data) if len(request.data) else None
+
+      outputs = fn(data, **kw)
+      response_body = serialize.to_json(outputs, simple=response_simple_json)
+      return handler.respond(request, response_body, 'application/json', 200)
+
+    return _handler
 
   def __init__(
       self,
@@ -372,8 +371,8 @@ class LitApp(object):
     }
 
     self._wsgi_app = wsgi_app.App(
-        # Wrap endpoint fns to take (handler, request)
-        handlers={k: make_handler(v) for k, v in handlers.items()},
+        # Wrap endpoint fns to take (handler, request, environ)
+        handlers={k: self.make_handler(v) for k, v in handlers.items()},
         project_root=client_root,
         index_file='static/index.html',
     )
