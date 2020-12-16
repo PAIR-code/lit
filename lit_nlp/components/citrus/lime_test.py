@@ -3,7 +3,7 @@ import collections
 import functools
 from absl.testing import absltest
 from absl.testing import parameterized
-import lime as original_lime
+from lime import lime_text as original_lime
 from lit_nlp.components.citrus import lime
 from lit_nlp.components.citrus import utils
 import numpy as np
@@ -281,7 +281,7 @@ class LimeTest(parameterized.TestCase):
     scores = utils.normalize_scores(scores, make_positive=False)
 
     # Explain the prediction using original LIME.
-    original_lime_explainer = original_lime.lime_text.LimeTextExplainer(
+    original_lime_explainer = original_lime.LimeTextExplainer(
         class_names=map(str, np.arange(num_classes)),
         mask_string=lime.DEFAULT_MASK_TOKEN,
         kernel_width=lime.DEFAULT_KERNEL_WIDTH,
