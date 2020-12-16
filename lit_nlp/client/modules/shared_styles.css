@@ -146,3 +146,14 @@ mwc-textfield {
   background: rgba(26, 115, 232, 0.1);
   border: 1px solid #DADCE0;
 }
+
+/**
+ * Spacer div: insert this before content if you want a module without a
+ * subtitle to align horizontally to one that does have one.
+ * Used in span graph and annotated text modules, where the gold preds don't
+ * have a subtitle for the model name.
+ */
+.offset-for-module-header {
+  margin-top: 17pt;
+  height: 0;
+}

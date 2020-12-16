@@ -69,6 +69,7 @@ flags.DEFINE_string(
     'canonical_url', None,
     'What url base to use when copying the LIT url (e.g., something other '
     'than just a local server address.')
+flags.DEFINE_string('page_title', None, 'Custom page title for this server.')
 
 flags.DEFINE_string(
     'client_root',

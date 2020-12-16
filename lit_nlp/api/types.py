@@ -46,7 +46,8 @@ class LitType(metaclass=abc.ABCMeta):
 
   def is_compatible(self, other):
     """Check equality, ignoring some fields."""
-    if type(self) != type(other):  # pylint: disable=unidiomatic-typecheck
+    # We allow this class to be a subclass of the other.
+    if not isinstance(self, type(other)):
       return False
     d1 = attr.asdict(self)
     d1.pop('required', None)
@@ -74,7 +75,6 @@ class LitType(metaclass=abc.ABCMeta):
 
 Spec = Dict[Text, LitType]
 
-
 ##
 # Concrete type clases
 
@@ -89,6 +89,18 @@ class TextSegment(LitType):
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
   parent: Optional[Text] = None  # name of a TextSegment field, to compare to
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class URL(TextSegment):
+  """TextSegment that should be interpreted as a URL."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SearchQuery(TextSegment):
+  """TextSegment that should be interpreted as a search query."""
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

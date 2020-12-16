@@ -54,6 +54,9 @@ export class LITApp {
     appState.layouts = layouts;
 
     await appState.initialize();
+    if (appState.metadata.pageTitle) {
+      document.querySelector('html head title')!.textContent = appState.metadata.pageTitle;
+    }
     modulesService.initializeLayout(
         appState.layout, appState.currentModelSpecs,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);

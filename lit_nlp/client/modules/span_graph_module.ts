@@ -61,10 +61,6 @@ const moduleStyles = css`
   #pred-group {
     outline: 1px dashed gray;
   }
-
-  .offset-for-header {
-    margin-top: 17pt;
-  }
 `;
 
 const supportedPredTypes: LitName[] =
@@ -194,17 +190,9 @@ export class SpanGraphGoldModule extends LitModule {
 
   // tslint:disable:no-any
   render() {
-    // Hack: Normally, this module doesn't get the extra module header row
-    // that lists the active model, since it doesn't depend on the model.
-    // However, we want the content to align with the SpanGraphModule which
-    // does, so use the offset-for-header class to shift content down. In
-    // comparison mode, however, we get a header too, so disable this.
-    const goldGroupClass = classMap({
-      'outer-container': true,
-      'offset-for-header': !this.appState.compareExamplesEnabled
-    });
     return html`
-      <div id="gold-group" class=${goldGroupClass}>
+      ${!this.appState.compareExamplesEnabled ? html`<div class='offset-for-module-header'></div>` : null}
+      <div id="gold-group" class='outer-container'>
         ${
         renderTokenGroups(
             this.goldDisplayData, this.dataSpec,

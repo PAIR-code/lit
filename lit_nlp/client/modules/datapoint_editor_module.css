@@ -1,3 +1,7 @@
+:host {
+  --buttons-height: 38px;
+}
+
 .staged-text {
   margin-bottom: 10px;
 }
@@ -6,14 +10,56 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: calc(100% - var(--buttons-height) - 1px);
+  overflow-y: auto;
+}
+
+#buttons {
+  height: var(--buttons-height);
+  border-top: 1px solid rgb(218, 220, 224);
+}
+
+.field-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-name {
+  font-weight: bold;
+}
+
+.field-name a {
+  /* don't apply standard link style, it's distracting */
+  text-decoration: unset;
+  color: unset;
+}
+
+.field-type {
+  color: gray;
+  font-size: 8pt;
+}
+
+.field-header mwc-icon {
+  font-size: 10pt;
+  line-height: 0;
+  vertical-align: middle;
+  padding-right: 10px; /* for a larger click target */
 }
 
 .input-box {
   width: 95%;
+  /* Fill available up to outer margin, if supported. */
+  width: -moz-available;
+  width: -webkit-fill-available;
 }
 
 .input-short {
   width: 95%;
+  /* Fill available up to outer margin, if supported. */
+  width: -moz-available;
+  width: -webkit-fill-available;
 }
 
 .button-holder {
@@ -21,7 +67,7 @@
 }
 
 .entry {
-  margin: 15px 5px;
+  margin: 10px 5px;
 }
 
 textarea {

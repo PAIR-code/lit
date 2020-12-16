@@ -118,10 +118,13 @@ export class ToolbarComponent extends MobxLitElement {
           <div id="headline">
             <div class="headline-section">
               <div>
-                ${this.statusService.hasError ?
-                  html`<img src="static/potato.svg" class="status-emoji">` :
-                  html`<img src="static/favicon.png" class="status-emoji">`}
-                Language Interpretability Tool
+                <a href="https://github.com/PAIR-code/lit/issues/new" target="_blank">
+                  ${this.statusService.hasError ?
+                    html`<img src="static/potato.svg" class="status-emoji">` :
+                    html`<img src="static/favicon.png" class="status-emoji">`}
+                </a>
+                ${this.appState.initialized && this.appState.metadata.pageTitle ?
+                  this.appState.metadata.pageTitle : "Language Interpretability Tool"}
               </div>
               ${this.appState.initialized ? this.renderModelAndDatasetInfo() : null}
             </div>
@@ -129,6 +132,12 @@ export class ToolbarComponent extends MobxLitElement {
               <div title="Copy link to this page" id="share">
                 <mwc-icon class="icon-button" @click=${this.onCopyLinkClick}>
                   link
+                </mwc-icon>
+              </div>
+              <div title="Change layout" id="layout-button">
+                <mwc-icon class="icon-button"
+                  @click=${() => { this.jumpToSettingsTab("Layout"); }}>
+                  view_compact
                 </mwc-icon>
               </div>
               <div title="Edit models and dataset" id="config">

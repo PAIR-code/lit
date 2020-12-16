@@ -164,7 +164,9 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div id="container">
         ${this.renderEditText()}
-        ${this.renderMakeResetButtons()}
+      </div>
+      <div id="buttons">
+        ${this.renderButtons()}
       </div>
     `;
   }
@@ -186,7 +188,7 @@ export class DatapointEditorModule extends LitModule {
     return allRequiredInputsFilledOut;
   }
 
-  renderMakeResetButtons() {
+  renderButtons() {
     const makeEnabled = this.datapointEdited && this.allRequiredInputsFilledOut;
     const resetEnabled = this.datapointEdited;
     const clearEnabled = !!this.selectionService.primarySelectedInputData;
@@ -216,13 +218,13 @@ export class DatapointEditorModule extends LitModule {
         </button>
         <button id="reset" @click=${onClickClear}  ?disabled="${!clearEnabled}">
           Clear
-      </button>
+        </button>
       </div>
     `;
   }
 
   renderEditText() {
-    const keys = Object.keys(this.editedData);
+    const keys = Object.keys(this.appState.currentDatasetSpec);
     const editable = true;
     // clang-format off
     return html`
@@ -373,7 +375,23 @@ export class DatapointEditorModule extends LitModule {
     const isRequiredModelInput =
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
 
-    const displayKey = `${key}${isRequiredModelInput ? '(*)' : ''}`;
+    let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
+    if (isLitSubtype(fieldSpec, 'URL')) {
+      headerContent = html`
+        <a href=${value as string} target="_blank">
+          ${headerContent}
+          <mwc-icon class="icon-button">open_in_new</mwc-icon>
+        </a>`;
+    } else if (isLitSubtype(fieldSpec, 'SearchQuery')) {
+      const params = new URLSearchParams();
+      params.set('q', value);
+      headerContent = html`
+        <a href="https://www.google.com/search?${params.toString()}" target="_blank">
+          ${headerContent}
+          <mwc-icon class="icon-button">search</mwc-icon>
+        </a>`;
+    }
+
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
@@ -383,7 +401,10 @@ export class DatapointEditorModule extends LitModule {
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
-        <div><label>${displayKey}: </label></div>
+        <div class='field-header'>
+          <div class='field-name'>${headerContent}</div>
+          <div class='field-type'>(${fieldSpec.__name__})</div>
+        </div>
         <div>
           ${renderInput()}
         </div>
