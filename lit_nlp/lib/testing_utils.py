@@ -127,7 +127,10 @@ class TestModelClassification(lit_model.Model):
                                                         grad_target='grad_class'
                                                         ),
             'tokens': lit_types.Tokens(),
-            'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])
+            'grad_class': lit_types.CategoryLabel(vocab=['0', '1']),
+            'cls_emb': lit_types.TokenEmbeddings(),
+            'embedding_cls_emb': lit_types.TokenEmbeddings(),
+            'embedding_cls_grad': lit_types.TokenGradients(),
             }
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
@@ -137,7 +140,10 @@ class TestModelClassification(lit_model.Model):
               'input_embs_grad': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
                                            [0, 0, 0, 0], [0, 0, 0, 0]]),
               'tokens': ['test'],
-              'grad_class': '1'
+              'grad_class': '1',
+              'cls_emb': [0, 0, 0, 0],
+              'embedding_cls_grad': [0, 0, 0, 0],
+              'embedding_cls_emb': [0, 0, 0, 0],
               }
     return map(lambda x: output, inputs)
 
