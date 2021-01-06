@@ -25,4 +25,7 @@ color: "#49596c"
 
   {% include partials/demo-card c-title: "Text generation", link: "/demos/t5.html",
   c-data-source: "CNN / Daily Mail", c-copy: "Use a T5 model to summarize text. For any example of interest, quickly find similar examples from the training set, using an approximate nearest-neighbors index.", tags: "T5, generation", external:"true" %}
+
+  {% include partials/demo-card c-title: "Using LIT in notebooks", link: "https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb",
+  c-data-source: "Stanford Sentiment Treebank", c-copy: "Use LIT directly inside a Colab notebook. Explore binary classification for sentiment analysis from the General Language Understanding Evaluation (GLUE) benchmark suite.", tags: "Colab, notebooks, BERT, binary classification", external:"true" %}
   </div>

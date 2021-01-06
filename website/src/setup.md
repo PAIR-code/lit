@@ -257,4 +257,28 @@ accordingly.
 Note: there are a few additional methods in the model API - see
 [`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py) for details.
 
+# Run LIT inside python notebooks
+
+It's very easy to use LIT inside of Colab and Jupyter notebooks. Just install
+the pip package and use the `LitWidget` object with your models and datasets.
+
+```
+from lit_nlp import notebook
+
+# MulitiNLIData implements the Dataset API
+datasets = {
+    'mnli_matched': MultiNLIData('/path/to/dev_matched.tsv'),
+    'mnli_mismatched': MultiNLIData('/path/to/dev_mismatched.tsv'),
+}
+
+# NLIModel implements the Model API
+models = {
+    'model_foo': NLIModel('/path/to/model/foo/files'),
+    'model_bar': NLIModel('/path/to/model/bar/files'),
+}
+
+widget = notebook.LitWidget(models, datasets)
+widget.render()
+```
+
 </div>

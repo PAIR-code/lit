@@ -421,6 +421,29 @@ GOOGLE_APPLICATION_CREDENTIALS environment variable to point to that file.
 With that environment variable set to the correct path, LIT can make use of the
 backtranlator generator if you pass it as a generator in the Server constructor.
 
+## Using LIT in Notebook Environmenbts
+
+As an alternative to running a LIT server and connecting to it through a
+web browser, LIT can be used directly inside of python notebook environments,
+such as [Colab](https://colab.research.google.com/) and
+[Jupyter](https://jupyter.org/).
+
+After installing LIT through pip, create a `lit_nlp.notebook.LitWidget` object,
+passing in a dict of models and a dict of datasets, similar to the
+`lit_nlp.dev_server.Server` constructor. You can optionally provide a height
+parameter that specifies the height in pixels to render the LIT UI.
+
+Then, in its own output cell, call the `render` method on the widget object
+to render the LIT UI. The LIT UI can be rendered in multiple cells if desired.
+
+The widget has a `stop` method which shuts down the widget's server. This
+can be important for freeing up resources if you plan to create multiple LIT
+widget instances in a single notebook. Stopping the server doesn't disable the
+model and dataset instances used by the server; they can still be used in the
+notebook and take up the resources they require.
+
+Check out an [example notebook](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+
 ## LIT Application & Serving
 
 TODO: write this
