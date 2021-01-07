@@ -117,7 +117,7 @@ class Indexer(object):
       return
 
     # To first create an index, we need to know the shapes - peek at first ex.
-    peeked_example = model.predict_single(examples[0]["data"])
+    peeked_example = list(model.predict([examples[0]["data"]]))[0]
     for emb_name in model_embeddings_names:
       index_key = self._get_index_key(model_name, dataset_name, emb_name)
       emb_dimension = len(peeked_example[emb_name])

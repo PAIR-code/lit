@@ -78,7 +78,7 @@ class HotFlip(lit_components.Generator):
 
     # Get model outputs.
     logging.info("Performing a forward/backward pass on the input example.")
-    model_output = model.predict_single(example)
+    model_output = list(model.predict([example]))[0]
     logging.info(model_output.keys())
 
     # Get model word embeddings and vocab.
@@ -139,7 +139,7 @@ class HotFlip(lit_components.Generator):
         new_example[input_text_field] = " ".join(modified_tokens)
 
         # Predict a new label for this example.
-        new_output = model.predict_single(new_example)
+        new_output = list(model.predict([new_example]))[0]
 
         # Update label if multi-class prediction.
         # TODO(lit-dev): provide a general system for handling labels on

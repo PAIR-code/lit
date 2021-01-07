@@ -161,10 +161,6 @@ class Model(metaclass=abc.ABCMeta):
 
   ##
   # Concrete implementations of common functions.
-  def predict_single(self, one_input: JsonDict, **kw) -> JsonDict:
-    """Run prediction on a single input."""
-    return list(self.predict_minibatch([one_input], **kw))[0]
-
   def predict(self,
               inputs: Iterable[JsonDict],
               scrub_arrays=True,
