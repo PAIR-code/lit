@@ -40,6 +40,7 @@ class T5ModelConfig(object):
   max_gen_length: int = 50
   top_k: int = 10
   output_attention: bool = False
+  beam_size: int = 4
 
 
 class T5GenerationModel(lit_model.Model):
@@ -91,21 +92,12 @@ class T5GenerationModel(lit_model.Model):
       batched_outputs: Dict[str, tf.Tensor]
     """
     results = self.model(
-        inputs=encoded_inputs["input_ids"],
+        input_ids=encoded_inputs["input_ids"],
         decoder_input_ids=encoded_targets["input_ids"],
         attention_mask=encoded_inputs["attention_mask"],
-        decoder_attention_mask=encoded_targets["attention_mask"],
-        lm_label=encoded_targets["input_ids"])
-    if self.config.output_attention:
-      # Access the optional positional returns.
-      dec_attn = results.pop(3)
-      enc_attn = results.pop()
-    logits, _, dec_states, enc_final_state, enc_states = results
-    # While we are not using them, the deleted embeddings could be processed.
-    del dec_states
-    del enc_states
+        decoder_attention_mask=encoded_targets["attention_mask"])
 
-    model_probs = tf.nn.softmax(logits, axis=-1)
+    model_probs = tf.nn.softmax(results.logits, axis=-1)
     top_k = tf.math.top_k(
         model_probs, k=self.config.top_k, sorted=True, name=None)
     batched_outputs = {
@@ -116,16 +108,18 @@ class T5GenerationModel(lit_model.Model):
         "top_k_indices": top_k.indices,
         "top_k_probs": top_k.values,
     }
-    # enc_final_state is <float>[batch_size, num_tokens, emb_dim]
+    # encoder_last_hidden_state is <float>[batch_size, num_tokens, emb_dim]
     # take the mean over real tokens to get <float>[batch_size, emb_dim]
     batched_outputs["encoder_final_embedding"] = masked_token_mean(
-        enc_final_state, encoded_inputs["attention_mask"])
+        results.encoder_last_hidden_state, encoded_inputs["attention_mask"])
 
     if self.config.output_attention:
-      for i in range(len(dec_attn)):
-        batched_outputs[f"decoder_layer_{i:d}_attention"] = dec_attn[i]
-      for i in range(len(enc_attn)):
-        batched_outputs[f"encoder_layer_{i:d}_attention"] = enc_attn[i]
+      for i in range(len(results.decoder_attentions)):
+        batched_outputs[
+            f"decoder_layer_{i:d}_attention"] = results.decoder_attentions[i]
+      for i in range(len(results.encoder_attentions)):
+        batched_outputs[
+            f"encoder_layer_{i:d}_attention"] = results.encoder_attentions[i]
 
     return batched_outputs
 
@@ -197,14 +191,13 @@ class T5GenerationModel(lit_model.Model):
     # Get the conditional generation from the model.
     # Workaround for output_hidden not being compatible with generate.
     # See https://github.com/huggingface/transformers/issues/8361
-    self.model.encoder.output_hidden_states = False
-    self.model.decoder.output_hidden_states = False
+    self.model.config.output_hidden_states = False
     batched_outputs["generated_ids"] = self.model.generate(
-        encoded_inputs["input_ids"],
-        attention_mask=encoded_inputs["attention_mask"],
+        encoded_inputs.input_ids,
+        num_beams=self.config.beam_size,
+        attention_mask=encoded_inputs.attention_mask,
         max_length=self.config.max_gen_length)
-    self.model.encoder.output_hidden_states = True
-    self.model.decoder.output_hidden_states = True
+    self.model.config.output_hidden_states = True
 
     # Convert to numpy for post-processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
