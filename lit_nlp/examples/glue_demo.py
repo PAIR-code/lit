@@ -82,7 +82,8 @@ def main(_):
   # Quick-start mode.
   if FLAGS.quickstart:
     FLAGS.models = QUICK_START_MODELS  # smaller, faster models
-    FLAGS.max_examples = 1000  # truncate the larger eval sets
+    if FLAGS.max_examples is None or FLAGS.max_examples > 1000:
+      FLAGS.max_examples = 1000  # truncate larger eval sets
     logging.info("Quick-start mode; overriding --models and --max_examples.")
 
   models = {}

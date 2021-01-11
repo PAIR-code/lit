@@ -71,30 +71,20 @@ class BertEncoderWithOffsets(lit_model.Model):
     # Process to ids, add special tokens, and compute segment ids and masks.
     encoded_input = self.tokenizer.batch_encode_plus(
         tokenized_texts,
-        is_pretokenized=True,
+        is_split_into_words=True,
         return_tensors='tf',
         add_special_tokens=True,
         max_length=self.max_seq_length,
-        pad_to_max_length=True)
-    # We have to set max_length explicitly above so that
-    # max_tokens <= model_max_length, in order to avoid indexing errors. But
-    # the combination of max_length=<integer> and pad_to_max_length=True means
-    # that if the max is < model_max_length, we end up with extra padding.
-    # Thee lines below strip this off.
-    # TODO(lit-dev): submit a PR to make this possible with tokenizer options?
-    max_tokens = tf.reduce_max(
-        tf.reduce_sum(encoded_input['attention_mask'], axis=1))
-    encoded_input = {k: v[:, :max_tokens] for k, v in encoded_input.items()}
+        padding='longest',
+        truncation='longest_first')
 
-    # logits is a single tensor
-    #    <float32>[batch_size, num_tokens, vocab_size]
-    # embs is a list of num_layers + 1 tensors, each
-    #    <float32>[batch_size, num_tokens, h_dim]
-    unused_logits, embs = self.model(encoded_input)
+    out: transformers.modeling_tf_outputs.TFMaskedLMOutput = \
+        self.model(encoded_input)
     batched_outputs = {
         'input_ids': encoded_input['input_ids'].numpy(),
         'ntok': tf.reduce_sum(encoded_input['attention_mask'], axis=1).numpy(),
-        'top_layer_embs': embs[-1].numpy(),  # last layer, all tokens
+        'top_layer_embs':
+            out.hidden_states[-1].numpy(),  # last layer, all tokens
     }
     # List of dicts, one per example.
     unbatched_outputs = list(utils.unbatch_preds(batched_outputs))

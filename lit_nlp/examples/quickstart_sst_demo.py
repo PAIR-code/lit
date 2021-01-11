@@ -36,7 +36,7 @@ def run_finetuning(train_path):
   """Fine-tune a transformer model."""
   train_data = glue.SST2Data("train")
   val_data = glue.SST2Data("validation")
-  model = glue_models.SST2Model(FLAGS.encoder_name, for_training=True)
+  model = glue_models.SST2Model(FLAGS.encoder_name)
   model.train(train_data.examples, validation_inputs=val_data.examples)
   model.save(train_path)
 

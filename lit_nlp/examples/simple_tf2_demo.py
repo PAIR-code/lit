@@ -45,7 +45,8 @@ import transformers
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
-    "model_path", None,
+    "model_path",
+    "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
     "Path to trained model, in standard transformers format, e.g. as "
     "saved by model.save_pretrained() and tokenizer.save_pretrained()")
 
@@ -96,17 +97,19 @@ class SimpleSentimentModel(lit_model.Model):
         return_tensors="tf",
         add_special_tokens=True,
         max_length=128,
-        pad_to_max_length=True)
+        padding="longest",
+        truncation="longest_first")
 
     # Run a forward pass.
-    logits, embs, unused_attentions = self.model(encoded_input, training=False)
+    out: transformers.modeling_tf_outputs.TFSequenceClassifierOutput = \
+        self.model(encoded_input, training=False)
 
     # Post-process outputs.
     batched_outputs = {
-        "probas": tf.nn.softmax(logits, axis=-1),
+        "probas": tf.nn.softmax(out.logits, axis=-1),
         "input_ids": encoded_input["input_ids"],
         "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
-        "cls_emb": embs[-1][:, 0],  # last layer, first token
+        "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
     }
     # Return as NumPy for further processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
@@ -132,8 +135,15 @@ class SimpleSentimentModel(lit_model.Model):
 
 
 def main(_):
+  # Normally path is a directory; if it's an archive file, download and
+  # extract to the transformers cache.
+  model_path = FLAGS.model_path
+  if model_path.endswith(".tar.gz"):
+    model_path = transformers.file_utils.cached_path(
+        model_path, extract_compressed_file=True)
+
   # Load the model we defined above.
-  models = {"sst": SimpleSentimentModel(FLAGS.model_path)}
+  models = {"sst": SimpleSentimentModel(model_path)}
   # Load SST-2 validation set from TFDS.
   datasets = {"sst_dev": glue.SST2Data("validation")}
 

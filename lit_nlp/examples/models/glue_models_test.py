@@ -9,7 +9,7 @@ import numpy as np
 class GlueModelForTesting(glue_models.GlueModel):
   """Glue model for testing, which skips Huggingface initializations."""
 
-  def _load_model(self, model_name_or_path, for_training):
+  def _load_model(self, model_name_or_path):
     pass
 
 
@@ -18,7 +18,6 @@ class GlueModelsTest(absltest.TestCase):
   def test_scatter_all_embeddings_single_input(self):
     glue_model = GlueModelForTesting(
         model_name_or_path="bert-base-uncased",
-        for_training=False,
         text_a_name="sentence1")
     emb_size = 10
     # We'll inject zeros for the embeddings of 'hi',
@@ -37,7 +36,6 @@ class GlueModelsTest(absltest.TestCase):
   def test_scatter_all_embeddings_both_inputs(self):
     glue_model = GlueModelForTesting(
         model_name_or_path="bert-base-uncased",
-        for_training=False,
         text_a_name="sentence1",
         text_b_name="sentence2")
     emb_size = 10
@@ -64,7 +62,6 @@ class GlueModelsTest(absltest.TestCase):
   def test_scatter_all_embeddings_multi_batch(self):
     glue_model = GlueModelForTesting(
         model_name_or_path="bert-base-uncased",
-        for_training=False,
         text_a_name="sentence1")
     emb_size = 4
     embs_a = np.zeros((1, emb_size))

@@ -64,25 +64,20 @@ class GlueModel(lit_model.Model):
   def is_regression(self) -> bool:
     return self.config.labels is None
 
-  # TODO(lit-dev): upgrade version of huggingface so we can just pass
-  # output_hidden_states and output_attentions at inference time, rather than
-  # as part of the model config. Then we don't need a special for_training mode.
   def __init__(self,
                model_name_or_path="bert-base-uncased",
-               for_training=False,
                **config_kw):
     self.config = GlueModelConfig(**config_kw)
-    self._load_model(model_name_or_path, for_training)
+    self._load_model(model_name_or_path)
 
-  def _load_model(self, model_name_or_path, for_training):
+  def _load_model(self, model_name_or_path):
     """Load model. Can be overridden for testing."""
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name_or_path)
     model_config = transformers.AutoConfig.from_pretrained(
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
-        output_hidden_states=(not for_training),
-        output_attentions=(not for_training),
+        return_dict=False,  # default for training; overridden for predict
     )
     self.model = _from_pretrained(
         transformers.TFAutoModelForSequenceClassification,
@@ -90,21 +85,18 @@ class GlueModel(lit_model.Model):
         config=model_config)
 
   def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
-    segments = [
-        (ex[self.config.text_a_name],
-         ex[self.config.text_b_name] if self.config.text_b_name else None)
-        for ex in inputs
-    ]
+    if self.config.text_b_name:
+      segments = [(ex[self.config.text_a_name], ex[self.config.text_b_name])
+                  for ex in inputs]
+    else:
+      segments = [ex[self.config.text_a_name] for ex in inputs]
     encoded_input = self.tokenizer.batch_encode_plus(
         segments,
         return_tensors="tf",
         add_special_tokens=True,
         max_length=self.config.max_seq_length,
-        pad_to_max_length=True)
-    # Trim everything to the actual max length, to remove extra padding.
-    max_tokens = tf.reduce_max(
-        tf.reduce_sum(encoded_input["attention_mask"], axis=1))
-    encoded_input = {k: v[:, :max_tokens] for k, v in encoded_input.items()}
+        padding="longest",
+        truncation="longest_first")
     return encoded_input
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
@@ -350,27 +342,28 @@ class GlueModel(lit_model.Model):
 
       model_inputs = encoded_input.copy()
       model_inputs["input_ids"] = None
-      logits, embs, attentions = self.model(model_inputs,
-                                            inputs_embeds=input_embs,
-                                            training=False)
+      out: transformers.modeling_tf_outputs.TFSequenceClassifierOutput = \
+          self.model(model_inputs, inputs_embeds=input_embs, training=False,
+                     output_hidden_states=True, output_attentions=True,
+                     return_dict=True)
 
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
           "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
-          "cls_emb": embs[-1][:, 0],  # last layer, first token
-          "input_embs": input_embs
+          "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
+          "input_embs": input_embs,
       }
-      assert len(attentions) == self.model.config.num_hidden_layers
-      for i, layer_attention in enumerate(attentions):
+      assert len(out.attentions) == self.model.config.num_hidden_layers
+      for i, layer_attention in enumerate(out.attentions):
         batched_outputs[f"layer_{i}/attention"] = layer_attention
 
       if self.is_regression:
         # <tf.float32>[batch_size]
-        batched_outputs["score"] = tf.squeeze(logits, axis=-1)
+        batched_outputs["score"] = tf.squeeze(out.logits, axis=-1)
         scalar_pred_for_gradients = batched_outputs["score"]
       else:
         # <tf.float32>[batch_size, num_labels]
-        batched_outputs["probas"] = tf.nn.softmax(logits, axis=-1)
+        batched_outputs["probas"] = tf.nn.softmax(out.logits, axis=-1)
 
         # If a class for the gradients has been specified in the input,
         # calculate gradients for that class. Otherwise, calculate gradients for
