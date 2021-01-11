@@ -19,14 +19,14 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {TemplateResult} from 'lit-html';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
-import {IndexedInput, ModelsMap, Preds, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService} from '../services/services';
 
@@ -404,7 +404,7 @@ export class EmbeddingsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'Embeddings');
   }
 }

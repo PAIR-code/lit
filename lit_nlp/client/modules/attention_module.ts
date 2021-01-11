@@ -25,7 +25,7 @@ import {observable, reaction} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {cumSumArray, doesOutputSpecContain, findSpecKeys, sumArray} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
@@ -206,7 +206,7 @@ export class AttentionModule extends LitModule {
     </select>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
   }
 }

@@ -18,13 +18,12 @@
 // tslint:disable:no-new-decorators
 import difflib from 'difflib';
 
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
-import {observable, reaction} from 'mobx';
+import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
@@ -205,7 +204,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'GeneratedText');
   }
 }

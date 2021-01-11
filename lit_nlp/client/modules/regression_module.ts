@@ -21,7 +21,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {RegressionService} from '../services/services';
 
@@ -158,7 +158,7 @@ export class RegressionModule extends LitModule {
         </table>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'RegressionScore');
   }
 }

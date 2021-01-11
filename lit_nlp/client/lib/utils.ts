@@ -22,7 +22,7 @@
 import * as d3 from 'd3';  // Used for array helpers.
 
 import {html, TemplateResult} from 'lit-element';
-import {FacetMap, LitName, LitType, ModelsMap, Spec} from './types';
+import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /**
  * Random integer in range [min, max), where min and max are integers
@@ -199,7 +199,7 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelsMap, typesToCheck: LitName|LitName[]): boolean {
+    models: ModelInfoMap, typesToCheck: LitName|LitName[]): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
     const outputSpec = models[modelNames[modelNum]].spec.output;

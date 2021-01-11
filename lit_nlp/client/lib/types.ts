@@ -50,28 +50,20 @@ export interface Spec {
   [key: string]: LitType;
 }
 
-// TODO(lit-team): rename this interface to avoid confusion with the .spec
-// field.
-export interface DatasetSpec {
+export interface ComponentInfo {
   spec: Spec;
   description?: string;
 }
 
-export interface DatasetsMap {
-  [datasetName: string]: DatasetSpec;
-}
-
-export interface GeneratorsMap {
-  [generatorName: string]: Spec;
+export interface ComponentInfoMap {
+  [name: string]: ComponentInfo;
 }
 
 export interface CallConfig {
   [option: string]: string|number|boolean|CallConfig;
 }
 
-// TODO(lit-team): rename this interface to avoid confusion with the .spec
-// field.
-export interface ModelSpec {
+export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
@@ -82,15 +74,15 @@ export interface ModelSpec {
   description?: string;
 }
 
-export interface ModelsMap {
-  [modelName: string]: ModelSpec;
+export interface ModelInfoMap {
+  [modelName: string]: ModelInfo;
 }
 
 export interface LitMetadata {
-  datasets: DatasetsMap;
-  generators: GeneratorsMap;
-  interpreters: string[];
-  models: ModelsMap;
+  models: ModelInfoMap;
+  datasets: ComponentInfoMap;
+  generators: ComponentInfoMap;
+  interpreters: ComponentInfoMap;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
@@ -231,7 +223,7 @@ export interface LitModuleClass {
   title: string;
   template:
       (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
-  shouldDisplayModule: (modelSpecs: ModelsMap, datasetSpec: Spec) => boolean;
+  shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;

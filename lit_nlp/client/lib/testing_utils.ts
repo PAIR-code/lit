@@ -41,6 +41,9 @@ export function cleanState<State extends {}>(
   return state;
 }
 
+function emptySpec() {
+  return {'spec': {}};
+}
 
 /**
  * Mock metadata describing a set of models, datasets, generators, and
@@ -233,12 +236,29 @@ export const mockMetadata: LitMetadata = {
     }
   },
   'generators': {
-    'word_replacer': {},
-    'scrambler': {},
-    'backtranslation': {},
-    'hotflip': {}
+    'word_replacer': {
+      'spec': {
+        'Substitutions': {
+          '__class__': 'LitType',
+          '__name__': 'TextSegment',
+          '__mro__': ['TextSegment', 'LitType', 'object'],
+          'required': true,
+          'default': 'great -> terrible'
+        }
+      }
+    },
+    'scrambler': emptySpec(),
+    'backtranslation': emptySpec(),
+    'hotflip': emptySpec(),
   },
-  'interpreters': ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+  'interpreters': {
+    'grad_norm': emptySpec(),
+    'grad_sum': emptySpec(),
+    'lime': emptySpec(),
+    'metrics': emptySpec(),
+    'pca': emptySpec(),
+    'umap': emptySpec(),
+  },
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': undefined

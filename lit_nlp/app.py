@@ -54,7 +54,7 @@ class LitApp(object):
 
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
-    info_by_model = {}
+    model_info = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
       info = {}
@@ -71,32 +71,44 @@ class LitApp(object):
       info['generators'] = list(self._generators.keys())
       info['interpreters'] = list(self._interpreters.keys())
       info['description'] = m.description()
-      info_by_model[name] = info
+      model_info[name] = info
 
-    info_by_dataset = {}
+    dataset_info = {}
     for name, ds in self._datasets.items():
-      info_by_dataset[name] = {
+      dataset_info[name] = {
           'spec': ds.spec(),
           'description': ds.description(),
       }
+
     generator_info = {}
-    for gen_name in self._generators.keys():
-      generator_info[gen_name] = self._generators[gen_name].spec()
+    for name, gen in self._generators.items():
+      generator_info[name] = {
+          'spec': gen.spec(),
+          'description': gen.description()
+      }
+
+    interpreter_info = {}
+    for name, interpreter in self._interpreters.items():
+      interpreter_info[name] = {
+          'spec': interpreter.spec(),
+          'description': interpreter.description()
+      }
 
     self._info = {
-        'models': info_by_model,
-        'datasets': info_by_dataset,
-        # TODO(lit-team): return more spec information here?
+        # Component info and specs
+        'models': model_info,
+        'datasets': dataset_info,
         'generators': generator_info,
-        'interpreters': list(self._interpreters.keys()),
+        'interpreters': interpreter_info,
+        # Global configuration
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
         'canonicalURL': self._canonical_url,
         'pageTitle': self._page_title,
     }
 
-  def _get_spec(self, model_name: Text):
-    return self._info['models'][model_name]['spec']
+  def _get_model_spec(self, name: Text):
+    return self._info['models'][name]['spec']
 
   def _get_info(self, unused_data, **unused_kw):
     """Get model info and send to frontend."""
@@ -105,8 +117,8 @@ class LitApp(object):
   def _predict(self, inputs: List[JsonDict], model_name: Text,
                dataset_name: Optional[Text]):
     """Run model predictions."""
-    return self._models[model_name].predict_with_metadata(
-        inputs, dataset_name=dataset_name)
+    return list(self._models[model_name].predict_with_metadata(
+        inputs, dataset_name=dataset_name))
 
   def _save_datapoints(self, data, dataset_name: Text, path: Text, **unused_kw):
     """Save datapoints to disk."""
@@ -152,10 +164,10 @@ class LitApp(object):
     Returns:
       List[JsonDict] containing requested fields of model predictions
     """
-    preds = list(self._predict(data['inputs'], model, dataset_name))
+    preds = self._predict(data['inputs'], model, dataset_name)
 
     # Figure out what to return to the frontend.
-    output_spec = self._get_spec(model)['output']
+    output_spec = self._get_model_spec(model)['output']
     requested_types = requested_types.split(',')
     logging.info('Requested types: %s', str(requested_types))
     ret_keys = []
@@ -193,14 +205,11 @@ class LitApp(object):
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
     generator = self._generators[generator]
-    #  IndexedInput[] -> Input[]
-    raw_inputs = [d['data'] for d in data['inputs']]
-    outs = generator.generate_all(
-        raw_inputs,
+    return generator.run_with_metadata(
+        data['inputs'],
         self._models[model],
         self._datasets[dataset_name],
         config=data.get('config'))
-    return outs
 
   def _get_interpretations(self, data, model: Text, dataset_name: Text,
                            interpreter: Text, **unused_kw):

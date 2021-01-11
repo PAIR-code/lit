@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, ModelsMap, formatForDisplay, Spec} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
@@ -372,7 +372,7 @@ export class DataTableModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

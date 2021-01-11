@@ -16,6 +16,7 @@
  */
 
 import '../elements/generator_controls';
+
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
@@ -23,7 +24,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, IndexedInput, Input, ModelsMap, Spec, formatForDisplay, LitName} from '../lib/types';
+import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/services';
@@ -310,18 +311,18 @@ export class GeneratorModule extends LitModule {
         <div id="generators">
           <div>${text}</div>
           ${generators.map(genName => {
-            const generator = generatorsInfo[genName];
-            Object.keys(generator).forEach(name => {
+            const spec = generatorsInfo[genName].spec;
+            Object.keys(spec).forEach(fieldName => {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(generator[name], 'FieldMatcher')) {
-                generator[name].vocab =
+              if (isLitSubtype(spec[fieldName], 'FieldMatcher')) {
+                spec[fieldName].vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
-                        generator[name], this.modelName);
+                        spec[fieldName], this.modelName);
               }
             });
             return html`
-                <lit-generator-controls .spec=${generator} .name=${genName}>
+                <lit-generator-controls .spec=${spec} .name=${genName}>
                 </lit-generator-controls>`;
           })}
         </div>
@@ -391,7 +392,7 @@ export class GeneratorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

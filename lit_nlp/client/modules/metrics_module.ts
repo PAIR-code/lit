@@ -23,8 +23,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {CallConfig, FacetMap, GroupedExamples, IndexedInput, LitName, ModelsMap, Spec} from '../lib/types';
-import {doesOutputSpecContain} from '../lib/utils';
+import {CallConfig, FacetMap, GroupedExamples, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
@@ -97,7 +96,7 @@ export class MetricsModule extends LitModule {
   @observable private selectedFacets: string[] = [];
 
   @computed
-  get tableData() {
+  get tableData(): TableHeaderAndData {
     const models = this.appState.currentModels;
 
     // We get a list (by model) of maps, keyed by metric component.
@@ -150,11 +149,10 @@ export class MetricsModule extends LitModule {
       ];
     });
 
-    const tableData = {
+    return {
       'header': nonMetricNames.concat(facetNames.concat(metricNames)),
       'data': rowsData
     };
-    return tableData;
   }
 
   firstUpdated() {
@@ -396,7 +394,7 @@ export class MetricsModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

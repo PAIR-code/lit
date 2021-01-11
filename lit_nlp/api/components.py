@@ -15,6 +15,7 @@
 # Lint as: python3
 """Base classes for LIT backend components."""
 import abc
+import inspect
 from typing import Dict, List, Optional, Text
 
 from lit_nlp.api import dataset as lit_dataset
@@ -26,6 +27,18 @@ JsonDict = types.JsonDict
 
 class Interpreter(metaclass=abc.ABCMeta):
   """Base class for LIT interpretation components."""
+
+  def description(self) -> str:
+    """Return a human-readable description of this component.
+
+    Defaults to class docstring, but subclass may override this to be
+    instance-dependent - for example, including the path from which the model
+    was loaded.
+
+    Returns:
+      (string) A human-readable description for display in the UI.
+    """
+    return inspect.getdoc(self) or ''
 
   def run(self,
           inputs: List[JsonDict],
@@ -47,6 +60,17 @@ class Interpreter(metaclass=abc.ABCMeta):
     """Run this component, with access to data indices and metadata."""
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
+
+  def spec(self) -> types.Spec:
+    """Return the configuration spec for this component.
+
+    If there are configuration options for this component that can be set in the
+    UI, then list them and their type in this spec.
+
+    Returns:
+      Spec of configuration options. Defaults to an empty spec.
+    """
+    return {}
 
 
 class ComponentGroup(Interpreter):
@@ -72,8 +96,19 @@ class ComponentGroup(Interpreter):
     return ret
 
 
-class Generator(metaclass=abc.ABCMeta):
+class Generator(Interpreter):
   """Base class for LIT generators."""
+
+  def run_with_metadata(self,
+                        indexed_inputs: List[JsonDict],
+                        model: lit_model.Model,
+                        dataset: lit_dataset.Dataset,
+                        model_outputs: Optional[List[JsonDict]] = None,
+                        config: Optional[JsonDict] = None):
+    """Run this component, with access to data indices and metadata."""
+    #  IndexedInput[] -> Input[]
+    inputs = [ex['data'] for ex in indexed_inputs]
+    return self.generate_all(inputs, model, dataset, config)
 
   def generate_all(self,
                    inputs: List[JsonDict],
@@ -104,14 +139,3 @@ class Generator(metaclass=abc.ABCMeta):
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Return a list of generated examples."""
     return
-
-  def spec(self) -> types.Spec:
-    """Return the configuration spec for the generator.
-
-    If there are configuration options for the generator that can be set in the
-    UI, then list them and their type in this spec.
-
-    Returns:
-      Spec of configuration options. Defaults to an empty spec.
-    """
-    return {}

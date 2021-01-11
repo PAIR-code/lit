@@ -23,7 +23,7 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, Input, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, Input, ModelInfoMap, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 
@@ -413,7 +413,7 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

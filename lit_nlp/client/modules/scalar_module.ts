@@ -26,7 +26,7 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {D3Selection, IndexedInput, ModelsMap, NumericSetting, Preds, Spec} from '../lib/types';
+import {D3Selection, IndexedInput, ModelInfoMap, NumericSetting, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {ClassificationService, ColorService, RegressionService} from '../services/services';
 
@@ -875,7 +875,7 @@ export class ScalarModule extends LitModule {
         </div>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
   }
 }

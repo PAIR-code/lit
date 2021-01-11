@@ -30,7 +30,7 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
-import {EdgeLabel, IndexedInput, Input, LitName, ModelsMap, Preds, SpanLabel, Spec} from '../lib/types';
+import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
@@ -202,7 +202,7 @@ export class SpanGraphGoldModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
@@ -270,7 +270,7 @@ export class SpanGraphModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;

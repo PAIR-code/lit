@@ -22,7 +22,7 @@ import {observable, reaction} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Preds, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {ClassificationService} from '../services/services';
@@ -179,7 +179,7 @@ export class ClassificationModule extends LitModule {
         </tr>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

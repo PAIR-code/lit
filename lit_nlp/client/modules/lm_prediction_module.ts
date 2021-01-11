@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec, TopKResult} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
@@ -247,7 +247,7 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // TODO(lit-dev): check for tokens field here, else may crash if not
     // present.
     return doesOutputSpecContain(modelSpecs, 'TokenTopKPreds');

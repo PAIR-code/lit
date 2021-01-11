@@ -18,8 +18,8 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
+import {IndexedInput, Input, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
-import {IndexedInput, Input, LitMetadata, LitType, ModelsMap, ModelSpec, Spec, LitComponentLayouts, LitComponentLayout} from '../lib/types';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -28,7 +28,6 @@ import {StateObservedByUrlService, UrlConfiguration} from './url_service';
 
 
 type Id = string;
-type ModelName = string;
 type DatasetName = string;
 type IndexedInputMap = Map<Id, IndexedInput>;
 
@@ -119,7 +118,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get currentModelRequiredInputSpecKeys(): string[] {
     // Add all required keys from current model input specs.
     const keys = new Set<string>();
-    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelSpec) => {
+    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelInfo) => {
       Object.keys(modelSpec.spec.input).forEach(key => {
         if (modelSpec.spec.input[key].required === true) {
           keys.add(key);
@@ -201,7 +200,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const allModelSpecs = this.metadata.models;
 
     // Get the specs of only the selected models.
-    const currentModelSpecs: ModelsMap = {};
+    const currentModelSpecs: ModelInfoMap = {};
     Object.keys(allModelSpecs).forEach(modelName => {
       if (this.currentModels.includes(modelName)) {
         currentModelSpecs[modelName] = allModelSpecs[modelName];

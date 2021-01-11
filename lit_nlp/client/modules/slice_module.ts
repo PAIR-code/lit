@@ -22,7 +22,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelsMap, Spec} from '../lib/types';
+import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SliceService} from '../services/services';
@@ -250,7 +250,7 @@ export class SliceModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

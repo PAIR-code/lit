@@ -22,7 +22,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, objToDictKey} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {GetFeatureFunc, GroupService} from '../services/group_service';
@@ -402,7 +402,7 @@ export class ConfusionMatrixModule extends LitModule {
     this.selectionService.selectIds(ids, this);
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }
