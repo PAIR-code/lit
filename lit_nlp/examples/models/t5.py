@@ -207,12 +207,12 @@ class T5GenerationModel(lit_model.Model):
 
   ##
   # LIT API implementations
-  def max_minibatch_size(self, unused_config=None) -> int:
+  def max_minibatch_size(self) -> int:
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 4
 
-  def predict_minibatch(self, inputs, config=None):
+  def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     model_outputs = list(self._predict_minibatch_internal(inputs))
 

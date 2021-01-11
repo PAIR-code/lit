@@ -168,8 +168,8 @@ class CachingModelWrapper(lit_model.Model):
     """Pass-through underlying model description."""
     return self._model.description()
 
-  def max_minibatch_size(self, config=None):
-    return self._model.max_minibatch_size(config)
+  def max_minibatch_size(self):
+    return self._model.max_minibatch_size()
 
   def get_embedding_table(self):
     return self._model.get_embedding_table()

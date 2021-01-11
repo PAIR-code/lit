@@ -57,11 +57,11 @@ class BertEncoderWithOffsets(lit_model.Model):
 
   ##
   # LIT API implementations.
-  def max_minibatch_size(self, config=None):
+  def max_minibatch_size(self):
     # Rough heuristic for how much we can handle on one GPU with 12G of memory.
     return 64 if self.model.config.num_hidden_layers <= 12 else 32
 
-  def predict_minibatch(self, inputs, config=None):
+  def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     tokens_and_offsets = [
         retokenize.subtokenize(ex['tokens'], self.tokenizer.tokenize)

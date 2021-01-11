@@ -100,28 +100,16 @@ class Model(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
-  # pylint: disable=unused-argument
-  def max_minibatch_size(self, config=None) -> int:
+  def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model."""
     return 1
 
-  # pylint: enable=unused-argument
-
   @abc.abstractmethod
-  def predict_minibatch(self,
-                        inputs: List[JsonDict],
-                        config=None) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     """Run prediction on a batch of inputs.
-
-    TODO(lit-team): add a 'level' argument (enumerate preprocessing, forward,
-    backward) to save on expensive operations when not needed. For example,
-    computing gradients invokes a backward pass, which costs ~2x the memory and
-    ~2x the compute of just running a forward prediction.
 
     Args:
       inputs: sequence of inputs, following model.input_spec()
-      config: (optional) predict-time model config (beam size, num candidates,
-        etc.)
 
     Returns:
       list of outputs, following model.output_spec()

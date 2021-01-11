@@ -81,12 +81,12 @@ class BertMLM(lit_model.Model):
 
   ##
   # LIT API implementations
-  def max_minibatch_size(self, unused_config=None) -> int:
+  def max_minibatch_size(self) -> int:
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 8
 
-  def predict_minibatch(self, inputs, config=None):
+  def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     # If input has a 'tokens' field, use that. Otherwise tokenize the text.
     tokenized_texts = [
@@ -249,12 +249,12 @@ class GPT2LanguageModel(lit_model.Model):
 
   ##
   # LIT API implementations
-  def max_minibatch_size(self, unused_config=None) -> int:
+  def max_minibatch_size(self) -> int:
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 6
 
-  def predict_minibatch(self, inputs, config=None):
+  def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     # Preprocess inputs.
     texts = [ex["text"] for ex in inputs]
