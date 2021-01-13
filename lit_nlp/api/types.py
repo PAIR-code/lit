@@ -202,6 +202,13 @@ class Embeddings(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Gradients(LitType):
+  """Gradients with respect to embeddings."""
+  grad_for: Optional[Text] = None  # name of embedding field
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(LitType):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # path to tokens or other sequence field
@@ -209,7 +216,7 @@ class TokenEmbeddings(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(LitType):
-  """Gradients with respect to inputs, as <float>[num_tokens, emb_dim]."""
+  """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # path to tokens or other sequence field
   grad_for: Optional[Text] = None  # name of input embedding field
   grad_target: Optional[Text] = None  # class for computing gradients (string)

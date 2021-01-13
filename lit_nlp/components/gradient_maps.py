@@ -198,6 +198,10 @@ class IntegratedGradients(lit_components.Interpreter):
     aligned_fields = []
     for f in grad_fields:
       tokens_field = output_spec[f].align  # pytype: disable=attribute-error
+      # Skips this grad field if an aligned token field isn't specified.
+      if tokens_field is None:
+        continue
+
       assert tokens_field in output_spec
       assert isinstance(output_spec[tokens_field], types.Tokens)
 
