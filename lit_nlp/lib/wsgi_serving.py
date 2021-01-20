@@ -37,6 +37,7 @@ class BasicDevServer(object):
     self.can_act_as_model_server = True
 
   def serve(self):
+    """Start serving."""
     logging.info(('\n\nStarting Server on port %d'
                   '\nYou can navigate to %s:%d\n\n'), self._port, self._host,
                  self._port)
@@ -70,7 +71,7 @@ class NotebookWsgiServer(object):
     self._host = host
     self._port = port
     self._server_thread = None
-    self.can_act_as_model_server = True
+    self.can_act_as_model_server = False
 
   @property
   def port(self):

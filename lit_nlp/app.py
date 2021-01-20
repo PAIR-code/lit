@@ -271,7 +271,7 @@ class LitApp(object):
     """
 
     @functools.wraps(fn)
-    def _handler(handler, request, environ):
+    def _handler(app: wsgi_app.App, request, environ):
       kw = request.args.to_dict()
       # The frontend needs "simple" data (e.g. NumPy arrays converted to lists),
       # but for requests from Python we may want to use the invertible encoding
@@ -282,7 +282,7 @@ class LitApp(object):
 
       outputs = fn(data, **kw)
       response_body = serialize.to_json(outputs, simple=response_simple_json)
-      return handler.respond(request, response_body, 'application/json', 200)
+      return app.respond(request, response_body, 'application/json', 200)
 
     return _handler
 
