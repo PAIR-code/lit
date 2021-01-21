@@ -18,9 +18,10 @@
 // tslint:disable:no-new-decorators
 import './checkbox';
 import '@material/mwc-icon';
-import {customElement, html, LitElement, property} from 'lit-element';
+import {customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
+import {ReactiveElement} from '../lib/elements';
 
 import {LitType, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
@@ -31,10 +32,10 @@ import {styles as sharedStyles} from '../modules/shared_styles.css';
  * Controls panel for a generator.
  */
 @customElement('lit-generator-controls')
-export class GeneratorControls extends LitElement {
+export class GeneratorControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
-  settings: {[name: string]: string|string[]} = {};
+  @observable settings: {[name: string]: string|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static get styles() {
@@ -142,6 +143,34 @@ export class GeneratorControls extends LitElement {
           .value=${defaultValue}>
         ${options}
       </select>`;
+    }
+    else if (isLitSubtype(controlType, ['Scalar'])) {
+      // Render a dropdown, with the first item selected.
+      const updateSettings = (e: Event) => {
+        const input = (e.target as HTMLInputElement);
+        this.settings[name] = input.value;
+      };
+
+      const step = controlType.step!;
+      const minVal = controlType.min_val!;
+      const maxVal = controlType.max_val!;
+      const defaultValue = controlType.default! as string;
+
+      return html`
+      <div class='slider-holder'>
+        <div class='slider-label'>${minVal}</div>
+        <input
+          type="range"
+          min="${minVal}"
+          max="${maxVal}"
+          step="${step}"
+          .value=${defaultValue}
+          @input=${updateSettings}
+          >
+          <div class='slider-label'>${maxVal}</div>
+        </div>
+        <div>${this.settings[name]}</div>
+        `;
     }
     else {
       // Render a text input box.

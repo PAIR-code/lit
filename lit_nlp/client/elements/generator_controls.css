@@ -58,3 +58,14 @@
   min-width: 48px;
 }
 
+.slider-holder {
+  display: flex;
+  align-items: center;
+  padding-right: 5px;
+}
+
+.slider-label {
+  color: gray;
+  font-size: 8pt;
+}
+

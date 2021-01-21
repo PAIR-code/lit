@@ -124,10 +124,11 @@ class TokenTopKPreds(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Scalar(LitType):
-  """Scalar value, a single float."""
-  # TODO(lit-dev): support optional range information, to use for legends,
-  # plot bounds, etc. on frontend.
-  pass
+  """Scalar value, a single float or int."""
+  min_val: float = 0
+  max_val: float = 1
+  default: float = 0
+  step: float = .01
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
