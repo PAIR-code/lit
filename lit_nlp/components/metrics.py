@@ -17,7 +17,7 @@
 
 import abc
 import collections
-from typing import cast, Dict, List, Tuple, Text, Optional, Sequence, Callable, Any
+from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -32,6 +32,7 @@ from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 Spec = types.Spec
 
 
@@ -106,9 +107,9 @@ class SimpleMetrics(lit_components.Interpreter):
     return self.compute(labels, preds, label_spec, pred_spec, config)
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
+                        dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
     # TODO(lit-team): pre-compute this mapping in constructor?

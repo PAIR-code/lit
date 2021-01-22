@@ -17,11 +17,13 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.components import index
 from lit_nlp.components import similarity_searcher
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import summarization
 from lit_nlp.examples.models import t5
+from lit_nlp.lib import caching  # for hash id fn
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -105,6 +107,8 @@ def main(_):
             summarization.CNNDMData(
                 split="train", max_examples=FLAGS.max_index_examples),
     }
+    index_datasets = lit_dataset.IndexedDataset.index_all(
+        index_datasets, caching.input_hash)
     # Set up the Indexer, building index if necessary (this may be slow).
     indexer = index.Indexer(
         datasets=index_datasets,

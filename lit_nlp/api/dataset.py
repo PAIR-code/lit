@@ -16,7 +16,8 @@
 """Base classes for LIT models."""
 import inspect
 import random
-from typing import List, Dict, Optional
+from types import MappingProxyType  # pylint: disable=g-importing-member
+from typing import List, Dict, Optional, Callable, Mapping, Sequence
 
 from absl import logging
 
@@ -24,6 +25,8 @@ from lit_nlp.api import types
 from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
+ExampleId = types.ExampleId
 Spec = types.Spec
 
 
@@ -107,3 +110,73 @@ class Dataset(object):
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
     return Dataset(new_spec, new_examples, self.description())
+
+
+IdFnType = Callable[[types.Input], ExampleId]
+
+
+class IndexedDataset(Dataset):
+  """Dataset with additional indexing information."""
+
+  _index: Dict[ExampleId, IndexedInput] = {}
+
+  def index_inputs(self, examples: List[types.Input]) -> List[IndexedInput]:
+    """Create indexed versions of inputs."""
+    return [
+        IndexedInput({'data': example, 'id': self._id_fn(example)})
+        for example in examples
+    ]  # pyformat: disable
+
+  def __init__(self,
+               spec,
+               examples,
+               description: Optional[str] = None,
+               id_fn: IdFnType = None):
+    super().__init__(spec, examples, description)
+    assert id_fn is not None, 'id_fn must be specified.'
+    self._id_fn = id_fn
+    self._indexed_examples = self.index_inputs(self._examples)
+    self._index = {ex['id']: ex for ex in self._indexed_examples}
+
+  @classmethod
+  def from_dataset(cls, dataset: Dataset, id_fn: IdFnType):
+    """Build an IndexedDataset from an existing dataset."""
+    return cls(dataset.spec(), dataset.examples, dataset.description(), id_fn)
+
+  @classmethod
+  def index_all(cls, datasets: Mapping[str, Dataset], id_fn: IdFnType):
+    """Convenience function to convert a dict of datasets."""
+    return {name: cls.from_dataset(ds, id_fn) for name, ds in datasets.items()}
+
+  @property
+  def indexed_examples(self) -> Sequence[IndexedInput]:
+    return self._indexed_examples
+
+  @property
+  def index(self) -> Mapping[ExampleId, IndexedInput]:
+    """Return a read-only view of the index."""
+    return MappingProxyType(self._index)
+
+
+class NoneDataset(Dataset):
+  """Empty dataset, with fields as the union of model specs."""
+
+  def __init__(self, models):  # pylint: disable=super-init-not-called
+    self._examples = []
+    self._models = models
+
+  def spec(self):
+    combined_spec = {}
+    for _, model in self._models.items():
+      req_inputs = {k: v for (k, v) in model.spec().input.items() if v.required}
+      # Ensure that there are no conflicting spec keys.
+      assert not self.has_conflicting_keys(combined_spec, req_inputs)
+      combined_spec.update(req_inputs)
+
+    return combined_spec
+
+  def has_conflicting_keys(self, spec0: Spec, spec1: Spec):
+    for k, v in spec0.items():
+      if k in spec1 and spec1[k] != v:
+        return True
+    return False

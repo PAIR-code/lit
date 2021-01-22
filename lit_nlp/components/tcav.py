@@ -16,7 +16,7 @@
 """Quantitative Testing with Concept Activation Vectors (TCAV)."""
 
 import random
-from typing import Any, List, Optional, cast, Text
+from typing import Any, List, Optional, cast, Sequence, Text
 
 import attr
 from lit_nlp.api import components as lit_components
@@ -30,6 +30,7 @@ import sklearn.model_selection
 
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 Spec = types.Spec
 
 NUM_SPLITS = 20  # TODO(lit-dev): Make this configurable in the UI.
@@ -95,9 +96,9 @@ class TCAV(lit_components.Interpreter):
 
   def run_with_metadata(
       self,
-      indexed_inputs: List[JsonDict],
+      indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
-      dataset: lit_dataset.Dataset,
+      dataset: lit_dataset.IndexedDataset,
       model_outputs: Optional[List[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
     """Runs the TCAV method given the params in the inputs and config.

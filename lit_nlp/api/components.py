@@ -16,13 +16,14 @@
 """Base classes for LIT backend components."""
 import abc
 import inspect
-from typing import Dict, List, Optional, Text
+from typing import Dict, List, Optional, Sequence, Text
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 
 
 class Interpreter(metaclass=abc.ABCMeta):
@@ -52,9 +53,9 @@ class Interpreter(metaclass=abc.ABCMeta):
     )
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
+                        dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None):
     """Run this component, with access to data indices and metadata."""
@@ -81,9 +82,9 @@ class ComponentGroup(Interpreter):
 
   def run_with_metadata(
       self,
-      indexed_inputs: List[JsonDict],
+      indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
-      dataset: lit_dataset.Dataset,
+      dataset: lit_dataset.IndexedDataset,
       model_outputs: Optional[List[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Dict[Text, JsonDict]:
     """Run this component, given a model and input(s)."""
@@ -100,9 +101,9 @@ class Generator(Interpreter):
   """Base class for LIT generators."""
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
+                        dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None):
     """Run this component, with access to data indices and metadata."""

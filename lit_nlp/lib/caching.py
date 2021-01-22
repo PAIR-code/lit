@@ -44,14 +44,6 @@ def input_hash(example: JsonDict) -> Text:
   return hashlib.md5(json_str).hexdigest()
 
 
-def create_indexed_inputs(examples: List[Input]) -> List[IndexedInput]:
-  """Return examples with hashes added."""
-  return [
-      IndexedInput({"data": example, "id": input_hash(example)})
-      for example in examples
-  ]  # pyformat: disable
-
-
 class PredsCache(object):
   """Cache for model outputs."""
 

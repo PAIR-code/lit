@@ -18,13 +18,13 @@
 from typing import List, Optional
 
 from lit_nlp.api import components as lit_components
-from lit_nlp.api import dataset as lit_data
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import index
-from lit_nlp.lib import caching
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 
 
 class SimilaritySearcher(lit_components.Generator):
@@ -35,8 +35,8 @@ class SimilaritySearcher(lit_components.Generator):
 
   def _get_embedding(self, model, example, embedding_name, dataset_name):
     """Calls the model on the example to get the embedding."""
-    # TODO(b/158626879): no longer need the add_hashes call.
-    model_input = caching.create_indexed_inputs([example])
+    dataset = self.index.datasets[dataset_name]
+    model_input = dataset.index_inputs([example])
     model_output = model.predict_with_metadata(
         model_input, dataset_name=dataset_name)
     embedding = [o[embedding_name] for o in model_output][0]
@@ -51,7 +51,7 @@ class SimilaritySearcher(lit_components.Generator):
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
-               dataset: lit_data.Dataset,
+               dataset: lit_dataset.Dataset,
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Find similar examples for an example/model/dataset."""
     model_name = config['model_name']

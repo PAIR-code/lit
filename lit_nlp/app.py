@@ -96,7 +96,7 @@ class LitApp(object):
           'description': interpreter.description()
       }
 
-    self._info = {
+    return {
         # Component info and specs
         'models': model_info,
         'datasets': dataset_info,
@@ -188,33 +188,28 @@ class LitApp(object):
 
   def _get_datapoint_ids(self, data) -> List[IndexedInput]:
     """Fill in unique example hashes for the provided datapoints."""
+    # TODO(lit-dev): unify this with hash fn on dataset objects.
     for example in data['inputs']:
       example['id'] = caching.input_hash(example['data'])
     return data['inputs']
 
   def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
-
-    # TODO(lit-team): add functionality to load data from a given path, as
-    # passed from the frontend?
-    assert dataset_name is not None, 'No dataset specified.'
-    # TODO(lit-team): possibly allow IDs from persisted dataset.
-    return caching.create_indexed_inputs(self._datasets[dataset_name].examples)
+    return self._datasets[dataset_name].indexed_examples
 
   def _get_generated(self, data, model: Text, dataset_name: Text,
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
     generator_name = generator
     generator: lit_components.Generator = self._generators[generator_name]
+    dataset = self._datasets[dataset_name]
+    # Nested list, containing generated examples from each input.
     all_generated: List[List[Input]] = generator.run_with_metadata(
-        data['inputs'],
-        self._models[model],
-        self._datasets[dataset_name],
-        config=data.get('config'))
+        data['inputs'], self._models[model], dataset, config=data.get('config'))
 
-    # TODO(lit-dev): flatten this list now that we store the parent IDs?
+    # Add metadata.
     all_generated_indexed: List[List[IndexedInput]] = [
-        caching.create_indexed_inputs(generated) for generated in all_generated
+        dataset.index_inputs(generated) for generated in all_generated
     ]
     for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
       for generated in indexed_generated:
@@ -320,12 +315,19 @@ class LitApp(object):
     self._page_title = page_title
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
+
+    # Wrap models in caching wrapper
     self._models = {
         name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
         for name, model in models.items()
     }
+
     self._datasets = datasets
-    self._datasets['_union_empty'] = NoneDataset(self._models)
+    self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+    # Index all datasets
+    self._datasets = lit_dataset.IndexedDataset.index_all(
+        self._datasets, caching.input_hash)
+
     if generators is not None:
       self._generators = generators
     else:
@@ -356,8 +358,8 @@ class LitApp(object):
           'umap': projection.ProjectionManager(umap.UmapModel),
       }
 
-    # Information on models and datasets.
-    self._build_metadata()
+    # Information on models, datasets, and other components.
+    self._info = self._build_metadata()
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:
@@ -407,29 +409,3 @@ class LitApp(object):
   def __call__(self, environ, start_response):
     """Implementation of the WSGI interface."""
     return self._wsgi_app(environ, start_response)
-
-
-class NoneDataset(lit_dataset.Dataset):
-  """Default for simple model exploration."""
-
-  def __init__(self, models):
-    self._examples = []
-    self._models = models
-
-  def spec(self):
-    combined_spec = {}
-    for _, model in self._models.items():
-      req_inputs = {
-          k: v for (k, v) in model.spec().input.items() if v.required
-      }
-      # Ensure that there are no conflicting spec keys.
-      assert not self.has_conflicting_keys(combined_spec, req_inputs)
-      combined_spec.update(req_inputs)
-
-    return combined_spec
-
-  def has_conflicting_keys(self, spec0: types.Spec, spec1: types.Spec):
-    for k, v in spec0.items():
-      if k in spec1 and spec1[k] != v:
-        return True
-    return False

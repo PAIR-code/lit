@@ -26,7 +26,6 @@ import annoy
 from lit_nlp.api import dataset as lit_data
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.lib import caching
 from lit_nlp.lib import utils
 
 
@@ -54,11 +53,11 @@ class Indexer(object):
   def __init__(
       self,
       models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_data.Dataset],
+      datasets: Mapping[Text, lit_data.IndexedDataset],
       data_dir: Optional[Text],
       initialize_new_indices: Optional[bool] = False,
   ):
-    self._datasets = datasets
+    self.datasets = datasets
     self._indices = collections.OrderedDict()
     self._example_lookup = collections.defaultdict(dict)
     # Indicator whether to build new indices. If False, only load existing ones.
@@ -72,7 +71,7 @@ class Indexer(object):
     # Create/Load indices.
     for model_name, model_info in self._models.items():
       compatible_datasets = [
-          dname for dname, ds in self._datasets.items()
+          dname for dname, ds in self.datasets.items()
           if model_info.spec().is_compatible_with_dataset(ds.spec())
       ]
       for dataset in compatible_datasets:
@@ -81,11 +80,6 @@ class Indexer(object):
 
     # Update cache with all indices.
     self._save_lookups()
-
-  def _get_dataset(self, dataset_name: Text = None):
-    """Convert examples into ones to be used by the model (adding hashes)."""
-    assert dataset_name is not None, "No dataset specified."
-    return caching.create_indexed_inputs(self._datasets[dataset_name].examples)
 
   def _get_index_key(self, model_name, dataset_name, embedding_name):
     """Returns the key of an index, added to avoid collisions."""
@@ -110,7 +104,7 @@ class Indexer(object):
   def _create_empty_indices(self, model_name, dataset_name):
     """Create the empty indices for a model and dataset."""
     model = self._models[model_name]
-    examples = self._get_dataset(dataset_name)
+    examples = self.datasets[dataset_name].indexed_examples
     model_embeddings_names = utils.find_spec_keys(model.output_spec(),
                                                   lit_types.Embeddings)
     if not model_embeddings_names:
@@ -136,7 +130,7 @@ class Indexer(object):
     """Create all indices for a single model."""
     model = self._models.get(model_name)
     assert model is not None, "Invalid model name."
-    examples = self._get_dataset(dataset_name)
+    examples = self.datasets[dataset_name].indexed_examples
     model_embeddings_names = utils.find_spec_keys(model.output_spec(),
                                                   lit_types.Embeddings)
     lookup_key = self._get_lookup_key(model_name, dataset_name)
