@@ -234,50 +234,38 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Generation logic
   /**
-   * Create and add new datapoints from the output of a generator.
-   * @param data list-of-lists of inputs. Inner lists are generations derived
-   * from a single input.
-   * @param parentIds list of ids of parents, corresponding to the outer index
-   * of data.
-   * @param source name of the generator that created these points.
+   * Index one or more bare datapoints.
+   * @param data input examples
+   * @param parentIds id of the parent examples
+   * @param source name of the generator that created these points
    */
-  async createNewDatapoints(
-      data: Input[][], parentIds: string[],
-      source: string): Promise<IndexedInput[]> {
-    let datapoints: IndexedInput[] = [];
-    // Loop through new counterfactuals. Outer loop for input examples,
-    // inner loop for list of counterfactuals for each input.
-    for (let i = 0; i < data.length; i++) {
-      for (let j = 0; j < data[i].length; j++) {
-        const point: IndexedInput = {
-          'data': data[i][j],
-          'id': '',
-          'meta': {
-            'parentId': parentIds[i],
-            'source': source,
-            'added': 1,
-            'isStarred': false
-          }
-        };
-
-        datapoints.push(point);
-      }
-    }
-
-    // Fill in unique IDs for the new datapoints.
-    datapoints = await this.apiService.getDatapointIds(datapoints);
-
-    // Update input data for new datapoints.
-    this.commitNewDatapoints(datapoints);
-    return datapoints;
+  async indexNewDatapoints(data: Input[], parentIds: string[], source: string):
+      Promise<IndexedInput[]> {
+    const indexedInputs = data.map((input, i) => {
+      return {
+        'data': input,
+        'id': '',
+        'meta': {
+          'parentId': parentIds[i],
+          'source': source,
+          'added': 1,
+          'isStarred': false
+        }
+      };
+    });
+    // Actually get ids, from backend.
+    return this.apiService.getDatapointIds(indexedInputs);
   }
 
 
   /**
-   * Atomically commit a list of new datapoints.
+   * Atomically commit new datapoints to the active dataset.
+   * Note that (currently) this state is entirely stored on the frontend;
+   * if the page is reloaded the newly-added points will not be there unless
+   * recovered via URL params or another mechanism.
    */
   @action
-  private commitNewDatapoints(datapoints: IndexedInput[]) {
+  commitNewDatapoints(datapoints: IndexedInput[]) {
     datapoints.forEach(entry => {
       // If the new datapoint already exists in the input data, do not overwrite
       // it with this new copy, as that will cause issues with datapoint parent
@@ -315,11 +303,10 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
 
   async loadData() {
-    if (this.currentDataset) {
-      const inputResponse =
-          await this.apiService.getInputs(this.currentDataset);
-      this.updateInputData(this.currentDataset, inputResponse);
-    }
+    if (!this.currentDataset) return;
+
+    const inputResponse = await this.apiService.getDataset(this.currentDataset);
+    this.updateInputData(this.currentDataset, inputResponse);
   }
 
   private updateInputData(dataset: string, data: IndexedInput[]) {

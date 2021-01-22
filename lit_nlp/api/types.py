@@ -26,11 +26,13 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Dict, Text, Tuple, Sequence, Optional, Any, List
+from typing import Any, Dict, List, NewType, Optional, Sequence, Text, Tuple
 
 import attr
 
 JsonDict = Dict[Text, Any]
+Input = JsonDict  # TODO(lit-dev): stronger typing using NewType
+IndexedInput = NewType('IndexedInput', JsonDict)  # has keys: id, data, meta
 ExampleId = Text
 TokenTopKPredsList = List[List[Tuple[str, float]]]
 

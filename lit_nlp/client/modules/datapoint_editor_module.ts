@@ -194,12 +194,11 @@ export class DatapointEditorModule extends LitModule {
     const clearEnabled = !!this.selectionService.primarySelectedInputData;
 
     const onClickNew = async () => {
-
-      const toCreate = [[this.editedData]];
-      const ids = [this.selectionService.primarySelectedId!];
-      const datapoints =
-          await this.appState.createNewDatapoints(toCreate, ids, 'manual');
-      this.selectionService.selectIds(datapoints.map(d => d.id));
+      const data = await this.appState.indexNewDatapoints(
+          [this.editedData], [this.selectionService.primarySelectedId!],
+          'manual');
+      this.appState.commitNewDatapoints(data);
+      this.selectionService.selectIds(data.map(d => d.id));
     };
     const onClickReset = () => {
       this.resetEditedData(

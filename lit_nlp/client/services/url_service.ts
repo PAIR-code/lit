@@ -52,9 +52,10 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
-  createNewDatapoints: (
-    data: Input[][], parentIds: string[],
-    source: string) => Promise<IndexedInput[]>;
+  indexNewDatapoints:
+      (data: Input[], parentIds: string[],
+       source: string) => Promise<IndexedInput[]>;
+  commitNewDatapoints: (datapoints: IndexedInput[]) => void;
 }
 
 /**
@@ -250,7 +251,8 @@ export class UrlService extends LitService {
       Object.keys(spec).forEach(key => {
         fields[key] = fields[key] ?? defaultValueByField(key, spec);
       });
-      const data = await appState.createNewDatapoints([[fields]], [], 'manual');
+      const data = await appState.indexNewDatapoints([fields], [], 'manual');
+      appState.commitNewDatapoints(data);
       selectionService.setPrimarySelection(data[0].id);
     }
 

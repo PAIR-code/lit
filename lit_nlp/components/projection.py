@@ -174,7 +174,7 @@ class ProjectionManager(lit_components.Interpreter):
     # TODO(lit-dev): recomputing hashes here is a bit wasteful - consider
     # creating an 'IndexedDataset' class in the server, and passing that
     # around so that components can access IndexedInputs directly.
-    train_inputs = caching.add_hashes_to_input(dataset.examples)
+    train_inputs = caching.create_indexed_inputs(dataset.examples)
     # TODO(lit-dev): remove 'dataset_name' from caching logic so we don't need
     # to track it here or elsewhere.
     train_outputs = list(

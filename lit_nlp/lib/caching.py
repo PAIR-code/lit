@@ -29,6 +29,8 @@ from lit_nlp.api import types
 from lit_nlp.lib import serialize
 
 JsonDict = types.JsonDict
+Input = types.Input
+IndexedInput = types.IndexedInput
 
 # Compound keys: (dataset_name, example_id)
 # None is used as a sentinel to skip the cache.
@@ -42,9 +44,12 @@ def input_hash(example: JsonDict) -> Text:
   return hashlib.md5(json_str).hexdigest()
 
 
-def add_hashes_to_input(examples: List[JsonDict]) -> List[JsonDict]:
+def create_indexed_inputs(examples: List[Input]) -> List[IndexedInput]:
   """Return examples with hashes added."""
-  return [{"data": example, "id": input_hash(example)} for example in examples]
+  return [
+      IndexedInput({"data": example, "id": input_hash(example)})
+      for example in examples
+  ]  # pyformat: disable
 
 
 class PredsCache(object):

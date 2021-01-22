@@ -44,6 +44,8 @@ from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
 
 JsonDict = types.JsonDict
+Input = types.Input
+IndexedInput = types.IndexedInput
 
 # Export this symbol, for access from demo.py
 PredsCache = caching.PredsCache
@@ -184,13 +186,11 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _get_datapoint_ids(self, data):
+  def _get_datapoint_ids(self, data) -> List[IndexedInput]:
     """Fill in unique example hashes for the provided datapoints."""
-    examples = []
     for example in data['inputs']:
       example['id'] = caching.input_hash(example['data'])
-      examples.append(example)
-    return examples
+    return data['inputs']
 
   def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
@@ -199,17 +199,27 @@ class LitApp(object):
     # passed from the frontend?
     assert dataset_name is not None, 'No dataset specified.'
     # TODO(lit-team): possibly allow IDs from persisted dataset.
-    return caching.add_hashes_to_input(self._datasets[dataset_name].examples)
+    return caching.create_indexed_inputs(self._datasets[dataset_name].examples)
 
   def _get_generated(self, data, model: Text, dataset_name: Text,
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
-    generator = self._generators[generator]
-    return generator.run_with_metadata(
+    generator_name = generator
+    generator: lit_components.Generator = self._generators[generator_name]
+    all_generated: List[List[Input]] = generator.run_with_metadata(
         data['inputs'],
         self._models[model],
         self._datasets[dataset_name],
         config=data.get('config'))
+
+    # TODO(lit-dev): flatten this list now that we store the parent IDs?
+    all_generated_indexed: List[List[IndexedInput]] = [
+        caching.create_indexed_inputs(generated) for generated in all_generated
+    ]
+    for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
+      for generated in indexed_generated:
+        generated['meta'] = {'parentId': parent['id'], 'source': generator_name}
+    return all_generated_indexed
 
   def _get_interpretations(self, data, model: Text, dataset_name: Text,
                            interpreter: Text, **unused_kw):

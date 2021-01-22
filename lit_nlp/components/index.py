@@ -85,7 +85,7 @@ class Indexer(object):
   def _get_dataset(self, dataset_name: Text = None):
     """Convert examples into ones to be used by the model (adding hashes)."""
     assert dataset_name is not None, "No dataset specified."
-    return caching.add_hashes_to_input(self._datasets[dataset_name].examples)
+    return caching.create_indexed_inputs(self._datasets[dataset_name].examples)
 
   def _get_index_key(self, model_name, dataset_name, embedding_name):
     """Returns the key of an index, added to avoid collisions."""

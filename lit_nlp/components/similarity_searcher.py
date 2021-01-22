@@ -36,7 +36,7 @@ class SimilaritySearcher(lit_components.Generator):
   def _get_embedding(self, model, example, embedding_name, dataset_name):
     """Calls the model on the example to get the embedding."""
     # TODO(b/158626879): no longer need the add_hashes call.
-    model_input = caching.add_hashes_to_input([example])
+    model_input = caching.create_indexed_inputs([example])
     model_output = model.predict_with_metadata(
         model_input, dataset_name=dataset_name)
     embedding = [o[embedding_name] for o in model_output][0]

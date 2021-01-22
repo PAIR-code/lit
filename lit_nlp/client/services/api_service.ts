@@ -15,10 +15,21 @@
  * limitations under the License.
  */
 
-import {CallConfig, IndexedInput, Input, LitMetadata, Preds} from '../lib/types';
+import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
 
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
+
+/**
+ * Add default metadata to new examples.
+ * TODO(lit-dev): do this on the backend instead to consolidate logic.
+ */
+function setDefaultMetadata(examples: IndexedInput[]) {
+  for (const example of examples) {
+    example['meta'] =
+        Object.assign({added: 0, isStarred: false}, example['meta'] ?? {});
+  }
+}
 
 /**
  * API service singleton, responsible for actually making calls to the server
@@ -33,24 +44,26 @@ export class ApiService extends LitService {
    * Send a request to the server to get inputs for a dataset.
    * @param dataset name of dataset to load
    */
-  getInputs = async(dataset: string): Promise<IndexedInput[]> => {
+  async getDataset(dataset: string): Promise<IndexedInput[]> {
     const loadMessage = 'Loading inputs';
-    const inputResponse = await this.queryServer(
+    const examples = await this.queryServer<IndexedInput[]>(
         '/get_dataset', {'dataset_name': dataset}, [], loadMessage);
-    const toProcess = ensureArrayData(inputResponse);
-    return toProcess.map((data, index) => {
-      return {data: data.data, id: data.id, meta: {added: 0, isStarred: false}};
-    });
-  };
+    if (examples == null) {
+      const errorText = 'Failed to load dataset (server returned null).';
+      this.statusService.addError(errorText);
+      throw (new Error(errorText));
+    }
+    setDefaultMetadata(examples);
+    return examples;
+  }
 
   /**
    * Send a request to the server to get dataset info.
    */
-  getInfo = async():
-      Promise<LitMetadata> => {
-        const loadMessage = 'Loading metadata';
-        return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage);
-      }
+  async getInfo(): Promise<LitMetadata> {
+    const loadMessage = 'Loading metadata';
+    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage);
+  }
 
   /**
    * Calls the server to get predictions of the given types.
@@ -83,18 +96,22 @@ export class ApiService extends LitService {
    * @param config: configuration to send to backend (optional)
    * @param loadMessage: loading message to show to user (optional)
    */
-  getGenerated(
+  async getGenerated(
       inputs: IndexedInput[], modelName: string, datasetName: string,
       generator: string, config?: CallConfig,
-      loadMessage?: string): Promise<Input[][]> {
+      loadMessage?: string): Promise<IndexedInput[][]> {
     loadMessage = loadMessage ?? 'Loading generator output';
-    return this.queryServer(
+    const generated = await this.queryServer<IndexedInput[][]>(
         '/get_generated', {
           'model': modelName,
           'dataset_name': datasetName,
           'generator': generator,
         },
         inputs, loadMessage, config);
+    for (const inputs of generated) {
+      setDefaultMetadata(inputs);
+    }
+    return generated;
   }
 
   /**
@@ -103,7 +120,7 @@ export class ApiService extends LitService {
    * @return Inputs with the IDs correctly set.
    */
   getDatapointIds(inputs: IndexedInput[]): Promise<IndexedInput[]> {
-    return this.queryServer('/get_datapoint_ids', {}, inputs);
+    return this.queryServer<IndexedInput[]>('/get_datapoint_ids', {}, inputs);
   }
 
   /**
@@ -201,7 +218,3 @@ export class ApiService extends LitService {
   }
 }
 
-// tslint:disable-next-line:no-any
-function ensureArrayData(input: any) {
-  return input && input instanceof Array ? input : [];
-}
