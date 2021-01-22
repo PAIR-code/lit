@@ -123,7 +123,7 @@ class SimpleMetrics(lit_components.Interpreter):
       labels = [ex['data'][label_key] for ex in indexed_inputs]
       preds = [mo[pred_key] for mo in model_outputs]
       indices = [ex['id'] for ex in indexed_inputs]
-      metas = [ex['meta'] for ex in indexed_inputs]
+      metas = [ex.get('meta', {}) for ex in indexed_inputs]
       # Compute metrics, as dict(str -> float)
       metrics = self.compute_with_metadata(
           labels,

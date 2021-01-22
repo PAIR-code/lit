@@ -189,11 +189,22 @@ export class ApiService extends LitService {
       endpoint: string, params: {[key: string]: string}, inputs: IndexedInput[],
       loadMessage: string = '', config?: CallConfig): Promise<T> {
     const finished = this.statusService.startLoading(loadMessage);
+    // For a smaller request, replace known (original) examples with their IDs;
+    // we can simply look these up on the server.
+    // TODO: consider sending the metadata as well, since this might be changed
+    // from the frontend.
+    const processedInputs: Array<IndexedInput|string> = inputs.map(input => {
+      if (!input.meta['added']) {
+        return input.id;
+      }
+      return input;
+    });
+
     try {
       const paramsArray =
           Object.keys(params).map((key: string) => `${key}=${params[key]}`);
       const url = encodeURI(`${endpoint}?${paramsArray.join('&')}`);
-      const body = JSON.stringify({inputs, config});
+      const body = JSON.stringify({inputs: processedInputs, config});
       const res = await fetch(url, {method: 'POST', body});
       // If there is tsserver error, the response contains text (not json).
       if (!res.ok) {

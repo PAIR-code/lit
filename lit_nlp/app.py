@@ -21,7 +21,7 @@ import os
 import pickle
 import random
 import time
-from typing import Optional, Text, List, Mapping, MutableMapping
+from typing import Optional, Text, List, Mapping, Sequence, Union
 
 from absl import logging
 
@@ -115,6 +115,17 @@ class LitApp(object):
   def _get_info(self, unused_data, **unused_kw):
     """Get model info and send to frontend."""
     return self._info
+
+  def _reconstitute_inputs(self, inputs: Sequence[Union[IndexedInput, str]],
+                           dataset_name: str) -> List[IndexedInput]:
+    """Reconstitute any inputs sent as references (bare IDs)."""
+    index = self._datasets[dataset_name].index
+    # TODO(b/178228238): set up proper debug logging and hide this by default.
+    num_aliased = sum([isinstance(ex, str) for ex in inputs])
+    logging.info(
+        "%d of %d inputs sent as IDs; reconstituting from dataset '%s'",
+        num_aliased, len(inputs), dataset_name)
+    return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
 
   def _predict(self, inputs: List[JsonDict], model_name: Text,
                dataset_name: Optional[Text]):
@@ -284,6 +295,10 @@ class LitApp(object):
       response_simple_json = utils.coerce_bool(
           kw.pop('response_simple_json', True))
       data = serialize.from_json(request.data) if len(request.data) else None
+      # Special handling to dereference IDs.
+      if data and 'inputs' in data.keys() and 'dataset_name' in kw:
+        data['inputs'] = self._reconstitute_inputs(data['inputs'],
+                                                   kw['dataset_name'])
 
       outputs = fn(data, **kw)
       response_body = serialize.to_json(outputs, simple=response_simple_json)
@@ -294,7 +309,7 @@ class LitApp(object):
   def __init__(
       self,
       models: Mapping[Text, lit_model.Model],
-      datasets: MutableMapping[Text, lit_dataset.Dataset],
+      datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       # General server config; see server_flags.py.
@@ -322,7 +337,7 @@ class LitApp(object):
         for name, model in models.items()
     }
 
-    self._datasets = datasets
+    self._datasets = dict(datasets)
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
     # Index all datasets
     self._datasets = lit_dataset.IndexedDataset.index_all(
