@@ -123,7 +123,7 @@ export class EmbeddingsModule extends LitModule {
     return this.appState.currentInputData.map((d: IndexedInput) => {
       const labelKey = Object.keys(d.data)[this.selectedLabelIndex];
       const label = d.data[labelKey];
-      const added = d.meta['added'];
+      const added = d.meta['added'] ? 1 : 0;
       return {label, added};
     });
   }

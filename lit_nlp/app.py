@@ -224,7 +224,11 @@ class LitApp(object):
     ]
     for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
       for generated in indexed_generated:
-        generated['meta'] = {'parentId': parent['id'], 'source': generator_name}
+        generated['meta'].update({
+            'parentId': parent['id'],
+            'source': generator_name,
+            'added': True,
+        })
     return all_generated_indexed
 
   def _get_interpretations(self, data, model: Text, dataset_name: Text,

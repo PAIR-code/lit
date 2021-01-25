@@ -100,8 +100,7 @@ export interface Input {
 export interface IndexedInput {
   id: string;
   data: Input;
-  // tslint:disable-next-line:no-any
-  meta: {[key: string]: any;};
+  meta: {source?: string; added?: boolean; parentId?: string;};
 }
 
 /**

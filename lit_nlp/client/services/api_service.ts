@@ -20,15 +20,6 @@ import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
 
-/**
- * Add default metadata to new examples.
- * TODO(lit-dev): do this on the backend instead to consolidate logic.
- */
-function setDefaultMetadata(examples: IndexedInput[]) {
-  for (const example of examples) {
-    example['meta'] = Object.assign({added: 0}, example['meta'] ?? {});
-  }
-}
 
 /**
  * API service singleton, responsible for actually making calls to the server
@@ -52,7 +43,6 @@ export class ApiService extends LitService {
       this.statusService.addError(errorText);
       throw (new Error(errorText));
     }
-    setDefaultMetadata(examples);
     return examples;
   }
 
@@ -100,17 +90,13 @@ export class ApiService extends LitService {
       generator: string, config?: CallConfig,
       loadMessage?: string): Promise<IndexedInput[][]> {
     loadMessage = loadMessage ?? 'Loading generator output';
-    const generated = await this.queryServer<IndexedInput[][]>(
+    return this.queryServer<IndexedInput[][]>(
         '/get_generated', {
           'model': modelName,
           'dataset_name': datasetName,
           'generator': generator,
         },
         inputs, loadMessage, config);
-    for (const inputs of generated) {
-      setDefaultMetadata(inputs);
-    }
-    return generated;
   }
 
   /**

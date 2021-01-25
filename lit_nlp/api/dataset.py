@@ -123,7 +123,7 @@ class IndexedDataset(Dataset):
   def index_inputs(self, examples: List[types.Input]) -> List[IndexedInput]:
     """Create indexed versions of inputs."""
     return [
-        IndexedInput({'data': example, 'id': self._id_fn(example)})
+        IndexedInput({'data': example, 'id': self.id_fn(example), 'meta': {}})
         for example in examples
     ]  # pyformat: disable
 
@@ -134,7 +134,7 @@ class IndexedDataset(Dataset):
                id_fn: IdFnType = None):
     super().__init__(spec, examples, description)
     assert id_fn is not None, 'id_fn must be specified.'
-    self._id_fn = id_fn
+    self.id_fn = id_fn
     self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}
 

@@ -231,7 +231,7 @@ export class LitMainToolbar extends MobxLitElement {
   get selectedIdPairs() {
     const data = this.selectionService.selectedOrAllInputData;
     return data.filter(d => d.meta['parentId'])
-        .map(d => [d.id, d.meta['parentId']]);
+        .map(d => [d.id, d.meta['parentId']!]);
   }
 
   private isStarred(id: string|null): boolean {

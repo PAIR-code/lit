@@ -23,7 +23,7 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, Input, ModelInfoMap, SpanLabel, Spec} from '../lib/types';
+import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 
@@ -194,9 +194,16 @@ export class DatapointEditorModule extends LitModule {
     const clearEnabled = !!this.selectionService.primarySelectedInputData;
 
     const onClickNew = async () => {
-      const data = await this.appState.indexNewDatapoints(
-          [this.editedData], [this.selectionService.primarySelectedId!],
-          'manual');
+      const datum: IndexedInput = {
+        data: this.editedData,
+        id: '',  // will be overwritten
+        meta: {
+          source: 'manual',
+          added: true,
+          parentId: this.selectionService.primarySelectedId!
+        },
+      };
+      const data: IndexedInput[] = await this.appState.indexDatapoints([datum]);
       this.appState.commitNewDatapoints(data);
       this.selectionService.selectIds(data.map(d => d.id));
     };

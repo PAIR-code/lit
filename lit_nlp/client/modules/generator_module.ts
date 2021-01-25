@@ -168,7 +168,7 @@ export class GeneratorModule extends LitModule {
     if (newIds.length === 0) return;
 
     const parentIds =
-        new Set<string>(newExamples.map(ex => ex.meta['parentId']));
+        new Set<string>(newExamples.map(ex => ex.meta['parentId']!));
 
     // Select parents and children, and set primary to the first child.
     this.selectionService.selectIds([...parentIds, ...newIds], this);
@@ -182,7 +182,7 @@ export class GeneratorModule extends LitModule {
       referenceSelectionService.selectIds([...parentIds, ...newIds], this);
       // parentIds[0] is not necessarily the parent of newIds[0], if
       // generated[0] is [].
-      const parentId = newExamples[0].meta['parentId'];
+      const parentId = newExamples[0].meta['parentId']!;
       referenceSelectionService.setPrimarySelection(parentId, this);
     }
   }

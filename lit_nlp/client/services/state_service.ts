@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {IndexedInput, Input, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -175,7 +175,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Return the ancestry [id, parentId, grandParentId, ...] of an id,
    * by recursively following parent pointers.
    */
-  getAncestry(id: string): string[] {
+  getAncestry(id?: string): string[] {
     const ret: string[] = [];
     while (id) {
       ret.push(id);
@@ -235,21 +235,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
   //=================================== Generation logic
   /**
    * Index one or more bare datapoints.
-   * @param data input examples
-   * @param parentIds id of the parent examples
-   * @param source name of the generator that created these points
+   * @param data input examples; ids will be overwritten.
    */
-  async indexNewDatapoints(data: Input[], parentIds: string[], source: string):
-      Promise<IndexedInput[]> {
-    const indexedInputs = data.map((input, i) => {
-      return {
-        'data': input,
-        'id': '',
-        'meta': {'parentId': parentIds[i], 'source': source, 'added': 1}
-      };
-    });
-    // Actually get ids, from backend.
-    return this.apiService.getDatapointIds(indexedInputs);
+  async indexDatapoints(data: IndexedInput[]): Promise<IndexedInput[]> {
+    // Legacy: this exists as a pass-through so lit_app.ts and url_service.ts
+    // don't need to depend on the ApiService directly.
+    return this.apiService.getDatapointIds(data);
   }
 
 
