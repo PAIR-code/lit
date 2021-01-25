@@ -47,13 +47,38 @@ class Dataset(object):
   on the fly in Dataset.examples() if desired.
   """
 
+  _spec: Spec = {}
   _examples: List[JsonDict] = []
   _description: Optional[str] = None
+  _base: Optional['Dataset'] = None
 
-  def __init__(self, spec, examples, description: Optional[str] = None):
-    self._spec = spec
-    self._examples = examples
-    self._description = description
+  def __init__(self,
+               spec: Optional[Spec] = None,
+               examples: Optional[List[JsonDict]] = None,
+               description: Optional[str] = None,
+               base: Optional['Dataset'] = None):
+    """Base class constructor.
+
+    This can derive from another dataset by passing the 'base' argument;
+    if so it will pre-populate with those fields, and override only those
+    specified individually as arguments.
+
+    Args:
+      spec: dataset spec
+      examples: data examples (datapoints)
+      description: optional human-readable description of this component
+      base: optional base dataset to derive from
+    """
+    self._base = base
+    if self._base is not None:
+      self._examples = self._base.examples
+      self._spec = self._base.spec()
+      self._description = self._base.description()
+
+    # Override from direct arguments.
+    self._examples = examples or self._examples
+    self._spec = spec or self._spec
+    self._description = description or self._description
 
   def description(self) -> str:
     """Return a human-readable description of this component.
@@ -84,7 +109,7 @@ class Dataset(object):
     """Syntactic sugar, allows dataset.slice[i:j] to return a new Dataset."""
 
     def _slicer(slice_obj):
-      return Dataset(self.spec(), self.examples[slice_obj], self.description())
+      return Dataset(examples=self.examples[slice_obj], base=self)
 
     return SliceWrapper(_slicer)
 
@@ -98,7 +123,7 @@ class Dataset(object):
           'Requested sample %d is larger than dataset size %d; returning full dataset.',
           n, len(self.examples))
       examples = list(self.examples)
-    return Dataset(self.spec(), examples, self.description())
+    return Dataset(examples=examples, base=self)
 
   def shuffle(self, seed=42):
     """Return a new dataset with randomized example order."""
@@ -109,7 +134,7 @@ class Dataset(object):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
-    return Dataset(new_spec, new_examples, self.description())
+    return Dataset(new_spec, new_examples, base=self)
 
 
 IdFnType = Callable[[types.Input], ExampleId]
@@ -127,26 +152,17 @@ class IndexedDataset(Dataset):
         for example in examples
     ]  # pyformat: disable
 
-  def __init__(self,
-               spec,
-               examples,
-               description: Optional[str] = None,
-               id_fn: IdFnType = None):
-    super().__init__(spec, examples, description)
+  def __init__(self, *args, id_fn: IdFnType = None, **kw):
+    super().__init__(*args, **kw)
     assert id_fn is not None, 'id_fn must be specified.'
     self.id_fn = id_fn
     self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}
 
   @classmethod
-  def from_dataset(cls, dataset: Dataset, id_fn: IdFnType):
-    """Build an IndexedDataset from an existing dataset."""
-    return cls(dataset.spec(), dataset.examples, dataset.description(), id_fn)
-
-  @classmethod
   def index_all(cls, datasets: Mapping[str, Dataset], id_fn: IdFnType):
     """Convenience function to convert a dict of datasets."""
-    return {name: cls.from_dataset(ds, id_fn) for name, ds in datasets.items()}
+    return {name: cls(base=ds, id_fn=id_fn) for name, ds in datasets.items()}
 
   @property
   def indexed_examples(self) -> Sequence[IndexedInput]:

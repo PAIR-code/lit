@@ -28,7 +28,7 @@ class WordReplacerTest(absltest.TestCase):
     input_spec = {'text': lit_types.TextSegment()}
     model = testing_utils.TestRegressionModel(input_spec)
     # Dataset is only used for spec in word_replacer so define once
-    dataset = lit_dataset.Dataset(input_spec, {'text': 'blank'})
+    dataset = lit_dataset.Dataset(input_spec, [{'text': 'blank'}])
 
     ## Test replacements
     generator = word_replacer.WordReplacer()
