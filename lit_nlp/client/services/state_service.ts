@@ -245,12 +245,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
       return {
         'data': input,
         'id': '',
-        'meta': {
-          'parentId': parentIds[i],
-          'source': source,
-          'added': 1,
-          'isStarred': false
-        }
+        'meta': {'parentId': parentIds[i], 'source': source, 'added': 1}
       };
     });
     // Actually get ids, from backend.

@@ -26,8 +26,7 @@ import {StatusService} from './status_service';
  */
 function setDefaultMetadata(examples: IndexedInput[]) {
   for (const example of examples) {
-    example['meta'] =
-        Object.assign({added: 0, isStarred: false}, example['meta'] ?? {});
+    example['meta'] = Object.assign({added: 0}, example['meta'] ?? {});
   }
 }
 

@@ -150,7 +150,7 @@ export class GeneratorModule extends LitModule {
       // parentId and source should already be set from the backend.
       for (const examples of generated) {
         for (const ex of examples) {
-          Object.assign(ex['meta'], {added: 1, isStarred: false});
+          Object.assign(ex['meta'], {added: 1});
         }
       }
       this.generated = generated;
