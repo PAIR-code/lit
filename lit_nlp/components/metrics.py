@@ -35,6 +35,8 @@ JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
 
+BLEU_SMOOTHING_VAL = 0.1
+
 
 def map_pred_keys(
     data_spec: lit_model.Spec, model_output_spec: lit_model.Spec,
@@ -319,5 +321,6 @@ class CorpusBLEU(SimpleMetrics):
     if not labels or not preds:
       return {}
 
-    bleu = sacrebleu.raw_corpus_bleu(preds, [labels])
+    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
+
     return {'corpus_bleu': bleu.score}

@@ -239,12 +239,12 @@ class CorpusBLEUTest(absltest.TestCase):
     testing_utils.assert_dicts_almost_equal(self, result,
                                             {'corpus_bleu': 68.037493})
 
-    # All incorrect predictions.
     result = corpusblue_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['these test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
-    testing_utils.assert_dicts_almost_equal(self, result, {'corpus_bleu': 0.0})
+    testing_utils.assert_dicts_almost_equal(self, result,
+                                            {'corpus_bleu': 29.508062388758525})
 
     # Empty labels and predictions
     result = corpusblue_metrics.compute([], [], types.GeneratedText(),
