@@ -108,6 +108,9 @@ class LIME(lit_components.Interpreter):
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
         input_string = input_[text_key]
+        if not input_string:
+          logging.info('Could not explain empty string for %s', text_key)
+          continue
         logging.info('Explaining: %s', input_string)
 
         # Perturbs the input string, gets model predictions, fits linear model.
