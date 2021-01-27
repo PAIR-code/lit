@@ -474,7 +474,7 @@ export class LitMainToolbar extends MobxLitElement {
             disableClicked: null}
           @mouseout=${compareDisabled ? disableMouseout: null}>
           <div class=${compareTextClass}>
-            Compare Datapoints
+            Compare datapoints
           </div>
           <mwc-switch id='compare-switch'
             ?disabled='${compareDisabled}'

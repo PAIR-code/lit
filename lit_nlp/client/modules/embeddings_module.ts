@@ -26,7 +26,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
-import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService} from '../services/services';
 
@@ -37,6 +37,10 @@ interface ProjectorOptions {
   displayName: string;
   // Name of backend interpreter.
   interpreterName: string;
+}
+
+interface ProjectionBackendResult {
+  z: Point3D;
 }
 
 /**
@@ -85,8 +89,9 @@ export class EmbeddingsModule extends LitModule {
    * TODO(lit-dev): consider clearing these when dataset is changed, so we don't
    * use too much memory.
    */
-  private readonly embeddingCache =
-      new Map<string, BatchRequestCache<string, IndexedInput, Preds>>();
+  private readonly embeddingCache = new Map<
+      string,
+      BatchRequestCache<string, IndexedInput, ProjectionBackendResult>>();
 
   @observable private selectedEmbeddingsIndex = 0;
   @observable private selectedLabelIndex = 0;
@@ -137,14 +142,20 @@ export class EmbeddingsModule extends LitModule {
     return new Dataset(this.projectedPoints, labels);
   }
 
-  private getEmbeddingCache(dataset: string, model: string) {
-    const key = `${dataset}:${model}`;
+  /**
+   * Return a frontend embedding cache, so we don't need to re-fetch the entire
+   * dataset when new points are added.
+   */
+  private getEmbeddingCache(
+      dataset: string, model: string, projector: string, config: CallConfig) {
+    const key = `${dataset}:${model}:${projector}:${JSON.stringify(config)}`;
     if (!this.embeddingCache.has(key)) {
       // Not found, create a new one.
       const keyFn = (d: IndexedInput) => d['id'];
-      const requestFn = async (inputs: IndexedInput[]) => {
-        return this.apiService.getPreds(
-            inputs, model, dataset, ['Embeddings'], 'Fetching embeddings');
+      const requestFn =
+          async(inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
+        return this.apiService.getInterpretations(
+            inputs, model, dataset, projector, config, 'Fetching projections');
       };
       const cache = new BatchRequestCache(requestFn, keyFn);
       this.embeddingCache.set(key, cache);
@@ -245,17 +256,19 @@ export class EmbeddingsModule extends LitModule {
                .filter(index => index !== undefined) as number[];
   }
 
-  /**
-   * Project embeddings using a server-side interpreter module.
-   */
-  private async computeBackendEmbeddings(interpreterName: string) {
+  private async computeProjectedEmbeddings() {
+    // Clear projections if dataset is empty.
+    if (!this.appState.currentInputData.length) {
+      this.projectedPoints = [];
+      return;
+    }
+
     const embeddingsInfo = this.embeddingOptions[this.selectedEmbeddingsIndex];
     if (!embeddingsInfo) {
       return;
     }
     const {modelName, fieldName} = embeddingsInfo;
 
-    const currentInputData = this.appState.currentInputData;
     const datasetName = this.appState.currentDataset;
     const projConfig = {
       'dataset_name': datasetName,
@@ -266,25 +279,13 @@ export class EmbeddingsModule extends LitModule {
     // Projections will be returned for the whole dataset, including generated
     // examples, but the backend will ensure that the projection is trained on
     // only the original dataset. See components/projection.py.
-    // TODO(lit-dev): add client-side cache so we don't need to re-fetch
-    // embeddings for the entire dataset when a new datapoint is added.
-    const promise = this.apiService.getInterpretations(
-        currentInputData, modelName, datasetName, interpreterName, projConfig,
-        'Fetching projections');
+    const embeddingRequestCache = this.getEmbeddingCache(
+        datasetName, modelName, this.projector.interpreterName, projConfig);
+    const promise = embeddingRequestCache.call(this.appState.currentInputData);
     const results =
         await this.loadLatest(`proj-${JSON.stringify(projConfig)}`, promise);
     if (results === null) return;
     this.projectedPoints = results.map((d: {'z': Point3D}) => d['z']);
-  }
-
-  private async computeProjectedEmbeddings() {
-    // Clear projections if dataset is empty.
-    if (!this.appState.currentInputData.length) {
-      this.projectedPoints = [];
-      return;
-    }
-
-    return this.computeBackendEmbeddings(this.projector.interpreterName);
   }
 
   /**

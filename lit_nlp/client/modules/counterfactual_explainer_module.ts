@@ -136,7 +136,7 @@ export class CounterfactualExplainerModule extends LitModule {
   // (e.g. group by input field, rather than salience technique).
   @observable
   private readonly state: InterpreterState = {
-    autorun: true,
+    autorun: false,
     isLoading: false,
     salience: {},
     cmap: new SignedSalienceCmap(/* gamma */ 4.0)
