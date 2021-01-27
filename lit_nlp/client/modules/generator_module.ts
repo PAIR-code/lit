@@ -308,6 +308,7 @@ export class GeneratorModule extends LitModule {
           <div>${text}</div>
           ${generators.map(genName => {
             const spec = generatorsInfo[genName].spec;
+            const description = generatorsInfo[genName].description;
             Object.keys(spec).forEach(fieldName => {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
@@ -318,7 +319,10 @@ export class GeneratorModule extends LitModule {
               }
             });
             return html`
-                <lit-generator-controls .spec=${spec} .name=${genName}>
+                <lit-generator-controls 
+                  .spec=${spec}
+                  .name=${genName}
+                  .description=${description||''}>
                 </lit-generator-controls>`;
           })}
         </div>

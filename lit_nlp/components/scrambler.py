@@ -29,7 +29,7 @@ JsonDict = types.JsonDict
 
 
 class Scrambler(lit_components.Generator):
-  """Scrambling generator."""
+  """Scramble all words in an example to generate a new example."""
 
   @staticmethod
   def scramble(val: Text) -> Text:

@@ -35,6 +35,7 @@ import {styles as sharedStyles} from '../modules/shared_styles.css';
 export class GeneratorControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
+  @observable @property({type: String}) description = '';
   @observable settings: {[name: string]: string|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
@@ -70,6 +71,7 @@ export class GeneratorControls extends ReactiveElement {
         </mwc-icon>
       </div>
       <div class=${classMap(contentClasses)}>
+        <div class="description">${this.description}</div>
         ${this.renderControls()}
         <div class="buttons-holder">
           <button class="button" @click=${generate}>Apply</button>
@@ -95,10 +97,12 @@ export class GeneratorControls extends ReactiveElement {
           this.settings[name] = spec[name].default as string;
         }
       }
-
+      const required = spec[name].required;
       return html`
           <div class="control-holder">
-            <div class="control-name">${name}</div>
+            <div class="control-name">
+              ${(required ? '*':'') + name}
+            </div>
             ${this.renderControl(name, spec[name])}
           </div>`;
     });

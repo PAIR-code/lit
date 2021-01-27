@@ -31,7 +31,10 @@ JsonDict = types.JsonDict
 
 
 class WordReplacer(lit_components.Generator):
-  """Word replacement generator."""
+  """Generate new examples by replacing words in examples.
+
+  Substitutions must be of the form 'foo -> bar, spam -> eggs'.
+  """
 
   def __init__(self, replacements: Optional[Dict[Text, List[Text]]] = None):
     # Populate dictionary with replacement options.
