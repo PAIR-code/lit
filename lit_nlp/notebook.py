@@ -13,7 +13,6 @@ import os
 import pathlib
 import random
 import typing
-from absl import flags
 # pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
@@ -26,28 +25,31 @@ try:
 except ImportError:
   is_colab = False
 
-flags.FLAGS.set_default('server_type', 'notebook')
-flags.FLAGS.set_default('host', 'localhost')
-flags.FLAGS.set_default('port', None)
-
 
 class LitWidget(object):
   """Class for using LIT inside notebooks."""
 
-  def __init__(self, models, datasets, height=1000, render=False,
-               proxy_url=None):
+  def __init__(self, *args, height=1000, render=False,
+               proxy_url=None, **kw):
     """Start LIT server and optionally render the UI immediately.
 
     Args:
-      models: A dict of model names to LIT model instances.
-      datasets: A dict of dataset names to LIT dataset instances.
+      *args: Positional arguments for the LitApp.
       height: Height to display the LIT UI in pixels. Defaults to 1000.
       render: Whether to render the UI when this object is constructed.
           Defaults to False.
       proxy_url: Optional proxy URL, if using in a notebook with a server proxy.
           Defaults to None.
+      **kw: Keyword arguments for the LitApp.
     """
-    lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+    app_flags = server_flags.get_flags()
+    app_flags['server_type'] = 'notebook'
+    app_flags['host'] = 'localhost'
+    app_flags['port'] = None
+    app_flags.update(kw)
+
+    lit_demo = dev_server.Server(
+        *args, **app_flags)
     self._server = typing.cast(
         wsgi_serving.NotebookWsgiServer, lit_demo.serve())
     self._height = height
