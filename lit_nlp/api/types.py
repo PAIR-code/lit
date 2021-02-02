@@ -194,6 +194,25 @@ class EdgeLabels(LitType):
   """
   align: Text  # name of Tokens field
 
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MultiSegmentAnnotations(LitType):
+  """Very general type for in-line text annotations, as List[AnnotationCluster].
+
+  This is a more general version of SpanLabel, EdgeLabel, and other annotation
+  types, designed to represent annotations that may span multiple segments.
+
+  The basic unit is dtypes.AnnotationCluster, which contains a label, optional
+  score, and one or more SpanLabel annotations, each of which points to a
+  specific segment from the input.
+
+  TODO(lit-dev): by default, spans are treated as bytes in this context.
+  Make this configurable, if some spans need to refer to tokens instead.
+  """
+  exclusive: bool = False  # if true, treat as candidate list
+  background: bool = False  # if true, don't emphasize in visualization
+
+
 ##
 # Model internals, for interpretation.
 

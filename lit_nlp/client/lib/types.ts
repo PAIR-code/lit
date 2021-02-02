@@ -26,11 +26,10 @@ export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
 export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
-    'SearchQuery'|'Tokens'|
-    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
-    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
-    'FieldMatcher';
+    'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
+    'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
+    'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher';
 
 export interface LitType {
   __class__: LitClass;
@@ -47,6 +46,8 @@ export interface LitType {
   min_val?: number;
   max_val?: number;
   step?: number;
+  exclusive?: boolean;
+  background?: boolean;
 }
 
 export interface Spec {
@@ -142,8 +143,14 @@ export interface SpanLabel {
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
-  return `[${s.start}, ${s.end})\u2060: ${s.label}`.replace(
-      /\ /g, '\u00a0' /* &nbsp; */);
+  let formatted = `[${s.start}, ${s.end})`;
+  if (s.align) {
+    formatted = `${s.align} ${formatted}`;
+  }
+  if (s.label) {
+    formatted = `${formatted}\u2060: ${s.label}`;
+  }
+  return formatted.replace(/\ /g, '\u00a0' /* &nbsp; */);
 }
 
 /**

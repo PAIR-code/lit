@@ -30,7 +30,7 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Dict, List, Text, Tuple, Union
+from typing import Any, Dict, List, Optional, Text, Tuple, Union
 
 import attr
 
@@ -50,7 +50,7 @@ class DataTuple(metaclass=abc.ABCMeta):
 
   def to_json(self) -> JsonDict:
     """Used by serialize.py."""
-    d = attr.asdict(self)
+    d = attr.asdict(self, recurse=False)
     d['__class__'] = 'DataTuple'
     d['__name__'] = self.__class__.__name__
     return d
@@ -67,7 +67,8 @@ class SpanLabel(DataTuple):
   """Dataclass for individual span label preds. Can use this in model preds."""
   start: int  # inclusive
   end: int  # exclusive
-  label: Text
+  label: Optional[Text] = None
+  align: Optional[Text] = None  # name of field (segment) this aligns to
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -76,6 +77,20 @@ class EdgeLabel(DataTuple):
   span1: Tuple[int, int]  # inclusive, exclusive
   span2: Tuple[int, int]  # inclusive, exclusive
   label: Union[Text, int, float]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class AnnotationCluster(DataTuple):
+  """Dataclass for annotation clusters, which may span multiple segments."""
+  label: Text
+  spans: List[SpanLabel]
+  score: Optional[float] = None
+
+  def to_json(self) -> JsonDict:
+    """Override serialization to properly convert nested objects."""
+    d = super().to_json()
+    d['spans'] = [s.to_json() for s in d['spans']]
+    return d
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

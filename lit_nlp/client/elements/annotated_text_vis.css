@@ -1,0 +1,55 @@
+.main-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 5px;
+}
+
+.group {
+  margin-bottom: 5px;
+}
+
+.group-title {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.segments-column {
+  margin-right: 20px;
+}
+
+.annotations-column {
+  min-width: 20%;
+}
+
+.cluster-container {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 2px;
+  padding-left: 3px;
+  padding-right: 3px;
+  border-bottom: 1px solid white;
+}
+
+.cluster-label {
+  min-width: 10%;
+  max-width: 30%;
+  margin-right: 10px;
+}
+
+.cluster-spans {
+  padding-right: 5px;
+}
+
+.cluster-active {
+  background: var(--group-color);
+  border-bottom: 1px solid black; /* underline-like, but cleaner */
+}
+
+.span-active {
+  border-bottom: 1px solid black; /* underline-like, but cleaner */
+}
+
+.no-data {
+  color: #5f6368;
+}

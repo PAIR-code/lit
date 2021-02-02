@@ -86,6 +86,17 @@ export function findSpecKeys(
 }
 
 /**
+ * Return a new object with the selected keys from the old one.
+ */
+export function filterToKeys<V>(obj: {[key: string]: V}, keys: string[]) {
+  const ret: {[key: string]: V} = {};
+  for (const key of keys) {
+    ret[key] = obj[key];
+  }
+  return ret;
+}
+
+/**
  * Flattens a nested array by a single level.
  */
 export function flatten<T>(arr: T[][]): T[] {

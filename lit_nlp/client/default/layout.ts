@@ -19,6 +19,7 @@
 import {LitModuleType} from '../core/lit_module';
 import {LitComponentLayouts} from '../lib/types';
 import {AttentionModule} from '../modules/attention_module';
+import {AnnotatedTextModule, AnnotatedTextGoldModule} from '../modules/annotated_text_module';
 import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
@@ -44,6 +45,8 @@ const MODEL_PREDS_MODULES: LitModuleType[] = [
   RegressionModule,
   LanguageModelPredictionModule,
   GeneratedTextModule,
+  AnnotatedTextGoldModule,
+  AnnotatedTextModule,
 ];
 // clang-format on
 
