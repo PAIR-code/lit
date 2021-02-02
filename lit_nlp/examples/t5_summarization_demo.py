@@ -70,14 +70,19 @@ def main(_):
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    # TODO(lit-dev): attention is temporarily disabled, because O(n^2) between
-    # tokens in a long document can get very, very large. Re-enable once we can
-    # send this to the frontend more efficiently.
-    models[model_name] = t5.T5GenerationModel(
-        model_name=model_name_or_path,
-        input_prefix="summarize: ",
-        top_k=FLAGS.top_k,
-        output_attention=False)
+    if model_name_or_path.startswith("SavedModel"):
+      saved_model_path = model_name_or_path.split(":", 1)[1]
+      models[model_name] = t5.T5SavedModel(
+          saved_model_path, input_prefix="summarize: ")
+    else:
+      # TODO(lit-dev): attention is temporarily disabled, because O(n^2) between
+      # tokens in a long document can get very, very large. Re-enable once we
+      # can send this to the frontend more efficiently.
+      models[model_name] = t5.T5GenerationModel(
+          model_name=model_name_or_path,
+          input_prefix="summarize: ",
+          top_k=FLAGS.top_k,
+          output_attention=False)
 
   ##
   # Load datasets. Typically you"ll have the constructor actually read the

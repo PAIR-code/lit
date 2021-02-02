@@ -25,6 +25,7 @@ dependencies:
     - pip:
         - tensorflow
         - tensorflow-datasets
+        - tensorflow-text
         - rouge-score
         - sacrebleu
         - umap-learn

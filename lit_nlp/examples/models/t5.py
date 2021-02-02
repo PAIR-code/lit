@@ -9,6 +9,8 @@ from lit_nlp.api import types as lit_types
 from lit_nlp.lib import utils
 
 import tensorflow as tf
+# tensorflow_text is required for T5 SavedModel
+import tensorflow_text  # pylint: disable=unused-import
 import transformers
 
 from rouge_score import rouge_scorer
@@ -43,8 +45,51 @@ class T5ModelConfig(object):
   beam_size: int = 4
 
 
+class T5SavedModel(lit_model.Model):
+  """T5 from a TensorFlow SavedModel, for black-box access.
+
+  To create a SavedModel from a regular T5 checkpoint, see
+  https://github.com/google-research/text-to-text-transfer-transformer#export
+  """
+
+  def __init__(self, saved_model_path: str, **config_kw):
+    # By default, SavedModels from the original T5 codebase have batch_size=1
+    # hardcoded. Use setdefault here so that the user can still override if
+    # they've fixed this upstream.
+    config_kw.setdefault("inference_batch_size", 1)
+    self.config = T5ModelConfig(**config_kw)
+    self.model = tf.saved_model.load(saved_model_path)
+
+  ##
+  # LIT API implementations
+  def max_minibatch_size(self) -> int:
+    # The lit.Model base class handles batching automatically in the
+    # implementation of predict(), and uses this value as the batch size.
+    return self.config.inference_batch_size
+
+  def predict_minibatch(self, inputs):
+    """Predict on a single minibatch of examples."""
+    input_texts = [self.config.input_prefix + ex["input_text"] for ex in inputs]
+    model_inputs = tf.constant(input_texts)
+    model_outputs = self.model.signatures["serving_default"](model_inputs)
+    return [{
+        "output_text": m.decode("utf-8")
+    } for m in model_outputs["outputs"].numpy()]
+
+  def input_spec(self):
+    return {
+        "input_text": lit_types.TextSegment(),
+        # optional target text. Not currently used, but referenced in output.
+        # TODO(lit-dev): look into force-decoding / scoring mode SavedModels.
+        "target_text": lit_types.TextSegment(required=False),
+    }
+
+  def output_spec(self):
+    return {"output_text": lit_types.GeneratedText(parent="target_text")}
+
+
 class T5GenerationModel(lit_model.Model):
-  """Wrapper for a T5 model, implementing the LIT API."""
+  """T5 using Transformers and Keras, for white-box access."""
 
   @property
   def num_layers(self):
@@ -210,7 +255,7 @@ class T5GenerationModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
-    return 4
+    return self.config.inference_batch_size
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
