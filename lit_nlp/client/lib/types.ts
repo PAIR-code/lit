@@ -29,7 +29,7 @@ export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
     'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
     'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher';
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String';
 
 export interface LitType {
   __class__: LitClass;

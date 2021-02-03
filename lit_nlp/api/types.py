@@ -82,6 +82,16 @@ Spec = Dict[Text, LitType]
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class String(LitType):
+  """Text input with no default. All automated edits are disabled for this type.
+
+  Mainly used for string inputs that have special formatting, and should only
+  be edited manually.
+  """
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TextSegment(LitType):
   """Text input (untokenized), a single string."""
   default: Text = ''
