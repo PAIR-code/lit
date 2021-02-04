@@ -19,6 +19,47 @@ import tensorflow as tf
 import transformers
 
 
+def batch_encode_pretokenized(
+    tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase,
+    tokenized_inputs: List[List[str]]
+) -> transformers.tokenization_utils_base.BatchEncoding:
+  """Batch encode pre-tokenized text, without further splitting.
+
+  This is necessary because tokenizer(..., is_split_into_words=True) doesn't
+  guarantee that tokens will stay intact - only that the final tokens will not
+  span the given boundaries. If the tokenizer is called directly, you'll get
+  things like: "foo" "##bar" -> "foo" "#" "#" "bar"
+
+  Based on the implementation of batch_encode_plus in
+  https://github.com/huggingface/transformers/blob/master/src/transformers/tokenization_utils_base.py#L2465
+  but simplified to only handle single-segment inputs.
+
+  Args:
+    tokenizer: Transformers tokenizer
+    tokenized_inputs: list of tokenized inputs
+
+  Returns:
+    BatchEncoding, suitable for model input
+  """
+  encoded_input = {}
+  for tokens in tokenized_inputs:
+    ids = tokenizer.convert_tokens_to_ids(tokens)
+    encoded = tokenizer.prepare_for_model(
+        ids,
+        add_special_tokens=True,
+        padding="do_not_pad",
+        truncation="longest_first",
+        return_attention_mask=False,
+        pad_to_multiple_of=False)
+    for k, v in encoded.items():
+      encoded_input.setdefault(k, []).append(v)
+
+  encoded_input = tokenizer.pad(
+      encoded_input, padding="longest", return_attention_mask=True)
+  return transformers.tokenization_utils_base.BatchEncoding(
+      encoded_input, tensor_type="tf")
+
+
 class BertMLM(lit_model.Model):
   """BERT masked LM using Huggingface Transformers and TensorFlow 2."""
 
@@ -92,15 +133,7 @@ class BertMLM(lit_model.Model):
     tokenized_texts = [
         ex.get("tokens") or self.tokenizer.tokenize(ex["text"]) for ex in inputs
     ]
-    # Process to ids, add special tokens, and compute segment ids and masks.
-    encoded_input = self.tokenizer.batch_encode_plus(
-        tokenized_texts,
-        return_tensors="tf",
-        add_special_tokens=True,
-        max_length=self.max_seq_length,
-        padding="longest",
-        truncation="longest_first",
-        is_split_into_words=True)
+    encoded_input = batch_encode_pretokenized(self.tokenizer, tokenized_texts)
 
     # out.logits is a single tensor
     #    <float32>[batch_size, num_tokens, vocab_size]

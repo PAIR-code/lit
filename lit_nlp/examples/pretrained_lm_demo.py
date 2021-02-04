@@ -31,7 +31,7 @@ from lit_nlp.examples.models import pretrained_lms
 FLAGS = flags.FLAGS
 
 flags.DEFINE_list(
-    "models", ["bert-base-uncased"],
+    "models", ["bert-base-uncased", "gpt2"],
     "Models to load. Currently supports variants of BERT and GPT-2.")
 
 flags.DEFINE_integer("top_k", 10,
@@ -92,7 +92,8 @@ def main(_):
   # of data if you haven't loaded `lm1b` before.
   if FLAGS.load_bwb:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
-    datasets["bwb"] = lm.BillionWordBenchmark("train", max_examples=1000)
+    datasets["bwb"] = lm.BillionWordBenchmark(
+        "train", max_examples=FLAGS.max_examples)
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:FLAGS.max_examples]
