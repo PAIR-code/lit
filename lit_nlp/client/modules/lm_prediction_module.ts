@@ -22,7 +22,6 @@ import {customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
@@ -38,7 +37,7 @@ export class LanguageModelPredictionModule extends LitModule {
   static title = 'LM Predictions';
   static duplicateForExampleComparison = true;
   static duplicateAsRow = true;
-  static numCols = 6;
+  static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<lm-prediction-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></lm-prediction-module>`;
@@ -62,25 +61,27 @@ export class LanguageModelPredictionModule extends LitModule {
   @observable private selectedTokenIndex: number|null = null;
 
   @computed
+  private get modelSpec() {
+    return this.appState.getModelSpec(this.model);
+  }
+
+  @computed
   private get predKey(): string {
-    const spec = this.appState.getModelSpec(this.model);
     // This list is guaranteed to be non-empty due to checkModule()
-    return findSpecKeys(spec.output, 'TokenTopKPreds')[0];
+    return findSpecKeys(this.modelSpec.output, 'TokenTopKPreds')[0];
   }
 
   @computed
   private get outputTokensKey(): string {
-    const spec = this.appState.getModelSpec(this.model);
     // This list is guaranteed to be non-empty due to checkModule()
-    return spec.output[this.predKey].align as string;
+    return this.modelSpec.output[this.predKey].align as string;
   }
 
   @computed
   private get inputTokensKey(): string|null {
-    const spec = this.appState.getModelSpec(this.model);
     // Look for an input field matching the output tokens name.
-    if (spec.input.hasOwnProperty(this.outputTokensKey) &&
-        isLitSubtype(spec.input[this.outputTokensKey], 'Tokens')) {
+    if (this.modelSpec.input.hasOwnProperty(this.outputTokensKey) &&
+        isLitSubtype(this.modelSpec.input[this.outputTokensKey], 'Tokens')) {
       return this.outputTokensKey;
     }
     return null;
@@ -141,7 +142,7 @@ export class LanguageModelPredictionModule extends LitModule {
           {}, this.selectedInput.data, {[this.inputTokensKey]: tokens});
       // Use empty id to disable caching on backend.
       const inputs: IndexedInput[] =
-          [{'data': inputData, 'id': '', 'meta': {}}];
+          [{'data': inputData, 'id': '', 'meta': {added: true}}];
 
       const dataset = this.appState.currentDataset;
       const promise = this.apiService.getPreds(
@@ -155,24 +156,15 @@ export class LanguageModelPredictionModule extends LitModule {
     this.selectedTokenIndex = maskIndex;
   }
 
-  updated() {
-    if (this.selectedTokenIndex == null) return;
-
-    // Set the correct offset for displaying the predicted tokens.
-    const inputTokenDivs = this.shadowRoot!.querySelectorAll('.token');
-    const maskedInputTokenDiv =
-        inputTokenDivs[this.selectedTokenIndex] as HTMLElement;
-    const offsetX = maskedInputTokenDiv.offsetLeft;
-    const outputTokenDiv =
-        this.shadowRoot!.getElementById('output-words') as HTMLElement;
-    outputTokenDiv.style.marginLeft = `${offsetX - 8}px`;
-  }
-
   render() {
     return html`
+      <div id='container'>
       ${this.renderControls()}
-      ${this.renderInputWords()}
-      ${this.renderOutputWords()}
+        <div id='main-area'>
+          ${this.renderInputWords()}
+          ${this.renderOutputWords()}
+        </div>
+      </div>
     `;
   }
 
@@ -180,7 +172,7 @@ export class LanguageModelPredictionModule extends LitModule {
     // TODO: check if MLM is applicable.
     // clang-format off
     return html`
-      <div id='controls'>
+      <div id='controls' class='module-toolbar'>
         ${this.inputTokensKey ? html`
           <lit-checkbox label="Click to mask?"
             ?checked=${this.clickToMask}
@@ -204,25 +196,27 @@ export class LanguageModelPredictionModule extends LitModule {
         }
       };
       const classes = classMap({
-        token: true,
-        selected: i === this.selectedTokenIndex,
-        masked: (i === this.selectedTokenIndex) && this.maskApplied,
+        'token': true,
+        'token-chip-label': true,
+        'selected': i === this.selectedTokenIndex,
+        'masked': (i === this.selectedTokenIndex) && this.maskApplied,
       });
       return html`<div class=${classes} @click=${handleClick}>${token}</div>`;
     };
 
-    // clang-format on
+    // clang-format off
     return html`
-      <div id="input-words">
-        ${this.tokens.map(renderToken)}
+      <div class='input-group'>
+        <div class='group-title'>${this.outputTokensKey}</div>
+        <div class="input-words">${this.tokens.map(renderToken)}</div>
       </div>
     `;
-    // clang-format off
+    // clang-format on
   }
 
   renderOutputWords() {
     if (this.selectedTokenIndex === null || this.lmResults === null) {
-      return html``;
+      return html`<div id="output-words" class='sidebar'></div>`;
     }
     const selectedTokenIndex = this.selectedTokenIndex || 0;
 
@@ -232,15 +226,23 @@ export class LanguageModelPredictionModule extends LitModule {
       // Convert probability into percent.
       const predProb = (pred[1] * 100).toFixed(1);
       const classes = classMap({
-        output: true,
-        same: predWordType === selectedWordType,
+        'output-token': true,
+        'token-chip-generated': true,
+        'selected': predWordType === selectedWordType,
       });
-      return html`<div class=${classes}>${predWordType} ${predProb}%</div>`;
+      // clang-format off
+      return html`
+        <div class='output-row'>
+          <div class=${classes}>${predWordType}</div>
+          <div class='token-chip-label output-percent'>${predProb}%</div>
+        </div>
+      `;
+      // clang-format on
     };
 
     // clang-format off
     return html`
-      <div id="output-words">
+      <div id="output-words" class='sidebar sidebar-shaded'>
         ${this.lmResults[selectedTokenIndex].map(renderPred)}
       </div>
     `;

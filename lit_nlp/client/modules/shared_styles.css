@@ -114,6 +114,39 @@ mwc-textfield {
   background: transparent;
 }
 
+/* Token chips */
+.token-chip-label {
+  color: #3c4043;
+  font-family: 'Roboto Mono', monospace;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+}
+
+.token-chip-label.selected {
+  color: #098591;
+  border-color: #098591;
+}
+
+.token-chip-label:hover {
+  background: #e4f7fb;
+}
+
+.token-chip-generated {
+  color: #8430ce;
+  font-family: 'Roboto';
+  background: #f3e8fd;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+}
+
+.token-chip-generated.selected {
+  border-color: #a142f4;
+}
+
+.token-chip-generated:hover {
+  background: #e9d2fd;
+}
+
 /* 'Hairline' Button Style */
 .hairline-button {
   margin: 0 4px;
