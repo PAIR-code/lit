@@ -108,7 +108,10 @@ class T5GenerationModel(lit_model.Model):
 
   def _encode_texts(self, texts: List[str]):
     return self.tokenizer.batch_encode_plus(
-        texts, return_tensors="tf", pad_to_max_length=True)
+        texts,
+        return_tensors="tf",
+        padding="longest",
+        truncation="longest_first")
 
   def _force_decode(self, encoded_inputs, encoded_targets):
     """Get predictions for a batch of tokenized examples.
@@ -225,9 +228,8 @@ class T5GenerationModel(lit_model.Model):
       outputs: List[Dict] with fields as described by output_spec()
     """
     # Text as sequence of sentencepiece ID"s.
-    encoded_inputs = self._encode_texts([
-        self.config.input_prefix + ex["input_text"] + " </s>" for ex in inputs
-    ])
+    encoded_inputs = self._encode_texts(
+        [self.config.input_prefix + ex["input_text"] for ex in inputs])
     encoded_targets = self._encode_texts(
         [ex.get("target_text", "") for ex in inputs])
     ##
