@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import difflib from 'difflib';
 
-import {customElement, html} from 'lit-element';
+import {customElement, html, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
 
@@ -43,6 +43,12 @@ interface TextDiff {
   equal: boolean[];
 }
 
+enum DiffMode {
+  NONE = 'None',
+  WORD = 'Word',
+  CHAR = 'Character',
+}
+
 /**
  * A LIT module that renders generated text.
  */
@@ -59,34 +65,27 @@ export class GeneratedTextModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  @observable private generatedText: GeneratedTextResult[] = [];
-  @observable private isChecked: boolean = true;
+  @observable private generatedText: GeneratedTextResult = {};
+  @observable private diffMode: DiffMode = DiffMode.NONE;
 
   firstUpdated() {
-    const getPrimarySelectedInputData = () =>
-        this.selectionService.primarySelectedInputData;
     this.reactImmediately(
-        getPrimarySelectedInputData, primarySelectedInputData => {
-          if (primarySelectedInputData != null) {
-            this.updateSelection([primarySelectedInputData]);
-          }
+        () => this.selectionService.primarySelectedInputData, data => {
+          this.updateSelection(data);
         });
   }
 
-  private async updateSelection(selectedInputData: IndexedInput[]) {
-    this.generatedText = [];
-    if (selectedInputData == null) {
-      return;
-    }
+  private async updateSelection(inputData: IndexedInput|null) {
+    this.generatedText = {};
+    if (inputData == null) return;
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        selectedInputData, this.model, dataset, ['GeneratedText'],
-        'Generating text');
+        [inputData], this.model, dataset, ['GeneratedText'], 'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;
 
-    this.generatedText = results;
+    this.generatedText = results[0];
   }
 
   render() {
@@ -96,29 +95,38 @@ export class GeneratedTextModule extends LitModule {
     const textKeys = findSpecKeys(spec.output, 'GeneratedText');
     const targetFields = textKeys.map(textKey => spec.output[textKey].parent!);
 
-    const primarySelectedInputData =
-        this.selectionService.primarySelectedInputData;
-    if (primarySelectedInputData == null) {
-      return;
-    }
-    const inputs = [primarySelectedInputData];
+    const inputData = this.selectionService.primarySelectedInputData;
+    if (inputData == null) return;
 
-    const change = (e: Event) => {
-      this.isChecked = !this.isChecked;
+    const setDiffMode = (e: Event) => {
+      this.diffMode = (e.target as HTMLInputElement).value as DiffMode;
     };
 
-    // tslint:disable-next-line:no-any
     // clang-format off
     return html`
       <div>
-        <div class="checkbox-container ${inputs.length > 0 ? '': 'hidden'}">
-          <lit-checkbox ?checked=${this.isChecked} @change=${change}></lit-checkbox>
-          <div>Display word-wise diffs</div>
+        <div class="diff-selector">
+          Highlight diffs:
+          ${Object.values(DiffMode).map(val => html`
+            <input type="radio" name="diffSelect" value="${val}" id='diff${val}'
+             ?checked=${val === this.diffMode} @change=${setDiffMode}>
+            <label for='diff${val}'>${val}</label>
+          `)}
         </div>
         <div class="results-holder">
-          ${this.generatedText.map(
-            (output, i) => this.renderOutput(output, targetFields, inputs[i]))}
+          ${this.renderOutput(this.generatedText, targetFields, inputData)}
         </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  renderTextField(name: string, text: string|TemplateResult) {
+    // clang-format off
+    return html`
+      <div class="output">
+        <div class="key">${name} </div>
+        <div class="value">${text}</div>
       </div>
     `;
     // clang-format on
@@ -127,49 +135,37 @@ export class GeneratedTextModule extends LitModule {
   renderOutput(
       output: GeneratedTextResult, targetFields: Array<string|null>,
       input: IndexedInput) {
-    const keys = Object.keys(output);
-
-    return keys.map((key, i) => {
+    return Object.keys(output).map((key, i) => {
       const targetField = targetFields[i];
       if (targetField == null) {
-        return this.renderTranslationText(key, output[key]);
-      } else {
+        // Single field; no reference.
+        return this.renderTextField(key, output[key]);
+      } else if (this.diffMode === 'None') {
+        // Output and reference; no diffs.
         const targetText = input.data[targetField];
-        return this.renderDiffText(targetField, targetText, key, output[key]);
+        // clang-format off
+        return html`
+          ${this.renderTextField(targetField, targetText)}
+          ${this.renderTextField(key, output[key])}
+          <br>
+        `;
+        // clang-format on
+      } else {
+        // Output and reference; compute diffs.
+        const targetText = input.data[targetField];
+        const byWord = (this.diffMode === 'Word');
+        const textDiff: TextDiff = getTextDiff(targetText, output[key], byWord);
+        // clang-format off
+        return html`
+          ${this.renderDiffString(
+              targetField, textDiff.inputStrings, textDiff.equal, byWord)}
+          ${this.renderDiffString(
+              key, textDiff.outputStrings, textDiff.equal, byWord)}
+          <br>
+        `;
+        // clang-format on
       }
     });
-  }
-
-  renderTranslationText(key: string, text: string) {
-    return html`
-      <div class="output">
-        <div class="key">${key} </div>
-        <div class="value">${text}</div>
-      </div>
-    `;
-  }
-
-  renderDiffText(
-      targetField: string, targetText: string, outputKey: string,
-      outputText: string) {
-    // textDiff contains arrays of parsed segments from both strings, and an
-    // array of booleans indicating whether the corresponding change type is
-    // 'equal.'
-    const byWord = this.isChecked;
-    const textDiff = getTextDiff(targetText, outputText, byWord);
-
-
-    // Highlight strings as bold if they don't match (and the changetype is
-    // not 'equal').
-    // clang-format off
-    return html`
-      ${this.renderDiffString(
-            targetField, textDiff.inputStrings, textDiff.equal, byWord)}
-      ${this.renderDiffString(
-            outputKey, textDiff.outputStrings, textDiff.equal, byWord)}
-      <br>
-    `;
-    // clang-format on
   }
 
   renderDiffString(
@@ -187,21 +183,11 @@ export class GeneratedTextModule extends LitModule {
       });
     }
 
-    // clang-format off
-    return html`
-      <div class="output">
-        <div class="key">${key} </div>
-        <div class="value">
-          ${displayStrings.map((output, i) => {
-            const classes = classMap({
-              highlighted: !equal[i],
-            });
-            return html`<span class=${classes}>${output}</span>`;
-          })}
-        </div>
-      </div>
-    `;
-    // clang-format on
+    const displaySpans = displayStrings.map((output, i) => {
+      const classes = classMap({highlighted: !equal[i]});
+      return html`<span class=${classes}>${output}</span>`;
+    });
+    return this.renderTextField(key, html`${displaySpans}`);
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
