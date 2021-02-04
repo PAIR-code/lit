@@ -164,7 +164,9 @@ export class ModulesService extends LitService implements
           }
         });
       });
-      renderLayout[groupName] = configs;
+      if (configs.length !== 0) {
+        renderLayout[groupName] = configs;
+      }
     });
 
     this.allModuleKeys = allModuleKeys;
