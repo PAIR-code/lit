@@ -1,0 +1,40 @@
+.field-name {
+  font-weight: bold;
+}
+
+.tcav-dropdown {
+  max-width: unset;
+}
+
+.controls-holder {
+  padding: 8px;
+  margin-right: 10px;
+  display: flex;
+  flex-flow: row wrap;
+  margin-bottom: 10px;
+  justify-content: space-between;
+}
+
+#submit {
+  margin: 5px 5px 5px 0;
+  pointer-events: auto;
+}
+
+#vis-container {
+  margin: 0 5px;
+}
+
+#warning-text {
+  margin-left: 5px;
+  font-size: 11px;
+}
+
+.loading {
+  opacity: .3;
+}
+
+.spinner-container {
+  position: absolute;
+  top: 150px;
+  left: 80px;
+}

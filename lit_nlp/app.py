@@ -36,6 +36,7 @@ from lit_nlp.components import metrics
 from lit_nlp.components import pca
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
+from lit_nlp.components import tcav
 from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
@@ -370,6 +371,7 @@ class LitApp(object):
           'grad_dot_input': gradient_maps.GradientDotInput(),
           'integrated gradients': gradient_maps.IntegratedGradients(),
           'counterfactual explainer': lemon_explainer.LEMON(),
+          'tcav': tcav.TCAV(),
           'metrics': metrics_group,
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.

@@ -29,7 +29,7 @@ export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
     'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
     'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String';
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String'|'Gradients';
 
 export interface LitType {
   __class__: LitClass;
@@ -64,7 +64,8 @@ export interface ComponentInfoMap {
 }
 
 export interface CallConfig {
-  [option: string]: string|number|boolean|CallConfig;
+  //tslint:disable-next-line:no-any
+  [option: string]: any;
 }
 
 export interface ModelInfo {

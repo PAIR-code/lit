@@ -218,6 +218,12 @@ class GlueModel(lit_model.Model):
         # Return the label corresponding to the class index used for gradients.
         output["grad_class"] = self.config.labels[output["grad_class"]]
 
+    # Gradients for the CLS token.
+    output["cls_grad"] = output["input_emb_grad"][0]
+
+    # Remove "input_emb_grad" since it's not in the output spec.
+    del output["input_emb_grad"]
+
     # Process attention.
     for key in output:
       if not re.match(r"layer_(\d+)/attention", key):
@@ -429,6 +435,8 @@ class GlueModel(lit_model.Model):
           vocab=self.config.labels,
           null_idx=self.config.null_label_idx)
     ret["cls_emb"] = lit_types.Embeddings()
+    ret["cls_grad"] = lit_types.Gradients(grad_for="cls_emb",
+                                          grad_target="grad_class")
 
     # The input_embs_ and grad_class fields are used for Integrated Gradients.
     ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
