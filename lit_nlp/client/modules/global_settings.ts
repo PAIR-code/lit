@@ -36,7 +36,7 @@ import {action, computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {datasetDisplayName, NONE_DS_DICT_KEY} from '../lib/types';
 import {linkifyUrls} from '../lib/utils';
-import {AppState, SettingsService} from '../services/services';
+import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -64,6 +64,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   static get styles() {
     return [sharedStyles, styles];
   }
+  private readonly apiService = app.getService(ApiService);
   private readonly appState = app.getService(AppState);
   private readonly settingsService = app.getService(SettingsService);
 
@@ -71,6 +72,9 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @observable private selectedLayout: string = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
   @observable selectedTab: TabName = 'Models';
+
+  @observable private pathForDatapoints: string = '';
+  @observable private datapointsStatus: string = '';
 
   // tslint:disable:no-inferrable-new-expression
   @observable private readonly openModelKeys: Set<string> = new Set();
@@ -82,6 +86,21 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const modelEntries = [...this.modelCheckboxValues.entries()];
     return modelEntries.filter(([modelName, isSelected]) => isSelected)
         .map(([modelName, isSelected]) => modelName);
+  }
+
+  @computed
+  get loadDatapointButtonsDisabled() {
+    return this.pathForDatapoints === '';
+  }
+
+  @computed
+  get saveDatapointButtonDisabled() {
+    return this.pathForDatapoints === '' || this.newDatapoints.length === 0;
+  }
+
+  @computed
+  get newDatapoints() {
+   return this.appState.currentInputData.filter(input => input.meta['added']);
   }
 
   /**
@@ -330,6 +349,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const renderDatasetSelect = (name: string) => {
       const displayName = datasetDisplayName(name);
       const handleDatasetChange = () => {
+        this.pathForDatapoints = '';
+        this.datapointsStatus = '';
         this.selectedDataset = name;
       };
 
@@ -387,8 +408,71 @@ export class GlobalSettingsComponent extends MobxLitElement {
     `;
     // clang-format on
 
+    const updatePath = (e: Event) => {
+      const input = e.target! as HTMLInputElement;
+      this.pathForDatapoints = input.value;
+    };
+    const save = async () => {
+      const newPath = await this.apiService.saveDatapoints(
+          this.newDatapoints, this.appState.currentDataset,
+          this.pathForDatapoints);
+      this.datapointsStatus =
+          `Saved ${this.newDatapoints.length} datapoint` +
+          `${this.newDatapoints.length === 1 ? '' : 's'} at ${newPath}`;
+    };
+    const load = async () => {
+      const dataset = this.appState.currentDataset;
+      const datapoints =
+          await this.apiService.loadDatapoints(
+              dataset, this.pathForDatapoints);
+      if (datapoints == null || datapoints.length === 0) {
+        this.datapointsStatus =
+            `No persisted datapoints found in ${this.pathForDatapoints}`;
+        return;
+      }
+      // Update input data for new datapoints.
+      this.appState.commitNewDatapoints(datapoints);
+      this.datapointsStatus = `Loaded ${datapoints.length} ` +
+          `datapoint${datapoints.length === 1 ? '' : 's'} from `+
+          `${this.pathForDatapoints}`;
+    };
+    const loadNewDataset = async () => {
+      const newInfo = await this.apiService.createDataset(
+          this.appState.currentDataset, this.pathForDatapoints);
+      this.appState.metadata = newInfo;
+      this.datapointsStatus = 'New dataset added to datasets list';
+    };
+    const datapointsControlsHTML = html`
+        <div class='datapoints-line'>
+          <div class='datapoints-label-holder'>
+            <label for="path">File path:</label>
+            <input type="text" name="path" class="datapoints-file-input"
+                   value=${this.pathForDatapoints}
+                   @input=${updatePath}>
+          </div>
+          <button
+            ?disabled=${this.saveDatapointButtonDisabled}
+            @click=${save}
+          >Save new datapoints
+          </button>
+          <button
+            ?disabled=${this.loadDatapointButtonsDisabled}
+            @click=${load}
+          >Load additional datapoints
+          </button>
+          <button
+            ?disabled=${this.loadDatapointButtonsDisabled}
+            @click=${loadNewDataset}
+          >Create new dataset from path
+          </button>
+          <div class='datapoints-label-holder'>
+            <div>${this.datapointsStatus}</div>
+          </div>
+        </div>`;
+
     return this.renderConfigPage(
-        'Dataset', DATASET_DESC, configListHTML, buttonsHTML);
+        'Dataset', DATASET_DESC, configListHTML, buttonsHTML,
+        datapointsControlsHTML);
   }
 
   renderLayoutConfig() {
@@ -546,13 +630,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   private renderConfigPage(
       title: TabName, description: string, configListHTML: TemplateResult[],
-      buttonsHTML: TemplateResult) {
+      buttonsHTML: TemplateResult, extraLineHTML?: TemplateResult) {
     return html`
       <div class="config-title">${title}</div>
       <div class="description"> ${description} </div>
       <div class="config-list">
         ${configListHTML}
       </div>
+      ${extraLineHTML}
       <div class='prev-next-buttons'>${buttonsHTML} </div>
     `;
   }

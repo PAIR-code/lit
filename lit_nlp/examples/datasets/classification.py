@@ -36,10 +36,13 @@ class MNLIDataFromTSV(lit_dataset.Dataset):
     return "entailment" if label == "entailment" else "non-entailment"
 
   def __init__(self, path: str):
+    self._examples = self.load_datapoints(path)
+
+  def load_datapoints(self, path: str):
     with open(path) as fd:
       df = pd.read_csv(fd, sep="\t")
     # pylint: disable=g-complex-comprehension
-    self._examples = [{
+    return [{
         "premise": row["sentence1"],
         "hypothesis": row["sentence2"],
         "label": row["gold_label"],
@@ -47,6 +50,20 @@ class MNLIDataFromTSV(lit_dataset.Dataset):
         "genre": row["genre"],
     } for _, row in df.iterrows()]
     # pylint: enable=g-complex-comprehension
+
+  def load(self, path: str):
+    datapoints = self.load_datapoints(path)
+    return lit_dataset.Dataset(base=self, examples=datapoints)
+
+  def save(self, examples: List[lit_types.IndexedInput], path: str):
+    example_data = [ex["data"] for ex in examples]
+    df = pd.DataFrame(example_data).rename(columns={
+        "premise": "sentence1",
+        "hypothesis": "sentence2",
+        "label": "gold_label",
+    })
+    with open(path, "w") as fd:
+      df.to_csv(fd, sep="\t")
 
   def spec(self) -> lit_types.Spec:
     """Should match MnliModel's input_spec()."""

@@ -46,6 +46,15 @@ export class ApiService extends LitService {
     return examples;
   }
 
+  async createDataset(
+      dataset: string, datasetPath: string): Promise<LitMetadata> {
+    const loadMessage = 'Creating new dataset';
+    return this.queryServer(
+        '/create_dataset',
+        {'dataset_name': dataset, 'dataset_path': datasetPath},
+        [], loadMessage);
+  }
+
   /**
    * Send a request to the server to get dataset info.
    */

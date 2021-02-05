@@ -209,6 +209,24 @@ a:hover {
   box-sizing: border-box;
 }
 
+.datapoints-line {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.datapoints-label-holder {
+  display: flex;
+  margin-top: 8px;
+  margin-left: 16px;
+}
+
+.datapoints-file-input {
+  height: 22px;
+  margin-top: -3px;
+  margin-left: 4px;
+  width: 300px;
+}
+
 .expanded-info.open {
   padding: 5pt 5pt 5pt 0;
   max-height: 25vh;

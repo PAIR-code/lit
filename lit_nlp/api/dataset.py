@@ -14,20 +14,25 @@
 # ==============================================================================
 # Lint as: python3
 """Base classes for LIT models."""
+import glob
 import inspect
 import random
 from types import MappingProxyType  # pylint: disable=g-importing-member
-from typing import List, Dict, Optional, Callable, Mapping, Sequence
+from typing import cast, List, Dict, Optional, Callable, Mapping, Sequence
 
 from absl import logging
 
 from lit_nlp.api import types
+from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 ExampleId = types.ExampleId
 Spec = types.Spec
+
+LIT_FILE_EXTENSION = '.lit.jsonl'
+LIT_SPEC_EXTENSION = '.spec'
 
 
 class SliceWrapper(object):
@@ -92,6 +97,37 @@ class Dataset(object):
     """
     return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
+  def load(self, path: str):
+    """Load and return additional previously-saved datapoints for this dataset.
+
+    Args:
+      path: The path to the persisted datapoint file.
+
+    Returns:
+      (Dataset) A dataset containing the loaded data.
+    """
+    if self._base:
+      return self._base.load(path)
+    pass
+
+  def save(self, examples: List[IndexedInput], path: str):
+    """Save newly-created datapoints to disk in a dataset-specific format.
+
+    Subclasses should override this method if they wish to save new, persisted
+    datapoints in their own file format in addition to the LIT-specific format
+    they are already saved in.
+
+    Args:
+      examples: A list of datapoints to save.
+      path: The path to save the datapoints to.
+
+    Returns:
+      (string) The path to the saved data, or None if unimplemented.
+    """
+    if self._base:
+      return self._base.save(examples, path)
+    pass
+
   def spec(self) -> Spec:
     """Return a spec describing dataset elements."""
     return self._spec
@@ -152,11 +188,16 @@ class IndexedDataset(Dataset):
         for example in examples
     ]  # pyformat: disable
 
-  def __init__(self, *args, id_fn: IdFnType = None, **kw):
+  def __init__(self, *args, id_fn: IdFnType = None,
+               indexed_examples: List[IndexedInput] = None, **kw):
     super().__init__(*args, **kw)
     assert id_fn is not None, 'id_fn must be specified.'
     self.id_fn = id_fn
-    self._indexed_examples = self.index_inputs(self._examples)
+    if indexed_examples:
+      self._indexed_examples = indexed_examples
+      self._examples = [ex['data'] for ex in indexed_examples]
+    else:
+      self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}
 
   @classmethod
@@ -172,6 +213,68 @@ class IndexedDataset(Dataset):
   def index(self) -> Mapping[ExampleId, IndexedInput]:
     """Return a read-only view of the index."""
     return MappingProxyType(self._index)
+
+  def save(self, examples: List[IndexedInput], path: str):
+    """Save newly-created datapoints to disk.
+
+    Args:
+      examples: A list of datapoints to save.
+      path: The path to save the datapoints to.
+
+    Returns:
+      (string) The file path of the saved datapoints.
+    """
+    # Attempt to save the datapoints using the base save method, which
+    # datasets can override. Then also save in the lit json format and save
+    # the spec as well.
+    if not path.endswith(LIT_FILE_EXTENSION):
+      self._base.save(examples, path)
+      path += LIT_FILE_EXTENSION
+
+    with open(path, 'w') as fd:
+      for ex in examples:
+        fd.write(serialize.to_json(ex) + '\n')
+
+    spec_path = path + LIT_SPEC_EXTENSION
+    with open(spec_path, 'w') as fd:
+      fd.write(serialize.to_json(self.spec()))
+
+    return path
+
+  def load(self, path: str, description: str = None):
+    """Load and return additional previously-saved datapoints for this dataset.
+
+    Args:
+      path: The path to the persisted datapoint file.
+      description: Optional description for the dataset being loaded.
+
+    Returns:
+      (IndexedDataset) A dataset containing the loaded data.
+
+    """
+    if not path.endswith(LIT_FILE_EXTENSION):
+      # Try to load data using the base load method. If any data is
+      # returned, then use that. Otherwise try loading the lit json extension
+      # data format.
+      new_dataset = self._base.load(path)
+      if new_dataset:
+        return IndexedDataset(base=new_dataset, id_fn=self.id_fn,
+                              description=description)
+
+      path += LIT_FILE_EXTENSION
+
+    with open(path, 'r') as fd:
+      examples = [cast(IndexedInput, serialize.from_json(line))
+                  for line in fd.readlines()]
+
+    # Load the side-by-side spec if it exists on disk.
+    spec_path = path + LIT_SPEC_EXTENSION
+    if os.path.exists(spec_path):
+      with open(spec_path, 'r') as fd:
+        spec = serialize.from_json(fd.read())
+
+    return IndexedDataset(base=self._base, indexed_examples=examples, spec=spec,
+                          description=description, id_fn=self.id_fn)
 
 
 class NoneDataset(Dataset):
