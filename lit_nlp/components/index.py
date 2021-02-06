@@ -227,7 +227,7 @@ class Indexer(object):
     """
     index_key = self._get_index_key(model_name, dataset_name, embedding_name)
     index = self._indices.get(index_key)
-    assert index is not None, "Invalid combination of model/embedding/data."
+    assert index is not None, f"No index found for {index_key}."
 
     # Query for the neighbors.
     neighbor_indices, distances = index.get_nns_by_vector(

@@ -33,13 +33,14 @@ class SimilaritySearcher(lit_components.Generator):
   def __init__(self, indexer: index.Indexer):
     self.index = indexer
 
-  def _get_embedding(self, model, example, embedding_name, dataset_name):
+  def _get_embedding(self, example: JsonDict, model: lit_model.Model,
+                     dataset: lit_dataset.IndexedDataset, embedding_name: str,
+                     dataset_name: str):
     """Calls the model on the example to get the embedding."""
-    dataset = self.index.datasets[dataset_name]
     model_input = dataset.index_inputs([example])
     model_output = model.predict_with_metadata(
         model_input, dataset_name=dataset_name)
-    embedding = [o[embedding_name] for o in model_output][0]
+    embedding = list(model_output)[0][embedding_name]
     return embedding
 
   def _find_nn(self, model_name, dataset_name, embedding_name, embedding):
@@ -51,13 +52,13 @@ class SimilaritySearcher(lit_components.Generator):
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
-               dataset: lit_dataset.Dataset,
+               dataset: lit_dataset.IndexedDataset,
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Find similar examples for an example/model/dataset."""
     model_name = config['model_name']
     dataset_name = config['dataset_name']
     embedding_name = config['Embedding Field']
-    embedding = self._get_embedding(model, example, embedding_name,
+    embedding = self._get_embedding(example, model, dataset, embedding_name,
                                     dataset_name)
     neighbors = self._find_nn(model_name, dataset_name, embedding_name,
                               embedding)

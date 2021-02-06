@@ -159,7 +159,7 @@ export class LanguageModelPredictionModule extends LitModule {
   render() {
     return html`
       <div id='container'>
-      ${this.renderControls()}
+        ${this.renderControls()}
         <div id='main-area'>
           ${this.renderInputWords()}
           ${this.renderOutputWords()}
@@ -207,7 +207,9 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format off
     return html`
       <div class='input-group'>
-        <div class='group-title'>${this.outputTokensKey}</div>
+        <div class='group-title'>
+          ${this.tokens.length > 0 ? this.outputTokensKey : null}
+        </div>
         <div class="input-words">${this.tokens.map(renderToken)}</div>
       </div>
     `;

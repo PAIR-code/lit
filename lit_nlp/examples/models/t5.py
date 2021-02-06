@@ -1,5 +1,5 @@
 # Lint as: python3
-"""Wrapper for HuggingFace implementation of T5."""
+"""LIT wrappers for T5, supporting both HuggingFace and SavedModel formats."""
 import re
 from typing import List
 
@@ -14,6 +14,8 @@ import tensorflow_text  # pylint: disable=unused-import
 import transformers
 
 from rouge_score import rouge_scorer
+
+JsonDict = lit_types.JsonDict
 
 
 def masked_token_mean(vectors, masks):
@@ -34,18 +36,37 @@ def masked_token_mean(vectors, masks):
 @attr.s(auto_attribs=True, kw_only=True)
 class T5ModelConfig(object):
   """Config options for a T5 generation model."""
-  # Preprocessing options
-  inference_batch_size: int = 4
   # Input options
-  input_prefix: str = ""
+  inference_batch_size: int = 4
   # Output options
+  beam_size: int = 4
   max_gen_length: int = 50
   top_k: int = 10
   output_attention: bool = False
-  beam_size: int = 4
 
 
-class T5SavedModel(lit_model.Model):
+class T5Model(lit_model.Model):
+  """Base class for bare T5 models.
+
+  This defines the minimum interface for a black-box seq2seq model; subclasses
+  should implement the actual model loading and inference code to conform to or
+  extend this spec.
+
+  Wrapper classes for specific tasks (such as summarization or GLUE tasks) can
+  use this class as an interface to abstract away the underlying model code.
+  """
+
+  def input_spec(self):
+    return {
+        "input_text": lit_types.TextSegment(),
+        "target_text": lit_types.TextSegment(required=False),
+    }
+
+  def output_spec(self):
+    return {"output_text": lit_types.GeneratedText(parent="target_text")}
+
+
+class T5SavedModel(T5Model):
   """T5 from a TensorFlow SavedModel, for black-box access.
 
   To create a SavedModel from a regular T5 checkpoint, see
@@ -53,6 +74,7 @@ class T5SavedModel(lit_model.Model):
   """
 
   def __init__(self, saved_model_path: str, **config_kw):
+    super().__init__()
     # By default, SavedModels from the original T5 codebase have batch_size=1
     # hardcoded. Use setdefault here so that the user can still override if
     # they've fixed this upstream.
@@ -69,42 +91,32 @@ class T5SavedModel(lit_model.Model):
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
-    input_texts = [self.config.input_prefix + ex["input_text"] for ex in inputs]
-    model_inputs = tf.constant(input_texts)
+    model_inputs = tf.constant([ex["input_text"] for ex in inputs])
     model_outputs = self.model.signatures["serving_default"](model_inputs)
     return [{
         "output_text": m.decode("utf-8")
     } for m in model_outputs["outputs"].numpy()]
 
-  def input_spec(self):
-    return {
-        "input_text": lit_types.TextSegment(),
-        # optional target text. Not currently used, but referenced in output.
-        # TODO(lit-dev): look into force-decoding / scoring mode SavedModels.
-        "target_text": lit_types.TextSegment(required=False),
-    }
 
-  def output_spec(self):
-    return {"output_text": lit_types.GeneratedText(parent="target_text")}
+class T5HFModel(T5Model):
+  """T5 using HuggingFace Transformers and Keras.
 
-
-class T5GenerationModel(lit_model.Model):
-  """T5 using Transformers and Keras, for white-box access."""
+  This version supports embeddings, attention, and force-decoding of the target
+  text, as well as more options to control decoding (such as beam search).
+  """
 
   @property
   def num_layers(self):
     return self.model.config.num_layers
 
   def __init__(self, model_name="t5-small", **config_kw):
+    super().__init__()
     self.config = T5ModelConfig(**config_kw)
     self.tokenizer = transformers.T5Tokenizer.from_pretrained(model_name)
     self.model = transformers.TFT5ForConditionalGeneration.from_pretrained(
         model_name,
         output_hidden_states=True,
         output_attentions=self.config.output_attention)
-
-    # TODO(gehrmann): temp solution for ROUGE.
-    self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
   def _encode_texts(self, texts: List[str]):
     return self.tokenizer.batch_encode_plus(
@@ -195,7 +207,7 @@ class T5GenerationModel(lit_model.Model):
     preds["pred_tokens"] = token_topk_preds
 
     # Decode generated ids
-    preds["generation"] = self.tokenizer.decode(
+    preds["output_text"] = self.tokenizer.decode(
         preds.pop("generated_ids"), skip_special_tokens=True)
 
     # Process attention fields, if present.
@@ -218,7 +230,14 @@ class T5GenerationModel(lit_model.Model):
 
     return preds
 
-  def _predict_minibatch_internal(self, inputs):
+  ##
+  # LIT API implementations
+  def max_minibatch_size(self) -> int:
+    # The lit.Model base class handles batching automatically in the
+    # implementation of predict(), and uses this value as the batch size.
+    return self.config.inference_batch_size
+
+  def predict_minibatch(self, inputs):
     """Run model on a single batch.
 
     Args:
@@ -228,10 +247,10 @@ class T5GenerationModel(lit_model.Model):
       outputs: List[Dict] with fields as described by output_spec()
     """
     # Text as sequence of sentencepiece ID"s.
-    encoded_inputs = self._encode_texts(
-        [self.config.input_prefix + ex["input_text"] for ex in inputs])
+    encoded_inputs = self._encode_texts([ex["input_text"] for ex in inputs])
     encoded_targets = self._encode_texts(
         [ex.get("target_text", "") for ex in inputs])
+
     ##
     # Force-decode on target text, and also get encoder embs and attention.
     batched_outputs = self._force_decode(encoded_inputs, encoded_targets)
@@ -250,43 +269,17 @@ class T5GenerationModel(lit_model.Model):
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
-    return map(self._postprocess, unbatched_outputs)
-
-  ##
-  # LIT API implementations
-  def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
-    # implementation of predict(), and uses this value as the batch size.
-    return self.config.inference_batch_size
-
-  def predict_minibatch(self, inputs):
-    """Predict on a single minibatch of examples."""
-    model_outputs = list(self._predict_minibatch_internal(inputs))
-
-    # TODO(gehrmann): temp solution to get ROUGE scores in data table.
-    for ex, mo in zip(inputs, model_outputs):
-      score = self._scorer.score(
-          target=ex["target_text"], prediction=mo["generation"])
-      mo["rougeL"] = float(score["rougeL"].fmeasure)
-    return model_outputs
-
-  def input_spec(self):
-    return {
-        "input_text": lit_types.TextSegment(),
-        # optional target text; if given will run force-decoding.
-        "target_text": lit_types.TextSegment(required=False),
-    }
+    return list(map(self._postprocess, unbatched_outputs))
 
   def output_spec(self):
-    spec = {
+    spec = super().output_spec()  # has 'output_text'
+    spec.update({
         "input_tokens": lit_types.Tokens(parent="input_text"),
-        "generation": lit_types.GeneratedText(parent="target_text"),
         "encoder_final_embedding": lit_types.Embeddings(),
         # If target text is given, the following will also be populated.
         "target_tokens": lit_types.Tokens(parent="target_text"),
         "pred_tokens": lit_types.TokenTopKPreds(align="target_tokens"),
-        "rougeL": lit_types.Scalar(),
-    }
+    })
     if self.config.output_attention:
       # Add attention for each layer.
       for i in range(self.num_layers):
@@ -294,4 +287,103 @@ class T5GenerationModel(lit_model.Model):
             align=("input_tokens", "input_tokens"))
         spec[f"decoder_layer_{i:d}_attention"] = lit_types.AttentionHeads(
             align=("target_tokens", "target_tokens"))
+    return spec
+
+
+##
+# Task-specific wrapper classes.
+
+
+class TranslationWrapper(lit_model.Model):
+  """Wrapper class for machine translation."""
+
+  # From Appendix D of https://arxiv.org/pdf/1910.10683.pdf.
+  # Add more of these if your model supports them.
+  LANGCODE_TO_NAME = {
+      "en": "English",
+      "de": "German",
+      "fr": "French",
+      "ro": "Romanian",
+  }
+
+  INPUT_TEMPLATE = "translate {source_language} to {target_language}: {source}"
+
+  def __init__(self, model: T5Model):
+    self.model = model
+
+  def preprocess(self, ex: JsonDict) -> JsonDict:
+    input_kw = {
+        "source_language": self.LANGCODE_TO_NAME[ex["source_language"]],
+        "target_language": self.LANGCODE_TO_NAME[ex["target_language"]],
+        "source": ex["input_text"]
+    }
+    ret = dict(ex)  # shallow copy
+    ret["input_text"] = self.INPUT_TEMPLATE.format(**input_kw)
+    return ret
+
+  ##
+  # LIT API implementation
+  def description(self) -> str:
+    return "T5 for machine translation\n" + self.model.description()
+
+  def max_minibatch_size(self) -> int:
+    return self.model.max_minibatch_size()
+
+  def predict_minibatch(self, inputs):
+    """Predict on a single minibatch of examples."""
+    model_inputs = [self.preprocess(ex) for ex in inputs]
+    return self.model.predict_minibatch(model_inputs)
+
+  def input_spec(self):
+    # TODO(lit-dev): rename fields in the model spec, instead of
+    # requiring renames on the input data.
+    spec = self.model.input_spec()  # input_text, output_text
+    spec["source_language"] = lit_types.CategoryLabel()
+    spec["target_language"] = lit_types.CategoryLabel()
+    return spec
+
+  def output_spec(self):
+    return self.model.output_spec()
+
+
+class SummarizationWrapper(lit_model.Model):
+  """Wrapper class to perform a summarization task."""
+
+  def __init__(self, model: T5Model):
+    self.model = model
+
+    # TODO(gehrmann): temp solution for ROUGE.
+    self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
+
+  def preprocess(self, ex: JsonDict) -> JsonDict:
+    ret = dict(ex)  # shallow copy
+    ret["input_text"] = "summarize: " + ex["input_text"]
+    return ret
+
+  ##
+  # LIT API implementation
+  def description(self) -> str:
+    return "T5 for summarization\n" + self.model.description()
+
+  def max_minibatch_size(self) -> int:
+    return self.model.max_minibatch_size()
+
+  def predict_minibatch(self, inputs):
+    """Predict on a single minibatch of examples."""
+    model_inputs = [self.preprocess(ex) for ex in inputs]
+    outputs = self.model.predict_minibatch(model_inputs)
+
+    # TODO(gehrmann): temp solution to get ROUGE scores in data table.
+    for ex, mo in zip(inputs, outputs):
+      score = self._scorer.score(
+          target=ex["target_text"], prediction=mo["output_text"])
+      mo["rougeL"] = float(score["rougeL"].fmeasure)
+    return outputs
+
+  def input_spec(self):
+    return self.model.input_spec()
+
+  def output_spec(self):
+    spec = self.model.output_spec()
+    spec["rougeL"] = lit_types.Scalar()
     return spec
