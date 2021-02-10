@@ -17,7 +17,8 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, listFieldTypes, Spec} from '../lib/types';
+import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
 
@@ -113,6 +114,18 @@ export class UrlService extends LitService {
     return encoded === 'true';
   }
 
+  /** Parse the data field based on its type */
+  private parseDataFieldValue(fieldKey: string, encoded: string, spec: Spec) {
+    const fieldSpec = spec[fieldKey];
+    // If array type, unpack as an array.
+    if (isLitSubtype(fieldSpec, listFieldTypes)) {
+      return this.urlParseArray(encoded);
+    } else {  // String-like.
+      return this.urlParseString(encoded) ??
+          defaultValueByField(fieldKey, spec);
+    }
+  }
+
   private getConfigurationFromUrl(): UrlConfiguration {
     const urlConfiguration = new UrlConfiguration();
 
@@ -136,7 +149,11 @@ export class UrlService extends LitService {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
         const fieldKey = parseDataFieldKey(key);
-        urlConfiguration.dataFields[fieldKey] = this.urlParseString(value);
+        // TODO(b/179788207) Defer parsing of data keys here as we do not have
+        // access to the input spec of the dataset at the time
+        // this is called. We convert array fields to their proper forms in
+        // syncSelectedDatapointToUrl.
+        urlConfiguration.dataFields[fieldKey] = value;
       }
     });
 
@@ -241,16 +258,19 @@ export class UrlService extends LitService {
   ) {
     const urlConfiguration = appState.getUrlConfiguration();
     const fields = urlConfiguration.dataFields;
+    // Create a new dict and do not modify the urlConfiguration. This makes sure
+    // that this call works even if initialize app is called multiple times.
+    const outputFields: Input = {};
 
     // If there are data fields set in the url, make a new datapoint
     // from them.
     if (Object.keys(fields).length) {
       const spec = appState.currentDatasetSpec;
       Object.keys(spec).forEach(key => {
-        fields[key] = fields[key] ?? defaultValueByField(key, spec);
+        outputFields[key] = this.parseDataFieldValue(key, fields[key], spec);
       });
       const datum: IndexedInput = {
-        data: fields,
+        data: outputFields,
         id: '',  // will be overwritten
         meta: {source: 'url', added: true},
       };

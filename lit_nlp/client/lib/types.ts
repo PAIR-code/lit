@@ -31,6 +31,9 @@ export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
     'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String'|'Gradients';
 
+export const listFieldTypes: LitName[] =
+    ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
+
 export interface LitType {
   __class__: LitClass;
   __name__: LitName;
@@ -254,9 +257,7 @@ export function defaultValueByField(key: string, spec: Spec) {
   if (isLitSubtype(fieldSpec, 'Scalar')) {
     return 0;
   }
-  const listFieldTypes: LitName[] = [
-    'Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'
-  ];
+
   if (isLitSubtype(fieldSpec, listFieldTypes)) {
     return [];
   }
