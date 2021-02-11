@@ -51,6 +51,7 @@ export interface LitType {
   step?: number;
   exclusive?: boolean;
   background?: boolean;
+  separator?: string;
 }
 
 export interface Spec {

@@ -275,6 +275,8 @@ class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
   vocab: Optional[Sequence[Text]] = None  # label names
   default: Sequence[Text] = []
+  # TODO(b/162269499) Migrate non-comma separators to custom type.
+  separator: Text = ','  # Used for display purposes.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

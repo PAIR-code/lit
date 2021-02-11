@@ -344,19 +344,21 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
-    // Render multi-label inputs as comma-separated, but re-split for editing.
-    const renderSparseMultilabelInput = () => {
-      const handleSparseMultilabelInput = (e: Event) => {
-        handleInputChange(e, (value: string): string[] => {
-          // If value is empty, return [] instead of ['']
-          return value ? value.split(',') : [];
-        });
+    // Display multi-label inputs as separator-separated.
+    const renderSparseMultilabelInputGenerator = (separator: string) => {
+      return () => {
+        const handleSparseMultilabelInput = (e: Event) => {
+          handleInputChange(e, (value: string): string[] => {
+            // If value is empty, return [] instead of ['']
+            return value ? value.split(separator) : [];
+          });
+        };
+        const valueAsString = value ? value.join(separator) : '';
+        return html`
+        <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
+            handleSparseMultilabelInput}
+          ?readonly="${!editable}">${valueAsString}</textarea>`;
       };
-      const valueAsString = value ? value.join(',') : '';
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleSparseMultilabelInput}
-        ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
     // Non-editable render for span labels.
@@ -389,7 +391,8 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
       renderInput = renderEdgeLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
-      renderInput = renderSparseMultilabelInput;
+      renderInput =
+          renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
