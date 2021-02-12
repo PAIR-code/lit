@@ -21,7 +21,7 @@ import os
 import random
 import time
 from typing import Optional, Text, List, Mapping, Sequence, Union
-
+from urllib import parse
 from absl import logging
 
 from lit_nlp.api import components as lit_components
@@ -212,6 +212,26 @@ class LitApp(object):
       self._datasets[new_dataset_name] = new_dataset
       self._info = self._build_metadata()
       return self._info
+    else:
+      return None
+
+  def _create_dataset_kyd(self, unused_data, dataset_name: Text, filters,
+                          **unused_kw):
+    """Create dataset from a set of filters. Used when working with KYD."""
+    new_description = (
+        ('A subset of %s dataset, filtered by KYD. \n' % dataset_name) +
+        'Filters: \n' +
+        '\n'.join([parse.unquote(p) for p in filters.split(',')]))
+    new_dataset = self._datasets[dataset_name].load('lit_dataset',
+                                                    new_description, filters)
+    if new_dataset:
+      # Since the user might create multiple new KYD datasets, the new names
+      # are '<orig_name>_filtered_1', '<orig_name>_filtered_2', etc.
+      count = len(self._datasets.keys()) + 1
+      new_dataset_name = '%s_filtered_%d' % (dataset_name, count)
+      self._datasets[new_dataset_name] = new_dataset
+      self._info = self._build_metadata()
+      return new_dataset_name
     else:
       return None
 
@@ -413,6 +433,7 @@ class LitApp(object):
         # Dataset-related endpoints.
         '/get_dataset': self._get_dataset,
         '/create_dataset': self._create_dataset,
+        '/create_dataset_kyd': self._create_dataset_kyd,
         '/get_generated': self._get_generated,
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
