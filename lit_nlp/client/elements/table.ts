@@ -25,7 +25,7 @@
 import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
-import {customElement, html, property} from 'lit-element';
+import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -35,7 +35,8 @@ import {chunkWords} from '../lib/utils';
 import {styles} from './table.css';
 
 /** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number;
+export type TableEntry = string|number|TemplateResult;
+type SortableTableEntry = string|number;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[];
 
@@ -130,6 +131,12 @@ export class DataTable extends ReactiveElement {
     }
   }
 
+  private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
+    // Passthrough values if TableEntry is number or string. If it is
+    // TemplateResult return 0 for sorting purposes.
+    return colEntry instanceof TemplateResult ? 0 : colEntry;
+  }
+
   @computed
   get columnNames(): string[] {
     return Array.from(this.columnVisibility.keys());
@@ -186,7 +193,8 @@ export class DataTable extends ReactiveElement {
     if (this.sortName != null) {
       sortedData = sortedData.sort(
           (a, b) => (this.sortAscending ? ascending : descending)(
-              a[this.sortIndex!], b[this.sortIndex!]));
+              this.getSortableEntry(a[this.sortIndex!]),
+              this.getSortableEntry(b[this.sortIndex!])));
     }
 
     // Store a mapping from the row to data indices.
@@ -528,7 +536,11 @@ export class DataTable extends ReactiveElement {
 
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown}>
-        ${data.map(d => html`<td><div>${chunkWords(d.toString())}</div></td>`)}
+        ${
+        data.map(
+            d => (d instanceof TemplateResult) ?
+                d :
+                html`<td><div>${chunkWords(d.toString())}</div></td>`)}
       </tr>
     `;
   }
