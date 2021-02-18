@@ -95,7 +95,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   @computed
   get saveDatapointButtonDisabled() {
-    return this.pathForDatapoints === '' || this.newDatapoints.length === 0;
+    return this.pathForDatapoints === '' || this.newDatapoints.length === 0 ||
+        this.appState.currentDataset !== this.selectedDataset;
   }
 
   @computed
@@ -421,10 +422,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
           `${this.newDatapoints.length === 1 ? '' : 's'} at ${newPath}`;
     };
     const load = async () => {
-      const dataset = this.appState.currentDataset;
-      const datapoints =
-          await this.apiService.loadDatapoints(
-              dataset, this.pathForDatapoints);
+      const datapoints = await this.apiService.loadDatapoints(
+          this.selectedDataset, this.pathForDatapoints);
       if (datapoints == null || datapoints.length === 0) {
         this.datapointsStatus =
             `No persisted datapoints found in ${this.pathForDatapoints}`;
@@ -438,9 +437,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
     };
     const loadNewDataset = async () => {
       const newInfo = await this.apiService.createDataset(
-          this.appState.currentDataset, this.pathForDatapoints);
-      this.appState.metadata = newInfo;
+          this.selectedDataset, this.pathForDatapoints);
+      if (newInfo == null) {
+        this.datapointsStatus = 'Unable to load from path.';
+        return;
+      }
+      this.appState.metadata = newInfo[0];
       this.datapointsStatus = 'New dataset added to datasets list';
+      this.selectedDataset = newInfo[1];
     };
     const datapointsControlsHTML = html`
         <div class='datapoints-line'>
@@ -581,7 +585,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           ${renderSelector(name)}
         </div>
         <div class='one-col description-preview'>
-         ${descriptionPreview}
+         ${linkifyUrls(descriptionPreview, '_blank')}
         </div>
         <div class='one-col col-end'>
             ${status}

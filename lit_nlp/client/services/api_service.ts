@@ -46,8 +46,16 @@ export class ApiService extends LitService {
     return examples;
   }
 
-  async createDataset(
-      dataset: string, datasetPath: string): Promise<LitMetadata> {
+  /**
+   * Request the server to create a new dataset.
+   * Loads the server on the backend, but examples need to be
+   * fetched to the frontend separately using getDataset().
+   * Returns (updated metadata, name of just-loaded dataset)
+   * @param dataset name of (base) dataset to dispatch to load()
+   * @param datasetPath path to load from
+   */
+  async createDataset(dataset: string, datasetPath: string):
+      Promise<[LitMetadata, string]> {
     const loadMessage = 'Creating new dataset';
     return this.queryServer(
         '/create_dataset',

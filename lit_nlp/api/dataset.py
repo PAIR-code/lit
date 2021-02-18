@@ -106,7 +106,7 @@ class Dataset(object):
     Returns:
       (Dataset) A dataset containing the loaded data.
     """
-    if self._base:
+    if self._base is not None:
       return self._base.load(path)
     pass
 
@@ -124,7 +124,7 @@ class Dataset(object):
     Returns:
       (string) The path to the saved data, or None if unimplemented.
     """
-    if self._base:
+    if self._base is not None:
       return self._base.save(examples, path)
     pass
 
@@ -241,12 +241,11 @@ class IndexedDataset(Dataset):
 
     return path
 
-  def load(self, path: str, description: str = None):
+  def load(self, path: str):
     """Load and return additional previously-saved datapoints for this dataset.
 
     Args:
       path: The path to the persisted datapoint file.
-      description: Optional description for the dataset being loaded.
 
     Returns:
       (IndexedDataset) A dataset containing the loaded data.
@@ -257,7 +256,9 @@ class IndexedDataset(Dataset):
       # returned, then use that. Otherwise try loading the lit json extension
       # data format.
       new_dataset = self._base.load(path)
-      if new_dataset:
+      if new_dataset is not None:
+        description = (f'{len(new_dataset)} examples from '
+                       f'{path}\n{self._base.description()}')
         return IndexedDataset(base=new_dataset, id_fn=self.id_fn,
                               description=description)
 
@@ -273,6 +274,8 @@ class IndexedDataset(Dataset):
       with open(spec_path, 'r') as fd:
         spec = serialize.from_json(fd.read())
 
+    description = (f'{len(examples)} examples from '
+                   f'{path}\n{self._base.description()}')
     return IndexedDataset(base=self._base, indexed_examples=examples, spec=spec,
                           description=description, id_fn=self.id_fn)
 

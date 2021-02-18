@@ -12,7 +12,10 @@ class PlaintextSents(lit_dataset.Dataset):
   """Load sentences from a flat text file."""
 
   def __init__(self, path_or_glob, skiplines=0):
-    self._examples = []
+    self._examples = self.load_datapoints(path_or_glob, skiplines=skiplines)
+
+  def load_datapoints(self, path_or_glob: str, skiplines=0):
+    examples = []
     for path in glob.glob(path_or_glob):
       with open(path) as fd:
         for i, line in enumerate(fd):
@@ -20,7 +23,11 @@ class PlaintextSents(lit_dataset.Dataset):
             continue
           line = line.strip()
           if line:  # skip blank lines, these are usually document breaks
-            self._examples.append({'text': line})
+            examples.append({'text': line})
+    return examples
+
+  def load(self, path: str):
+    return lit_dataset.Dataset(base=self, examples=self.load_datapoints(path))
 
   def spec(self) -> lit_types.Spec:
     """Should match MLM's input_spec()."""
