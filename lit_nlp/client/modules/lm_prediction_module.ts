@@ -158,9 +158,9 @@ export class LanguageModelPredictionModule extends LitModule {
 
   render() {
     return html`
-      <div id='container'>
+      <div class='module-container'>
         ${this.renderControls()}
-        <div id='main-area'>
+        <div id='main-area' class='module-results-area'>
           ${this.renderInputWords()}
           ${this.renderOutputWords()}
         </div>
@@ -172,7 +172,7 @@ export class LanguageModelPredictionModule extends LitModule {
     // TODO: check if MLM is applicable.
     // clang-format off
     return html`
-      <div id='controls' class='module-toolbar'>
+      <div class='module-toolbar'>
         ${this.inputTokensKey ? html`
           <lit-checkbox label="Click to mask?"
             ?checked=${this.clickToMask}

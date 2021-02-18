@@ -1,17 +1,7 @@
-#container {
-  display: flex;
-  flex-direction: column;
-}
-
-.module-toolbar {
-  height: 24px;
-}
-
 #main-area {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  flex: 1;
 }
 
 .input-group {
@@ -30,11 +20,6 @@
   align-content: flex-start;
 }
 
-.token {
-  padding: 2px;
-  margin: 2px 0px;
-}
-
 .token:hover {
   cursor: pointer;
 }
@@ -46,6 +31,7 @@
 .sidebar {
   min-width: 15%;
   padding: 4px;
+  overflow-y: auto; /* Scroll this before the rest of the module */
 }
 
 .sidebar-shaded {
@@ -65,7 +51,6 @@
 }
 
 .output-token {
-  width: fit-content;
   padding: 1px;
   border-width: 2px;
   margin: 2px;
@@ -73,8 +58,6 @@
 }
 
 .output-percent {
-  width: fit-content;
-  padding: 2px;
   margin: 2px;
 }
 

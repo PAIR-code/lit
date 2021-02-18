@@ -163,11 +163,13 @@ export class DatapointEditorModule extends LitModule {
 
   render() {
     return html`
-      <div id="container">
-        ${this.renderEditText()}
-      </div>
-      <div id="buttons">
-        ${this.renderButtons()}
+      <div class='module-container'>
+        <div id="container" class='module-results-area'>
+          ${this.renderEditText()}
+        </div>
+        <div id="buttons">
+          ${this.renderButtons()}
+        </div>
       </div>
     `;
   }
@@ -227,35 +229,36 @@ export class DatapointEditorModule extends LitModule {
     };
 
     const analyzeButton = html`
-      <button id="make" @click=${onClickNew} ?disabled="${!makeEnabled}">
+      <button id="make" class='hairline-button'
+        @click=${onClickNew} ?disabled="${!makeEnabled}">
         Add
       </button>
     `;
     const compareButton = html`
-      <button id="compare" @click=${onClickCompare} ?disabled="${
-        !compareEnabled}">
+      <button id="compare" class='hairline-button'
+        @click=${onClickCompare} ?disabled="${!compareEnabled}">
         Add and compare
       </button>
     `;
     const resetButton = html`
-      <button id="reset" @click=${onClickReset}  ?disabled="${!resetEnabled}">
+      <button id="reset" class='hairline-button'
+        @click=${onClickReset}  ?disabled="${!resetEnabled}">
         Reset
       </button>
     `;
     const clearButton = html`
-      <button id="clear" @click=${onClickClear}  ?disabled="${!clearEnabled}">
+      <button id="clear" class='hairline-button'
+        @click=${onClickClear}  ?disabled="${!clearEnabled}">
         Clear
       </button>
     `;
 
     // clang-format off
     return html`
-      <div class="button-holder">
-        ${analyzeButton}
-        ${compareButton}
-        ${resetButton}
-        ${clearButton}
-      </div>
+      ${analyzeButton}
+      ${compareButton}
+      ${resetButton}
+      ${clearButton}
     `;
     // clang-format off
   }

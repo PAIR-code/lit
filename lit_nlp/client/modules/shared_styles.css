@@ -120,6 +120,8 @@ mwc-textfield {
   font-family: 'Roboto Mono', monospace;
   border: 1px solid transparent; /* for spacing */
   border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
 }
 
 .token-chip-label.selected {
@@ -137,6 +139,8 @@ mwc-textfield {
   background: #f3e8fd;
   border: 1px solid transparent; /* for spacing */
   border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
 }
 
 .token-chip-generated.selected {
@@ -179,6 +183,28 @@ mwc-textfield {
   background: rgba(26, 115, 232, 0.1);
   border: 1px solid #DADCE0;
 }
+
+/**
+ * Main container to use inside modules.
+ * If this contains a .module-toolbar and a .module-results-area,
+ * the results area will scroll while the toolbar remains at the top.
+ */
+.module-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Toolbar container for module controls. */
+.module-toolbar {
+  height: 24px;
+}
+
+.module-results-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
 
 /**
  * Spacer div: insert this before content if you want a module without a
