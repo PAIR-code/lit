@@ -97,17 +97,19 @@ class Dataset(object):
     """
     return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
-  def load(self, path: str):
+  def load(self, path: str, kyd_filters=None):
     """Load and return additional previously-saved datapoints for this dataset.
 
     Args:
       path: The path to the persisted datapoint file.
+      kyd_filters: (Optional) filters to get a subset of the dataset. Used when
+      interfacing with KYD.
 
     Returns:
       (Dataset) A dataset containing the loaded data.
     """
     if self._base:
-      return self._base.load(path)
+      return self._base.load(path, kyd_filters)
     pass
 
   def save(self, examples: List[IndexedInput], path: str):
@@ -241,12 +243,14 @@ class IndexedDataset(Dataset):
 
     return path
 
-  def load(self, path: str, description: str = None):
+  def load(self, path: str, description: str = None, kyd_filters=None):
     """Load and return additional previously-saved datapoints for this dataset.
 
     Args:
       path: The path to the persisted datapoint file.
       description: Optional description for the dataset being loaded.
+      kyd_filters: (Optional) filters to get a subset of the dataset. Used when
+      interfacing with KYD.
 
     Returns:
       (IndexedDataset) A dataset containing the loaded data.
@@ -256,7 +260,7 @@ class IndexedDataset(Dataset):
       # Try to load data using the base load method. If any data is
       # returned, then use that. Otherwise try loading the lit json extension
       # data format.
-      new_dataset = self._base.load(path)
+      new_dataset = self._base.load(path, kyd_filters)
       if new_dataset:
         return IndexedDataset(base=new_dataset, id_fn=self.id_fn,
                               description=description)
