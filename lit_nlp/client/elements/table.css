@@ -207,8 +207,7 @@ td div {
 }
 
 .column-dropdown-hide {
-  visibility:hidden;
-  position: absolute;
+  display:none;
 }
 
 .column-dropdown {
@@ -218,6 +217,8 @@ td div {
   background: white;
   border: 1px solid gray;
   position: absolute;
-  visibility:visible;
+  visibility: visible;
   z-index: 1000;
+  max-height: calc(100% - 80px);
+  overflow: auto;
 }
