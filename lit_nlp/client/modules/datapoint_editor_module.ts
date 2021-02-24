@@ -98,7 +98,6 @@ export class DatapointEditorModule extends LitModule {
     this.reactImmediately(getCurrentDataset, () => {
       when(() => this.appState.currentInputDataIsLoaded, () => {
         this.resize();
-        this.resetEditedData(null);
       });
     });
 
