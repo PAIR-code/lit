@@ -57,16 +57,17 @@ enum SpanAnchor {
 @customElement('lit-data-table')
 export class DataTable extends ReactiveElement {
   @observable @property({type: Array}) data: TableData[] = [];
-  @property({type: Array}) selectedIndices: number[] = [];
-  @property({type: Number}) primarySelectedIndex: number = -1;
-  @property({type: Number}) referenceSelectedIndex: number = -1;
-  @property({type: Boolean}) selectionDisabled: boolean = false;
-  @property({type: Boolean}) controlsEnabled: boolean = false;
+  @observable @property({type: Array}) selectedIndices: number[] = [];
+  @observable @property({type: Number}) primarySelectedIndex: number = -1;
+  @observable @property({type: Number}) referenceSelectedIndex: number = -1;
+  @observable @property({type: Boolean}) selectionDisabled: boolean = false;
+  @observable @property({type: Boolean}) controlsEnabled: boolean = false;
   @observable
   @property({type: Object})
   columnVisibility = new Map<string, boolean>();
 
   // Callbacks
+  @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
@@ -243,6 +244,11 @@ export class DataTable extends ReactiveElement {
 
     const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
     if (dataIndex == null) return;
+
+    if (this.onClick != null) {
+      this.onClick(dataIndex);
+      return;
+    }
 
     // Handle ctrl/cmd-click
     if (e.metaKey || e.ctrlKey) {

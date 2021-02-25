@@ -1,4 +1,3 @@
-
 .checkbox-holder {
   display: flex;
   justify-content: space-between;
@@ -9,6 +8,6 @@
   display: flex;
 }
 
-.facet-selector > .dropdown-label {
+.cb-label {
   margin: 4pt;
 }

@@ -23,7 +23,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {CallConfig, FacetMap, GroupedExamples, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
@@ -34,35 +34,44 @@ import {styles as sharedStyles} from './shared_styles.css';
 interface MetricsResponse {
   'pred_key': string;
   'label_key': string;
-  'metrics': {[key: string]: number};
+  'metrics': MetricsValues;
 }
 
-// For rendering the table.
+// A dict of metrics type to the MetricsValues for one metric generator.
+interface ModelHeadMetrics {
+  [metricsType: string]: MetricsValues;
+}
+
+// A dict of metric names to values, from one metric generator.
+interface MetricsValues {
+  [metricName: string]: number;
+}
+
+// The source of datapoints for a row in the metrics table.
+enum Source {
+  DATASET = "dataset",
+  SELECTION = "selection",
+  SLICE = "slice"
+}
+
+// Data for rendering a row in the table.
 interface MetricsRow {
   'model': string;
   'selection': string;
   'predKey': string;
-  'labelKey': string;
-  // This is the name of the metrics subcomponent.
-  'group': string;
-  'numExamples': number;
-  // These have arbitrary keys returned by subcomponents on the backend.
-  // We'll collect all the field names before rendering the table.
-  'metrics': {[key: string]: number};
+  'exampleIds': string[];
+  'headMetrics': ModelHeadMetrics;
+  'source': Source;
   'facets'?: FacetMap;
 }
 
-interface GroupedMetrics {
-  [group: string]: MetricsResponse[];
+// A dict of row keys to metrics row information, to store all metric info
+// for the metrics table.
+interface MetricsMap {
+  [rowKey: string]: MetricsRow;
 }
 
-interface GroupedMetricsForDataset {
-  'metrics': GroupedMetrics[];
-  'name': string;
-  'length': number;
-  'facets'?: FacetMap;
-}
-
+// Data to render the metrics table, created from the MetricsMap.
 interface TableHeaderAndData {
   'header': string[];
   'data': TableData[];
@@ -89,232 +98,222 @@ export class MetricsModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
 
-  private datasetMetrics: GroupedMetrics[]|null = null;
-
-  @observable private metricsList: GroupedMetricsForDataset[] = [];
+  @observable private readonly metricsMap: MetricsMap = {};
   @observable private facetBySlice: boolean = false;
   @observable private selectedFacets: string[] = [];
+  @observable private pendingCalls = 0;
 
-  @computed
-  get tableData(): TableHeaderAndData {
-    const models = this.appState.currentModels;
 
-    // We get a list (by model) of maps, keyed by metric component.
-    // Convert this to the tabular data we need.
-    let rows = [] as MetricsRow[];
-    this.metricsList.forEach((metricsInfo: GroupedMetricsForDataset) => {
-      const newRows = this.createRowsForMetrics(
-          metricsInfo.metrics, models, metricsInfo.name, metricsInfo.length,
-          metricsInfo.facets);
-      if (newRows == null) return;
-      rows = rows.concat(newRows);
+  firstUpdated() {
+    this.react(() => this.appState.currentInputData, entireDataset => {
+      this.addMetrics(this.appState.currentInputData, Source.DATASET);
+      this.updateAllFacetedMetrics();
+    });
+    this.reactImmediately(() => this.selectionService.selectedInputData, () => {
+      // When the selection changes, remove all existing selection-based rows
+      // from the metrics table.
+      Object.keys(this.metricsMap).forEach(key => {
+        if (this.metricsMap[key].source === Source.SELECTION) {
+          delete this.metricsMap[key];
+        }
+      });
+      if (this.selectionService.lastUser === this) {
+        return;
+      }
+      if (this.selectionService.selectedInputData.length > 0) {
+        this.addMetrics(this.selectionService.selectedInputData,
+                        Source.SELECTION);
+        this.updateFacetedMetrics(this.selectionService.selectedInputData,
+                                  true);
+      }
+    });
+    this.react(() => this.classificationService.allMarginSettings, margins => {
+      this.addMetrics(this.appState.currentInputData, Source.DATASET);
+      this.updateAllFacetedMetrics();
+    });
+    this.react(() => this.sliceService.sliceNames, slices => {
+      this.facetBySlice = true;
+      this.updateSliceMetrics();
     });
 
-    // Find all metric names
+    // Do this once, manually, to avoid duplicate calls on load.
+    this.addMetrics(this.appState.currentInputData, Source.DATASET);
+    this.updateAllFacetedMetrics();
+  }
+
+  /** Gets and adds metrics information for datapoints to the metricsMap. */
+  async addMetrics(datapoints: IndexedInput[], source: Source,
+                   facetMap?: FacetMap, displayName?: string) {
+    const models = this.appState.currentModels;
+
+    // Get the metrics for all models for the provided datapoints.
+    const datasetMetrics = await Promise.all(models.map(
+        async (model: string) => this.getMetrics(datapoints, model)));
+
+    let name = displayName != null ? displayName : source.toString();
+    if (facetMap !=null) {
+      name += ' (faceted)';
+    }
+
+    // Add the returned metrics for each model and head to the metricsMap.
+    datasetMetrics.forEach((returnedMetrics, i) => {
+      Object.keys(returnedMetrics).forEach(metricsType => {
+        const metricsRespones: MetricsResponse[] = returnedMetrics[metricsType];
+        metricsRespones.forEach(metricsResponse => {
+          const rowKey = this.getRowKey(
+              models[i], name, metricsResponse.pred_key, facetMap);
+          if (this.metricsMap[rowKey] == null) {
+            this.metricsMap[rowKey] = {
+              model: models[i],
+              selection: name,
+              exampleIds: datapoints.map(datapoint => datapoint.id),
+              predKey: metricsResponse.pred_key,
+              headMetrics: {},
+              facets: facetMap,
+              source
+            };
+          }
+          this.metricsMap[rowKey].exampleIds = datapoints.map(
+              datapoint => datapoint.id);
+
+          // Each model/datapoints/head combination stores a dict of metrics
+          // for the different metrics generators run by LIT.
+          this.metricsMap[rowKey].headMetrics[metricsType] =
+              metricsResponse.metrics;
+        });
+      });
+    });
+  }
+
+  /** Returns a MetricsRow key based on arguments. */
+  getRowKey(model: string, datapointsId: string, predKey: string,
+            facetMap?: FacetMap) {
+    let facetString = '';
+    if (facetMap != null) {
+      Object.values(facetMap).forEach(facetVal => {
+        facetString += `${facetVal}-`;
+      });
+    }
+    return `${model}-${datapointsId}-${predKey}-${facetString}`;
+  }
+
+  private updateFacetedMetrics(datapoints: IndexedInput[],
+                               isSelection: boolean ) {
+    // Get the intersectional feature bins.
+    if (this.selectedFacets.length > 0) {
+      const groupedExamples =
+          this.groupService.groupExamplesByFeatures(datapoints,
+                                                    this.selectedFacets);
+
+      const source =  isSelection ? Source.SELECTION : Source.DATASET;
+      // Manually set all of their display names.
+      Object.keys(groupedExamples).forEach(key => {
+        this.addMetrics(groupedExamples[key].data, source,
+                        groupedExamples[key].facets);
+      });
+    }
+  }
+
+  private updateAllFacetedMetrics() {
+    Object.keys(this.metricsMap).forEach(key => {
+      if (this.metricsMap[key].facets != null) {
+        delete this.metricsMap[key];
+      }
+    });
+    // Get the intersectional feature bins.
+    if (this.selectedFacets.length > 0) {
+      this.updateFacetedMetrics(this.selectionService.selectedInputData, true);
+      this.updateFacetedMetrics(this.appState.currentInputData, false);
+    }
+  }
+
+  /**
+   * Facet the data by slices.
+   */
+  private updateSliceMetrics() {
+    Object.keys(this.metricsMap).forEach(key => {
+      if (this.metricsMap[key].source === Source.SLICE) {
+        delete this.metricsMap[key];
+      }
+    });
+    if (this.facetBySlice) {
+      this.sliceService.sliceNames.forEach(name => {
+        const data = this.sliceService.getSliceDataByName(name);
+        if (data.length > 0) {
+          this.addMetrics(data, Source.SLICE, /* facetMap */ undefined, name);
+        }
+      });
+    }
+  }
+
+  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
+    this.pendingCalls += 1;
+    try {
+      const config =
+          this.classificationService.marginSettings[model] as CallConfig || {};
+      const metrics = await this.apiService.getInterpretations(
+          selectedInputs, model, this.appState.currentDataset, 'metrics', config);
+      this.pendingCalls -= 1;
+      return metrics;
+    }
+    catch {
+      this.pendingCalls -= 1;
+      return {};
+    }
+  }
+
+  /** Convert the metricsMap information into table data for display. */
+  @computed
+  get tableData(): TableHeaderAndData {
+    const rows = [] as TableData[];
     const allMetricNames = new Set<string>();
-    rows.forEach((row: MetricsRow) => {
-      Object.keys(row.metrics).forEach((k: string) => {
-        allMetricNames.add(k);
+    Object.values(this.metricsMap).forEach(row => {
+      Object.keys(row.headMetrics).forEach(metricsType => {
+        const metricsValues = row.headMetrics[metricsType];
+        Object.keys(metricsValues).forEach(metricName => {
+          allMetricNames.add(`${metricsType}: ${metricName}`);
+        });
       });
     });
 
-    // Convert back to an array.
     const metricNames = [...allMetricNames];
-    const nonMetricNames = ['Model', 'From', 'Field', 'Group', 'N'];
-    const facetNames = this.selectedFacets;
 
-    // Add the metrics and feature columns into the rows.
-    const rowsData = rows.map((d) => {
-      // Add the metrics columns.
-      const rowMetrics = metricNames.map((key: string) => {
-        const num = d.metrics[key] ?? '-';
+    Object.values(this.metricsMap).forEach(row => {
+      const rowMetrics = metricNames.map(metricKey => {
+        const [metricsType, metricName] = metricKey.split(": ");
+        if (row.headMetrics[metricsType] == null) {
+          return '-';
+        }
+        const num = row.headMetrics[metricsType][metricName];
+        if (num == null) {
+          return '-';
+        }
         // If the metric is not a whole number, then round to 3 decimal places.
         if (typeof num === 'number' && num % 1 !== 0) {
           return num.toFixed(3);
         }
         return num;
       });
-
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {
-        if (d.facets && d.facets[facet]) {
-          return d.facets[facet];
+        if (row.facets && row.facets[facet]) {
+          return row.facets[facet];
         }
         return '-';
       });
 
-      return [
-        d.model, d.selection, d.predKey, d.group, d.numExamples, ...rowFacets,
-        ...rowMetrics
-      ];
+      const tableRow = [
+        rows.length, row.model, row.selection, ...rowFacets, row.predKey,
+        row.exampleIds.length,  ...rowMetrics];
+      rows.push(tableRow);
     });
 
     return {
-      'header': nonMetricNames.concat(facetNames.concat(metricNames)),
-      'data': rowsData
+      'header':
+          ["id", 'Model', 'From', ...this.selectedFacets, 'Field', 'N',
+           ...metricNames],
+      'data': rows
     };
-  }
-
-  firstUpdated() {
-    this.react(() => this.appState.currentInputData, entireDataset => {
-      this.updateDatasetMetrics(entireDataset);
-    });
-    this.react(() => this.selectionService.selectedInputData, () => {
-      this.updateMetricsList();
-    });
-    this.react(() => this.classificationService.allMarginSettings, margins => {
-      this.updateDatasetMetrics(this.appState.currentInputData);
-    });
-
-    // Do this once, manually, to avoid duplicate calls on load.
-    this.updateDatasetMetrics(this.appState.currentInputData);
-  }
-
-  async updateDatasetMetrics(entireDataset: IndexedInput[]) {
-    const models = this.appState.currentModels;
-    this.datasetMetrics = await Promise.all(models.map(
-        async (model: string) => this.getMetrics(entireDataset, model)));
-    await this.updateMetricsList();
-  }
-
-  async updateMetricsList() {
-    const models = this.appState.currentModels;
-    const entireDataset = this.appState.currentInputData;
-    // If no selected dataset or model, don't calculate metrics.
-    if (!models || !entireDataset || this.datasetMetrics == null) {
-      return;
-    }
-
-    const metricsList: GroupedMetricsForDataset[] = [{
-      metrics: this.datasetMetrics,
-      length: entireDataset.length,
-      name: 'dataset'
-    }];
-    await this.fillMetricsList(metricsList);
-
-    this.metricsList = metricsList;
-  }
-
-  async fillMetricsList(metricsList: GroupedMetricsForDataset[]) {
-    const selectedData = this.selectionService.selectedInputData;
-    // Add metrics for selected points (if points are selected.)
-    if (selectedData.length) {
-      const inputData = {'selection': {data: selectedData}};
-      await this.fillMetricsListFaceted(metricsList, inputData);
-    }
-
-    // Facet the dataset by the category from the dropdown. Note that these
-    // dicts are by the category values, not the keys from the dropdown
-    // (e.g., "1" and "0" if the category was "label" for a binary task.)
-    await this.fillMetricsListFaceted(metricsList, this.getFacetedData());
-    await this.fillMetricsListFaceted(metricsList, this.getSlicedData());
-  }
-
-  /**
-   * Helper to fill the (preexisting) metrics list for data that is faceted
-   * (e.g., by slices or features).
-   */
-  private async fillMetricsListFaceted(
-      metricsList: GroupedMetricsForDataset[], facetedData: GroupedExamples) {
-    const models = this.appState.currentModels;
-    for (const val of Object.keys(facetedData)) {
-      const facetedMetrics: GroupedMetrics[] = await Promise.all(models.map(
-          async (model: string) =>
-              this.getMetrics(facetedData[val].data, model)));
-
-      const displayName: string = facetedData[val].displayName || val;
-      metricsList.push({
-        metrics: facetedMetrics,
-        length: facetedData[val].data.length,
-        name: displayName,
-        facets: facetedData[val].facets
-      });
-    }
-  }
-
-
-  private facetedDataDisplayName() {
-    const datapointsSelected = this.selectionService.selectedInputData.length;
-    return (datapointsSelected ? 'selection' : 'dataset') + ' (faceted)';
-  }
-
-  /**
-   * Facet the data by whatever features we have selected.
-   * If there are multiple slices, these need to be intersectional.
-   * So, we iterate over each datapoint, and add it to a bin based on
-   * its facet feature values (the bin is based on a hash of these features)
-   */
-  private getFacetedData(): GroupedExamples {
-    const data = this.selectionService.selectedOrAllInputData;
-
-    // Get the intersectional feature bins.
-    if (this.selectedFacets.length > 0) {
-      const groupedExamples =
-          this.groupService.groupExamplesByFeatures(data, this.selectedFacets);
-
-      // Manually set all of their display names.
-      Object.keys(groupedExamples).forEach(key => {
-        groupedExamples[key].displayName = this.facetedDataDisplayName();
-      });
-      return groupedExamples;
-    }
-    return {};
-  }
-
-  /**
-   * Facet the data by slices.
-   */
-  private getSlicedData(): GroupedExamples {
-    const facetedData: GroupedExamples = {};
-    if (this.facetBySlice) {
-      this.sliceService.sliceNames.forEach(name => {
-        // For each slice, get the data and metrics.
-        if (name == null) return;
-        facetedData[name] = {
-          displayName: 'Slice : ' + name,
-          data: this.sliceService.getSliceDataByName(name)
-        };
-      });
-    }
-    return facetedData;
-  }
-
-  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
-    if (selectedInputs == null || selectedInputs.length === 0) return;
-    const config =
-        this.classificationService.marginSettings[model] as CallConfig || {};
-    const metrics = await this.apiService.getInterpretations(
-        selectedInputs, model, this.appState.currentDataset, 'metrics', config);
-    return metrics;
-  }
-
-  private createRowsForMetrics(
-      modelMetrics: GroupedMetrics[], models: string[], selectionName: string,
-      length: number, facets?: FacetMap) {
-    const rows: MetricsRow[] = [];
-    for (let i = 0; i < models.length; i++) {
-      const metrics = modelMetrics[i] as {[group: string]: MetricsResponse[]};
-      if (metrics == null) continue;
-      for (const group of Object.keys(metrics)) {
-        for (const entry of metrics[group]) {
-          // Skip rows with no metrics.
-          if (Object.keys(entry['metrics']).length === 0) {
-            continue;
-          }
-          rows.push({
-            model: models[i],
-            selection: selectionName,
-            group,
-            numExamples: length,
-            labelKey: entry['label_key'],
-            predKey: entry['pred_key'],
-            metrics: entry['metrics'],
-            facets
-          });
-        }
-      }
-    }
-    return rows;
   }
 
   render() {
@@ -330,16 +329,16 @@ export class MetricsModule extends LitModule {
     const columnNames = this.tableData.header;
     const columnVisibility = new Map<string, boolean>();
     columnNames.forEach((name) => {
-      columnVisibility.set(name, true);
+      columnVisibility.set(name, name !== "id");
     });
-
+    // TODO(b/180903904): Add onSelect behavior to rows for selection.
     return html`
-    <lit-data-table
-      .columnVisibility=${columnVisibility}
-      .data=${this.tableData.data}
+      <lit-data-table
+        .columnVisibility=${columnVisibility}
+        .data=${this.tableData.data}
         selectionDisabled
-    ></lit-data-table>
-  `;
+      ></lit-data-table>
+    `;
   }
 
   renderFacetSelector() {
@@ -351,27 +350,31 @@ export class MetricsModule extends LitModule {
         const index = this.selectedFacets.indexOf(key);
         this.selectedFacets.splice(index, 1);
       }
-      this.updateMetricsList();
+      this.updateAllFacetedMetrics();
     };
 
     // Disable the "slices" on the dropdown if all the slices are empty.
     const slicesDisabled = this.sliceService.areAllSlicesEmpty();
 
     const onSlicesCheckboxChecked = (e: Event) => {
-      this.facetBySlice = (e.target as HTMLInputElement).checked;
-      this.updateMetricsList();
+      this.facetBySlice = !this.facetBySlice;
+      this.updateSliceMetrics();
     };
     // clang-format off
     return html`
     <div class="facet-selector">
-      <label class="dropdown-label">Show slices</label>
-      ${this.renderCheckbox('', false, (e: Event) => {onSlicesCheckboxChecked(e);},
-            slicesDisabled)}
-      <label class="dropdown-label">Facet by</label>
+      <label class="cb-label">Show slices</label>
+      <lit-checkbox
+        ?checked=${this.facetBySlice}
+        @change=${onSlicesCheckboxChecked}
+        ?disabled=${slicesDisabled}>
+      </lit-checkbox>
+      <label class="cb-label">Facet by</label>
        ${
         this.groupService.categoricalAndNumericalFeatureNames.map(
             facetName => this.renderCheckbox(facetName, false,
                 (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
+      ${this.pendingCalls > 0 ? this.renderSpinner() : null}
     </div>
     `;
     // clang-format on
@@ -392,6 +395,13 @@ export class MetricsModule extends LitModule {
         </div>
     `;
     // clang-format on
+  }
+
+  renderSpinner() {
+    return html`
+      <lit-spinner size=${24} color="var(--app-secondary-color)">
+      </lit-spinner>
+    `;
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

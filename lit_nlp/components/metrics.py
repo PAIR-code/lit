@@ -187,6 +187,7 @@ class MulticlassMetrics(SimpleMetrics):
                       vocab: Sequence[Text],
                       null_idx: Optional[int] = None):
     # Filter out unlabeled examples before calculating metrics.
+    total_len = len(y_true)
     labeled_example_indices = [
         index for index, y in enumerate(y_true) if y != -1
     ]
@@ -208,6 +209,9 @@ class MulticlassMetrics(SimpleMetrics):
           y_true, y_pred, labels=labels, average='micro')
       ret['f1'] = sklearn_metrics.f1_score(
           y_true, y_pred, labels=labels, average='micro')
+
+    if len(labeled_example_indices) != total_len:
+      ret['num_missing_labels'] = total_len - len(labeled_example_indices)
 
     return ret
 
