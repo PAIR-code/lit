@@ -125,18 +125,8 @@ def main(_):
   if "mt" in FLAGS.tasks:
     for k, m in base_models.items():
       models[k + "_translation"] = t5.TranslationWrapper(m)
-    # We need to remap the field names in these datasets.
-    # TODO(lit-dev): rename model spec instead, handle in t5.TranslationWrapper.
-    datasets["wmt14_enfr"] = mt.WMT14Data(
-        version="fr-en", reverse=True).remap({
-            "source": "input_text",
-            "target": "target_text",
-        })
-    datasets["wmt14_ende"] = mt.WMT14Data(
-        version="de-en", reverse=True).remap({
-            "source": "input_text",
-            "target": "target_text",
-        })
+    datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
+    datasets["wmt14_ende"] = mt.WMT14Data(version="de-en", reverse=True)
 
   # Truncate datasets if --max_examples is set.
   for name in datasets:

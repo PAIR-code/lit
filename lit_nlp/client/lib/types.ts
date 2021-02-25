@@ -39,7 +39,9 @@ export interface LitType {
   __name__: LitName;
   __mro__: string[];
   parent?: string;
-  align?: string|string[];
+  align?: string;
+  align_in?: string;
+  align_out?: string;
   vocab?: string[];
   null_idx?: number;
   required?: boolean;

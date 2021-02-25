@@ -320,6 +320,6 @@ class GPT2LanguageModel(lit_model.Model):
     # Add attention and embeddings from each layer.
     for i in range(self.num_layers):
       spec[f"layer_{i:d}_attention"] = lit_types.AttentionHeads(
-          align=("tokens", "tokens"))
+          align_in="tokens", align_out="tokens")
       spec[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
     return spec

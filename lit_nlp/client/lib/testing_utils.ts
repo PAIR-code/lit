@@ -116,14 +116,16 @@ export const mockMetadata: LitMetadata = {
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           },
           'layer_1/attention': {
             '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           }
         }
       },
@@ -198,14 +200,16 @@ export const mockMetadata: LitMetadata = {
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           },
           'layer_1/attention': {
             '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           }
         }
       },

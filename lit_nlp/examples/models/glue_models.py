@@ -462,7 +462,7 @@ class GlueModel(lit_model.Model):
     # Attention heads, one field for each layer.
     for i in range(self.model.config.num_hidden_layers):
       ret[f"layer_{i}/attention"] = lit_types.AttentionHeads(
-          align=("tokens", "tokens"))
+          align_in="tokens", align_out="tokens")
     return ret
 
 

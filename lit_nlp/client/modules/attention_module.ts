@@ -93,11 +93,11 @@ export class AttentionModule extends LitModule {
 
   private renderAttnHead() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const align = outputSpec[this.selectedLayer!].align as [string, string];
+    const fieldSpec = outputSpec[this.selectedLayer!];
 
     // Tokens involved in the attention.
-    const inToks = (this.preds!)[align[0]] as Tokens;
-    const outToks = (this.preds!)[align[1]] as Tokens;
+    const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
+    const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
 
     const inTokLens = inToks.map(tok => tok.length + 1);
     const outTokLens = outToks.map(tok => tok.length + 1);

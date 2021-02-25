@@ -77,6 +77,30 @@ class LitType(metaclass=abc.ABCMeta):
 
 Spec = Dict[Text, LitType]
 
+# Attributes that should be treated as a reference to other fields.
+FIELD_REF_ATTRIBUTES = frozenset(
+    {'parent', 'align', 'align_in', 'align_out', 'grad_for'})
+
+
+def _remap_leaf(leaf: LitType, keymap: Dict[str, str]) -> LitType:
+  """Remap any field references on a LitType."""
+  d = attr.asdict(leaf)  # mutable
+  d = {
+      k: (keymap.get(v, v) if k in FIELD_REF_ATTRIBUTES else v)
+      for k, v in d.items()
+  }
+  return leaf.__class__(**d)
+
+
+def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
+  """Rename fields in a spec, with a best-effort to also remap field references."""
+  ret = {}
+  for k, v in spec.items():
+    new_key = keymap.get(k, k)
+    new_value = _remap_leaf(v, keymap)
+    ret[new_key] = new_value
+  return ret
+
 ##
 # Concrete type clases
 
@@ -100,7 +124,8 @@ class TextSegment(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
-  parent: Optional[Text] = None  # name of a TextSegment field, to compare to
+  # Name of a TextSegment field to evaluate against
+  parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -118,9 +143,10 @@ class SearchQuery(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(LitType):
   """Tokenized text, as List[str]."""
-  default: List[Text] = []
+  default: List[Text] = attr.Factory(list)
+  # Name of a TextSegment field from the input
   # TODO(lit-dev): should we use 'align' here?
-  parent: Optional[Text] = None  # name of a TextSegment field in the input
+  parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -165,7 +191,7 @@ class MulticlassPreds(LitType):
   # Usually this will match the vocabulary in the corresponding label field.
   vocab: Sequence[Text]  # label names
   null_idx: Optional[int] = None  # vocab index of negative (null) label
-  parent: Optional[Text] = None  # name of CategoryLabel field in input
+  parent: Optional[Text] = None  # CategoryLabel field in input
 
   @property
   def num_labels(self):
@@ -236,28 +262,30 @@ class Embeddings(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Gradients(LitType):
   """Gradients with respect to embeddings."""
-  grad_for: Optional[Text] = None  # name of embedding field
+  grad_for: Optional[Text] = None  # name of Embeddings field
   grad_target: Optional[Text] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(LitType):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # path to tokens or other sequence field
+  align: Optional[Text] = None  # name of a Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(LitType):
   """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # path to tokens or other sequence field
-  grad_for: Optional[Text] = None  # name of input embedding field
+  align: Optional[Text] = None  # name of a Tokens field
+  grad_for: Optional[Text] = None  # name of TokenEmbeddings field
   grad_target: Optional[Text] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class AttentionHeads(LitType):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
-  align: Tuple[Text, Text]  # paths to tokens fields
+  # input and output Tokens fields; for self-attention these can be the same
+  align_in: Text
+  align_out: Text
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

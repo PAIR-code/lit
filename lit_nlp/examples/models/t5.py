@@ -284,9 +284,9 @@ class T5HFModel(T5Model):
       # Add attention for each layer.
       for i in range(self.num_layers):
         spec[f"encoder_layer_{i:d}_attention"] = lit_types.AttentionHeads(
-            align=("input_tokens", "input_tokens"))
+            align_in="input_tokens", align_out="input_tokens")
         spec[f"decoder_layer_{i:d}_attention"] = lit_types.AttentionHeads(
-            align=("target_tokens", "target_tokens"))
+            align_in="target_tokens", align_out="target_tokens")
     return spec
 
 
@@ -296,6 +296,14 @@ class T5HFModel(T5Model):
 
 class TranslationWrapper(lit_model.Model):
   """Wrapper class for machine translation."""
+
+  # Mapping from generic T5 fields (see T5Model) to this task
+  FIELD_RENAMES = {
+      "input_text": "source",
+      "target_text": "target",
+      "output_text": "translation",
+      "output_candidates": "translation_nbest",
+  }
 
   # From Appendix D of https://arxiv.org/pdf/1910.10683.pdf.
   # Add more of these if your model supports them.
@@ -315,10 +323,11 @@ class TranslationWrapper(lit_model.Model):
     input_kw = {
         "source_language": self.LANGCODE_TO_NAME[ex["source_language"]],
         "target_language": self.LANGCODE_TO_NAME[ex["target_language"]],
-        "source": ex["input_text"]
+        "source": ex["source"]
     }
-    ret = dict(ex)  # shallow copy
-    ret["input_text"] = self.INPUT_TEMPLATE.format(**input_kw)
+    ret = {"input_text": self.INPUT_TEMPLATE.format(**input_kw)}
+    if "target" in ex:
+      ret["target_text"] = ex["target"]
     return ret
 
   ##
@@ -332,22 +341,27 @@ class TranslationWrapper(lit_model.Model):
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     model_inputs = [self.preprocess(ex) for ex in inputs]
-    return self.model.predict_minibatch(model_inputs)
+    outputs = self.model.predict_minibatch(model_inputs)
+    return [utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs]
 
   def input_spec(self):
-    # TODO(lit-dev): rename fields in the model spec, instead of
-    # requiring renames on the input data.
-    spec = self.model.input_spec()  # input_text, output_text
+    spec = lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
     spec["source_language"] = lit_types.CategoryLabel()
     spec["target_language"] = lit_types.CategoryLabel()
     return spec
 
   def output_spec(self):
-    return self.model.output_spec()
+    return lit_types.remap_spec(self.model.output_spec(), self.FIELD_RENAMES)
 
 
 class SummarizationWrapper(lit_model.Model):
   """Wrapper class to perform a summarization task."""
+
+  # Mapping from generic T5 fields (see T5Model) to this task
+  FIELD_RENAMES = {
+      "input_text": "document",
+      "target_text": "reference",
+  }
 
   def __init__(self, model: T5Model):
     self.model = model
@@ -356,8 +370,9 @@ class SummarizationWrapper(lit_model.Model):
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
-    ret = dict(ex)  # shallow copy
-    ret["input_text"] = "summarize: " + ex["input_text"]
+    ret = {"input_text": "summarize: " + ex["document"]}
+    if "reference" in ex:
+      ret["target_text"] = ex["reference"]
     return ret
 
   ##
@@ -372,18 +387,19 @@ class SummarizationWrapper(lit_model.Model):
     """Predict on a single minibatch of examples."""
     model_inputs = [self.preprocess(ex) for ex in inputs]
     outputs = self.model.predict_minibatch(model_inputs)
+    outputs = [utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs]
 
     # TODO(gehrmann): temp solution to get ROUGE scores in data table.
     for ex, mo in zip(inputs, outputs):
       score = self._scorer.score(
-          target=ex["target_text"], prediction=mo["output_text"])
+          target=ex["reference"], prediction=mo["output_text"])
       mo["rougeL"] = float(score["rougeL"].fmeasure)
     return outputs
 
   def input_spec(self):
-    return self.model.input_spec()
+    return lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
 
   def output_spec(self):
-    spec = self.model.output_spec()
+    spec = lit_types.remap_spec(self.model.output_spec(), self.FIELD_RENAMES)
     spec["rougeL"] = lit_types.Scalar()
     return spec
