@@ -115,6 +115,24 @@ mwc-textfield {
 }
 
 /* Token chips */
+.token-chip-function {
+  color: #5f6368;
+  font-family: 'Roboto';
+  background: #f8f9fa;
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-function.selected {
+  border: 1px solid #80868b;
+}
+
+.token-chip-function:hover {
+  background: #e8eaed;
+}
+
 .token-chip-label {
   color: #3c4043;
   font-family: 'Roboto Mono', monospace;

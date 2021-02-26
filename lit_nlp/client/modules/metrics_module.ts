@@ -83,7 +83,7 @@ interface TableHeaderAndData {
 @customElement('metrics-module')
 export class MetricsModule extends LitModule {
   static title = 'Metrics';
-  static numCols = 8;
+  static numCols = 6;
   static template = () => {
     return html`<metrics-module></metrics-module>`;
   };

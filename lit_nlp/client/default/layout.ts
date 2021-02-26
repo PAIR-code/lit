@@ -158,8 +158,8 @@ export const LAYOUTS: LitComponentLayouts = {
                ColorModule],
       'Performance': [
         MetricsModule,
-        TCAVModule,
         ConfusionMatrixModule,
+        TCAVModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
@@ -183,8 +183,8 @@ export const LAYOUTS: LitComponentLayouts = {
                SliceModule, ColorModule],
       'Performance': [
         MetricsModule,
-        TCAVModule,
         ConfusionMatrixModule,
+        TCAVModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,

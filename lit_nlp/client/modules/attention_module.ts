@@ -20,10 +20,10 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property, svg} from 'lit-element';
-import {observable, reaction} from 'mobx';
+import {css, customElement, html, svg} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {cumSumArray, doesOutputSpecContain, findSpecKeys, sumArray} from '../lib/utils';
@@ -48,7 +48,33 @@ export class AttentionModule extends LitModule {
   };
 
   static get styles() {
-    return sharedStyles;
+    const styles = css`
+        .controls-row {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+        }
+
+        .head-selector-label {
+          margin: 0px 3px;
+        }
+
+        .head-selector-chip {
+          margin: 0px 1px;
+          width: 1rem;
+          text-align: center;
+        }
+
+        .head-selector-chip.selected {
+          color: #6403fa;
+          border-color: #6403fa;
+        }
+
+        .head-selector-chip:hover {
+          background: #f3e8fd;
+        }
+    `;
+    return [sharedStyles, styles];
   }
 
   @observable private selectedLayer?: string;
@@ -64,31 +90,39 @@ export class AttentionModule extends LitModule {
   }
 
   private async updateSelection(selectedInput: IndexedInput|null) {
-    if (selectedInput === null) {
-      this.preds = undefined;
-    } else {
-      const dataset = this.appState.currentDataset;
-      const promise = this.apiService.getPreds(
-          [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
-          'Fetching attention');
-      const res = await this.loadLatest('attentionAndTokens', promise);
-      if (res === null) return;
-      this.preds = res[0];
+    this.preds = undefined;  // clear previous results
+
+    if (selectedInput === null) return;
+    const dataset = this.appState.currentDataset;
+    const promise = this.apiService.getPreds(
+        [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
+        'Fetching attention');
+    const res = await this.loadLatest('attentionAndTokens', promise);
+    if (res === null) return;
+    this.preds = res[0];
+    // Make sure head selection is valid.
+    const numHeadsPerLayer = this.preds[this.selectedLayer!].length;
+    if (this.selectedHeadIndex >= numHeadsPerLayer) {
+      this.selectedHeadIndex = 0;
     }
   }
 
   render() {
-    if (this.preds) {
-      return html`
-      <div>
-        ${this.renderAttnHeadDropdown()}
-        ${this.renderIdxDropdown()}
+    if (!this.preds) return;
+
+    // clang-format off
+    return html`
+      <div class='module-container'>
+        <div class='module-toolbar controls-row'>
+          ${this.renderAttnHeadDropdown()}
+          ${this.renderIdxDropdown()}
+        </div>
+        <div class='module-results-area'>
+          ${this.renderAttnHead()}
+        </div>
       </div>
-        ${this.renderAttnHead()}
-      `;
-    }
-    // If the input was cleared (so there is no data to show), hide everything
-    return null;
+    `;
+    // clang-format on
   }
 
   private renderAttnHead() {
@@ -193,17 +227,26 @@ export class AttentionModule extends LitModule {
    * Render the dropdown for the attention head index.
    */
   private renderIdxDropdown() {
+    const renderChip = (i: number) => {
+      const handleClick = () => {
+        this.selectedHeadIndex = i;
+      };
+      const classes = classMap({
+        'head-selector-chip': true,
+        'token-chip-function': true,
+        'selected': i === this.selectedHeadIndex,
+      });
+      return html`<div class=${classes} @click=${handleClick}>${i}</div>`;
+    };
     const numHeadsPerLayer = this.preds![this.selectedLayer!].length;
     const numHeadsPerLayerRange =
         Array.from({length: numHeadsPerLayer}, (x: string, i: number) => i);
-    const onchange = (e: Event) => this.selectedHeadIndex =
-        Number((e.target as HTMLSelectElement).value);
+    // clang-format off
     return html`
-    <select class="dropdown" @change=${onchange}>
-      ${numHeadsPerLayerRange.map(key => {
-      return html`<option value=${key}>${key}</option>`;
-    })}
-    </select>`;
+        <label class="head-selector-label">Head:</label>
+        ${numHeadsPerLayerRange.map(renderChip)}
+    `;
+    // clang-format on
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
