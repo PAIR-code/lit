@@ -62,6 +62,7 @@ export class ConfusionMatrixModule extends LitModule {
       <confusion-matrix-module model=${model}>
       </confusion-matrix-module>`;
   };
+  static numCols = 3;
   static duplicateForModelComparison = false;
 
   static get styles() {
