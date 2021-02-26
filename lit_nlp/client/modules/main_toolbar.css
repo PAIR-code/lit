@@ -39,6 +39,8 @@
 
 #left-container {
   display: flex;
+  font-family: Roboto;
+  font-size: 14px;
 }
 
 #right-container {
@@ -68,10 +70,6 @@
 
 #primary-selection-status {
   margin-right: 4pt;
-}
-
-#pair-controls {
-  margin-left: 12pt;
 }
 
 /**

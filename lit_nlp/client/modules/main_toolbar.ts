@@ -380,6 +380,9 @@ export class LitMainToolbar extends MobxLitElement {
 
     // Cycle through pairs, relative to the current selected one.
     const selectOffset = (offset: number) => {
+      // If not in comparison mode, enter it.
+      this.appState.compareExamplesEnabled = true;
+
       // If no valid pair is selected (-1), ignore and start at 0.
       const start = isPairSelected ? selectedPairIndex : 0;
       const nextPairIndex = (start + offset + numPairs) % numPairs;
@@ -401,7 +404,7 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <div id='pair-controls' class='selection-status-group'>
-        ${numPairs} pairs available
+        ${numPairs} ${numPairs === 1 ? "pair" : "pairs"} available
         <mwc-icon class='icon-button' id='select-prev'
           @click=${() => {selectOffset(-1);}}>
           chevron_left
@@ -488,12 +491,12 @@ export class LitMainToolbar extends MobxLitElement {
             Select a datapoint to use this feature.
           </span>
         </div>
+        ${this.renderPairControls()}
       </div>
       <div id='right-container'>
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
         ${this.renderStarButton(numSelected)}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
-        ${this.appState.compareExamplesEnabled ? this.renderPairControls() : null}
         <button id="clear-selection" class="text-button" @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
