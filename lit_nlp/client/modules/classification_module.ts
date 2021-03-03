@@ -16,13 +16,13 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html, TemplateResult} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
-import {observable, reaction} from 'mobx';
+import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
+import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {ClassificationService} from '../services/services';
@@ -135,48 +135,54 @@ export class ClassificationModule extends LitModule {
     `;
   }
 
-  private renderRow(fieldName: string, prediction: DisplayInfo[]) {
-    // TODO(lit-dev): Align all columns across different prediction heads.
-    return html`
-        <div class='classification-row-holder'>
-          <div class='classification-row-title'>${fieldName}</div>
-          <table>
-            <tr>
-              <th>Class</th>
-              <th>Label</th>
-              <th>Predicted</th>
-              <th>Score</th>
-            </tr>
-            ${prediction.map((pred) => this.renderClass(fieldName, pred))}
-          </table>
-        </div>`;
-  }
-
-  private renderClass(fieldName: string, pred: DisplayInfo) {
+  private renderBar(fieldName: string, pred: DisplayInfo): TemplateResult {
+    // TODO(b/181692911): Style through CSS when data table supports it.
     const numLabels =
         this.classificationService.getLabelNames(this.model, fieldName).length;
     const pad = 0.75;
     const margin = 0.35;
-    const style: {[name: string]: string} = {};
+    const barStyle: {[name: string]: string} = {};
     const scale = 100 - 2 * (pad + margin) * numLabels;
-    style['width'] = `${scale * pred['value']}%`;
-    style['background-color'] = '#07a3ba';
-    style['padding-left'] = `${pad}%`;
-    style['padding-right'] = `${pad}%`;
-    style['margin-left'] = `${margin}%`;
-    style['margin-right'] = `${margin}%`;
-
-    const score = pred['value'].toFixed(3);
+    barStyle['width'] = `${scale * pred['value']}%`;
+    barStyle['background-color'] = '#07a3ba';
+    barStyle['padding-left'] = `${pad}%`;
+    barStyle['padding-right'] = `${pad}%`;
+    barStyle['margin-left'] = `${margin}%`;
+    barStyle['margin-right'] = `${margin}%`;
+    const holderStyle: {[name: string]: string} = {};
+    holderStyle['width'] = '200px';
+    holderStyle['height'] = '20px';
+    holderStyle['display'] = 'flex';
+    holderStyle['position'] = 'relative';
     return html`
-        <tr class='classification-row'>
-          <td class='classification-label'>${pred['label']}</td>
-          <td>${pred['isGroundTruth'] ? '✔' : ''}</td>
-          <td>${pred['isPredicted'] ? '✔' : ''}</td>
-          <td class='classification-cell'>
-            <div style='${styleMap(style)}'></div>
-            <div>${score}</div>
-          </td>
-        </tr>`;
+        <div style='${styleMap(holderStyle)}'>
+          <div style='${styleMap(barStyle)}'></div>
+        </div>`;
+  }
+
+  private renderRow(fieldName: string, prediction: DisplayInfo[]) {
+    const rows: Array<Array<TemplateResult|string>> = prediction.map((pred) => {
+      const row = [
+        pred['label'],
+        formatBoolean(pred['isGroundTruth']!),
+        formatBoolean(pred['isPredicted']),
+        pred['value'].toFixed(3),
+        this.renderBar(fieldName, pred)
+      ];
+      return row;
+    });
+    const columnNames = ["Class", "Label", "Predicted", "Score", "Score Bar"];
+    const columnVisibility = new Map<string, boolean>();
+    columnNames.forEach((name) => {columnVisibility.set(name, true);});
+
+    return html`
+        <div class='classification-row-holder'>
+          <div class='classification-row-title'>${fieldName}</div>
+          <lit-data-table
+            .columnVisibility=${columnVisibility}
+            .data=${rows} selectionDisabled
+          ></lit-data-table>
+        </div>`;
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

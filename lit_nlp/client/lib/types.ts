@@ -351,7 +351,7 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
   }
 
   if (typeof input === 'boolean') {
-    return input ? '✔' : ' ';
+    return formatBoolean(input);
   }
 
   if (typeof input === 'number') {
@@ -360,4 +360,11 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
 
   // Fallback: just coerce to string.
   return `${input}`;
+}
+
+/**
+ * Formats a boolean value for display.
+ */
+export function formatBoolean(val: boolean): string {
+  return val ? '✔' : ' ';
 }
