@@ -32,7 +32,7 @@ import {STARRED_SLICE_NAME} from '../services/slice_service';
 import {styles as sharedStyles} from './shared_styles.css';
 import {styles} from './tcav_module.css';
 
-const MIN_EXAMPLES_LENGTH = 2;  // minimum examples needed to train the CAV.
+const MIN_EXAMPLES_LENGTH = 3;  // minimum examples needed to train the CAV.
 const ALL = 'all';
 const TCAV_INTERPRETER_NAME = 'tcav';
 const CHART_MARGIN = 30;
@@ -170,7 +170,10 @@ export class TCAVModule extends LitModule {
       for (const slice of slices) {
         const examples = this.sliceService.getSliceByName(slice);
         if (examples == null) return true;
-        if (examples.length >= MIN_EXAMPLES_LENGTH) {
+        const comparisonSetLength =
+            this.appState.currentInputData.length - examples.length;
+        if (examples.length >= MIN_EXAMPLES_LENGTH &&
+            comparisonSetLength >= MIN_EXAMPLES_LENGTH) {
           return false;  // only enable if slice has minimum number of examples
         }
       }
@@ -209,7 +212,10 @@ export class TCAVModule extends LitModule {
   }
 
   private async runTCAVBySlice(selectedIds: string[], name: string) {
-    if (selectedIds.length < MIN_EXAMPLES_LENGTH) {
+    const comparisonSetLength =
+        this.appState.currentInputData.length - selectedIds.length;
+    if (selectedIds.length < MIN_EXAMPLES_LENGTH ||
+        comparisonSetLength < MIN_EXAMPLES_LENGTH) {
       return;
     }
 
