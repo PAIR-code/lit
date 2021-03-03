@@ -317,6 +317,13 @@ export function datasetDisplayName(name: string): string {
 }
 
 /**
+ * CSS class name for module-internal divs that should have syncronized
+ * scrolling between duplicated modules. See widget_group.ts and lit_module.ts
+ * for its use.
+ */
+export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
+
+/**
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
  * TODO(lit-dev): allow passing custom HTML to table, not just strings.

@@ -23,7 +23,7 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SpanLabel, Spec} from '../lib/types';
+import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
@@ -109,6 +109,8 @@ export class DatapointEditorModule extends LitModule {
   }
 
   updated() {
+    super.updated();
+
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
     // update the displayed value of textareas. See
     // https://github.com/elm/virtual-dom/issues/115#issuecomment-329405689.
@@ -161,9 +163,15 @@ export class DatapointEditorModule extends LitModule {
   }
 
   render() {
+    // Scrolling inside this module is done inside a div with ID 'container'.
+    // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
+    // scrolling to be sync'd instances of this module when doing comparisons
+    // between models and/or duplicated datapoints. See lit_module.ts for more
+    // details.
     return html`
       <div class='module-container'>
-        <div id="container" class='module-results-area'>
+        <div id="container"
+             class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
           ${this.renderEditText()}
         </div>
         <div id="buttons">

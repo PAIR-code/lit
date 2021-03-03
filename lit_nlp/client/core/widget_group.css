@@ -65,6 +65,7 @@
   white-space: nowrap;
   overflow: hidden;
   flex: 1;
+  display: flex;
 }
 
 .minimized .title {
@@ -89,14 +90,17 @@ lit-widget {
 
 .min-button {
   text-align: right;
-  flex: 0.2; /* add some clickable whitespace */
 }
 
 .minimized .min-button {
   text-align: left;
 }
 
-mwc-icon.icon-button {
+.scroll-toggle {
+  --mdc-icon-button-size: 24px;
+}
+
+.icon-button {
   height: 24px;
   width: 24px;
   min-width: 24px;
@@ -105,7 +109,7 @@ mwc-icon.icon-button {
   cursor: pointer;
 }
 
-mwc-icon.icon-button:hover {
+.icon-button:hover {
   opacity: .7;
 }
 

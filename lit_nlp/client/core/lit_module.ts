@@ -21,7 +21,7 @@ import {computed} from 'mobx';
 import { observable } from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {LitModuleClass} from '../lib/types';
+import {LitModuleClass, SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {ApiService, AppState, SelectionService} from '../services/services';
 
 import {app} from './lit_app';
@@ -34,6 +34,7 @@ export interface ParentWidgetElement {
 }
 
 type IsLoadingFn = (isLoading: boolean) => void;
+type OnScrollFn = () => void;
 
 /**
  * The base class from which all Lit Module classes extends, in order to have
@@ -46,6 +47,14 @@ export abstract class LitModule extends ReactiveElement {
    * A callback used to set the loading status of the parent widget component.
    */
   @property({type: Object}) setIsLoading: IsLoadingFn = (status: boolean) => {};
+
+  /**
+   * A callback used to keep scrolling syncronized between duplicated instances
+   * of a module. Only used if the class defined by SCROLL_SYNC_CSS_CLASS is
+   * used in an element in the module. Otherwise scrolling is syncronized using
+   * the outer container that contains the module.
+   */
+  @observable @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
 
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
@@ -75,6 +84,22 @@ export abstract class LitModule extends ReactiveElement {
   @computed
   protected get selectionService() {
     return app.getServiceArray(SelectionService)[this.selectionServiceIndex];
+  }
+
+  updated() {
+    // If the class defined by SCROLL_SYNC_CSS_CLASS is used in the module then
+    // set its onscroll callback to be the provided onSyncScroll.
+    // There is no need to use this class if a module scrolls through the
+    // normal mechanism of its parent container div from the LitWidget element
+    // that wraps modules. But if a module doesn't scroll using that parent
+    // container, but through some element internal to the module, then using
+    // this class on that element will allow for scrolling to be syncronized
+    // across duplicated modules of this type.
+    const scrollElems = this.shadowRoot!.querySelectorAll(
+        `.${SCROLL_SYNC_CSS_CLASS}`);
+    scrollElems.forEach(elem => {
+      (elem as HTMLElement).onscroll = this.onSyncScroll;
+    });
   }
 
   /**

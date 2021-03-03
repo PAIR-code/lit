@@ -25,7 +25,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {cumSumArray, doesOutputSpecContain, findSpecKeys, sumArray} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
@@ -101,7 +101,8 @@ export class AttentionModule extends LitModule {
     if (res === null) return;
     this.preds = res[0];
     // Make sure head selection is valid.
-    const numHeadsPerLayer = this.preds[this.selectedLayer!].length;
+    const numHeadsPerLayer = this.preds[this.selectedLayer!] != null ?
+        this.preds[this.selectedLayer!].length : 0;
     if (this.selectedHeadIndex >= numHeadsPerLayer) {
       this.selectedHeadIndex = 0;
     }
@@ -110,6 +111,11 @@ export class AttentionModule extends LitModule {
   render() {
     if (!this.preds) return;
 
+    // Scrolling inside this module is done inside the module-results-area div.
+    // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
+    // scrolling to be sync'd instances of this module when doing comparisons
+    // between models and/or duplicated datapoints. See lit_module.ts for more
+    // details.
     // clang-format off
     return html`
       <div class='module-container'>
@@ -117,7 +123,7 @@ export class AttentionModule extends LitModule {
           ${this.renderAttnHeadDropdown()}
           ${this.renderIdxDropdown()}
         </div>
-        <div class='module-results-area'>
+        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
           ${this.renderAttnHead()}
         </div>
       </div>

@@ -93,6 +93,8 @@ export class GeneratorModule extends LitModule {
 
 
   updated() {
+    super.updated();
+
     // Update the header items to be the width of the rows of the table.
     const header = this.shadowRoot!.getElementById('header') as ParentNode;
     const firstRow = this.shadowRoot!.querySelector('.row') as ParentNode;

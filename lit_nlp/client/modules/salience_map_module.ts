@@ -234,6 +234,8 @@ export class SalienceMapModule extends LitModule {
   }
 
   updated() {
+    super.updated();
+
     // Imperative tooltip implementation
     this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
       // For each token group we have a single tooltip,
