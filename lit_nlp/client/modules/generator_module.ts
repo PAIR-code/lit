@@ -136,6 +136,7 @@ export class GeneratorModule extends LitModule {
 
   private handleGeneratorClick(generator: string, config?: CallConfig) {
     if (!this.isGenerating) {
+      this.resetEditedData();
       this.generate(generator, this.modelName, config);
     }
   }
