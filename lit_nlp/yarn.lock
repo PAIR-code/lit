@@ -91,6 +91,19 @@
     "@material/typography" "7.0.0-canary.d92d8c93e.0"
     tslib "^1.9.3"
 
+"@material/icon-button@=7.0.0-canary.d92d8c93e.0":
+  version "7.0.0-canary.d92d8c93e.0"
+  resolved "https://registry.yarnpkg.com/@material/icon-button/-/icon-button-7.0.0-canary.d92d8c93e.0.tgz#e3cb688d9d0bd185f8c67e4d255c5095ea9941fd"
+  integrity sha512-7LWQ4rStg7xiLSQ1DUSOXmuS5oyLFWt4kuDiMeqraapluMFHwFZ9RwmmliE+KhhZGHpe/4VT+M+mR9ZlG507oQ==
+  dependencies:
+    "@material/base" "7.0.0-canary.d92d8c93e.0"
+    "@material/density" "7.0.0-canary.d92d8c93e.0"
+    "@material/feature-targeting" "7.0.0-canary.d92d8c93e.0"
+    "@material/ripple" "7.0.0-canary.d92d8c93e.0"
+    "@material/rtl" "7.0.0-canary.d92d8c93e.0"
+    "@material/theme" "7.0.0-canary.d92d8c93e.0"
+    tslib "^1.9.3"
+
 "@material/line-ripple@7.0.0-canary.d92d8c93e.0", "@material/line-ripple@=7.0.0-canary.d92d8c93e.0":
   version "7.0.0-canary.d92d8c93e.0"
   resolved "https://registry.yarnpkg.com/@material/line-ripple/-/line-ripple-7.0.0-canary.d92d8c93e.0.tgz#4176859ae6c74c04539e7fc5445d84c12e95cc71"
@@ -189,6 +202,31 @@
     "@material/mwc-base" "^0.15.0"
     lit-element "^2.3.0"
     lit-html "^1.1.2"
+    tslib "^1.10.0"
+
+"@material/mwc-icon-button-toggle@^0.15.0":
+  version "0.15.0"
+  resolved "https://registry.yarnpkg.com/@material/mwc-icon-button-toggle/-/mwc-icon-button-toggle-0.15.0.tgz#18fb3b143b1fcbb148e3791aa60246d6596d3063"
+  integrity sha512-hF9xMfiu2QTUub9boLoa3QpLM9/Vf3EHVeuMRX+GbHmbPQITNrGp1fxesBIQZXQOXqbW52Edq+d4qzpypGNgRw==
+  dependencies:
+    "@material/icon-button" "=7.0.0-canary.d92d8c93e.0"
+    "@material/mwc-base" "^0.15.0"
+    "@material/mwc-icon" "^0.15.0"
+    "@material/mwc-icon-button" "^0.15.0"
+    "@material/mwc-ripple" "^0.15.0"
+    lit-element "^2.3.0"
+    tslib "^1.10.0"
+
+"@material/mwc-icon-button@^0.15.0":
+  version "0.15.0"
+  resolved "https://registry.yarnpkg.com/@material/mwc-icon-button/-/mwc-icon-button-0.15.0.tgz#cad5a841ea58ba1f39003ba17f99a6ae55fbd0ac"
+  integrity sha512-7Xw4uYdMSRWBmviMB0i1BoacX/cnlA3JKT2kKipnXlj1JP0Y8hwLebXn18m0z8TbDhwAQnXuKp6cWSZMgcVcWw==
+  dependencies:
+    "@material/icon-button" "=7.0.0-canary.d92d8c93e.0"
+    "@material/mwc-base" "^0.15.0"
+    "@material/mwc-icon" "^0.15.0"
+    "@material/mwc-ripple" "^0.15.0"
+    lit-element "^2.3.0"
     tslib "^1.10.0"
 
 "@material/mwc-icon@^0.15.0":
