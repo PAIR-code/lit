@@ -13,6 +13,7 @@
     "@adobe/lit-mobx": "0.0.4",
     "@material/mwc-checkbox": "^0.15.0",
     "@material/mwc-formfield": "^0.15.0",
+    "@material/mwc-icon-button-toggle": "^0.15.0",
     "@material/mwc-list": "^0.15.0",
     "@material/mwc-menu": "^0.15.0",
     "@material/mwc-radio": "^0.15.0",
