@@ -26,7 +26,7 @@ import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
+import {cumSumArray, doesOutputSpecContain, findSpecKeys, sumArray} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
 
@@ -139,16 +139,15 @@ export class AttentionModule extends LitModule {
     const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
     const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
 
-    const fontFamily = "'Share Tech Mono', monospace";
-    const fontSize = 12;
-    const defaultCharWidth = 6.5;
-    const font = `${fontSize}px ${fontFamily}`;
-    const inTokWidths = inToks.map(tok => getTextWidth(tok, font, defaultCharWidth));
-    const outTokWidths = outToks.map(tok => getTextWidth(tok, font, defaultCharWidth));
-    const spaceWidth = getTextWidth(' ', font, defaultCharWidth);
+    const inTokLens = inToks.map(tok => tok.length + 1);
+    const outTokLens = outToks.map(tok => tok.length + 1);
 
     const inTokStr = svg`${inToks.join(' ')}`;
     const outTokStr = svg`${outToks.join(' ')}`;
+
+    // Character width is constant as this is a fixed width font.
+    const charWidth = 6.5;
+    const fontSize = 12;
 
     // Height of the attention visualization part.
     const visHeight = 100;
@@ -157,18 +156,17 @@ export class AttentionModule extends LitModule {
     const pad = 10;
 
     // Calculate the full width and height.
-    const inTokWidth = sumArray(inTokWidths) + (inToks.length - 1) * spaceWidth;
-    const outTokWidth = sumArray(outTokWidths) + (outToks.length - 1) * spaceWidth;
-    const width = Math.max(inTokWidth, outTokWidth);
+    const width =
+        Math.max(sumArray(inTokLens), sumArray(outTokLens)) * charWidth;
     const height = visHeight + fontSize * 2 + pad * 4;
 
     // clang-format off
     return svg`
     <svg width=${width} height=${height}
-      font-family="${fontFamily}"
+      font-family="'Share Tech Mono', monospace"
       font-size="${fontSize}px">
       <text y=${pad * 2}> ${outTokStr}</text>
-      ${this.renderAttnLines(visHeight, spaceWidth, 2.5 * pad, inTokWidths, outTokWidths)}
+      ${this.renderAttnLines(visHeight, charWidth, 2.5 * pad, inTokLens, outTokLens)}
       <text y=${visHeight + 4 * pad}> ${inTokStr}</text>
     </svg>
     `;
@@ -179,15 +177,17 @@ export class AttentionModule extends LitModule {
    * Render the actual lines between tokens to show the attention values.
    */
   private renderAttnLines(
-      visHeight: number, spaceWidth: number, pad: number, inTokWidths: number[],
-      outTokWidths: number[]) {
-    const inTokOffsets = getTokOffsets(inTokWidths, spaceWidth);
-    const outTokOffsets = getTokOffsets(outTokWidths, spaceWidth);
+      visHeight: number, charWidth: number, pad: number, inTokLens: number[],
+      outTokLens: number[]) {
+    const cumSumInTokLens = cumSumArray(inTokLens);
+    const cumSumOutTokLens = cumSumArray(outTokLens);
     const y1 = pad;
     const y2 = pad + visHeight;
 
-    const xIn = (i: number) => inTokOffsets[i] + (inTokWidths[i] / 2);
-    const xOut = (i: number) => outTokOffsets[i] + (outTokWidths[i] / 2);
+    const xIn = (i: number) =>
+        (cumSumInTokLens[i] - inTokLens[i] / 2) * charWidth;
+    const xOut = (i: number) =>
+        (cumSumOutTokLens[i] - outTokLens[i] / 2) * charWidth;
 
     const heads = this.preds![this.selectedLayer!] as AttentionHeads;
 
@@ -198,9 +198,9 @@ export class AttentionModule extends LitModule {
             ${attnVals.map((attnVal: number, j: number) => {
               return svg`
                 <line
-                  x1=${xOut(i)}
+                  x1=${xIn(j)}
                   y1=${y1}
-                  x2=${xIn(j)}
+                  x2=${xOut(i)}
                   y2=${y2}
                   stroke="rgba(100,3,250,${attnVal})"
                   stroke-width=2>

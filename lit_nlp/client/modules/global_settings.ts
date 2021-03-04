@@ -302,6 +302,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         if (!this.settingsService.isDatasetValidForModels(
                 this.selectedDataset, this.selectedModels)) {
           this.selectedDataset = NONE_DS_DICT_KEY;
+          // Match the first compatible dataset.
+          const allDatasets = Object.keys(this.appState.metadata.datasets);
+          for (const dataset of allDatasets) {
+            if (this.settingsService.isDatasetValidForModels(
+                    dataset, this.selectedModels)) {
+              this.selectedDataset = dataset;
+              break;
+            }
+          }
         }
       };
       const renderSelector = () => html`

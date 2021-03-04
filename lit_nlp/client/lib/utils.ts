@@ -310,33 +310,3 @@ export function linkifyUrls(
   ret.push(text.slice(lastIndex, text.length));
   return html`${ret}`;
 }
-
-const CANVAS = document.createElement('canvas');
-/**
- * Computes the width of a string given a CSS font specifier. If the
- * browser doesn't support <canvas> elements, the width will be computed
- * using the specified default character width.
- */
-export function getTextWidth(text: string, font: string, defaultCharWidth: number): number {
-  const context = CANVAS.getContext == null ? null : CANVAS.getContext('2d');
-  if (context == null) {
-    return text.length * defaultCharWidth;
-  }
-  context.font = font;
-  const metrics = context.measureText(text);
-  return metrics.width;
-}
-
-/**
- * Gets the offset to the beginning of each token in a sentence using
- * the specified token widths and space width.
- */
-export function getTokOffsets(tokWidths: number[], spaceWidth: number): number[] {
-  const tokOffsets: number[] = [];
-  let curOffset = 0;
-  for (let i = 0; i < tokWidths.length; i++) {
-    tokOffsets.push(curOffset);
-    curOffset += tokWidths[i] + spaceWidth;
-  }
-  return tokOffsets;
-}
