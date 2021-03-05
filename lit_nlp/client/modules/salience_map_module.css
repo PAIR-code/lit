@@ -9,6 +9,10 @@
   padding: 5px;
 }
 
+.module-toolbar > * {
+  margin: 0px 4px;
+}
+
 .tokens-holder {
   display: flex;
   flex-direction: row;
@@ -16,11 +20,13 @@
 }
 
 .salient-token {
-  padding: 5px;
-  margin: 5px;
-  background-color: #1c313a;
-  font-family: 'Share Tech Mono', monospace;
-  color: black;
+  /* color and background set individually vis styleMap */
+  font-family: 'Roboto';
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px 4px; /* wider horizontally */
+  margin: 3px;
+  width: fit-content;
 }
 
 .salience-tooltip {
@@ -54,9 +60,4 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-}
-
-.config {
-  display: flex;
-  align-items: center;
 }

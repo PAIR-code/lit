@@ -74,14 +74,16 @@ export interface CallConfig {
   [option: string]: any;
 }
 
+export interface ModelSpec {
+  input: Spec;
+  output: Spec;
+}
+
 export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
-  spec: {
-    input: Spec,
-    output: Spec,
-  };
+  spec: ModelSpec;
   description?: string;
 }
 

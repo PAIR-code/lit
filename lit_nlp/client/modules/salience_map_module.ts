@@ -23,14 +23,13 @@ import '../elements/checkbox';
 import '../elements/spinner';
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelInfoMap, Spec} from '../lib/types';
+import {ModelInfoMap, ModelSpec, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
 import {styles} from './salience_map_module.css';
@@ -44,14 +43,22 @@ interface SalienceResult {
 }
 
 /**
+ * Static config for each interpreter.
+ */
+interface InterpreterInfo {
+  displayName: string;
+  cmap: SalienceCmap;
+  canRun: (modelSpec: ModelSpec) => boolean;
+}
+
+
+/**
  * UI status for each interpreter.
  */
 interface InterpreterState {
   salience: SalienceResult;
   autorun: boolean;
   isLoading: boolean;
-  cmap: SalienceCmap;
-  canRun?: (modelSpec: Spec) => boolean;
 }
 
 abstract class SalienceCmap {
@@ -129,6 +136,46 @@ export class SalienceMapModule extends LitModule {
     return [sharedStyles, styles];
   }
 
+  static info: {[name: string]: InterpreterInfo} = {
+    'grad_norm': {
+      displayName: 'Grad L2 Norm',
+      cmap: new UnsignedSalienceCmap(/* gamma */ 4.0),
+      // TODO(lit-dev): Should also check that this aligns with a token field,
+      // here and in checkModule. Perhaps move component compatibility somewhere
+      // central.
+      canRun: (modelSpec: ModelSpec) =>
+          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0
+    },
+    'grad_dot_input': {
+      displayName: 'Grad ⋅ Input',
+      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
+      // TODO(lit-dev): Should also check that this aligns with a token field,
+      // here and in checkModule. Perhaps move component compatibility somewhere
+      // central.
+      canRun: (modelSpec: ModelSpec) =>
+          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0 &&
+          findSpecKeys(modelSpec.output, 'TokenEmbeddings').length > 0
+    },
+    'integrated gradients': {
+      displayName: 'Integrated Gradients (IG)',
+      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
+      // TODO(lit-dev): Should also check that this aligns with a token field,
+      // here and in checkModule. Perhaps move component compatibility somewhere
+      // central.
+      canRun: (modelSpec: ModelSpec) =>
+          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0 &&
+          findSpecKeys(modelSpec.output, 'TokenEmbeddings').length > 0
+    },
+    'lime': {
+      displayName: 'LIME',
+      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
+      canRun: (modelSpec: ModelSpec) =>
+          findSpecKeys(modelSpec.input, 'TextSegment').length > 0 &&
+          (findSpecKeys(modelSpec.output, 'MulticlassPreds').length > 0 ||
+           findSpecKeys(modelSpec.output, 'RegressionScore').length > 0)
+    },
+  };
+
   // TODO: We may want the keys to be configurable through the UI at some point,
   // but for now they are constants.
   // TODO(lit-dev): consider making each interpreter a sub-module,
@@ -142,50 +189,28 @@ export class SalienceMapModule extends LitModule {
       autorun: true,
       isLoading: false,
       salience: {},
-      cmap: new UnsignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0
     },
     'grad_dot_input': {
       autorun: true,
       isLoading: false,
       salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec, 'TokenEmbeddings').length > 0
     },
     'integrated gradients': {
       autorun: false,
       isLoading: false,
       salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec, 'TokenEmbeddings').length > 0
     },
     'lime': {
       autorun: false,
       isLoading: false,
       salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0)
     },
   };
 
   shouldRunInterpreter(name: string) {
     return this.state[name].autorun &&
-        (this.state[name].canRun == null ||
-         this.state[name].canRun!
-         (this.appState.getModelSpec(this.model).output));
+        SalienceMapModule.info[name].canRun(
+            this.appState.getModelSpec(this.model));
   }
 
   firstUpdated() {
@@ -305,31 +330,43 @@ export class SalienceMapModule extends LitModule {
     `;
   }
 
-  render() {
+  renderControls() {
+    return Object.keys(this.state).map(name => {
+      const toggleAutorun = () => {
+        this.state[name].autorun = !this.state[name].autorun;
+      };
+      const disabled = !SalienceMapModule.info[name].canRun(
+          this.appState.getModelSpec(this.model));
+      // clang-format off
+      return html`
+        <lit-checkbox label=${SalienceMapModule.info[name].displayName}
+         ?checked=${this.state[name].autorun}
+         ?disabled=${disabled}
+         @change=${toggleAutorun}>
+        </lit-checkbox>
+      `;
+      // clang-format on
+    });
+  }
+
+  renderTable() {
     // clang-format off
     return html`
       <table>
         ${Object.keys(this.state).map(name => {
-          if (this.state[name].canRun != null &&
-              !this.state[name].canRun!(this.appState.getModelSpec(
-                  this.model).output)) {
+          if (!this.state[name].autorun) {
             return null;
           }
           const salience = this.state[name].salience;
-          const cmap = this.state[name].cmap;
           return html`
             <tr>
               <th class='group-label'>
-                ${name}
-                <lit-checkbox label="autorun"
-                  ?checked=${this.state[name].autorun}
-                  @change=${() => { this.state[name].autorun = !this.state[name].autorun;}}
-                ></lit-checkbox>
+                ${SalienceMapModule.info[name].displayName}
               </th>
               <td class=${classMap({'group-container': true,
                                     'loading': this.state[name].isLoading})}>
                 ${Object.keys(salience).map(gradKey =>
-                  this.renderGroup(salience, gradKey, cmap))}
+                  this.renderGroup(salience, gradKey, SalienceMapModule.info[name].cmap))}
                 ${this.state[name].isLoading ? this.renderSpinner() : null}
               </td>
             </tr>
@@ -340,16 +377,27 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
+  render() {
+    // clang-format off
+    return html`
+      <div class='module-container'>
+        <div class='module-toolbar'>
+          ${this.renderControls()}
+        </div>
+        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
+          ${this.renderTable()}
+        </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const model of Object.keys(modelSpecs)) {
-      const inputSpec = modelSpecs[model].spec.input;
-      const outputSpec = modelSpecs[model].spec.output;
-      const supportsGrads = (findSpecKeys(outputSpec, 'TokenGradients').length);
-      const supportsLime = (findSpecKeys(inputSpec, 'TextSegment').length) &&
-          ((findSpecKeys(outputSpec, 'MulticlassPreds').length) ||
-           (findSpecKeys(outputSpec, 'RegressionScore').length));
-      if (supportsGrads || supportsLime) {
-        return true;
+      for (const methodName of Object.keys(SalienceMapModule.info)) {
+        if (SalienceMapModule.info[methodName].canRun(modelSpecs[model].spec)) {
+          return true;
+        }
       }
     }
     return false;

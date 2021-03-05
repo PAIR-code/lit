@@ -1,21 +1,28 @@
-:host {
-  display:flex;
-  flex-direction: column;
-}
-
-.controls-holder {
-  display: flex;
+.multiline-toolbar {
+  height: unset;
   flex-flow: row wrap;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .cell {
   cursor: pointer;
   background: #e6e6e6;
+  padding: 2px 4px;
+  border-radius: 2px;
+  text-align: center;
 }
 
 .header-cell {
   cursor: pointer;
+  padding: 2px 4px;
+}
+
+.align-bottom {
+  vertical-align: bottom;
+}
+
+.align-right {
+  text-align: end;
 }
 
 .cell.diagonal {
@@ -34,36 +41,35 @@
   max-width: fit-content;
 }
 
-.dropdown-holder {
-  padding: 0 8px;
-}
-
 /* Make the "Rows" and "Columns" labels the same width */
 .dropdown-label {
   display: inline-block;
   width: 55px;
 }
 
-.matrix-holder {
-  width: fit-content;
-}
-
-.table-and-row-title-holder {
-  display: flex;
-  width: fit-content;
-}
-
-.row-title {
+.axis-title {
   font-size: 11px;
-  writing-mode: vertical-rl;
+  text-align: center;
+}
+
+/* Need to style the div inside a th/td to set width and height correctly. */
+.label-vertical > div {
   transform: rotate(180deg);
   text-align: center;
-  margin-right: 10px;
+  writing-mode: vertical-lr;
 }
 
-.column-title {
-  font-size: 11px;
-  margin-bottom: 5px;
-  margin-left: 28px;
-  text-align: center;
+.icon-button {
+  height: 24px;
+  width: 24px;
+  min-width: 24px;
+  --mdc-icon-size: 24px;
+  --mdc-icon-button-size: 24px;
+  color: rgb(95, 99, 104);
+  cursor: pointer;
 }
+
+.icon-button:hover {
+  opacity: .7;
+}
+

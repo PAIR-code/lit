@@ -216,6 +216,13 @@ mwc-textfield {
 /* Toolbar container for module controls. */
 .module-toolbar {
   height: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.module-toolbar > * {
+  margin: 0px 4px;
 }
 
 .module-results-area {

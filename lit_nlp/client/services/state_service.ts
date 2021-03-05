@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {IndexedInput, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -212,10 +212,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the input and output spec for a particular model.
    */
-  getModelSpec(modelName: string): {
-    input: Spec,
-    output: Spec,
-  } {
+  getModelSpec(modelName: string): ModelSpec {
     return this.metadata.models[modelName].spec;
   }
 

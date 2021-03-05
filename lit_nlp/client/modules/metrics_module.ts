@@ -317,12 +317,18 @@ export class MetricsModule extends LitModule {
   }
 
   render() {
+    // clang-format off
     return html`
-          <div class="metrics-module-wrapper">
-            ${this.renderFacetSelector()}
-            ${this.renderTable()}
-          </div>
-        `;
+      <div class="module-container">
+        <div class='module-toolbar'>
+          ${this.renderFacetSelector()}
+        </div>
+        <div class='module-result-area'>
+          ${this.renderTable()}
+        </div>
+      </div>
+    `;
+    // clang-format on
   }
 
   renderTable() {
@@ -362,7 +368,6 @@ export class MetricsModule extends LitModule {
     };
     // clang-format off
     return html`
-    <div class="facet-selector">
       <label class="cb-label">Show slices</label>
       <lit-checkbox
         ?checked=${this.facetBySlice}
@@ -375,7 +380,6 @@ export class MetricsModule extends LitModule {
             facetName => this.renderCheckbox(facetName, false,
                 (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}
-    </div>
     `;
     // clang-format on
   }

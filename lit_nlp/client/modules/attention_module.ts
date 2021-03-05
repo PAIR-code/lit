@@ -49,16 +49,6 @@ export class AttentionModule extends LitModule {
 
   static get styles() {
     const styles = css`
-        .controls-row {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-        }
-
-        .head-selector-label {
-          margin: 0px 3px;
-        }
-
         .head-selector-chip {
           margin: 0px 1px;
           width: 1rem;
@@ -119,9 +109,9 @@ export class AttentionModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar controls-row'>
-          ${this.renderAttnHeadDropdown()}
-          ${this.renderIdxDropdown()}
+        <div class='module-toolbar'>
+          ${this.renderLayerSelector()}
+          ${this.renderHeadSelector()}
         </div>
         <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
           ${this.renderAttnHead()}
@@ -213,26 +203,28 @@ export class AttentionModule extends LitModule {
   /**
    * Render the dropdown with the layer names.
    */
-  private renderAttnHeadDropdown() {
+  private renderLayerSelector() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     const attnKeys = findSpecKeys(outputSpec, 'AttentionHeads');
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];
     }
-    const onchange = (e: Event) => this.selectedLayer =
-        (e.target as HTMLSelectElement).value;
+    const onchange = (e: Event) => {
+      this.selectedLayer = (e.target as HTMLSelectElement).value;
+    };
+    // clang-format off
     return html`
-        <select class="dropdown" @change=${onchange}>
-          ${attnKeys.map(key => {
-      return html`<option value=${key}>${key}</option>`;
-    })}
-        </select>`;
+      <select class="dropdown" @change=${onchange}>
+        ${attnKeys.map(key => html`<option value=${key}>${key}</option>`)}
+      </select>
+    `;
+    // clang-format on
   }
 
   /**
    * Render the dropdown for the attention head index.
    */
-  private renderIdxDropdown() {
+  private renderHeadSelector() {
     const renderChip = (i: number) => {
       const handleClick = () => {
         this.selectedHeadIndex = i;
