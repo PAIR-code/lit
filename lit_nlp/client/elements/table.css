@@ -167,6 +167,12 @@ tr.primary-selected {
   transition-property: background-color;
 }
 
+tr.focused {
+  background: rgba(255, 0, 0, 0.2);
+  transition-duration: 0.2s;
+  transition-property: background-color;
+}
+
 tr.reference-selected {
   outline: 1px solid #2f8c9b;
 }

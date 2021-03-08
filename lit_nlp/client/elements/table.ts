@@ -44,6 +44,8 @@ export type TableData = TableEntry[];
 export type OnSelectCallback = (selectedIndices: number[]) => void;
 /** Callback for primary datapoint selection */
 export type OnPrimarySelectCallback = (index: number) => void;
+/** Callback for hover */
+export type OnHoverCallback = (index: number|null) => void;
 
 enum SpanAnchor {
   START,
@@ -60,6 +62,7 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Array}) selectedIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
+  @observable @property({type: Number}) focusedIndex: number = -1;
   @observable @property({type: Boolean}) selectionDisabled: boolean = false;
   @observable @property({type: Boolean}) controlsEnabled: boolean = false;
   @observable
@@ -68,6 +71,7 @@ export class DataTable extends ReactiveElement {
 
   // Callbacks
   @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
+  @property({type: Object}) onHover: OnHoverCallback|undefined;
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
@@ -96,6 +100,7 @@ export class DataTable extends ReactiveElement {
   private shiftSelectionStartIndex = 0;
   private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
+  private hoveredIndex: number|null = null;
 
   firstUpdated() {
     const container = this.shadowRoot!.getElementById('rows')!;
@@ -326,6 +331,30 @@ export class DataTable extends ReactiveElement {
     }
   }
 
+  /** Logic for handling row hover */
+  private handleRowMouseEnter(e: MouseEvent, rowIndex: number) {
+    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+    if (dataIndex == null) return;
+    this.hoveredIndex = dataIndex;
+
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
+    }
+  }
+  private handleRowMouseLeave(e: MouseEvent, rowIndex: number) {
+    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+    if (dataIndex == null) return;
+    if (dataIndex === this.hoveredIndex) {
+      this.hoveredIndex = null;
+    }
+
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
+    }
+  }
+
   private setPrimarySelectedIndex(rowIndex: number) {
     let primaryIndex = -1;
     if (rowIndex !== -1) {
@@ -538,18 +567,27 @@ export class DataTable extends ReactiveElement {
     const isSelected = this.selectedIndicesSetForRender.has(dataIndex);
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
+    const isFocused = this.focusedIndex === dataIndex;
     const rowClass = classMap({
       'selected': isSelected,
       'primary-selected': isPrimarySelection,
       'reference-selected': isReferenceSelection,
+      'focused': isFocused
     });
     const mouseDown = (e: MouseEvent) => {
       if (this.selectionDisabled) return;
       this.handleRowClick(e, rowIndex);
     };
+    const mouseEnter = (e: MouseEvent) => {
+      this.handleRowMouseEnter(e, rowIndex);
+    };
+    const mouseLeave = (e: MouseEvent) => {
+      this.handleRowMouseLeave(e, rowIndex);
+    };
 
     return html`
-      <tr class="${rowClass}" @mousedown=${mouseDown}>
+      <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
+        @mouseleave=${mouseLeave}>
         ${
         data.map(
             d => (d instanceof TemplateResult) ?
