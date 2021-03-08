@@ -122,14 +122,21 @@ export class DataTable extends ReactiveElement {
   }
 
   private resize() {
-    // Compute the table header sizes based on the table layout
-    // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
-    const row: any = this.shadowRoot!.querySelector('tr');
-    if (row) {
-      this.headerWidths = [...row.children].map((child: HTMLElement) => {
-        return child.getBoundingClientRect().width;
-      });
-    }
+
+    // Delays the call that resizes the column widths, since the resize
+    // depends on the data table cell widths which might get updated by the
+    // first render call. See b/181351991
+    this.headerWidths = [];
+    requestAnimationFrame(() => {
+      // Compute the table header sizes based on the table layout
+      // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
+      const row: any = this.shadowRoot!.querySelector('tr');
+      if (row) {
+        this.headerWidths = [...row.children].map((child: HTMLElement) => {
+          return child.getBoundingClientRect().width;
+        });
+      }
+    });
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
@@ -570,14 +577,7 @@ export class DataTable extends ReactiveElement {
 
     const toggleChecked = () => {
       this.columnVisibility.set(key, !checked);
-
-      const resize = () => {
-        this.resize();
-      };
-      // Delays the call that resizes the column widths, since the resize
-      // depends on the data table cell widths which might get updated by the
-      // first render call.
-      requestAnimationFrame(resize);
+      this.resize();
     };
 
     return html`

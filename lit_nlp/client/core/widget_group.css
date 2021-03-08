@@ -76,6 +76,7 @@
 .component-row {
   display: flex;
   flex-direction: row;
+  overflow-x: auto;
 }
 
 .component-column {
