@@ -101,7 +101,8 @@ export class WidgetGroup extends LitElement {
           title="Toggle scroll sync"
           onIcon="sync_disabled" offIcon="sync"
           ?on="${!this.syncScrolling}"
-          @MDCIconButtonToggle:change="${toggleSyncScrolling}">
+          @MDCIconButtonToggle:change="${toggleSyncScrolling}"
+          @icon-button-toggle-change="${toggleSyncScrolling}">
         </mwc-icon-button-toggle>`;
     };
 

@@ -9,6 +9,13 @@
   stroke: #000;
 }
 
+.hovered-point {
+  r: 4px;
+  opacity: 1.0;
+  stroke-width: 2px;
+  stroke: red;
+}
+
 .selected-point {
   r: 5px;
   fill-opacity: 0.8;

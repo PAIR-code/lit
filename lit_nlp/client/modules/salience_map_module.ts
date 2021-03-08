@@ -28,9 +28,11 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {observable} from 'mobx';
 
+import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, ModelSpec, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
+import {FocusData, FocusService} from '../services/focus_service';
 
 import {styles} from './salience_map_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -132,6 +134,8 @@ export class SalienceMapModule extends LitModule {
         selectionServiceIndex}></salience-map-module>`;
   };
 
+  private readonly focusService = app.getService(FocusService);
+
   static get styles() {
     return [sharedStyles, styles];
   }
@@ -214,6 +218,9 @@ export class SalienceMapModule extends LitModule {
   }
 
   firstUpdated() {
+    this.reactImmediately(() => this.focusService.focusData, focusData => {
+      this.handleFocus(this.focusService.focusData);
+    });
     for (const name of Object.keys(this.state)) {
       // React to change in primary selection.
       const getData = () => this.selectionService.primarySelectedInputData;
@@ -258,6 +265,36 @@ export class SalienceMapModule extends LitModule {
     this.state[name].salience = salience[0];
   }
 
+  handleFocus(focusData: FocusData|null) {
+    this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
+      // For each token group we have a single tooltip,
+      // which we reposition to the focused token.
+      const tooltip = e.querySelector('.salience-tooltip') as HTMLElement;
+      if (focusData == null || focusData.fieldName == null) {
+        tooltip.style.visibility = 'hidden';
+      } else if (focusData.datapointId ===
+                 this.selectionService.primarySelectedInputData!.id) {
+        const tokens = e.querySelectorAll(
+            `.salient-token[data-gradKey="${focusData.fieldName}"]`);
+        tokens.forEach((t, i) => {
+          const tokenElement = t as HTMLElement;
+          if (i !== focusData.subField) {
+            return;
+          }
+          tooltip.innerText = tokenElement.dataset['tooltip']!;
+          tooltip.style.visibility = 'visible';
+          const tokenBcr = tokenElement.getBoundingClientRect();
+          const groupBcr = e.getBoundingClientRect();
+          const tooltipLeft =
+              ((tokenBcr.left + tokenBcr.right) / 2) - groupBcr.left;
+          const tooltipTop = tokenBcr.bottom - groupBcr.top;
+          tooltip.style.left = `${tooltipLeft}px`;
+          tooltip.style.top = `${tooltipTop}px`;
+        });
+      }
+    });
+  }
+
   updated() {
     super.updated();
 
@@ -265,35 +302,43 @@ export class SalienceMapModule extends LitModule {
     this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
       // For each token group we have a single tooltip,
       // which we reposition to the current element on mouseover.
-      const tooltip = e.querySelector('.salience-tooltip') as HTMLElement;
       const tokens = e.querySelectorAll('.salient-token');
-      tokens.forEach((t) => {
+      const self = this;
+      tokens.forEach((t, i) => {
         (t as HTMLElement).onmouseover = function() {
-          tooltip.innerText = (this as HTMLElement).dataset['tooltip']!;
-          tooltip.style.visibility = 'visible';
-          const bcr = (this as HTMLElement).getBoundingClientRect();
-          tooltip.style.left = `${(bcr.left + bcr.right) / 2}px`;
-          tooltip.style.top = `${bcr.bottom}px`;
+          self.focusService.setFocusedField(
+              self.selectionService.primarySelectedInputData!.id,
+              'input',
+              (this as HTMLElement).dataset['gradkey']!,
+              i);
         };
         // tslint:disable-next-line:only-arrow-functions
         (t as HTMLElement).onmouseout = function() {
-          tooltip.style.visibility = 'hidden';
+          self.focusService.clearFocus();
         };
       });
     });
   }
 
-  renderToken(token: string, salience: number, cmap: SalienceCmap) {
+  renderToken(token: string, salience: number, cmap: SalienceCmap, gradKey: string) {
     const tokenStyle = styleMap({
       'color': cmap.textCmap(salience),
       'background-color': cmap.bgCmap(salience)
     });
 
-    return html`
-      <div class="salient-token" style=${tokenStyle}
-        data-tooltip=${salience.toPrecision(3)}>
-        ${token}
-      </div>`;
+    if (gradKey != null) {
+      return html`
+        <div class="salient-token" style=${tokenStyle}
+          data-tooltip=${salience.toPrecision(3)} data-gradkey=${gradKey}>
+          ${token}
+        </div>`;
+    } else {
+      return html`
+        <div class="salient-token" style=${tokenStyle}
+          data-tooltip=${salience.toPrecision(3)}>
+          ${token}
+        </div>`;
+    }
   }
 
   // TODO(lit-dev): consider moving this to a standalone viz class.
@@ -303,7 +348,7 @@ export class SalienceMapModule extends LitModule {
 
     const tokensDOM = tokens.map(
         (token: string, i: number) =>
-            this.renderToken(token, saliences[i], cmap));
+            this.renderToken(token, saliences[i], cmap, gradKey));
 
     // clang-format off
     return html`

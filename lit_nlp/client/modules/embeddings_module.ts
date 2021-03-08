@@ -28,7 +28,7 @@ import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService} from '../services/services';
+import {ColorService, FocusService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -78,6 +78,7 @@ export class EmbeddingsModule extends LitModule {
   @observable private projectedPoints: Point3D[] = [];
 
   private readonly colorService = app.getService(ColorService);
+  private readonly focusService = app.getService(FocusService);
   private resizeObserver!: ResizeObserver;
 
   private scatterGL!: ScatterGL;
@@ -179,6 +180,7 @@ export class EmbeddingsModule extends LitModule {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
+      onHover: this.onHover.bind(this),
       rotateOnStart: false
     });
 
@@ -212,6 +214,12 @@ export class EmbeddingsModule extends LitModule {
       // pointColorer uses the latest settings from colorService automatically,
       // so to pick up the colors we just need to trigger a rerender on
       // scatterGL.
+      this.updateScatterGL();
+    });
+    this.react(() => this.focusService.focusData, focusData => {
+      this.updateScatterGL();
+    });
+    this.react(() => this.selectionService.primarySelectedId, primaryId => {
       this.updateScatterGL();
     });
 
@@ -296,15 +304,27 @@ export class EmbeddingsModule extends LitModule {
   private pointColorer(
       i: number, selectedIndices: Set<number>, hoveredIndex: number|null) {
     const currentPoint = this.appState.currentInputData[i];
-    const color = this.colorService.getDatapointColor(currentPoint);
+    let color = this.colorService.getDatapointColor(currentPoint);
 
-    // Add some transparency if not selected.
+    const isSelected = currentPoint != null &&
+        this.selectionService.isIdSelected(currentPoint.id);
+    const isPrimarySelected = currentPoint != null &&
+        this.selectionService.primarySelectedId === currentPoint.id;
+    const isHovered = this.focusService.focusData != null &&
+        this.focusService.focusData.datapointId === currentPoint.id &&
+        this.focusService.focusData.io == null;
+
+    if (isHovered) {
+      color = 'red';
+    }
+    // Add some transparency if not selected or hovered.
     const colorObject = d3.color(color)!;
 
-    if (currentPoint != null &&
-        !this.selectionService.isIdSelected(currentPoint.id)) {
+    if (!isSelected && !isHovered) {
       colorObject.opacity =
           this.selectionService.selectedInputData.length === 0 ? 0.7 : 0.1;
+    } else if (isSelected && !isPrimarySelected) {
+      colorObject.opacity = .5;
     }
 
     return colorObject.toString();
@@ -315,6 +335,15 @@ export class EmbeddingsModule extends LitModule {
                     .filter((data, index) => selectedIndices.includes(index))
                     .map((data) => data.id);
     this.selectionService.selectIds(ids);
+  }
+
+  private onHover(hoveredIndex: number|null) {
+    if (hoveredIndex == null) {
+      this.focusService.clearFocus();
+    } else {
+      this.focusService.setFocusedDatapoint(
+          this.appState.currentInputData[hoveredIndex].id);
+    }
   }
 
   render() {

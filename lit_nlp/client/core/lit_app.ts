@@ -24,6 +24,7 @@ import {Constructor, LitComponentLayouts} from '../lib/types';
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
+import {FocusService} from '../services/focus_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
 import {ModulesService} from '../services/modules_service';
@@ -150,6 +151,7 @@ export class LITApp {
     const groupService = new GroupService(appState);
     const colorService = new ColorService(
         appState, groupService, classificationService, regressionService);
+    const focusService = new FocusService(selectionService);
 
     selectionService.setAppState(appState);
 
@@ -161,6 +163,7 @@ export class LITApp {
     this.services.set(AppState, appState);
     this.services.set(ClassificationService, classificationService);
     this.services.set(ColorService, colorService);
+    this.services.set(FocusService, focusService);
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);
     this.services.set(RegressionService, regressionService);

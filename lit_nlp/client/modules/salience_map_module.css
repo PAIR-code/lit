@@ -19,6 +19,10 @@
   flex-wrap: wrap;
 }
 
+.tokens-group {
+  position: relative;
+}
+
 .salient-token {
   /* color and background set individually vis styleMap */
   font-family: 'Roboto';
@@ -30,7 +34,7 @@
 }
 
 .salience-tooltip {
-  position: fixed;
+  position: absolute;
   padding: 5px;
   margin: auto;
   text-align: center;

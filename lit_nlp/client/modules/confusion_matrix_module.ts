@@ -305,7 +305,8 @@ export class ConfusionMatrixModule extends LitModule {
         title="Rotate column labels"
         onIcon="text_rotate_up" offIcon="text_rotation_none"
         ?on="${this.verticalColumnLabels}"
-        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}">
+        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}"
+        @icon-button-toggle-change="${toggleVerticalColumnLabels}">
       </mwc-icon-button-toggle>
     `;
     // clang-format on
