@@ -39,6 +39,8 @@ export class UrlConfiguration {
   hiddenModules: string[] = [];
   compareExamplesEnabled?: boolean;
   layoutName?: string;
+  /** Path to load a new dataset from, on pageload. */
+  newDatasetPath?: string;
 }
 
 /**
@@ -86,6 +88,8 @@ const HIDDEN_MODULES_KEY = 'hidden_modules';
 const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
+/** Path to load a new dataset from, on pageload. */
+const NEW_DATASET_PATH = 'new_dataset_path';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -147,6 +151,8 @@ export class UrlService extends LitService {
         urlConfiguration.selectedTab = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
+      } else if (key === NEW_DATASET_PATH) {
+        urlConfiguration.newDatasetPath = this.urlParseString(value);
       } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
         const fieldKey = parseDataFieldKey(key);
         // TODO(b/179788207) Defer parsing of data keys here as we do not have

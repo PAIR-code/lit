@@ -277,7 +277,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
     this.setCurrentDataset(
-        this.determineCurrentDatasetFromUrl(urlConfiguration),
+        await this.determineCurrentDatasetFromUrl(urlConfiguration),
         /** should Load Data */ false);
 
     await this.loadData();
@@ -312,9 +312,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return models.length > 0 ? models : availableModels.slice(0, 1);
   }
 
-  private determineCurrentDatasetFromUrl(urlConfiguration: UrlConfiguration) {
+  private async determineCurrentDatasetFromUrl(urlConfiguration: UrlConfiguration) {
     const urlSelectedDataset = urlConfiguration.selectedDataset || '';
-
+    const urlNewDatasetPath = urlConfiguration.newDatasetPath;
     // Ensure that the currentDataset is part of the available datasets for
     // the currentModel
     const availableDatasets = new Set<string>();
@@ -326,13 +326,51 @@ export class AppState extends LitService implements StateObservedByUrlService {
     }
 
     if (availableDatasets.has(urlSelectedDataset)) {
+      // If the url param is set for creating a new dataset from a path, try
+      // to do that.
+      let newlyCreatedDataset;
+      if (urlNewDatasetPath) {
+        newlyCreatedDataset = await this.createNewDataset(
+          urlSelectedDataset, urlNewDatasetPath);
+        // If the dataset was successfully created, select it.
+        if (newlyCreatedDataset) {
+          return newlyCreatedDataset;
+        }
+      }
+      // Return the selected dataset.
       return urlSelectedDataset;
     } else {
+      this.statusService.addError(`Could not load dataset ${urlSelectedDataset}.
+        Falling back to the default dataset for the selected model(s).`);
       if (availableDatasets.size === 0) {
         this.statusService.addError('No dataset available for loaded models.');
         return '';
       }
+      // If the dataset is not compatable with the selected models, return the
+      // first compatable dataset.
       return [...availableDatasets][0];
+    }
+  }
+
+  /**
+   * Try to create a new dataset, if the url param is set.
+   * If the url param is not set, or if the dataset creation fails, return null.
+   * @param urlSelectedDataset Original dataset (to clone from).
+   * @param urlNewDatasetPath Path of new datasest.
+   */
+  private async createNewDataset(
+    urlSelectedDataset: string,
+    urlNewDatasetPath: string){
+    try {
+      const newInfo = await this.apiService.createDataset(
+        urlSelectedDataset, urlNewDatasetPath);
+      this.metadata = newInfo[0];
+      return newInfo[1];
+    } catch (err: unknown) {
+      this.statusService.addError(`Could not load dataset from
+        ${urlNewDatasetPath}. See console for more details.`);
+      console.error(err);
+    return;
     }
   }
 

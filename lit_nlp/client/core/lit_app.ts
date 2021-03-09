@@ -62,10 +62,8 @@ export class LITApp {
         appState.layout, appState.currentModelSpecs,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
-    /**
-     * If we need more than one selectionService, create and append it to the
-     * list.
-     */
+    // If we need more than one selectionService, create and append it to the
+    // list.
     const numSelectionServices = modulesService.numberOfSelectionServices;
     const selectionServices = this.getServiceArray(SelectionService);
     for (let i = 0; i < numSelectionServices - 1; i++) {
@@ -74,14 +72,10 @@ export class LITApp {
       selectionServices.push(selectionService);
     }
 
-    /**
-     * Select the initial datapoint, if one was set in the url.
-     */
+    // Select the initial datapoint, if one was set in the url.
     await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
 
-    /**
-     * Reaction to sync other selection services to selections of the main one.
-     */
+    //  Reaction to sync other selection services to selections of the main one.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
       this.syncSelectionServices();
     }, {fireImmediately: true});
