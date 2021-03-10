@@ -287,21 +287,9 @@ export function linkifyUrls(
   // Find https (yes, only https) urls and make them real links.
   // Similar to gmail and other apps, this assumes terminal punctuation is
   // not part of the url.
-  // copybara:strip_begin(google-internal)
-  // Google internal version: also match CNS paths.
-  const matcher = /(https:\/\/|\/cns\/)[^\s]+[^.?!\s]/g;
-  const formatLink = (url: string) => {
-    const display = url;
-    if (url.startsWith('/cns/')) {
-      url = `https://cnsviewer2.corp.google.com/${url}`;
-    }
-    return html`<a href=${url} target=${target}>${display}</a>`;
-  };
-  // copybara:strip_end_and_replace_begin
-  // const matcher = /https:\/\/[^\s]+[^.?!\s]/g;
-  // const formatLink = (url: string) =>
-  //     html`<a href=${url} target=${target}>${url}</a>`;
-  // copybara:replace_end
+  const matcher = /https:\/\/[^\s]+[^.?!\s]/g;
+  const formatLink = (url: string) =>
+      html`<a href=${url} target=${target}>${url}</a>`;
   for (const match of text.matchAll(matcher)) {
     ret.push(text.slice(lastIndex, match.index));
     lastIndex = match.index! + match[0].length;
