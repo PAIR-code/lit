@@ -339,15 +339,15 @@ export class AppState extends LitService implements StateObservedByUrlService {
       }
       // Return the selected dataset.
       return urlSelectedDataset;
-    } else {
-      this.statusService.addError(`Could not load dataset ${urlSelectedDataset}.
-        Falling back to the default dataset for the selected model(s).`);
+    }
+
+    // If the dataset is not compatable with the selected models, return the
+    // first compatable dataset.
+    else {
       if (availableDatasets.size === 0) {
         this.statusService.addError('No dataset available for loaded models.');
         return '';
       }
-      // If the dataset is not compatable with the selected models, return the
-      // first compatable dataset.
       return [...availableDatasets][0];
     }
   }
@@ -369,7 +369,6 @@ export class AppState extends LitService implements StateObservedByUrlService {
     } catch (err: unknown) {
       this.statusService.addError(`Could not load dataset from
         ${urlNewDatasetPath}. See console for more details.`);
-      console.error(err);
     return;
     }
   }
