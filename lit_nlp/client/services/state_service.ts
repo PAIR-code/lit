@@ -366,10 +366,10 @@ export class AppState extends LitService implements StateObservedByUrlService {
         urlSelectedDataset, urlNewDatasetPath);
       this.metadata = newInfo[0];
       return newInfo[1];
-    } catch (err: unknown) {
+    } catch {
       this.statusService.addError(`Could not load dataset from
         ${urlNewDatasetPath}. See console for more details.`);
-    return;
+      return;
     }
   }
 
