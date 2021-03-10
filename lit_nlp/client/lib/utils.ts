@@ -284,10 +284,10 @@ export function linkifyUrls(
     target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
   const ret: Array<string|TemplateResult> = [];  // return segments
   let lastIndex = 0;  // index of last character added to return segments
-  // Find https (yes, only https) urls and make them real links.
+  // Find urls and make them real links.
   // Similar to gmail and other apps, this assumes terminal punctuation is
   // not part of the url.
-  const matcher = /https:\/\/[^\s]+[^.?!\s]/g;
+  const matcher = /https?:\/\/[^\s]+[^.?!\s]/g;
   const formatLink = (url: string) =>
       html`<a href=${url} target=${target}>${url}</a>`;
   for (const match of text.matchAll(matcher)) {
