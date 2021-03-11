@@ -317,8 +317,8 @@ export class AppState extends LitService implements StateObservedByUrlService {
   private async determineCurrentDatasetFromUrl(urlConfiguration: UrlConfiguration) {
     const urlSelectedDataset = urlConfiguration.selectedDataset || '';
     const urlNewDatasetPath = urlConfiguration.newDatasetPath;
-    // Ensure that the currentDataset is part of the available datasets for
-    // the currentModel
+
+    // Determine the available datasets for the currentModel
     const availableDatasets = new Set<string>();
     for (const model of this.currentModels) {
       const modelDatasets = this.metadata?.models?.[model].datasets || [];
@@ -326,32 +326,36 @@ export class AppState extends LitService implements StateObservedByUrlService {
         availableDatasets.add(dataset);
       }
     }
+    const firstAvailableDataset = [...availableDatasets][0];
+    const selectedDatasetValid = availableDatasets.has(urlSelectedDataset);
 
-    if (availableDatasets.has(urlSelectedDataset)) {
-      // If the url param is set for creating a new dataset from a path, try
-      // to do that.
-      let newlyCreatedDataset;
-      if (urlNewDatasetPath) {
-        newlyCreatedDataset = await this.createNewDataset(
-          urlSelectedDataset, urlNewDatasetPath);
-        // If the dataset was successfully created, select it.
-        if (newlyCreatedDataset) {
-          return newlyCreatedDataset;
-        }
+    // If the url param is set for creating a new dataset from a path.
+    let newlyCreatedDataset;
+    if (urlNewDatasetPath) {
+      // As the base dataset to clone from, use the url set datasest or the
+      // first available.
+      const datasetToCloneFrom = selectedDatasetValid ?
+        urlSelectedDataset : firstAvailableDataset;
+      newlyCreatedDataset = await this.createNewDataset(
+        datasetToCloneFrom, urlNewDatasetPath);
+      // If the dataset was successfully created, select it.
+      if (newlyCreatedDataset) {
+        return newlyCreatedDataset;
       }
-      // Return the selected dataset.
+    }
+
+    // If the selected dataset is valid, return it.
+    if (selectedDatasetValid) {
       return urlSelectedDataset;
     }
 
     // If the dataset is not compatable with the selected models, return the
     // first compatable dataset.
-    else {
-      if (availableDatasets.size === 0) {
-        this.statusService.addError('No dataset available for loaded models.');
-        return '';
-      }
-      return [...availableDatasets][0];
+    if (availableDatasets.size === 0) {
+      this.statusService.addError('No dataset available for loaded models.');
+      return '';
     }
+    return firstAvailableDataset;
   }
 
   /**
