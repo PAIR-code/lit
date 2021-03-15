@@ -186,7 +186,7 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _get_datapoint_ids(self, data) -> List[IndexedInput]:
+  def _get_datapoint_ids(self, data, **unused_kw) -> List[IndexedInput]:
     """Fill in unique example hashes for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
     for example in data['inputs']:
