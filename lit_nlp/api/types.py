@@ -317,3 +317,9 @@ class FieldMatcher(LitType):
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   type: Text  # type of LitType to match in the spec.
   vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Boolean(LitType):
+  """Boolean value."""
+  pass

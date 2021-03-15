@@ -29,7 +29,8 @@ export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
     'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
     'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String'|'Gradients';
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String'|'Gradients'|
+    'Boolean';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
