@@ -24,9 +24,11 @@ import {css, customElement, html, svg} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
 
+import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
+import {FocusService} from '../services/services';
 
 import {styles as sharedStyles} from './shared_styles.css';
 
@@ -66,6 +68,9 @@ export class AttentionModule extends LitModule {
     `;
     return [sharedStyles, styles];
   }
+
+  private readonly focusService = app.getService(FocusService);
+  private clearFocusTimer: number|undefined;
 
   @observable private selectedLayer?: string;
   @observable private selectedHeadIndex: number = 0;
@@ -137,9 +142,6 @@ export class AttentionModule extends LitModule {
     const outTokWidths = outToks.map(tok => getTextWidth(tok, font, defaultCharWidth));
     const spaceWidth = getTextWidth(' ', font, defaultCharWidth);
 
-    const inTokStr = svg`${inToks.join(' ')}`;
-    const outTokStr = svg`${outToks.join(' ')}`;
-
     // Height of the attention visualization part.
     const visHeight = 100;
 
@@ -151,15 +153,71 @@ export class AttentionModule extends LitModule {
     const outTokWidth = sumArray(outTokWidths) + (outToks.length - 1) * spaceWidth;
     const width = Math.max(inTokWidth, outTokWidth);
     const height = visHeight + fontSize * 2 + pad * 4;
+    const inTokOffsets = getTokOffsets(inTokWidths, spaceWidth);
+    const outTokOffsets = getTokOffsets(outTokWidths, spaceWidth);
+
+    // If focus is one any of the tokens in the attention viz, then only show
+    // attention info for those tokens.
+    const focusData = this.focusService.focusData;
+    let inTokenIdxFocus = null;
+    let outTokenIdxFocus =  null;
+    const primaryDatapointFocused = focusData != null &&
+        focusData.datapointId ===
+          this.selectionService.primarySelectedInputData!.id;
+    if (primaryDatapointFocused &&
+        (focusData!.fieldName === fieldSpec.align_out ||
+         focusData!.fieldName === fieldSpec.align_in)) {
+      inTokenIdxFocus = focusData!.fieldName === fieldSpec.align_in
+          ? focusData!.subField: -1;
+      outTokenIdxFocus = focusData!.fieldName === fieldSpec.align_out
+          ? focusData!.subField: -1;
+    }
+    const clearFocus = () => {
+      if (this.clearFocusTimer != null) {
+        clearTimeout(this.clearFocusTimer);
+      }
+      this.clearFocusTimer = setTimeout(() => {
+        this.focusService.clearFocus();
+      }, 500);
+    };
+
+    const toksRender = (tok: string, i: number, isInputToken: boolean) => {
+      const alignVal =
+          isInputToken ? fieldSpec.align_in! : fieldSpec.align_out!;
+      const mouseOver = () => {
+        clearTimeout(this.clearFocusTimer);
+        this.focusService.setFocusedField(
+            this.selectionService.primarySelectedInputData!.id,
+            'input',
+            alignVal,
+            i);
+      };
+      const mouseOut = () => {
+        clearFocus();
+      };
+      const x = isInputToken ? inTokOffsets[i] : outTokOffsets[i];
+      const text = svg`${tok}`;
+      let opacity = 1;
+      if (primaryDatapointFocused &&
+          focusData!.fieldName === alignVal &&
+          focusData!.subField !== i) {
+        opacity = 0.2;
+      }
+
+      const y = isInputToken ? visHeight + 4 * pad : pad * 2;
+      return svg`<text y=${y} x=${x} opacity=${opacity}
+          @mouseover=${mouseOver} @mouseout=${mouseOut}> ${text}</text>`;
+    };
 
     // clang-format off
     return svg`
     <svg width=${width} height=${height}
       font-family="${fontFamily}"
       font-size="${fontSize}px">
-      <text y=${pad * 2}> ${outTokStr}</text>
-      ${this.renderAttnLines(visHeight, spaceWidth, 2.5 * pad, inTokWidths, outTokWidths)}
-      <text y=${visHeight + 4 * pad}> ${inTokStr}</text>
+      ${outToks.map((tok, i) => toksRender(tok, i, false))}
+      ${this.renderAttnLines(visHeight, spaceWidth, 2.5 * pad, inTokWidths,
+                             outTokWidths, inTokenIdxFocus, outTokenIdxFocus)}
+      ${inToks.map((tok, i) => toksRender(tok, i, true))}
     </svg>
     `;
     // clang-format on
@@ -170,7 +228,8 @@ export class AttentionModule extends LitModule {
    */
   private renderAttnLines(
       visHeight: number, spaceWidth: number, pad: number, inTokWidths: number[],
-      outTokWidths: number[]) {
+      outTokWidths: number[], inTokenIdxFocus: number|null,
+      outTokenIdxFocus: number|null) {
     const inTokOffsets = getTokOffsets(inTokWidths, spaceWidth);
     const outTokOffsets = getTokOffsets(outTokWidths, spaceWidth);
     const y1 = pad;
@@ -186,15 +245,22 @@ export class AttentionModule extends LitModule {
         (attnVals: number[], i: number) => {
           return svg`
             ${attnVals.map((attnVal: number, j: number) => {
-              return svg`
-                <line
-                  x1=${xOut(i)}
-                  y1=${y1}
-                  x2=${xIn(j)}
-                  y2=${y2}
-                  stroke="rgba(100,3,250,${attnVal})"
-                  stroke-width=2>
-                </line>`;
+              // If token focus index is not null and not equal to an endpoint
+              // of an attention line, then do not render it.
+              if (inTokenIdxFocus != null && outTokenIdxFocus != null &&
+                  (i !== inTokenIdxFocus && j !== outTokenIdxFocus)) {
+                return null;
+              } else {
+                return svg`
+                  <line
+                    x1=${xOut(i)}
+                    y1=${y1}
+                    x2=${xIn(j)}
+                    y2=${y2}
+                    stroke="rgba(100,3,250,${attnVal})"
+                    stroke-width=2>
+                  </line>`;
+              }
           })}`;
         });
     // clang-format on
