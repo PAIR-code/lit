@@ -1,0 +1,22 @@
+.output {
+  margin-bottom: 8px;
+}
+
+.output-row {
+  text-align: left;
+  vertical-align: initial;
+}
+
+.output-row > * {
+  padding: 4px;
+}
+
+/* use this style instead of .token-chip-label.selected */
+.candidate-selected {
+  border: 1px solid #80868b;
+}
+
+.highlighted {
+  color: #ffa500;
+  font-weight: bold;
+}

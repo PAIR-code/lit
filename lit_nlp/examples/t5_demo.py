@@ -46,6 +46,8 @@ flags.DEFINE_list("tasks", ["summarization", "mt"], "Which task(s) to load.")
 
 flags.DEFINE_integer("token_top_k", 10,
                      "Rank to which the output distribution is pruned.")
+flags.DEFINE_integer("num_to_generate", 4,
+                     "Number of generations to produce for each input.")
 
 ##
 # Options for nearest-neighbor indexer.
@@ -114,6 +116,7 @@ def main(_):
       # can send this to the frontend more efficiently.
       base_models[model_name] = t5.T5HFModel(
           model_name=model_name_or_path,
+          num_to_generate=FLAGS.num_to_generate,
           token_top_k=FLAGS.token_top_k,
           output_attention=False)
 

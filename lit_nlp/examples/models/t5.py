@@ -41,6 +41,7 @@ class T5ModelConfig(object):
   # Generation options
   beam_size: int = 4
   max_gen_length: int = 50
+  num_to_generate: int = 1
   # Decoding options
   token_top_k: int = 10
   output_attention: bool = False
@@ -113,6 +114,7 @@ class T5HFModel(T5Model):
   def __init__(self, model_name="t5-small", **config_kw):
     super().__init__()
     self.config = T5ModelConfig(**config_kw)
+    assert self.config.num_to_generate <= self.config.beam_size
     self.tokenizer = transformers.T5Tokenizer.from_pretrained(model_name)
     self.model = transformers.TFT5ForConditionalGeneration.from_pretrained(
         model_name,
@@ -208,8 +210,14 @@ class T5HFModel(T5Model):
     preds["pred_tokens"] = token_topk_preds
 
     # Decode generated ids
-    preds["output_text"] = self.tokenizer.decode(
-        preds.pop("generated_ids"), skip_special_tokens=True)
+    candidates = [
+        self.tokenizer.decode(ids, skip_special_tokens=True)
+        for ids in preds.pop("generated_ids")
+    ]
+    if self.config.num_to_generate > 1:
+      preds["output_text"] = [(s, None) for s in candidates]
+    else:
+      preds["output_text"] = candidates[0]
 
     # Process attention fields, if present.
     for key in preds:
@@ -259,11 +267,17 @@ class T5HFModel(T5Model):
     # Workaround for output_hidden not being compatible with generate.
     # See https://github.com/huggingface/transformers/issues/8361
     self.model.config.output_hidden_states = False
-    batched_outputs["generated_ids"] = self.model.generate(
+    generated_ids = self.model.generate(
         encoded_inputs.input_ids,
         num_beams=self.config.beam_size,
         attention_mask=encoded_inputs.attention_mask,
-        max_length=self.config.max_gen_length)
+        max_length=self.config.max_gen_length,
+        num_return_sequences=self.config.num_to_generate)
+    # [batch_size*num_return_sequences, num_steps]
+    # -> [batch_size, num_return_sequences, num_steps]
+    batched_outputs["generated_ids"] = tf.reshape(
+        generated_ids,
+        [-1, self.config.num_to_generate, generated_ids.shape[-1]])
     self.model.config.output_hidden_states = True
 
     # Convert to numpy for post-processing.
@@ -281,6 +295,10 @@ class T5HFModel(T5Model):
         "target_tokens": lit_types.Tokens(parent="target_text"),
         "pred_tokens": lit_types.TokenTopKPreds(align="target_tokens"),
     })
+    if self.config.num_to_generate > 1:
+      spec["output_text"] = lit_types.GeneratedTextCandidates(
+          parent="target_text")
+
     if self.config.output_attention:
       # Add attention for each layer.
       for i in range(self.num_layers):
@@ -368,6 +386,12 @@ class SummarizationWrapper(lit_model.Model):
 
     # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
+    # If output is List[(str, score)] instead of just str
+    self._multi_output = isinstance(self.output_spec()["output_text"],
+                                    lit_types.GeneratedTextCandidates)
+    self._get_pred_string = (
+        lit_types.GeneratedTextCandidates.top_text if self._multi_output else
+        (lambda x: x))
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
     ret = {"input_text": "summarize: " + ex["document"]}
@@ -392,7 +416,8 @@ class SummarizationWrapper(lit_model.Model):
     # TODO(gehrmann): temp solution to get ROUGE scores in data table.
     for ex, mo in zip(inputs, outputs):
       score = self._scorer.score(
-          target=ex["reference"], prediction=mo["output_text"])
+          target=ex["reference"],
+          prediction=self._get_pred_string(mo["output_text"]))
       mo["rougeL"] = float(score["rougeL"].fmeasure)
     return outputs
 

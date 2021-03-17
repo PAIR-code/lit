@@ -17,7 +17,7 @@
 
 import abc
 import collections
-from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any
+from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -309,22 +309,27 @@ class CorpusBLEU(SimpleMetrics):
 
   def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.GeneratedText)
+    return isinstance(field_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates))
 
   def compute(self,
               labels: Sequence[Text],
-              preds: Sequence[Text],
+              preds: Sequence[Union[Text, types.ScoredTextCandidates]],
               label_spec: types.TextSegment,
-              pred_spec: types.GeneratedText,
+              pred_spec: Union[types.GeneratedText,
+                               types.GeneratedTextCandidates],
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
     del label_spec
-    del pred_spec
     del config
 
     if not labels or not preds:
       return {}
 
+    name_suffix = ''
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
     bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
 
-    return {'corpus_bleu': bleu.score}
+    return {'corpus_bleu' + name_suffix: bleu.score}

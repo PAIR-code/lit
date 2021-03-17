@@ -25,12 +25,12 @@ import {isLitSubtype} from './utils';
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'URL'|
-    'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
+export type LitName =
+    'LitType'|'String'|'TextSegment'|'GeneratedText'|'GeneratedTextCandidates'|
+    'URL'|'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
     'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'String'|'Gradients'|
-    'Boolean';
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'Gradients'|'Boolean';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];

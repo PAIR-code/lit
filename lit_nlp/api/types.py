@@ -128,6 +128,20 @@ class GeneratedText(TextSegment):
   parent: Optional[Text] = None
 
 
+ScoredTextCandidates = List[Tuple[str, Optional[float]]]
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class GeneratedTextCandidates(TextSegment):
+  """Multiple candidates for GeneratedText; values are List[(text, score)]."""
+  # Name of a TextSegment field to evaluate against
+  parent: Optional[Text] = None
+
+  @staticmethod
+  def top_text(value: ScoredTextCandidates) -> str:
+    return value[0][0] if len(value) else ''
+
+
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URL(TextSegment):
   """TextSegment that should be interpreted as a URL."""
