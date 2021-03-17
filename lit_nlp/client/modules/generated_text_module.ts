@@ -39,10 +39,12 @@ interface GeneratedTextResult {
 @customElement('generated-text-module')
 export class GeneratedTextModule extends LitModule {
   static title = 'Generated Text';
-  static duplicateAsRow = true;
-  static template = (model = '') => {
+  static duplicateForExampleComparison = true;
+  static duplicateAsRow = false;
+  static template = (model = '', selectionServiceIndex = 0) => {
     return html`
-      <generated-text-module model=${model}>
+      <generated-text-module model=${model}
+        selectionServiceIndex=${selectionServiceIndex}>
       </generated-text-module>`;
   };
 
