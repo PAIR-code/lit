@@ -1,10 +1,16 @@
 # Lint as: python3
 r"""Example demo loading a T5 model.
 
-To run locally:
+To run locally with a small number of examples:
   python -m lit_nlp.examples.t5_demo \
-      --port=5432 --warm_start 1.0 --top_k 10 --use_indexer --initialize_index \
-      --data_dir=/tmp/t5_index
+      --alsologtostderr --port=5432 --max_examples=10 \
+      --nouse_indexer
+
+To run using the nearest-neighbor lookup index (warning, this will take a while
+to load):
+  python -m lit_nlp.examples.t5_demo \
+      --alsologtostderr --port=5432 --warm_start 1.0 \
+      --use_indexer --initialize_index --data_dir=/tmp/t5_index
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -38,9 +44,11 @@ flags.DEFINE_integer("max_index_examples", 2000,
 flags.DEFINE_list("models", ["t5-small"], "Which model(s) to load.")
 flags.DEFINE_list("tasks", ["summarization", "mt"], "Which task(s) to load.")
 
-flags.DEFINE_integer("top_k", 10,
+flags.DEFINE_integer("token_top_k", 10,
                      "Rank to which the output distribution is pruned.")
 
+##
+# Options for nearest-neighbor indexer.
 flags.DEFINE_boolean("use_indexer", True,
                      "If true, will use the nearest neighbor index.")
 flags.DEFINE_boolean(
@@ -106,7 +114,7 @@ def main(_):
       # can send this to the frontend more efficiently.
       base_models[model_name] = t5.T5HFModel(
           model_name=model_name_or_path,
-          top_k=FLAGS.top_k,
+          token_top_k=FLAGS.token_top_k,
           output_attention=False)
 
   ##

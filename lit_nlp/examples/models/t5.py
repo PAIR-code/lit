@@ -38,10 +38,11 @@ class T5ModelConfig(object):
   """Config options for a T5 generation model."""
   # Input options
   inference_batch_size: int = 4
-  # Output options
+  # Generation options
   beam_size: int = 4
   max_gen_length: int = 50
-  top_k: int = 10
+  # Decoding options
+  token_top_k: int = 10
   output_attention: bool = False
 
 
@@ -159,7 +160,7 @@ class T5HFModel(T5Model):
 
     model_probs = tf.nn.softmax(results.logits, axis=-1)
     top_k = tf.math.top_k(
-        model_probs, k=self.config.top_k, sorted=True, name=None)
+        model_probs, k=self.config.token_top_k, sorted=True, name=None)
     batched_outputs = {
         "input_ids": encoded_inputs["input_ids"],
         "input_ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
@@ -302,7 +303,6 @@ class TranslationWrapper(lit_model.Model):
       "input_text": "source",
       "target_text": "target",
       "output_text": "translation",
-      "output_candidates": "translation_nbest",
   }
 
   # From Appendix D of https://arxiv.org/pdf/1910.10683.pdf.
