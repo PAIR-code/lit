@@ -33,3 +33,4 @@ dependencies:
         - google-cloud-translate
         - portpicker
         - annoy
+        - ml-collections

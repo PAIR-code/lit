@@ -35,6 +35,7 @@ FLAGS = flags.FLAGS
 
 ##
 # Server flags, passed to the WSGI server.
+# LINT.IfChange
 flags.DEFINE_integer('port', 5432, 'What port to serve on.')
 flags.DEFINE_string(
     'server_type', 'default',
@@ -77,6 +78,7 @@ flags.DEFINE_string(
         pathlib.Path(__file__).parent.absolute(), 'client', 'build',
         'default'),
     'Path to frontend client.')
+# LINT.ThenChange(server_config.py)
 
 
 def get_flags():

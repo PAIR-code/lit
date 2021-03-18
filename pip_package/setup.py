@@ -31,6 +31,7 @@ REQUIRED_PACKAGES = [
     "sacrebleu",
     "umap-learn",
     "Werkzeug",
+    "ml-collections",
 ]
 
 with open("README.md", "r") as fh:
