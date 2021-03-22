@@ -18,19 +18,21 @@
 import '../elements/checkbox';
 import '../elements/spinner';
 import '@material/mwc-icon-button-toggle';
-import { styles as widgetGroupStyles } from './widget_group.css';
-import {styles as widgetStyles} from './widget.css';
-import { customElement, html, LitElement, property } from 'lit-element';
-import { LitModule } from './lit_module';
-import { MobxLitElement } from '@adobe/lit-mobx';
-import { classMap } from 'lit-html/directives/class-map';
+import '@material/mwc-icon';
+
+import {MobxLitElement} from '@adobe/lit-mobx';
+import {customElement, html, LitElement, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+
 import {app} from '../core/lit_app';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
+import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
+import {LitModule} from './lit_module';
+import {styles as widgetStyles} from './widget.css';
+import {styles as widgetGroupStyles} from './widget_group.css';
 
-import '@material/mwc-icon';
-import { RenderConfig } from '../services/modules_service';
 const NUM_COLS = 12;
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
@@ -158,6 +160,7 @@ export class WidgetGroup extends LitElement {
       </div>
       `;
   }
+
 
   renderModule(config: RenderConfig, moduleInColumnGroup: boolean) {
     const moduleType = config.moduleType;

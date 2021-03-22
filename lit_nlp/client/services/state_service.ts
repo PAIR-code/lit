@@ -273,6 +273,8 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const info = await this.apiService.getInfo();
     console.log('[LIT - metadata]', toJS(info));
     this.metadata = info;
+    // Add any custom layouts that were specified in Python.
+    Object.assign(this.layouts, this.metadata.layouts);
     this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);

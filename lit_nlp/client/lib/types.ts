@@ -97,6 +97,7 @@ export interface LitMetadata {
   datasets: ComponentInfoMap;
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
+  layouts: LitComponentLayouts;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
@@ -285,6 +286,15 @@ export declare interface LitComponentLayouts {
 }
 
 /**
+ * Leaf values in a LitComponentLayout.
+ * Can be either a class constructor, or the name of a LIT module
+ * custom element.
+ */
+export type LitComponentSpecifier =
+    LitModuleClass|(keyof HTMLElementTagNameMap);
+
+// LINT.IfChange
+/**
  * A layout is defined by a set of main components that are always visible,
  * (designated in the object by the "main" key)
  * and a set of tabs that each contain a group other components.
@@ -292,7 +302,7 @@ export declare interface LitComponentLayouts {
  * LitComponentLayout is a mapping of tab names to module types.
  */
 export declare interface LitComponentLayout {
-  components: {[name: string]: LitModuleClass[];};
+  components: {[name: string]: LitComponentSpecifier[];};
   layoutSettings?: LayoutSettings;
   description ?: string;
 }
@@ -306,6 +316,7 @@ export declare interface LayoutSettings {
   mainHeight?: number;
   centerPage?: boolean;
 }
+// LINT.ThenChange(../../api/dtypes.py)
 
 /** Display name for the "no dataset" dataset in settings. */
 export const NONE_DS_DISPLAY_NAME = 'none';

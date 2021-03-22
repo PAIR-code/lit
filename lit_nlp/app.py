@@ -26,6 +26,7 @@ from absl import logging
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import gradient_maps
@@ -102,6 +103,7 @@ class LitApp(object):
         'datasets': dataset_info,
         'generators': generator_info,
         'interpreters': interpreter_info,
+        'layouts': self._layouts,
         # Global configuration
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
@@ -320,6 +322,7 @@ class LitApp(object):
       datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
+      layouts: Optional[Mapping[Text, dtypes.LitComponentLayout]] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,
@@ -336,6 +339,7 @@ class LitApp(object):
     self._default_layout = default_layout
     self._canonical_url = canonical_url
     self._page_title = page_title
+    self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
 

@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {observable} from 'mobx';
 
-import {LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
+import {LitComponentSpecifier, LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
 import {LayoutSettings, LitComponentLayout} from '../lib/types';
 
 import {LitService} from './lit_service';
@@ -50,6 +50,23 @@ export interface RenderConfig {
 }
 
 type RenderModulesCallback = () => void;
+
+/**
+ * Look up any module names given as strings, and return the
+ * constructor object.
+ */
+export function getModuleConstructor(moduleType: LitComponentSpecifier):
+    LitModuleClass {
+  if (typeof moduleType === 'string') {
+    const moduleClass = window.customElements.get(moduleType);
+    if (moduleClass === undefined) {
+      throw (new Error(
+          `Malformed layout; unable to find element '${moduleType}'`));
+    }
+    return moduleClass;
+  }
+  return moduleType;
+}
 
 /**
  * Singleton service responsible for maintaining which modules to render.
@@ -150,10 +167,13 @@ export class ModulesService extends LitService implements
     const componentGroupNames = Object.keys(this.declaredLayout.components);
     componentGroupNames.forEach(groupName => {
       const components = this.declaredLayout.components[groupName];
+      // Look up classes for this group, if anything is given as a string.
+      const componentClasses = components.map(getModuleConstructor);
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
       const configs = this.getRenderConfigs(
-          components, currentModelSpecs, datasetSpec, compareExamples, groupName);
+          componentClasses, currentModelSpecs, datasetSpec, compareExamples,
+          groupName);
       configs.forEach(configGroup => {
         configGroup.forEach(config => {
           const key = this.getModuleKey(config);

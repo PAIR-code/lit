@@ -263,6 +263,7 @@ export const mockMetadata: LitMetadata = {
     'pca': emptySpec(),
     'umap': emptySpec(),
   },
+  'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': undefined

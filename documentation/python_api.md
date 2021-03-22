@@ -1,6 +1,6 @@
 # Python APIs
 
-<!--* freshness: { owner: 'lit-dev' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-03-18' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -421,7 +421,41 @@ GOOGLE_APPLICATION_CREDENTIALS environment variable to point to that file.
 With that environment variable set to the correct path, LIT can make use of the
 backtranlator generator if you pass it as a generator in the Server constructor.
 
-## Using LIT in Notebook Environmenbts
+## Configuring the LIT UI
+
+Some properties of the LIT frontend can be configured from Python as arguments
+to `dev_server.Server()`. These include:
+
+*   `page_title`: set a custom page title, such as "Coreference Demo".
+*   `canonical_url`: set a "canonical" URL (such as a shortlink) that will be
+    used as the base when copying links from the LIT UI.
+*   `default_layout`: set the default UI layout, by name. See `layout.ts` and
+    the section below for available layouts.
+*   `demo_mode`: demo / kiosk mode, which disables some functionality (such as
+    save/load datapoints) which you may not want to expose to untrusted users.
+
+For detailed documentation, see
+[server_flags.py](../lit_nlp/server_flags.py).
+
+Most Python components (such as `Model`, `Dataset`, and `Interpreter`) also have
+a `description()` method which can be used to specify a human-readable
+description or help text that will appear in the UI.
+
+### Customizing the Layout
+
+Along with `models`, `datasets`, `generators`, and `interpreters`, you can also
+specify custom layouts from Python. These should be an instance of the
+`dtypes.LitComponentLayout` dataclass, which has the same structure as the
+layouts defined in
+[layouts.ts](../lit_nlp/client/default/layouts.ts).
+For example usage, see
+[coref_demo.py](../lit_nlp/examples/coref/coref_demo.py).
+
+Note: if further customization is desired, such as custom visualization modules,
+you can also set up a
+[custom frontend build](development.md#custom-client-modules)
+
+## Using LIT in Notebook Environments
 
 As an alternative to running a LIT server and connecting to it through a
 web browser, LIT can be used directly inside of python notebook environments,

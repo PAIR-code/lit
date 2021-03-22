@@ -98,3 +98,32 @@ class SalienceMap(DataTuple):
   """Dataclass for a salience map over tokens."""
   tokens: List[str]
   salience: List[float]  # parallel to tokens
+
+
+# LINT.IfChange
+# pylint: disable=invalid-name
+@attr.s(auto_attribs=True)
+class LayoutSettings(DataTuple):
+  hideToolbar: bool = False
+  mainHeight: int = 45
+  centerPage: bool = False
+
+
+@attr.s(auto_attribs=True)
+class LitComponentLayout(DataTuple):
+  """Frontend UI layout; should match client/lib/types.ts."""
+  # Keys are names of tabs; one must be called "Main".
+  # Values are names of LitModule HTML elements,
+  # e.g. data-table-module for the DataTableModule class.
+  components: Dict[str, List[str]]
+  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
+  description: Optional[str] = None
+
+  def to_json(self) -> JsonDict:
+    """Override serialization to properly convert nested objects."""
+    # Not invertible, but these only go from server -> frontend anyway.
+    return attr.asdict(self, recurse=True)
+
+
+# pylint: enable=invalid-name
+# LINT.ThenChange(../client/lib/types.ts)

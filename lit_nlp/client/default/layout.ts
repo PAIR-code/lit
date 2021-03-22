@@ -16,10 +16,11 @@
  */
 
 // Import Modules
+import '../modules/span_graph_module';
 import {LitModuleType} from '../core/lit_module';
 import {LitComponentLayouts} from '../lib/types';
+import {AnnotatedTextGoldModule, AnnotatedTextModule} from '../modules/annotated_text_module';
 import {AttentionModule} from '../modules/attention_module';
-import {AnnotatedTextModule, AnnotatedTextGoldModule} from '../modules/annotated_text_module';
 import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
@@ -35,7 +36,7 @@ import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SliceModule} from '../modules/slice_module';
-import {SpanGraphGoldModule, SpanGraphGoldModuleVertical, SpanGraphModule, SpanGraphModuleVertical} from '../modules/span_graph_module';
+import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
 
 // clang-format off
@@ -128,24 +129,6 @@ export const LAYOUTS: LitComponentLayouts = {
       'Counterfactuals': [GeneratorModule],
     },
     description: "A layout optimized for span graph prediction, which includes the span graph module, as well as the standard data table, datapoint module, and counterfactuals."
-  },
-  /**
-   * Custom view used for the coreference demo
-   * TODO(lit-dev): move to a custom frontend build
-   */
-  'winogender':  {
-    components : {
-      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
-               ColorModule],
-      'Predictions': [
-        SpanGraphGoldModule,
-        SpanGraphModule, ClassificationModule
-      ],
-      'Performance': [
-        MetricsModule, ScalarModule, ConfusionMatrixModule,
-      ],
-    },
-    description: "A layout optimized for the Winogender coreference demo."
   },
   /**
    * A default layout for LIT Modules without EmbeddingsModule
