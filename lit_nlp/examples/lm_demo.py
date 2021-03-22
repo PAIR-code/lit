@@ -20,6 +20,7 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
@@ -47,7 +48,26 @@ flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
-# Set default layout to one better suited to language models.
+# Custom frontend layout; see client/lib/types.ts
+LM_LAYOUT = lit_dtypes.LitComponentLayout(
+    components={
+        "Main": [
+            "embeddings-module",
+            "data-table-module",
+            "datapoint-editor-module",
+            "lit-slice-module",
+            "color-module",
+        ],
+        "Predictions": [
+            "lm-prediction-module",
+            "confusion-matrix-module",
+        ],
+        "Counterfactuals": ["generator-module"],
+    },
+    description="Custom layout for language models.",
+)
+CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
+
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
 
@@ -102,7 +122,11 @@ def main(_):
   generators = {"word_replacer": word_replacer.WordReplacer()}
 
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 

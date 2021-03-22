@@ -98,21 +98,6 @@ export const LAYOUTS: LitComponentLayouts = {
     description: "A default layout for classification results, which shows the data table and datapoint editor, as well as the predictions and counterfactuals."
   },
   /**
-   * For masked language models
-   */
-  'lm':  {
-    components : {
-      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
-               SliceModule, ColorModule],
-      'Predictions': [
-        LanguageModelPredictionModule,
-        ConfusionMatrixModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
-    },
-    description: "A layout optimized for language modeling, which includes the language modeling and confusion matrix modules, as well as the standard the embedding projector, data table, datapoint module, and counterfactuals."
-  },
-  /**
    * Simplified view for tagging/parsing models
    */
   'spangraph':  {
