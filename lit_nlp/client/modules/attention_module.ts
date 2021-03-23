@@ -178,7 +178,7 @@ export class AttentionModule extends LitModule {
       }
       this.clearFocusTimer = setTimeout(() => {
         this.focusService.clearFocus();
-      }, 500);
+      }, 500) as unknown as number;
     };
 
     const toksRender = (tok: string, i: number, isInputToken: boolean) => {

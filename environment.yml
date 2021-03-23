@@ -24,12 +24,13 @@ dependencies:
     - pip
     - pip:
         - tensorflow
-        - tensorflow-datasets
+        - tfds-nightly
         - tensorflow-text
         - rouge-score
         - sacrebleu
         - umap-learn
         - transformers==4.1.1
+        - sentencepiece
         - google-cloud-translate
         - portpicker
         - annoy

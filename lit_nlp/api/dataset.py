@@ -16,6 +16,7 @@
 """Base classes for LIT models."""
 import glob
 import inspect
+import os
 import random
 from types import MappingProxyType  # pylint: disable=g-importing-member
 from typing import cast, List, Dict, Optional, Callable, Mapping, Sequence
