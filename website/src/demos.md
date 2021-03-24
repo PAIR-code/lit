@@ -17,6 +17,10 @@ color: "#49596c"
   c-data-source: "Stanford Sentiment Treebank,  Multi-Genre NLI Corpus, Semantic Textual Similarity Benchmark"
   c-copy: "Use LIT with any of three tasks from the General Language Understanding Evaluation (GLUE) benchmark suite. This demo contains binary classification (for sentiment analysis, using SST2), multi-class classification (for textual entailment, using MultiNLI), and regression (for measuringtext similarity, using STS-B).", tags: "BERT, binary classification, multi-class classification, regression", external:"true" %}
 
+  {% include partials/demo-card c-title: "Notebook usage", link: "https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb",
+  c-data-source: "Stanford Sentiment Treebank"
+  c-copy: "Use LIT directly inside of a colab notebook. This simple demo shows a binary classifier for sentiment analysis using SST2.", tags: "BERT, binary classification, notebook", external:"true" %}
+
   {% include partials/demo-card c-title: "Gender bias in coreference systems", link: "/demos/coref.html",
   c-data-source: "Winogender schemas", c-copy: "Use LIT to explore gendered associations in a coreference system, which matches pronouns to their antecedents. This demo highlights how LIT can work with structured prediction models (edge classification), and its capability for disaggregated analysis.", tags: "BERT, coreference, fairness, Winogender", external:"true" %}
 

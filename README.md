@@ -126,6 +126,12 @@ python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased \
 
 And navigate to http://localhost:5432 for the UI.
 
+### Notebook usage
+
+A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
+Just run all the cells to see LIT on an example classification model right in
+the notebook.
+
 ### More Examples
 
 See [lit_nlp/examples](./lit_nlp/examples). Run similarly to the above:

@@ -82,6 +82,8 @@ TensorFlow 2.x
 
 PyTorch
 
+Notebook compatibility
+
 Custom inference code
 
 Remote Procedure Calls

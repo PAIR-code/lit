@@ -64,6 +64,11 @@ pushd lit_nlp; yarn && yarn build; popd
 
 LIT ships with a number of demos that can easily be run after installation.
 
+LIT can be started on the command line and then viewed in a web browser.
+
+Alternatively, it can be run directly in a Colaboratory or Jupyter notebook and
+viewed in an output cell of the notebook.
+
 ## Quick-start: Classification and regression
 
 To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
@@ -93,6 +98,12 @@ Navigate to http://localhost:5432 for the UI.
 
 ## More examples
 The [examples](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples) directory contains additional examples to explore, all of which can be run similarly to those above.
+
+## Notebook usage
+
+A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
+Just run all the cells to see LIT on an example classification model right in
+the notebook.
 
 {% include partials/spacer height:50 %}
 
