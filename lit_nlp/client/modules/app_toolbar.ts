@@ -25,8 +25,7 @@ import './global_settings';
 import './main_toolbar';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html} from 'lit-element';
-import {query} from 'lit-element/lib/decorators';
+import {customElement, html, query} from 'lit-element';
 
 import {app} from '../core/lit_app';
 import {datasetDisplayName} from '../lib/types';
