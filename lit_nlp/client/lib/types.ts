@@ -30,7 +30,8 @@ export type LitName =
     'URL'|'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
     'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'Gradients'|'Boolean';
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'Gradients'|'Boolean'|
+    'SalienceMap';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
@@ -55,6 +56,8 @@ export interface LitType {
   exclusive?: boolean;
   background?: boolean;
   separator?: string;
+  autorun?: boolean;
+  signed?: boolean;
 }
 
 export interface Spec {
@@ -62,12 +65,22 @@ export interface Spec {
 }
 
 export interface ComponentInfo {
+  configSpec: Spec;
+  metaSpec: Spec;
+  description?: string;
+}
+
+export interface DatasetInfo {
   spec: Spec;
   description?: string;
 }
 
 export interface ComponentInfoMap {
   [name: string]: ComponentInfo;
+}
+
+export interface DatasetInfoMap {
+  [name: string]: DatasetInfo;
 }
 
 export interface CallConfig {
@@ -94,7 +107,7 @@ export interface ModelInfoMap {
 
 export interface LitMetadata {
   models: ModelInfoMap;
-  datasets: ComponentInfoMap;
+  datasets: DatasetInfoMap;
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;

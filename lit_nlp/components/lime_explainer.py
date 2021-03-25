@@ -34,6 +34,17 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+CLASS_KEY = 'Class index to explain'
+KERNEL_WIDTH_KEY = 'Kernel width'
+MASK_KEY = 'Mask'
+NUM_SAMPLES_KEY = 'Number of samples'
+SEED_KEY = 'Seed'
+CLASS_DEFAULT = 1
+KERNEL_WIDTH_DEFAULT = 256
+MASK_DEFAULT = '[MASK]'
+NUM_SAMPLES_DEFAULT = 256
+SEED_DEFAULT = None
+
 
 def new_example(original_example: JsonDict, field: str, new_value: Any):
   """Deep copies the example and replaces `field` with `new_value`."""
@@ -71,13 +82,16 @@ class LIME(lit_components.Interpreter):
       dataset: lit_dataset.Dataset,
       model_outputs: Optional[List[JsonDict]] = None,
       config: Optional[JsonDict] = None,
-      kernel_width: int = 25,  # TODO(lit-dev): make configurable in UI.
-      mask_string: str = '[MASK]',  # TODO(lit-dev): make configurable in UI.
-      num_samples: int = 256,  # TODO(lit-dev): make configurable in UI.
-      class_to_explain: Optional[int] = 1,  # TODO(lit-dev): b/173469699.
-      seed: Optional[int] = None,  # TODO(lit-dev): make configurable in UI.
   ) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
+
+    class_to_explain = int(config[CLASS_KEY]) if config else CLASS_DEFAULT
+    kernel_width = int(
+        config[KERNEL_WIDTH_KEY]) if config else KERNEL_WIDTH_DEFAULT
+    mask_string = config[MASK_KEY] if config else MASK_DEFAULT
+    num_samples = int(
+        config[NUM_SAMPLES_KEY]) if config else NUM_SAMPLES_DEFAULT
+    seed = config[SEED_KEY] if config else SEED_DEFAULT
 
     # Find keys of input (text) segments to explain.
     # Search in the input spec, since it's only useful to look at ones that are
@@ -135,3 +149,21 @@ class LIME(lit_components.Interpreter):
       all_results.append(result)
 
     return all_results
+
+  def config_spec(self) -> types.Spec:
+    return {
+        CLASS_KEY: types.TextSegment(default=str(CLASS_DEFAULT)),
+        KERNEL_WIDTH_KEY: types.TextSegment(default=str(KERNEL_WIDTH_DEFAULT)),
+        MASK_KEY: types.TextSegment(default=MASK_DEFAULT),
+        NUM_SAMPLES_KEY: types.TextSegment(default=str(NUM_SAMPLES_DEFAULT)),
+        SEED_KEY: types.TextSegment(default=SEED_DEFAULT),
+    }
+
+  def is_compatible(self, model: lit_model.Model):
+    text_keys = utils.find_spec_keys(model.input_spec(), types.TextSegment)
+    pred_keys = utils.find_spec_keys(
+        model.output_spec(), (types.MulticlassPreds, types.RegressionScore))
+    return len(text_keys) and len(pred_keys)
+
+  def meta_spec(self) -> types.Spec:
+    return {'saliency': types.SalienceMap(autorun=False, signed=True)}

@@ -69,10 +69,13 @@ class LitApp(object):
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
-      # TODO(lit-team): check generator and interpreter compatibility
-      # with models, or just do this on frontend?
-      info['generators'] = list(self._generators.keys())
-      info['interpreters'] = list(self._interpreters.keys())
+      info['generators'] = [
+          name for name, gen in self._generators.items() if gen.is_compatible(m)
+      ]
+      info['interpreters'] = [
+          name for name, interp in self._interpreters.items()
+          if interp.is_compatible(m)
+      ]
       info['description'] = m.description()
       model_info[name] = info
 
@@ -86,14 +89,16 @@ class LitApp(object):
     generator_info = {}
     for name, gen in self._generators.items():
       generator_info[name] = {
-          'spec': gen.spec(),
+          'configSpec': gen.config_spec(),
+          'metaSpec': gen.meta_spec(),
           'description': gen.description()
       }
 
     interpreter_info = {}
     for name, interpreter in self._interpreters.items():
       interpreter_info[name] = {
-          'spec': interpreter.spec(),
+          'configSpec': interpreter.config_spec(),
+          'metaSpec': interpreter.meta_spec(),
           'description': interpreter.description()
       }
 
@@ -373,10 +378,10 @@ class LitApp(object):
           'bleu': metrics.CorpusBLEU(),
       })
       self._interpreters = {
-          'grad_norm': gradient_maps.GradientNorm(),
-          'lime': lime_explainer.LIME(),
-          'grad_dot_input': gradient_maps.GradientDotInput(),
-          'integrated gradients': gradient_maps.IntegratedGradients(),
+          'Grad L2 Norm': gradient_maps.GradientNorm(),
+          'Grad ⋅ Input': gradient_maps.GradientDotInput(),
+          'Integrated Gradients': gradient_maps.IntegratedGradients(),
+          'LIME': lime_explainer.LIME(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
           'metrics': metrics_group,

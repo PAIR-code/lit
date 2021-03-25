@@ -25,17 +25,18 @@ import {ReactiveElement} from '../lib/elements';
 
 import {LitType, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
-import {styles} from './generator_controls.css';
+import {styles} from './interpreter_controls.css';
 import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 /**
- * Controls panel for a generator.
+ * Controls panel for an interpreter.
  */
-@customElement('lit-generator-controls')
-export class GeneratorControls extends ReactiveElement {
+@customElement('lit-interpreter-controls')
+export class InterpreterControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
+  @observable @property({type: Boolean}) bordered = false;
   @observable settings: {[name: string]: string|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
@@ -44,9 +45,9 @@ export class GeneratorControls extends ReactiveElement {
   }
 
   render() {
-    const generate = () => {
-      // Event to be dispatched when a generator is applied.
-      const event = new CustomEvent('generator-click', {
+    const apply = () => {
+      // Event to be dispatched when an interpreter is applied.
+      const event = new CustomEvent('interpreter-click', {
         detail: {
           name: this.name,
           settings: this.settings
@@ -55,26 +56,42 @@ export class GeneratorControls extends ReactiveElement {
       this.dispatchEvent(event);
     };
 
+    const expandable = Object.keys(this.spec).length > 0 ||
+        this.description.length > 0;
     const collapseIconName = this.opened ? 'expand_less' : 'expand_more';
     const onCollapseClick = () => {
+      if (!expandable) {
+        return;
+      }
       this.opened = !this.opened;
+    };
+    const headerClasses = {
+      'collapsible': true,
+      'header': true,
+      'bordered-header': this.bordered
     };
     const contentClasses = {
       'content': true,
-      'minimized': !this.opened
+      'minimized': !this.opened,
+      'bordered-content': this.bordered
     };
     return html`
-      <div class="collapsible" @click=${onCollapseClick}>
-        <div class="title">${this.name}</div>
-        <mwc-icon class="icon-button min-button">
-          ${collapseIconName}
-        </mwc-icon>
-      </div>
+      ${expandable ? html`
+        <div class=${classMap(headerClasses)} @click=${onCollapseClick}>
+          <div class="title">${this.name}</div>
+          <mwc-icon class="icon-button min-button">
+            ${collapseIconName}
+          </mwc-icon>
+        </div>` : html`
+        <div class="header">
+          <div class="title">${this.name}</div>
+        </div>`
+      }
       <div class=${classMap(contentClasses)}>
         <div class="description">${this.description}</div>
         ${this.renderControls()}
         <div class="buttons-holder">
-          <button class="button" @click=${generate}>Apply</button>
+          <button class="button" @click=${apply}>Apply</button>
         </div>
       </div>
     `;
@@ -89,7 +106,7 @@ export class GeneratorControls extends ReactiveElement {
         if (isLitSubtype(spec[name], 'SparseMultilabel')) {
           this.settings[name] = spec[name].default as string[];
         }
-        // FieldMatcher has its vocab set in generator_module.
+        // FieldMatcher has its vocab set outside of this element.
         else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
           this.settings[name] = spec[name].vocab![0];
         }
@@ -191,6 +208,6 @@ export class GeneratorControls extends ReactiveElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-generator-controls': GeneratorControls;
+    'lit-interpreter-controls': InterpreterControls;
   }
 }

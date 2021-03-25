@@ -42,7 +42,7 @@ export function cleanState<State extends {}>(
 }
 
 function emptySpec() {
-  return {'spec': {}};
+  return {'configSpec': {}, 'metaSpec': {}};
 }
 
 /**
@@ -241,7 +241,7 @@ export const mockMetadata: LitMetadata = {
   },
   'generators': {
     'word_replacer': {
-      'spec': {
+      'configSpec': {
         'Substitutions': {
           '__class__': 'LitType',
           '__name__': 'TextSegment',
@@ -249,7 +249,8 @@ export const mockMetadata: LitMetadata = {
           'required': true,
           'default': 'great -> terrible'
         }
-      }
+      },
+      'metaSpec': {}
     },
     'scrambler': emptySpec(),
     'backtranslation': emptySpec(),

@@ -86,6 +86,13 @@ class GradientNorm(lit_components.Interpreter):
 
     return all_results
 
+  def is_compatible(self, model: lit_model.Model):
+    compatible_fields = self.find_fields(model.output_spec())
+    return len(compatible_fields)
+
+  def meta_spec(self) -> types.Spec:
+    return {'saliency': types.SalienceMap(autorun=True, signed=False)}
+
 
 class GradientDotInput(lit_components.Interpreter):
   """Salience map using the values of gradient * input as attribution."""
@@ -157,6 +164,14 @@ class GradientDotInput(lit_components.Interpreter):
       all_results.append(result)
 
     return all_results
+
+  def is_compatible(self, model: lit_model.Model):
+    compatible_fields = self.find_fields(
+        model.input_spec(), model.output_spec())
+    return len(compatible_fields)
+
+  def meta_spec(self) -> types.Spec:
+    return {'saliency': types.SalienceMap(autorun=True, signed=True)}
 
 
 class IntegratedGradients(lit_components.Interpreter):
@@ -378,3 +393,11 @@ class IntegratedGradients(lit_components.Interpreter):
                                         grad_fields)
       all_results.append(result)
     return all_results
+
+  def is_compatible(self, model: lit_model.Model):
+    compatible_fields = self.find_fields(
+        model.input_spec(), model.output_spec())
+    return len(compatible_fields)
+
+  def meta_spec(self) -> types.Spec:
+    return {'saliency': types.SalienceMap(autorun=False, signed=True)}

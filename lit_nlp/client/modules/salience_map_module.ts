@@ -30,8 +30,8 @@ import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelInfoMap, ModelSpec, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
 
 import {styles} from './salience_map_module.css';
@@ -45,22 +45,14 @@ interface SalienceResult {
 }
 
 /**
- * Static config for each interpreter.
- */
-interface InterpreterInfo {
-  displayName: string;
-  cmap: SalienceCmap;
-  canRun: (modelSpec: ModelSpec) => boolean;
-}
-
-
-/**
  * UI status for each interpreter.
  */
 interface InterpreterState {
   salience: SalienceResult;
   autorun: boolean;
   isLoading: boolean;
+  cmap: SalienceCmap;
+  config?: CallConfig;
 }
 
 abstract class SalienceCmap {
@@ -140,46 +132,6 @@ export class SalienceMapModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static info: {[name: string]: InterpreterInfo} = {
-    'grad_norm': {
-      displayName: 'Grad L2 Norm',
-      cmap: new UnsignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: ModelSpec) =>
-          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0
-    },
-    'grad_dot_input': {
-      displayName: 'Grad ⋅ Input',
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: ModelSpec) =>
-          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec.output, 'TokenEmbeddings').length > 0
-    },
-    'integrated gradients': {
-      displayName: 'Integrated Gradients (IG)',
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: ModelSpec) =>
-          findSpecKeys(modelSpec.output, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec.output, 'TokenEmbeddings').length > 0
-    },
-    'lime': {
-      displayName: 'LIME',
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      canRun: (modelSpec: ModelSpec) =>
-          findSpecKeys(modelSpec.input, 'TextSegment').length > 0 &&
-          (findSpecKeys(modelSpec.output, 'MulticlassPreds').length > 0 ||
-           findSpecKeys(modelSpec.output, 'RegressionScore').length > 0)
-    },
-  };
-
   // TODO: We may want the keys to be configurable through the UI at some point,
   // but for now they are constants.
   // TODO(lit-dev): consider making each interpreter a sub-module,
@@ -188,36 +140,35 @@ export class SalienceMapModule extends LitModule {
   // between different salience methods, or to change the table arrangement
   // (e.g. group by input field, rather than salience technique).
   @observable
-  private readonly state: {[name: string]: InterpreterState} = {
-    'grad_norm': {
-      autorun: true,
-      isLoading: false,
-      salience: {},
-    },
-    'grad_dot_input': {
-      autorun: true,
-      isLoading: false,
-      salience: {},
-    },
-    'integrated gradients': {
-      autorun: false,
-      isLoading: false,
-      salience: {},
-    },
-    'lime': {
-      autorun: false,
-      isLoading: false,
-      salience: {},
-    },
-  };
+  private state: {[name: string]: InterpreterState} = {};
 
   shouldRunInterpreter(name: string) {
-    return this.state[name].autorun &&
-        SalienceMapModule.info[name].canRun(
-            this.appState.getModelSpec(this.model));
+    return this.state[name].autorun;
   }
 
   firstUpdated() {
+    const interpreters = this.appState.metadata.interpreters;
+    const validInterpreters =
+        this.appState.metadata.models[this.model].interpreters;
+    const state: {[name: string]: InterpreterState} = {};
+    for (const key of validInterpreters) {
+      const salienceKeys =
+          findSpecKeys(interpreters[key].metaSpec, 'SalienceMap');
+      if (salienceKeys.length === 0) {
+        continue;
+      }
+      const salienceSpecInfo = interpreters[key].metaSpec[salienceKeys[0]];
+      state[key] = {
+        autorun: !!salienceSpecInfo.autorun,
+        isLoading: false,
+        salience: {},
+        cmap: !!salienceSpecInfo.signed ?
+            new SignedSalienceCmap(/* gamma */ 4.0) :
+            new UnsignedSalienceCmap(/* gamma */ 4.0),
+      };
+    }
+    this.state = state;
+
     this.reactImmediately(() => this.focusService.focusData, focusData => {
       this.handleFocus(this.focusService.focusData);
     });
@@ -257,7 +208,7 @@ export class SalienceMapModule extends LitModule {
     this.state[name].isLoading = true;
     const promise = this.apiService.getInterpretations(
         [input], this.model, this.appState.currentDataset, name,
-        /* callConfig */ undefined, `Running ${name}`);
+        this.state[name].config, `Running ${name}`);
     const salience = await this.loadLatest(`interpretations-${name}`, promise);
     this.state[name].isLoading = false;
     if (salience === null) return;
@@ -380,13 +331,10 @@ export class SalienceMapModule extends LitModule {
       const toggleAutorun = () => {
         this.state[name].autorun = !this.state[name].autorun;
       };
-      const disabled = !SalienceMapModule.info[name].canRun(
-          this.appState.getModelSpec(this.model));
       // clang-format off
       return html`
-        <lit-checkbox label=${SalienceMapModule.info[name].displayName}
+        <lit-checkbox label=${name}
          ?checked=${this.state[name].autorun}
-         ?disabled=${disabled}
          @change=${toggleAutorun}>
         </lit-checkbox>
       `;
@@ -395,7 +343,34 @@ export class SalienceMapModule extends LitModule {
   }
 
   renderTable() {
+    const controlsApplyCallback = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      const name =  (event as any).detail.name;
+      // tslint:disable-next-line:no-any
+      this.state[name].config = (event as any).detail.settings;
+      this.runInterpreter(name);
+    };
+
     // clang-format off
+    const renderMethodControls = (name: string) => {
+      const spec = this.appState.metadata.interpreters[name].configSpec;
+      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      for (const fieldName of Object.keys(clonedSpec)) {
+        // If the generator uses a field matcher, then get the matching
+        // field names from the specified spec and use them as the vocab.
+        if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+          clonedSpec[fieldName].vocab =
+              this.appState.getSpecKeysFromFieldMatcher(
+                  clonedSpec[fieldName], this.model);
+        }
+      }
+      return html`
+          <lit-interpreter-controls
+            .spec=${clonedSpec}
+            .name=${name}
+            @interpreter-click=${controlsApplyCallback}>
+          </lit-interpreter-controls>`;
+    };
     return html`
       <table>
         ${Object.keys(this.state).map(name => {
@@ -403,15 +378,17 @@ export class SalienceMapModule extends LitModule {
             return null;
           }
           const salience = this.state[name].salience;
+          const description =
+              this.appState.metadata.interpreters[name].description || name;
           return html`
-            <tr>
-              <th class='group-label'>
-                ${SalienceMapModule.info[name].displayName}
+            <tr class='method-row'>
+              <th class='group-label' title=${description}>
+                ${renderMethodControls(name)}
               </th>
               <td class=${classMap({'group-container': true,
                                     'loading': this.state[name].isLoading})}>
                 ${Object.keys(salience).map(gradKey =>
-                  this.renderGroup(salience, gradKey, SalienceMapModule.info[name].cmap))}
+                  this.renderGroup(salience, gradKey, this.state[name].cmap))}
                 ${this.state[name].isLoading ? this.renderSpinner() : null}
               </td>
             </tr>
@@ -438,14 +415,7 @@ export class SalienceMapModule extends LitModule {
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    for (const model of Object.keys(modelSpecs)) {
-      for (const methodName of Object.keys(SalienceMapModule.info)) {
-        if (SalienceMapModule.info[methodName].canRun(modelSpecs[model].spec)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return true;
   }
 }
 

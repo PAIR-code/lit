@@ -62,7 +62,12 @@ class Interpreter(metaclass=abc.ABCMeta):
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
 
-  def spec(self) -> types.Spec:
+  def is_compatible(self, model: lit_model.Model):
+    """Return if interpreter is compatible with the given model."""
+    del model
+    return True
+
+  def config_spec(self) -> types.Spec:
     """Return the configuration spec for this component.
 
     If there are configuration options for this component that can be set in the
@@ -70,6 +75,18 @@ class Interpreter(metaclass=abc.ABCMeta):
 
     Returns:
       Spec of configuration options. Defaults to an empty spec.
+    """
+    return {}
+
+  def meta_spec(self) -> types.Spec:
+    """Returns the metadata spec of this component.
+
+    Can be used to represent information about what this interpreter returns,
+    for use in the UI. For example, indicating if a saliency map is signed
+    or unsigned which will affect the display of the results.
+
+    Returns:
+      A spec of what this component returns, to be used to drive the UI.
     """
     return {}
 

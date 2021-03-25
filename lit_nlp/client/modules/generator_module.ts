@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import '../elements/generator_controls';
+import '../elements/interpreter_controls';
 
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
@@ -104,28 +104,6 @@ export class GeneratorModule extends LitModule {
         const child = header.children[i];
         (child as HTMLElement).style.minWidth = `${width}px`;
       }
-    }
-
-    // Add event listeners for generation events from individual generators.
-    const onGenClick = (event: Event) => {
-      const globalParams = {
-        'model_name': this.modelName,
-        'dataset_name': this.datasetName,
-      };
-      // tslint:disable-next-line:no-any
-      const generatorParams: {[setting: string]: string} = (event as any)
-          .detail.settings;
-      // tslint:disable-next-line:no-any
-      const generatorName =  (event as any).detail.name;
-
-      // Add user-specified parameters from the applied generator.
-      const allParams = Object.assign({}, globalParams, generatorParams);
-      this.handleGeneratorClick(generatorName, allParams);
-    };
-    const controls =
-        this.shadowRoot!.querySelectorAll('lit-generator-controls');
-    for (let i = 0; i < controls.length; i++) {
-      controls[i].addEventListener('generator-click', onGenClick);
     }
   }
 
@@ -305,28 +283,48 @@ export class GeneratorModule extends LitModule {
             data.length} datapoint${data.length === 1 ? '' : `s`}):` :
         'No generators provided by the server.';
 
+    // Add event listener for generation events.
+    const onGenClick = (event: Event) => {
+      const globalParams = {
+        'model_name': this.modelName,
+        'dataset_name': this.datasetName,
+      };
+      // tslint:disable-next-line:no-any
+      const generatorParams: {[setting: string]: string} = (event as any)
+          .detail.settings;
+      // tslint:disable-next-line:no-any
+      const generatorName =  (event as any).detail.name;
+
+      // Add user-specified parameters from the applied generator.
+      const allParams = Object.assign({}, globalParams, generatorParams);
+      this.handleGeneratorClick(generatorName, allParams);
+    };
+
     // clang-format off
     return html`
         <div id="generators">
           <div>${text}</div>
           ${generators.map(genName => {
-            const spec = generatorsInfo[genName].spec;
+            const spec = generatorsInfo[genName].configSpec;
+            const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
             const description = generatorsInfo[genName].description;
-            Object.keys(spec).forEach(fieldName => {
+            for (const fieldName of Object.keys(clonedSpec)) {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(spec[fieldName], 'FieldMatcher')) {
-                spec[fieldName].vocab =
+              if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+                clonedSpec[fieldName].vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
-                        spec[fieldName], this.modelName);
+                        clonedSpec[fieldName], this.modelName);
               }
-            });
+            }
             return html`
-                <lit-generator-controls 
-                  .spec=${spec}
+                <lit-interpreter-controls
+                  .spec=${clonedSpec}
                   .name=${genName}
-                  .description=${description||''}>
-                </lit-generator-controls>`;
+                  .description=${description||''}
+                  @interpreter-click=${onGenClick}
+                  ?bordered=${true}>
+                </lit-interpreter-controls>`;
           })}
         </div>
     `;

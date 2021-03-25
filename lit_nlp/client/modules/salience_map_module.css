@@ -7,6 +7,7 @@
 .group-container {
   position: relative; /* to allow overlay div */
   padding: 5px;
+  vertical-align: top;
 }
 
 .module-toolbar > * {
@@ -46,6 +47,14 @@
   z-index: 10000;
   pointer-events: none;
   visibility: hidden;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+.method-row {
+  border: 1px solid #e8eaed;
 }
 
 .loading {

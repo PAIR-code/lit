@@ -169,7 +169,7 @@ class WordReplacer(lit_components.Generator):
 
     return new_examples
 
-  def spec(self) -> types.Spec:
+  def config_spec(self) -> types.Spec:
     return {
         # Requires a substitution string. Include a default.
         'Substitutions': types.TextSegment(default='great -> terrible')

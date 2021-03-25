@@ -334,6 +334,13 @@ class FieldMatcher(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SalienceMap(LitType):
+  """Metadata about a returned salience map, returned as dtypes.SalienceMap."""
+  autorun: bool = False  # If the saliency technique is automatically run.
+  signed: bool  # If the returned values are signed.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Boolean(LitType):
   """Boolean value."""
   pass

@@ -7,11 +7,11 @@
 
 .collapsible {
   cursor: pointer;
+}
+
+.header {
   padding: 8px;
   width: 100%;
-  border-top: 1px solid #E8EAED;
-  border-left: 1px solid #E8EAED;
-  border-right: 1px solid #E8EAED;
   text-align: left;
   outline: none;
   font-size: 15px;
@@ -20,15 +20,23 @@
   box-sizing: border-box;
 }
 
+.bordered-header {
+  border-top: 1px solid #e8eaed;
+  border-left: 1px solid #e8eaed;
+  border-right: 1px solid #e8eaed;
+}
+
 .content {
   padding: 0 8px;
   overflow: hidden;
   transition: max-height 0.2s ease-out;
   background-color: #F8F9FA;
-  border: 1px solid #E8EAED;
   box-sizing: border-box;
 }
 
+.bordered-content {
+  border: 1px solid #e8eaed;
+}
 .content.minimized {
   max-height: 0;
   border-bottom: none;
