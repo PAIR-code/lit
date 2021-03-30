@@ -324,7 +324,7 @@ export class MetricsModule extends LitModule {
         <div class='module-toolbar'>
           ${this.renderFacetSelector()}
         </div>
-        <div class='module-result-area'>
+        <div class='module-results-area'>
           ${this.renderTable()}
         </div>
       </div>

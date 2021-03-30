@@ -21,9 +21,14 @@
   height: 100%;
 }
 
-#table-container{
+.table-container {
   flex: 1;
   overflow: visible;
+  height: 100%
+}
+
+.toolbar + .table-container {
+  height: calc(100% - var(--toolbar-height));
 }
 
 #rows-container{

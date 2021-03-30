@@ -441,7 +441,7 @@ export class DataTable extends ReactiveElement {
           </div>
           ${this.renderColumnDropdown()}
         </div>` : null}
-        <div id="table-container">
+        <div class="table-container">
           <div id="header-container">
             <div id="header">
               ${visibleColumns.map((c, i) => this.renderColumnHeader(c, i))}
