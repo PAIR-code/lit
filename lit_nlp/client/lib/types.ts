@@ -58,6 +58,7 @@ export interface LitType {
   separator?: string;
   autorun?: boolean;
   signed?: boolean;
+  mask_token?: string;
 }
 
 export interface Spec {

@@ -156,7 +156,7 @@ class BertMLM(lit_model.Model):
   def input_spec(self):
     return {
         "text": lit_types.TextSegment(),
-        "tokens": lit_types.Tokens(required=False),
+        "tokens": lit_types.Tokens(mask_token="[MASK]", required=False),
     }
 
   def output_spec(self):

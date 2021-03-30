@@ -161,6 +161,7 @@ class Tokens(LitType):
   # Name of a TextSegment field from the input
   # TODO(lit-dev): should we use 'align' here?
   parent: Optional[Text] = None
+  mask_token: Optional[Text] = None  # optional mask token for input
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

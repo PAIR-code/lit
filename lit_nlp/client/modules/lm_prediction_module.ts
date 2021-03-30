@@ -18,13 +18,13 @@
 import '../elements/checkbox';
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
+import {findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -46,9 +46,6 @@ export class LanguageModelPredictionModule extends LitModule {
   static get styles() {
     return [sharedStyles, styles];
   }
-
-  // TODO(lit-dev): get this from the model spec?
-  @property({type: String}) maskToken: string = '[MASK]';
 
   @observable private clickToMask: boolean = false;
 
@@ -87,6 +84,14 @@ export class LanguageModelPredictionModule extends LitModule {
     return null;
   }
 
+  @computed
+  private get maskToken() {
+    // Look at metadata for /input/ field matching output tokens name.
+    return this.inputTokensKey ?
+        this.modelSpec.input[this.inputTokensKey].mask_token :
+        undefined;
+  }
+
   firstUpdated() {
     const getSelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
@@ -116,15 +121,16 @@ export class LanguageModelPredictionModule extends LitModule {
     this.lmResults = predictions[this.predKey];
     this.selectedInput = selectedInput;
 
-    const maskIndex = this.tokens.indexOf(this.maskToken);
-    if (maskIndex !== -1) {
-      // Show fills immediately for the first mask token, if there is one.
-      this.selectedTokenIndex = maskIndex;
+    if (this.maskToken != null) {
+      const maskIndex = this.tokens.indexOf(this.maskToken);
+      if (maskIndex !== -1) {
+        // Show fills immediately for the first mask token, if there is one.
+        this.selectedTokenIndex = maskIndex;
+      }
     }
 
     // If there's nothing to show, enable click-to-mask by default.
-    // TODO(lit-dev): infer this from something in the spec instead.
-    if (flatten(this.lmResults).length === 0 && this.inputTokensKey != null) {
+    if (flatten(this.lmResults).length === 0 && this.maskToken != null) {
       this.clickToMask = true;
     }
   }
@@ -133,7 +139,7 @@ export class LanguageModelPredictionModule extends LitModule {
   private async updateLmResults(maskIndex: number) {
     if (this.selectedInput == null) return;
 
-    if (this.clickToMask) {
+    if (this.clickToMask && this.maskToken != null) {
       if (this.inputTokensKey == null) return;
       const tokens = [...this.tokens];
       tokens[maskIndex] = this.maskToken;
@@ -169,11 +175,10 @@ export class LanguageModelPredictionModule extends LitModule {
   }
 
   renderControls() {
-    // TODO: check if MLM is applicable.
     // clang-format off
     return html`
       <div class='module-toolbar'>
-        ${this.inputTokensKey ? html`
+        ${this.maskToken ? html`
           <lit-checkbox label="Click to mask?"
             ?checked=${this.clickToMask}
             @change=${() => { this.clickToMask = !this.clickToMask; }}
@@ -251,10 +256,25 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format on
   }
 
+  /**
+   * Find available output fields.
+   */
+  static findTargetFields(outputSpec: Spec): string[] {
+    const candidates = findSpecKeys(outputSpec, 'TokenTopKPreds');
+    return candidates.filter(k => {
+      const align = outputSpec[k].align;
+      return align != null && isLitSubtype(outputSpec[align], 'Tokens');
+    });
+  }
+
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    // TODO(lit-dev): check for tokens field here, else may crash if not
-    // present.
-    return doesOutputSpecContain(modelSpecs, 'TokenTopKPreds');
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (LanguageModelPredictionModule.findTargetFields(modelInfo.spec.output)
+              .length > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
