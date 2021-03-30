@@ -95,10 +95,14 @@ export class LitModules extends LitElement {
       this.modulesService.getSetting('centerPage') ? `center` : `unset`);
 
     // By default, set the selected tab to the first tab.
-    const tab = this.modulesService.selectedTab;
-    if (tab === '' || !compGroupNames.includes(tab)) {
+    if (this.modulesService.selectedTab === '') {
       this.modulesService.selectedTab = compGroupNames[0];
     }
+
+    // If the selected tab doesn't exist, then default to the first tab.
+    const indexOfTab = compGroupNames.indexOf(this.modulesService.selectedTab);
+    const tabToSelect = indexOfTab === -1 ? compGroupNames[0] :
+        compGroupNames[indexOfTab];
 
     const styles = styleMap({'height': `${this.mainSectionHeight}vh`});
 
@@ -109,7 +113,7 @@ export class LitModules extends LitElement {
       </div>
       <div id='center-bar'>
         <div id='tabs'>
-          ${this.renderTabs(compGroupNames)}
+          ${this.renderTabs(compGroupNames, tabToSelect)}
         </div>
         <div id='drag-container'>
           <mwc-icon class="drag-icon">drag_handle</mwc-icon>
@@ -119,7 +123,7 @@ export class LitModules extends LitElement {
         </div>
       </div>
       <div id='component-groups'>
-        ${this.renderComponentGroups(layout, compGroupNames)}
+        ${this.renderComponentGroups(layout, compGroupNames, tabToSelect)}
       </div>
     `;
     // clang-format on
@@ -134,16 +138,19 @@ export class LitModules extends LitElement {
 
   /**
    * Render the tabbed groups of components.
+   * @param layout Layout to render
    * @param compGroupNames Names of the components to render
+   * @param tabToSelect Tab to show as selected
    */
-  renderComponentGroups(layout: LitRenderConfig, compGroupNames: string[]) {
+  renderComponentGroups(layout: LitRenderConfig, compGroupNames: string[],
+                        tabToSelect: string) {
     return compGroupNames.map((compGroupName) => {
       const configs = layout[compGroupName];
       const componentsHTML =
           configs.map(configGroup => 
             html`
             <lit-widget-group .configGroup=${configGroup}></lit-widget-group>`);
-      const selected = this.modulesService.selectedTab === compGroupName;
+      const selected = tabToSelect === compGroupName;
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
         <div class=${classes}>
@@ -156,8 +163,9 @@ export class LitModules extends LitElement {
   /**
    * Render the tabs of the selection groups at the bottom of the layout.
    * @param compGroupNames Names of the tabs to render
+   * @param tabToSelect Tab to show as selected
    */
-  renderTabs(compGroupNames: string[]) {
+  renderTabs(compGroupNames: string[], tabToSelect: string) {
     return compGroupNames.map((compGroupName) => {
       const name = compGroupName;
       const onclick = (e: Event) => {
@@ -167,7 +175,7 @@ export class LitModules extends LitElement {
         // respond automatically to mobx observables.
         this.requestUpdate();
       };
-      const selected = this.modulesService.selectedTab === compGroupName;
+      const selected = tabToSelect === compGroupName;
       const classes = classMap({selected, tab: true});
       return html`<div class=${classes} @click=${onclick}>${
           compGroupName}</div>`;
