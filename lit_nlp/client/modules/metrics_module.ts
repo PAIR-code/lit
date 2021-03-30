@@ -98,7 +98,7 @@ export class MetricsModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
 
-  @observable private readonly metricsMap: MetricsMap = {};
+  @observable private metricsMap: MetricsMap = {};
   @observable private facetBySlice: boolean = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
@@ -106,6 +106,7 @@ export class MetricsModule extends LitModule {
 
   firstUpdated() {
     this.react(() => this.appState.currentInputData, entireDataset => {
+      this.metricsMap = {};
       this.addMetrics(this.appState.currentInputData, Source.DATASET);
       this.updateAllFacetedMetrics();
     });
