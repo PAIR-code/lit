@@ -122,6 +122,12 @@ class TextSegment(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageBytes(LitType):
+  """An image, an encoded base64 ascii string (starts with 'data:image...')."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
   # Name of a TextSegment field to evaluate against

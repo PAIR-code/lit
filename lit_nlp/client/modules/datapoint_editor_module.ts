@@ -313,6 +313,13 @@ export class DatapointEditorModule extends LitModule {
       </select>`;
     };
 
+    // Render an image.
+    const renderImage = () => {
+      const imageSource = (value == null) ? '' : value.toString() as string;
+      return html`
+      <img class='image' src=${imageSource}>`;
+    };
+
     const inputStyle = {'height': this.inputHeights[key]};
     // Render a multi-line text input.
     const renderFreeformInput = () => {
@@ -403,6 +410,8 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput =
           renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
+    } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+      renderInput = renderImage;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.

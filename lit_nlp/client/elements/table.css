@@ -233,3 +233,8 @@ td div {
   max-height: calc(100% - 80px);
   overflow: auto;
 }
+
+/* TODO(lit-dev): Make the table image width configurable. */
+.table-img{
+  width: 100px;
+}

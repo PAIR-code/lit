@@ -52,6 +52,8 @@ enum SpanAnchor {
   END,
 }
 
+const IMAGE_PREFIX = 'data:image';
+
 
 /**
  * A generic data table component
@@ -585,16 +587,21 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, rowIndex);
     };
 
+    // clang-format off
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
-        ${
-        data.map(
-            d => (d instanceof TemplateResult) ?
-                d :
-                html`<td><div>${chunkWords(d.toString())}</div></td>`)}
+        ${data.map((d => {
+          if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
+            return html`<td><img class='table-img' src=${d.toString()}></td>`;
+          } else {
+            return (d instanceof TemplateResult) ? d :
+                html`<td><div>${chunkWords(d.toString())}</div></td>`;
+          }
+        }))}
       </tr>
     `;
+    // clang-format on
   }
 
   renderColumnDropdown() {

@@ -76,3 +76,8 @@ textarea {
 .edge-label {
   font-family: Monospace;
 }
+
+.image {
+  max-width: 200px;
+  max-height: 200px;
+}
