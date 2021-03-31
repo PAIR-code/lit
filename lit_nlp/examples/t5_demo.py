@@ -64,6 +64,7 @@ FLAGS = flags.FLAGS
 
 def get_wsgi_app():
   FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
   FLAGS.set_default("data_dir", "./t5_data/")
   FLAGS.set_default("initialize_index", False)
   # Parse flags without calling app.run(main), to avoid conflict with

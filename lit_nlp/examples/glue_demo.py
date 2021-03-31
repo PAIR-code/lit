@@ -66,6 +66,7 @@ QUICK_START_MODELS = (
 def get_wsgi_app():
   """Return WSGI app for container-hosted demos."""
   FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
   FLAGS.set_default("models", [
       "sst2-tiny:sst2:./bert-tiny/sst2_tiny",
       "sst2-small:sst2:./bert-tiny/sst2_small",

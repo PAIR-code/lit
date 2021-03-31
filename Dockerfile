@@ -3,7 +3,7 @@
 FROM python:3.7-slim
 
 # Default demo app command to run.
-ENV APP_COMMAND "lit_nlp.examples.pretrained_lm_demo:get_wsgi_app()"
+ENV APP_COMMAND "lit_nlp.examples.lm_demo:get_wsgi_app()"
 
 # Copy local code to the container image.
 ENV APP_HOME /app

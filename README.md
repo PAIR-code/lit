@@ -120,7 +120,7 @@ the upper right.
 To explore predictions from a pretrained language model (BERT or GPT-2), run:
 
 ```sh
-python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased \
+python -m lit_nlp.examples.lm_demo --models=bert-base-uncased \
   --port=5432
 ```
 
@@ -131,6 +131,12 @@ And navigate to http://localhost:5432 for the UI.
 A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 Just run all the cells to see LIT on an example classification model right in
 the notebook.
+
+### Run LIT in a Docker container
+
+See [docker.md](documentation/docker.md) for instructions on running LIT as
+a containerized web app. This is the approach we take for our
+[website demos](https://pair-code.github.io/lit/demos/).
 
 ### More Examples
 

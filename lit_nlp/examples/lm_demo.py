@@ -74,6 +74,7 @@ FLAGS.set_default("default_layout", "lm")
 
 def get_wsgi_app():
   FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)

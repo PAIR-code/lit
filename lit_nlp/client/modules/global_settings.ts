@@ -456,7 +456,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
       this.datapointsStatus = 'New dataset added to datasets list';
       this.selectedDataset = newInfo[1];
     };
-    const datapointsControlsHTML = html`
+    const datapointsControlsHTML =
+      this.appState.metadata.demoMode ? html`` : html`
         <div class='datapoints-line'>
           <div class='datapoints-label-holder'>
             <label for="path">File path:</label>
