@@ -23,6 +23,7 @@ import '@material/mwc-icon';
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
+import {styleMap} from 'lit-html/directives/style-map';
 
 import {app} from '../core/lit_app';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
@@ -132,8 +133,6 @@ export class WidgetGroup extends LitElement {
   renderModules(configGroup: RenderConfig[]) {
     const modulesInGroup = configGroup.length > 1;
     const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
-    const componentsHTML = configGroup.map(
-      config => this.renderModule(config, modulesInGroup && !duplicateAsRow));
 
     this.setWidthValues(configGroup, duplicateAsRow);
 
@@ -150,19 +149,28 @@ export class WidgetGroup extends LitElement {
       'holder': true,
     });
 
+    // Set sub-component dimensions based on the container.
+    const widgetStyle = {width: '100%', height: '100%'};
+    if (duplicateAsRow) {
+      widgetStyle['width'] = `${100 / configGroup.length}%`;
+    } else {
+      widgetStyle['height'] = `${100 / configGroup.length}%`;
+    }
+    // clang-format off
     return html`
       <div class=${wrapperClasses} >
         ${this.renderHeader(configGroup)}
         <div class=${holderClasses}>
-          ${componentsHTML}
+          ${configGroup.map(config => this.renderModule(config, widgetStyle))}
           ${this.renderExpander()}
         </div>
       </div>
-      `;
+    `;
+    // clang-format on
   }
 
 
-  renderModule(config: RenderConfig, moduleInColumnGroup: boolean) {
+  renderModule(config: RenderConfig, styles: {[key: string]: string}) {
     const moduleType = config.moduleType;
     const modelName = config.modelName;
     const selectionServiceIndex = config.selectionServiceIndex;
@@ -185,6 +193,7 @@ export class WidgetGroup extends LitElement {
         this.requestUpdate();
       }
     };
+    // clang-format off
     return html`
       <lit-widget
         displayTitle=${moduleType.title}
@@ -193,10 +202,12 @@ export class WidgetGroup extends LitElement {
         @widget-scroll="${widgetScrollCallback}"
         widgetScrollLeft=${this.widgetScrollLeft}
         widgetScrollTop=${this.widgetScrollTop}
+        style=${styleMap(styles)}
       >
         ${moduleType.template(modelName, selectionServiceIndex)}
       </lit-widget>
     `;
+    // clang-format on
   }
 
   renderExpander() {

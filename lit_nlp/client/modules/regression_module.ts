@@ -39,7 +39,7 @@ interface RegressionResult {
 export class RegressionModule extends LitModule {
   static title = 'Regression Results';
   static duplicateForExampleComparison = true;
-  static numCols = 2;
+  static numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<regression-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></regression-module>`;
