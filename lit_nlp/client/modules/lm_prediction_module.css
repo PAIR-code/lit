@@ -4,6 +4,14 @@
   justify-content: space-between;
 }
 
+.module-toolbar {
+  justify-content: space-between;
+}
+
+.mode-info {
+  color: gray;
+}
+
 .input-group {
   padding: 4px;
 }

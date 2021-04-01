@@ -112,11 +112,6 @@ class BertMLM(lit_model.Model):
 
     # Predictions at every position, regardless of masking.
     output["pred_tokens"] = self._get_topk_tokens(probas[slicer])
-    # Trim down to only the mask positions, to avoid sending a huge amount
-    # of data.
-    for i, token in enumerate(output["tokens"]):
-      if token != self.MASK_TOKEN:
-        output["pred_tokens"][i] = []
 
     return output
 
