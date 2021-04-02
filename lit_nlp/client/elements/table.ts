@@ -107,13 +107,16 @@ export class DataTable extends ReactiveElement {
   firstUpdated() {
     const container = this.shadowRoot!.getElementById('rows')!;
     this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
+      this.computeHeaderWidths();
     });
     this.resizeObserver.observe(container);
 
     // Clear "sticky" sorted data if the inputs change.
     this.reactImmediately(() => this.rowFilteredData, filteredData => {
       this.stickySortedData = null;
+    });
+    this.reactImmediately(() => this.columnVisibility, columnVisibility => {
+      this.computeHeaderWidths();
     });
   }
 
@@ -128,22 +131,15 @@ export class DataTable extends ReactiveElement {
     return true;
   }
 
-  private resize() {
-
-    // Delays the call that resizes the column widths, since the resize
-    // depends on the data table cell widths which might get updated by the
-    // first render call. See b/181351991
-    this.headerWidths = [];
-    requestAnimationFrame(() => {
-      // Compute the table header sizes based on the table layout
-      // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
-      const row: any = this.shadowRoot!.querySelector('tr');
-      if (row) {
-        this.headerWidths = [...row.children].map((child: HTMLElement) => {
-          return child.getBoundingClientRect().width;
-        });
-      }
-    });
+  private computeHeaderWidths() {
+    // Compute the table header sizes based on the table layout
+    // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
+    const row: any = this.shadowRoot!.querySelector('tr');
+    if (row) {
+      this.headerWidths = [...row.children].map((child: HTMLElement) => {
+        return child.getBoundingClientRect().width;
+      });
+    }
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
@@ -464,9 +460,9 @@ export class DataTable extends ReactiveElement {
 
   renderColumnHeader(title: string, index: number) {
     // this.headerWidths sometimes hasn't been updated when this method is
-    // called since it's set in this.resize() which uses the table cells'
-    // clientWidth to set this.headerWidths. Return if the index is out of
-    // bounds.
+    // called since it's set in this.computeHeaderWidths() which uses the
+    // table cells' clientWidth to set this.headerWidths.
+    // Return if the index is out of bounds.
     if (index >= this.headerWidths.length) return;
     const headerWidth = this.headerWidths[index];
     const width = headerWidth ? `${headerWidth}px` : '';
@@ -622,7 +618,7 @@ export class DataTable extends ReactiveElement {
 
     const toggleChecked = () => {
       this.columnVisibility.set(key, !checked);
-      this.resize();
+      this.computeHeaderWidths();
     };
 
     return html`
