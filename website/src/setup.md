@@ -89,7 +89,7 @@ the upper right.
 ## Language modeling
 
 ```bash
-python -m lit_nlp.examples.pretrained_lm_demo \
+python -m lit_nlp.examples.lm_demo \
   --models=bert-base-uncased --port=5432
 ```
 

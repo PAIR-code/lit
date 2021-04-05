@@ -70,7 +70,7 @@ class BertEncoderWithOffsets(lit_model.Model):
     tokenized_texts, offsets = zip(*tokens_and_offsets)
     # Process to ids, add special tokens, and compute segment ids and masks.
     encoded_input = self.tokenizer.batch_encode_plus(
-        tokenized_texts,
+        list(tokenized_texts),
         is_split_into_words=True,
         return_tensors='tf',
         add_special_tokens=True,
