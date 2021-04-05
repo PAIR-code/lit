@@ -31,6 +31,7 @@ LIT contains many built-in capabilities but is also customizable, with the abili
 
 For a similar tool to explore general-purpose machine learning models, check out the [What-If Tool](https://whatif-tool.dev).
 
+LIT can be run as a standalone server, or inside of python notebook environments such as Colab and Jupyter.
 </div>
 
 {% include partials/spacer height:50 %}
@@ -80,6 +81,8 @@ TensorFlow 1.x
 TensorFlow 2.x
 
 PyTorch
+
+Notebook compatibility
 
 Custom inference code
 

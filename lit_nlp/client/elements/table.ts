@@ -25,7 +25,7 @@
 import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
-import {customElement, html, property} from 'lit-element';
+import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -35,7 +35,8 @@ import {chunkWords} from '../lib/utils';
 import {styles} from './table.css';
 
 /** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number;
+export type TableEntry = string|number|TemplateResult;
+type SortableTableEntry = string|number;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[];
 
@@ -43,11 +44,15 @@ export type TableData = TableEntry[];
 export type OnSelectCallback = (selectedIndices: number[]) => void;
 /** Callback for primary datapoint selection */
 export type OnPrimarySelectCallback = (index: number) => void;
+/** Callback for hover */
+export type OnHoverCallback = (index: number|null) => void;
 
 enum SpanAnchor {
   START,
   END,
 }
+
+const IMAGE_PREFIX = 'data:image';
 
 
 /**
@@ -56,16 +61,19 @@ enum SpanAnchor {
 @customElement('lit-data-table')
 export class DataTable extends ReactiveElement {
   @observable @property({type: Array}) data: TableData[] = [];
-  @property({type: Array}) selectedIndices: number[] = [];
-  @property({type: Number}) primarySelectedIndex: number = -1;
-  @property({type: Number}) referenceSelectedIndex: number = -1;
-  @property({type: Boolean}) selectionDisabled: boolean = false;
-  @property({type: Boolean}) controlsEnabled: boolean = false;
+  @observable @property({type: Array}) selectedIndices: number[] = [];
+  @observable @property({type: Number}) primarySelectedIndex: number = -1;
+  @observable @property({type: Number}) referenceSelectedIndex: number = -1;
+  @observable @property({type: Number}) focusedIndex: number = -1;
+  @observable @property({type: Boolean}) selectionDisabled: boolean = false;
+  @observable @property({type: Boolean}) controlsEnabled: boolean = false;
   @observable
   @property({type: Object})
   columnVisibility = new Map<string, boolean>();
 
   // Callbacks
+  @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
+  @property({type: Object}) onHover: OnHoverCallback|undefined;
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
@@ -94,17 +102,21 @@ export class DataTable extends ReactiveElement {
   private shiftSelectionStartIndex = 0;
   private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
+  private hoveredIndex: number|null = null;
 
   firstUpdated() {
     const container = this.shadowRoot!.getElementById('rows')!;
     this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
+      this.computeHeaderWidths();
     });
     this.resizeObserver.observe(container);
 
     // Clear "sticky" sorted data if the inputs change.
     this.reactImmediately(() => this.rowFilteredData, filteredData => {
       this.stickySortedData = null;
+    });
+    this.reactImmediately(() => this.columnVisibility, columnVisibility => {
+      this.computeHeaderWidths();
     });
   }
 
@@ -119,7 +131,7 @@ export class DataTable extends ReactiveElement {
     return true;
   }
 
-  private resize() {
+  private computeHeaderWidths() {
     // Compute the table header sizes based on the table layout
     // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
     const row: any = this.shadowRoot!.querySelector('tr');
@@ -128,6 +140,13 @@ export class DataTable extends ReactiveElement {
         return child.getBoundingClientRect().width;
       });
     }
+  }
+
+  private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
+    // TODO(b/172596710) Allow passing a sortable type with TemplateResults.
+    // Passthrough values if TableEntry is number or string. If it is
+    // TemplateResult return 0 for sorting purposes.
+    return colEntry instanceof TemplateResult ? 0 : colEntry;
   }
 
   @computed
@@ -186,7 +205,8 @@ export class DataTable extends ReactiveElement {
     if (this.sortName != null) {
       sortedData = sortedData.sort(
           (a, b) => (this.sortAscending ? ascending : descending)(
-              a[this.sortIndex!], b[this.sortIndex!]));
+              this.getSortableEntry(a[this.sortIndex!]),
+              this.getSortableEntry(b[this.sortIndex!])));
     }
 
     // Store a mapping from the row to data indices.
@@ -234,6 +254,11 @@ export class DataTable extends ReactiveElement {
 
     const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
     if (dataIndex == null) return;
+
+    if (this.onClick != null) {
+      this.onClick(dataIndex);
+      return;
+    }
 
     // Handle ctrl/cmd-click
     if (e.metaKey || e.ctrlKey) {
@@ -301,6 +326,30 @@ export class DataTable extends ReactiveElement {
     if (doChangeSelectedSet) {
       this.selectedIndices = Array.from(selectedIndices);
       this.onSelect([...this.selectedIndices]);
+    }
+  }
+
+  /** Logic for handling row hover */
+  private handleRowMouseEnter(e: MouseEvent, rowIndex: number) {
+    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+    if (dataIndex == null) return;
+    this.hoveredIndex = dataIndex;
+
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
+    }
+  }
+  private handleRowMouseLeave(e: MouseEvent, rowIndex: number) {
+    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+    if (dataIndex == null) return;
+    if (dataIndex === this.hoveredIndex) {
+      this.hoveredIndex = null;
+    }
+
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
     }
   }
 
@@ -390,7 +439,7 @@ export class DataTable extends ReactiveElement {
           </div>
           ${this.renderColumnDropdown()}
         </div>` : null}
-        <div id="table-container">
+        <div class="table-container">
           <div id="header-container">
             <div id="header">
               ${visibleColumns.map((c, i) => this.renderColumnHeader(c, i))}
@@ -411,9 +460,9 @@ export class DataTable extends ReactiveElement {
 
   renderColumnHeader(title: string, index: number) {
     // this.headerWidths sometimes hasn't been updated when this method is
-    // called since it's set in this.resize() which uses the table cells'
-    // clientWidth to set this.headerWidths. Return if the index is out of
-    // bounds.
+    // called since it's set in this.computeHeaderWidths() which uses the
+    // table cells' clientWidth to set this.headerWidths.
+    // Return if the index is out of bounds.
     if (index >= this.headerWidths.length) return;
     const headerWidth = this.headerWidths[index];
     const width = headerWidth ? `${headerWidth}px` : '';
@@ -516,21 +565,39 @@ export class DataTable extends ReactiveElement {
     const isSelected = this.selectedIndicesSetForRender.has(dataIndex);
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
+    const isFocused = this.focusedIndex === dataIndex;
     const rowClass = classMap({
       'selected': isSelected,
       'primary-selected': isPrimarySelection,
       'reference-selected': isReferenceSelection,
+      'focused': isFocused
     });
     const mouseDown = (e: MouseEvent) => {
       if (this.selectionDisabled) return;
       this.handleRowClick(e, rowIndex);
     };
+    const mouseEnter = (e: MouseEvent) => {
+      this.handleRowMouseEnter(e, rowIndex);
+    };
+    const mouseLeave = (e: MouseEvent) => {
+      this.handleRowMouseLeave(e, rowIndex);
+    };
 
+    // clang-format off
     return html`
-      <tr class="${rowClass}" @mousedown=${mouseDown}>
-        ${data.map(d => html`<td><div>${chunkWords(d.toString())}</div></td>`)}
+      <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
+        @mouseleave=${mouseLeave}>
+        ${data.map((d => {
+          if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
+            return html`<td><img class='table-img' src=${d.toString()}></td>`;
+          } else {
+            return (d instanceof TemplateResult) ? d :
+                html`<td><div>${chunkWords(d.toString())}</div></td>`;
+          }
+        }))}
       </tr>
     `;
+    // clang-format on
   }
 
   renderColumnDropdown() {
@@ -551,14 +618,7 @@ export class DataTable extends ReactiveElement {
 
     const toggleChecked = () => {
       this.columnVisibility.set(key, !checked);
-
-      const resize = () => {
-        this.resize();
-      };
-      // Delays the call that resizes the column widths, since the resize
-      // depends on the data table cell widths which might get updated by the
-      // first render call.
-      requestAnimationFrame(resize);
+      this.computeHeaderWidths();
     };
 
     return html`

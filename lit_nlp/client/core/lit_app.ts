@@ -24,6 +24,7 @@ import {Constructor, LitComponentLayouts} from '../lib/types';
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
+import {FocusService} from '../services/focus_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
 import {ModulesService} from '../services/modules_service';
@@ -54,14 +55,15 @@ export class LITApp {
     appState.layouts = layouts;
 
     await appState.initialize();
+    if (appState.metadata.pageTitle) {
+      document.querySelector('html head title')!.textContent = appState.metadata.pageTitle;
+    }
     modulesService.initializeLayout(
         appState.layout, appState.currentModelSpecs,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
-    /**
-     * If we need more than one selectionService, create and append it to the
-     * list.
-     */
+    // If we need more than one selectionService, create and append it to the
+    // list.
     const numSelectionServices = modulesService.numberOfSelectionServices;
     const selectionServices = this.getServiceArray(SelectionService);
     for (let i = 0; i < numSelectionServices - 1; i++) {
@@ -70,14 +72,10 @@ export class LITApp {
       selectionServices.push(selectionService);
     }
 
-    /**
-     * Select the initial datapoint, if one was set in the url.
-     */
+    // Select the initial datapoint, if one was set in the url.
     await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
 
-    /**
-     * Reaction to sync other selection services to selections of the main one.
-     */
+    //  Reaction to sync other selection services to selections of the main one.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
       this.syncSelectionServices();
     }, {fireImmediately: true});
@@ -147,6 +145,7 @@ export class LITApp {
     const groupService = new GroupService(appState);
     const colorService = new ColorService(
         appState, groupService, classificationService, regressionService);
+    const focusService = new FocusService(selectionService);
 
     selectionService.setAppState(appState);
 
@@ -158,6 +157,7 @@ export class LITApp {
     this.services.set(AppState, appState);
     this.services.set(ClassificationService, classificationService);
     this.services.set(ColorService, colorService);
+    this.services.set(FocusService, focusService);
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);
     this.services.set(RegressionService, regressionService);

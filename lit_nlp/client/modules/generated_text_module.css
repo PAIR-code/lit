@@ -1,33 +1,3 @@
-.output {
-  display: flex;
-  margin-top: 10px;
-  margin-left: 5px;
-  min-height: 45px;
-}
-
-.key {
-  font-weight: bold;
-  min-width: 100px;
-}
-
-.results-holder {
-  max-height: 400px;
-  overflow-y: scroll;
-}
-
-.highlighted {
-  color: #ffa500;
-  font-weight: bold;
-}
-
-.checkbox-container {
-  height: 45px;
-  display: flex;
-  flex-direction: row;
-  justify-content: start;
-  align-items: center;
-}
-
-.hidden {
-  visibility: hidden;
+.diff-selector > * {
+  cursor: pointer;
 }

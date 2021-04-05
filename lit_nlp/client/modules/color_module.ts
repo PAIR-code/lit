@@ -25,7 +25,7 @@ import {styleMap} from 'lit-html/directives/style-map';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelsMap, Spec} from '../lib/types';
+import {ModelInfoMap, Spec} from '../lib/types';
 import {D3Scale} from '../lib/types';
 import {range} from '../lib/utils';
 import {ColorService} from '../services/services';
@@ -150,7 +150,7 @@ export class ColorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

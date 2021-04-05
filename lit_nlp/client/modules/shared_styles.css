@@ -114,6 +114,61 @@ mwc-textfield {
   background: transparent;
 }
 
+/* Token chips */
+.token-chip-function {
+  color: #5f6368;
+  font-family: 'Roboto';
+  background: #f8f9fa;
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-function.selected {
+  border: 1px solid #80868b;
+}
+
+.token-chip-function:hover {
+  background: #e8eaed;
+}
+
+.token-chip-label {
+  color: #3c4043;
+  font-family: 'Roboto Mono', monospace;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-label.selected {
+  color: #098591;
+  border-color: #098591;
+}
+
+.token-chip-label:hover {
+  background: #e4f7fb;
+}
+
+.token-chip-generated {
+  color: #8430ce;
+  font-family: 'Roboto';
+  background: #f3e8fd;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-generated.selected {
+  border-color: #a142f4;
+}
+
+.token-chip-generated:hover {
+  background: #e9d2fd;
+}
+
 /* 'Hairline' Button Style */
 .hairline-button {
   margin: 0 4px;
@@ -145,4 +200,44 @@ mwc-textfield {
 .hairline-button:active {
   background: rgba(26, 115, 232, 0.1);
   border: 1px solid #DADCE0;
+}
+
+/**
+ * Main container to use inside modules.
+ * If this contains a .module-toolbar and a .module-results-area,
+ * the results area will scroll while the toolbar remains at the top.
+ */
+.module-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Toolbar container for module controls. */
+.module-toolbar {
+  height: 24px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.module-toolbar > * {
+  margin: 0px 4px;
+}
+
+.module-results-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+
+/**
+ * Spacer div: insert this before content if you want a module without a
+ * subtitle to align horizontally to one that does have one.
+ * Used in span graph and annotated text modules, where the gold preds don't
+ * have a subtitle for the model name.
+ */
+.offset-for-module-header {
+  margin-top: 17pt;
+  height: 0;
 }

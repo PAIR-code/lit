@@ -41,6 +41,9 @@ export function cleanState<State extends {}>(
   return state;
 }
 
+function emptySpec() {
+  return {'configSpec': {}, 'metaSpec': {}};
+}
 
 /**
  * Mock metadata describing a set of models, datasets, generators, and
@@ -113,14 +116,16 @@ export const mockMetadata: LitMetadata = {
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           },
           'layer_1/attention': {
             '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           }
         }
       },
@@ -195,14 +200,16 @@ export const mockMetadata: LitMetadata = {
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           },
           'layer_1/attention': {
             '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
-            'align': ['tokens', 'tokens']
+            'align_in': 'tokens',
+            'align_out': 'tokens',
           }
         }
       },
@@ -233,12 +240,31 @@ export const mockMetadata: LitMetadata = {
     }
   },
   'generators': {
-    'word_replacer': {},
-    'scrambler': {},
-    'backtranslation': {},
-    'hotflip': {}
+    'word_replacer': {
+      'configSpec': {
+        'Substitutions': {
+          '__class__': 'LitType',
+          '__name__': 'TextSegment',
+          '__mro__': ['TextSegment', 'LitType', 'object'],
+          'required': true,
+          'default': 'great -> terrible'
+        }
+      },
+      'metaSpec': {}
+    },
+    'scrambler': emptySpec(),
+    'backtranslation': emptySpec(),
+    'hotflip': emptySpec(),
   },
-  'interpreters': ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+  'interpreters': {
+    'grad_norm': emptySpec(),
+    'grad_sum': emptySpec(),
+    'lime': emptySpec(),
+    'metrics': emptySpec(),
+    'pca': emptySpec(),
+    'umap': emptySpec(),
+  },
+  'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': undefined

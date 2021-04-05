@@ -30,7 +30,7 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
-import {EdgeLabel, IndexedInput, Input, LitName, ModelsMap, Preds, SpanLabel, Spec} from '../lib/types';
+import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles as sharedStyles} from './shared_styles.css';
@@ -60,10 +60,6 @@ const moduleStyles = css`
 
   #pred-group {
     outline: 1px dashed gray;
-  }
-
-  .offset-for-header {
-    margin-top: 17pt;
   }
 `;
 
@@ -194,17 +190,9 @@ export class SpanGraphGoldModule extends LitModule {
 
   // tslint:disable:no-any
   render() {
-    // Hack: Normally, this module doesn't get the extra module header row
-    // that lists the active model, since it doesn't depend on the model.
-    // However, we want the content to align with the SpanGraphModule which
-    // does, so use the offset-for-header class to shift content down. In
-    // comparison mode, however, we get a header too, so disable this.
-    const goldGroupClass = classMap({
-      'outer-container': true,
-      'offset-for-header': !this.appState.compareExamplesEnabled
-    });
     return html`
-      <div id="gold-group" class=${goldGroupClass}>
+      ${!this.appState.compareExamplesEnabled ? html`<div class='offset-for-module-header'></div>` : null}
+      <div id="gold-group" class='outer-container'>
         ${
         renderTokenGroups(
             this.goldDisplayData, this.dataSpec,
@@ -214,7 +202,7 @@ export class SpanGraphGoldModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
@@ -282,7 +270,7 @@ export class SpanGraphModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;

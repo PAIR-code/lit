@@ -48,7 +48,7 @@ export class SliceService extends LitService {
       if (this.namedSlices.has(this.selectedSliceName) &&
           !arrayContainsSame(
               selectedInputData.map(input => input.id),
-              this.namedSlices.get(this.selectedSliceName)!)) {
+              this.getSliceByName(this.selectedSliceName)!)) {
         this.setSelectedSliceName(null);
       }
     });
@@ -56,7 +56,8 @@ export class SliceService extends LitService {
 
   // Initialize with an empty slice to hold favorited items.
   @observable
-  namedSlices = new Map<SliceName, Id[]>([[STARRED_SLICE_NAME, []]]);
+  namedSlices =
+      new Map<SliceName, Set<Id>>([[STARRED_SLICE_NAME, new Set<Id>()]]);
   @observable private selectedSliceNameInternal: string|null = null;
 
   @action
@@ -87,7 +88,7 @@ export class SliceService extends LitService {
 
   @action
   addNamedSlice(name: SliceName, ids: string[]) {
-    this.namedSlices.set(name, ids);
+    this.namedSlices.set(name, new Set<Id>(ids));
   }
 
   @action
@@ -98,7 +99,7 @@ export class SliceService extends LitService {
     }
 
     ids.forEach((id) => {
-      sliceIds.push(id);
+      sliceIds.add(id);
     });
   }
 
@@ -110,10 +111,7 @@ export class SliceService extends LitService {
     }
 
     ids.forEach((id) => {
-      const idIndex = sliceIds.indexOf(id);
-      if (idIndex > -1) {
-        sliceIds.splice(idIndex, 1);
-      }
+      sliceIds.delete(id);
     });
   }
 
@@ -129,13 +127,18 @@ export class SliceService extends LitService {
 
   getSliceByName(sliceName: SliceName): string[]|null {
     const sliceIds = this.namedSlices.get(sliceName);
-    return sliceIds ? sliceIds : null;
+    return sliceIds ? [...sliceIds] : null;
   }
 
 
   getSliceDataByName(sliceName: SliceName): IndexedInput[] {
     const ids = this.getSliceByName(sliceName);
     return this.appState.getExamplesById(ids!);
+  }
+
+  isInSlice(sliceName: SliceName, id: Id): boolean {
+    const slice = this.namedSlices.get(sliceName);
+    return slice ? slice.has(id) : false;
   }
 
   isSliceEmpty(sliceName: SliceName): boolean {

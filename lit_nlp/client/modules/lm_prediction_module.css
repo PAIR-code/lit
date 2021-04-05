@@ -1,49 +1,71 @@
-#input-words {
+#main-area {
   display: flex;
   flex-direction: row;
-  font-family: 'Share Tech Mono', monospace;
+  justify-content: space-between;
 }
 
-.token {
-  padding: 5px;
-  margin: 5px;
-  background-color: #1c313a;
-  color: white;
+.module-toolbar {
+  justify-content: space-between;
+}
+
+.mode-info {
+  color: gray;
+}
+
+.input-group {
+  padding: 4px;
+}
+
+.group-title {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.input-words {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
 }
 
 .token:hover {
-  background-color: #a4a4a4;
   cursor: pointer;
-}
-
-.token.selected {
-  background-color: #fbc02d;
 }
 
 .token.masked {
   text-decoration: line-through;
 }
 
-#outputs-container {
-  padding-bottom: 1rem;
+.sidebar {
+  min-width: 15%;
+  padding: 4px;
+  overflow-y: auto; /* Scroll this before the rest of the module */
 }
 
-.output {
-  width: max-content;
-  padding: 5px;
-  background-color: #fff263;
-  font-family: 'Share Tech Mono', monospace;
+.sidebar-shaded {
+  background: #f8f9fa;
+  border-left: 1px solid #bdc1c6;
+  border-radius: 2px;
 }
 
-.output.same {
-  border: 3px solid #fbc02d;
-  box-sizing: border-box;
+#output-table {
+  border-spacing: 0px;
 }
 
-.instructions {
-  padding: 5px;
+.output-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
-.hidden {
-  display: none;
+.output-token {
+  padding: 1px;
+  border-width: 2px;
+  margin: 2px;
+  font-family: 'Roboto Mono', monospace;
 }
+
+.output-percent {
+  margin: 2px;
+}
+

@@ -96,7 +96,8 @@ class SimpleSentimentModel(lit_model.Model):
         return_tensors="pt",
         add_special_tokens=True,
         max_length=128,
-        pad_to_max_length=True)
+        padding="longest",
+        truncation="longest_first")
 
     # Check and send to cuda (GPU) if available
     if torch.cuda.is_available():
@@ -106,30 +107,32 @@ class SimpleSentimentModel(lit_model.Model):
 
     # Run a forward pass.
     with torch.set_grad_enabled(self.compute_grads):
-      logits, embs, unused_attentions = self.model(**encoded_input)
+      out: transformers.modeling_outputs.SequenceClassifierOutput = \
+          self.model(**encoded_input)
 
     # Post-process outputs.
     batched_outputs = {
-        "probas": torch.nn.functional.softmax(logits, dim=-1),
+        "probas": torch.nn.functional.softmax(out.logits, dim=-1),
         "input_ids": encoded_input["input_ids"],
         "ntok": torch.sum(encoded_input["attention_mask"], dim=1),
-        "cls_emb": embs[-1][:, 0],  # last layer, first token
+        "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
     }
 
     # Add attention layers to batched_outputs
-    assert len(unused_attentions) == self.model.config.num_hidden_layers
-    for i, layer_attention in enumerate(unused_attentions):
+    assert len(out.attentions) == self.model.config.num_hidden_layers
+    for i, layer_attention in enumerate(out.attentions):
       batched_outputs[f"layer_{i}/attention"] = layer_attention
 
     # Request gradients after the forward pass.
-    # Note: embs[0] includes position and segment encodings, as well as subword
-    # embeddings.
+    # Note: hidden_states[0] includes position and segment encodings, as well as
+    # subword embeddings.
     if self.compute_grads:
       # <torch.float32>[batch_size, num_tokens, emb_dim]
       scalar_pred_for_gradients = torch.max(
           batched_outputs["probas"], dim=1, keepdim=False, out=None)[0]
       batched_outputs["input_emb_grad"] = torch.autograd.grad(
-          scalar_pred_for_gradients, embs[0],
+          scalar_pred_for_gradients,
+          out.hidden_states[0],
           grad_outputs=torch.ones_like(scalar_pred_for_gradients))[0]
 
     # Post-process outputs.
@@ -180,13 +183,20 @@ class SimpleSentimentModel(lit_model.Model):
     # Attention heads, one field for each layer.
     for i in range(self.model.config.num_hidden_layers):
       ret[f"layer_{i}/attention"] = lit_types.AttentionHeads(
-          align=("tokens", "tokens"))
+          align_in="tokens", align_out="tokens")
     return ret
 
 
 def main(_):
+  # Normally path is a directory; if it's an archive file, download and
+  # extract to the transformers cache.
+  model_path = FLAGS.model_path
+  if model_path.endswith(".tar.gz"):
+    model_path = transformers.file_utils.cached_path(
+        model_path, extract_compressed_file=True)
+
   # Load the model we defined above.
-  models = {"sst": SimpleSentimentModel(FLAGS.model_path)}
+  models = {"sst": SimpleSentimentModel(model_path)}
   # Load SST-2 validation set from TFDS.
   datasets = {"sst_dev": glue.SST2Data("validation")}
 

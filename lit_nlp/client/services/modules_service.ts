@@ -16,12 +16,13 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, observable} from 'mobx';
+import {observable} from 'mobx';
 
-import {LitModuleClass, ModelsMap, Spec} from '../lib/types';
+import {LitComponentSpecifier, LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
+import {LayoutSettings, LitComponentLayout} from '../lib/types';
+
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
-import {LitComponentLayout, LayoutSettings} from '../lib/types';
 
 /**
  * A layout is defined by a set of main components that are always visible,
@@ -49,6 +50,23 @@ export interface RenderConfig {
 }
 
 type RenderModulesCallback = () => void;
+
+/**
+ * Look up any module names given as strings, and return the
+ * constructor object.
+ */
+export function getModuleConstructor(moduleType: LitComponentSpecifier):
+    LitModuleClass {
+  if (typeof moduleType === 'string') {
+    const moduleClass = window.customElements.get(moduleType);
+    if (moduleClass === undefined) {
+      throw (new Error(
+          `Malformed layout; unable to find element '${moduleType}'`));
+    }
+    return moduleClass;
+  }
+  return moduleType;
+}
 
 /**
  * Singleton service responsible for maintaining which modules to render.
@@ -84,7 +102,7 @@ export class ModulesService extends LitService implements
    * visible render layout based on the app config
    */
   initializeLayout(
-      layout: LitComponentLayout, currentModelSpecs: ModelsMap,
+      layout: LitComponentLayout, currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
     this.setModuleLayout(layout);
     this.declaredLayout.layoutSettings = layout.layoutSettings || {};
@@ -141,7 +159,7 @@ export class ModulesService extends LitService implements
    * copies of a module per model based on the module behavior.
    */
   computeRenderLayout(
-      currentModelSpecs: ModelsMap, datasetSpec: Spec,
+      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
       compareExamples: boolean) {
     const renderLayout: LitRenderConfig = {};
     const allModuleKeys = new Set<string>();
@@ -149,10 +167,13 @@ export class ModulesService extends LitService implements
     const componentGroupNames = Object.keys(this.declaredLayout.components);
     componentGroupNames.forEach(groupName => {
       const components = this.declaredLayout.components[groupName];
+      // Look up classes for this group, if anything is given as a string.
+      const componentClasses = components.map(getModuleConstructor);
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
       const configs = this.getRenderConfigs(
-          components, currentModelSpecs, datasetSpec, compareExamples, groupName);
+          componentClasses, currentModelSpecs, datasetSpec, compareExamples,
+          groupName);
       configs.forEach(configGroup => {
         configGroup.forEach(config => {
           const key = this.getModuleKey(config);
@@ -163,7 +184,9 @@ export class ModulesService extends LitService implements
           }
         });
       });
-      renderLayout[groupName] = configs;
+      if (configs.length !== 0) {
+        renderLayout[groupName] = configs;
+      }
     });
 
     this.allModuleKeys = allModuleKeys;
@@ -185,7 +208,7 @@ export class ModulesService extends LitService implements
    * to render.
    */
   private getRenderConfigs(
-      modules: LitModuleClass[], currentModelSpecs: ModelsMap,
+      modules: LitModuleClass[], currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean, tab: string) {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding

@@ -17,7 +17,8 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, listFieldTypes, Spec} from '../lib/types';
+import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
 
@@ -38,6 +39,8 @@ export class UrlConfiguration {
   hiddenModules: string[] = [];
   compareExamplesEnabled?: boolean;
   layoutName?: string;
+  /** Path to load a new dataset from, on pageload. */
+  newDatasetPath?: string;
 }
 
 /**
@@ -52,9 +55,8 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
-  createNewDatapoints: (
-    data: Input[][], parentIds: string[],
-    source: string) => Promise<IndexedInput[]>;
+  indexDatapoints: (data: IndexedInput[]) => Promise<IndexedInput[]>;
+  commitNewDatapoints: (datapoints: IndexedInput[]) => void;
 }
 
 /**
@@ -86,6 +88,8 @@ const HIDDEN_MODULES_KEY = 'hidden_modules';
 const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
+/** Path to load a new dataset from, on pageload. */
+const NEW_DATASET_PATH = 'new_dataset_path';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -114,6 +118,18 @@ export class UrlService extends LitService {
     return encoded === 'true';
   }
 
+  /** Parse the data field based on its type */
+  private parseDataFieldValue(fieldKey: string, encoded: string, spec: Spec) {
+    const fieldSpec = spec[fieldKey];
+    // If array type, unpack as an array.
+    if (isLitSubtype(fieldSpec, listFieldTypes)) {
+      return this.urlParseArray(encoded);
+    } else {  // String-like.
+      return this.urlParseString(encoded) ??
+          defaultValueByField(fieldKey, spec);
+    }
+  }
+
   private getConfigurationFromUrl(): UrlConfiguration {
     const urlConfiguration = new UrlConfiguration();
 
@@ -135,9 +151,15 @@ export class UrlService extends LitService {
         urlConfiguration.selectedTab = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
+      } else if (key === NEW_DATASET_PATH) {
+        urlConfiguration.newDatasetPath = this.urlParseString(value);
       } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
         const fieldKey = parseDataFieldKey(key);
-        urlConfiguration.dataFields[fieldKey] = this.urlParseString(value);
+        // TODO(b/179788207) Defer parsing of data keys here as we do not have
+        // access to the input spec of the dataset at the time
+        // this is called. We convert array fields to their proper forms in
+        // syncSelectedDatapointToUrl.
+        urlConfiguration.dataFields[fieldKey] = value;
       }
     });
 
@@ -242,15 +264,24 @@ export class UrlService extends LitService {
   ) {
     const urlConfiguration = appState.getUrlConfiguration();
     const fields = urlConfiguration.dataFields;
+    // Create a new dict and do not modify the urlConfiguration. This makes sure
+    // that this call works even if initialize app is called multiple times.
+    const outputFields: Input = {};
 
     // If there are data fields set in the url, make a new datapoint
     // from them.
     if (Object.keys(fields).length) {
       const spec = appState.currentDatasetSpec;
       Object.keys(spec).forEach(key => {
-        fields[key] = fields[key] ?? defaultValueByField(key, spec);
+        outputFields[key] = this.parseDataFieldValue(key, fields[key], spec);
       });
-      const data = await appState.createNewDatapoints([[fields]], [], 'manual');
+      const datum: IndexedInput = {
+        data: outputFields,
+        id: '',  // will be overwritten
+        meta: {source: 'url', added: true},
+      };
+      const data = await appState.indexDatapoints([datum]);
+      appState.commitNewDatapoints(data);
       selectionService.setPrimarySelection(data[0].id);
     }
 

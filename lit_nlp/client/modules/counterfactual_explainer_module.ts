@@ -28,9 +28,8 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelsMap, Spec} from '../lib/types';
+import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
 
 import {styles as salienceMapStyles} from './salience_map_module.css';
@@ -137,7 +136,7 @@ export class CounterfactualExplainerModule extends LitModule {
   // (e.g. group by input field, rather than salience technique).
   @observable
   private readonly state: InterpreterState = {
-    autorun: true,
+    autorun: false,
     isLoading: false,
     salience: {},
     cmap: new SignedSalienceCmap(/* gamma */ 4.0)
@@ -229,6 +228,8 @@ export class CounterfactualExplainerModule extends LitModule {
   }
 
   updated() {
+    super.updated();
+
     // Imperative tooltip implementation
     this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
       // For each token group we have a single tooltip,
@@ -376,7 +377,7 @@ export class CounterfactualExplainerModule extends LitModule {
   }
 
   // tslint:disable-next-line:no-any
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const model of Object.keys(modelSpecs)) {
       const inputSpec = modelSpecs[model].spec.input;
       const outputSpec = modelSpecs[model].spec.output;

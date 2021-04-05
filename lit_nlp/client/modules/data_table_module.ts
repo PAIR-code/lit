@@ -24,11 +24,11 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, ModelsMap, formatForDisplay, Spec} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
-import {ClassificationService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, FocusService, RegressionService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -53,6 +53,7 @@ export class DataTableModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly regressionService = app.getService(RegressionService);
+  private readonly focusService = app.getService(FocusService);
 
   @observable columnVisibility = new Map<string, boolean>();
   @observable
@@ -337,6 +338,16 @@ export class DataTableModule extends LitModule {
     this.selectionService.setPrimarySelection(id);
   }
 
+  onHover(index: number|null) {
+    const id =
+        index == null ? null : this.appState.currentInputData[index]?.id;
+    if (id == null) {
+      this.focusService.clearFocus();
+    } else {
+      this.focusService.setFocusedDatapoint(id);
+    }
+  }
+
   render() {
     const onSelect = (selectedIndices: number[]) => {
       this.onSelect(selectedIndices);
@@ -344,9 +355,22 @@ export class DataTableModule extends LitModule {
     const onPrimarySelect = (index: number) => {
       this.onPrimarySelect(index);
     };
+    const onHover = (index: number|null) => {
+      this.onHover(index);
+    };
 
     const primarySelectedIndex =
         this.appState.getIndexById(this.selectionService.primarySelectedId);
+
+
+    const focusData = this.focusService.focusData;
+    // Set focused index if a datapoint is focused according to the focus
+    // service. If the focusData is null then nothing is focused. If focusData
+    // contains a value in the "io" field then the focus is on a subfield of
+    // a datapoint, as opposed to a datapoint itself.
+    const focusedIndex = focusData == null || focusData.io != null ?
+        -1 :
+        this.appState.getIndexById(focusData.datapointId);
 
     // Handle reference selection, if in compare examples mode.
     let referenceSelectedIndex = -1;
@@ -364,15 +388,17 @@ export class DataTableModule extends LitModule {
           .selectedIndices=${this.selectedRowIndices}
           .primarySelectedIndex=${primarySelectedIndex}
           .referenceSelectedIndex=${referenceSelectedIndex}
+          .focusedIndex=${focusedIndex}
           .onSelect=${onSelect}
           .onPrimarySelect=${onPrimarySelect}
+          .onHover=${onHover}
           controlsEnabled
         ></lit-data-table>
 
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

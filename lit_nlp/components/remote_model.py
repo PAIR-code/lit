@@ -81,9 +81,7 @@ class RemoteModel(lit_model.Model):
   def max_minibatch_size(self):
     return self._max_minibatch_size
 
-  def predict_minibatch(self,
-                        inputs: List[JsonDict],
-                        config=None) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     # Package data as IndexedInput with dummy ids.
     indexed_inputs = [{'id': None, 'data': d} for d in inputs]
     # Omit dataset_name to bypass remote cache.

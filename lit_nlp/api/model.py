@@ -73,8 +73,8 @@ class ModelSpec(object):
     """Return true if this model is compatible with the dataset spec."""
     for key, field_spec in self.input.items():
       if key in dataset_spec:
-        # If the field is in the dataset, make sure it matches.
-        if not field_spec.is_compatible(dataset_spec[key]):
+        # If the field is in the dataset, make sure it's compatible.
+        if not dataset_spec[key].is_compatible(field_spec):
           return False
       else:
         # If the field isn't in the dataset, only allow if the model marks as
@@ -100,28 +100,16 @@ class Model(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
-  # pylint: disable=unused-argument
-  def max_minibatch_size(self, config=None) -> int:
+  def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model."""
     return 1
 
-  # pylint: enable=unused-argument
-
   @abc.abstractmethod
-  def predict_minibatch(self,
-                        inputs: List[JsonDict],
-                        config=None) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     """Run prediction on a batch of inputs.
-
-    TODO(lit-team): add a 'level' argument (enumerate preprocessing, forward,
-    backward) to save on expensive operations when not needed. For example,
-    computing gradients invokes a backward pass, which costs ~2x the memory and
-    ~2x the compute of just running a forward prediction.
 
     Args:
       inputs: sequence of inputs, following model.input_spec()
-      config: (optional) predict-time model config (beam size, num candidates,
-        etc.)
 
     Returns:
       list of outputs, following model.output_spec()
@@ -161,10 +149,6 @@ class Model(metaclass=abc.ABCMeta):
 
   ##
   # Concrete implementations of common functions.
-  def predict_single(self, one_input: JsonDict, **kw) -> JsonDict:
-    """Run prediction on a single input."""
-    return list(self.predict_minibatch([one_input], **kw))[0]
-
   def predict(self,
               inputs: Iterable[JsonDict],
               scrub_arrays=True,

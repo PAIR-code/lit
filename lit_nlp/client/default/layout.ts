@@ -16,8 +16,10 @@
  */
 
 // Import Modules
+import '../modules/span_graph_module';
 import {LitModuleType} from '../core/lit_module';
 import {LitComponentLayouts} from '../lib/types';
+import {AnnotatedTextGoldModule, AnnotatedTextModule} from '../modules/annotated_text_module';
 import {AttentionModule} from '../modules/attention_module';
 import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
@@ -34,7 +36,8 @@ import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SliceModule} from '../modules/slice_module';
-import {SpanGraphGoldModule, SpanGraphGoldModuleVertical, SpanGraphModule, SpanGraphModuleVertical} from '../modules/span_graph_module';
+import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
+import {TCAVModule} from '../modules/tcav_module';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
@@ -44,6 +47,15 @@ const MODEL_PREDS_MODULES: LitModuleType[] = [
   RegressionModule,
   LanguageModelPredictionModule,
   GeneratedTextModule,
+  AnnotatedTextGoldModule,
+  AnnotatedTextModule,
+];
+
+const DEFAULT_MAIN_GROUP: LitModuleType[] = [
+  DataTableModule,
+  DatapointEditorModule,
+  SliceModule,
+  ColorModule,
 ];
 // clang-format on
 
@@ -53,7 +65,7 @@ const MODEL_PREDS_MODULES: LitModuleType[] = [
  */
 export const LAYOUTS: LitComponentLayouts = {
   /**
-   * A "simple demo server" layout optimized for single models.
+   * A "simple demo server" layout.
    */
   'simple':  {
     components : {
@@ -71,114 +83,33 @@ export const LAYOUTS: LitComponentLayouts = {
     description: 'A basic layout just containing a datapoint creator/editor, the predictions, and the data table. There are also some visual simplifications: the toolbar is hidden, and the modules are centered on the page rather than being full width.'
   },
   /**
-   * A "simple demo server" layout for classifier models.
-   * Assumes no metrics, embeddings, or attention.
+   * A layout for black-box models (no embs, grads, or attention).
    */
-  'classifier':  {
+  'blackbox':  {
     components : {
-      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
-               ColorModule],
-      'Classifiers': [
-        ConfusionMatrixModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
+      'Main': DEFAULT_MAIN_GROUP,
       'Predictions': [
         ScalarModule,
         ...MODEL_PREDS_MODULES,
       ],
-      'Explanations': [
-        SalienceMapModule,
-      ]
-    },
-    description: "A default layout for classification results, which shows the data table and datapoint editor, as well as the predictions and counterfactuals."
-  },
-  /**
-   * For masked language models
-   */
-  'lm':  {
-    components : {
-      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
-               SliceModule, ColorModule],
-      'Predictions': [
-        LanguageModelPredictionModule,
-        ConfusionMatrixModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
-    },
-    description: "A layout optimized for language modeling, which includes the language modeling and confusion matrix modules, as well as the standard the embedding projector, data table, datapoint module, and counterfactuals."
-  },
-  /**
-   * Simplified view for tagging/parsing models
-   */
-  'spangraph':  {
-    components : {
-      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
-               ColorModule],
-      'Predictions': [
-        SpanGraphGoldModuleVertical,
-        SpanGraphModuleVertical,
-      ],
-      'Performance': [
-        MetricsModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
-    },
-    description: "A layout optimized for span graph prediction, which includes the span graph module, as well as the standard data table, datapoint module, and counterfactuals."
-  },
-  /**
-   * Custom view used for the coreference demo
-   * TODO(lit-dev): move to a custom frontend build
-   */
-  'winogender':  {
-    components : {
-      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
-               ColorModule],
-      'Predictions': [
-        SpanGraphGoldModule,
-        SpanGraphModule, ClassificationModule
-      ],
-      'Performance': [
-        MetricsModule, ScalarModule, ConfusionMatrixModule,
-      ],
-    },
-    description: "A layout optimized for the Winogender coreference demo."
-  },
-  /**
-   * A default layout for LIT Modules without EmbeddingsModule
-   * TODO(lit-dev): move to a custom frontend build,
-   * or remove this if b/159186274 is resolved to speed up page load.
-   */
-  'default_no_projector':  {
-    components : {
-      'Main': [DataTableModule, DatapointEditorModule, SliceModule,
-               ColorModule],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
       ],
-      'Predictions': [
-        ...MODEL_PREDS_MODULES,
-        ScalarModule,
-      ],
-      'Explanations': [
-        ...MODEL_PREDS_MODULES,
-        SalienceMapModule,
-        AttentionModule,
-      ],
-      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
+      'Counterfactuals': [GeneratorModule],
     },
-    description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
+    description: "A layout for exploring predictions on an eval set. Includes modules for aggregate and counterfactual analysis, but not model internals."
   },
   /**
    * A default layout for LIT Modules
    */
   'default':  {
     components : {
-      'Main': [EmbeddingsModule, DataTableModule, DatapointEditorModule,
-               SliceModule, ColorModule],
+      'Main': [EmbeddingsModule, ...DEFAULT_MAIN_GROUP],
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
+        TCAVModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
@@ -192,6 +123,32 @@ export const LAYOUTS: LitComponentLayouts = {
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
     },
     description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
+  },
+  /**
+   * A default layout for LIT Modules without EmbeddingsModule
+   * TODO(lit-dev): move to a custom frontend build,
+   * or remove this if b/159186274 is resolved to speed up page load.
+   */
+  'default_no_projector':  {
+    components : {
+      'Main': DEFAULT_MAIN_GROUP,
+      'Performance': [
+        MetricsModule,
+        ConfusionMatrixModule,
+        TCAVModule,
+      ],
+      'Predictions': [
+        ...MODEL_PREDS_MODULES,
+        ScalarModule,
+      ],
+      'Explanations': [
+        ...MODEL_PREDS_MODULES,
+        SalienceMapModule,
+        AttentionModule,
+      ],
+      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
+    },
+    description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
   },
 };
 // clang-format on

@@ -35,11 +35,13 @@ FLAGS = flags.FLAGS
 
 ##
 # Server flags, passed to the WSGI server.
+# LINT.IfChange
 flags.DEFINE_integer('port', 5432, 'What port to serve on.')
-flags.DEFINE_string('server_type', 'default',
-                    'Webserver to use. Use "external" when using an external  '
-                    'webserver, like gunicorn. See dev_server.py for other '
-                    'options.')
+flags.DEFINE_string(
+    'server_type', 'default',
+    'Webserver to use; see dev_server.py for options. Use "external" when '
+    'using an external webserver like gunicorn, or "prebake" to run start-up '
+    'tasks (like warm start and caching data) without starting a server.')
 flags.DEFINE_string(
     'host', '127.0.0.1', 'What host address to serve on. Use 127.0.0.1 for '
     'local development, or 0.0.0.0 to allow external connections.')
@@ -68,6 +70,7 @@ flags.DEFINE_string(
     'canonical_url', None,
     'What url base to use when copying the LIT url (e.g., something other '
     'than just a local server address.')
+flags.DEFINE_string('page_title', None, 'Custom page title for this server.')
 
 flags.DEFINE_string(
     'client_root',
@@ -75,6 +78,7 @@ flags.DEFINE_string(
         pathlib.Path(__file__).parent.absolute(), 'client', 'build',
         'default'),
     'Path to frontend client.')
+# LINT.ThenChange(server_config.py)
 
 
 def get_flags():

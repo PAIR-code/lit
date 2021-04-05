@@ -21,7 +21,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {RegressionService} from '../services/services';
 
@@ -32,11 +32,6 @@ interface RegressionResult {
   [key: string]: number;
 }
 
-interface ResultElement {
-  'header': string;
-  'result': string;
-}
-
 /**
  * A LIT module that renders regression results.
  */
@@ -44,7 +39,7 @@ interface ResultElement {
 export class RegressionModule extends LitModule {
   static title = 'Regression Results';
   static duplicateForExampleComparison = true;
-  static numCols = 2;
+  static numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<regression-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></regression-module>`;
@@ -56,7 +51,7 @@ export class RegressionModule extends LitModule {
 
   private readonly regressionService = app.getService(RegressionService);
 
-  @observable private results: RegressionResult[] = [];
+  @observable private result: RegressionResult|null = null;
 
   firstUpdated() {
     const getPrimarySelectedInputData = () =>
@@ -67,98 +62,87 @@ export class RegressionModule extends LitModule {
         });
   }
 
-  private async updateSelection(primarySelectedInputData: IndexedInput|null) {
-    this.results = [];
-    if (primarySelectedInputData == null) {
+  private async updateSelection(inputData: IndexedInput|null) {
+    if (inputData == null) {
+      this.result = null;
       return;
     }
 
-    const selectedInputData = [primarySelectedInputData];
-
     const dataset = this.appState.currentDataset;
     const promise = this.regressionService.getRegressionPreds(
-        selectedInputData, this.model, dataset);
+        [inputData], this.model, dataset);
 
     const results = await this.loadLatest('regressionPreds', promise);
-    if (results === null) return;
-
-    if (results.length > 0) {
-      const keys = Object.keys(results[0]);
-      for (let i = 0; i < selectedInputData.length; i++) {
-        for (const key of keys) {
-          const regressionInfo = (await this.regressionService.getResults(
-              [selectedInputData[i].id], this.model, key))[0];
-          results[i][this.regressionService.getErrorKey(key)] =
-              regressionInfo.error;
-        }
-      }
+    if (results === null || results.length === 0) {
+      this.result = null;
+      return;
     }
-    this.results = results;
+
+    // Extract the single result, as this only is for a single input.
+    const keys = Object.keys(results[0]);
+    for (const key of keys) {
+      const regressionInfo = (await this.regressionService.getResults(
+          [inputData.id], this.model, key))[0];
+      results[0][this.regressionService.getErrorKey(key)] =
+          regressionInfo.error;
+    }
+    this.result = results[0];
   }
 
   render() {
-    const primarySelectedInputData =
-        this.selectionService.primarySelectedInputData;
-    if (primarySelectedInputData == null) {
+    if (this.result == null) {
       return null;
     }
-    // We only show the primary selection, so input is always one example.
-    const input = primarySelectedInputData;
+    const result = this.result;
+    const input = this.selectionService.primarySelectedInputData!;
 
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
     const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
 
 
-    const rows: ResultElement[][] = [];
-    // Display parent field, score and error on the same row per output.
+    const rows: string[][] = [];
+    let hasParent = false;
+    // Per output, display score, and parent field and error if available.
     for (const scoreField of scoreFields) {
       // Add new row for each output from the model.
-      const row = [] as ResultElement[];
-      const score =
-          (this.results.length === 0 || this.results[0][scoreField] == null) ?
+      const score = result[scoreField] == null ?
           '' :
-          this.results[0][scoreField].toFixed(4);
-      if (score) {
-        row.push({'header': scoreField, 'result': score} as ResultElement);
-      }
+          result[scoreField].toFixed(4);
       // Target score to compare against.
       const parentField = spec.output[scoreField].parent! || '';
       const parentScore = input.data[parentField] == null ?
           '' :
           input.data[parentField].toFixed(4);
+      let errorScore = '';
       if (parentField && parentScore) {
-        row.push(
-            {'header': parentField, 'result': parentScore} as ResultElement);
+        const error =
+            result[this.regressionService.getErrorKey(scoreField)];
+        if (error != null) {
+          hasParent = true;
+          errorScore = error.toFixed(4);
+        }
       }
-      const errorScore =
-          (this.results.length === 0 ||
-           this.results[0][this.regressionService.getErrorKey(scoreField)] ==
-               null) ?
-          '' :
-          this.results[0][this.regressionService.getErrorKey(scoreField)]
-              .toFixed(4);
-      if (errorScore) {
-        row.push({'header': 'error', 'result': errorScore} as ResultElement);
-      }
-      rows.push(row);
+      rows.push([scoreField, parentScore, score, errorScore]);
     }
 
-    const renderRow = (row: ResultElement[]) => html`
-      <tr>
-        ${row.map((entry) => html`<th>${entry.header}</th>`)}
-      </tr>
-      <tr>
-        ${row.map((entry) => html`<td>${entry.result}</td>`)}
-      </tr>`;
+    // If no fields have ground truth scores to compare then don't display the
+    // ground truth-related columns.
+    const columnNames = ["Field", "Ground truth", "Score", "Error"];
+    const columnVisibility = new Map<string, boolean>();
+    columnNames.forEach((name) => {
+      columnVisibility.set(
+          name, hasParent || (name !== 'Ground truth' && name !== 'Error'));
+    });
 
     return html`
-        <table>
-          ${rows.map((row) => renderRow(row))}
-        </table>`;
+      <lit-data-table
+        .columnVisibility=${columnVisibility}
+        .data=${rows} selectionDisabled
+      ></lit-data-table>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'RegressionScore');
   }
 }

@@ -23,9 +23,10 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, Input, ModelsMap, SpanLabel, Spec} from '../lib/types';
+import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
+import {SelectionService} from '../services/selection_service';
 
 import {styles} from './datapoint_editor_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -97,7 +98,6 @@ export class DatapointEditorModule extends LitModule {
     this.reactImmediately(getCurrentDataset, () => {
       when(() => this.appState.currentInputDataIsLoaded, () => {
         this.resize();
-        this.resetEditedData(null);
       });
     });
 
@@ -109,6 +109,8 @@ export class DatapointEditorModule extends LitModule {
   }
 
   updated() {
+    super.updated();
+
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
     // update the displayed value of textareas. See
     // https://github.com/elm/virtual-dom/issues/115#issuecomment-329405689.
@@ -161,10 +163,20 @@ export class DatapointEditorModule extends LitModule {
   }
 
   render() {
+    // Scrolling inside this module is done inside a div with ID 'container'.
+    // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
+    // scrolling to be sync'd instances of this module when doing comparisons
+    // between models and/or duplicated datapoints. See lit_module.ts for more
+    // details.
     return html`
-      <div id="container">
-        ${this.renderEditText()}
-        ${this.renderMakeResetButtons()}
+      <div class='module-container'>
+        <div id="container"
+             class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
+          ${this.renderEditText()}
+        </div>
+        <div id="buttons">
+          ${this.renderButtons()}
+        </div>
       </div>
     `;
   }
@@ -186,18 +198,34 @@ export class DatapointEditorModule extends LitModule {
     return allRequiredInputsFilledOut;
   }
 
-  renderMakeResetButtons() {
+  renderButtons() {
     const makeEnabled = this.datapointEdited && this.allRequiredInputsFilledOut;
+    const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
     const clearEnabled = !!this.selectionService.primarySelectedInputData;
 
     const onClickNew = async () => {
-
-      const toCreate = [[this.editedData]];
-      const ids = [this.selectionService.primarySelectedId!];
-      const datapoints =
-          await this.appState.createNewDatapoints(toCreate, ids, 'manual');
-      this.selectionService.selectIds(datapoints.map(d => d.id));
+      const datum: IndexedInput = {
+        data: this.editedData,
+        id: '',  // will be overwritten
+        meta: {
+          source: 'manual',
+          added: true,
+          parentId: this.selectionService.primarySelectedId!
+        },
+      };
+      const data: IndexedInput[] = await this.appState.indexDatapoints([datum]);
+      this.appState.commitNewDatapoints(data);
+      this.selectionService.selectIds(data.map(d => d.id));
+    };
+    const onClickCompare = async () => {
+      const parentId = this.selectionService.primarySelectedId!;
+      await onClickNew();
+      this.appState.compareExamplesEnabled = true;
+      // By default, both selections will be synced to the newly-created
+      // datapoint. We want to set the reference to be the original parent
+      // example.
+      app.getServiceArray(SelectionService)[1].selectIds([parentId]);
     };
     const onClickReset = () => {
       this.resetEditedData(
@@ -206,23 +234,44 @@ export class DatapointEditorModule extends LitModule {
     const onClickClear = () => {
       this.selectionService.selectIds([]);
     };
-    return html`
-      <div class="button-holder">
-        <button id="make"  @click=${onClickNew} ?disabled="${!makeEnabled}">
-          Analyze new datapoint
-        </button>
-        <button id="reset" @click=${onClickReset}  ?disabled="${!resetEnabled}">
-          Reset
-        </button>
-        <button id="reset" @click=${onClickClear}  ?disabled="${!clearEnabled}">
-          Clear
+
+    const analyzeButton = html`
+      <button id="make" class='hairline-button'
+        @click=${onClickNew} ?disabled="${!makeEnabled}">
+        Add
       </button>
-      </div>
     `;
+    const compareButton = html`
+      <button id="compare" class='hairline-button'
+        @click=${onClickCompare} ?disabled="${!compareEnabled}">
+        Add and compare
+      </button>
+    `;
+    const resetButton = html`
+      <button id="reset" class='hairline-button'
+        @click=${onClickReset}  ?disabled="${!resetEnabled}">
+        Reset
+      </button>
+    `;
+    const clearButton = html`
+      <button id="clear" class='hairline-button'
+        @click=${onClickClear}  ?disabled="${!clearEnabled}">
+        Clear
+      </button>
+    `;
+
+    // clang-format off
+    return html`
+      ${analyzeButton}
+      ${compareButton}
+      ${resetButton}
+      ${clearButton}
+    `;
+    // clang-format off
   }
 
   renderEditText() {
-    const keys = Object.keys(this.editedData);
+    const keys = Object.keys(this.appState.currentDatasetSpec);
     const editable = true;
     // clang-format off
     return html`
@@ -262,6 +311,13 @@ export class DatapointEditorModule extends LitModule {
             </option>`;
       })}
       </select>`;
+    };
+
+    // Render an image.
+    const renderImage = () => {
+      const imageSource = (value == null) ? '' : value.toString() as string;
+      return html`
+      <img class='image' src=${imageSource}>`;
     };
 
     const inputStyle = {'height': this.inputHeights[key]};
@@ -305,19 +361,21 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
-    // Render multi-label inputs as comma-separated, but re-split for editing.
-    const renderSparseMultilabelInput = () => {
-      const handleSparseMultilabelInput = (e: Event) => {
-        handleInputChange(e, (value: string): string[] => {
-          // If value is empty, return [] instead of ['']
-          return value ? value.split(',') : [];
-        });
+    // Display multi-label inputs as separator-separated.
+    const renderSparseMultilabelInputGenerator = (separator: string) => {
+      return () => {
+        const handleSparseMultilabelInput = (e: Event) => {
+          handleInputChange(e, (value: string): string[] => {
+            // If value is empty, return [] instead of ['']
+            return value ? value.split(separator) : [];
+          });
+        };
+        const valueAsString = value ? value.join(separator) : '';
+        return html`
+        <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
+            handleSparseMultilabelInput}
+          ?readonly="${!editable}">${valueAsString}</textarea>`;
       };
-      const valueAsString = value ? value.join(',') : '';
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleSparseMultilabelInput}
-        ?readonly="${!editable}">${valueAsString}</textarea>`;
     };
 
     // Non-editable render for span labels.
@@ -350,7 +408,10 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
       renderInput = renderEdgeLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
-      renderInput = renderSparseMultilabelInput;
+      renderInput =
+          renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
+    } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+      renderInput = renderImage;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
@@ -373,7 +434,23 @@ export class DatapointEditorModule extends LitModule {
     const isRequiredModelInput =
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
 
-    const displayKey = `${key}${isRequiredModelInput ? '(*)' : ''}`;
+    let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
+    if (isLitSubtype(fieldSpec, 'URL')) {
+      headerContent = html`
+        <a href=${value as string} target="_blank">
+          ${headerContent}
+          <mwc-icon class="icon-button">open_in_new</mwc-icon>
+        </a>`;
+    } else if (isLitSubtype(fieldSpec, 'SearchQuery')) {
+      const params = new URLSearchParams();
+      params.set('q', value);
+      headerContent = html`
+        <a href="https://www.google.com/search?${params.toString()}" target="_blank">
+          ${headerContent}
+          <mwc-icon class="icon-button">search</mwc-icon>
+        </a>`;
+    }
+
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
@@ -383,7 +460,10 @@ export class DatapointEditorModule extends LitModule {
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
-        <div><label>${displayKey}: </label></div>
+        <div class='field-header'>
+          <div class='field-name'>${headerContent}</div>
+          <div class='field-type'>(${fieldSpec.__name__})</div>
+        </div>
         <div>
           ${renderInput()}
         </div>
@@ -392,7 +472,7 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

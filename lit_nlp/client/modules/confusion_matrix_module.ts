@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '@material/mwc-icon-button-toggle';
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
@@ -22,7 +23,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, objToDictKey} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {GetFeatureFunc, GroupService} from '../services/group_service';
@@ -62,6 +63,7 @@ export class ConfusionMatrixModule extends LitModule {
       <confusion-matrix-module model=${model}>
       </confusion-matrix-module>`;
   };
+  static numCols = 3;
   static duplicateForModelComparison = false;
 
   static get styles() {
@@ -72,6 +74,7 @@ export class ConfusionMatrixModule extends LitModule {
       app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
 
+  @observable verticalColumnLabels = false;
   @observable hideEmptyLabels = false;
   // These are not observable, because we don't want to trigger a re-render
   // until the matrix cells are updated asynchronously.
@@ -237,10 +240,18 @@ export class ConfusionMatrixModule extends LitModule {
   }
 
   render() {
+    // clang-format off
     return html`
-     ${this.renderControls()}
-     ${this.renderMatrix()}
+      <div class='module-container'>
+        <div class='module-toolbar multiline-toolbar'>
+          ${this.renderControls()}
+        </div>
+        <div class='module-results-area'>
+          ${this.renderMatrix()}
+        </div>
+      </div>
     `;
+    // clang-format on
   }
 
   private renderControls() {
@@ -257,32 +268,48 @@ export class ConfusionMatrixModule extends LitModule {
       this.calculateMatrix();
     };
     return html`
-      <div class="controls-holder">
-        <div class="dropdown-holder">
-          <label class="dropdown-label">Rows</label>
-          <select class="dropdown" @change=${rowChange}>
-            ${this.options.map((option, i) => html`
-              <option ?selected=${this.selectedRowOption === i} value=${i}>
-                ${option.name}
-              </option>`)}
-          </select>
-        </div>
-        <div class="dropdown-holder">
-          <label class="dropdown-label">Columns</label>
-          <select class="dropdown" @change=${colChange}>
-            ${this.options.map((option, i) => html`
-              <option ?selected=${this.selectedColOption === i} value=${i}>
-                ${option.name}
-               </option>`)}
-          </select>
-        </div>
-        <lit-checkbox
-          label="Hide empty labels"
-          ?checked=${this.hideEmptyLabels}
-          @change=${toggleHideCheckbox}>
-        </lit-checkbox>
+      <div class="dropdown-holder">
+        <label class="dropdown-label">Rows</label>
+        <select class="dropdown" @change=${rowChange}>
+          ${this.options.map((option, i) => html`
+            <option ?selected=${this.selectedRowOption === i} value=${i}>
+              ${option.name}
+            </option>`)}
+        </select>
       </div>
+      <div class="dropdown-holder">
+        <label class="dropdown-label">Columns</label>
+        <select class="dropdown" @change=${colChange}>
+          ${this.options.map((option, i) => html`
+            <option ?selected=${this.selectedColOption === i} value=${i}>
+              ${option.name}
+             </option>`)}
+        </select>
+      </div>
+      <lit-checkbox
+        label="Hide empty labels"
+        ?checked=${this.hideEmptyLabels}
+        @change=${toggleHideCheckbox}>
+      </lit-checkbox>
     `;
+  }
+
+  renderColumnRotateButton() {
+    const toggleVerticalColumnLabels = () => {
+      this.verticalColumnLabels = !this.verticalColumnLabels;
+    };
+
+    // clang-format off
+    return html`
+      <mwc-icon-button-toggle class="icon-button"
+        title="Rotate column labels"
+        onIcon="text_rotate_up" offIcon="text_rotation_none"
+        ?on="${this.verticalColumnLabels}"
+        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}"
+        @icon-button-toggle-change="${toggleVerticalColumnLabels}">
+      </mwc-icon-button-toggle>
+    `;
+    // clang-format on
   }
 
   private renderMatrix() {
@@ -319,7 +346,18 @@ export class ConfusionMatrixModule extends LitModule {
       if (this.hideEmptyLabels && !colsWithNonZeroCounts.has(label)) {
         return null;
       }
-      return html`<th class="header-cell" @click=${onColClick}>${label}</th>`;
+      const classes = classMap({
+        'header-cell': true,
+        'align-bottom': this.verticalColumnLabels,
+        'label-vertical': this.verticalColumnLabels
+      });
+      // clang-format off
+      return html`
+        <th class=${classes} @click=${onColClick}>
+          <div>${label}</div>
+        </th>
+      `;
+      // clang-format on
     };
 
     // Render a clickable confusion matrix cell.
@@ -361,32 +399,41 @@ export class ConfusionMatrixModule extends LitModule {
       if (this.hideEmptyLabels && !rowsWithNonZeroCounts.has(rowLabel)) {
         return null;
       }
+      // clang-format off
       return html`
-          <tr>
-            <th class="header-cell" @click=${onRowClick}>${rowLabel}</th>
-            ${
-          colLabels.map((colLabel, colIndex) => renderCell(rowIndex, colIndex))}
-          </tr>`;
+        <tr>
+          ${rowIndex === 0 ? html`
+              <td class='axis-title label-vertical' rowspan=${rowOption.labelList.length}>
+                <div>${rowOption.name}</div>
+              </td>`
+            : null}
+          <th class="header-cell align-right" @click=${onRowClick}>
+            ${rowLabel}
+          </th>
+          ${colLabels.map(
+              (colLabel, colIndex) => renderCell(rowIndex, colIndex))}
+        </tr>`;
+      // clang-format on
     };
 
     // clang-format off
     return html`
-      <div class="matrix-holder">
-        <div class="column-title">${colOption.name}</div>
-        <div class="table-and-row-title-holder">
-          <div class="row-title">${rowOption.name}</div>
-          <table>
-            <tr>
-              <th></th>
-              ${colLabels.map(
-                  (colLabel, colIndex) => renderColHeader(colLabel, colIndex))}
-            </tr>
-            ${rowLabels.map(
-                (rowLabel, rowIndex) => renderRow(rowLabel, rowIndex))}
-          </table>
-        </div>
-      </div>
-      `;
+      <table>
+        <tr>
+          <th>${this.renderColumnRotateButton()}</th><td></td>
+          <td class='axis-title' colspan=${colOption.labelList.length}>
+            ${colOption.name}
+          </td>
+        </tr>
+        <tr>
+          <td colspan=2></td>
+          ${colLabels.map(
+              (colLabel, colIndex) => renderColHeader(colLabel, colIndex))}
+        </tr>
+        ${rowLabels.map(
+            (rowLabel, rowIndex) => renderRow(rowLabel, rowIndex))}
+      </table>
+    `;
     // clang-format on
   }
 
@@ -402,7 +449,7 @@ export class ConfusionMatrixModule extends LitModule {
     this.selectionService.selectIds(ids, this);
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

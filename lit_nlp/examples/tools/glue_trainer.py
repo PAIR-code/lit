@@ -80,15 +80,15 @@ def main(_):
   if FLAGS.task == "sst2":
     train_data = glue.SST2Data("train")
     val_data = glue.SST2Data("validation")
-    model = glue_models.SST2Model(FLAGS.encoder_name, for_training=True)
+    model = glue_models.SST2Model(FLAGS.encoder_name)
   elif FLAGS.task == "mnli":
     train_data = glue.MNLIData("train")
     val_data = glue.MNLIData("validation_matched")
-    model = glue_models.MNLIModel(FLAGS.encoder_name, for_training=True)
+    model = glue_models.MNLIModel(FLAGS.encoder_name)
   elif FLAGS.task == "stsb":
     train_data = glue.STSBData("train")
     val_data = glue.STSBData("validation")
-    model = glue_models.STSBModel(FLAGS.encoder_name, for_training=True)
+    model = glue_models.STSBModel(FLAGS.encoder_name)
   else:
     raise ValueError(f"Unrecognized task name: '{FLAGS.task:s}'")
 

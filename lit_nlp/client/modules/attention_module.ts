@@ -20,13 +20,15 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property, svg} from 'lit-element';
-import {observable, reaction} from 'mobx';
+import {css, customElement, html, svg} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec} from '../lib/types';
-import {cumSumArray, doesOutputSpecContain, findSpecKeys, sumArray} from '../lib/utils';
+import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
+import {FocusService} from '../services/services';
 
 import {styles as sharedStyles} from './shared_styles.css';
 
@@ -48,8 +50,27 @@ export class AttentionModule extends LitModule {
   };
 
   static get styles() {
-    return sharedStyles;
+    const styles = css`
+        .head-selector-chip {
+          margin: 0px 1px;
+          width: 1rem;
+          text-align: center;
+        }
+
+        .head-selector-chip.selected {
+          color: #6403fa;
+          border-color: #6403fa;
+        }
+
+        .head-selector-chip:hover {
+          background: #f3e8fd;
+        }
+    `;
+    return [sharedStyles, styles];
   }
+
+  private readonly focusService = app.getService(FocusService);
+  private clearFocusTimer: number|undefined;
 
   @observable private selectedLayer?: string;
   @observable private selectedHeadIndex: number = 0;
@@ -64,50 +85,62 @@ export class AttentionModule extends LitModule {
   }
 
   private async updateSelection(selectedInput: IndexedInput|null) {
-    if (selectedInput === null) {
-      this.preds = undefined;
-    } else {
-      const dataset = this.appState.currentDataset;
-      const promise = this.apiService.getPreds(
-          [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
-          'Fetching attention');
-      const res = await this.loadLatest('attentionAndTokens', promise);
-      if (res === null) return;
-      this.preds = res[0];
+    this.preds = undefined;  // clear previous results
+
+    if (selectedInput === null) return;
+    const dataset = this.appState.currentDataset;
+    const promise = this.apiService.getPreds(
+        [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
+        'Fetching attention');
+    const res = await this.loadLatest('attentionAndTokens', promise);
+    if (res === null) return;
+    this.preds = res[0];
+    // Make sure head selection is valid.
+    const numHeadsPerLayer = this.preds[this.selectedLayer!] != null ?
+        this.preds[this.selectedLayer!].length : 0;
+    if (this.selectedHeadIndex >= numHeadsPerLayer) {
+      this.selectedHeadIndex = 0;
     }
   }
 
   render() {
-    if (this.preds) {
-      return html`
-      <div>
-        ${this.renderAttnHeadDropdown()}
-        ${this.renderIdxDropdown()}
+    if (!this.preds) return;
+
+    // Scrolling inside this module is done inside the module-results-area div.
+    // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
+    // scrolling to be sync'd instances of this module when doing comparisons
+    // between models and/or duplicated datapoints. See lit_module.ts for more
+    // details.
+    // clang-format off
+    return html`
+      <div class='module-container'>
+        <div class='module-toolbar'>
+          ${this.renderLayerSelector()}
+          ${this.renderHeadSelector()}
+        </div>
+        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
+          ${this.renderAttnHead()}
+        </div>
       </div>
-        ${this.renderAttnHead()}
-      `;
-    }
-    // If the input was cleared (so there is no data to show), hide everything
-    return null;
+    `;
+    // clang-format on
   }
 
   private renderAttnHead() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const align = outputSpec[this.selectedLayer!].align as [string, string];
+    const fieldSpec = outputSpec[this.selectedLayer!];
 
     // Tokens involved in the attention.
-    const inToks = (this.preds!)[align[0]] as Tokens;
-    const outToks = (this.preds!)[align[1]] as Tokens;
+    const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
+    const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
 
-    const inTokLens = inToks.map(tok => tok.length + 1);
-    const outTokLens = outToks.map(tok => tok.length + 1);
-
-    const inTokStr = svg`${inToks.join(' ')}`;
-    const outTokStr = svg`${outToks.join(' ')}`;
-
-    // Character width is constant as this is a fixed width font.
-    const charWidth = 6.5;
+    const fontFamily = "'Share Tech Mono', monospace";
     const fontSize = 12;
+    const defaultCharWidth = 6.5;
+    const font = `${fontSize}px ${fontFamily}`;
+    const inTokWidths = inToks.map(tok => getTextWidth(tok, font, defaultCharWidth));
+    const outTokWidths = outToks.map(tok => getTextWidth(tok, font, defaultCharWidth));
+    const spaceWidth = getTextWidth(' ', font, defaultCharWidth);
 
     // Height of the attention visualization part.
     const visHeight = 100;
@@ -116,18 +149,75 @@ export class AttentionModule extends LitModule {
     const pad = 10;
 
     // Calculate the full width and height.
-    const width =
-        Math.max(sumArray(inTokLens), sumArray(outTokLens)) * charWidth;
+    const inTokWidth = sumArray(inTokWidths) + (inToks.length - 1) * spaceWidth;
+    const outTokWidth = sumArray(outTokWidths) + (outToks.length - 1) * spaceWidth;
+    const width = Math.max(inTokWidth, outTokWidth);
     const height = visHeight + fontSize * 2 + pad * 4;
+    const inTokOffsets = getTokOffsets(inTokWidths, spaceWidth);
+    const outTokOffsets = getTokOffsets(outTokWidths, spaceWidth);
+
+    // If focus is one any of the tokens in the attention viz, then only show
+    // attention info for those tokens.
+    const focusData = this.focusService.focusData;
+    let inTokenIdxFocus = null;
+    let outTokenIdxFocus =  null;
+    const primaryDatapointFocused = focusData != null &&
+        focusData.datapointId ===
+          this.selectionService.primarySelectedInputData!.id;
+    if (primaryDatapointFocused &&
+        (focusData!.fieldName === fieldSpec.align_out ||
+         focusData!.fieldName === fieldSpec.align_in)) {
+      inTokenIdxFocus = focusData!.fieldName === fieldSpec.align_in
+          ? focusData!.subField: -1;
+      outTokenIdxFocus = focusData!.fieldName === fieldSpec.align_out
+          ? focusData!.subField: -1;
+    }
+    const clearFocus = () => {
+      if (this.clearFocusTimer != null) {
+        clearTimeout(this.clearFocusTimer);
+      }
+      this.clearFocusTimer = setTimeout(() => {
+        this.focusService.clearFocus();
+      }, 500) as unknown as number;
+    };
+
+    const toksRender = (tok: string, i: number, isInputToken: boolean) => {
+      const alignVal =
+          isInputToken ? fieldSpec.align_in! : fieldSpec.align_out!;
+      const mouseOver = () => {
+        clearTimeout(this.clearFocusTimer);
+        this.focusService.setFocusedField(
+            this.selectionService.primarySelectedInputData!.id,
+            'input',
+            alignVal,
+            i);
+      };
+      const mouseOut = () => {
+        clearFocus();
+      };
+      const x = isInputToken ? inTokOffsets[i] : outTokOffsets[i];
+      const text = svg`${tok}`;
+      let opacity = 1;
+      if (primaryDatapointFocused &&
+          focusData!.fieldName === alignVal &&
+          focusData!.subField !== i) {
+        opacity = 0.2;
+      }
+
+      const y = isInputToken ? visHeight + 4 * pad : pad * 2;
+      return svg`<text y=${y} x=${x} opacity=${opacity}
+          @mouseover=${mouseOver} @mouseout=${mouseOut}> ${text}</text>`;
+    };
 
     // clang-format off
     return svg`
     <svg width=${width} height=${height}
-      font-family="'Share Tech Mono', monospace"
+      font-family="${fontFamily}"
       font-size="${fontSize}px">
-      <text y=${pad * 2}> ${outTokStr}</text>
-      ${this.renderAttnLines(visHeight, charWidth, 2.5 * pad, inTokLens, outTokLens)}
-      <text y=${visHeight + 4 * pad}> ${inTokStr}</text>
+      ${outToks.map((tok, i) => toksRender(tok, i, false))}
+      ${this.renderAttnLines(visHeight, spaceWidth, 2.5 * pad, inTokWidths,
+                             outTokWidths, inTokenIdxFocus, outTokenIdxFocus)}
+      ${inToks.map((tok, i) => toksRender(tok, i, true))}
     </svg>
     `;
     // clang-format on
@@ -137,17 +227,16 @@ export class AttentionModule extends LitModule {
    * Render the actual lines between tokens to show the attention values.
    */
   private renderAttnLines(
-      visHeight: number, charWidth: number, pad: number, inTokLens: number[],
-      outTokLens: number[]) {
-    const cumSumInTokLens = cumSumArray(inTokLens);
-    const cumSumOutTokLens = cumSumArray(outTokLens);
+      visHeight: number, spaceWidth: number, pad: number, inTokWidths: number[],
+      outTokWidths: number[], inTokenIdxFocus: number|null,
+      outTokenIdxFocus: number|null) {
+    const inTokOffsets = getTokOffsets(inTokWidths, spaceWidth);
+    const outTokOffsets = getTokOffsets(outTokWidths, spaceWidth);
     const y1 = pad;
     const y2 = pad + visHeight;
 
-    const xIn = (i: number) =>
-        (cumSumInTokLens[i] - inTokLens[i] / 2) * charWidth;
-    const xOut = (i: number) =>
-        (cumSumOutTokLens[i] - outTokLens[i] / 2) * charWidth;
+    const xIn = (i: number) => inTokOffsets[i] + (inTokWidths[i] / 2);
+    const xOut = (i: number) => outTokOffsets[i] + (outTokWidths[i] / 2);
 
     const heads = this.preds![this.selectedLayer!] as AttentionHeads;
 
@@ -156,15 +245,22 @@ export class AttentionModule extends LitModule {
         (attnVals: number[], i: number) => {
           return svg`
             ${attnVals.map((attnVal: number, j: number) => {
-              return svg`
-                <line
-                  x1=${xIn(j)}
-                  y1=${y1}
-                  x2=${xOut(i)}
-                  y2=${y2}
-                  stroke="rgba(100,3,250,${attnVal})"
-                  stroke-width=2>
-                </line>`;
+              // If token focus index is not null and not equal to an endpoint
+              // of an attention line, then do not render it.
+              if (inTokenIdxFocus != null && outTokenIdxFocus != null &&
+                  (i !== inTokenIdxFocus && j !== outTokenIdxFocus)) {
+                return null;
+              } else {
+                return svg`
+                  <line
+                    x1=${xOut(i)}
+                    y1=${y1}
+                    x2=${xIn(j)}
+                    y2=${y2}
+                    stroke="rgba(100,3,250,${attnVal})"
+                    stroke-width=2>
+                  </line>`;
+              }
           })}`;
         });
     // clang-format on
@@ -173,40 +269,51 @@ export class AttentionModule extends LitModule {
   /**
    * Render the dropdown with the layer names.
    */
-  private renderAttnHeadDropdown() {
+  private renderLayerSelector() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     const attnKeys = findSpecKeys(outputSpec, 'AttentionHeads');
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];
     }
-    const onchange = (e: Event) => this.selectedLayer =
-        (e.target as HTMLSelectElement).value;
+    const onchange = (e: Event) => {
+      this.selectedLayer = (e.target as HTMLSelectElement).value;
+    };
+    // clang-format off
     return html`
-        <select class="dropdown" @change=${onchange}>
-          ${attnKeys.map(key => {
-      return html`<option value=${key}>${key}</option>`;
-    })}
-        </select>`;
+      <select class="dropdown" @change=${onchange}>
+        ${attnKeys.map(key => html`<option value=${key}>${key}</option>`)}
+      </select>
+    `;
+    // clang-format on
   }
 
   /**
    * Render the dropdown for the attention head index.
    */
-  private renderIdxDropdown() {
+  private renderHeadSelector() {
+    const renderChip = (i: number) => {
+      const handleClick = () => {
+        this.selectedHeadIndex = i;
+      };
+      const classes = classMap({
+        'head-selector-chip': true,
+        'token-chip-function': true,
+        'selected': i === this.selectedHeadIndex,
+      });
+      return html`<div class=${classes} @click=${handleClick}>${i}</div>`;
+    };
     const numHeadsPerLayer = this.preds![this.selectedLayer!].length;
     const numHeadsPerLayerRange =
         Array.from({length: numHeadsPerLayer}, (x: string, i: number) => i);
-    const onchange = (e: Event) => this.selectedHeadIndex =
-        Number((e.target as HTMLSelectElement).value);
+    // clang-format off
     return html`
-    <select class="dropdown" @change=${onchange}>
-      ${numHeadsPerLayerRange.map(key => {
-      return html`<option value=${key}>${key}</option>`;
-    })}
-    </select>`;
+        <label class="head-selector-label">Head:</label>
+        ${numHeadsPerLayerRange.map(renderChip)}
+    `;
+    // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
   }
 }

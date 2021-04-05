@@ -37,18 +37,19 @@ projections).
 import abc
 import copy
 import threading
-from typing import Any, Dict, List, Text, Optional, Hashable, Iterable, Type
+from typing import Any, Dict, List, Text, Optional, Hashable, Iterable, Type, Sequence
 
 from absl import logging
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
-from lit_nlp.api import types as lit_types
+from lit_nlp.api import types
 from lit_nlp.lib import caching
 
-JsonDict = lit_types.JsonDict
-Spec = lit_types.Spec
+JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
+Spec = types.Spec
 
 
 class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
@@ -67,11 +68,11 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
   # LIT model API
   def input_spec(self):
     # 'x' denotes input features
-    return {"x": lit_types.Embeddings()}
+    return {"x": types.Embeddings()}
 
   def output_spec(self):
     # 'z' denotes projected embeddings
-    return {"z": lit_types.Embeddings()}
+    return {"z": types.Embeddings()}
 
   @abc.abstractmethod
   def predict_minibatch(self, inputs: Iterable[JsonDict],
@@ -85,7 +86,8 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
 class ProjectionInterpreter(lit_components.Interpreter):
   """Interpreter API implementation for dimensionality reduction model."""
 
-  def __init__(self, model: lit_model.Model, indexed_inputs: List[JsonDict],
+  def __init__(self, model: lit_model.Model,
+               indexed_inputs: Sequence[IndexedInput],
                model_outputs: Optional[List[JsonDict]],
                projector: ProjectorModel, field_name: Text, name: Text):
     self._projector = caching.CachingModelWrapper(projector, name=name)
@@ -103,7 +105,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
 
   def _run(self,
            model: lit_model.Model,
-           indexed_inputs: List[JsonDict],
+           indexed_inputs: Sequence[IndexedInput],
            model_outputs: Optional[List[JsonDict]] = None,
            do_fit=False):
     # Run model, if needed.
@@ -121,7 +123,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
           converted_inputs, dataset_name="")
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.Dataset,
                         model_outputs: Optional[List[JsonDict]] = None,
@@ -166,15 +168,12 @@ class ProjectionManager(lit_components.Interpreter):
     self._model_factory = model_class
 
   def _train_instance(self, model: lit_model.Model,
-                      dataset: lit_dataset.Dataset, config: Dict[Text, Any],
+                      dataset: lit_dataset.IndexedDataset, config: JsonDict,
                       name: Text) -> ProjectionInterpreter:
     # Ignore pytype warning about abstract methods, since this should always
     # be a subclass of ProjectorModel which has these implemented.
     projector = self._model_factory(**config.get("proj_kw", {}))  # pytype: disable=not-instantiable
-    # TODO(lit-dev): recomputing hashes here is a bit wasteful - consider
-    # creating an 'IndexedDataset' class in the server, and passing that
-    # around so that components can access IndexedInputs directly.
-    train_inputs = caching.add_hashes_to_input(dataset.examples)
+    train_inputs = dataset.indexed_examples
     # TODO(lit-dev): remove 'dataset_name' from caching logic so we don't need
     # to track it here or elsewhere.
     train_outputs = list(
@@ -198,9 +197,9 @@ class ProjectionManager(lit_components.Interpreter):
       return self._run_with_metadata(*args, **kw)
 
   def _run_with_metadata(self,
-                         indexed_inputs: List[JsonDict],
+                         indexed_inputs: Sequence[IndexedInput],
                          model: lit_model.Model,
-                         dataset: lit_dataset.Dataset,
+                         dataset: lit_dataset.IndexedDataset,
                          model_outputs: Optional[List[JsonDict]] = None,
                          config: Dict[Text, Any] = None):
     instance_key = _key_from_dict(config)

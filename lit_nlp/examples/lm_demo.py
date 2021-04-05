@@ -20,6 +20,7 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
@@ -31,7 +32,7 @@ from lit_nlp.examples.models import pretrained_lms
 FLAGS = flags.FLAGS
 
 flags.DEFINE_list(
-    "models", ["bert-base-uncased"],
+    "models", ["bert-base-uncased", "gpt2"],
     "Models to load. Currently supports variants of BERT and GPT-2.")
 
 flags.DEFINE_integer("top_k", 10,
@@ -47,13 +48,33 @@ flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
-# Set default layout to one better suited to language models.
+# Custom frontend layout; see client/lib/types.ts
+LM_LAYOUT = lit_dtypes.LitComponentLayout(
+    components={
+        "Main": [
+            "embeddings-module",
+            "data-table-module",
+            "datapoint-editor-module",
+            "lit-slice-module",
+            "color-module",
+        ],
+        "Predictions": [
+            "lm-prediction-module",
+            "confusion-matrix-module",
+        ],
+        "Counterfactuals": ["generator-module"],
+    },
+    description="Custom layout for language models.",
+)
+CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
+
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")
 
 
 def get_wsgi_app():
   FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
@@ -92,7 +113,8 @@ def main(_):
   # of data if you haven't loaded `lm1b` before.
   if FLAGS.load_bwb:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
-    datasets["bwb"] = lm.BillionWordBenchmark("train", max_examples=1000)
+    datasets["bwb"] = lm.BillionWordBenchmark(
+        "train", max_examples=FLAGS.max_examples)
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:FLAGS.max_examples]
@@ -101,7 +123,11 @@ def main(_):
   generators = {"word_replacer": word_replacer.WordReplacer()}
 
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 

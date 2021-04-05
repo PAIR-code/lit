@@ -18,8 +18,8 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
+import {IndexedInput, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
-import {IndexedInput, Input, LitMetadata, LitType, ModelsMap, ModelSpec, Spec, LitComponentLayouts, LitComponentLayout} from '../lib/types';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -28,7 +28,6 @@ import {StateObservedByUrlService, UrlConfiguration} from './url_service';
 
 
 type Id = string;
-type ModelName = string;
 type DatasetName = string;
 type IndexedInputMap = Map<Id, IndexedInput>;
 
@@ -119,7 +118,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get currentModelRequiredInputSpecKeys(): string[] {
     // Add all required keys from current model input specs.
     const keys = new Set<string>();
-    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelSpec) => {
+    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelInfo) => {
       Object.keys(modelSpec.spec.input).forEach(key => {
         if (modelSpec.spec.input[key].required === true) {
           keys.add(key);
@@ -176,7 +175,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Return the ancestry [id, parentId, grandParentId, ...] of an id,
    * by recursively following parent pointers.
    */
-  getAncestry(id: string): string[] {
+  getAncestry(id?: string): string[] {
     const ret: string[] = [];
     while (id) {
       ret.push(id);
@@ -201,7 +200,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const allModelSpecs = this.metadata.models;
 
     // Get the specs of only the selected models.
-    const currentModelSpecs: ModelsMap = {};
+    const currentModelSpecs: ModelInfoMap = {};
     Object.keys(allModelSpecs).forEach(modelName => {
       if (this.currentModels.includes(modelName)) {
         currentModelSpecs[modelName] = allModelSpecs[modelName];
@@ -213,10 +212,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the input and output spec for a particular model.
    */
-  getModelSpec(modelName: string): {
-    input: Spec,
-    output: Spec,
-  } {
+  getModelSpec(modelName: string): ModelSpec {
     return this.metadata.models[modelName].spec;
   }
 
@@ -235,50 +231,24 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Generation logic
   /**
-   * Create and add new datapoints from the output of a generator.
-   * @param data list-of-lists of inputs. Inner lists are generations derived
-   * from a single input.
-   * @param parentIds list of ids of parents, corresponding to the outer index
-   * of data.
-   * @param source name of the generator that created these points.
+   * Index one or more bare datapoints.
+   * @param data input examples; ids will be overwritten.
    */
-  async createNewDatapoints(
-      data: Input[][], parentIds: string[],
-      source: string): Promise<IndexedInput[]> {
-    let datapoints: IndexedInput[] = [];
-    // Loop through new counterfactuals. Outer loop for input examples,
-    // inner loop for list of counterfactuals for each input.
-    for (let i = 0; i < data.length; i++) {
-      for (let j = 0; j < data[i].length; j++) {
-        const point: IndexedInput = {
-          'data': data[i][j],
-          'id': '',
-          'meta': {
-            'parentId': parentIds[i],
-            'source': source,
-            'added': 1,
-            'isStarred': false
-          }
-        };
-
-        datapoints.push(point);
-      }
-    }
-
-    // Fill in unique IDs for the new datapoints.
-    datapoints = await this.apiService.getDatapointIds(datapoints);
-
-    // Update input data for new datapoints.
-    this.commitNewDatapoints(datapoints);
-    return datapoints;
+  async indexDatapoints(data: IndexedInput[]): Promise<IndexedInput[]> {
+    // Legacy: this exists as a pass-through so lit_app.ts and url_service.ts
+    // don't need to depend on the ApiService directly.
+    return this.apiService.getDatapointIds(data);
   }
 
 
   /**
-   * Atomically commit a list of new datapoints.
+   * Atomically commit new datapoints to the active dataset.
+   * Note that (currently) this state is entirely stored on the frontend;
+   * if the page is reloaded the newly-added points will not be there unless
+   * recovered via URL params or another mechanism.
    */
   @action
-  private commitNewDatapoints(datapoints: IndexedInput[]) {
+  commitNewDatapoints(datapoints: IndexedInput[]) {
     datapoints.forEach(entry => {
       // If the new datapoint already exists in the input data, do not overwrite
       // it with this new copy, as that will cause issues with datapoint parent
@@ -303,11 +273,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const info = await this.apiService.getInfo();
     console.log('[LIT - metadata]', toJS(info));
     this.metadata = info;
+    // Add any custom layouts that were specified in Python.
+    Object.assign(this.layouts, this.metadata.layouts);
     this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
     this.setCurrentDataset(
-        this.determineCurrentDatasetFromUrl(urlConfiguration),
+        await this.determineCurrentDatasetFromUrl(urlConfiguration),
         /** should Load Data */ false);
 
     await this.loadData();
@@ -316,11 +288,10 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
 
   async loadData() {
-    if (this.currentDataset) {
-      const inputResponse =
-          await this.apiService.getInputs(this.currentDataset);
-      this.updateInputData(this.currentDataset, inputResponse);
-    }
+    if (!this.currentDataset) return;
+
+    const inputResponse = await this.apiService.getDataset(this.currentDataset);
+    this.updateInputData(this.currentDataset, inputResponse);
   }
 
   private updateInputData(dataset: string, data: IndexedInput[]) {
@@ -343,9 +314,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return models.length > 0 ? models : availableModels.slice(0, 1);
   }
 
-  private determineCurrentDatasetFromUrl(urlConfiguration: UrlConfiguration) {
+  private async determineCurrentDatasetFromUrl(urlConfiguration: UrlConfiguration) {
     const urlSelectedDataset = urlConfiguration.selectedDataset || '';
-
+    const urlNewDatasetPath = urlConfiguration.newDatasetPath;
     // Ensure that the currentDataset is part of the available datasets for
     // the currentModel
     const availableDatasets = new Set<string>();
@@ -357,13 +328,50 @@ export class AppState extends LitService implements StateObservedByUrlService {
     }
 
     if (availableDatasets.has(urlSelectedDataset)) {
+      // If the url param is set for creating a new dataset from a path, try
+      // to do that.
+      let newlyCreatedDataset;
+      if (urlNewDatasetPath) {
+        newlyCreatedDataset = await this.createNewDataset(
+          urlSelectedDataset, urlNewDatasetPath);
+        // If the dataset was successfully created, select it.
+        if (newlyCreatedDataset) {
+          return newlyCreatedDataset;
+        }
+      }
+      // Return the selected dataset.
       return urlSelectedDataset;
-    } else {
+    }
+
+    // If the dataset is not compatable with the selected models, return the
+    // first compatable dataset.
+    else {
       if (availableDatasets.size === 0) {
         this.statusService.addError('No dataset available for loaded models.');
         return '';
       }
       return [...availableDatasets][0];
+    }
+  }
+
+  /**
+   * Try to create a new dataset, if the url param is set.
+   * If the url param is not set, or if the dataset creation fails, return null.
+   * @param urlSelectedDataset Original dataset (to clone from).
+   * @param urlNewDatasetPath Path of new datasest.
+   */
+  private async createNewDataset(
+    urlSelectedDataset: string,
+    urlNewDatasetPath: string){
+    try {
+      const newInfo = await this.apiService.createDataset(
+        urlSelectedDataset, urlNewDatasetPath);
+      this.metadata = newInfo[0];
+      return newInfo[1];
+    } catch {
+      this.statusService.addError(`Could not load dataset from
+        ${urlNewDatasetPath}. See console for more details.`);
+      return;
     }
   }
 

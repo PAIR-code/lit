@@ -22,7 +22,7 @@
 import * as d3 from 'd3';  // Used for array helpers.
 
 import {html, TemplateResult} from 'lit-element';
-import {FacetMap, LitName, LitType, ModelsMap, Spec} from './types';
+import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /**
  * Random integer in range [min, max), where min and max are integers
@@ -83,6 +83,17 @@ export function findSpecKeys(
   }
   return Object.keys(spec).filter(
       key => isLitSubtype(spec[key], typesToFind as LitName[]));
+}
+
+/**
+ * Return a new object with the selected keys from the old one.
+ */
+export function filterToKeys<V>(obj: {[key: string]: V}, keys: string[]) {
+  const ret: {[key: string]: V} = {};
+  for (const key of keys) {
+    ret[key] = obj[key];
+  }
+  return ret;
 }
 
 /**
@@ -199,7 +210,7 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelsMap, typesToCheck: LitName|LitName[]): boolean {
+    models: ModelInfoMap, typesToCheck: LitName|LitName[]): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
     const outputSpec = models[modelNames[modelNum]].spec.output;
@@ -271,18 +282,49 @@ export function chunkWords(sent: string) {
 export function linkifyUrls(
     text: string,
     target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
-  const formatLink = (url: string) =>
-      html`<a href=${url} target=${target}>${url}</a>`;
   const ret: Array<string|TemplateResult> = [];  // return segments
   let lastIndex = 0;  // index of last character added to return segments
-  // Find https (yes, only https) urls and make them real links.
+  // Find urls and make them real links.
   // Similar to gmail and other apps, this assumes terminal punctuation is
   // not part of the url.
-  for (const match of text.matchAll(/https:\/\/[^\s]+[^.?!\s]/g)) {
+  const matcher = /https?:\/\/[^\s]+[^.?!\s]/g;
+  const formatLink = (url: string) =>
+      html`<a href=${url} target=${target}>${url}</a>`;
+  for (const match of text.matchAll(matcher)) {
     ret.push(text.slice(lastIndex, match.index));
     lastIndex = match.index! + match[0].length;
     ret.push(formatLink(text.slice(match.index, lastIndex)));
   }
   ret.push(text.slice(lastIndex, text.length));
   return html`${ret}`;
+}
+
+const CANVAS = document.createElement('canvas');
+/**
+ * Computes the width of a string given a CSS font specifier. If the
+ * browser doesn't support <canvas> elements, the width will be computed
+ * using the specified default character width.
+ */
+export function getTextWidth(text: string, font: string, defaultCharWidth: number): number {
+  const context = CANVAS.getContext == null ? null : CANVAS.getContext('2d');
+  if (context == null) {
+    return text.length * defaultCharWidth;
+  }
+  context.font = font;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
+
+/**
+ * Gets the offset to the beginning of each token in a sentence using
+ * the specified token widths and space width.
+ */
+export function getTokOffsets(tokWidths: number[], spaceWidth: number): number[] {
+  const tokOffsets: number[] = [];
+  let curOffset = 0;
+  for (let i = 0; i < tokWidths.length; i++) {
+    tokOffsets.push(curOffset);
+    curOffset += tokWidths[i] + spaceWidth;
+  }
+  return tokOffsets;
 }

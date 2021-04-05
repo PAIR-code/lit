@@ -24,6 +24,7 @@ from lit_nlp.lib import wsgi_serving
 WSGI_SERVERS = {}
 WSGI_SERVERS['basic'] = wsgi_serving.BasicDevServer
 WSGI_SERVERS['default'] = wsgi_serving.BasicDevServer
+WSGI_SERVERS['notebook'] = wsgi_serving.NotebookWsgiServer
 
 
 def get_lit_logo():
@@ -79,10 +80,11 @@ class Server(object):
     served by this module.
 
     Returns:
-      WSGI app if the server type is 'external', otherwise None when
-      serving is complete.
+      WSGI app if the server type is 'external', server if the server type
+      is 'notebook', otherwise None when serving is complete.
     """
     while True:
+
       logging.info(get_lit_logo())
       logging.info('Starting LIT server...')
       app = lit_app.LitApp(*self._app_args, **self._app_kw)
@@ -91,13 +93,22 @@ class Server(object):
       # then just return the WSGI app instead of serving it directly.
       if self._server_type == 'external':
         return app
+      # Pre-bake mode runs any warm-start functions, saves the cache,
+      # and exits. Designed to be used in container setup for faster launching.
+      if self._server_type == 'prebake':
+        app.save_cache()
+        logging.info('Pre-bake completed; exiting server.')
+        return
 
       server_fn = WSGI_SERVERS[self._server_type]
       server = server_fn(app, **self._server_kw)
 
-      # The underlying TSServer registers a SIGINT handler,
+      # server.serve isn't blocking for notebook server type.
+      # For other types, the underlying server registers a SIGINT handler,
       # so if you hit Ctrl+C it will return.
       server.serve()
+      if self._server_type == 'notebook':
+        return server
       app.save_cache()
       # Optionally, reload server for development.
       # Potentially brittle - don't use this for real deployments.

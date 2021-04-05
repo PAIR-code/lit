@@ -18,23 +18,26 @@
 // tslint:disable:no-new-decorators
 import './checkbox';
 import '@material/mwc-icon';
-import {customElement, html, LitElement, property} from 'lit-element';
+import {customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
+import {ReactiveElement} from '../lib/elements';
 
 import {LitType, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
-import {styles} from './generator_controls.css';
+import {styles} from './interpreter_controls.css';
 import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 /**
- * Controls panel for a generator.
+ * Controls panel for an interpreter.
  */
-@customElement('lit-generator-controls')
-export class GeneratorControls extends LitElement {
+@customElement('lit-interpreter-controls')
+export class InterpreterControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
-  settings: {[name: string]: string|string[]} = {};
+  @observable @property({type: String}) description = '';
+  @observable @property({type: Boolean}) bordered = false;
+  @observable settings: {[name: string]: string|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static get styles() {
@@ -42,9 +45,9 @@ export class GeneratorControls extends LitElement {
   }
 
   render() {
-    const generate = () => {
-      // Event to be dispatched when a generator is applied.
-      const event = new CustomEvent('generator-click', {
+    const apply = () => {
+      // Event to be dispatched when an interpreter is applied.
+      const event = new CustomEvent('interpreter-click', {
         detail: {
           name: this.name,
           settings: this.settings
@@ -53,25 +56,42 @@ export class GeneratorControls extends LitElement {
       this.dispatchEvent(event);
     };
 
+    const expandable = Object.keys(this.spec).length > 0 ||
+        this.description.length > 0;
     const collapseIconName = this.opened ? 'expand_less' : 'expand_more';
     const onCollapseClick = () => {
+      if (!expandable) {
+        return;
+      }
       this.opened = !this.opened;
+    };
+    const headerClasses = {
+      'collapsible': true,
+      'header': true,
+      'bordered-header': this.bordered
     };
     const contentClasses = {
       'content': true,
-      'minimized': !this.opened
+      'minimized': !this.opened,
+      'bordered-content': this.bordered
     };
     return html`
-      <div class="collapsible" @click=${onCollapseClick}>
-        <div class="title">${this.name}</div>
-        <mwc-icon class="icon-button min-button">
-          ${collapseIconName}
-        </mwc-icon>
-      </div>
+      ${expandable ? html`
+        <div class=${classMap(headerClasses)} @click=${onCollapseClick}>
+          <div class="title">${this.name}</div>
+          <mwc-icon class="icon-button min-button">
+            ${collapseIconName}
+          </mwc-icon>
+        </div>` : html`
+        <div class="header">
+          <div class="title">${this.name}</div>
+        </div>`
+      }
       <div class=${classMap(contentClasses)}>
+        <div class="description">${this.description}</div>
         ${this.renderControls()}
         <div class="buttons-holder">
-          <button class="button" @click=${generate}>Apply</button>
+          <button class="button" @click=${apply}>Apply</button>
         </div>
       </div>
     `;
@@ -86,7 +106,7 @@ export class GeneratorControls extends LitElement {
         if (isLitSubtype(spec[name], 'SparseMultilabel')) {
           this.settings[name] = spec[name].default as string[];
         }
-        // FieldMatcher has its vocab set in generator_module.
+        // FieldMatcher has its vocab set outside of this element.
         else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
           this.settings[name] = spec[name].vocab![0];
         }
@@ -94,10 +114,12 @@ export class GeneratorControls extends LitElement {
           this.settings[name] = spec[name].default as string;
         }
       }
-
+      const required = spec[name].required;
       return html`
           <div class="control-holder">
-            <div class="control-name">${name}</div>
+            <div class="control-name">
+              ${(required ? '*':'') + name}
+            </div>
             ${this.renderControl(name, spec[name])}
           </div>`;
     });
@@ -143,6 +165,34 @@ export class GeneratorControls extends LitElement {
         ${options}
       </select>`;
     }
+    else if (isLitSubtype(controlType, ['Scalar'])) {
+      // Render a dropdown, with the first item selected.
+      const updateSettings = (e: Event) => {
+        const input = (e.target as HTMLInputElement);
+        this.settings[name] = input.value;
+      };
+
+      const step = controlType.step!;
+      const minVal = controlType.min_val!;
+      const maxVal = controlType.max_val!;
+      const defaultValue = controlType.default! as string;
+
+      return html`
+      <div class='slider-holder'>
+        <div class='slider-label'>${minVal}</div>
+        <input
+          type="range"
+          min="${minVal}"
+          max="${maxVal}"
+          step="${step}"
+          .value=${defaultValue}
+          @input=${updateSettings}
+          >
+          <div class='slider-label'>${maxVal}</div>
+        </div>
+        <div>${this.settings[name]}</div>
+        `;
+    }
     else {
       // Render a text input box.
       const value = this.settings[name] || '';
@@ -158,6 +208,6 @@ export class GeneratorControls extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-generator-controls': GeneratorControls;
+    'lit-interpreter-controls': InterpreterControls;
   }
 }

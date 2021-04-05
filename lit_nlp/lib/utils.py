@@ -16,6 +16,8 @@
 """Miscellaneous helper functions."""
 
 import copy
+import queue
+import threading
 
 from typing import Dict, List, TypeVar, Callable, Any
 
@@ -98,3 +100,30 @@ def unbatch_preds(preds):
   else:
     for i in range(_extract_batch_length(preds)):
       yield {key: value[i] for key, value in preds.items()}
+
+
+class TaskQueue(queue.Queue):
+  """A simple task queue for processing jobs in a thread pool."""
+
+  def __init__(self, num_workers=1):
+    # TODO(lit-dev): Could use QueueHandler and QueueListener for this.
+    queue.Queue.__init__(self)
+    self.num_workers = num_workers
+    self.start_workers()
+
+  def add_task(self, task, *args, **kwargs):
+    args = args or ()
+    kwargs = kwargs or {}
+    self.put((task, args, kwargs))
+
+  def start_workers(self):
+    for _ in range(self.num_workers):
+      t = threading.Thread(target=self.worker)
+      t.daemon = True
+      t.start()
+
+  def worker(self):
+    while True:
+      item, args, kwargs = self.get()
+      item(*args, **kwargs)
+      self.task_done()

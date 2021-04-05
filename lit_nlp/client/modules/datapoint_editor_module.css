@@ -8,20 +8,60 @@
   width: 100%;
 }
 
+#buttons {
+  border-top: 1px solid rgb(218, 220, 224);
+  display: flex;
+}
+
+#buttons button {
+  margin: 4px;
+}
+
+.field-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-name {
+  font-weight: bold;
+}
+
+.field-name a {
+  /* don't apply standard link style, it's distracting */
+  text-decoration: unset;
+  color: unset;
+}
+
+.field-type {
+  color: gray;
+  font-size: 8pt;
+}
+
+.field-header mwc-icon {
+  font-size: 10pt;
+  line-height: 0;
+  vertical-align: middle;
+  padding-right: 10px; /* for a larger click target */
+}
+
 .input-box {
   width: 95%;
+  /* Fill available up to outer margin, if supported. */
+  width: -moz-available;
+  width: -webkit-fill-available;
 }
 
 .input-short {
   width: 95%;
-}
-
-.button-holder {
-  display: flex;
+  /* Fill available up to outer margin, if supported. */
+  width: -moz-available;
+  width: -webkit-fill-available;
 }
 
 .entry {
-  margin: 15px 5px;
+  margin: 10px 5px;
 }
 
 textarea {
@@ -35,4 +75,9 @@ textarea {
 
 .edge-label {
   font-family: Monospace;
+}
+
+.image {
+  max-width: 200px;
+  max-height: 200px;
 }

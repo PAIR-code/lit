@@ -17,7 +17,7 @@
 
 import abc
 import collections
-from typing import cast, Dict, List, Tuple, Text, Optional, Sequence, Callable, Any
+from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -32,7 +32,10 @@ from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 Spec = types.Spec
+
+BLEU_SMOOTHING_VAL = 0.1
 
 
 def map_pred_keys(
@@ -106,9 +109,9 @@ class SimpleMetrics(lit_components.Interpreter):
     return self.compute(labels, preds, label_spec, pred_spec, config)
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
+                        dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
     # TODO(lit-team): pre-compute this mapping in constructor?
@@ -122,7 +125,7 @@ class SimpleMetrics(lit_components.Interpreter):
       labels = [ex['data'][label_key] for ex in indexed_inputs]
       preds = [mo[pred_key] for mo in model_outputs]
       indices = [ex['id'] for ex in indexed_inputs]
-      metas = [ex['meta'] for ex in indexed_inputs]
+      metas = [ex.get('meta', {}) for ex in indexed_inputs]
       # Compute metrics, as dict(str -> float)
       metrics = self.compute_with_metadata(
           labels,
@@ -184,6 +187,7 @@ class MulticlassMetrics(SimpleMetrics):
                       vocab: Sequence[Text],
                       null_idx: Optional[int] = None):
     # Filter out unlabeled examples before calculating metrics.
+    total_len = len(y_true)
     labeled_example_indices = [
         index for index, y in enumerate(y_true) if y != -1
     ]
@@ -205,6 +209,9 @@ class MulticlassMetrics(SimpleMetrics):
           y_true, y_pred, labels=labels, average='micro')
       ret['f1'] = sklearn_metrics.f1_score(
           y_true, y_pred, labels=labels, average='micro')
+
+    if len(labeled_example_indices) != total_len:
+      ret['num_missing_labels'] = total_len - len(labeled_example_indices)
 
     return ret
 
@@ -302,21 +309,27 @@ class CorpusBLEU(SimpleMetrics):
 
   def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.GeneratedText)
+    return isinstance(field_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates))
 
   def compute(self,
               labels: Sequence[Text],
-              preds: Sequence[Text],
+              preds: Sequence[Union[Text, types.ScoredTextCandidates]],
               label_spec: types.TextSegment,
-              pred_spec: types.GeneratedText,
+              pred_spec: Union[types.GeneratedText,
+                               types.GeneratedTextCandidates],
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
     del label_spec
-    del pred_spec
     del config
 
     if not labels or not preds:
       return {}
 
-    bleu = sacrebleu.raw_corpus_bleu(preds, [labels])
-    return {'corpus_bleu': bleu.score}
+    name_suffix = ''
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
+    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
+
+    return {'corpus_bleu' + name_suffix: bleu.score}

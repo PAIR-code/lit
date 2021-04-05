@@ -14,18 +14,16 @@ class GigawordData(lit_dataset.Dataset):
 
     self._examples = []  # populate this with data records
     for record in ds.take(max_examples):
-      input_text = record["document"].numpy().decode("utf-8")
-      target_text = record["summary"].numpy().decode("utf-8")
       self._examples.append({
-          "input_text": input_text,
-          "target_text": target_text,
+          "document": record["document"].numpy().decode("utf-8"),
+          "reference": record["summary"].numpy().decode("utf-8"),
       })
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
     return {
-        "input_text": lit_types.TextSegment(),
-        "target_text": lit_types.TextSegment(),
+        "document": lit_types.TextSegment(),
+        "reference": lit_types.TextSegment(),
     }
 
 
@@ -39,20 +37,20 @@ class CNNDMData(lit_dataset.Dataset):
     self._examples = []  # populate this with data records
     for record in ds.take(max_examples):
       # format and truncate from the end to max_seq_len tokens.
-      input_text = " ".join(
+      document = " ".join(
           record["article"].numpy()\
                         .decode("utf-8")\
                         .replace("<br />", "")\
                         .split()[-max_seq_len:])
-      target_text = record["highlights"].numpy().decode("utf-8")
+      reference = record["highlights"].numpy().decode("utf-8")
       self._examples.append({
-          "input_text": input_text,
-          "target_text": target_text,
+          "document": document,
+          "reference": reference,
       })
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
     return {
-        "input_text": lit_types.TextSegment(),
-        "target_text": lit_types.TextSegment(),
+        "document": lit_types.TextSegment(),
+        "reference": lit_types.TextSegment(),
     }

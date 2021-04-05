@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
-import {customElement, html, property, svg} from 'lit-element';
+import {customElement, html, svg} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
@@ -26,9 +26,10 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {D3Selection, IndexedInput, ModelsMap, NumericSetting, Preds, Spec} from '../lib/types';
+import {D3Selection, IndexedInput, ModelInfoMap, NumericSetting, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
-import {ClassificationService, ColorService, RegressionService} from '../services/services';
+import {FocusData} from '../services/focus_service';
+import {ClassificationService, ColorService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -82,6 +83,7 @@ export class ScalarModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly regressionService = app.getService(RegressionService);
+  private readonly focusService = app.getService(FocusService);
 
   private readonly inputIDToIndex = new Map();
   private resizeObserver!: ResizeObserver;
@@ -160,6 +162,10 @@ export class ScalarModule extends LitModule {
       this.updateColors();
     });
 
+    this.react(() => this.focusService.focusData, focusData => {
+      this.updateHoveredPoint(focusData);
+    });
+
     const container = this.shadowRoot!.getElementById('container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.resize();
@@ -197,7 +203,7 @@ export class ScalarModule extends LitModule {
    * Updates the scatterplot with the new selection.
    */
   private updateGeneralSelection(selectedInputData: IndexedInput[]) {
-    this.updateSelection(selectedInputData, '#overlay', 'selected-point');
+    this.updateCallouts(selectedInputData, '#overlay', 'selected-point', true);
   }
 
   /**
@@ -208,16 +214,30 @@ export class ScalarModule extends LitModule {
     if (primarySelectedInputData !== null) {
       selectedInputData.push(primarySelectedInputData);
     }
-    this.updateSelection(
-        selectedInputData, '#primaryOverlay', 'primary-selected-point');
+    this.updateCallouts(
+        selectedInputData, '#primaryOverlay', 'primary-selected-point', true);
   }
 
   /**
-   * Clears the previous selection on the scatterplot and highlights new
-   * selected point(s).
+   * Updates the scatterplot with the new primary selection.
    */
-  private updateSelection(
-      selectedInputData: IndexedInput[], groupID: string, styleClass: string) {
+  private updateHoveredPoint(focusData: FocusData|null) {
+    let hoveredData: IndexedInput[] = [];
+    if (focusData !== null) {
+      hoveredData = this.appState.getExamplesById([focusData.datapointId]);
+    }
+    this.updateCallouts(
+        hoveredData, '#hoverOverlay', 'hovered-point', false);
+  }
+
+  /**
+   * Clears the previous callouts on the scatterplot and highlights new
+   * called-out point(s). Callouts refers to points with special rendering,
+   * such as selected or hovered points.
+   */
+  private updateCallouts(
+      inputData: IndexedInput[], groupID: string, styleClass: string,
+      detectHover: boolean) {
     const scatterplotClass = this.shadowRoot!.querySelectorAll('.scatterplot');
 
     for (const item of Array.from(scatterplotClass)) {
@@ -226,19 +246,19 @@ export class ScalarModule extends LitModule {
       const circles =
           d3.select(scatterplot).select('#dataPoints').selectAll('circle');
 
-      const selectedIndices =
-          selectedInputData.map((input) => this.inputIDToIndex.get(input.id));
+      const providedIndices =
+          inputData.map((input) => this.inputIDToIndex.get(input.id));
 
-      const selectedDatapoints: string[][] = [];
+      const providedDatapoints: string[][] = [];
 
       circles.each((d, i, e) => {
-        if (selectedIndices.includes(i)) {
+        if (providedIndices.includes(i)) {
           const x = d3.select(e[i]).attr('cx');
           const y = d3.select(e[i]).attr('cy');
           const color = d3.select(e[i]).style('fill');
           const id = d3.select(e[i]).attr('data-id');
 
-          selectedDatapoints.push([x, y, color, id]);
+          providedDatapoints.push([x, y, color, id]);
         }
       });
 
@@ -246,9 +266,9 @@ export class ScalarModule extends LitModule {
       const overlay = d3.select(scatterplot).select(groupID);
       overlay.selectAll('circle').remove();
 
-      // Add selected datapoints.
+      // Add provided datapoints.
       const overlayCircles = overlay.selectAll('circle')
-                                 .data(selectedDatapoints)
+                                 .data(providedDatapoints)
                                  .enter()
                                  .append('circle');
       overlayCircles
@@ -267,10 +287,18 @@ export class ScalarModule extends LitModule {
               'fill',
               (d) => {
                 return d[2];
-              })
-          .on('click', (d, i, e) => {
-            this.selectionService.setPrimarySelection(d[3]);
-          });
+              });
+
+      // Add the appropriate event listeners.
+      if (detectHover) {
+        overlayCircles.on('mouseenter', (d, i, e) => {
+          this.focusService.setFocusedDatapoint(d[3]);
+        });
+      } else {
+        overlayCircles.on('click', (d, i, e) => {
+          this.selectionService.setPrimarySelection(d[3]);
+        });
+      }
     }
   }
 
@@ -515,6 +543,14 @@ export class ScalarModule extends LitModule {
               'transform',
               'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
                   ScalarModule.plotTopMargin.toString() + ')');
+      // Add group for overlaying hovered points.
+      d3.select(scatterplot)
+          .append('g')
+          .attr('id', 'hoverOverlay')
+          .attr(
+              'transform',
+              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
+                  ScalarModule.plotTopMargin.toString() + ')');
 
       this.updateAllScatterplotColors(scatterplot);
     }
@@ -540,8 +576,6 @@ export class ScalarModule extends LitModule {
       const hasRegressionGroundTruth = regressionRanges != null &&
           !isNaN(regressionRanges.error[0]) &&
           !isNaN(regressionRanges.error[1]);
-      const isMulticlassPredsKey =
-          isLitSubtype(spec.output[key], 'MulticlassPreds');
 
       const scatterplot = item as SVGGElement;
       const selected = d3.select(scatterplot);
@@ -648,6 +682,9 @@ export class ScalarModule extends LitModule {
                   'transform',
                   'translate(' +
                       ScalarModule.plotLeftMargin.toString() + ',0)')
+              .on('mouseenter', (d, i, e) => {
+                this.focusService.clearFocus();
+              })
               .call(newBrush);
 
       // Store brush and selection group to be used for clearing the brush.
@@ -663,6 +700,7 @@ export class ScalarModule extends LitModule {
       dataPoints.raise();
       d3.select(scatterplot).select('#overlay').raise();
       d3.select(scatterplot).select('#primaryOverlay').raise();
+      d3.select(scatterplot).select('#hoverOverlay').raise();
 
       // Create scatterplot circles.
       const circles = dataPoints.selectAll('circle')
@@ -704,10 +742,9 @@ export class ScalarModule extends LitModule {
                 return this.colorService.getDatapointColor(indexedInput);
               })
           .classed('point', true)
-          .on('click',
-              (d) => {
-                this.selectionService.selectIds([d['id']]);
-              })
+          .on('mouseenter', (d, i, e) => {
+            this.focusService.setFocusedDatapoint(d['id']);
+          })
           .each((d, i, e) => {
             this.inputIDToIndex.set(d['id'], i);
             // Store the inputID as a data attribute on the circle.
@@ -875,7 +912,7 @@ export class ScalarModule extends LitModule {
         </div>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
   }
 }

@@ -18,14 +18,13 @@
 import '../elements/checkbox';
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {IndexedInput, ModelsMap, Spec, TopKResult} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, flatten, isLitSubtype} from '../lib/utils';
+import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -38,7 +37,7 @@ export class LanguageModelPredictionModule extends LitModule {
   static title = 'LM Predictions';
   static duplicateForExampleComparison = true;
   static duplicateAsRow = true;
-  static numCols = 6;
+  static numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<lm-prediction-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></lm-prediction-module>`;
@@ -48,42 +47,50 @@ export class LanguageModelPredictionModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  // TODO(lit-dev): get this from the model spec?
-  @property({type: String}) maskToken: string = '[MASK]';
-
+  // Module options / configuration state
   @observable private clickToMask: boolean = false;
 
-  @observable private tokens: string[] = [];
+  // Fixed output state (based on unmodified input)
   @observable private selectedInput: IndexedInput|null = null;
-  // TODO(lit-dev): separate state from "ephemeral" preds in click-to-mask mode
-  // from the initial model predictions.
-  @observable private maskApplied: boolean = false;
-  @observable private lmResults: TopKResult[][] = [];
+  @observable private tokens: string[] = [];
+  @observable private originalResults: TopKResult[][] = [];
+  // Ephemeral output state (may depend on selectedTokenIndex)
   @observable private selectedTokenIndex: number|null = null;
+  @observable private mlmResults: TopKResult[][] = [];
+
+  @computed
+  private get modelSpec() {
+    return this.appState.getModelSpec(this.model);
+  }
 
   @computed
   private get predKey(): string {
-    const spec = this.appState.getModelSpec(this.model);
     // This list is guaranteed to be non-empty due to checkModule()
-    return findSpecKeys(spec.output, 'TokenTopKPreds')[0];
+    return findSpecKeys(this.modelSpec.output, 'TokenTopKPreds')[0];
   }
 
   @computed
   private get outputTokensKey(): string {
-    const spec = this.appState.getModelSpec(this.model);
     // This list is guaranteed to be non-empty due to checkModule()
-    return spec.output[this.predKey].align as string;
+    return this.modelSpec.output[this.predKey].align as string;
   }
 
   @computed
   private get inputTokensKey(): string|null {
-    const spec = this.appState.getModelSpec(this.model);
     // Look for an input field matching the output tokens name.
-    if (spec.input.hasOwnProperty(this.outputTokensKey) &&
-        isLitSubtype(spec.input[this.outputTokensKey], 'Tokens')) {
+    if (this.modelSpec.input.hasOwnProperty(this.outputTokensKey) &&
+        isLitSubtype(this.modelSpec.input[this.outputTokensKey], 'Tokens')) {
       return this.outputTokensKey;
     }
     return null;
+  }
+
+  @computed
+  private get maskToken() {
+    // Look at metadata for /input/ field matching output tokens name.
+    return this.inputTokensKey ?
+        this.modelSpec.input[this.inputTokensKey].mask_token :
+        undefined;
   }
 
   firstUpdated() {
@@ -92,100 +99,124 @@ export class LanguageModelPredictionModule extends LitModule {
     this.reactImmediately(getSelectedInputData, selectedInput => {
       this.updateSelection(selectedInput);
     });
+    this.react(() => this.selectedTokenIndex, tokenIndex => {
+      this.updateMLMResults();
+    });
+    this.react(() => this.clickToMask, clickToMask => {
+      this.updateMLMResults();
+    });
+    // Enable click-to-mask if the model supports it.
+    this.reactImmediately(() => this.model, model => {
+      if (this.maskToken != null) {
+        this.clickToMask = true;
+      }
+    });
   }
 
-  private async updateSelection(selectedInput: IndexedInput|null) {
+  private async updateSelection(input: IndexedInput|null) {
+    this.selectedInput = null;
+    this.tokens = [];
+    this.originalResults = [];
     this.selectedTokenIndex = null;
-    if (selectedInput == null) {
-      this.selectedInput = null;
-      this.tokens = [];
-      this.lmResults = [];
-      return;
-    }
+    this.mlmResults = [];
+
+    if (input == null) return;
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [selectedInput], this.model, dataset, ['Tokens', 'TokenTopKPreds'],
+        [input], this.model, dataset, ['Tokens', 'TokenTopKPreds'],
         'Loading tokens');
     const results = await this.loadLatest('modelPreds', promise);
     if (results === null) return;
 
     const predictions = results[0];
     this.tokens = predictions[this.outputTokensKey];
-    this.lmResults = predictions[this.predKey];
-    this.selectedInput = selectedInput;
+    this.originalResults = predictions[this.predKey];
+    this.mlmResults = this.originalResults;
+    this.selectedInput = input;
 
-    const maskIndex = this.tokens.indexOf(this.maskToken);
-    if (maskIndex !== -1) {
-      // Show fills immediately for the first mask token, if there is one.
-      this.selectedTokenIndex = maskIndex;
-    }
-
-    // If there's nothing to show, enable click-to-mask by default.
-    // TODO(lit-dev): infer this from something in the spec instead.
-    if (flatten(this.lmResults).length === 0 && this.inputTokensKey != null) {
-      this.clickToMask = true;
+    // If there's already a mask in the input, jump to that.
+    if (this.maskToken != null) {
+      const maskIndex = this.tokens.indexOf(this.maskToken);
+      if (maskIndex !== -1) {
+        // Show fills immediately for the first mask token, if there is one.
+        this.selectedTokenIndex = maskIndex;
+      }
     }
   }
 
-  // TODO(lit-dev): unify this codepath with updateSelection()?
-  private async updateLmResults(maskIndex: number) {
-    if (this.selectedInput == null) return;
-
-    if (this.clickToMask) {
-      if (this.inputTokensKey == null) return;
-      const tokens = [...this.tokens];
-      tokens[maskIndex] = this.maskToken;
-
-      const inputData = Object.assign(
-          {}, this.selectedInput.data, {[this.inputTokensKey]: tokens});
-      // Use empty id to disable caching on backend.
-      const inputs: IndexedInput[] =
-          [{'data': inputData, 'id': '', 'meta': {}}];
-
-      const dataset = this.appState.currentDataset;
-      const promise = this.apiService.getPreds(
-          inputs, this.model, dataset, ['TokenTopKPreds']);
-      const lmResults = await this.loadLatest('mlmResults', promise);
-      if (lmResults === null) return;
-
-      this.lmResults = lmResults[0][this.predKey];
-      this.maskApplied = true;
+  private async updateMLMResults() {
+    if (this.selectedTokenIndex == null || !this.clickToMask) {
+      this.mlmResults = this.originalResults;  // reset
+      return;
     }
-    this.selectedTokenIndex = maskIndex;
-  }
+    if (this.selectedInput == null || this.maskToken == null) {
+      return;
+    }
 
-  updated() {
-    if (this.selectedTokenIndex == null) return;
+    const tokens = [...this.tokens];
+    // Short-circuit to avoid an extra inference call if this token
+    // is already masked in the original input.
+    if (tokens[this.selectedTokenIndex] === this.maskToken) {
+      this.mlmResults = this.originalResults;
+      return;
+    }
+    tokens[this.selectedTokenIndex] = this.maskToken;
 
-    // Set the correct offset for displaying the predicted tokens.
-    const inputTokenDivs = this.shadowRoot!.querySelectorAll('.token');
-    const maskedInputTokenDiv =
-        inputTokenDivs[this.selectedTokenIndex] as HTMLElement;
-    const offsetX = maskedInputTokenDiv.offsetLeft;
-    const outputTokenDiv =
-        this.shadowRoot!.getElementById('output-words') as HTMLElement;
-    outputTokenDiv.style.marginLeft = `${offsetX - 8}px`;
+    // Reset current results.
+    this.mlmResults = [];
+
+    const inputData = Object.assign(
+        {}, this.selectedInput.data, {[this.inputTokensKey!]: tokens});
+    // Use empty id to disable caching on backend.
+    const inputs: IndexedInput[] =
+        [{'data': inputData, 'id': '', 'meta': {added: true}}];
+
+    const dataset = this.appState.currentDataset;
+    const promise = this.apiService.getPreds(
+        inputs, this.model, dataset, ['TokenTopKPreds']);
+    const results = await this.loadLatest('mlmResults', promise);
+    if (results === null) return;
+
+    this.mlmResults = results[0][this.predKey];
   }
 
   render() {
     return html`
-      ${this.renderControls()}
-      ${this.renderInputWords()}
-      ${this.renderOutputWords()}
+      <div class='module-container'>
+        ${this.renderControls()}
+        <div id='main-area' class='module-results-area'>
+          ${this.renderInputWords()}
+          ${this.renderOutputWords()}
+        </div>
+      </div>
     `;
   }
 
-  renderControls() {
-    // TODO: check if MLM is applicable.
+  /* Mode info if masking is available. */
+  renderModeInfo() {
+    if (this.selectedTokenIndex === null) {
+      return null;
+    }
     // clang-format off
     return html`
-      <div id='controls'>
-        ${this.inputTokensKey ? html`
+      <span class='mode-info'>
+        ${this.clickToMask ? "Showing masked predictions" : "Showing unmasked predictions"}
+      </span>
+    `;
+    // clang-format on
+  }
+
+  renderControls() {
+    // clang-format off
+    return html`
+      <div class='module-toolbar'>
+        ${this.maskToken ? html`
           <lit-checkbox label="Click to mask?"
             ?checked=${this.clickToMask}
             @change=${() => { this.clickToMask = !this.clickToMask; }}
           ></lit-checkbox>
+          ${this.renderModeInfo()}
         ` : null}
       </div>
     `;
@@ -198,59 +229,85 @@ export class LanguageModelPredictionModule extends LitModule {
         if (i === this.selectedTokenIndex) {
           // Clear if the same position is clicked again.
           this.selectedTokenIndex = null;
-          this.maskApplied = false;
         } else {
-          this.updateLmResults(i);
+          this.selectedTokenIndex = i;
         }
       };
       const classes = classMap({
-        token: true,
-        selected: i === this.selectedTokenIndex,
-        masked: (i === this.selectedTokenIndex) && this.maskApplied,
+        'token': true,
+        'token-chip-label': true,
+        'selected': i === this.selectedTokenIndex,
+        'masked': (i === this.selectedTokenIndex) && (this.maskToken != null) &&
+            this.clickToMask,
       });
       return html`<div class=${classes} @click=${handleClick}>${token}</div>`;
     };
 
-    // clang-format on
+    // clang-format off
     return html`
-      <div id="input-words">
-        ${this.tokens.map(renderToken)}
+      <div class='input-group'>
+        <div class='group-title'>
+          ${this.tokens.length > 0 ? this.outputTokensKey : null}
+        </div>
+        <div class="input-words">${this.tokens.map(renderToken)}</div>
       </div>
     `;
-    // clang-format off
+    // clang-format on
   }
 
   renderOutputWords() {
-    if (this.selectedTokenIndex === null || this.lmResults === null) {
-      return html``;
+    if (this.selectedTokenIndex === null || this.mlmResults.length === 0) {
+      return html`<div id="output-words" class='sidebar'></div>`;
     }
-    const selectedTokenIndex = this.selectedTokenIndex || 0;
 
     const renderPred = (pred: TopKResult) => {
-      const selectedWordType = this.tokens[selectedTokenIndex];
+      const selectedWordType = this.tokens[this.selectedTokenIndex!];
       const predWordType = pred[0];
       // Convert probability into percent.
       const predProb = (pred[1] * 100).toFixed(1);
       const classes = classMap({
-        output: true,
-        same: predWordType === selectedWordType,
+        'output-token': true,
+        'token-chip-generated': true,
+        'selected': predWordType === selectedWordType,
       });
-      return html`<div class=${classes}>${predWordType} ${predProb}%</div>`;
+      // clang-format off
+      return html`
+        <div class='output-row'>
+          <div class=${classes}>${predWordType}</div>
+          <div class='token-chip-label output-percent'>${predProb}%</div>
+        </div>
+      `;
+      // clang-format on
     };
 
     // clang-format off
     return html`
-      <div id="output-words">
-        ${this.lmResults[selectedTokenIndex].map(renderPred)}
+      <div id="output-words" class='sidebar sidebar-shaded'>
+        ${this.mlmResults[this.selectedTokenIndex].map(renderPred)}
       </div>
     `;
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
-    // TODO(lit-dev): check for tokens field here, else may crash if not
-    // present.
-    return doesOutputSpecContain(modelSpecs, 'TokenTopKPreds');
+  /**
+   * Find available output fields.
+   */
+  static findTargetFields(outputSpec: Spec): string[] {
+    const candidates = findSpecKeys(outputSpec, 'TokenTopKPreds');
+    return candidates.filter(k => {
+      const align = outputSpec[k].align;
+      return align != null && isLitSubtype(outputSpec[align], 'Tokens');
+    });
+  }
+
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (LanguageModelPredictionModule.findTargetFields(modelInfo.spec.output)
+              .length > 0) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

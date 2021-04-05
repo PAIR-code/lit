@@ -15,7 +15,8 @@
  * limitations under the License.
  */
 
-import '../elements/generator_controls';
+import '../elements/interpreter_controls';
+
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
@@ -23,8 +24,8 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, IndexedInput, Input, ModelsMap, Spec, formatForDisplay, LitName} from '../lib/types';
-import {handleEnterKey, isLitSubtype} from '../lib/utils';
+import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
+import {flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/services';
 
@@ -52,18 +53,10 @@ export class GeneratorModule extends LitModule {
 
   @observable editedData: Input = {};
   @observable isGenerating = false;
-  // Source examples stores the original examples used to create this.generated,
-  // and should be maintained as a parallel list so that the correct parent
-  // pointers can be set when the examples are added.
-  // TODO(lit-dev): consider setting parent pointers immediately and storing
-  // this.generated as IndexedInput[][] so we don't need to track two lists.
-  @observable sourceExamples: IndexedInput[] = [];
-  @observable generated: Input[][] = [];
+
+  @observable generated: IndexedInput[][] = [];
   @observable appliedGenerator: string|null = null;
-  @observable datapointEdited: boolean = false;
-  @observable substitutions = 'great -> terrible';
-  // When embedding indices is computed, this is the index of the selection.
-  @observable embeddingSelection = 0;
+
 
   @computed
   get datasetName() {
@@ -100,6 +93,8 @@ export class GeneratorModule extends LitModule {
 
 
   updated() {
+    super.updated();
+
     // Update the header items to be the width of the rows of the table.
     const header = this.shadowRoot!.getElementById('header') as ParentNode;
     const firstRow = this.shadowRoot!.querySelector('.row') as ParentNode;
@@ -110,38 +105,16 @@ export class GeneratorModule extends LitModule {
         (child as HTMLElement).style.minWidth = `${width}px`;
       }
     }
-
-    // Add event listeners for generation events from individual generators.
-    const onGenClick = (event: Event) => {
-      const globalParams = {
-        'model_name': this.modelName,
-        'dataset_name': this.datasetName,
-      };
-      // tslint:disable-next-line:no-any
-      const generatorParams: {[setting: string]: string} = (event as any)
-          .detail.settings;
-      // tslint:disable-next-line:no-any
-      const generatorName =  (event as any).detail.name;
-
-      // Add user-specified parameters from the applied generator.
-      const allParams = Object.assign({}, globalParams, generatorParams);
-      this.handleGeneratorClick(generatorName, allParams);
-    };
-    const controls =
-        this.shadowRoot!.querySelectorAll('lit-generator-controls');
-    for (let i = 0; i < controls.length; i++) {
-      controls[i].addEventListener('generator-click', onGenClick);
-    }
   }
 
   private resetEditedData() {
-    this.sourceExamples = [];
     this.generated = [];
     this.appliedGenerator = null;
   }
 
   private handleGeneratorClick(generator: string, config?: CallConfig) {
     if (!this.isGenerating) {
+      this.resetEditedData();
       this.generate(generator, this.modelName, config);
     }
   }
@@ -149,11 +122,18 @@ export class GeneratorModule extends LitModule {
   private async generate(
       generator: string, modelName: string, config?: CallConfig) {
     this.isGenerating = true;
-    this.sourceExamples = this.selectionService.selectedOrAllInputData;
+    const sourceExamples = this.selectionService.selectedOrAllInputData;
     try {
       const generated = await this.apiService.getGenerated(
-          this.sourceExamples, modelName, this.appState.currentDataset, generator,
+          sourceExamples, modelName, this.appState.currentDataset, generator,
           config);
+      // Populate additional metadata fields.
+      // parentId and source should already be set from the backend.
+      for (const examples of generated) {
+        for (const ex of examples) {
+          Object.assign(ex['meta'], {added: 1});
+        }
+      }
       this.generated = generated;
       this.appliedGenerator = generator;
       this.isGenerating = false;
@@ -162,12 +142,14 @@ export class GeneratorModule extends LitModule {
     }
   }
 
-  private async createNewDatapoints(
-      data: Input[][], parentIds: string[], source: string) {
-    const newExamples =
-        await this.appState.createNewDatapoints(data, parentIds, source);
+  private async createNewDatapoints(data: IndexedInput[][]) {
+    const newExamples = flatten(data);
+    this.appState.commitNewDatapoints(newExamples);
     const newIds = newExamples.map(d => d.id);
     if (newIds.length === 0) return;
+
+    const parentIds =
+        new Set<string>(newExamples.map(ex => ex.meta['parentId']!));
 
     // Select parents and children, and set primary to the first child.
     this.selectionService.selectIds([...parentIds, ...newIds], this);
@@ -181,7 +163,7 @@ export class GeneratorModule extends LitModule {
       referenceSelectionService.selectIds([...parentIds, ...newIds], this);
       // parentIds[0] is not necessarily the parent of newIds[0], if
       // generated[0] is [].
-      const parentId = newExamples[0].meta['parentId'];
+      const parentId = newExamples[0].meta['parentId']!;
       referenceSelectionService.setPrimarySelection(parentId, this);
     }
   }
@@ -209,7 +191,8 @@ export class GeneratorModule extends LitModule {
               <div class="counterfactuals-count">
                 Generated ${this.totalNumGenerated}
                 ${this.totalNumGenerated === 1 ?
-                'counterfactual' : 'counterfactuals'}.
+                'counterfactual' : 'counterfactuals'}
+                from ${this.appliedGenerator}.
               </div>
             `}
           ${this.renderHeader()}
@@ -229,29 +212,26 @@ export class GeneratorModule extends LitModule {
    * Render the generated counterfactuals themselves.
    */
   renderEntries() {
-    const data = this.sourceExamples;
     return this.generated.map((generatedList, parentIndex) => {
       return generatedList.map((generated, generatedIndex) => {
         const addPoint = async () => {
-          const parentId = data[parentIndex].id;
           this.generated[parentIndex].splice(generatedIndex, 1);
-          await this.createNewDatapoints(
-              [[generated]], [parentId], this.appliedGenerator!);
+          await this.createNewDatapoints([[generated]]);
         };
         const removePoint = () => {
           this.generated[parentIndex].splice(generatedIndex, 1);
         };
-        const keys = Object.keys(generated);
+        const fieldNames = Object.keys(generated.data);
 
         // render values for each datapoint.
         // clang-format off
         return html`
           <div class='row'>
-            ${keys.map((key) => {
+            ${fieldNames.map((key) => {
               const editable =
                   !this.appState.currentModelRequiredInputSpecKeys.includes(
                       key);
-              return this.renderEntry(key, generated[key], editable);
+              return this.renderEntry(generated.data, key, editable);
             })}
             <button class="button add-button" @click=${addPoint}>Add</button>
             <button class="button" @click=${removePoint}>Remove</button>
@@ -264,9 +244,7 @@ export class GeneratorModule extends LitModule {
 
   renderHeader() {
     const onAddAll = async () => {
-      const parentIds = this.sourceExamples.map((datapoint) => datapoint.id);
-      await this.createNewDatapoints(
-          this.generated, parentIds, this.appliedGenerator!);
+      await this.createNewDatapoints(this.generated);
       this.resetEditedData();
     };
 
@@ -305,59 +283,77 @@ export class GeneratorModule extends LitModule {
             data.length} datapoint${data.length === 1 ? '' : `s`}):` :
         'No generators provided by the server.';
 
+    // Add event listener for generation events.
+    const onGenClick = (event: Event) => {
+      const globalParams = {
+        'model_name': this.modelName,
+        'dataset_name': this.datasetName,
+      };
+      // tslint:disable-next-line:no-any
+      const generatorParams: {[setting: string]: string} = (event as any)
+          .detail.settings;
+      // tslint:disable-next-line:no-any
+      const generatorName =  (event as any).detail.name;
+
+      // Add user-specified parameters from the applied generator.
+      const allParams = Object.assign({}, globalParams, generatorParams);
+      this.handleGeneratorClick(generatorName, allParams);
+    };
+
     // clang-format off
     return html`
         <div id="generators">
           <div>${text}</div>
           ${generators.map(genName => {
-            const generator = generatorsInfo[genName];
-            Object.keys(generator).forEach(name => {
+            const spec = generatorsInfo[genName].configSpec;
+            const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+            const description = generatorsInfo[genName].description;
+            for (const fieldName of Object.keys(clonedSpec)) {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(generator[name], 'FieldMatcher')) {
-                generator[name].vocab =
+              if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+                clonedSpec[fieldName].vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
-                        generator[name], this.modelName);
+                        clonedSpec[fieldName], this.modelName);
               }
-            });
+            }
             return html`
-                <lit-generator-controls .spec=${generator} .name=${genName}>
-                </lit-generator-controls>`;
+                <lit-interpreter-controls
+                  .spec=${clonedSpec}
+                  .name=${genName}
+                  .description=${description||''}
+                  @interpreter-click=${onGenClick}
+                  ?bordered=${true}>
+                </lit-interpreter-controls>`;
           })}
         </div>
     `;
     // clang-format on
   }
 
-  renderEntry(key: string, value: string, editable: boolean) {
+  renderEntry(mutableInput: Input, key: string, editable: boolean) {
+    const value = mutableInput[key];
     const isCategorical =
         this.groupService.categoricalFeatureNames.includes(key);
     const handleInputChange = (e: Event) => {
-      this.datapointEdited = true;
       // tslint:disable-next-line:no-any
-      this.editedData[key] = (e as any).target.value;
+      mutableInput[key] = (e as any).target.value;
     };
 
     // For categorical outputs, render a dropdown.
     const renderCategoricalInput = () => {
       const catVals = this.groupService.categoricalFeatures[key];
-      // Note that the first option is blank (so that the dropdown is blank when
-      // no point is selected), and disabled (so that datapoints can only have
-      // valid values).
+      // clang-format off
       return html`
-      <select class="dropdown"
-        @change=${handleInputChange}>
-        <option value="" selected></option>
-        ${catVals.map(val => {
-        return html`
-            <option
-              value="${val}"
-              ?selected=${val === value}
-              >
-              ${val}
-            </option>`;
-      })}
-      </select>`;
+        <select class="dropdown" @change=${handleInputChange}>
+          ${catVals.map(val => {
+            return html`
+              <option value="${val}" ?selected=${val === value}>
+                ${val}
+              </option>`;
+          })}
+        </select>`;
+      // clang-format on
     };
 
     // For non-categorical outputs, render an editable textfield.
@@ -373,25 +369,19 @@ export class GeneratorModule extends LitModule {
       .value="${formattedVal}" />` : html`<div>${formattedVal}</div>`;
     };
 
-    const onKeyUp = (e: KeyboardEvent) => {
-      handleEnterKey(e, () => {
-        this.shadowRoot!.getElementById('make')!.click();
-      });
-    };
-
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
     const classes = classMap({'entry': true, 'text': !isCategorical});
     return html`
-      <div class=${classes} @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}>
+      <div class=${classes}>
           ${isCategorical ? renderCategoricalInput() : renderFreeformInput()}
       </div>
     `;
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

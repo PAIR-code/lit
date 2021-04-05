@@ -18,15 +18,15 @@
 import functools
 import glob
 import os
-import pickle
 import random
 import time
-from typing import Optional, Text, List, Mapping, MutableMapping
+from typing import Optional, Text, List, Mapping, Sequence, Union
 
 from absl import logging
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import gradient_maps
@@ -36,6 +36,7 @@ from lit_nlp.components import metrics
 from lit_nlp.components import pca
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
+from lit_nlp.components import tcav
 from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
@@ -44,39 +45,11 @@ from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
 
 JsonDict = types.JsonDict
+Input = types.Input
+IndexedInput = types.IndexedInput
 
 # Export this symbol, for access from demo.py
 PredsCache = caching.PredsCache
-
-
-def make_handler(fn):
-  """Convenience wrapper to handle args and serialization.
-
-  This is a thin shim between server (handler, request) and model logic
-  (inputs, args, outputs).
-
-  Args:
-    fn: function (JsonDict, **kw) -> JsonDict
-
-  Returns:
-    fn wrapped as a request handler
-  """
-
-  @functools.wraps(fn)
-  def _handler(handler, request):
-    logging.info('Request received: %s', request.full_path)
-    kw = request.args.to_dict()
-    # The frontend needs "simple" data (e.g. NumPy arrays converted to lists),
-    # but for requests from Python we may want to use the invertible encoding
-    # so that datatypes from remote models are the same as local ones.
-    response_simple_json = utils.coerce_bool(
-        kw.pop('response_simple_json', True))
-    data = serialize.from_json(request.data) if len(request.data) else None
-    outputs = fn(data, **kw)
-    response_body = serialize.to_json(outputs, simple=response_simple_json)
-    return handler.respond(request, response_body, 'application/json', 200)
-
-  return _handler
 
 
 class LitApp(object):
@@ -84,7 +57,7 @@ class LitApp(object):
 
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
-    info_by_model = {}
+    model_info = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
       info = {}
@@ -96,59 +69,83 @@ class LitApp(object):
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
-      # TODO(lit-team): check generator and interpreter compatibility
-      # with models, or just do this on frontend?
-      info['generators'] = list(self._generators.keys())
-      info['interpreters'] = list(self._interpreters.keys())
+      info['generators'] = [
+          name for name, gen in self._generators.items() if gen.is_compatible(m)
+      ]
+      info['interpreters'] = [
+          name for name, interp in self._interpreters.items()
+          if interp.is_compatible(m)
+      ]
       info['description'] = m.description()
-      info_by_model[name] = info
+      model_info[name] = info
 
-    info_by_dataset = {}
+    dataset_info = {}
     for name, ds in self._datasets.items():
-      info_by_dataset[name] = {
+      dataset_info[name] = {
           'spec': ds.spec(),
           'description': ds.description(),
       }
-    generator_info = {}
-    for gen_name in self._generators.keys():
-      generator_info[gen_name] = self._generators[gen_name].spec()
 
-    self._info = {
-        'models': info_by_model,
-        'datasets': info_by_dataset,
-        # TODO(lit-team): return more spec information here?
+    generator_info = {}
+    for name, gen in self._generators.items():
+      generator_info[name] = {
+          'configSpec': gen.config_spec(),
+          'metaSpec': gen.meta_spec(),
+          'description': gen.description()
+      }
+
+    interpreter_info = {}
+    for name, interpreter in self._interpreters.items():
+      interpreter_info[name] = {
+          'configSpec': interpreter.config_spec(),
+          'metaSpec': interpreter.meta_spec(),
+          'description': interpreter.description()
+      }
+
+    return {
+        # Component info and specs
+        'models': model_info,
+        'datasets': dataset_info,
         'generators': generator_info,
-        'interpreters': list(self._interpreters.keys()),
+        'interpreters': interpreter_info,
+        'layouts': self._layouts,
+        # Global configuration
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
         'canonicalURL': self._canonical_url,
+        'pageTitle': self._page_title,
     }
 
-  def _get_spec(self, model_name: Text):
-    return self._info['models'][model_name]['spec']
+  def _get_model_spec(self, name: Text):
+    return self._info['models'][name]['spec']
 
   def _get_info(self, unused_data, **unused_kw):
     """Get model info and send to frontend."""
     return self._info
 
+  def _reconstitute_inputs(self, inputs: Sequence[Union[IndexedInput, str]],
+                           dataset_name: str) -> List[IndexedInput]:
+    """Reconstitute any inputs sent as references (bare IDs)."""
+    index = self._datasets[dataset_name].index
+    # TODO(b/178228238): set up proper debug logging and hide this by default.
+    num_aliased = sum([isinstance(ex, str) for ex in inputs])
+    logging.info(
+        "%d of %d inputs sent as IDs; reconstituting from dataset '%s'",
+        num_aliased, len(inputs), dataset_name)
+    return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
+
   def _predict(self, inputs: List[JsonDict], model_name: Text,
                dataset_name: Optional[Text]):
     """Run model predictions."""
-    return self._models[model_name].predict_with_metadata(
-        inputs, dataset_name=dataset_name)
+    return list(self._models[model_name].predict_with_metadata(
+        inputs, dataset_name=dataset_name))
 
   def _save_datapoints(self, data, dataset_name: Text, path: Text, **unused_kw):
     """Save datapoints to disk."""
     if self._demo_mode:
       logging.warn('Attempted to save datapoints in demo mode.')
       return None
-    data = data['inputs']
-    timestr = time.strftime('%Y%m%d-%H%M%S')
-    file_name = dataset_name + '_' + timestr + '.pkl'
-    new_file_path = os.path.join(path, file_name)
-    with open(new_file_path, 'wb') as fd:
-      pickle.dump(data, fd)
-    return new_file_path
+    return self._datasets[dataset_name].save(data['inputs'], path)
 
   def _load_datapoints(self, unused_data, dataset_name: Text, path: Text,
                        **unused_kw):
@@ -156,13 +153,8 @@ class LitApp(object):
     if self._demo_mode:
       logging.warn('Attempted to load datapoints in demo mode.')
       return None
-    search_path = os.path.join(path, dataset_name) + '*.pkl'
-    datapoints = []
-    files = glob.glob(search_path)
-    for file_path in files:
-      with open(file_path, 'rb') as fd:
-        datapoints.extend(pickle.load(fd))
-    return datapoints
+    dataset = self._datasets[dataset_name].load(path)
+    return dataset.indexed_examples
 
   def _get_preds(self,
                  data,
@@ -181,10 +173,10 @@ class LitApp(object):
     Returns:
       List[JsonDict] containing requested fields of model predictions
     """
-    preds = list(self._predict(data['inputs'], model, dataset_name))
+    preds = self._predict(data['inputs'], model, dataset_name)
 
     # Figure out what to return to the frontend.
-    output_spec = self._get_spec(model)['output']
+    output_spec = self._get_model_spec(model)['output']
     requested_types = requested_types.split(',')
     logging.info('Requested types: %s', str(requested_types))
     ret_keys = []
@@ -201,35 +193,54 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _get_datapoint_ids(self, data):
+  def _get_datapoint_ids(self, data, **unused_kw) -> List[IndexedInput]:
     """Fill in unique example hashes for the provided datapoints."""
-    examples = []
+    # TODO(lit-dev): unify this with hash fn on dataset objects.
     for example in data['inputs']:
       example['id'] = caching.input_hash(example['data'])
-      examples.append(example)
-    return examples
+    return data['inputs']
 
-  def _get_dataset(self, unused_data, dataset_name: Text = None):
+  def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
+    return self._datasets[dataset_name].indexed_examples
 
-    # TODO(lit-team): add functionality to load data from a given path, as
-    # passed from the frontend?
+  def _create_dataset(self, unused_data, dataset_name: Text = None,
+                      dataset_path: Text = None, **unused_kw):
+    """Create dataset from a path, updating and returning the metadata."""
+
     assert dataset_name is not None, 'No dataset specified.'
-    # TODO(lit-team): possibly allow IDs from persisted dataset.
-    return caching.add_hashes_to_input(self._datasets[dataset_name].examples)
+    assert dataset_path is not None, 'No dataset path specified.'
+    new_dataset = self._datasets[dataset_name].load(dataset_path)
+    if new_dataset is not None:
+      new_dataset_name = dataset_name + '-' + os.path.basename(dataset_path)
+      self._datasets[new_dataset_name] = new_dataset
+      self._info = self._build_metadata()
+      return (self._info, new_dataset_name)
+    else:
+      return None
 
   def _get_generated(self, data, model: Text, dataset_name: Text,
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
-    generator = self._generators[generator]
-    #  IndexedInput[] -> Input[]
-    raw_inputs = [d['data'] for d in data['inputs']]
-    outs = generator.generate_all(
-        raw_inputs,
-        self._models[model],
-        self._datasets[dataset_name],
-        config=data.get('config'))
-    return outs
+    generator_name = generator
+    generator: lit_components.Generator = self._generators[generator_name]
+    dataset = self._datasets[dataset_name]
+    # Nested list, containing generated examples from each input.
+    all_generated: List[List[Input]] = generator.run_with_metadata(
+        data['inputs'], self._models[model], dataset, config=data.get('config'))
+
+    # Add metadata.
+    all_generated_indexed: List[List[IndexedInput]] = [
+        dataset.index_inputs(generated) for generated in all_generated
+    ]
+    for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
+      for generated in indexed_generated:
+        generated['meta'].update({
+            'parentId': parent['id'],
+            'source': generator_name,
+            'added': True,
+        })
+    return all_generated_indexed
 
   def _get_interpretations(self, data, model: Text, dataset_name: Text,
                            interpreter: Text, **unused_kw):
@@ -277,34 +288,78 @@ class LitApp(object):
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
 
+  def make_handler(self, fn):
+    """Convenience wrapper to handle args and serialization.
+
+    This is a thin shim between server (handler, request, environ) and model
+    logic (inputs, args, outputs).
+
+    Args:
+      fn: function (JsonDict, **kw) -> JsonDict
+
+    Returns:
+      fn wrapped as a request handler
+    """
+
+    @functools.wraps(fn)
+    def _handler(app: wsgi_app.App, request, environ):
+      kw = request.args.to_dict()
+      # The frontend needs "simple" data (e.g. NumPy arrays converted to lists),
+      # but for requests from Python we may want to use the invertible encoding
+      # so that datatypes from remote models are the same as local ones.
+      response_simple_json = utils.coerce_bool(
+          kw.pop('response_simple_json', True))
+      data = serialize.from_json(request.data) if len(request.data) else None
+      # Special handling to dereference IDs.
+      if data and 'inputs' in data.keys() and 'dataset_name' in kw:
+        data['inputs'] = self._reconstitute_inputs(data['inputs'],
+                                                   kw['dataset_name'])
+
+      outputs = fn(data, **kw)
+      response_body = serialize.to_json(outputs, simple=response_simple_json)
+      return app.respond(request, response_body, 'application/json', 200)
+
+    return _handler
+
   def __init__(
       self,
       models: Mapping[Text, lit_model.Model],
-      datasets: MutableMapping[Text, lit_dataset.Dataset],
+      datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
+      layouts: Optional[Mapping[Text, dtypes.LitComponentLayout]] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,
       warm_projections: bool = False,
       client_root: Optional[Text] = None,
       demo_mode: bool = False,
-      default_layout: str = None,
-      canonical_url: str = None,
+      default_layout: Optional[str] = None,
+      canonical_url: Optional[str] = None,
+      page_title: Optional[str] = None,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
     self._demo_mode = demo_mode
     self._default_layout = default_layout
     self._canonical_url = canonical_url
+    self._page_title = page_title
+    self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
+
+    # Wrap models in caching wrapper
     self._models = {
         name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
         for name, model in models.items()
     }
-    self._datasets = datasets
-    self._datasets['_union_empty'] = NoneDataset(self._models)
+
+    self._datasets = dict(datasets)
+    self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+    # Index all datasets
+    self._datasets = lit_dataset.IndexedDataset.index_all(
+        self._datasets, caching.input_hash)
+
     if generators is not None:
       self._generators = generators
     else:
@@ -323,11 +378,12 @@ class LitApp(object):
           'bleu': metrics.CorpusBLEU(),
       })
       self._interpreters = {
-          'grad_norm': gradient_maps.GradientNorm(),
-          'lime': lime_explainer.LIME(),
-          'grad_dot_input': gradient_maps.GradientDotInput(),
-          'integrated gradients': gradient_maps.IntegratedGradients(),
+          'Grad L2 Norm': gradient_maps.GradientNorm(),
+          'Grad ⋅ Input': gradient_maps.GradientDotInput(),
+          'Integrated Gradients': gradient_maps.IntegratedGradients(),
+          'LIME': lime_explainer.LIME(),
           'counterfactual explainer': lemon_explainer.LEMON(),
+          'tcav': tcav.TCAV(),
           'metrics': metrics_group,
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
@@ -335,8 +391,8 @@ class LitApp(object):
           'umap': projection.ProjectionManager(umap.UmapModel),
       }
 
-    # Information on models and datasets.
-    self._build_metadata()
+    # Information on models, datasets, and other components.
+    self._info = self._build_metadata()
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:
@@ -362,6 +418,7 @@ class LitApp(object):
         '/get_info': self._get_info,
         # Dataset-related endpoints.
         '/get_dataset': self._get_dataset,
+        '/create_dataset': self._create_dataset,
         '/get_generated': self._get_generated,
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
@@ -372,8 +429,8 @@ class LitApp(object):
     }
 
     self._wsgi_app = wsgi_app.App(
-        # Wrap endpoint fns to take (handler, request)
-        handlers={k: make_handler(v) for k, v in handlers.items()},
+        # Wrap endpoint fns to take (handler, request, environ)
+        handlers={k: self.make_handler(v) for k, v in handlers.items()},
         project_root=client_root,
         index_file='static/index.html',
     )
@@ -386,29 +443,3 @@ class LitApp(object):
   def __call__(self, environ, start_response):
     """Implementation of the WSGI interface."""
     return self._wsgi_app(environ, start_response)
-
-
-class NoneDataset(lit_dataset.Dataset):
-  """Default for simple model exploration."""
-
-  def __init__(self, models):
-    self._examples = []
-    self._models = models
-
-  def spec(self):
-    combined_spec = {}
-    for _, model in self._models.items():
-      req_inputs = {
-          k: v for (k, v) in model.spec().input.items() if v.required
-      }
-      # Ensure that there are no conflicting spec keys.
-      assert not self.has_conflicting_keys(combined_spec, req_inputs)
-      combined_spec.update(req_inputs)
-
-    return combined_spec
-
-  def has_conflicting_keys(self, spec0: types.Spec, spec1: types.Spec):
-    for k, v in spec0.items():
-      if k in spec1 and spec1[k] != v:
-        return True
-    return False

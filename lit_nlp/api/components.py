@@ -15,17 +15,31 @@
 # Lint as: python3
 """Base classes for LIT backend components."""
 import abc
-from typing import Dict, List, Optional, Text
+import inspect
+from typing import Dict, List, Optional, Sequence, Text
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 
 JsonDict = types.JsonDict
+IndexedInput = types.IndexedInput
 
 
 class Interpreter(metaclass=abc.ABCMeta):
   """Base class for LIT interpretation components."""
+
+  def description(self) -> str:
+    """Return a human-readable description of this component.
+
+    Defaults to class docstring, but subclass may override this to be
+    instance-dependent - for example, including the path from which the model
+    was loaded.
+
+    Returns:
+      (string) A human-readable description for display in the UI.
+    """
+    return inspect.getdoc(self) or ''
 
   def run(self,
           inputs: List[JsonDict],
@@ -39,14 +53,42 @@ class Interpreter(metaclass=abc.ABCMeta):
     )
 
   def run_with_metadata(self,
-                        indexed_inputs: List[JsonDict],
+                        indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
+                        dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None):
     """Run this component, with access to data indices and metadata."""
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
+
+  def is_compatible(self, model: lit_model.Model):
+    """Return if interpreter is compatible with the given model."""
+    del model
+    return True
+
+  def config_spec(self) -> types.Spec:
+    """Return the configuration spec for this component.
+
+    If there are configuration options for this component that can be set in the
+    UI, then list them and their type in this spec.
+
+    Returns:
+      Spec of configuration options. Defaults to an empty spec.
+    """
+    return {}
+
+  def meta_spec(self) -> types.Spec:
+    """Returns the metadata spec of this component.
+
+    Can be used to represent information about what this interpreter returns,
+    for use in the UI. For example, indicating if a saliency map is signed
+    or unsigned which will affect the display of the results.
+
+    Returns:
+      A spec of what this component returns, to be used to drive the UI.
+    """
+    return {}
 
 
 class ComponentGroup(Interpreter):
@@ -57,9 +99,9 @@ class ComponentGroup(Interpreter):
 
   def run_with_metadata(
       self,
-      indexed_inputs: List[JsonDict],
+      indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
-      dataset: lit_dataset.Dataset,
+      dataset: lit_dataset.IndexedDataset,
       model_outputs: Optional[List[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Dict[Text, JsonDict]:
     """Run this component, given a model and input(s)."""
@@ -72,8 +114,19 @@ class ComponentGroup(Interpreter):
     return ret
 
 
-class Generator(metaclass=abc.ABCMeta):
+class Generator(Interpreter):
   """Base class for LIT generators."""
+
+  def run_with_metadata(self,
+                        indexed_inputs: Sequence[IndexedInput],
+                        model: lit_model.Model,
+                        dataset: lit_dataset.IndexedDataset,
+                        model_outputs: Optional[List[JsonDict]] = None,
+                        config: Optional[JsonDict] = None):
+    """Run this component, with access to data indices and metadata."""
+    #  IndexedInput[] -> Input[]
+    inputs = [ex['data'] for ex in indexed_inputs]
+    return self.generate_all(inputs, model, dataset, config)
 
   def generate_all(self,
                    inputs: List[JsonDict],
@@ -104,14 +157,3 @@ class Generator(metaclass=abc.ABCMeta):
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Return a list of generated examples."""
     return
-
-  def spec(self) -> types.Spec:
-    """Return the configuration spec for the generator.
-
-    If there are configuration options for the generator that can be set in the
-    UI, then list them and their type in this spec.
-
-    Returns:
-      Spec of configuration options. Defaults to an empty spec.
-    """
-    return {}

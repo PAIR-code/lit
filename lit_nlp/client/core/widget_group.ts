@@ -15,18 +15,25 @@
  * limitations under the License.
  */
 
+import '../elements/checkbox';
 import '../elements/spinner';
-import { styles as widgetGroupStyles } from './widget_group.css';
-import {styles as widgetStyles} from './widget.css';
-import { customElement, html, LitElement, property } from 'lit-element';
-import { MobxLitElement } from '@adobe/lit-mobx';
-import { classMap } from 'lit-html/directives/class-map';
+import '@material/mwc-icon-button-toggle';
+import '@material/mwc-icon';
+
+import {MobxLitElement} from '@adobe/lit-mobx';
+import {customElement, html, LitElement, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
+import {styleMap} from 'lit-html/directives/style-map';
+
 import {app} from '../core/lit_app';
+import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
+import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
+import {LitModule} from './lit_module';
+import {styles as widgetStyles} from './widget.css';
+import {styles as widgetGroupStyles} from './widget_group.css';
 
-import '@material/mwc-icon';
-import { RenderConfig } from '../services/modules_service';
 const NUM_COLS = 12;
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
@@ -40,6 +47,11 @@ export class WidgetGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) maximized = false;
   @property({ type: Boolean, reflect: true }) dragging = false;
   @property({ type: Number }) userSetNumCols = 0;
+  private widgetScrollTop = 0;
+  private widgetScrollLeft = 0;
+  // Not set as @observable since re-renders were not occuring when changed.
+  // Instead using requestUpdate to ensure re-renders on change.
+  private syncScrolling = true;
 
   static get styles() {
     return [widgetGroupStyles];
@@ -82,14 +94,33 @@ export class WidgetGroup extends LitElement {
       }
     };
 
+    const renderScrollSyncControl = () => {
+      const toggleSyncScrolling = () => {
+        this.syncScrolling = !this.syncScrolling;
+        this.requestUpdate();
+      };
+      return html`
+        <mwc-icon-button-toggle class="icon-button scroll-toggle"
+          title="Toggle scroll sync"
+          onIcon="sync_disabled" offIcon="sync"
+          ?on="${!this.syncScrolling}"
+          @MDCIconButtonToggle:change="${toggleSyncScrolling}"
+          @icon-button-toggle-change="${toggleSyncScrolling}">
+        </mwc-icon-button-toggle>`;
+    };
+
     // clang-format off
     return html`
       <div class=header>
         <div class="title" @click=${onTitleClick}>${title}</div>
-        <mwc-icon class="icon-button min-button" @click=${onMinClick}>
+        ${this.minimized || configGroup.length < 2 ?
+          null :
+          renderScrollSyncControl()
+        }
+        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
           ${minIconName}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick}>
+        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
           ${maxIconName}
         </mwc-icon>
       </div>`;
@@ -102,8 +133,6 @@ export class WidgetGroup extends LitElement {
   renderModules(configGroup: RenderConfig[]) {
     const modulesInGroup = configGroup.length > 1;
     const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
-    const componentsHTML = configGroup.map(
-      config => this.renderModule(config, modulesInGroup && !duplicateAsRow));
 
     this.setWidthValues(configGroup, duplicateAsRow);
 
@@ -120,18 +149,28 @@ export class WidgetGroup extends LitElement {
       'holder': true,
     });
 
+    // Set sub-component dimensions based on the container.
+    const widgetStyle = {width: '100%', height: '100%'};
+    if (duplicateAsRow) {
+      widgetStyle['width'] = `${100 / configGroup.length}%`;
+    } else {
+      widgetStyle['height'] = `${100 / configGroup.length}%`;
+    }
+    // clang-format off
     return html`
       <div class=${wrapperClasses} >
         ${this.renderHeader(configGroup)}
         <div class=${holderClasses}>
-          ${componentsHTML}
+          ${configGroup.map(config => this.renderModule(config, widgetStyle))}
           ${this.renderExpander()}
         </div>
       </div>
-      `;
+    `;
+    // clang-format on
   }
 
-  renderModule(config: RenderConfig, moduleInColumnGroup: boolean) {
+
+  renderModule(config: RenderConfig, styles: {[key: string]: string}) {
     const moduleType = config.moduleType;
     const modelName = config.modelName;
     const selectionServiceIndex = config.selectionServiceIndex;
@@ -146,15 +185,29 @@ export class WidgetGroup extends LitElement {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
         selectionServiceIndex ? 'Reference' : 'Main'}`);
     }
+    // Track scolling changes to the widget and request a rerender.
+    const widgetScrollCallback = (e: CustomEvent) => {
+      if (this.syncScrolling) {
+        this.widgetScrollLeft = e.detail['scrollLeft'];
+        this.widgetScrollTop = e.detail['scrollTop'];
+        this.requestUpdate();
+      }
+    };
+    // clang-format off
     return html`
       <lit-widget
         displayTitle=${moduleType.title}
         subtitle=${subtitle}
         ?highlight=${selectionServiceIndex === 1}
+        @widget-scroll="${widgetScrollCallback}"
+        widgetScrollLeft=${this.widgetScrollLeft}
+        widgetScrollTop=${this.widgetScrollTop}
+        style=${styleMap(styles)}
       >
         ${moduleType.template(modelName, selectionServiceIndex)}
       </lit-widget>
     `;
+    // clang-format on
   }
 
   renderExpander() {
@@ -256,9 +309,55 @@ export class LitWidget extends MobxLitElement {
   @property({ type: String }) subtitle = '';
   @property({ type: Boolean }) isLoading = false;
   @property({ type: Boolean }) highlight = false;
+  @property({ type: Number }) widgetScrollTop = 0;
+  @property({ type: Number }) widgetScrollLeft = 0;
 
   static get styles() {
     return widgetStyles;
+  }
+
+  async updated() {
+    // Perform this after updateComplete so that the child module has completed
+    // its updated() lifecycle method before this logic is executed.
+    await this.updateComplete;
+    const module = this.children[0] as LitModule;
+
+    // If a module contains an element with the SCROLL_SYNC_CSS_CLASS, then
+    // scroll it appropriately and set its onscroll listener to bubble-up scroll
+    // events to the parent LitWidgetGroup.
+    const scrollElems = module.shadowRoot!.querySelectorAll(
+        `.${SCROLL_SYNC_CSS_CLASS}`);
+    if (scrollElems.length > 0) {
+      scrollElems.forEach(elem => {
+        const scrollElement = elem as HTMLElement;
+        scrollElement.scrollTop = this.widgetScrollTop;
+        scrollElement.scrollLeft = this.widgetScrollLeft;
+
+        // Track content scrolling and pass the scrolling information back to
+        // the widget group for sync'ing between duplicated widgets.
+        const scrollCallback = () => {
+          const event = new CustomEvent('widget-scroll', {
+            detail: {
+              scrollTop: scrollElement.scrollTop,
+              scrollLeft: scrollElement.scrollLeft,
+            }
+          });
+          this.dispatchEvent(event);
+        };
+        module.onSyncScroll = scrollCallback;
+        module.requestUpdate();
+      });
+    } else {
+      // If a module doesn't have its own scroll element set, then scroll it
+      // appropriately through the content div that contains the module.
+      // After render, set the scroll values for the content based on the
+      // Need to set during updated() instead of render() to avoid issues
+      // with scroll events interfering with synced scroll updates.
+      const content = this.shadowRoot!.querySelector('.content')!;
+      if (content == null) return;
+      content.scrollTop = this.widgetScrollTop;
+      content.scrollLeft = this.widgetScrollLeft;
+    }
   }
 
   render() {
@@ -270,6 +369,20 @@ export class LitWidget extends MobxLitElement {
       holder: true,
       highlight: this.highlight,
     });
+    // Track content scrolling and pass the scrolling information back to the
+    // widget group for sync'ing between duplicated widgets. This covers the
+    // majority of modules that don't have their own internal scrolling
+    // mechanimsm tagged with the SCROLL_SYNC_CSS_CLASS.
+    const scrollCallback = () => {
+      const content = this.shadowRoot!.querySelector('.content')!;
+      const event = new CustomEvent('widget-scroll', {
+        detail: {
+          scrollTop: content.scrollTop,
+          scrollLeft: content.scrollLeft,
+        }
+      });
+      this.dispatchEvent(event);
+    };
 
     // clang-format off
     return html`
@@ -277,7 +390,7 @@ export class LitWidget extends MobxLitElement {
         ${this.subtitle ? this.renderHeader() : ''}
         <div class="container">
           ${this.isLoading ? this.renderSpinner() : null}
-          <div class=${contentClasses}>
+          <div class=${contentClasses} @scroll=${scrollCallback}>
             <slot></slot>
           </div>
         </div>

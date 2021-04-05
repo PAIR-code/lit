@@ -55,6 +55,7 @@ mwc-icon.icon-button:active {
   width: 20px;
   height: 20px;
   padding-right: 4px;
+  display: block;
 }
 
 .status-item {

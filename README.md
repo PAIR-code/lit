@@ -3,7 +3,8 @@
 <!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
 
 The Language Interpretability Tool (LIT) is a visual, interactive
-model-understanding tool for NLP models.
+model-understanding tool for NLP models. It can be run as a standalone server,
+or inside of notebook environments such as Colab and Jupyter.
 
 LIT is built to answer questions such as:
 
@@ -30,6 +31,12 @@ Features include:
     regression, span labeling, seq2seq, and language modeling. Supports
     multi-head models and multiple input features out of the box.
 *   **Framework-agnostic** and compatible with TensorFlow, PyTorch, and more.
+
+LIT has a [website](https://pair-code.github.io/lit) with live demos, tutorials,
+a setup guide and more.
+
+Stay up to date on LIT by joining the
+[lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
 [user guide](documentation/user_guide.md).
@@ -83,6 +90,13 @@ running the demos.
 
 ## Running LIT
 
+Explore a collection of hosted demos on the
+[LIT website demos page](https://pair-code.github.io/lit/demos).
+
+Colab notebooks showing the use of LIT inside of notebooks can be found at
+google3/third_party/py/lit_nlp/example/notebooks. A simple example can be viewed
+[here](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+
 ### Quick-start: classification and regression
 
 To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
@@ -106,11 +120,23 @@ the upper right.
 To explore predictions from a pretrained language model (BERT or GPT-2), run:
 
 ```sh
-python -m lit_nlp.examples.pretrained_lm_demo --models=bert-base-uncased \
+python -m lit_nlp.examples.lm_demo --models=bert-base-uncased \
   --port=5432
 ```
 
 And navigate to http://localhost:5432 for the UI.
+
+### Notebook usage
+
+A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
+Just run all the cells to see LIT on an example classification model right in
+the notebook.
+
+### Run LIT in a Docker container
+
+See [docker.md](documentation/docker.md) for instructions on running LIT as
+a containerized web app. This is the approach we take for our
+[website demos](https://pair-code.github.io/lit/demos/).
 
 ### More Examples
 

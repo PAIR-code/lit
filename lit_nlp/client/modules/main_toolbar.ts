@@ -222,7 +222,6 @@ export class LitMainToolbar extends MobxLitElement {
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
 
-  @observable private highlightStar: boolean = false;
   @observable private displayTooltip: boolean = false;
 
   /**
@@ -232,32 +231,20 @@ export class LitMainToolbar extends MobxLitElement {
   get selectedIdPairs() {
     const data = this.selectionService.selectedOrAllInputData;
     return data.filter(d => d.meta['parentId'])
-        .map(d => [d.id, d.meta['parentId']]);
+        .map(d => [d.id, d.meta['parentId']!]);
+  }
+
+  private isStarred(id: string|null): boolean {
+    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
   }
 
   private toggleStarred() {
-    const data = this.selectionService.primarySelectedInputData;
-    if (data == null) {
-      return;
-    }
-    // TODO(b/173253274): Store the starred state in a single source of truth
-    // (i.e. only store as slice membership and not in data.meta).
-    if (data.meta['isStarred'] != null) {
-      data.meta['isStarred'] = !data.meta['isStarred'];
-
-      if (data.meta['isStarred']) {
-        this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [data.id]);
-      } else {
-        this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [data.id]);
-      }
-
-      // If the stars slice is selected, update the selection to include
-      // the addition/removal of this id.
-      if (this.sliceService.selectedSliceName === STARRED_SLICE_NAME) {
-        this.sliceService.selectNamedSlice(STARRED_SLICE_NAME);
-      }
-
-      this.highlightStar = data.meta['isStarred'];
+    const primaryId = this.selectionService.primarySelectedId;
+    if (primaryId == null) return;
+    if (this.isStarred(primaryId)) {
+      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [primaryId]);
+    } else {
+      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [primaryId]);
     }
   }
 
@@ -393,6 +380,9 @@ export class LitMainToolbar extends MobxLitElement {
 
     // Cycle through pairs, relative to the current selected one.
     const selectOffset = (offset: number) => {
+      // If not in comparison mode, enter it.
+      this.appState.compareExamplesEnabled = true;
+
       // If no valid pair is selected (-1), ignore and start at 0.
       const start = isPairSelected ? selectedPairIndex : 0;
       const nextPairIndex = (start + offset + numPairs) % numPairs;
@@ -414,7 +404,7 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <div id='pair-controls' class='selection-status-group'>
-        ${numPairs} pairs available
+        ${numPairs} ${numPairs === 1 ? "pair" : "pairs"} available
         <mwc-icon class='icon-button' id='select-prev'
           @click=${() => {selectOffset(-1);}}>
           chevron_left
@@ -435,11 +425,8 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   renderStarButton(numSelected: number) {
-    const primarySelectedInputData =
-        this.selectionService.primarySelectedInputData;
-    this.highlightStar = (primarySelectedInputData == null) ?
-        false :
-        primarySelectedInputData.meta['isStarred'];
+    const highlightStar =
+        this.isStarred(this.selectionService.primarySelectedId);
 
     const disabled = numSelected === 0;
     const iconClass = classMap({'icon-button': true, 'disabled': disabled});
@@ -447,10 +434,12 @@ export class LitMainToolbar extends MobxLitElement {
     const starOnClick = () => {
       this.toggleStarred();
     };
-    return html`<mwc-icon class=${iconClass} id='star-button' @click=${
-        starOnClick}>
-            ${this.highlightStar ? 'star' : 'star_border'}
-          </mwc-icon>`;
+    // clang-format off
+    return html`
+      <mwc-icon class=${iconClass} id='star-button' @click=${starOnClick}>
+        ${highlightStar ? 'star' : 'star_border'}
+      </mwc-icon>`;
+    // clang-format on
   }
 
   render() {
@@ -488,7 +477,7 @@ export class LitMainToolbar extends MobxLitElement {
             disableClicked: null}
           @mouseout=${compareDisabled ? disableMouseout: null}>
           <div class=${compareTextClass}>
-            Compare Datapoints
+            Compare datapoints
           </div>
           <mwc-switch id='compare-switch'
             ?disabled='${compareDisabled}'
@@ -502,12 +491,12 @@ export class LitMainToolbar extends MobxLitElement {
             Select a datapoint to use this feature.
           </span>
         </div>
+        ${this.renderPairControls()}
       </div>
       <div id='right-container'>
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
         ${this.renderStarButton(numSelected)}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
-        ${this.appState.compareExamplesEnabled ? this.renderPairControls() : null}
         <button id="clear-selection" class="text-button" @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection

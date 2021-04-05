@@ -26,11 +26,12 @@ REQUIRED_PACKAGES = [
     "numpy",
     "scipy",
     "pandas",
+    "portpicker",
     "scikit-learn",
-    "lime",
     "sacrebleu",
     "umap-learn",
     "Werkzeug",
+    "ml-collections",
 ]
 
 with open("README.md", "r") as fh:

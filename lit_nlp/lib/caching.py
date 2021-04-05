@@ -29,6 +29,8 @@ from lit_nlp.api import types
 from lit_nlp.lib import serialize
 
 JsonDict = types.JsonDict
+Input = types.Input
+IndexedInput = types.IndexedInput
 
 # Compound keys: (dataset_name, example_id)
 # None is used as a sentinel to skip the cache.
@@ -40,11 +42,6 @@ def input_hash(example: JsonDict) -> Text:
   json_str = serialize.to_json(
       example, simple=True, sort_keys=True).encode("utf-8")
   return hashlib.md5(json_str).hexdigest()
-
-
-def add_hashes_to_input(examples: List[JsonDict]) -> List[JsonDict]:
-  """Return examples with hashes added."""
-  return [{"data": example, "id": input_hash(example)} for example in examples]
 
 
 class PredsCache(object):
@@ -168,8 +165,8 @@ class CachingModelWrapper(lit_model.Model):
     """Pass-through underlying model description."""
     return self._model.description()
 
-  def max_minibatch_size(self, config=None):
-    return self._model.max_minibatch_size(config)
+  def max_minibatch_size(self):
+    return self._model.max_minibatch_size()
 
   def get_embedding_table(self):
     return self._model.get_embedding_table()

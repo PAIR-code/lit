@@ -21,9 +21,14 @@
   height: 100%;
 }
 
-#table-container{
-  height: calc(100% - var(--toolbar-height));
+.table-container {
+  flex: 1;
   overflow: visible;
+  height: 100%
+}
+
+.toolbar + .table-container {
+  height: calc(100% - var(--toolbar-height));
 }
 
 #rows-container{
@@ -167,6 +172,12 @@ tr.primary-selected {
   transition-property: background-color;
 }
 
+tr.focused {
+  background: rgba(255, 0, 0, 0.2);
+  transition-duration: 0.2s;
+  transition-property: background-color;
+}
+
 tr.reference-selected {
   outline: 1px solid #2f8c9b;
 }
@@ -207,8 +218,7 @@ td div {
 }
 
 .column-dropdown-hide {
-  visibility:hidden;
-  position: absolute;
+  display:none;
 }
 
 .column-dropdown {
@@ -218,6 +228,13 @@ td div {
   background: white;
   border: 1px solid gray;
   position: absolute;
-  visibility:visible;
+  visibility: visible;
   z-index: 1000;
+  max-height: calc(100% - 80px);
+  overflow: auto;
+}
+
+/* TODO(lit-dev): Make the table image width configurable. */
+.table-img{
+  width: 100px;
 }

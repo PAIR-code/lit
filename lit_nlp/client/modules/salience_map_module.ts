@@ -23,15 +23,16 @@ import '../elements/checkbox';
 import '../elements/spinner';
 
 // tslint:disable:no-new-decorators
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {ModelsMap, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {FocusData, FocusService} from '../services/focus_service';
 
 import {styles} from './salience_map_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -51,7 +52,7 @@ interface InterpreterState {
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
-  canRun?: (modelSpec: Spec) => boolean;
+  config?: CallConfig;
 }
 
 abstract class SalienceCmap {
@@ -125,6 +126,8 @@ export class SalienceMapModule extends LitModule {
         selectionServiceIndex}></salience-map-module>`;
   };
 
+  private readonly focusService = app.getService(FocusService);
+
   static get styles() {
     return [sharedStyles, styles];
   }
@@ -137,58 +140,38 @@ export class SalienceMapModule extends LitModule {
   // between different salience methods, or to change the table arrangement
   // (e.g. group by input field, rather than salience technique).
   @observable
-  private readonly state: {[name: string]: InterpreterState} = {
-    'grad_norm': {
-      autorun: true,
-      isLoading: false,
-      salience: {},
-      cmap: new UnsignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0
-    },
-    'grad_dot_input': {
-      autorun: true,
-      isLoading: false,
-      salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec, 'TokenEmbeddings').length > 0
-    },
-    'integrated gradients': {
-      autorun: false,
-      isLoading: false,
-      salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0),
-      // TODO(lit-dev): Should also check that this aligns with a token field,
-      // here and in checkModule. Perhaps move component compatibility somewhere
-      // central.
-      canRun: (modelSpec: Spec) =>
-          findSpecKeys(modelSpec, 'TokenGradients').length > 0 &&
-          findSpecKeys(modelSpec, 'TokenEmbeddings').length > 0
-    },
-    'lime': {
-      autorun: false,
-      isLoading: false,
-      salience: {},
-      cmap: new SignedSalienceCmap(/* gamma */ 4.0)
-    },
-  };
+  private state: {[name: string]: InterpreterState} = {};
 
   shouldRunInterpreter(name: string) {
-    return this.state[name].autorun &&
-        (this.state[name].canRun == null ||
-         this.state[name].canRun!
-         (this.appState.getModelSpec(this.model).output));
+    return this.state[name].autorun;
   }
 
   firstUpdated() {
+    const interpreters = this.appState.metadata.interpreters;
+    const validInterpreters =
+        this.appState.metadata.models[this.model].interpreters;
+    const state: {[name: string]: InterpreterState} = {};
+    for (const key of validInterpreters) {
+      const salienceKeys =
+          findSpecKeys(interpreters[key].metaSpec, 'SalienceMap');
+      if (salienceKeys.length === 0) {
+        continue;
+      }
+      const salienceSpecInfo = interpreters[key].metaSpec[salienceKeys[0]];
+      state[key] = {
+        autorun: !!salienceSpecInfo.autorun,
+        isLoading: false,
+        salience: {},
+        cmap: !!salienceSpecInfo.signed ?
+            new SignedSalienceCmap(/* gamma */ 4.0) :
+            new UnsignedSalienceCmap(/* gamma */ 4.0),
+      };
+    }
+    this.state = state;
+
+    this.reactImmediately(() => this.focusService.focusData, focusData => {
+      this.handleFocus(this.focusService.focusData);
+    });
     for (const name of Object.keys(this.state)) {
       // React to change in primary selection.
       const getData = () => this.selectionService.primarySelectedInputData;
@@ -225,7 +208,7 @@ export class SalienceMapModule extends LitModule {
     this.state[name].isLoading = true;
     const promise = this.apiService.getInterpretations(
         [input], this.model, this.appState.currentDataset, name,
-        /* callConfig */ undefined, `Running ${name}`);
+        this.state[name].config, `Running ${name}`);
     const salience = await this.loadLatest(`interpretations-${name}`, promise);
     this.state[name].isLoading = false;
     if (salience === null) return;
@@ -233,40 +216,80 @@ export class SalienceMapModule extends LitModule {
     this.state[name].salience = salience[0];
   }
 
+  handleFocus(focusData: FocusData|null) {
+    this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
+      // For each token group we have a single tooltip,
+      // which we reposition to the focused token.
+      const tooltip = e.querySelector('.salience-tooltip') as HTMLElement;
+      if (focusData == null || focusData.fieldName == null) {
+        tooltip.style.visibility = 'hidden';
+      } else if (focusData.datapointId ===
+                 this.selectionService.primarySelectedInputData!.id) {
+        const tokens = e.querySelectorAll(
+            `.salient-token[data-gradKey="${focusData.fieldName}"]`);
+        tokens.forEach((t, i) => {
+          const tokenElement = t as HTMLElement;
+          if (i !== focusData.subField) {
+            return;
+          }
+          tooltip.innerText = tokenElement.dataset['tooltip']!;
+          tooltip.style.visibility = 'visible';
+          const tokenBcr = tokenElement.getBoundingClientRect();
+          const groupBcr = e.getBoundingClientRect();
+          const tooltipLeft =
+              ((tokenBcr.left + tokenBcr.right) / 2) - groupBcr.left;
+          const tooltipTop = tokenBcr.bottom - groupBcr.top;
+          tooltip.style.left = `${tooltipLeft}px`;
+          tooltip.style.top = `${tooltipTop}px`;
+        });
+      }
+    });
+  }
+
   updated() {
+    super.updated();
+
     // Imperative tooltip implementation
     this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
       // For each token group we have a single tooltip,
       // which we reposition to the current element on mouseover.
-      const tooltip = e.querySelector('.salience-tooltip') as HTMLElement;
       const tokens = e.querySelectorAll('.salient-token');
-      tokens.forEach((t) => {
+      const self = this;
+      tokens.forEach((t, i) => {
         (t as HTMLElement).onmouseover = function() {
-          tooltip.innerText = (this as HTMLElement).dataset['tooltip']!;
-          tooltip.style.visibility = 'visible';
-          const bcr = (this as HTMLElement).getBoundingClientRect();
-          tooltip.style.left = `${(bcr.left + bcr.right) / 2}px`;
-          tooltip.style.top = `${bcr.bottom}px`;
+          self.focusService.setFocusedField(
+              self.selectionService.primarySelectedInputData!.id,
+              'input',
+              (this as HTMLElement).dataset['gradkey']!,
+              i);
         };
         // tslint:disable-next-line:only-arrow-functions
         (t as HTMLElement).onmouseout = function() {
-          tooltip.style.visibility = 'hidden';
+          self.focusService.clearFocus();
         };
       });
     });
   }
 
-  renderToken(token: string, salience: number, cmap: SalienceCmap) {
+  renderToken(token: string, salience: number, cmap: SalienceCmap, gradKey: string) {
     const tokenStyle = styleMap({
       'color': cmap.textCmap(salience),
       'background-color': cmap.bgCmap(salience)
     });
 
-    return html`
-      <div class="salient-token" style=${tokenStyle}
-        data-tooltip=${salience.toPrecision(3)}>
-        ${token}
-      </div>`;
+    if (gradKey != null) {
+      return html`
+        <div class="salient-token" style=${tokenStyle}
+          data-tooltip=${salience.toPrecision(3)} data-gradkey=${gradKey}>
+          ${token}
+        </div>`;
+    } else {
+      return html`
+        <div class="salient-token" style=${tokenStyle}
+          data-tooltip=${salience.toPrecision(3)}>
+          ${token}
+        </div>`;
+    }
   }
 
   // TODO(lit-dev): consider moving this to a standalone viz class.
@@ -276,7 +299,7 @@ export class SalienceMapModule extends LitModule {
 
     const tokensDOM = tokens.map(
         (token: string, i: number) =>
-            this.renderToken(token, saliences[i], cmap));
+            this.renderToken(token, saliences[i], cmap, gradKey));
 
     // clang-format off
     return html`
@@ -303,31 +326,69 @@ export class SalienceMapModule extends LitModule {
     `;
   }
 
-  render() {
+  renderControls() {
+    return Object.keys(this.state).map(name => {
+      const toggleAutorun = () => {
+        this.state[name].autorun = !this.state[name].autorun;
+      };
+      // clang-format off
+      return html`
+        <lit-checkbox label=${name}
+         ?checked=${this.state[name].autorun}
+         @change=${toggleAutorun}>
+        </lit-checkbox>
+      `;
+      // clang-format on
+    });
+  }
+
+  renderTable() {
+    const controlsApplyCallback = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      const name =  (event as any).detail.name;
+      // tslint:disable-next-line:no-any
+      this.state[name].config = (event as any).detail.settings;
+      this.runInterpreter(name);
+    };
+
     // clang-format off
+    const renderMethodControls = (name: string) => {
+      const spec = this.appState.metadata.interpreters[name].configSpec;
+      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      for (const fieldName of Object.keys(clonedSpec)) {
+        // If the generator uses a field matcher, then get the matching
+        // field names from the specified spec and use them as the vocab.
+        if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+          clonedSpec[fieldName].vocab =
+              this.appState.getSpecKeysFromFieldMatcher(
+                  clonedSpec[fieldName], this.model);
+        }
+      }
+      return html`
+          <lit-interpreter-controls
+            .spec=${clonedSpec}
+            .name=${name}
+            @interpreter-click=${controlsApplyCallback}>
+          </lit-interpreter-controls>`;
+    };
     return html`
       <table>
         ${Object.keys(this.state).map(name => {
-          if (this.state[name].canRun != null &&
-              !this.state[name].canRun!(this.appState.getModelSpec(
-                  this.model).output)) {
+          if (!this.state[name].autorun) {
             return null;
           }
           const salience = this.state[name].salience;
-          const cmap = this.state[name].cmap;
+          const description =
+              this.appState.metadata.interpreters[name].description || name;
           return html`
-            <tr>
-              <th class='group-label'>
-                ${name}
-                <lit-checkbox label="autorun"
-                  ?checked=${this.state[name].autorun}
-                  @change=${() => { this.state[name].autorun = !this.state[name].autorun;}}
-                ></lit-checkbox>
+            <tr class='method-row'>
+              <th class='group-label' title=${description}>
+                ${renderMethodControls(name)}
               </th>
               <td class=${classMap({'group-container': true,
                                     'loading': this.state[name].isLoading})}>
                 ${Object.keys(salience).map(gradKey =>
-                  this.renderGroup(salience, gradKey, cmap))}
+                  this.renderGroup(salience, gradKey, this.state[name].cmap))}
                 ${this.state[name].isLoading ? this.renderSpinner() : null}
               </td>
             </tr>
@@ -338,18 +399,23 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
-    for (const model of Object.keys(modelSpecs)) {
-      const inputSpec = modelSpecs[model].spec.input;
-      const outputSpec = modelSpecs[model].spec.output;
-      const supportsGrads = (findSpecKeys(outputSpec, 'TokenGradients').length);
-      const supportsLime = (findSpecKeys(inputSpec, 'TextSegment').length) &&
-          (findSpecKeys(outputSpec, 'MulticlassPreds').length);
-      if (supportsGrads || supportsLime) {
-        return true;
-      }
-    }
-    return false;
+  render() {
+    // clang-format off
+    return html`
+      <div class='module-container'>
+        <div class='module-toolbar'>
+          ${this.renderControls()}
+        </div>
+        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
+          ${this.renderTable()}
+        </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    return true;
   }
 }
 

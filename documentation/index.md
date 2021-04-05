@@ -6,4 +6,5 @@
 
 *   [User Guide](user_guide.md)
 *   [Developer Guide](development.md)
+*   [Running with Docker](docker.md)
 *   [FAQ](faq.md)

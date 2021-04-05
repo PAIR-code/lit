@@ -19,16 +19,16 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
-import {customElement, html, property} from 'lit-element';
+import {customElement, html} from 'lit-element';
 import {TemplateResult} from 'lit-html';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
-import {IndexedInput, ModelsMap, Preds, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService} from '../services/services';
+import {ColorService, FocusService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -37,6 +37,10 @@ interface ProjectorOptions {
   displayName: string;
   // Name of backend interpreter.
   interpreterName: string;
+}
+
+interface ProjectionBackendResult {
+  z: Point3D;
 }
 
 /**
@@ -74,6 +78,7 @@ export class EmbeddingsModule extends LitModule {
   @observable private projectedPoints: Point3D[] = [];
 
   private readonly colorService = app.getService(ColorService);
+  private readonly focusService = app.getService(FocusService);
   private resizeObserver!: ResizeObserver;
 
   private scatterGL!: ScatterGL;
@@ -85,8 +90,9 @@ export class EmbeddingsModule extends LitModule {
    * TODO(lit-dev): consider clearing these when dataset is changed, so we don't
    * use too much memory.
    */
-  private readonly embeddingCache =
-      new Map<string, BatchRequestCache<string, IndexedInput, Preds>>();
+  private readonly embeddingCache = new Map<
+      string,
+      BatchRequestCache<string, IndexedInput, ProjectionBackendResult>>();
 
   @observable private selectedEmbeddingsIndex = 0;
   @observable private selectedLabelIndex = 0;
@@ -123,7 +129,7 @@ export class EmbeddingsModule extends LitModule {
     return this.appState.currentInputData.map((d: IndexedInput) => {
       const labelKey = Object.keys(d.data)[this.selectedLabelIndex];
       const label = d.data[labelKey];
-      const added = d.meta['added'];
+      const added = d.meta['added'] ? 1 : 0;
       return {label, added};
     });
   }
@@ -137,14 +143,20 @@ export class EmbeddingsModule extends LitModule {
     return new Dataset(this.projectedPoints, labels);
   }
 
-  private getEmbeddingCache(dataset: string, model: string) {
-    const key = `${dataset}:${model}`;
+  /**
+   * Return a frontend embedding cache, so we don't need to re-fetch the entire
+   * dataset when new points are added.
+   */
+  private getEmbeddingCache(
+      dataset: string, model: string, projector: string, config: CallConfig) {
+    const key = `${dataset}:${model}:${projector}:${JSON.stringify(config)}`;
     if (!this.embeddingCache.has(key)) {
       // Not found, create a new one.
       const keyFn = (d: IndexedInput) => d['id'];
-      const requestFn = async (inputs: IndexedInput[]) => {
-        return this.apiService.getPreds(
-            inputs, model, dataset, ['Embeddings'], 'Fetching embeddings');
+      const requestFn =
+          async(inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
+        return this.apiService.getInterpretations(
+            inputs, model, dataset, projector, config, 'Fetching projections');
       };
       const cache = new BatchRequestCache(requestFn, keyFn);
       this.embeddingCache.set(key, cache);
@@ -168,6 +180,7 @@ export class EmbeddingsModule extends LitModule {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
+      onHover: this.onHover.bind(this),
       rotateOnStart: false
     });
 
@@ -201,6 +214,12 @@ export class EmbeddingsModule extends LitModule {
       // pointColorer uses the latest settings from colorService automatically,
       // so to pick up the colors we just need to trigger a rerender on
       // scatterGL.
+      this.updateScatterGL();
+    });
+    this.react(() => this.focusService.focusData, focusData => {
+      this.updateScatterGL();
+    });
+    this.react(() => this.selectionService.primarySelectedId, primaryId => {
       this.updateScatterGL();
     });
 
@@ -245,17 +264,19 @@ export class EmbeddingsModule extends LitModule {
                .filter(index => index !== undefined) as number[];
   }
 
-  /**
-   * Project embeddings using a server-side interpreter module.
-   */
-  private async computeBackendEmbeddings(interpreterName: string) {
+  private async computeProjectedEmbeddings() {
+    // Clear projections if dataset is empty.
+    if (!this.appState.currentInputData.length) {
+      this.projectedPoints = [];
+      return;
+    }
+
     const embeddingsInfo = this.embeddingOptions[this.selectedEmbeddingsIndex];
     if (!embeddingsInfo) {
       return;
     }
     const {modelName, fieldName} = embeddingsInfo;
 
-    const currentInputData = this.appState.currentInputData;
     const datasetName = this.appState.currentDataset;
     const projConfig = {
       'dataset_name': datasetName,
@@ -266,25 +287,13 @@ export class EmbeddingsModule extends LitModule {
     // Projections will be returned for the whole dataset, including generated
     // examples, but the backend will ensure that the projection is trained on
     // only the original dataset. See components/projection.py.
-    // TODO(lit-dev): add client-side cache so we don't need to re-fetch
-    // embeddings for the entire dataset when a new datapoint is added.
-    const promise = this.apiService.getInterpretations(
-        currentInputData, modelName, datasetName, interpreterName, projConfig,
-        'Fetching projections');
+    const embeddingRequestCache = this.getEmbeddingCache(
+        datasetName, modelName, this.projector.interpreterName, projConfig);
+    const promise = embeddingRequestCache.call(this.appState.currentInputData);
     const results =
         await this.loadLatest(`proj-${JSON.stringify(projConfig)}`, promise);
     if (results === null) return;
     this.projectedPoints = results.map((d: {'z': Point3D}) => d['z']);
-  }
-
-  private async computeProjectedEmbeddings() {
-    // Clear projections if dataset is empty.
-    if (!this.appState.currentInputData.length) {
-      this.projectedPoints = [];
-      return;
-    }
-
-    return this.computeBackendEmbeddings(this.projector.interpreterName);
   }
 
   /**
@@ -295,15 +304,27 @@ export class EmbeddingsModule extends LitModule {
   private pointColorer(
       i: number, selectedIndices: Set<number>, hoveredIndex: number|null) {
     const currentPoint = this.appState.currentInputData[i];
-    const color = this.colorService.getDatapointColor(currentPoint);
+    let color = this.colorService.getDatapointColor(currentPoint);
 
-    // Add some transparency if not selected.
+    const isSelected = currentPoint != null &&
+        this.selectionService.isIdSelected(currentPoint.id);
+    const isPrimarySelected = currentPoint != null &&
+        this.selectionService.primarySelectedId === currentPoint.id;
+    const isHovered = this.focusService.focusData != null &&
+        this.focusService.focusData.datapointId === currentPoint.id &&
+        this.focusService.focusData.io == null;
+
+    if (isHovered) {
+      color = 'red';
+    }
+    // Add some transparency if not selected or hovered.
     const colorObject = d3.color(color)!;
 
-    if (currentPoint != null &&
-        !this.selectionService.isIdSelected(currentPoint.id)) {
+    if (!isSelected && !isHovered) {
       colorObject.opacity =
           this.selectionService.selectedInputData.length === 0 ? 0.7 : 0.1;
+    } else if (isSelected && !isPrimarySelected) {
+      colorObject.opacity = .5;
     }
 
     return colorObject.toString();
@@ -314,6 +335,15 @@ export class EmbeddingsModule extends LitModule {
                     .filter((data, index) => selectedIndices.includes(index))
                     .map((data) => data.id);
     this.selectionService.selectIds(ids);
+  }
+
+  private onHover(hoveredIndex: number|null) {
+    if (hoveredIndex == null) {
+      this.focusService.clearFocus();
+    } else {
+      this.focusService.setFocusedDatapoint(
+          this.appState.currentInputData[hoveredIndex].id);
+    }
   }
 
   render() {
@@ -404,7 +434,7 @@ export class EmbeddingsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelsMap, datasetSpec: Spec) {
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'Embeddings');
   }
 }

@@ -25,74 +25,96 @@ import {isLitSubtype} from './utils';
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName = 'LitType'|'TextSegment'|'GeneratedText'|'Tokens'|
-    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
-    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|'Embeddings'|
+export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
+    'GeneratedTextCandidates'|'URL'|'SearchQuery'|'Tokens'|'TokenTopKPreds'|
+    'Scalar'|'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
+    'SpanLabels'|'EdgeLabels'|'MultiSegmentAnnotations'|'Embeddings'|
     'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
-    'FieldMatcher';
+    'FieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|'ImageBytes';
+
+export const listFieldTypes: LitName[] =
+    ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
 
 export interface LitType {
   __class__: LitClass;
   __name__: LitName;
   __mro__: string[];
   parent?: string;
-  align?: string|string[];
+  align?: string;
+  align_in?: string;
+  align_out?: string;
   vocab?: string[];
   null_idx?: number;
   required?: boolean;
   default? : string|string[]|number|number[];
   spec?: string;
   type?: LitName;
+  min_val?: number;
+  max_val?: number;
+  step?: number;
+  exclusive?: boolean;
+  background?: boolean;
+  separator?: string;
+  autorun?: boolean;
+  signed?: boolean;
+  mask_token?: string;
 }
 
 export interface Spec {
   [key: string]: LitType;
 }
 
-// TODO(lit-team): rename this interface to avoid confusion with the .spec
-// field.
-export interface DatasetSpec {
+export interface ComponentInfo {
+  configSpec: Spec;
+  metaSpec: Spec;
+  description?: string;
+}
+
+export interface DatasetInfo {
   spec: Spec;
   description?: string;
 }
 
-export interface DatasetsMap {
-  [datasetName: string]: DatasetSpec;
+export interface ComponentInfoMap {
+  [name: string]: ComponentInfo;
 }
 
-export interface GeneratorsMap {
-  [generatorName: string]: Spec;
+export interface DatasetInfoMap {
+  [name: string]: DatasetInfo;
 }
 
 export interface CallConfig {
-  [option: string]: string|number|boolean|CallConfig;
+  //tslint:disable-next-line:no-any
+  [option: string]: any;
 }
 
-// TODO(lit-team): rename this interface to avoid confusion with the .spec
-// field.
 export interface ModelSpec {
+  input: Spec;
+  output: Spec;
+}
+
+export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
-  spec: {
-    input: Spec,
-    output: Spec,
-  };
+  spec: ModelSpec;
   description?: string;
 }
 
-export interface ModelsMap {
-  [modelName: string]: ModelSpec;
+export interface ModelInfoMap {
+  [modelName: string]: ModelInfo;
 }
 
 export interface LitMetadata {
-  datasets: DatasetsMap;
-  generators: GeneratorsMap;
-  interpreters: string[];
-  models: ModelsMap;
+  models: ModelInfoMap;
+  datasets: DatasetInfoMap;
+  generators: ComponentInfoMap;
+  interpreters: ComponentInfoMap;
+  layouts: LitComponentLayouts;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
+  pageTitle?: string;
 }
 
 export interface Input {
@@ -103,8 +125,7 @@ export interface Input {
 export interface IndexedInput {
   id: string;
   data: Input;
-  // tslint:disable-next-line:no-any
-  meta: {[key: string]: any;};
+  meta: {source?: string; added?: boolean; parentId?: string;};
 }
 
 /**
@@ -141,12 +162,19 @@ export interface SpanLabel {
   'start': number;  // inclusive
   'end': number;    // exclusive
   'label': string;
+  'align'?: string;
 }
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
-  return `[${s.start}, ${s.end})\u2060: ${s.label}`.replace(
-      /\ /g, '\u00a0' /* &nbsp; */);
+  let formatted = `[${s.start}, ${s.end})`;
+  if (s.align) {
+    formatted = `${s.align} ${formatted}`;
+  }
+  if (s.label) {
+    formatted = `${formatted}\u2060: ${s.label}`;
+  }
+  return formatted.replace(/\ /g, '\u00a0' /* &nbsp; */);
 }
 
 /**
@@ -228,7 +256,7 @@ export interface LitModuleClass {
   title: string;
   template:
       (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
-  shouldDisplayModule: (modelSpecs: ModelsMap, datasetSpec: Spec) => boolean;
+  shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
@@ -249,9 +277,7 @@ export function defaultValueByField(key: string, spec: Spec) {
   if (isLitSubtype(fieldSpec, 'Scalar')) {
     return 0;
   }
-  const listFieldTypes: LitName[] = [
-    'Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'
-  ];
+
   if (isLitSubtype(fieldSpec, listFieldTypes)) {
     return [];
   }
@@ -273,6 +299,15 @@ export declare interface LitComponentLayouts {
 }
 
 /**
+ * Leaf values in a LitComponentLayout.
+ * Can be either a class constructor, or the name of a LIT module
+ * custom element.
+ */
+export type LitComponentSpecifier =
+    LitModuleClass|(keyof HTMLElementTagNameMap);
+
+// LINT.IfChange
+/**
  * A layout is defined by a set of main components that are always visible,
  * (designated in the object by the "main" key)
  * and a set of tabs that each contain a group other components.
@@ -280,7 +315,7 @@ export declare interface LitComponentLayouts {
  * LitComponentLayout is a mapping of tab names to module types.
  */
 export declare interface LitComponentLayout {
-  components: {[name: string]: LitModuleClass[];};
+  components: {[name: string]: LitComponentSpecifier[];};
   layoutSettings?: LayoutSettings;
   description ?: string;
 }
@@ -294,6 +329,7 @@ export declare interface LayoutSettings {
   mainHeight?: number;
   centerPage?: boolean;
 }
+// LINT.ThenChange(../../api/dtypes.py)
 
 /** Display name for the "no dataset" dataset in settings. */
 export const NONE_DS_DISPLAY_NAME = 'none';
@@ -306,6 +342,13 @@ export const NONE_DS_DICT_KEY = '_union_empty';
 export function datasetDisplayName(name: string): string {
   return name === NONE_DS_DICT_KEY ? NONE_DS_DISPLAY_NAME : name;
 }
+
+/**
+ * CSS class name for module-internal divs that should have syncronized
+ * scrolling between duplicated modules. See widget_group.ts and lit_module.ts
+ * for its use.
+ */
+export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
 
 /**
  * Formats the following types for display in the data table:
@@ -342,7 +385,7 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
   }
 
   if (typeof input === 'boolean') {
-    return input ? '✔' : ' ';
+    return formatBoolean(input);
   }
 
   if (typeof input === 'number') {
@@ -351,4 +394,11 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
 
   // Fallback: just coerce to string.
   return `${input}`;
+}
+
+/**
+ * Formats a boolean value for display.
+ */
+export function formatBoolean(val: boolean): string {
+  return val ? '✔' : ' ';
 }

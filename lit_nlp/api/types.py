@@ -26,11 +26,13 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Dict, Text, Tuple, Sequence, Optional, Any, List
+from typing import Any, Dict, List, NewType, Optional, Sequence, Text, Tuple
 
 import attr
 
 JsonDict = Dict[Text, Any]
+Input = JsonDict  # TODO(lit-dev): stronger typing using NewType
+IndexedInput = NewType('IndexedInput', JsonDict)  # has keys: id, data, meta
 ExampleId = Text
 TokenTopKPredsList = List[List[Tuple[str, float]]]
 
@@ -46,7 +48,8 @@ class LitType(metaclass=abc.ABCMeta):
 
   def is_compatible(self, other):
     """Check equality, ignoring some fields."""
-    if type(self) != type(other):  # pylint: disable=unidiomatic-typecheck
+    # We allow this class to be a subclass of the other.
+    if not isinstance(self, type(other)):
       return False
     d1 = attr.asdict(self)
     d1.pop('required', None)
@@ -74,9 +77,42 @@ class LitType(metaclass=abc.ABCMeta):
 
 Spec = Dict[Text, LitType]
 
+# Attributes that should be treated as a reference to other fields.
+FIELD_REF_ATTRIBUTES = frozenset(
+    {'parent', 'align', 'align_in', 'align_out', 'grad_for'})
+
+
+def _remap_leaf(leaf: LitType, keymap: Dict[str, str]) -> LitType:
+  """Remap any field references on a LitType."""
+  d = attr.asdict(leaf)  # mutable
+  d = {
+      k: (keymap.get(v, v) if k in FIELD_REF_ATTRIBUTES else v)
+      for k, v in d.items()
+  }
+  return leaf.__class__(**d)
+
+
+def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
+  """Rename fields in a spec, with a best-effort to also remap field references."""
+  ret = {}
+  for k, v in spec.items():
+    new_key = keymap.get(k, k)
+    new_value = _remap_leaf(v, keymap)
+    ret[new_key] = new_value
+  return ret
 
 ##
 # Concrete type clases
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class String(LitType):
+  """User-editable text input. All automated edits are disabled for this type.
+
+  Mainly used for string inputs that have special formatting, and should only
+  be edited manually.
+  """
+  default: Text = ''
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -86,17 +122,52 @@ class TextSegment(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageBytes(LitType):
+  """An image, an encoded base64 ascii string (starts with 'data:image...')."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
-  parent: Optional[Text] = None  # name of a TextSegment field, to compare to
+  # Name of a TextSegment field to evaluate against
+  parent: Optional[Text] = None
+
+
+ScoredTextCandidates = List[Tuple[str, Optional[float]]]
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class GeneratedTextCandidates(TextSegment):
+  """Multiple candidates for GeneratedText; values are List[(text, score)]."""
+  # Name of a TextSegment field to evaluate against
+  parent: Optional[Text] = None
+
+  @staticmethod
+  def top_text(value: ScoredTextCandidates) -> str:
+    return value[0][0] if len(value) else ''
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class URL(TextSegment):
+  """TextSegment that should be interpreted as a URL."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SearchQuery(TextSegment):
+  """TextSegment that should be interpreted as a search query."""
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(LitType):
   """Tokenized text, as List[str]."""
-  default: List[Text] = []
+  default: List[Text] = attr.Factory(list)
+  # Name of a TextSegment field from the input
   # TODO(lit-dev): should we use 'align' here?
-  parent: Optional[Text] = None  # name of a TextSegment field in the input
+  parent: Optional[Text] = None
+  mask_token: Optional[Text] = None  # optional mask token for input
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -112,10 +183,11 @@ class TokenTopKPreds(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Scalar(LitType):
-  """Scalar value, a single float."""
-  # TODO(lit-dev): support optional range information, to use for legends,
-  # plot bounds, etc. on frontend.
-  pass
+  """Scalar value, a single float or int."""
+  min_val: float = 0
+  max_val: float = 1
+  default: float = 0
+  step: float = .01
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -140,7 +212,7 @@ class MulticlassPreds(LitType):
   # Usually this will match the vocabulary in the corresponding label field.
   vocab: Sequence[Text]  # label names
   null_idx: Optional[int] = None  # vocab index of negative (null) label
-  parent: Optional[Text] = None  # name of CategoryLabel field in input
+  parent: Optional[Text] = None  # CategoryLabel field in input
 
   @property
   def num_labels(self):
@@ -179,6 +251,25 @@ class EdgeLabels(LitType):
   """
   align: Text  # name of Tokens field
 
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MultiSegmentAnnotations(LitType):
+  """Very general type for in-line text annotations, as List[AnnotationCluster].
+
+  This is a more general version of SpanLabel, EdgeLabel, and other annotation
+  types, designed to represent annotations that may span multiple segments.
+
+  The basic unit is dtypes.AnnotationCluster, which contains a label, optional
+  score, and one or more SpanLabel annotations, each of which points to a
+  specific segment from the input.
+
+  TODO(lit-dev): by default, spans are treated as bytes in this context.
+  Make this configurable, if some spans need to refer to tokens instead.
+  """
+  exclusive: bool = False  # if true, treat as candidate list
+  background: bool = False  # if true, don't emphasize in visualization
+
+
 ##
 # Model internals, for interpretation.
 
@@ -190,23 +281,32 @@ class Embeddings(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Gradients(LitType):
+  """Gradients with respect to embeddings."""
+  grad_for: Optional[Text] = None  # name of Embeddings field
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(LitType):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # path to tokens or other sequence field
+  align: Optional[Text] = None  # name of a Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(LitType):
-  """Gradients with respect to inputs, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # path to tokens or other sequence field
-  grad_for: Optional[Text] = None  # name of input embedding field
+  """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
+  align: Optional[Text] = None  # name of a Tokens field
+  grad_for: Optional[Text] = None  # name of TokenEmbeddings field
   grad_target: Optional[Text] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class AttentionHeads(LitType):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
-  align: Tuple[Text, Text]  # paths to tokens fields
+  # input and output Tokens fields; for self-attention these can be the same
+  align_in: Text
+  align_out: Text
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -224,6 +324,8 @@ class SparseMultilabel(LitType):
   """Sparse multi-label represented as a list of strings, as List[str]."""
   vocab: Optional[Sequence[Text]] = None  # label names
   default: Sequence[Text] = []
+  # TODO(b/162269499) Migrate non-comma separators to custom type.
+  separator: Text = ','  # Used for display purposes.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -236,3 +338,16 @@ class FieldMatcher(LitType):
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   type: Text  # type of LitType to match in the spec.
   vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SalienceMap(LitType):
+  """Metadata about a returned salience map, returned as dtypes.SalienceMap."""
+  autorun: bool = False  # If the saliency technique is automatically run.
+  signed: bool  # If the returned values are signed.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Boolean(LitType):
+  """Boolean value."""
+  pass

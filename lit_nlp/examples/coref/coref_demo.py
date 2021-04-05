@@ -67,8 +67,6 @@ import transformers  # for path caching
 
 FLAGS = flags.FLAGS
 
-FLAGS.set_default("default_layout", "winogender")
-
 flags.DEFINE_bool("do_train", False,
                   "If true, train a new model and save to FLAGS.model_path.")
 flags.DEFINE_bool(
@@ -91,6 +89,32 @@ flags.DEFINE_string(
     "ontonotes_edgeprobe_path", None,
     "Path to OntoNotes coreference data in edge probing JSON format. "
     "This is needed for training, and optional for running LIT.")
+
+# Custom frontend layout; see client/lib/types.ts
+WINOGENDER_LAYOUT = lit_dtypes.LitComponentLayout(
+    components={
+        "Main": [
+            "data-table-module",
+            "datapoint-editor-module",
+            "lit-slice-module",
+            "color-module",
+        ],
+        "Predictions": [
+            "span-graph-gold-module",
+            "span-graph-module",
+            "classification-module",
+        ],
+        "Performance": [
+            "metrics-module",
+            "scalar-module",
+            "confusion-matrix-module",
+        ],
+    },
+    description="Custom layout for the Winogender coreference demo.",
+)
+CUSTOM_LAYOUTS = {"winogender": WINOGENDER_LAYOUT}
+
+FLAGS.set_default("default_layout", "winogender")
 
 
 def get_wsgi_app():
@@ -166,7 +190,8 @@ def run_server(load_path: str):
     datasets["ontonotes_dev"] = ontonotes.OntonotesCorefDataset(
         os.path.join(FLAGS.ontonotes_edgeprobe_path, "development.json"))
   # Start the LIT server. See server_flags.py for server options.
-  lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+  lit_demo = dev_server.Server(
+      models, datasets, layouts=CUSTOM_LAYOUTS, **server_flags.get_flags())
   return lit_demo.serve()
 
 
