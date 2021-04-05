@@ -99,6 +99,8 @@
 <p><a name="demos"></a></p>
 <h1>Run the included demos</h1>
 <p>LIT ships with a number of demos that can easily be run after installation.</p>
+<p>LIT can be started on the command line and then viewed in a web browser.</p>
+<p>Alternatively, it can be run directly in a Colaboratory or Jupyter notebook and viewed in an output cell of the notebook.</p>
 <h2>Quick-start: Classification and regression</h2>
 <p>To explore classification and regression models tasks from the popular <a href="https://gluebenchmark.com/">GLUE benchmark</a>:</p>
 <pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.glue_demo --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
@@ -110,11 +112,13 @@ but you can switch to
 <a href="http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark">STS-B</a> or <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> using the toolbar or the gear icon in
 the upper right.</p>
 <h2>Language modeling</h2>
-<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.pretrained_lm_demo <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
+<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.lm_demo <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
 <p>In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).
 Navigate to http://localhost:5432 for the UI.</p>
 <h2>More examples</h2>
 <p>The <a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples">examples</a> directory contains additional examples to explore, all of which can be run similarly to those above.</p>
+<h2>Notebook usage</h2>
+<p>A simple colab demo can be found <a href="https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb">here</a>. Just run all the cells to see LIT on an example classification model right in the notebook.</p>
 <div class="spacer" style="height:50px;"></div>
 <p><a name="custom"></a></p>
 <h1>Use LIT on your own models and data</h1>
