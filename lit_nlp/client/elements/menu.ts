@@ -29,6 +29,8 @@ import {styles} from './menu.css';
 
 type ClickCallback = () => void;
 
+const MAX_TEXT_LENGTH = 25;
+
 /** Holds the properties for an item in the menu. */
 export interface MenuItem {
   itemText: string;        // menu item text
@@ -161,6 +163,9 @@ export class LitMenu extends LitElement {
     const itemTextClass =
         classMap({'item-text': true, 'text-disabled': item.disabled});
 
+    // TODO(b/184549342): Consider rewriting component without Material menu
+    // due to styling issues (e.g. with setting max width with
+    // text-overflow:ellipses in CSS).
     // clang-format off
     return html`
       <div class=${itemClass} graphic='icon' id=${itemId} @click=${
@@ -169,7 +174,10 @@ export class LitMenu extends LitElement {
           <mwc-icon slot='graphic' class='check' style=${iconStyle}>
             ${hasSubmenu ? 'arrow_right' : 'check'}
           </mwc-icon>
-          <span class=${itemTextClass}>${item.itemText}</span>
+          <span title=${item.itemText} class=${itemTextClass}>
+            ${item.itemText.slice(0, MAX_TEXT_LENGTH) +
+            ((item.itemText.length > MAX_TEXT_LENGTH) ? '...': '')}
+          </span>
       </div>
     `;
     // clang-format on
