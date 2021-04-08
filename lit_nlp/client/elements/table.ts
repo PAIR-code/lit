@@ -178,8 +178,8 @@ export class DataTable extends ReactiveElement {
 
         const col = item[index];
         if (typeof col === 'string') {
-          // TODO(b/158299036) Change this to regexp search.
-          isShownByTextFilter = isShownByTextFilter && col.includes(value);
+          isShownByTextFilter =
+              isShownByTextFilter && col.search(new RegExp(value)) !== -1;
         } else if (typeof col === 'number') {
           // TODO(b/158299036) Support syntax like 1-3,6 for numbers.
           isShownByTextFilter = isShownByTextFilter && value === '' ?
