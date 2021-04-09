@@ -1,3 +1,17 @@
+# Copyright 2021 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 # Lint as: python3
 """Wrapper for Stanza model"""
 
@@ -10,8 +24,19 @@ EdgeLabel = dtypes.EdgeLabel
 
 
 class StanzaTagger(lit_model.Model):
+  """Stanza Model wrapper"""
+
   def __init__(self, model, tasks):
+    """Initialize with Stanza model and a dictionary of tasks.
+
+    Args:
+      model: A Stanza model
+      tasks: A dictionary of tasks, grouped by task type.
+        Keys are the grouping, which should be one of ('sequence', 'span', 'edge').
+        Values are a list of stanza task names as strings.
+    """
     self.model = model
+    # Store lists of task name strings by grouping
     self.sequence_tasks = tasks["sequence"]
     self.span_tasks = tasks["span"]
     self.edge_tasks = tasks["edge"]
@@ -33,50 +58,58 @@ class StanzaTagger(lit_model.Model):
       self._output_spec[task] = lit_types.EdgeLabels(align="tokens")
 
   def _predict(self, ex):
-    """
-    Predicts all specified tasks for an individual example
-    :param ex (dict):
-        This should be a dict with a single entry with:
-            key = "sentence"
-            value (str) = a single string for prediction
-    :return (list):
-        This list contains dicts for each prediction tasks with:
-            key = task name
-            value (list) = predictions
+    """Predicts all specified tasks for an individual example.
+
+    Args:
+      ex (dict): This should be a dict with a single entry.
+        key = "sentence"
+        value (str) = a single string for prediction
+    Returns:
+        A list containing dicts for each prediction tasks with:
+          key = task name
+          value (list) = predictions
+    Raises:
+      ValueError: Invalid task name.
     """
     doc = self.model(ex["sentence"])
-    prediction = {}
+    prediction = {task: [] for task in self._output_spec}
     for sentence in doc.sentences:
-      prediction["tokens"] = [word.text for word in sentence.words]
+      # Get offset value to align task to tokens for multiple sentences
+      offset = len(prediction['tokens'])
+      prediction["tokens"].extend([word.text for word in sentence.words])
 
       # Process each sequence task
       for task in self.sequence_tasks:
-        prediction[task] = [word.to_dict()[task] for word in sentence.words]
+        prediction[task].extend([word.to_dict()[task] for word in sentence.words])
 
       # Process each span task
+      print(sentence.entities)
       for task in self.span_tasks:
         # Mention is currently the only span task
         if task == "mention":
-          prediction[task] = []
           for entity in sentence.entities:
             # Stanza indexes start/end of entities on char. LIT needs them as token indexes
             start, end = entity_char_to_token(entity, sentence)
-            span_label = SpanLabel(start=start, end=end, label=entity.type)
+            span_label = SpanLabel(start=start+offset, end=end+offset, label=entity.type)
             prediction[task].append(span_label)
+        else:
+          raise ValueError(f"Invalid span task: '{task}'")
 
       # Process each edge task
       for task in self.edge_tasks:
         # Deps is currently the only edge task
         if task == "deps":
-          prediction[task] = []
           for relation in sentence.dependencies:
             label = relation[1]
-            span1 = relation[2].id
-            span2 = relation[2].id if label == "root" else relation[0].id
+            span1 = relation[2].id + offset
+            span2 = relation[2].id + offset if label == "root" else relation[0].id + offset
+            # Relation lists have a root value at index 0, so subtract 1 to align them to tokens
             edge_label = EdgeLabel(
               (span1 - 1, span1), (span2 - 1, span2), label
             )
             prediction[task].append(edge_label)
+        else:
+          raise ValueError(f"Invalid edge task: '{task}'")
 
     return prediction
 
@@ -91,14 +124,17 @@ class StanzaTagger(lit_model.Model):
 
 
 def entity_char_to_token(entity, sentence):
-  """
-  Takes Stanza entity and sentence objects and returns the start and end tokens for the entity
-  :param entity: Stanza entity
-  :param sentence: Stanza sentence
-  :return (int, int): Returns the start and end locations indexed by tokens
+  """Takes Stanza entity and sentence objects and returns the start and end tokens for the entity
+
+  Args:
+    entity: Stanza entity object
+    sentence: Stanza sentence object
+  Returns:
+    Returns the token index of start and end locations for the entity
   """
   start_token, end_token = None, None
   for i, v in enumerate(sentence.words):
+    # Misc is a string of values, separated by |, that contains start and end chars
     x = v.misc.split("|")
     if "start_char=" + str(entity.start_char) in x:
       start_token = i
