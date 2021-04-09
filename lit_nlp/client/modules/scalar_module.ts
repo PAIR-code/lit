@@ -374,6 +374,12 @@ export class ScalarModule extends LitModule {
     if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
       const scalarValues = this.preds.map((pred) => pred[key]);
       scoreRange = [Math.min(...scalarValues), Math.max(...scalarValues)];
+      // If the range is 0 (all values are identical, then artificially increase
+      // the range so that an X-axis is properly displayed.
+      if (scoreRange[0] === scoreRange[1]) {
+        scoreRange[0] = scoreRange[0] - .1;
+        scoreRange[1] = scoreRange[1] + .1;
+      }
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
