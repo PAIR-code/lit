@@ -37,7 +37,7 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
   @observable @property({type: Boolean}) bordered = false;
-  @observable settings: {[name: string]: string|string[]} = {};
+  @observable settings: {[name: string]: string|number|boolean|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static get styles() {
@@ -139,7 +139,8 @@ export class InterpreterControls extends ReactiveElement {
                 item => item !== option);
           }
         };
-        const isSelected = this.settings[name].indexOf(option) !== -1;
+        const isSelected = (this.settings[name] as string[]).indexOf(
+            option) !== -1;
         return html`
           <lit-checkbox ?checked=${isSelected} @change=${change}
             label=${option} class='checkbox-control'>
@@ -193,9 +194,34 @@ export class InterpreterControls extends ReactiveElement {
         <div>${this.settings[name]}</div>
         `;
     }
+    else if (isLitSubtype(controlType, ['Boolean'])) {
+      // Render a checkbox.
+      const toggleVal = () => {
+        const val = !!this.settings[name];
+        this.settings[name] = !val;
+      };
+      // clang-format off
+      return html`
+        <lit-checkbox
+         ?checked=${!!this.settings[name]}
+         @change=${toggleVal}>
+        </lit-checkbox>
+      `;
+      // clang-format on
+    }
+    else if (isLitSubtype(controlType, ['Tokens'])) {
+      // Render a text input box and split on commas.
+      const value = this.settings[name] as string || '';
+      const updateText = (e: Event) => {
+        const input = e.target! as HTMLInputElement;
+        this.settings[name] = input.value.split(',').map(val => val.trim());
+      };
+      return html`<input class="control" type="text" @input=${updateText}
+          .value="${value}" />`;
+    }
     else {
       // Render a text input box.
-      const value = this.settings[name] || '';
+      const value = this.settings[name] as string || '';
       const updateText = (e: Event) => {
         const input = e.target! as HTMLInputElement;
         this.settings[name] = input.value;

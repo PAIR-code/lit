@@ -44,6 +44,8 @@ NUM_EXAMPLES_KEY = "Number of examples"
 NUM_EXAMPLES_DEFAULT = 5
 MAX_FLIPS_KEY = "Maximum number of token flips"
 MAX_FLIPS_DEFAULT = 3
+TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
+TOKENS_TO_IGNORE_DEFAULT = []
 
 
 class HotFlip(lit_components.Generator):
@@ -79,6 +81,7 @@ class HotFlip(lit_components.Generator):
     return {
         NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
         MAX_FLIPS_KEY: types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
+        TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT)
     }
 
   def _subset_exists(self, cand_set, sets):
@@ -88,9 +91,9 @@ class HotFlip(lit_components.Generator):
         return True
     return False
 
-  def _gen_tokens_to_flip(self, ntokens, max_flips):
-    for i in range(min(ntokens, max_flips)):
-      for s in itertools.combinations(range(ntokens), i+1):
+  def _gen_tokens_to_flip(self, token_idxs, max_flips):
+    for i in range(min(len(token_idxs), max_flips)):
+      for s in itertools.combinations(token_idxs, i+1):
         yield s
 
   def generate(self,
@@ -105,6 +108,8 @@ class HotFlip(lit_components.Generator):
         config[NUM_EXAMPLES_KEY]) if config else NUM_EXAMPLES_DEFAULT
     max_flips = int(
         config[MAX_FLIPS_KEY]) if config else MAX_FLIPS_DEFAULT
+    tokens_to_ignore = (config[TOKENS_TO_IGNORE_KEY] if config
+                        else TOKENS_TO_IGNORE_DEFAULT)
 
     assert model is not None, "Please provide a model for this generator."
     logging.info(r"W3lc0m3 t0 H0tFl1p \o/")
@@ -183,18 +188,22 @@ class HotFlip(lit_components.Generator):
       # TODO(ataly): Sort token sets of the same cardinality in decreasing
       # order of gradient (i.e., we wish to prioritize flipping tokens that
       # have the largest impact on the prediction.)
-      for token_positions in self._gen_tokens_to_flip(len(tokens), max_flips):
+      token_idxs_to_flip = [
+          idx for idx in range(len(tokens))
+          if tokens[idx] not in tokens_to_ignore]
+      for token_idxs in self._gen_tokens_to_flip(
+          token_idxs_to_flip, max_flips):
         if len(successful_counterfactuals) >= num_examples:
           return successful_counterfactuals
         # If a subset of the set of tokens have already been successful in
         # obtaining a flip, we continue. This ensure that we only consider
         # sets of token flips that are minimal.
-        if self._subset_exists(set(token_positions), successful_positions):
+        if self._subset_exists(set(token_idxs), successful_positions):
           continue
 
         logging.info("Selected tokens to flip: %s (positions=%s) with: %s",
-                     [tokens[i] for i in token_positions], token_positions,
-                     [replacement_tokens[i] for i in token_positions])
+                     [tokens[i] for i in token_idxs], token_idxs,
+                     [replacement_tokens[i] for i in token_idxs])
 
         # Create a new input to the model.
         # TODO(iftenney, bastings): enforce somewhere that this field has the
@@ -203,7 +212,7 @@ class HotFlip(lit_components.Generator):
         input_text_field = input_spec[input_token_field].parent  # pytype: disable=attribute-error
         counterfactual = copy.deepcopy(example)
         modified_tokens = copy.copy(tokens)
-        for j in token_positions:
+        for j in token_idxs:
           modified_tokens[j] = replacement_tokens[j]
         counterfactual[input_token_field] = modified_tokens
         # TODO(iftenney, bastings): call a model-provided detokenizer here?
@@ -229,5 +238,5 @@ class HotFlip(lit_components.Generator):
         if counterfactual_prediction != orig_prediction:
           # Hotflip found
           successful_counterfactuals.append(counterfactual)
-          successful_positions.append(set(token_positions))
+          successful_positions.append(set(token_idxs))
     return successful_counterfactuals
