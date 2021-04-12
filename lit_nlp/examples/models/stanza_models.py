@@ -83,7 +83,6 @@ class StanzaTagger(lit_model.Model):
         prediction[task].extend([word.to_dict()[task] for word in sentence.words])
 
       # Process each span task
-      print(sentence.entities)
       for task in self.span_tasks:
         # Mention is currently the only span task
         if task == "mention":
