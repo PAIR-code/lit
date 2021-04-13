@@ -74,8 +74,8 @@ class StanzaTagger(lit_model.Model):
     doc = self.model(ex["sentence"])
     prediction = {task: [] for task in self._output_spec}
     for sentence in doc.sentences:
-      # Get offset value to align task to tokens for multiple sentences
-      offset = len(prediction['tokens'])
+      # Get starting token of the offset to align task to tokens for multiple sentences
+      start_token = len(prediction['tokens'])
       prediction["tokens"].extend([word.text for word in sentence.words])
 
       # Process each sequence task
@@ -89,7 +89,7 @@ class StanzaTagger(lit_model.Model):
           for entity in sentence.entities:
             # Stanza indexes start/end of entities on char. LIT needs them as token indexes
             start, end = entity_char_to_token(entity, sentence)
-            span_label = SpanLabel(start=start+offset, end=end+offset, label=entity.type)
+            span_label = SpanLabel(start=start+start_token, end=end+start_token, label=entity.type)
             prediction[task].append(span_label)
         else:
           raise ValueError(f"Invalid span task: '{task}'")
@@ -100,8 +100,8 @@ class StanzaTagger(lit_model.Model):
         if task == "deps":
           for relation in sentence.dependencies:
             label = relation[1]
-            span1 = relation[2].id + offset
-            span2 = relation[2].id + offset if label == "root" else relation[0].id + offset
+            span1 = relation[2].id + start_token
+            span2 = relation[2].id + start_token if label == "root" else relation[0].id + start_token
             # Relation lists have a root value at index 0, so subtract 1 to align them to tokens
             edge_label = EdgeLabel(
               (span1 - 1, span1), (span2 - 1, span2), label
@@ -125,15 +125,37 @@ class StanzaTagger(lit_model.Model):
 def entity_char_to_token(entity, sentence):
   """Takes Stanza entity and sentence objects and returns the start and end tokens for the entity
 
+  The misc value in a stanza sentence object contains a string with additional
+  information, separated by a pipe character. This string contains the
+  start_char and end_char for each token, along with other information. This is
+  extracted and used to match the start_char and end char values in a span
+  object to return the start and end tokens for the entity.
+
+  Example entity:
+    {'text': 'Barrack Obama',
+    'type': 'PERSON',
+    'start_char': 0,
+    'end_char': 13}
+  Example sentence:
+    [
+      {'id': 1,
+      'text': 'Barrack',
+      ...,
+      'misc': 'start_char=0|end_char=7'},
+      {'id': 2,
+      'text': 'Obama',
+      ...,
+      'misc': 'start_char=8|end_char=13'}
+    ]
+
   Args:
-    entity: Stanza entity object
-    sentence: Stanza sentence object
+    entity: Stanza Span object
+    sentence: Stanza Sentence object
   Returns:
     Returns the token index of start and end locations for the entity
   """
   start_token, end_token = None, None
   for i, v in enumerate(sentence.words):
-    # Misc is a string of values, separated by |, that contains start and end chars
     x = v.misc.split("|")
     if "start_char=" + str(entity.start_char) in x:
       start_token = i

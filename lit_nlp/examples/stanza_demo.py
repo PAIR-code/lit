@@ -76,6 +76,7 @@ def main(_):
   }
 
   # Datasets for LIT demo
+  # TODO: Use the UD dataset (https://huggingface.co/datasets/universal_dependencies)
   datasets = {
     "SST2": glue.SST2Data(split="validation").slice[: FLAGS.max_examples],
     "blank": lit_dataset.Dataset({"text": lit_types.TextSegment()}, []),
