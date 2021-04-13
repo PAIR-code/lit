@@ -111,7 +111,7 @@ class BertMLM(lit_model.Model):
     probas = output.pop("probas")
 
     # Predictions at every position, regardless of masking.
-    output["pred_tokens"] = self._get_topk_tokens(probas[slicer])
+    output["pred_tokens"] = self._get_topk_tokens(probas[slicer])  # pytype: disable=container-type-mismatch
 
     return output
 

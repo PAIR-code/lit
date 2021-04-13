@@ -213,7 +213,7 @@ class GlueModel(lit_model.Model):
         output["token_grad_" +
                self.config.text_b_name] = output["input_emb_grad"][slicer_b]
       if self.is_regression:
-        output["grad_class"] = None
+        output["grad_class"] = None  # pytype: disable=container-type-mismatch
       else:
         # Return the label corresponding to the class index used for gradients.
         output["grad_class"] = self.config.labels[output["grad_class"]]
