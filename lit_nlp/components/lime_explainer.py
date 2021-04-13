@@ -39,11 +39,6 @@ KERNEL_WIDTH_KEY = 'Kernel width'
 MASK_KEY = 'Mask'
 NUM_SAMPLES_KEY = 'Number of samples'
 SEED_KEY = 'Seed'
-CLASS_DEFAULT = 1
-KERNEL_WIDTH_DEFAULT = 256
-MASK_DEFAULT = '[MASK]'
-NUM_SAMPLES_DEFAULT = 256
-SEED_DEFAULT = None
 
 
 def new_example(original_example: JsonDict, field: str, new_value: Any):
@@ -85,13 +80,17 @@ class LIME(lit_components.Interpreter):
   ) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
 
-    class_to_explain = int(config[CLASS_KEY]) if config else CLASS_DEFAULT
-    kernel_width = int(
-        config[KERNEL_WIDTH_KEY]) if config else KERNEL_WIDTH_DEFAULT
-    mask_string = config[MASK_KEY] if config else MASK_DEFAULT
-    num_samples = int(
-        config[NUM_SAMPLES_KEY]) if config else NUM_SAMPLES_DEFAULT
-    seed = config[SEED_KEY] if config else SEED_DEFAULT
+    class_to_explain = int(config[CLASS_KEY] if config else
+                           self.config_spec()[CLASS_KEY].default)
+    kernel_width = int(config[KERNEL_WIDTH_KEY] if config else
+                       self.config_spec()[KERNEL_WIDTH_KEY].default)
+    num_samples = int(config[NUM_SAMPLES_KEY] if config else
+                      self.config_spec()[NUM_SAMPLES_KEY].default)
+    mask_string = (config[MASK_KEY] if config
+                   else self.config_spec()[MASK_KEY].default)
+    seed_str = (config[SEED_KEY] if config
+                else self.config_spec()[SEED_KEY].default)
+    seed = int(seed_str) if seed_str else None
 
     # Find keys of input (text) segments to explain.
     # Search in the input spec, since it's only useful to look at ones that are
@@ -119,6 +118,14 @@ class LIME(lit_components.Interpreter):
       predict_fn = functools.partial(
           _predict_fn, model=model, original_example=input_, pred_key=pred_key)
 
+       # If class_to_explain is -1, then explain the argmax class
+      if (isinstance(model.output_spec()[pred_key], types.MulticlassPreds) and
+          class_to_explain == -1):
+        pred = list(model.predict([input_]))[0]
+        class_to_explain_for_input = np.argmax(pred[pred_key])
+      else:
+        class_to_explain_for_input = class_to_explain
+
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
         input_string = input_[text_key]
@@ -132,7 +139,7 @@ class LIME(lit_components.Interpreter):
             sentence=input_string,
             predict_fn=functools.partial(predict_fn, text_key=text_key),
             # `class_to_explain` is ignored when predict_fn output is a scalar.
-            class_to_explain=class_to_explain,  # Index of the class to explain.
+            class_to_explain=class_to_explain_for_input,
             num_samples=num_samples,
             tokenizer=str.split,
             mask_token=mask_string,
@@ -152,11 +159,11 @@ class LIME(lit_components.Interpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        CLASS_KEY: types.TextSegment(default=str(CLASS_DEFAULT)),
-        KERNEL_WIDTH_KEY: types.TextSegment(default=str(KERNEL_WIDTH_DEFAULT)),
-        MASK_KEY: types.TextSegment(default=MASK_DEFAULT),
-        NUM_SAMPLES_KEY: types.TextSegment(default=str(NUM_SAMPLES_DEFAULT)),
-        SEED_KEY: types.TextSegment(default=SEED_DEFAULT),
+        CLASS_KEY: types.TextSegment(default='-1'),
+        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
+        MASK_KEY: types.TextSegment(default='[MASK]'),
+        NUM_SAMPLES_KEY: types.TextSegment(default='256'),
+        SEED_KEY: types.TextSegment(default=''),
     }
 
   def is_compatible(self, model: lit_model.Model):

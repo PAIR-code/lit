@@ -350,4 +350,4 @@ class SalienceMap(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Boolean(LitType):
   """Boolean value."""
-  pass
+  default: bool = False
