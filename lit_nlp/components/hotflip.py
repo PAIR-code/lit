@@ -46,6 +46,7 @@ MAX_FLIPS_KEY = "Maximum number of token flips"
 MAX_FLIPS_DEFAULT = 3
 TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
 TOKENS_TO_IGNORE_DEFAULT = []
+MAX_FLIPPABLE_TOKENS = 10
 
 
 class HotFlip(lit_components.Generator):
@@ -104,12 +105,11 @@ class HotFlip(lit_components.Generator):
     """Identify minimal sets of token flips that alter the prediction."""
     del dataset  # Unused.
 
-    num_examples = int(
-        config[NUM_EXAMPLES_KEY]) if config else NUM_EXAMPLES_DEFAULT
-    max_flips = int(
-        config[MAX_FLIPS_KEY]) if config else MAX_FLIPS_DEFAULT
-    tokens_to_ignore = (config[TOKENS_TO_IGNORE_KEY] if config
-                        else TOKENS_TO_IGNORE_DEFAULT)
+    config = config or {}
+    num_examples = int(config.get(NUM_EXAMPLES_KEY, NUM_EXAMPLES_DEFAULT))
+    max_flips = int(config.get(MAX_FLIPS_KEY, MAX_FLIPS_DEFAULT))
+    tokens_to_ignore = config.get(TOKENS_TO_IGNORE_KEY,
+                                  TOKENS_TO_IGNORE_DEFAULT)
 
     assert model is not None, "Please provide a model for this generator."
     logging.info(r"W3lc0m3 t0 H0tFl1p \o/")
@@ -185,12 +185,20 @@ class HotFlip(lit_components.Generator):
       # We will iterate through this list (in toplogically sorted order)
       # and at each iteration, replace the selected tokens with corresponding
       # replacement tokens and checks if the prediction flips.
-      # TODO(ataly): Sort token sets of the same cardinality in decreasing
-      # order of gradient (i.e., we wish to prioritize flipping tokens that
-      # have the largest impact on the prediction.)
-      token_idxs_to_flip = [
-          idx for idx in range(len(tokens))
-          if tokens[idx] not in tokens_to_ignore]
+      # At each level of the topological sort, we will consider combinations
+      # by ordering tokens by gradient L2 (i.e., we wish to prioritize flipping
+      # tokens that may have the largest impact on the prediction.)
+      token_grads_l2 = np.sum(grads * grads, axis=-1)
+      # TODO(ataly, bastings): Consider sorting by attributions (either
+      # Integrated Gradients or Shapley values).
+      token_idxs_sorted_by_grads = np.argsort(token_grads_l2)[::-1]
+      token_idxs_to_flip = [idx for idx in token_idxs_sorted_by_grads
+                            if tokens[idx] not in tokens_to_ignore]
+
+      # If the number of tokens considered for flipping is larger than
+      # MAX_FLIPPABLE_TOKENS we only consider the top tokens.
+      token_idxs_to_flip = token_idxs_to_flip[:MAX_FLIPPABLE_TOKENS]
+
       for token_idxs in self._gen_tokens_to_flip(
           token_idxs_to_flip, max_flips):
         if len(successful_counterfactuals) >= num_examples:
