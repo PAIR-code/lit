@@ -150,7 +150,7 @@ export class ClassificationModule extends LitModule {
     barStyle['margin-left'] = `${margin}%`;
     barStyle['margin-right'] = `${margin}%`;
     const holderStyle: {[name: string]: string} = {};
-    holderStyle['width'] = '200px';
+    holderStyle['width'] = '100px';
     holderStyle['height'] = '20px';
     holderStyle['display'] = 'flex';
     holderStyle['position'] = 'relative';

@@ -34,7 +34,13 @@ import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
 
-const NUM_COLS = 12;
+/** Minimum width for a widget group. */
+export const MIN_GROUP_WIDTH_PX = 100;
+
+// Width changes below this delta aren't bubbled up, to avoid unnecssary width
+// recalculations.
+const MIN_GROUP_WIDTH_DELTA_PX = 10;
+
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
  * compareDatapoints is enabled) for a single component.
@@ -46,7 +52,7 @@ export class WidgetGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) minimized = false;
   @property({ type: Boolean, reflect: true }) maximized = false;
   @property({ type: Boolean, reflect: true }) dragging = false;
-  @property({ type: Number }) userSetNumCols = 0;
+  @property({ type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
   // Not set as @observable since re-renders were not occuring when changed.
@@ -134,7 +140,11 @@ export class WidgetGroup extends LitElement {
     const modulesInGroup = configGroup.length > 1;
     const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
 
-    this.setWidthValues(configGroup, duplicateAsRow);
+    // Set width properties based on provided width.
+    const host = this.shadowRoot!.host as HTMLElement;
+    const width = `${this.width}px`;
+    host.style.setProperty('--width', width);
+    host.style.setProperty('--min-width', width);
 
     const wrapperClasses = classMap({
       'wrapper': true,
@@ -213,36 +223,22 @@ export class WidgetGroup extends LitElement {
   renderExpander() {
 
     const dragged = (e: DragEvent) => {
-      // The sizes of the divs is a bit complicated because we are both
-      // setting hardcoded widths, but also allowing flexbox to expand
-      // the modules to fill remaining space. So, to have drag-to-resize
-      // be consistent, we know what width the div should be (based on
-      // the user's mouse), then back-calculate what the actual set vw
-      // width set should be so that flexbox will expand the module to
-      // the desired width.
       const holder = this.shadowRoot!.querySelector('.holder')!;
-
-      // Actual div width and left positions (set by flexbox rendering).
       const left = holder.getBoundingClientRect().left;
-      const width = holder.getBoundingClientRect().width;
-      const fullWidth = window.innerWidth;
-
-      // Ratio of flex-set width to our calculated width.
-      const flexRatio = width/(this.userSetNumCols/NUM_COLS * fullWidth);
-
-      // Updated number of columns from the drag.
       const dragWidth = e.clientX - left;
-      if (dragWidth > 0) {
-        const numCols = dragWidth / fullWidth * NUM_COLS;
-        // For perf reasons, only update in incriments of .1 columns.
-        this.userSetNumCols = +Math.max(numCols/flexRatio, 1).toFixed(1);
+
+      if (dragWidth > MIN_GROUP_WIDTH_PX &&
+          Math.abs(dragWidth - this.width) > MIN_GROUP_WIDTH_DELTA_PX) {
+        const event = new CustomEvent('widget-group-drag', {
+          detail: {
+            dragWidth,
+          }
+        });
+        this.dispatchEvent(event);
       }
     };
 
     const dragStarted  = () => {
-      if (!this.userSetNumCols) {
-        this.userSetNumCols = this.configGroup[0].moduleType.numCols;
-      }
       this.dragging = true;
     };
 
@@ -259,30 +255,6 @@ export class WidgetGroup extends LitElement {
     } else {
       return html``;
     }
-
-  }
-
-  /** Returns styling with flex set based off of max columns of all configs. */
-  setWidthValues(configs: RenderConfig[], duplicateAsRow: boolean) {
-    const numColsList = configs.map(config => config.moduleType.numCols);
-    // In row duplication, the flex should be the sum of the child flexes, and
-    // in column duplication, it should be the maximum of the child flexes.
-    let maxFlex = duplicateAsRow ? numColsList.reduce((a, b) => a + b, 0) :
-      Math.max(...numColsList);
-
-    // If the user manually set the number of columns, just use that instead.
-    if (this.userSetNumCols) {
-      maxFlex = this.userSetNumCols;
-    }
-    const width = this.flexGrowToWidth(maxFlex);
-    const host = this.shadowRoot!.host as HTMLElement;
-    host.style.setProperty('--flex', maxFlex.toString());
-    host.style.setProperty('--width', width);
-    host.style.setProperty('--min-width', width);
-  }
-
-  private flexGrowToWidth(flexGrow: number) {
-    return (flexGrow / NUM_COLS * 100).toFixed(3).toString() + '%';
   }
 
   private initMinimized() {
@@ -294,6 +266,12 @@ export class WidgetGroup extends LitElement {
     const config = this.configGroup[0];
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
+    const event = new CustomEvent('widget-group-minimized-changed', {
+      detail: {
+        isMinimized
+      }
+    });
+    this.dispatchEvent(event);
   }
 }
 
