@@ -67,3 +67,13 @@
   padding-top: 5px;
 }
 
+.axis-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.selected-value {
+  padding-right: 8px;
+}

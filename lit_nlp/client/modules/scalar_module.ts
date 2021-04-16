@@ -26,10 +26,10 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {D3Selection, IndexedInput, ModelInfoMap, NumericSetting, Preds, Spec} from '../lib/types';
+import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, NumericSetting, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, FocusService, RegressionService} from '../services/services';
+import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -82,6 +82,7 @@ export class ScalarModule extends LitModule {
   private readonly colorService = app.getService(ColorService);
   private readonly classificationService =
       app.getService(ClassificationService);
+  private readonly groupService = app.getService(GroupService);
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
 
@@ -97,6 +98,11 @@ export class ScalarModule extends LitModule {
   @observable private preds: Preds[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
+
+  @computed
+  private get inputKeys() {
+    return this.groupService.numericalFeatureNames;
+  }
 
   @computed
   private get scalarKeys() {
@@ -341,6 +347,9 @@ export class ScalarModule extends LitModule {
       const pred = Object.assign(
           {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
           {id: currId});
+      for (const inputKey of this.inputKeys) {
+        pred[inputKey] = currentInputData[i].data[inputKey];
+      }
       preds.push(pred);
     }
 
@@ -380,6 +389,8 @@ export class ScalarModule extends LitModule {
         scoreRange[0] = scoreRange[0] - .1;
         scoreRange[1] = scoreRange[1] + .1;
       }
+    } else if (this.inputKeys.indexOf(key) !== -1) {
+      scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
@@ -408,6 +419,17 @@ export class ScalarModule extends LitModule {
     ]);
   }
 
+  private getValue(preds: Preds, spec: ModelSpec, key: string, label: string) {
+    // If for a multiclass prediction, return the top label score.
+    if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
+      const predictionLabels = spec.output[key].vocab!;
+      const index = predictionLabels.indexOf(label);
+      return preds[key][index];
+    }
+    // Otherwise, return the raw value.
+    return preds[key];
+  }
+
   /**
    * Re-renders threshold bar at the new threshold value and updates datapoint
    * colors.
@@ -422,7 +444,7 @@ export class ScalarModule extends LitModule {
       const scatterplot = item as SVGGElement;
       const key = (item as HTMLElement).dataset['key'];
 
-      if (key == null) {
+      if (key == null || this.inputKeys.indexOf(key) !== -1) {
         return;
       }
 
@@ -721,15 +743,7 @@ export class ScalarModule extends LitModule {
       circles
           .attr(
               'cx',
-              (d) => {
-                if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
-                  const predictionLabels = spec.output[key].vocab!;
-                  const index = predictionLabels.indexOf(label);
-                  return xScale(d[key][index]);
-                }
-                // Otherwise, return the regression score.
-                return xScale(d[key]);
-              })
+              (d) => xScale(this.getValue(d, spec, key, label)))
           .attr(
               'cy',
               (d) => {
@@ -798,6 +812,7 @@ export class ScalarModule extends LitModule {
         ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
+        ${this.inputKeys.map(key => this.renderPlot(key, ''))}
       </div>
     `;
     // clang-format on
@@ -830,6 +845,17 @@ export class ScalarModule extends LitModule {
     this.numPlotsRendered++;
 
     const axisTitle = label ? `${key}:${label}` : key;
+    let selectedValue = '';
+    if (this.selectionService.primarySelectedId != null) {
+      const selectedIndex = this.appState.getIndexById(
+          this.selectionService.primarySelectedId);
+      if (selectedIndex != null && this.preds[selectedIndex] != null) {
+        const spec = this.appState.getModelSpec(this.model);
+        const displayVal = formatForDisplay(
+            this.getValue(this.preds[selectedIndex], spec, key, label));
+        selectedValue = `Value: ${displayVal}`;
+      }
+    }
     // clang-format off
     const toggleCollapse = () => {
       const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
@@ -845,7 +871,11 @@ export class ScalarModule extends LitModule {
         {'display': `${isHidden ? 'none': 'block'}`});
     return html`
         <div class='plot-holder'>
-          <div class='collapse-bar' @click=${toggleCollapse}>${axisTitle}
+          <div class='collapse-bar' @click=${toggleCollapse}>
+            <div class="axis-title">
+              <div>${axisTitle}</div>
+              <div class="selected-value">${selectedValue}</div>
+            </div>
             <mwc-icon class="icon-button min-button">
               ${isHidden ? 'expand_more': 'expand_less'}
             </mwc-icon>
