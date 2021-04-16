@@ -18,12 +18,12 @@
 // tslint:disable:no-new-decorators
 import '../elements/checkbox';
 
-import {customElement, html} from 'lit-element';
+import {customElement, html, query} from 'lit-element';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {TableData} from '../elements/table';
+import {DataTable, TableData} from '../elements/table';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
@@ -60,7 +60,16 @@ export class DataTableModule extends LitModule {
   modelPredToClassificationInfo = new Map<string, ClassificationInfo[]>();
   @observable modelPredToRegressionInfo = new Map<string, RegressionInfo[]>();
   @observable searchText = '';
-  @observable filterSelected = false;
+
+  // Module options / configuration state
+  @observable private filterSelected: boolean = false;
+  @observable private columnDropdownVisible: boolean = false;
+
+  // Persistent selection state
+  @observable private selectedInputData: IndexedInput[] = [];
+
+  // Child components
+  @query('lit-data-table') private readonly table?: DataTable;
 
   @computed
   get dataSpec(): Spec {
@@ -81,10 +90,25 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get filteredData(): IndexedInput[] {
+    return this.filterSelected ? this.selectedInputData :
+                                 this.appState.currentInputData;
+  }
+
+  @computed
+  get sortedData(): IndexedInput[] {
+    // TODO(lit-dev): pre-compute the index chains for each point, since
+    // this might get slow if we have a lot of counterfactuals.
+    return this.filteredData.slice().sort(
+        (a, b) => compareArrays(
+            this.reversedAncestorIndices(a), this.reversedAncestorIndices(b)));
+  }
+
+  @computed
   get selectedRowIndices(): number[] {
-    return this.selectionService.selectedIds
-        .map((id) => this.appState.getIndexById(id))
-        .filter((index) => index !== -1);
+    return this.sortedData
+        .map((ex, i) => this.selectionService.isIdSelected(ex.id) ? i : -1)
+        .filter(i => i !== -1);
   }
 
   /**
@@ -131,19 +155,11 @@ export class DataTableModule extends LitModule {
   // TODO(lit-dev): figure out why this updates so many times;
   // it gets run _four_ times every time a new datapoint is added.
   @computed
-  get data(): TableData[] {
-    const inputData = this.appState.currentInputData;
-
-    // TODO(lit-dev): pre-compute the index chains for each point, since
-    // this might get slow if we have a lot of counterfactuals.
-    const sortedData = inputData.slice().sort(
-        (a, b) => compareArrays(
-            this.reversedAncestorIndices(a), this.reversedAncestorIndices(b)));
-
+  get tableData(): TableData[] {
     // TODO(b/160170742): Make data table render immediately once the
     // non-prediction data is available, then fetch predictions asynchronously
     // and enable the additional columns when ready.
-    return sortedData.map((d) => {
+    return this.sortedData.map((d) => {
       let displayId = shortenId(d.id);
       displayId = displayId ? displayId + '...' : '';
       // Add an asterisk for generated examples
@@ -163,7 +179,9 @@ export class DataTableModule extends LitModule {
         // are filtered before rendering.
         const predictionInfoColumns =
             Array.from(this.columnVisibility.keys())
-                .filter((column) => !this.defaultColumns.includes(column));
+                .filter(
+                    (column) => !this.defaultColumns.includes(column) &&
+                        this.columnVisibility.get(column));
         predictionInfoColumns.forEach((columnName: string) => {
           const entry =
               this.keysToTableEntry.get(this.getTableKey(rowName, columnName));
@@ -171,21 +189,23 @@ export class DataTableModule extends LitModule {
         });
       }
 
-      return [
-        index, displayId,
-        ...this.keys.map(
-            (key) => formatForDisplay(d.data[key], this.dataSpec[key])),
-        ...predictionInfoEntries
-      ];
+      const dataEntries =
+          this.keys.filter(k => this.columnVisibility.get(k))
+              .map(k => formatForDisplay(d.data[k], this.dataSpec[k]));
+
+      const ret: TableData = [index];
+      if (this.columnVisibility.get('id')) {
+        ret.push(displayId);
+      }
+      return [...ret, ...dataEntries, ...predictionInfoEntries];
     });
   }
 
   firstUpdated() {
     const getCurrentInputData = () => this.appState.currentInputData;
     this.reactImmediately(getCurrentInputData, currentInputData => {
-      if (currentInputData != null) {
-        this.updatePredictionInfo(currentInputData);
-      }
+      if (currentInputData == null) return;
+      this.updatePredictionInfo(currentInputData);
     });
     const getCurrentModels = () => this.appState.currentModels;
     this.react(getCurrentModels, currentModels => {
@@ -199,6 +219,13 @@ export class DataTableModule extends LitModule {
     this.react(getKeys, keys => {
       this.updateColumns();
     });
+    this.reactImmediately(
+        () => this.selectionService.selectedOrAllInputData, inputData => {
+          this.selectedInputData = inputData;
+          if (this.table) {
+            this.table.resetView();
+          }
+        });
 
     this.updateColumns();
   }
@@ -324,23 +351,28 @@ export class DataTableModule extends LitModule {
     return `${row}:${column}`;
   }
 
+  /**
+   * Table callbacks receive indices corresponding to the rows of
+   * this.tableData, which matches this.sortedData.
+   * We need to map those back to global ids for selection purposes.
+   */
+  getIdFromTableIndex(tableIndex: number) {
+    return this.sortedData[tableIndex]?.id;
+  }
 
-  onSelect(selectedRowIndices: number[]) {
-    const ids = selectedRowIndices
-                    .map(index => this.appState.currentInputData[index]?.id)
+  onSelect(tableDataIndices: number[]) {
+    const ids = tableDataIndices.map(i => this.getIdFromTableIndex(i))
                     .filter(id => id != null);
-    this.selectionService.selectIds(ids);
+    this.selectionService.selectIds(ids, this);
   }
 
-  onPrimarySelect(index: number) {
-    const id =
-        index === -1 ? null : this.appState.currentInputData[index]?.id ?? null;
-    this.selectionService.setPrimarySelection(id);
+  onPrimarySelect(tableIndex: number) {
+    const id = this.getIdFromTableIndex(tableIndex);
+    this.selectionService.setPrimarySelection(id, this);
   }
 
-  onHover(index: number|null) {
-    const id =
-        index == null ? null : this.appState.currentInputData[index]?.id;
+  onHover(tableIndex: number|null) {
+    const id = tableIndex != null ? this.getIdFromTableIndex(tableIndex) : null;
     if (id == null) {
       this.focusService.clearFocus();
     } else {
@@ -348,54 +380,138 @@ export class DataTableModule extends LitModule {
     }
   }
 
-  render() {
-    const onSelect = (selectedIndices: number[]) => {
-      this.onSelect(selectedIndices);
+  renderDropdownItem(key: string) {
+    const checked = this.columnVisibility.get(key);
+    if (checked == null) return;
+
+    const toggleChecked = () => {
+      this.columnVisibility.set(key, !checked);
     };
-    const onPrimarySelect = (index: number) => {
-      this.onPrimarySelect(index);
+
+    // clang-format off
+    return html`
+      <div>
+        <lit-checkbox label=${key} ?checked=${checked}
+                      @change=${toggleChecked}>
+        </lit-checkbox>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  renderColumnDropdown() {
+    const names = [...this.columnVisibility.keys()].filter(c => c !== 'index');
+    const classes =
+        this.columnDropdownVisible ? 'column-dropdown' : 'column-dropdown-hide';
+    // clang-format off
+    return html`
+      <div class='${classes}'>
+        ${names.map(key => this.renderDropdownItem(key))}
+      </div>
+    `;
+    // clang-format on
+  }
+
+  renderControls() {
+    const onClickResetView = () => {
+      this.table!.resetView();
     };
-    const onHover = (index: number|null) => {
-      this.onHover(index);
+
+    const onClickSelectAll = () => {
+      this.onSelect(this.table!.getVisibleDataIdxs());
     };
+
+    const onToggleShowColumn = () => {
+      this.columnDropdownVisible = !this.columnDropdownVisible;
+    };
+
+    // clang-format off
+    return html`
+      <lit-checkbox label="Only show selected"
+        ?checked=${this.filterSelected}
+        @change=${() => { this.filterSelected = !this.filterSelected; }}
+      ></lit-checkbox>
+      <div id="toolbar-buttons">
+        <button class='hairline-button' @click=${onClickResetView}
+          ?disabled="${this.table?.isDefaultView ?? true}">
+          Reset view
+        </button>
+        <button class='hairline-button' @click=${onClickSelectAll}>
+          Select all
+        </button>
+        <button class='hairline-button' @click=${onToggleShowColumn}>
+          Columns
+          <span
+          data-icon=${this.columnDropdownVisible ? "expand_less" :
+          "expand_more"}></span>
+        </button>
+      </div>
+      ${this.renderColumnDropdown()}
+    `;
+    // clang-format on
+  }
+
+  renderTable() {
+    const tableDataIds = this.sortedData.map(d => d.id);
+    const indexOfId = (id: string|null) =>
+        id != null ? tableDataIds.indexOf(id) : -1;
 
     const primarySelectedIndex =
-        this.appState.getIndexById(this.selectionService.primarySelectedId);
+        indexOfId(this.selectionService.primarySelectedId);
 
-
-    const focusData = this.focusService.focusData;
     // Set focused index if a datapoint is focused according to the focus
     // service. If the focusData is null then nothing is focused. If focusData
     // contains a value in the "io" field then the focus is on a subfield of
     // a datapoint, as opposed to a datapoint itself.
+    const focusData = this.focusService.focusData;
     const focusedIndex = focusData == null || focusData.io != null ?
         -1 :
-        this.appState.getIndexById(focusData.datapointId);
+        indexOfId(focusData.datapointId);
 
     // Handle reference selection, if in compare examples mode.
     let referenceSelectedIndex = -1;
     if (this.appState.compareExamplesEnabled) {
       const referenceSelectionService =
           app.getServiceArray(SelectionService)[1];
-      referenceSelectedIndex = this.appState.getIndexById(
-          referenceSelectionService.primarySelectedId);
+      referenceSelectedIndex =
+          indexOfId(referenceSelectionService.primarySelectedId);
     }
 
-    return html`
-        <lit-data-table
-          .columnVisibility=${this.columnVisibility}
-          .data=${this.data}
-          .selectedIndices=${this.selectedRowIndices}
-          .primarySelectedIndex=${primarySelectedIndex}
-          .referenceSelectedIndex=${referenceSelectedIndex}
-          .focusedIndex=${focusedIndex}
-          .onSelect=${onSelect}
-          .onPrimarySelect=${onPrimarySelect}
-          .onHover=${onHover}
-          controlsEnabled
-        ></lit-data-table>
+    const columnNames = [...this.columnVisibility.keys()].filter(
+        k => this.columnVisibility.get(k));
 
+    // clang-format off
+    return html`
+      <lit-data-table
+        .data=${this.tableData}
+        .columnNames=${columnNames}
+        .selectedIndices=${this.selectedRowIndices}
+        .primarySelectedIndex=${primarySelectedIndex}
+        .referenceSelectedIndex=${referenceSelectedIndex}
+        .focusedIndex=${focusedIndex}
+        .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
+        .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
+        .onHover=${(i: number|null)=> { this.onHover(i); }}
+        searchEnabled
+        selectionEnabled
+      ></lit-data-table>
     `;
+    // clang-format on
+  }
+
+  render() {
+    // clang-format off
+    return html`
+      <div class='module-container'>
+        <div class='module-toolbar'>
+          ${this.renderControls()}
+        </div>
+        <div class='module-results-area'>
+          ${this.renderTable()}
+        </div>
+      </div>
+    `;
+    // clang-format on
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

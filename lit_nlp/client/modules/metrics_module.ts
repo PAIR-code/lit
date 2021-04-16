@@ -266,7 +266,7 @@ export class MetricsModule extends LitModule {
   /** Convert the metricsMap information into table data for display. */
   @computed
   get tableData(): TableHeaderAndData {
-    const rows = [] as TableData[];
+    const tableRows = [] as TableData[];
     const allMetricNames = new Set<string>();
     Object.values(this.metricsMap).forEach(row => {
       Object.keys(row.headMetrics).forEach(metricsType => {
@@ -279,7 +279,7 @@ export class MetricsModule extends LitModule {
 
     const metricNames = [...allMetricNames];
 
-    Object.values(this.metricsMap).forEach(row => {
+    for (const row of Object.values(this.metricsMap)) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
         if (row.headMetrics[metricsType] == null) {
@@ -304,16 +304,17 @@ export class MetricsModule extends LitModule {
       });
 
       const tableRow = [
-        rows.length, row.model, row.selection, ...rowFacets, row.predKey,
-        row.exampleIds.length,  ...rowMetrics];
-      rows.push(tableRow);
-    });
+        row.model, row.selection, ...rowFacets, row.predKey,
+        row.exampleIds.length, ...rowMetrics
+      ];
+      tableRows.push(tableRow);
+    }
 
     return {
-      'header':
-          ["id", 'Model', 'From', ...this.selectedFacets, 'Field', 'N',
-           ...metricNames],
-      'data': rows
+      'header': [
+        'Model', 'From', ...this.selectedFacets, 'Field', 'N', ...metricNames
+      ],
+      'data': tableRows
     };
   }
 
@@ -333,17 +334,11 @@ export class MetricsModule extends LitModule {
   }
 
   renderTable() {
-    const columnNames = this.tableData.header;
-    const columnVisibility = new Map<string, boolean>();
-    columnNames.forEach((name) => {
-      columnVisibility.set(name, name !== "id");
-    });
     // TODO(b/180903904): Add onSelect behavior to rows for selection.
     return html`
       <lit-data-table
-        .columnVisibility=${columnVisibility}
+        .columnNames=${this.tableData.header}
         .data=${this.tableData.data}
-        selectionDisabled
       ></lit-data-table>
     `;
   }

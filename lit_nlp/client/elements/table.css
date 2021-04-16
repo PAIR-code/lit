@@ -1,34 +1,9 @@
 :host {
   --table-header-height: 40px;
-  --toolbar-height: 43px;
-}
-
-.toolbar{
-  font-family: 'Google Sans', sans-serif !important;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  height: var(--toolbar-height);
-}
-
-#toolbar-buttons{
-  margin-bottom: 6px;
 }
 
 #holder{
-  display: flex;
-  flex-direction: column;
   height: 100%;
-}
-
-.table-container {
-  flex: 1;
-  overflow: visible;
-  height: 100%
-}
-
-.toolbar + .table-container {
-  height: calc(100% - var(--toolbar-height));
 }
 
 #rows-container{
@@ -195,42 +170,6 @@ td {
 
 td div {
   max-height: 150px;
-  overflow: auto;
-}
-
-/* For in-line icons in a <span> */
-[data-icon] {
-  margin: 0;
-}
-
-[data-icon]:before {
-  font-family: 'Material Icons';
-  content: attr(data-icon);
-  vertical-align: middle;
-}
-
-/* Column settings */
-.column-button {
-  position: absolute;
-  right: 15px;
-  top: 5px;
-  width: 100px;
-}
-
-.column-dropdown-hide {
-  display:none;
-}
-
-.column-dropdown {
-  top: 50px;
-  right: 15px;
-  padding: 10px;
-  background: white;
-  border: 1px solid gray;
-  position: absolute;
-  visibility: visible;
-  z-index: 1000;
-  max-height: calc(100% - 80px);
   overflow: auto;
 }
 

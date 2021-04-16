@@ -22,6 +22,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
+import {TableData} from '../elements/table';
 import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
@@ -161,7 +162,7 @@ export class ClassificationModule extends LitModule {
   }
 
   private renderRow(fieldName: string, prediction: DisplayInfo[]) {
-    const rows: Array<Array<TemplateResult|string>> = prediction.map((pred) => {
+    const rows: TableData[] = prediction.map((pred) => {
       const row = [
         pred['label'],
         formatBoolean(pred['isGroundTruth']!),
@@ -172,15 +173,13 @@ export class ClassificationModule extends LitModule {
       return row;
     });
     const columnNames = ["Class", "Label", "Predicted", "Score", "Score Bar"];
-    const columnVisibility = new Map<string, boolean>();
-    columnNames.forEach((name) => {columnVisibility.set(name, true);});
 
     return html`
         <div class='classification-row-holder'>
           <div class='classification-row-title'>${fieldName}</div>
           <lit-data-table
-            .columnVisibility=${columnVisibility}
-            .data=${rows} selectionDisabled
+            .columnNames=${columnNames}
+            .data=${rows}
           ></lit-data-table>
         </div>`;
   }
