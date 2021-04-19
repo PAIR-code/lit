@@ -16,12 +16,13 @@
 """Quantitative Testing with Concept Activation Vectors (TCAV)."""
 
 import random
-from typing import Any, List, Optional, cast, Sequence, Text
+from typing import Any, List, Optional, Sequence, Text, cast
 
 import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
+
 from lit_nlp.api import types
 import numpy as np
 import scipy.stats
@@ -33,7 +34,7 @@ JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
 
-NUM_SPLITS = 20  # TODO(lit-dev): Make this configurable in the UI.
+NUM_SPLITS = 15  # TODO(lit-dev): Make this configurable in the UI.
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -74,11 +75,11 @@ class TCAV(lit_components.Interpreter):
       - MulticlassPreds (`probas`)
   """
 
-  def hyp_test(self, scores):
+  def hyp_test(self, scores, random_scores):
     """Returns the p-value for a two-sided t-test on the TCAV score."""
     # The null hypothesis is 0.5, since a TCAV score of 0.5 would indicate
     # the concept does not affect the prediction positively or negatively.
-    _, p_val = scipy.stats.ttest_1samp(scores, 0.5)
+    _, p_val = scipy.stats.ttest_ind(scores, random_scores)
     return p_val
 
   def run_with_metadata(
@@ -157,8 +158,26 @@ class TCAV(lit_components.Interpreter):
                                             config.test_size,
                                             config.random_state))
 
+    random_results = []
+    # Get tcav scores on random splits.
+    for _ in range(NUM_SPLITS):
+      concept_split_outputs = _subsample(dataset_outputs, n)
+      comparison_split_outputs = _subsample(non_concept_outputs, n)
+      random_results.append(self._run_tcav(concept_split_outputs,
+                                           comparison_split_outputs,
+                                           dataset_outputs,
+                                           config.class_to_explain,
+                                           emb_layer,
+                                           grad_layer,
+                                           grad_class_key,
+                                           config.test_size,
+                                           config.random_state))
+
     cav_scores = [res['score'] for res in concept_results]
-    p_val = self.hyp_test(cav_scores)
+    random_scores = [res['score'] for res in random_results]
+    p_val = self.hyp_test(cav_scores, random_scores)
+
+    random_mean = np.mean(random_scores)
 
     # Get index of CAV result with the highest accuracy.
     accuracies = [res['accuracy'] for res in concept_results]
@@ -166,7 +185,8 @@ class TCAV(lit_components.Interpreter):
 
     # Many CAVS are trained and checked for statistical testing to calculate
     # the p-value. The values of the first CAV are returned.
-    results = {'result': concept_results[index], 'p_val': p_val}
+    results = {'result': concept_results[index], 'p_val': p_val,
+               'random_mean': random_mean}
     return [results]
 
   def _get_training_data(self, comparison_outputs, concept_outputs, emb_layer):

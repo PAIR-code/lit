@@ -24,6 +24,7 @@ from typing import Iterable, Iterator, List
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 import numpy as np
+import numpy.testing as npt
 
 JsonDict = lit_types.JsonDict
 
@@ -177,9 +178,14 @@ def fake_projection_input(n, num_dims):
   return [{'x': rng.rand(num_dims)} for i in range(n)]
 
 
-def assert_dicts_almost_equal(testcase, result, actual, places=3):
-  """Checks if provided dicts are almost equal."""
-  if set(result.keys()) != set(actual.keys()):
-    testcase.fail('results and actual have different keys')
-  for key in result:
-    testcase.assertAlmostEqual(result[key], actual[key], places=places)
+def assert_deep_almost_equal(testcase, result, actual, places=5):
+  """Checks if provided inputs are almost equal, recurses on dicts values."""
+  if isinstance(result, (int, float)):
+    testcase.assertAlmostEqual(result, actual, places=places)
+  elif isinstance(result, (list)):
+    npt.assert_array_almost_equal(result, actual, decimal=places)
+  elif isinstance(result, dict):
+    if set(result.keys()) != set(actual.keys()):
+      testcase.fail('results and actual have different keys')
+    for key in result:
+      assert_deep_almost_equal(testcase, result[key], actual[key])
