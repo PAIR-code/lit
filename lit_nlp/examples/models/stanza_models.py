@@ -132,14 +132,14 @@ def entity_char_to_token(entity, sentence):
   object to return the start and end tokens for the entity.
 
   Example entity:
-    {'text': 'Barrack Obama',
+    {'text': 'Barack Obama',
     'type': 'PERSON',
     'start_char': 0,
     'end_char': 13}
   Example sentence:
     [
       {'id': 1,
-      'text': 'Barrack',
+      'text': 'Barack',
       ...,
       'misc': 'start_char=0|end_char=7'},
       {'id': 2,

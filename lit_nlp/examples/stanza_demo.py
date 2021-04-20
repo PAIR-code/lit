@@ -14,7 +14,8 @@
 # ==============================================================================
 # Lint at: python3
 """Example demo loading Stanza models.
-To run with the demo:
+To run the demo:
+    pip install stanza
     python -m lit_nlp.examples.stanza_demo --port=5432
 Then navigate to localhost:5432 to access the demo UI.
 """
