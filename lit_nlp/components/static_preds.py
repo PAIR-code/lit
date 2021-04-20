@@ -31,6 +31,13 @@ class StaticPredictions(lit_model.Model):
     reduced_example = {k: example[k] for k in self.input_identifier_keys}
     return caching.input_hash(reduced_example)
 
+  def description(self):
+    return self._description
+
+  @property
+  def input_dataset(self):
+    return self._all_inputs
+
   def __init__(self,
                inputs: lit_dataset.Dataset,
                preds: lit_dataset.Dataset,
@@ -43,8 +50,10 @@ class StaticPredictions(lit_model.Model):
       input_identifier_keys: (optional), list of keys to treat as identifiers
         for matching inputs. If None, will use all fields in inputs.spec()
     """
-    self._output_spec = preds.spec()
+    self._all_inputs = inputs
     self._input_spec = inputs.spec()
+    self._output_spec = preds.spec()
+    self._description = preds.description()
     self.input_identifier_keys = input_identifier_keys or self._input_spec.keys(
     )
     # Filter to only the identifier keys
