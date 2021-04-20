@@ -43,11 +43,11 @@ class StanzaTagger(lit_model.Model):
     self.edge_tasks = tasks["edge"]
 
     self._input_spec = {
-      "sentence": lit_types.TextSegment(),
+        "sentence": lit_types.TextSegment(),
     }
 
     self._output_spec = {
-      "tokens": lit_types.Tokens(),
+        "tokens": lit_types.Tokens(),
     }
 
     # Output spec based on specified tasks
@@ -82,7 +82,7 @@ class StanzaTagger(lit_model.Model):
       # Process each sequence task
       for task in self.sequence_tasks:
         prediction[task].extend(
-          [word.to_dict()[task] for word in sentence.words])
+            [word.to_dict()[task] for word in sentence.words])
 
       # Process each span task
       for task in self.span_tasks:
@@ -93,9 +93,9 @@ class StanzaTagger(lit_model.Model):
             # token indexes
             start, end = entity_char_to_token(entity, sentence)
             span_label = SpanLabel(
-              start=start + start_token,
-              end=end + start_token,
-              label=entity.type)
+                start=start + start_token,
+                end=end + start_token,
+                label=entity.type)
             prediction[task].append(span_label)
         else:
           raise ValueError(f"Invalid span task: '{task}'")
