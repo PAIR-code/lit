@@ -13,18 +13,18 @@
 # limitations under the License.
 # ==============================================================================
 # Lint as: python3
-"""Wrapper for Stanza model"""
+"""Wrapper for Stanza model."""
 
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.api import dtypes
 
 SpanLabel = dtypes.SpanLabel
 EdgeLabel = dtypes.EdgeLabel
 
 
 class StanzaTagger(lit_model.Model):
-  """Stanza Model wrapper"""
+  """Stanza Model wrapper."""
 
   def __init__(self, model, tasks):
     """Initialize with Stanza model and a dictionary of tasks.
@@ -32,7 +32,8 @@ class StanzaTagger(lit_model.Model):
     Args:
       model: A Stanza model
       tasks: A dictionary of tasks, grouped by task type.
-        Keys are the grouping, which should be one of ('sequence', 'span', 'edge').
+        Keys are the grouping, which should be one of:
+          ('sequence', 'span', 'edge').
         Values are a list of stanza task names as strings.
     """
     self.model = model
@@ -74,22 +75,27 @@ class StanzaTagger(lit_model.Model):
     doc = self.model(ex["sentence"])
     prediction = {task: [] for task in self._output_spec}
     for sentence in doc.sentences:
-      # Get starting token of the offset to align task to tokens for multiple sentences
-      start_token = len(prediction['tokens'])
+      # Get starting token of the offset to align task for multiple sentences
+      start_token = len(prediction["tokens"])
       prediction["tokens"].extend([word.text for word in sentence.words])
 
       # Process each sequence task
       for task in self.sequence_tasks:
-        prediction[task].extend([word.to_dict()[task] for word in sentence.words])
+        prediction[task].extend(
+          [word.to_dict()[task] for word in sentence.words])
 
       # Process each span task
       for task in self.span_tasks:
         # Mention is currently the only span task
         if task == "mention":
           for entity in sentence.entities:
-            # Stanza indexes start/end of entities on char. LIT needs them as token indexes
+            # Stanza indexes start/end of entities on char. LIT needs them as
+            # token indexes
             start, end = entity_char_to_token(entity, sentence)
-            span_label = SpanLabel(start=start+start_token, end=end+start_token, label=entity.type)
+            span_label = SpanLabel(
+              start=start + start_token,
+              end=end + start_token,
+              label=entity.type)
             prediction[task].append(span_label)
         else:
           raise ValueError(f"Invalid span task: '{task}'")
@@ -101,11 +107,12 @@ class StanzaTagger(lit_model.Model):
           for relation in sentence.dependencies:
             label = relation[1]
             span1 = relation[2].id + start_token
-            span2 = relation[2].id + start_token if label == "root" else relation[0].id + start_token
-            # Relation lists have a root value at index 0, so subtract 1 to align them to tokens
-            edge_label = EdgeLabel(
-              (span1 - 1, span1), (span2 - 1, span2), label
-            )
+            span2_index = 2 if label == "root" else 0
+            span2 = relation[span2_index].id + start_token
+            # Relation lists have a root value at index 0, so subtract 1 to
+            # align them to tokens
+            edge_label = EdgeLabel((span1 - 1, span1), (span2 - 1, span2),
+                                   label)
             prediction[task].append(edge_label)
         else:
           raise ValueError(f"Invalid edge task: '{task}'")
@@ -123,7 +130,7 @@ class StanzaTagger(lit_model.Model):
 
 
 def entity_char_to_token(entity, sentence):
-  """Takes Stanza entity and sentence objects and returns the start and end tokens for the entity
+  """Takes Stanza entity and sentence objects and returns the start and end tokens for the entity.
 
   The misc value in a stanza sentence object contains a string with additional
   information, separated by a pipe character. This string contains the

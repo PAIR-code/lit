@@ -14,6 +14,7 @@
 # ==============================================================================
 # Lint at: python3
 """Example demo loading Stanza models.
+
 To run the demo:
     pip install stanza
     python -m lit_nlp.examples.stanza_demo --port=5432
@@ -21,16 +22,14 @@ Then navigate to localhost:5432 to access the demo UI.
 """
 from absl import app
 from absl import flags
-
-import lit_nlp.api.dataset as lit_dataset
-import lit_nlp.api.types as lit_types
-from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.models import stanza_models
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+import lit_nlp.api.dataset as lit_dataset
+import lit_nlp.api.types as lit_types
 from lit_nlp.components import scrambler
 from lit_nlp.components import word_replacer
-
+from lit_nlp.examples.datasets import glue
+from lit_nlp.examples.models import stanza_models
 import stanza
 
 FLAGS = flags.FLAGS
@@ -77,7 +76,8 @@ def main(_):
   }
 
   # Datasets for LIT demo
-  # TODO: Use the UD dataset (https://huggingface.co/datasets/universal_dependencies)
+  # TODO(nbroestl): Use the UD dataset
+  # (https://huggingface.co/datasets/universal_dependencies)
   datasets = {
     "SST2": glue.SST2Data(split="validation").slice[: FLAGS.max_examples],
     "blank": lit_dataset.Dataset({"text": lit_types.TextSegment()}, []),
