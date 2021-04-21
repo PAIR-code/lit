@@ -178,12 +178,13 @@ def fake_projection_input(n, num_dims):
   return [{'x': rng.rand(num_dims)} for i in range(n)]
 
 
-def assert_deep_almost_equal(testcase, result, actual, places=5):
+def assert_deep_almost_equal(testcase, result, actual, places=4):
   """Checks if provided inputs are almost equal, recurses on dicts values."""
   if isinstance(result, (int, float)):
     testcase.assertAlmostEqual(result, actual, places=places)
   elif isinstance(result, (list)):
-    npt.assert_array_almost_equal(result, actual, decimal=places)
+    rtol = 10 ** (-1 * places)
+    npt.assert_allclose(result, actual, rtol=rtol)
   elif isinstance(result, dict):
     if set(result.keys()) != set(actual.keys()):
       testcase.fail('results and actual have different keys')
