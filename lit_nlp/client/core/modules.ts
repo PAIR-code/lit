@@ -81,6 +81,16 @@ export class LitModules extends ReactiveElement {
         () => this.modulesService.getRenderLayout(), renderLayout => {
       this.calculateWidths(renderLayout);
     });
+
+    // Escape key to exit full-screen modules.
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        for (const e of this.shadowRoot!.querySelectorAll(
+                 'lit-widget-group[maximized]')) {
+          e.removeAttribute('maximized');
+        }
+      }
+    });
   }
 
   // Calculate widths of all module groups in all panels.

@@ -12,12 +12,12 @@
   top: 0;
   left: 0;
   opacity: .2;
-  transition: opacity 500ms;
-  pointer-events: none;
+  transition: opacity 250ms;
 }
 
 #overlay.hide {
   opacity: 0;
+  visibility: hidden;
 }
 
 #global-settings {

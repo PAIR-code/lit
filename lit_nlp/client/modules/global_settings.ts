@@ -154,7 +154,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
     // clang-format off
     return html`
       <div id="global-settings-holder">
-        <div id="overlay" class=${hiddenClassMap}></div>
+        <div id="overlay" class=${hiddenClassMap}
+         @click=${() => { this.close(); }}></div>
         <div id="global-settings" class=${hiddenClassMap}>
         <div id="title-bar">Configure LIT</div>
         <div id="holder">
@@ -655,6 +656,12 @@ export class GlobalSettingsComponent extends MobxLitElement {
       ${extraLineHTML}
       <div class='prev-next-buttons'>${buttonsHTML} </div>
     `;
+  }
+
+  firstUpdated() {
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Escape') this.close();
+    });
   }
 }
 
