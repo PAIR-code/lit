@@ -46,6 +46,8 @@ MAX_FLIPS_KEY = "Maximum number of token flips"
 MAX_FLIPS_DEFAULT = 3
 TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
 TOKENS_TO_IGNORE_DEFAULT = []
+DROP_TOKENS_KEY = "Drop tokens instead of flipping"
+DROP_TOKENS_DEFAULT = False
 MAX_FLIPPABLE_TOKENS = 10
 
 
@@ -97,6 +99,18 @@ class HotFlip(lit_components.Generator):
       for s in itertools.combinations(token_idxs, i+1):
         yield s
 
+  def _drop_tokens(self, tokens, token_idxs):
+    # Returns a copy of 'tokens' with all tokens at indices specified in
+    # 'token_idxs' dropped.
+    return [t for i, t in enumerate(tokens) if i not in token_idxs]
+
+  def _replace_tokens(self, tokens, token_idxs,
+                      replacement_tokens):
+    # Returns a copy of 'tokens' with all tokens at indices specified in
+    # 'token_idxs' replaced with corresponding tokens in 'replacement_tokens'.
+    return [replacement_tokens[j] if j in token_idxs else t
+            for j, t in enumerate(tokens)]
+
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
@@ -110,6 +124,7 @@ class HotFlip(lit_components.Generator):
     max_flips = int(config.get(MAX_FLIPS_KEY, MAX_FLIPS_DEFAULT))
     tokens_to_ignore = config.get(TOKENS_TO_IGNORE_KEY,
                                   TOKENS_TO_IGNORE_DEFAULT)
+    drop_tokens = bool(config.get(DROP_TOKENS_KEY, DROP_TOKENS_DEFAULT))
 
     assert model is not None, "Please provide a model for this generator."
     logging.info(r"W3lc0m3 t0 H0tFl1p \o/")
@@ -170,16 +185,21 @@ class HotFlip(lit_components.Generator):
       token_embs = orig_output[token_emb_fields[0]]
       assert token_embs.shape[0] == grads.shape[0]
 
-      # We take a dot product of each input token gradient (grads) with the
-      # embedding table (embed)
-      # TODO(ataly): Only consider tokens that have the same part-of-speech
-      # tag as the original token (and a certain cosine similarity with the
-      # original token)
-      replacement_token_ids = np.argmin(
-          (np.expand_dims(embed, 1) @ grads.T).squeeze(1), axis=0)
-
-      replacement_tokens = [inv_vocab[id] for id in replacement_token_ids]
-      logging.info("Replacement tokens: %s", replacement_tokens)
+      if drop_tokens:
+        # Update max_flips so that it is at most len(tokens) - 1 (we don't
+        # want to drop all tokens!)
+        max_flips = min(len(tokens)-1, max_flips)
+      else:
+        # Identify replacement tokens.
+        # We take a dot product of each input token gradient (grads) with the
+        # embedding table (embed) and pick the argmin embedding.
+        # TODO(ataly): Only consider tokens that have the same part-of-speech
+        # tag as the original token (and a certain cosine similarity with the
+        # original token)
+        replacement_token_ids = np.argmin(
+            (np.expand_dims(embed, 1) @ grads.T).squeeze(1), axis=0)
+        replacement_tokens = [inv_vocab[id] for id in replacement_token_ids]
+        logging.info("Replacement tokens: %s", replacement_tokens)
 
       # Consider all combinations of tokens upto length max_flips.
       # We will iterate through this list (in toplogically sorted order)
@@ -209,19 +229,23 @@ class HotFlip(lit_components.Generator):
         if self._subset_exists(set(token_idxs), successful_positions):
           continue
 
-        logging.info("Selected tokens to flip: %s (positions=%s) with: %s",
-                     [tokens[i] for i in token_idxs], token_idxs,
-                     [replacement_tokens[i] for i in token_idxs])
-
         # Create a new input to the model.
         # TODO(iftenney, bastings): enforce somewhere that this field has the
         # same name in the input and output specs.
         input_token_field = token_field
         input_text_field = input_spec[input_token_field].parent  # pytype: disable=attribute-error
         counterfactual = copy.deepcopy(example)
-        modified_tokens = copy.copy(tokens)
-        for j in token_idxs:
-          modified_tokens[j] = replacement_tokens[j]
+        if drop_tokens:
+          modified_tokens = self._drop_tokens(tokens, token_idxs)
+          logging.info("Selected tokens to drop: %s (positions=%s)",
+                       [tokens[i] for i in token_idxs], token_idxs)
+        else:
+          modified_tokens = self._replace_tokens(tokens, token_idxs,
+                                                 replacement_tokens)
+          logging.info(
+              "Selected tokens to flip: %s (positions=%s) with: %s",
+              [tokens[i] for i in token_idxs], token_idxs,
+              [replacement_tokens[i] for i in token_idxs])
         counterfactual[input_token_field] = modified_tokens
         # TODO(iftenney, bastings): call a model-provided detokenizer here?
         # Though in general tokenization isn't invertible and it's possible for
