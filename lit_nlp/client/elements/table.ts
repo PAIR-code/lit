@@ -583,7 +583,7 @@ export class DataTable extends ReactiveElement {
             return html`<td><img class='table-img' src=${d.toString()}></td>`;
           } else {
             return (d instanceof TemplateResult) ? d :
-                html`<td><div>${chunkWords(d.toString())}</div></td>`;
+                html`<td><div>${d ? chunkWords(d.toString()) : ''}</div></td>`;
           }
         }))}
       </tr>
