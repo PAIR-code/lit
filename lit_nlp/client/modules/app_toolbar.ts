@@ -26,11 +26,12 @@ import './main_toolbar';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, query} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 
 import {app} from '../core/lit_app';
 import {datasetDisplayName} from '../lib/types';
 import {copyToClipboard} from '../lib/utils';
-import {AppState, ModulesService, StatusService} from '../services/services';
+import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
 import {styles} from './app_toolbar.css';
 import {GlobalSettingsComponent, TabName} from './global_settings';
@@ -48,6 +49,7 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   private readonly appState = app.getService(AppState);
+  private readonly settingsService = app.getService(SettingsService);
   private readonly statusService = app.getService(StatusService);
   private readonly modulesService = app.getService(ModulesService);
 
@@ -62,45 +64,150 @@ export class ToolbarComponent extends MobxLitElement {
 
   jumpToSettingsTab(targetTab: TabName) {
     if (this.globalSettingsElement === undefined) return;
-    this.globalSettingsElement.selectedTab = targetTab;
-    this.globalSettingsElement.open();
+    if (this.globalSettingsElement.isOpen &&
+        this.globalSettingsElement.selectedTab === targetTab) {
+      this.globalSettingsElement.close();
+    } else {
+      this.globalSettingsElement.selectedTab = targetTab;
+      this.globalSettingsElement.open();
+    }
   }
 
-  onCopyLinkClick() {
-    const urlBase =
-        (this.appState.metadata.canonicalURL || window.location.host);
-    copyToClipboard(urlBase + window.location.search);
-  }
-
-  renderModelAndDatasetInfo() {
-    const modelsPrefix =
-        this.appState.currentModels.length > 1 ? 'Models' : 'Model';
-    const modelsText = html`
-        ${modelsPrefix}:
-        <span class='status-text-underline'>
-          ${this.appState.currentModels.join(', ')}
-        </span>`;
-    const datasetText = html`
-        Dataset:
-        <span class='status-text-underline'>
-          ${datasetDisplayName(this.appState.currentDataset)}
-        </span>`;
+  renderStatusAndTitle() {
+    let title = 'Language Interpretability Tool';
+    if (this.appState.initialized && this.appState.metadata.pageTitle) {
+      title = this.appState.metadata.pageTitle;
+    }
     // clang-format off
     return html`
-      <div id='models-data-status'>
-        <div class='status-item'
-             @click=${() => { this.jumpToSettingsTab("Models"); }}>
-          ${modelsText}
-        </div>
-        <div class='status-item'
-             @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
-          ${datasetText}
-        </div>
+      <div id="title-group">
+        <a href="https://github.com/PAIR-code/lit/issues/new" target="_blank">
+          ${this.statusService.hasError ?
+            html`<img src="static/potato.svg" class="status-emoji">` :
+            html`<img src="static/favicon.png" class="status-emoji">`}
+        </a>
+        ${title}
       </div>
     `;
     // clang-format on
   }
 
+  renderModelInfo() {
+    const compatibleModels =
+        Object.keys(this.appState.metadata.models)
+            .filter(
+                model => this.settingsService.isDatasetValidForModels(
+                    this.appState.currentDataset, [model]));
+
+    if (2 <= compatibleModels.length && compatibleModels.length <= 4) {
+      // If we have more than one compatible model (but not too many),
+      // show the in-line selector.
+      const modelChips = compatibleModels.map(name => {
+        const isSelected = this.appState.currentModels.includes(name);
+        const classes = {
+          'headline-button': true,
+          'unselected': !isSelected,  // not the same as default; see CSS
+          'selected': isSelected,
+        };
+        const icon = isSelected ? 'check_box' : 'check_box_outline_blank';
+        const updateModelSelection = () => {
+          const modelSet = new Set<string>(this.appState.currentModels);
+          if (modelSet.has(name)) {
+            modelSet.delete(name);
+          } else {
+            modelSet.add(name);
+          }
+          this.settingsService.updateSettings({'models': [...modelSet]});
+          this.requestUpdate();
+        };
+        // clang-format off
+        return html`
+          <button class=${classMap(classes)} title="${name}"
+            @click=${updateModelSelection}>
+            <span class='material-icon'>${icon}</span>
+            &nbsp;${name}
+          </button>
+        `;
+        // clang-format on
+      });
+      // clang-format off
+      return html`
+        ${modelChips}
+        <button class='headline-button' title="Select model(s)"
+          @click=${() => { this.jumpToSettingsTab("Models"); }}>
+          <span class='material-icon-outlined'>smart_toy</span>
+          &nbsp;<span class='material-icon'>arrow_drop_down</span>
+        </button>
+      `;
+      // clang-format on
+    } else {
+      // Otherwise, give a regular button that opens the models menu.
+      // clang-format off
+      return html`
+        <button class='headline-button' title="Select model(s)"
+          @click=${() => { this.jumpToSettingsTab("Models"); }}>
+          <span class='material-icon-outlined'>smart_toy</span>
+          &nbsp;${this.appState.currentModels.join(', ')}&nbsp;
+          <span class='material-icon'>arrow_drop_down</span>
+        </button>
+      `;
+      // clang-format on
+    }
+  }
+
+  renderDatasetInfo() {
+    // clang-format off
+    return html`
+      <div class='vertical-separator'></div>
+      <button class='headline-button' title="Select dataset"
+        @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
+        <span class='material-icon'>storage</span>
+        &nbsp;${datasetDisplayName(this.appState.currentDataset)}&nbsp;
+        <span class='material-icon'>arrow_drop_down</span>
+      </button>
+    `;
+    // clang-format on
+  }
+
+  renderConfigControls() {
+    // clang-format off
+    return html`
+      ${this.appState.initialized ? this.renderModelInfo() : null}
+      ${this.appState.initialized ? this.renderDatasetInfo() : null}
+      <div class='vertical-separator'></div>
+      <div title="Change layout" id="layout">
+        <mwc-icon class="icon-button"
+          @click=${() => { this.jumpToSettingsTab("Layout"); }}>
+          view_compact
+        </mwc-icon>
+      </div>
+      <div title="Configure models, dataset, and UI." id="config">
+        <mwc-icon class="icon-button"
+          @click=${this.toggleGlobalSettings}>
+          settings
+        </mwc-icon>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  onClickCopyLink() {
+    const urlBase =
+        (this.appState.metadata.canonicalURL || window.location.host);
+    copyToClipboard(urlBase + window.location.search);
+  }
+
+  renderRightCorner() {
+    // clang-format off
+    return html`
+      <button class='headline-button unbordered' title="Copy link to this page"
+        @click=${this.onClickCopyLink}>
+        <span class='material-icon'>link</span>
+        &nbsp;Share
+      </button>
+    `;
+    // clang-format on
+  }
 
   render() {
     const doRenderToolbar =
@@ -113,39 +220,15 @@ export class ToolbarComponent extends MobxLitElement {
       ${this.appState.initialized ?
         html`<lit-global-settings></lit-global-settings>` : null}
       <div id="at-top">
-        <div id="toolbar">
-          <div id="headline">
-            <div class="headline-section">
-              <div>
-                <a href="https://github.com/PAIR-code/lit/issues/new" target="_blank">
-                  ${this.statusService.hasError ?
-                    html`<img src="static/potato.svg" class="status-emoji">` :
-                    html`<img src="static/favicon.png" class="status-emoji">`}
-                </a>
-                ${this.appState.initialized && this.appState.metadata.pageTitle ?
-                  this.appState.metadata.pageTitle : "Language Interpretability Tool"}
-              </div>
-              ${this.appState.initialized ? this.renderModelAndDatasetInfo() : null}
-            </div>
-            <div class="headline-section">
-              <div title="Copy link to this page" id="share">
-                <mwc-icon class="icon-button" @click=${this.onCopyLinkClick}>
-                  link
-                </mwc-icon>
-              </div>
-              <div title="Change layout" id="layout-button">
-                <mwc-icon class="icon-button"
-                  @click=${() => { this.jumpToSettingsTab("Layout"); }}>
-                  view_compact
-                </mwc-icon>
-              </div>
-              <div title="Edit models and dataset" id="config">
-                <mwc-icon class="icon-button"
-                  @click=${this.toggleGlobalSettings}>
-                  settings
-                </mwc-icon>
-              </div>
-            </div>
+        <div id="headline">
+          <div class="headline-section">
+            ${this.renderStatusAndTitle()}
+          </div>
+          <div class="headline-section">
+            ${this.renderConfigControls()}
+          </div>
+          <div class="headline-section">
+            ${this.renderRightCorner()}
           </div>
         </div>
         ${doRenderToolbar? html`<lit-main-toolbar></lit-main-toolbar>` : null}
