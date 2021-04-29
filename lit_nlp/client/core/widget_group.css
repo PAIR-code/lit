@@ -38,7 +38,7 @@
 }
 
 .holder {
-  height: 100%;
+  height: calc(100% - 28px);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -46,6 +46,7 @@
 }
 
 .header {
+  height: 28px;
   display: flex;
   padding-left: 2pt;
   line-height: 20pt;
