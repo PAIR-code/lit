@@ -16,6 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
+import '@material/mwc-switch';
 import '../elements/checkbox';
 
 import {customElement, html, query} from 'lit-element';
@@ -28,7 +29,7 @@ import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
-import {ClassificationService, FocusService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, FocusService, RegressionService, SelectionService, UrlService} from '../services/services';
 
 import {styles} from './data_table_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -62,11 +63,15 @@ export class DataTableModule extends LitModule {
   @observable searchText = '';
 
   // Module options / configuration state
-  @observable private filterSelected: boolean = false;
+  @observable private filterSelected: boolean = true;
   @observable private columnDropdownVisible: boolean = false;
 
   // Persistent selection state
   @observable private selectedInputData: IndexedInput[] = [];
+
+  // Used to manage selection response; should not be interacted
+  // with directly.
+  private readonly urlService = app.getService(UrlService);
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -219,9 +224,19 @@ export class DataTableModule extends LitModule {
     this.react(getKeys, keys => {
       this.updateColumns();
     });
+    // React to change in selection.
     this.reactImmediately(
         () => this.selectionService.selectedOrAllInputData, inputData => {
-          this.selectedInputData = inputData;
+          // Don't react to selection set from within this module.
+          if (this.selectionService.lastUser === this) {
+            return;
+          }
+          // If selection set from URL, also show the full dataset only.
+          if (this.selectionService.lastUser === this.urlService) {
+            this.selectedInputData = this.appState.currentInputData;
+          } else {
+            this.selectedInputData = inputData;
+          }
           if (this.table) {
             this.table.resetView();
           }
@@ -427,10 +442,11 @@ export class DataTableModule extends LitModule {
 
     // clang-format off
     return html`
-      <lit-checkbox label="Only show selected"
-        ?checked=${this.filterSelected}
-        @change=${() => { this.filterSelected = !this.filterSelected; }}
-      ></lit-checkbox>
+      <div class='switch-container'
+        @click=${() => { this.filterSelected = !this.filterSelected; }}>
+        <mwc-switch .checked=${this.filterSelected}></mwc-switch>
+        Only show selected
+      </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
           ?disabled="${this.table?.isDefaultView ?? true}">

@@ -17,7 +17,7 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, listFieldTypes, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, listFieldTypes, ServiceUser, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
@@ -76,9 +76,9 @@ export interface ModulesObservedByUrlService {
 export interface SelectionObservedByUrlService {
   readonly primarySelectedId: string|null;
   readonly primarySelectedInputData: IndexedInput|null;
-  setPrimarySelection: (id: string) => void;
+  setPrimarySelection: (id: string, user: ServiceUser) => void;
   readonly selectedIds: string[];
-  selectIds: (ids: string[]) => void;
+  selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
 const SELECTED_TAB_KEY = 'tab';
@@ -223,7 +223,7 @@ export class UrlService extends LitService {
     modulesService.setUrlConfiguration(urlConfiguration);
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
-    selectionService.selectIds(urlSelectedIds);
+    selectionService.selectIds(urlSelectedIds, this);
 
     // TODO(lit-dev) Add compared examples to URL parameters.
     // Only enable compare example mode if both selections and compare mode
@@ -305,13 +305,13 @@ export class UrlService extends LitService {
     if (dataToAdd.length > 0) {
       const data = await appState.indexDatapoints(dataToAdd);
       appState.commitNewDatapoints(data);
-      selectionService.selectIds(data.map((d) => d.id));
+      selectionService.selectIds(data.map((d) => d.id), this);
     }
     // Otherwise, use the primary selected datapoint url param directly.
     else {
       const id = urlConfiguration.primarySelectedData;
       if (id !== undefined) {
-        selectionService.setPrimarySelection(id);
+        selectionService.setPrimarySelection(id, this);
       }
     }
   }

@@ -201,9 +201,3 @@ mwc-icon.disabled:hover {
   display: inline-block;
 }
 
-/* Disable Material ripple */
-mwc-switch {
-  --mdc-ripple-hover-opacity: 0;
-  --mdc-ripple-press-opacity: 0;
-  --mdc-ripple-focus-opacity: 0;
-}

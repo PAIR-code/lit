@@ -37,3 +37,12 @@
   max-height: calc(100% - 48px);
   overflow: auto;
 }
+
+.switch-container {
+  display: flex;
+  align-items: center;
+}
+
+.switch-container > * {
+  margin-right: 4px;
+}
