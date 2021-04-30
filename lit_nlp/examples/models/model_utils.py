@@ -1,7 +1,19 @@
 """Helpers for working with transformers models."""
 from typing import List, Optional
 
+from absl import logging
 import transformers
+
+
+def load_pretrained(cls, *args, **kw):
+  """Load a transformers model in TF2, with fallback to PyTorch weights."""
+  try:
+    return cls.from_pretrained(*args, **kw)
+  except OSError as e:
+    logging.warning("Caught OSError loading model: %s", e)
+    logging.warning(
+        "Re-trying to convert from PyTorch checkpoint (from_pt=True)")
+    return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
 def batch_encode_pretokenized(

@@ -6,6 +6,7 @@ from typing import List
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.models import model_utils
 from lit_nlp.lib import utils
 
 import tensorflow as tf
@@ -116,7 +117,8 @@ class T5HFModel(T5Model):
     self.config = T5ModelConfig(**config_kw)
     assert self.config.num_to_generate <= self.config.beam_size
     self.tokenizer = transformers.T5Tokenizer.from_pretrained(model_name)
-    self.model = transformers.TFT5ForConditionalGeneration.from_pretrained(
+    self.model = model_utils.load_pretrained(
+        transformers.TFT5ForConditionalGeneration,
         model_name,
         output_hidden_states=True,
         output_attentions=self.config.output_attention)

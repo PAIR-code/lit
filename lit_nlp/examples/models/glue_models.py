@@ -5,7 +5,6 @@ import os
 import re
 from typing import Optional, Dict, List, Iterable
 
-from absl import logging
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -17,17 +16,6 @@ import transformers
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
-
-
-def _from_pretrained(cls, *args, **kw):
-  """Load a transformers model in TF2, with fallback to PyTorch weights."""
-  try:
-    return cls.from_pretrained(*args, **kw)
-  except OSError as e:
-    logging.warning("Caught OSError loading model: %s", e)
-    logging.warning(
-        "Re-trying to convert from PyTorch checkpoint (from_pt=True)")
-    return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -80,7 +68,7 @@ class GlueModel(lit_model.Model):
         num_labels=1 if self.is_regression else len(self.config.labels),
         return_dict=False,  # default for training; overridden for predict
     )
-    self.model = _from_pretrained(
+    self.model = model_utils.load_pretrained(
         transformers.TFAutoModelForSequenceClassification,
         model_name_or_path,
         config=model_config)

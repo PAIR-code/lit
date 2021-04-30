@@ -2,25 +2,14 @@
 import os
 from typing import Dict
 
-from absl import logging
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.coref import retokenize
+from lit_nlp.examples.models import model_utils
 from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
 import transformers
-
-
-def _from_pretrained(cls, *args, **kw):
-  """Load a transformers model in TF2, with fallback to PyTorch weights."""
-  try:
-    return cls.from_pretrained(*args, **kw)
-  except OSError as e:
-    logging.warning('Caught OSError loading model: %s', e)
-    logging.warning(
-        'Re-trying to convert from PyTorch checkpoint (from_pt=True)')
-    return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
 class BertEncoderWithOffsets(lit_model.Model):
@@ -33,7 +22,7 @@ class BertEncoderWithOffsets(lit_model.Model):
   def __init__(self, model_name_or_path: str):
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name_or_path)
-    self.model = _from_pretrained(
+    self.model = model_utils.load_pretrained(
         transformers.TFBertForMaskedLM,
         model_name_or_path,
         output_hidden_states=True,

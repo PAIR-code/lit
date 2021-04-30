@@ -34,8 +34,11 @@ class BertMLM(lit_model.Model):
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
-    self.model = transformers.TFBertForMaskedLM.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True)
+    self.model = model_utils.load_pretrained(
+        transformers.TFBertForMaskedLM,
+        model_name,
+        output_hidden_states=True,
+        output_attentions=True)
     self.top_k = top_k
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
