@@ -226,7 +226,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.type!);
+    return findSpecKeys(spec, matcher.types!);
   }
 
   //=================================== Generation logic

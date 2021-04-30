@@ -26,7 +26,7 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Any, Dict, List, NewType, Optional, Sequence, Text, Tuple
+from typing import Any, Dict, List, NewType, Optional, Sequence, Text, Tuple, Union
 
 import attr
 
@@ -336,7 +336,7 @@ class FieldMatcher(LitType):
   accordingly.
   """
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
-  type: Text  # type of LitType to match in the spec.
+  types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
   vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
 
 

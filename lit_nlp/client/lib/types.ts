@@ -48,7 +48,7 @@ export interface LitType {
   required?: boolean;
   default? : string|string[]|number|number[];
   spec?: string;
-  type?: LitName;
+  types?: LitName|LitName[];
   min_val?: number;
   max_val?: number;
   step?: number;
