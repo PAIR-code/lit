@@ -329,6 +329,17 @@ class SparseMultilabel(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SparseMultilabelPreds(LitType):
+  """Sparse multi-label predictions represented as a list of tuples.
+
+  The tuples are of the label and the score. So as a List[(str, float)].
+  """
+  vocab: Optional[Sequence[Text]] = None  # label names
+  parent: Optional[Text] = None
+  default: Sequence[Text] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class FieldMatcher(LitType):
   """For matching spec fields.
 

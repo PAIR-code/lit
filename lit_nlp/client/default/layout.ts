@@ -38,12 +38,14 @@ import {ScalarModule} from '../modules/scalar_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
+import {MultilabelModule} from '../modules/multilabel_module';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
   SpanGraphGoldModuleVertical,
   SpanGraphModuleVertical,
   ClassificationModule,
+  MultilabelModule,
   RegressionModule,
   LanguageModelPredictionModule,
   GeneratedTextModule,
