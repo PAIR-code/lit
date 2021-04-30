@@ -321,6 +321,10 @@ class GlueModel(lit_model.Model):
   def max_minibatch_size(self):
     return self.config.inference_batch_size
 
+  def get_embedding_table(self):
+    vocab = list(self.tokenizer.vocab.keys())
+    return vocab, self.model.bert.embeddings.word_embeddings.numpy()
+
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
     # if we don't need gradients.
