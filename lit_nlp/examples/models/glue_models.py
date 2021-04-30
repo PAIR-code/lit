@@ -9,6 +9,7 @@ from absl import logging
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.models import model_utils
 from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
@@ -84,19 +85,25 @@ class GlueModel(lit_model.Model):
         model_name_or_path,
         config=model_config)
 
+  def _get_tokens(self, ex: JsonDict, field_name: str) -> List[str]:
+    return (ex.get("tokens_" + field_name) or
+            self.tokenizer.tokenize(ex[field_name]))
+
   def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
+    # Use pretokenized input if available.
+    tokens_a = [self._get_tokens(ex, self.config.text_a_name) for ex in inputs]
+    tokens_b = None
     if self.config.text_b_name:
-      segments = [(ex[self.config.text_a_name], ex[self.config.text_b_name])
-                  for ex in inputs]
-    else:
-      segments = [ex[self.config.text_a_name] for ex in inputs]
-    encoded_input = self.tokenizer.batch_encode_plus(
-        segments,
-        return_tensors="tf",
-        add_special_tokens=True,
-        max_length=self.config.max_seq_length,
-        padding="longest",
-        truncation="longest_first")
+      tokens_b = [
+          self._get_tokens(ex, self.config.text_b_name) for ex in inputs
+      ]
+    # Use custom tokenizer call to make sure we don't mangle pre-split
+    # wordpieces in pretokenized input.
+    encoded_input = model_utils.batch_encode_pretokenized(
+        self.tokenizer,
+        tokens_a,
+        tokens_b,
+        max_length=self.config.max_seq_length)
     return encoded_input
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
@@ -405,8 +412,12 @@ class GlueModel(lit_model.Model):
   def input_spec(self) -> Spec:
     ret = {}
     ret[self.config.text_a_name] = lit_types.TextSegment()
+    ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
+        parent=self.config.text_a_name, required=False)
     if self.config.text_b_name:
       ret[self.config.text_b_name] = lit_types.TextSegment()
+      ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
+          parent=self.config.text_b_name, required=False)
     if self.is_regression:
       ret[self.config.label_name] = lit_types.RegressionScore(required=False)
     else:
@@ -424,9 +435,11 @@ class GlueModel(lit_model.Model):
 
   def output_spec(self) -> Spec:
     ret = {"tokens": lit_types.Tokens()}
-    ret["tokens_" + self.config.text_a_name] = lit_types.Tokens()
+    ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
+        parent=self.config.text_a_name)
     if self.config.text_b_name:
-      ret["tokens_" + self.config.text_b_name] = lit_types.Tokens()
+      ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
+          parent=self.config.text_b_name)
     if self.is_regression:
       ret["score"] = lit_types.RegressionScore(parent=self.config.label_name)
     else:

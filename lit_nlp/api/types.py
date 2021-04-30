@@ -165,7 +165,7 @@ class Tokens(LitType):
   """Tokenized text, as List[str]."""
   default: List[Text] = attr.Factory(list)
   # Name of a TextSegment field from the input
-  # TODO(lit-dev): should we use 'align' here?
+  # TODO(b/167617375): should we use 'align' here?
   parent: Optional[Text] = None
   mask_token: Optional[Text] = None  # optional mask token for input
 
