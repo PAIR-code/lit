@@ -30,6 +30,7 @@ from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import gradient_maps
+from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
 from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
@@ -364,6 +365,7 @@ class LitApp(object):
       self._generators = generators
     else:
       self._generators = {
+          'hotflip': hotflip.HotFlip(),
           'scrambler': scrambler.Scrambler(),
           'word_replacer': word_replacer.WordReplacer(),
       }
