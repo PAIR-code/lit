@@ -19,11 +19,11 @@ import '../elements/interpreter_controls';
 
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
+import {TableData, TableEntry} from '../elements/table';
 import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
@@ -182,27 +182,38 @@ export class GeneratorModule extends LitModule {
     const nothingGenerated =
         this.appliedGenerator !== null && this.totalNumGenerated === 0;
 
+    const renderStatus = () => {
+      if (isGenerating) {
+        return html`<div>Generating...</div>`;
+      }
+      if (this.appliedGenerator == null) {
+        return null;
+      }
+      if (nothingGenerated) {
+        return html`<div>Nothing available for this generator</div>`;
+      }
+      return html`
+        <div class="counterfactuals-count">
+          Generated ${this.totalNumGenerated}
+          ${this.totalNumGenerated === 1 ?
+          'counterfactual' : 'counterfactuals'}
+          from ${this.appliedGenerator}.
+        </div>
+        ${this.renderOverallControls()}
+      `;
+    };
+    const rows: TableData[] = this.createEntries();
+    const columnNames = rows.length > 0 ? Object.keys(rows[0]) : [];
     // clang-format off
     return html`
+      <div class="results-holder">
         <div id='generated-holder'>
-          ${this.appliedGenerator === null || isGenerating || nothingGenerated ?
-            null :
-            html`
-              <div class="counterfactuals-count">
-                Generated ${this.totalNumGenerated}
-                ${this.totalNumGenerated === 1 ?
-                'counterfactual' : 'counterfactuals'}
-                from ${this.appliedGenerator}.
-              </div>
-            `}
-          ${this.renderHeader()}
-          <div class="entries">
-            ${isGenerating ? html`<div>Generating...</div>` : null}
-            ${nothingGenerated ?
-                html`<div>Nothing available for this generator</div>` :
-                null}
-            ${this.renderEntries()}
+          ${renderStatus()}
         </div>
+        <lit-data-table class="table"
+            .columnNames=${columnNames}
+            .data=${rows}
+        ></lit-data-table>
       </div>
     `;
     // clang-format on
@@ -211,9 +222,14 @@ export class GeneratorModule extends LitModule {
   /**
    * Render the generated counterfactuals themselves.
    */
-  renderEntries() {
-    return this.generated.map((generatedList, parentIndex) => {
-      return generatedList.map((generated, generatedIndex) => {
+  createEntries() {
+    const rows: TableData[] = [];
+    for (let parentIndex = 0; parentIndex < this.generated.length;
+         parentIndex++) {
+      const generatedList = this.generated[parentIndex];
+      for (let generatedIndex = 0; generatedIndex < generatedList.length;
+           generatedIndex++) {
+        const generated = generatedList[generatedIndex];
         const addPoint = async () => {
           this.generated[parentIndex].splice(generatedIndex, 1);
           await this.createNewDatapoints([[generated]]);
@@ -225,36 +241,35 @@ export class GeneratorModule extends LitModule {
 
         // render values for each datapoint.
         // clang-format off
-        return html`
-          <div class='row'>
-            ${fieldNames.map((key) => {
-              const editable =
-                  !this.appState.currentModelRequiredInputSpecKeys.includes(
-                      key);
-              return this.renderEntry(generated.data, key, editable);
-            })}
-            <button class="button add-button" @click=${addPoint}>Add</button>
-            <button class="button" @click=${removePoint}>Remove</button>
-          </div>
-        `;
+        const row: {[key: string]: TableEntry} = {};
+        for (const key of fieldNames) {
+          const editable =
+            !this.appState.currentModelRequiredInputSpecKeys.includes(key);
+          row[key] = editable ? this.renderEntry(generated.data, key)
+              : generated.data[key];
+        }
+        row['Controls'] =
+            html`
+            <div class="flex">
+              <button class="button add-button" @click=${addPoint}>Add</button>
+              <button class="button" @click=${removePoint}>Remove</button>
+            </div>`;
+        rows.push(row);
         // clang-format on
-      });
-    });
+      }
+    }
+    return rows;
   }
 
-  renderHeader() {
+  renderOverallControls() {
     const onAddAll = async () => {
       await this.createNewDatapoints(this.generated);
       this.resetEditedData();
     };
 
-    if (this.totalNumGenerated <= 0) {
-      return null;
-    }
     // clang-format off
     return html`
-      <div id='header'>
-        ${this.renderKeys()}
+      <div class='overall-controls'>
         ${this.totalNumGenerated <= 0 ? null : html`
           <button class='button add-button' @click=${onAddAll}>
              Add all
@@ -264,13 +279,6 @@ export class GeneratorModule extends LitModule {
           </button>
         `}
       </div>`;
-    // clang-format on
-  }
-
-  renderKeys() {
-    const keys = this.appState.currentInputDataKeys;
-    // clang-format off
-    return html`${keys.map(key => html`<div class='entry'>${key}</div>`)}`;
     // clang-format on
   }
 
@@ -331,7 +339,7 @@ export class GeneratorModule extends LitModule {
     // clang-format on
   }
 
-  renderEntry(mutableInput: Input, key: string, editable: boolean) {
+  renderEntry(mutableInput: Input, key: string) {
     const value = mutableInput[key];
     const isCategorical =
         this.groupService.categoricalFeatureNames.includes(key);
@@ -344,15 +352,18 @@ export class GeneratorModule extends LitModule {
     const renderCategoricalInput = () => {
       const catVals = this.groupService.categoricalFeatures[key];
       // clang-format off
-      return html`
-        <select class="dropdown" @change=${handleInputChange}>
-          ${catVals.map(val => {
-            return html`
-              <option value="${val}" ?selected=${val === value}>
-                ${val}
-              </option>`;
-          })}
-        </select>`;
+      return {
+        template: html`
+          <select class="dropdown" @change=${handleInputChange}>
+            ${catVals.map(val => {
+              return html`
+                <option value="${val}" ?selected=${val === value}>
+                  ${val}
+                </option>`;
+            })}
+          </select>`,
+        value
+      };
       // clang-format on
     };
 
@@ -362,23 +373,18 @@ export class GeneratorModule extends LitModule {
     const renderFreeformInput = () => {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
-      editable =  editable && !isLitSubtype(fieldSpec, nonEditableSpecs);
+      const editable =  !isLitSubtype(fieldSpec, nonEditableSpecs);
       const formattedVal = formatForDisplay(value, fieldSpec);
-      return editable ? html`
-      <input type="text" class="input-box" @input=${handleInputChange}
-      .value="${formattedVal}" />` : html`<div>${formattedVal}</div>`;
+      return editable ?
+          {template:
+               html`<input type="text" class="input-box"
+                 @input=${handleInputChange}
+                .value="${formattedVal}"/>`,
+           value: formattedVal}:
+          formattedVal;
     };
 
-    // Note the "." before "value" in the template below - this is to ensure
-    // the value gets set by the template.
-    // clang-format off
-    const classes = classMap({'entry': true, 'text': !isCategorical});
-    return html`
-      <div class=${classes}>
-          ${isCategorical ? renderCategoricalInput() : renderFreeformInput()}
-      </div>
-    `;
-    // clang-format on
+    return isCategorical ? renderCategoricalInput() : renderFreeformInput();
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

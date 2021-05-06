@@ -173,6 +173,10 @@ td div {
   overflow: auto;
 }
 
+.numeric {
+  text-align: right;
+}
+
 /* TODO(lit-dev): Make the table image width configurable. */
 .table-img{
   width: 100px;

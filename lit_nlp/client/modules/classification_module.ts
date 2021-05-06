@@ -168,7 +168,8 @@ export class ClassificationModule extends LitModule {
         formatBoolean(pred['isGroundTruth']!),
         formatBoolean(pred['isPredicted']),
         pred['value'].toFixed(3),
-        this.renderBar(fieldName, pred)
+        {template: this.renderBar(fieldName, pred),
+         value: pred['value']}
       ];
       return row;
     });

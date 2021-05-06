@@ -4,6 +4,13 @@
   flex-direction: row;
 }
 
+.results-holder {
+  width: calc(100% - 400px);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 #generators {
   width: 400px;
   margin-right: 15px;
@@ -20,8 +27,8 @@
 }
 
 #generated-holder {
-  height: 100%;
-  flex: 2;
+  display: flex;
+  justify-content: space-between;
 }
 
 .generator-control {
@@ -52,20 +59,6 @@
     background: #f8f9fa;
 }
 
-.entry {
-  margin: 5px 10px;
-}
-
-.entry.text{
-  flex: 1;
-}
-
-.entry > div {
-  width: 100%;
-  max-height: 150px;
-  overflow: auto;
-}
-
 .add-button {
   min-width: 65px;
 }
@@ -74,12 +67,10 @@
   padding-bottom: 5px;
 }
 
-#header{
-  height: 35px;
+.overall-controls{
   display: flex;
-  align-items: center;
-  text-align: center;
-  background: rgb(245, 252, 252);
-  border-bottom: 1px solid rgb(218, 220, 224);
 }
 
+.table {
+  height: calc(100% - 37px);
+}

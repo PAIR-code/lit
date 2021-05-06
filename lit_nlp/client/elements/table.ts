@@ -31,15 +31,22 @@ import {styleMap} from 'lit-html/directives/style-map';
 import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {chunkWords} from '../lib/utils';
+import {formatForDisplay} from '../lib/types';
+import {isNumber} from '../lib/utils';
 
 import {styles} from './table.css';
 
-/** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number|TemplateResult;
 type SortableTableEntry = string|number;
+/** Wrapper type for sortable custom data table entries */
+export interface SortableTemplateResult {
+  template: TemplateResult;
+  value: SortableTableEntry;
+}
+/** Wrapper types for the data supplied to the data table */
+export type TableEntry = string|number|TemplateResult|SortableTemplateResult;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[]|{[key: string]: TableEntry};
+
 
 /** Internal data, including metadata */
 interface TableRowInternal {
@@ -168,10 +175,16 @@ export class DataTable extends ReactiveElement {
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
-    // TODO(b/172596710) Allow passing a sortable type with TemplateResults.
     // Passthrough values if TableEntry is number or string. If it is
-    // TemplateResult return 0 for sorting purposes.
-    return colEntry instanceof TemplateResult ? 0 : colEntry;
+    // TemplateResult return 0 for sorting purposes. If it is a sortable
+    // tempate result then sort by the underlying sortable value.
+    if (typeof colEntry === "string" || isNumber(colEntry)) {
+      return colEntry as SortableTableEntry;
+    }
+    if (colEntry instanceof TemplateResult) {
+      return 0;
+    }
+    return (colEntry as SortableTemplateResult).value;
   }
 
   @computed
@@ -578,14 +591,22 @@ export class DataTable extends ReactiveElement {
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
-        ${data.rowData.map((d => {
+        ${data.rowData.map(d => {
+          if (d == null) {
+            return html`<td></td>`;
+          }
           if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
             return html`<td><img class='table-img' src=${d.toString()}></td>`;
-          } else {
-            return (d instanceof TemplateResult) ? d :
-                html`<td><div>${d !== undefined ? chunkWords(String(d)) : ''}</div></td>`;
           }
-        }))}
+          if (d instanceof TemplateResult || d.constructor === Object) {
+            const templateResult = d instanceof TemplateResult ?
+              d : (d as SortableTemplateResult).template;
+            return html`<td>${templateResult}</td>`;
+          }
+          const entryClasses = {numeric: isNumber(d)};
+          return html`<td><div class="${classMap(entryClasses)}">
+              ${formatForDisplay(d, undefined, true)}</div></td>`;
+        })}
       </tr>
     `;
     // clang-format on

@@ -19,7 +19,7 @@
 import * as d3 from 'd3';
 
 import {TemplateResult} from 'lit-html';
-import {isLitSubtype} from './utils';
+import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
@@ -354,10 +354,10 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
 /**
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
- * TODO(lit-dev): allow passing custom HTML to table, not just strings.
  */
 // tslint:disable-next-line:no-any
-export function formatForDisplay(input: any, fieldSpec?: LitType): string {
+export function formatForDisplay(input: any, fieldSpec?: LitType,
+                                 limitWords?: boolean): string {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
@@ -380,6 +380,9 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
       if (typeof item === 'number') {
         return formatNumber(item);
       }
+      if (limitWords) {
+        return chunkWords(item);
+      }
       return `${item}`;
     });
     return `${strings.join(', ')}`;
@@ -394,6 +397,9 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
   }
 
   // Fallback: just coerce to string.
+  if (limitWords) {
+    return chunkWords(input);
+  }
   return `${input}`;
 }
 
