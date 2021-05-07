@@ -4,39 +4,6 @@
   margin-bottom: 4px;
 }
 
-.cell {
-  cursor: pointer;
-  background: #e6e6e6;
-  padding: 2px 4px;
-  border-radius: 2px;
-  text-align: center;
-}
-
-.header-cell {
-  cursor: pointer;
-  padding: 2px 4px;
-}
-
-.align-bottom {
-  vertical-align: bottom;
-}
-
-.align-right {
-  text-align: end;
-}
-
-.cell.diagonal {
-  background: #b5bcc3;
-}
-
-.cell.selected {
-  background: #ffe839;
-}
-
-.cell:hover {
-  background: #faf49f;
-}
-
 .dropdown {
   max-width: fit-content;
 }
@@ -46,30 +13,3 @@
   display: inline-block;
   width: 55px;
 }
-
-.axis-title {
-  font-size: 11px;
-  text-align: center;
-}
-
-/* Need to style the div inside a th/td to set width and height correctly. */
-.label-vertical > div {
-  transform: rotate(180deg);
-  text-align: center;
-  writing-mode: vertical-lr;
-}
-
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-  --mdc-icon-button-size: 24px;
-  color: rgb(95, 99, 104);
-  cursor: pointer;
-}
-
-.icon-button:hover {
-  opacity: .7;
-}
-

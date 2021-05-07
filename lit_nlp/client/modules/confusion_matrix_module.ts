@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-import '@material/mwc-icon-button-toggle';
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
+import {MatrixCell} from '../elements/data_matrix';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, objToDictKey} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
@@ -42,14 +41,6 @@ interface CmatOption {
   // Runner maps dataset to labels. Can involve backend calls.
   runner: (d: IndexedInput[]) => Promise<Array<(number | string | null)>>;
   parent?: string;  // parent field, used to set default selection
-}
-
-/**
- * Stores information for each confusion matrix cell.
- */
-interface CmatCell {
-  'examples': IndexedInput[];
-  'selected': boolean;
 }
 
 /**
@@ -82,7 +73,7 @@ export class ConfusionMatrixModule extends LitModule {
   selectedColOption = 0;
 
   // Output state for rendering. Computed asynchronously.
-  @observable matrixCells: CmatCell[][] = [];
+  @observable matrixCells: MatrixCell[][] = [];
 
   constructor() {
     super();
@@ -233,8 +224,8 @@ export class ConfusionMatrixModule extends LitModule {
         // Find the bin corresponding to this row/column value combination.
         const facetsDict = {[colName]: colLabel, [rowName]: rowLabel};
         const bin = bins[objToDictKey(facetsDict)];
-        const examples = bin ? bin.data : [];
-        return {examples, selected: false};
+        const ids = bin ? bin.data.map(example => example.id) : [];
+        return {ids, selected: false};
       });
     });
   }
@@ -317,136 +308,30 @@ export class ConfusionMatrixModule extends LitModule {
     const colOption = this.options[this.selectedColOption];
     const rowLabels = rowOption.labelList;
     const colLabels = colOption.labelList;
+    const rowTitle = rowOption.name;
+    const colTitle = colOption.name;
 
-    if (this.matrixCells.length === 0) {
-      return null;
-    }
-
-    const rowsWithNonZeroCounts = new Set<string>();
-    const colsWithNonZeroCounts = new Set<string>();
-    this.matrixCells.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        if (cell.examples.length > 0) {
-          rowsWithNonZeroCounts.add(rowLabels[rowIndex]);
-          colsWithNonZeroCounts.add(colLabels[colIndex]);
-        }
-      });
-    });
-
-    // Render a clickable column header cell.
-    const renderColHeader = (label: string, colIndex: number) => {
-      const onColClick = () => {
-        const cells = this.matrixCells.map((cells) => cells[colIndex]);
-        const allSelected = cells.every((cell) => cell.selected);
-        cells.forEach((cell) => {
-          cell.selected = !allSelected;
-        });
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels && !colsWithNonZeroCounts.has(label)) {
-        return null;
-      }
-      const classes = classMap({
-        'header-cell': true,
-        'align-bottom': this.verticalColumnLabels,
-        'label-vertical': this.verticalColumnLabels
-      });
-      // clang-format off
-      return html`
-        <th class=${classes} @click=${onColClick}>
-          <div>${label}</div>
-        </th>
-      `;
-      // clang-format on
-    };
-
-    // Render a clickable confusion matrix cell.
-    const renderCell = (rowIndex: number, colIndex: number) => {
-      if (this.matrixCells[rowIndex]?.[colIndex] == null) {
-        return null;
-      }
-      const cellInfo = this.matrixCells[rowIndex][colIndex];
-      const cellClasses = classMap({
-        cell: true,
-        selected: cellInfo.selected,
-        diagonal: colIndex === rowIndex,
-      });
-      const onCellClick = () => {
-        cellInfo.selected = !cellInfo.selected;
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels &&
-          !colsWithNonZeroCounts.has(colLabels[colIndex])) {
-        return null;
-      }
-      return html`
-          <td class=${cellClasses} @click=${onCellClick}>
-            ${cellInfo.examples.length}
-          </td>`;
-    };
-
-    // Render a row of the confusion matrix, starting with the clickable
-    // row header.
-    const renderRow = (rowLabel: string, rowIndex: number) => {
-      const onRowClick = () => {
-        const cells = this.matrixCells[rowIndex];
-        const allSelected = cells.every((cell) => cell.selected);
-        cells.forEach((cell) => {
-          cell.selected = !allSelected;
-        });
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels && !rowsWithNonZeroCounts.has(rowLabel)) {
-        return null;
-      }
-      // clang-format off
-      return html`
-        <tr>
-          ${rowIndex === 0 ? html`
-              <td class='axis-title label-vertical' rowspan=${rowOption.labelList.length}>
-                <div>${rowOption.name}</div>
-              </td>`
-            : null}
-          <th class="header-cell align-right" @click=${onRowClick}>
-            ${rowLabel}
-          </th>
-          ${colLabels.map(
-              (colLabel, colIndex) => renderCell(rowIndex, colIndex))}
-        </tr>`;
-      // clang-format on
+    // Add event listener for selection events.
+    const onCellClick = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      const ids: string[] = (event as any).detail.ids;
+      this.selectionService.selectIds(ids, this);
     };
 
     // clang-format off
     return html`
-      <table>
-        <tr>
-          <th>${this.renderColumnRotateButton()}</th><td></td>
-          <td class='axis-title' colspan=${colOption.labelList.length}>
-            ${colOption.name}
-          </td>
-        </tr>
-        <tr>
-          <td colspan=2></td>
-          ${colLabels.map(
-              (colLabel, colIndex) => renderColHeader(colLabel, colIndex))}
-        </tr>
-        ${rowLabels.map(
-            (rowLabel, rowIndex) => renderRow(rowLabel, rowIndex))}
-      </table>
-    `;
+        <data-matrix
+          .matrixCells=${this.matrixCells}
+          ?hideEmptyLabels=${this.hideEmptyLabels}
+          .rowTitle=${rowTitle}
+          .rowLabels=${rowLabels}
+          .colTitle=${colTitle}
+          .colLabels=${colLabels}
+          @matrix-selection=${onCellClick}
+        >
+        </data-matrix>
+        `;
     // clang-format on
-  }
-
-  private updateSelection() {
-    // Select the IDs of the examples in each selected cell.
-    const flat = this.matrixCells.flat();
-    let ids: string[] = [];
-    flat.forEach((cellInfo) => {
-      if (cellInfo.selected) {
-        ids = ids.concat(cellInfo.examples.map((input) => input.id));
-      }
-    });
-    this.selectionService.selectIds(ids, this);
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
