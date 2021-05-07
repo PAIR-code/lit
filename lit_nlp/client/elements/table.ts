@@ -28,6 +28,7 @@ import {ascending, descending} from 'd3';  // array helpers.
 import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
+import {isTemplateResult} from 'lit-html/directive-helpers';
 import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
@@ -181,7 +182,7 @@ export class DataTable extends ReactiveElement {
     if (typeof colEntry === "string" || isNumber(colEntry)) {
       return colEntry as SortableTableEntry;
     }
-    if (colEntry instanceof TemplateResult) {
+    if (isTemplateResult(colEntry)) {
       return 0;
     }
     return (colEntry as SortableTemplateResult).value;
@@ -598,8 +599,8 @@ export class DataTable extends ReactiveElement {
           if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
             return html`<td><img class='table-img' src=${d.toString()}></td>`;
           }
-          if (d instanceof TemplateResult || d.constructor === Object) {
-            const templateResult = d instanceof TemplateResult ?
+          if (isTemplateResult(d) || d.constructor === Object) {
+            const templateResult = isTemplateResult(d) ?
               d : (d as SortableTemplateResult).template;
             return html`<td>${templateResult}</td>`;
           }
