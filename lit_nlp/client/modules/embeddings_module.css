@@ -24,3 +24,16 @@
   height: 100%;
   overflow: hidden;
 }
+
+.selected-nearest-button {
+  margin-top: 10px;
+}
+
+.selected-nearest-button:disabled {
+  pointer-events: auto;
+}
+
+#select-button-container {
+  top: calc(100% - 50px);
+  left: calc(100% - 200px);
+}

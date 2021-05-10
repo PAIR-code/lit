@@ -183,8 +183,12 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
   if isinstance(result, (int, float)):
     testcase.assertAlmostEqual(result, actual, places=places)
   elif isinstance(result, (list)):
-    rtol = 10 ** (-1 * places)
-    npt.assert_allclose(result, actual, rtol=rtol)
+    if all(isinstance(n, (int, float)) for n in result):
+      rtol = 10 ** (-1 * places)
+      npt.assert_allclose(result, actual, rtol=rtol)
+    elif all(isinstance(n, dict) for n in result):
+      for i in range(len(result)):
+        assert_deep_almost_equal(testcase, result[i], actual[i])
   elif isinstance(result, dict):
     if set(result.keys()) != set(actual.keys()):
       testcase.fail('results and actual have different keys')

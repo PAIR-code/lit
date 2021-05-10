@@ -34,6 +34,7 @@ from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
 from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
+from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
@@ -386,6 +387,7 @@ class LitApp(object):
           'LIME': lime_explainer.LIME(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
+          'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
