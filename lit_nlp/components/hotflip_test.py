@@ -34,100 +34,199 @@ class ModelBasedHotflipTest(absltest.TestCase):
   def setUp(self):
     super(ModelBasedHotflipTest, self).setUp()
     self.hotflip = hotflip.HotFlip()
-    self.model = glue_models.SST2Model(BERT_TINY_PATH)
-    self.pred_key = 'probas'
-    self.config = {hotflip.PREDICTION_KEY: self.pred_key}
+
+    # Classification model that clasifies a given input sentence.
+    self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
+    self.classification_config = {hotflip.PREDICTION_KEY: 'probas'}
+
+    # Regression model determining similarity between two input sentences.
+    self.regression_model = glue_models.STSBModel(STSB_PATH)
+    self.regression_config = {hotflip.PREDICTION_KEY: 'score'}
 
   def test_find_fields(self):
-    fields = self.hotflip.find_fields(self.model.output_spec(),
+    fields = self.hotflip.find_fields(self.classification_model.output_spec(),
                                       lit_types.MulticlassPreds)
     self.assertEqual(['probas'], fields)
-    fields = self.hotflip.find_fields(self.model.output_spec(),
+    fields = self.hotflip.find_fields(self.classification_model.output_spec(),
                                       lit_types.TokenGradients,
                                       'tokens_sentence')
     self.assertEqual(['token_grad_sentence'], fields)
 
   def test_find_fields_empty(self):
-    fields = self.hotflip.find_fields(self.model.output_spec(),
+    fields = self.hotflip.find_fields(self.classification_model.output_spec(),
                                       lit_types.TokenGradients,
                                       'input_embs_sentence')
     self.assertEmpty(fields)
 
   def test_hotflip_num_ex(self):
     ex = {'sentence': 'this long movie is terrible.'}
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 0
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 0
     self.assertEmpty(
-        self.hotflip.generate(ex, self.model, None, self.config))
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 1
+        self.hotflip.generate(ex, self.classification_model, None,
+                              self.classification_config))
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
     self.assertLen(
-        self.hotflip.generate(ex, self.model, None, self.config), 1)
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 2
+        self.hotflip.generate(ex, self.classification_model, None,
+                              self.classification_config), 1)
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 2
     self.assertLen(
-        self.hotflip.generate(ex, self.model, None, self.config), 2)
+        self.hotflip.generate(ex, self.classification_model, None,
+                              self.classification_config), 2)
+
+  def test_hotflip_num_ex_multi_input(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 2
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.assertLen(
+        self.hotflip.generate(ex, self.regression_model, None,
+                              self.regression_config), 2)
 
   def test_hotflip_freeze_tokens(self):
     ex = {'sentence': 'this long movie is terrible.'}
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 10
-    self.config[hotflip.TOKENS_TO_IGNORE_KEY] = ['terrible']
-    generated = self.hotflip.generate(
-        ex, self.model, None, self.config)
-    for gen in generated:
-      self.assertLen(gen['tokens_sentence'], 6)
-      self.assertEqual('terrible', gen['tokens_sentence'][4])
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 10
+    self.classification_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['terrible']
+    cfs = self.hotflip.generate(
+        ex, self.classification_model, None, self.classification_config)
+    for cf in cfs:
+      tokens = cf['tokens_sentence']
+      self.assertLen(tokens, 6)
+      self.assertEqual('terrible', tokens[4])
 
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 10
-    self.config[hotflip.TOKENS_TO_IGNORE_KEY] = ['terrible', 'long']
-    generated = self.hotflip.generate(
-        ex, self.model, None, self.config)
-    for gen in generated:
-      self.assertEqual('long', gen['tokens_sentence'][1])
-      self.assertEqual('terrible', gen['tokens_sentence'][4])
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 10
+    self.classification_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['long',
+                                                                'terrible']
+    cfs = self.hotflip.generate(
+        ex, self.classification_model, None, self.classification_config)
+    for cf in cfs:
+      tokens = cf['tokens_sentence']
+      self.assertEqual('terrible', tokens[4])
+      self.assertEqual('long', tokens[1])
+
+  def test_hotflip_freeze_tokens_multi_input(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this long movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 10
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['long', 'terrible']
+    cfs = self.hotflip.generate(ex, self.regression_model, None,
+                                self.regression_config)
+    for cf in cfs:
+      tokens1 = cf['tokens_sentence1']
+      tokens2 = cf['tokens_sentence2']
+      self.assertEqual('terrible', tokens1[4])
+      self.assertEqual('long', tokens1[1])
+      self.assertEqual('long', tokens2[1])
 
   def test_hotflip_drops(self):
     ex = {'sentence': 'this long movie is terrible.'}
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 1
-    self.config[hotflip.DROP_TOKENS_KEY] = True
-    generated = self.hotflip.generate(
-        ex, self.model, None, self.config)
-    self.assertLess(len(generated[0]['tokens_sentence']), 6)
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.DROP_TOKENS_KEY] = True
+    cfs = self.hotflip.generate(
+        ex, self.classification_model, None, self.classification_config)
+    self.assertLess(len(list(cfs)[0]['tokens_sentence']), 6)
+
+  def test_hotflip_drops_multi_input(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 10
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.DROP_TOKENS_KEY] = True
+    cfs = self.hotflip.generate(ex, self.regression_model, None,
+                                self.regression_config)
+    for cf in cfs:
+      self.assertLessEqual(len(cf['tokens_sentence1']), 6)
+      self.assertLessEqual(len(cf['tokens_sentence2']), 6)
 
   def test_hotflip_max_flips(self):
     ex = {'sentence': 'this long movie is terrible.'}
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 1
-    self.config[hotflip.MAX_FLIPS_KEY] = 1
-    generated = self.hotflip.generate(
-        ex, self.model, None, self.config)
-    self.assertLen(generated, 1)
+    ex_output = list(self.classification_model.predict([ex]))[0]
+    ex_tokens = ex_output['tokens_sentence']
 
-    num_flipped = 0
-    pred = list(self.model.predict([ex]))[0]
-    pred_tokens = pred['tokens_sentence']
-    gen_tokens = generated[0]['tokens_sentence']
-    for i in range(len(gen_tokens)):
-      if gen_tokens[i] != pred_tokens[i]:
-        num_flipped += 1
-    self.assertEqual(1, num_flipped)
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.MAX_FLIPS_KEY] = 1
+    cfs = self.hotflip.generate(
+        ex, self.classification_model, None, self.classification_config)
+    cf_tokens = list(cfs)[0]['tokens_sentence']
+    self.assertEqual(1, sum([1 for i, t in enumerate(cf_tokens)
+                             if t != ex_tokens[i]]))
 
     ex = {'sentence': 'this long movie is terrible and horrible.'}
-    self.config[hotflip.NUM_EXAMPLES_KEY] = 1
-    self.config[hotflip.MAX_FLIPS_KEY] = 1
-    generated = self.hotflip.generate(
-        ex, self.model, None, self.config)
-    self.assertEmpty(generated)
+    self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.MAX_FLIPS_KEY] = 1
+    cfs = self.hotflip.generate(
+        ex, self.classification_model, None, self.classification_config)
+    self.assertEmpty(cfs)
 
-  def test_hotflip_changes_pred(self):
+  def test_hotflip_max_flips_multi_input(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    ex_output = list(self.regression_model.predict([ex]))[0]
+    ex_tokens1 = ex_output['tokens_sentence1']
+    ex_tokens2 = ex_output['tokens_sentence2']
+
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 20
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.MAX_FLIPS_KEY] = 1
+    cfs = self.hotflip.generate(ex, self.regression_model, None,
+                                self.regression_config)
+    for cf in cfs:
+      # Number of flips in each field should be no more than MAX_FLIPS.
+      cf_tokens1 = cf['tokens_sentence1']
+      cf_tokens2 = cf['tokens_sentence2']
+      self.assertLessEqual(sum([1 for i, t in enumerate(cf_tokens1)
+                                if t != ex_tokens1[i]]), 1)
+      self.assertLessEqual(sum([1 for i, t in enumerate(cf_tokens2)
+                                if t != ex_tokens2[i]]), 1)
+
+  def test_hotflip_only_flip_one_field(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 10
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    cfs = self.hotflip.generate(ex, self.regression_model, None,
+                                self.regression_config)
+    for cf in cfs:
+      self.assertTrue(
+          (cf['sentence1'] == ex['sentence1']) or
+          (cf['sentence2'] == ex['sentence2']))
+
+  def test_hotflip_changes_pred_class(self):
+    # Test with a classification model.
     ex = {'sentence': 'this long movie is terrible.'}
-    pred = list(self.model.predict([ex]))[0]
-    pred_class = str(np.argmax(pred['probas']))
+    ex_output = list(self.classification_model.predict([ex]))[0]
+    pred_class = str(np.argmax(ex_output['probas']))
     self.assertEqual('0', pred_class)
-    generated = self.hotflip.generate(ex, self.model, None, self.config)
-    for gen in generated:
-      self.assertEqual('1', gen['label'])
+    cfs = self.hotflip.generate(ex, self.classification_model, None,
+                                self.classification_config)
+    cf_outputs = self.classification_model.predict(cfs)
+    for cf_output in cf_outputs:
+      self.assertNotEqual(np.argmax(ex_output['probas']),
+                          np.argmax(cf_output['probas']))
+
+  def test_hotflip_changes_regression_score(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 2
+    ex_output = list(self.regression_model.predict([ex]))[0]
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    cfs = self.hotflip.generate(ex, self.regression_model, None,
+                                self.regression_config)
+    cf_outputs = self.regression_model.predict(cfs)
+    for cf_output in cf_outputs:
+      self.assertNotEqual((ex_output['score'] <= thresh),
+                          (cf_output['score'] <= thresh))
 
   def test_hotflip_fails_without_pred_key(self):
     ex = {'sentence': 'this long movie is terrible.'}
     with self.assertRaises(AssertionError):
-      self.hotflip.generate(ex, self.model, None, None)
+      self.hotflip.generate(ex, self.classification_model, None, None)
 
 
 if __name__ == '__main__':

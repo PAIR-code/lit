@@ -16,7 +16,7 @@
 """Hotflip generator that perturbs input tokens to flip the prediction.
 
 A hotflip is defined as a counterfactual sentence that alters one or more
-tokens in the input sentence in order to to obtain a different prediction
+tokens in the input sentence in order to obtain a different prediction
 from the input sentence.
 
 A hotflip is considered minimal if no strict subset of the applied token flips
@@ -59,6 +59,8 @@ TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
 TOKENS_TO_IGNORE_DEFAULT = []
 DROP_TOKENS_KEY = "Drop tokens instead of flipping"
 DROP_TOKENS_DEFAULT = False
+REGRESSION_THRESH_KEY = "Regression threshold"
+REGRESSION_THRESH_DEFAULT = 0.0
 MAX_FLIPPABLE_TOKENS = 10
 
 
@@ -69,7 +71,11 @@ class HotFlip(lit_components.Generator):
   each token and uses them to heuristically estimate the impact of perturbing
   the token.
 
-  This generator is currently only supported on classification models.
+  This generator works for both classification and regression models. In the
+  case of classification models, the returned counterfactuals are guaranteed to
+  have a different prediction class as the original example. In the case of
+  regression models, the returned counterfactuals are guaranteed to be on the
+  opposite side of a user-provided threshold as the original example.
   """
 
   def find_fields(
@@ -86,14 +92,37 @@ class HotFlip(lit_components.Generator):
     return [f for f in fields
             if getattr(output_spec[f], "align", None) == align_field]
 
+  def _get_tokens_and_gradients(self,
+                                output_spec: JsonDict,
+                                output: JsonDict):
+    """Returns a dictionary mapping token fields to tokens and gradients."""
+    # Find gradient fields
+    grad_fields = self.find_fields(output_spec, types.TokenGradients,
+                                   None)
+    if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
+      return {}
+
+    ret = {}
+    for grad_field in grad_fields:
+      # Get tokens, token gradients and token embeddings.
+      token_field = output_spec[grad_field].align  # pytype: disable=attribute-error
+      tokens = output[token_field]
+      grads = output[grad_field]
+      ret[token_field] = [tokens, grads]
+    return ret
+
   def config_spec(self) -> types.Spec:
     return {
         NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
         MAX_FLIPS_KEY: types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
         TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
-        DROP_TOKENS_KEY: types.TextSegment(default=str(DROP_TOKENS_DEFAULT)),
+        DROP_TOKENS_KEY: types.Boolean(default=DROP_TOKENS_DEFAULT),
         PREDICTION_KEY: types.FieldMatcher(spec="output",
-                                           types=["MulticlassPreds"])
+                                           types=["MulticlassPreds",
+                                                  "RegressionScore"]),
+        REGRESSION_THRESH_KEY: types.TextSegment(
+            default=str(REGRESSION_THRESH_DEFAULT)),
+
     }
 
   def _subset_exists(self, cand_set, sets):
@@ -109,7 +138,7 @@ class HotFlip(lit_components.Generator):
       token_grads: np.ndarray,
       max_flips: int,
       tokens_to_ignore: List[str],
-      drop_tokens: Optional[bool] = False) -> Iterator[Tuple[int, ...]]:
+      drop_tokens: bool = False) -> Iterator[Tuple[int, ...]]:
     """Generates sets of token positions that are eligible for flipping."""
     if drop_tokens:
       # Update max_flips so that it is at most len(tokens) - 1 (we don't
@@ -160,6 +189,25 @@ class HotFlip(lit_components.Generator):
           [replacement_tokens[i] for i in token_idxs])
     return modified_tokens
 
+  def _create_cf(self,
+                 example: JsonDict,
+                 token_field: str,
+                 text_field: str,
+                 tokens: List[str],
+                 token_idxs: Tuple[int, ...],
+                 drop_tokens: bool,
+                 replacement_tokens: List[str]) -> JsonDict:
+    cf = copy.deepcopy(example)
+    modified_tokens = self._flip_tokens(
+        tokens, token_idxs, drop_tokens, replacement_tokens)
+    # TODO(iftenney, bastings): call a model-provided detokenizer here?
+    # Though in general tokenization isn't invertible and it's possible for
+    # HotFlip to produce wordpiece sequences that don't correspond to any
+    # input string.
+    cf[token_field] = modified_tokens
+    cf[text_field] = " ".join(modified_tokens)
+    return cf
+
   def _update_label(self,
                     example: JsonDict,
                     example_output: JsonDict,
@@ -176,24 +224,34 @@ class HotFlip(lit_components.Generator):
   def _is_hotflip(self,
                   cf_output: JsonDict,
                   orig_output: JsonDict,
-                  pred_key: Text) -> bool:
-    """Check if cf_output and orig_output specify different prediction classes."""
-    cf_pred_class = np.argmax(cf_output[pred_key])
-    orig_pred_class = np.argmax(orig_output[pred_key])
+                  pred_key: Text,
+                  is_regression: bool = False,
+                  regression_thresh: Optional[float] = None) -> bool:
+    """Check if cf_output and  orig_output specify different prediciton classes."""
+    if is_regression:
+      # regression model. We use the provided threshold to binarize the output.
+      cf_pred_class = cf_output[pred_key] <= regression_thresh
+      orig_pred_class = orig_output[pred_key] <= regression_thresh
+    else:
+      cf_pred_class = np.argmax(cf_output[pred_key])
+      orig_pred_class = np.argmax(orig_output[pred_key])
     return cf_pred_class != orig_pred_class
 
   def _get_replacement_tokens(
       self,
       embedding_matrix: np.ndarray,
       inv_vocab: List[Text],
-      token_grads: np.ndarray) -> List[str]:
+      token_grads: np.ndarray,
+      orig_output: JsonDict,
+      direction: int = -1) -> List[str]:
     """Identifies replacement tokens for each token position."""
+    token_grads = token_grads * direction
     # Compute dot product of each input token gradient with the embedding
     # matrix, and pick the argmin.
     # TODO(ataly): Only consider tokens that have the same part-of-speech
     # tag as the original token and/or a certain cosine similarity with the
     # original token.
-    replacement_token_ids = np.argmin(
+    replacement_token_ids = np.argmax(
         (np.expand_dims(embedding_matrix, 1) @ token_grads.T).squeeze(1),
         axis=0)
     replacement_tokens = [inv_vocab[id] for id in replacement_token_ids]
@@ -214,29 +272,42 @@ class HotFlip(lit_components.Generator):
                                   TOKENS_TO_IGNORE_DEFAULT)
     drop_tokens = bool(config.get(DROP_TOKENS_KEY, DROP_TOKENS_DEFAULT))
     pred_key = config.get(PREDICTION_KEY, "")
+    regression_thresh = float(config.get(REGRESSION_THRESH_KEY,
+                                         REGRESSION_THRESH_DEFAULT))
     assert model is not None, "Please provide a model for this generator."
 
     input_spec = model.input_spec()
     output_spec = model.output_spec()
     assert pred_key, "Please provide the prediction key"
     assert pred_key in output_spec, "Invalid prediction key"
-    assert isinstance(output_spec[pred_key], types.MulticlassPreds), (
-        "Only classification models are supported")
+
+    is_regression = False
+    if isinstance(output_spec[pred_key], types.RegressionScore):
+      is_regression = True
+    else:
+      assert isinstance(output_spec[pred_key], types.MulticlassPreds), (
+          "Only classification or regression models are supported")
     logging.info(r"W3lc0m3 t0 H0tFl1p \o/")
     logging.info("Original example: %r", example)
 
-    # Find gradient fields to use for HotFlip
-    grad_fields = self.find_fields(output_spec, types.TokenGradients,
-                                   None)
-    if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
-      logging.info("No gradient fields found. Cannot use HotFlip. :-(")
-      return []  # Cannot generate examples without gradients.
-    logging.info("Found gradient fields for HotFlip use: %s", str(grad_fields))
-
     # Get model outputs.
-    logging.info("Performing a forward/backward pass on the input example.")
+    logging.info("Performing a forward pass on the input example.")
     orig_output = list(model.predict([example]))[0]
     logging.info(orig_output.keys())
+
+    # Get tokens (corresponding to each text input field) and corresponding
+    # gradients.
+    tokens_and_gradients = self._get_tokens_and_gradients(
+        output_spec, orig_output)
+    if len(tokens_and_gradients) == 0:  # pylint: disable=g-explicit-length-test
+      logging.info("No token or gradient fields found. Cannot use HotFlip. :-(")
+      return []  # Cannot generate examples without tokens or gradients.
+
+    # Copy tokens into input example.
+    example = copy.deepcopy(example)
+    for token_field, v in tokens_and_gradients.items():
+      tokens, _ = v
+      example[token_field] = tokens
 
     # Get model word embeddings and vocab.
     inv_vocab, embedding_matrix = model.get_embedding_table()
@@ -245,28 +316,26 @@ class HotFlip(lit_components.Generator):
     logging.info("Vocab size: %d, Embedding size: %r", len(inv_vocab),
                  embedding_matrix.shape)
 
-    # TODO(lit-team): use only 1 sequence as input (configurable in UI).
     successful_cfs = []
-    successful_positions = []
+    # TODO(lit-team): use only 1 sequence as input (configurable in UI).
     # TODO(lit-team): Refactor the following code so that it's not so deeply
     # nested (and easier to track loop state).
-    for grad_field in grad_fields:
-      # Get tokens, token gradients and token embeddings.
-      token_field = output_spec[grad_field].align  # pytype: disable=attribute-error
-      tokens = orig_output[token_field]
-      grads = orig_output[grad_field]
-      token_emb_fields = self.find_fields(output_spec, types.TokenEmbeddings,
-                                          token_field)
-      assert len(token_emb_fields) == 1, "Found multiple token embeddings"
-      token_embs = orig_output[token_emb_fields[0]]
-      assert token_embs.shape[0] == grads.shape[0]
-
+    for token_field, v in tokens_and_gradients.items():
+      tokens, grads = v
+      text_field = input_spec[token_field].parent  # pytype: disable=attribute-error
+      logging.info("Identifying Hotflips for input field: %s", str(text_field))
       replacement_tokens = None
       if not drop_tokens:
+        direction = -1
+        if is_regression:
+          # We want the replacements to increase the prediction score if the
+          # original score is below the threshold, and decrease otherwise.
+          direction = (1 if orig_output[pred_key] <= regression_thresh else -1)
         replacement_tokens = self._get_replacement_tokens(
-            embedding_matrix, inv_vocab, grads)
+            embedding_matrix, inv_vocab, grads, direction)
         logging.info("Replacement tokens: %s", replacement_tokens)
 
+      successful_positions = []
       for token_idxs in self._gen_token_idxs_to_flip(
           tokens, grads, max_flips, tokens_to_ignore, drop_tokens):
         if len(successful_cfs) >= num_examples:
@@ -278,28 +347,20 @@ class HotFlip(lit_components.Generator):
           continue
 
         # Create counterfactual.
-        cf = copy.deepcopy(example)
-        modified_tokens = self._flip_tokens(
-            tokens, token_idxs, drop_tokens, replacement_tokens)
-        cf[token_field] = modified_tokens
-        # TODO(iftenney, bastings): call a model-provided detokenizer here?
-        # Though in general tokenization isn't invertible and it's possible for
-        # HotFlip to produce wordpiece sequences that don't correspond to any
-        # input string.
-        text_field = input_spec[token_field].parent  # pytype: disable=attribute-error
-        cf[text_field] = " ".join(modified_tokens)
-
-        # Get model outputs.
+        cf = self._create_cf(example, token_field, text_field, tokens,
+                             token_idxs, drop_tokens, replacement_tokens)
+        # Obtain model prediction.
+        logging.info("Performing a forward pass on counterfactual candidate.")
         cf_output = list(model.predict([cf]))[0]
 
-        if self._is_hotflip(cf_output, orig_output, pred_key):
-          # Hotflip found
-          # Update label if multi-class prediction.
-          # TODO(lit-dev): provide a general system for handling labels on
-          # generated examples.
-          self._update_label(cf, cf_output, output_spec, pred_key)
-
+        if self._is_hotflip(cf_output, orig_output, pred_key,
+                            is_regression, regression_thresh):
+          # Hotflip found!
           successful_cfs.append(cf)
           successful_positions.append(set(token_idxs))
+          if not is_regression:
+            # Update label if multi-class prediction.
+            # TODO(lit-dev): provide a general system for handling labels on
+            # generated examples.
+            self._update_label(cf, cf_output, output_spec, pred_key)
     return successful_cfs
-
