@@ -221,6 +221,13 @@ export class ConfusionMatrixModule extends LitModule {
 
     this.matrixCells = rowLabels.map(rowLabel => {
       return colLabels.map(colLabel => {
+        // If the rows and columns are the same feature but the cells are for
+        // different values of that feature, then by definition no examples can
+        // go into that cell. Handle this special case as the facetsDict below
+        // only handles a single value per feature.
+        if (colName === rowName && colLabel !== rowLabel) {
+          return {ids: [], selected: false};
+        }
         // Find the bin corresponding to this row/column value combination.
         const facetsDict = {[colName]: colLabel, [rowName]: rowLabel};
         const bin = bins[objToDictKey(facetsDict)];

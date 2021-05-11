@@ -1,9 +1,27 @@
 .cell {
+  font-family: 'Roboto Mono', monospace;
   cursor: pointer;
-  background: #e6e6e6;
   padding: 2px 4px;
   border-radius: 2px;
-  text-align: center;
+  border: 2px solid transparent;
+}
+
+.cell-container {
+  display: flex;
+  min-width: 90px;
+}
+
+.percentage {
+  width: 50%;
+  min-width: 50%;
+  max-width: 50%;
+  text-align: end;
+  padding-right: 6px;
+}
+
+.val {
+  width: 50%;
+  text-align: end;
 }
 
 .header-cell {
@@ -19,16 +37,15 @@
   text-align: end;
 }
 
-.cell.diagonal {
-  background: #b5bcc3;
+.total-title-cell {
+  padding: 2px 4px;
+  color: #5f6368;
 }
 
-.cell.selected {
-  background: #ffe839;
-}
-
-.cell:hover {
-  background: #faf49f;
+.total-cell {
+  padding: 2px 4px;
+  font-family: 'Roboto Mono', monospace;
+  color: #5f6368;
 }
 
 .axis-title {
