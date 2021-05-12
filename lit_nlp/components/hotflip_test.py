@@ -24,9 +24,12 @@ import numpy as np
 
 
 BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
+STSB_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz'  # pylint: disable=line-too-long
 import transformers
 BERT_TINY_PATH = transformers.file_utils.cached_path(BERT_TINY_PATH,
-extract_compressed_file=True)
+  extract_compressed_file=True)
+STSB_PATH = transformers.file_utils.cached_path(STSB_PATH,
+  extract_compressed_file=True)
 
 
 class ModelBasedHotflipTest(absltest.TestCase):

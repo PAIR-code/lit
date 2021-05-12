@@ -63,6 +63,8 @@ class GlueModel(lit_model.Model):
     """Load model. Can be overridden for testing."""
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name_or_path)
+    self.vocab = self.tokenizer.convert_ids_to_tokens(
+        range(len(self.tokenizer)))
     model_config = transformers.AutoConfig.from_pretrained(
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
@@ -322,8 +324,7 @@ class GlueModel(lit_model.Model):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-    vocab = list(self.tokenizer.vocab.keys())
-    return vocab, self.model.bert.embeddings.word_embeddings.numpy()
+    return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
