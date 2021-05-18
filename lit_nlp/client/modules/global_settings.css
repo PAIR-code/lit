@@ -6,12 +6,11 @@
 }
 
 #overlay {
-  background-color: black;
+  background: rgba(4, 29, 51, .47);
   width: 100vw;
   height: 100vh;
   top: 0;
   left: 0;
-  opacity: .2;
   transition: opacity 250ms;
 }
 

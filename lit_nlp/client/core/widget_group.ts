@@ -146,6 +146,11 @@ export class WidgetGroup extends LitElement {
     host.style.setProperty('--width', width);
     host.style.setProperty('--min-width', width);
 
+    const outsideClasses = classMap({
+      'outside': true,
+      'maximized': this.maximized,
+    });
+
     const wrapperClasses = classMap({
       'wrapper': true,
       'minimized': this.minimized,
@@ -166,15 +171,27 @@ export class WidgetGroup extends LitElement {
     } else {
       widgetStyle['height'] = `${100 / configGroup.length}%`;
     }
+    // For clicks on the maximized-module darkened background, undo the
+    // module maximization.
+    const onBackgroundClick = () => {
+      this.maximized = false;
+    };
+    // A listener to stop clicks on a maximized module from causing the
+    // background click listener from firing.
+    const onWrapperClick = (e: Event) => {
+      e.stopPropagation();
+    };
     // clang-format off
     return html`
-      <div class=${wrapperClasses} >
-        ${this.renderHeader(configGroup)}
-        <div class=${holderClasses}>
-          ${configGroup.map(config => this.renderModule(config, widgetStyle))}
-          ${this.renderExpander()}
+      <div class=${outsideClasses} @click=${onBackgroundClick}>
+        <div class=${wrapperClasses} @click=${onWrapperClick} >
+          ${this.renderHeader(configGroup)}
+          <div class=${holderClasses}>
+            ${configGroup.map(config => this.renderModule(config, widgetStyle))}
+            ${this.renderExpander()}
+          </div>
         </div>
-      </div>
+       </div>
     `;
     // clang-format on
   }
