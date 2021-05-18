@@ -79,10 +79,10 @@ class HotFlip(lit_components.Generator):
   """
 
   def find_fields(
-      self, output_spec: Spec, typ: Type[types.LitType],
+      self, spec: Spec, typ: Type[types.LitType],
       align_field: Optional[Text] = None) -> List[Text]:
     # Find fields of provided 'typ'.
-    fields = utils.find_spec_keys(output_spec, typ)
+    fields = utils.find_spec_keys(spec, typ)
 
     if align_field is None:
       return fields
@@ -90,24 +90,30 @@ class HotFlip(lit_components.Generator):
     # Only return fields that are aligned to fields with name specified by
     # align_field.
     return [f for f in fields
-            if getattr(output_spec[f], "align", None) == align_field]
+            if getattr(spec[f], "align", None) == align_field]
 
   def _get_tokens_and_gradients(self,
+                                input_spec: JsonDict,
                                 output_spec: JsonDict,
                                 output: JsonDict):
     """Returns a dictionary mapping token fields to tokens and gradients."""
-    # Find gradient fields
-    grad_fields = self.find_fields(output_spec, types.TokenGradients,
-                                   None)
-    if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
+    # Find token fields
+    token_fields = [key
+                    for key in utils.find_spec_keys(input_spec, types.Tokens)
+                    if input_spec[key].is_compatible(output_spec.get(key))]
+
+    if len(token_fields) == 0:  # pylint: disable=g-explicit-length-test
       return {}
 
     ret = {}
-    for grad_field in grad_fields:
+    for token_field in token_fields:
       # Get tokens, token gradients and token embeddings.
-      token_field = output_spec[grad_field].align  # pytype: disable=attribute-error
       tokens = output[token_field]
-      grads = output[grad_field]
+      grad_fields = self.find_fields(output_spec, types.TokenGradients,
+                                     token_field)
+      assert len(grad_fields) <= 1, (
+          f"Multiple gradients found for {token_field}")
+      grads = output[grad_fields[0]] if grad_fields else None
       ret[token_field] = [tokens, grads]
     return ret
 
@@ -135,7 +141,7 @@ class HotFlip(lit_components.Generator):
   def _gen_token_idxs_to_flip(
       self,
       tokens: List[str],
-      token_grads: np.ndarray,
+      token_grads: Optional[np.ndarray],
       max_flips: int,
       tokens_to_ignore: List[str],
       drop_tokens: bool = False) -> Iterator[Tuple[int, ...]]:
@@ -152,13 +158,14 @@ class HotFlip(lit_components.Generator):
     # consider combinations by ordering tokens by gradient L2 in order to
     # prioritize flipping tokens that may have the largest impact on the
     # prediction.
-    token_grads_l2 = np.sum(token_grads * token_grads, axis=-1)
-    # TODO(ataly, bastings): Consider sorting by attributions (either
-    # Integrated Gradients or Shapley values).
-    token_idxs_sorted_by_grads = np.argsort(token_grads_l2)[::-1]
-    token_idxs_to_flip = [idx for idx in token_idxs_sorted_by_grads
+    token_idxs = np.arange(len(tokens))
+    if token_grads is not None:
+      token_grads_l2 = np.sum(token_grads * token_grads, axis=-1)
+      # TODO(ataly, bastings): Consider sorting by attributions (either
+      # Integrated Gradients or Shapley values).
+      token_idxs = np.argsort(token_grads_l2)[::-1]
+    token_idxs_to_flip = [idx for idx in token_idxs
                           if tokens[idx] not in tokens_to_ignore]
-
     # If the number of tokens considered for flipping is larger than
     # MAX_FLIPPABLE_TOKENS we only consider the top tokens.
     token_idxs_to_flip = token_idxs_to_flip[:MAX_FLIPPABLE_TOKENS]
@@ -298,7 +305,7 @@ class HotFlip(lit_components.Generator):
     # Get tokens (corresponding to each text input field) and corresponding
     # gradients.
     tokens_and_gradients = self._get_tokens_and_gradients(
-        output_spec, orig_output)
+        input_spec, output_spec, orig_output)
     if len(tokens_and_gradients) == 0:  # pylint: disable=g-explicit-length-test
       logging.info("No token or gradient fields found. Cannot use HotFlip. :-(")
       return []  # Cannot generate examples without tokens or gradients.
@@ -309,12 +316,19 @@ class HotFlip(lit_components.Generator):
       tokens, _ = v
       example[token_field] = tokens
 
-    # Get model word embeddings and vocab.
-    inv_vocab, embedding_matrix = model.get_embedding_table()
-    assert len(inv_vocab) == embedding_matrix.shape[0], (
-        "Vocab/embeddings size mismatch.")
-    logging.info("Vocab size: %d, Embedding size: %r", len(inv_vocab),
-                 embedding_matrix.shape)
+    if not drop_tokens:
+      # Get model word embeddings and vocab.
+      try:
+        inv_vocab, embedding_matrix = model.get_embedding_table()
+      except NotImplementedError:
+        raise NotImplementedError(
+            "get_embedding_table is not implemented by the model. Cannot"
+            "generate Hotflips by flipping tokens. Please set %s to True to"
+            "generate Hotflips by dropping tokens." % DROP_TOKENS_KEY)
+      logging.info("Vocab size: %d, Embedding size: %r", len(inv_vocab),
+                   embedding_matrix.shape)
+      assert len(inv_vocab) == embedding_matrix.shape[0], (
+          "Vocab/embeddings size mismatch.")
 
     successful_cfs = []
     # TODO(lit-team): use only 1 sequence as input (configurable in UI).
@@ -326,6 +340,11 @@ class HotFlip(lit_components.Generator):
       logging.info("Identifying Hotflips for input field: %s", str(text_field))
       replacement_tokens = None
       if not drop_tokens:
+        assert grads is not None, (
+            "Gradients are not exposed by the model. Cannot generate"
+            "Hotflips by flipping tokens. Please set %s to True to generate"
+            "Hotflips by dropping tokens." % DROP_TOKENS_KEY)
+
         direction = -1
         if is_regression:
           # We want the replacements to increase the prediction score if the

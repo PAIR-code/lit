@@ -32,6 +32,13 @@ STSB_PATH = transformers.file_utils.cached_path(STSB_PATH,
   extract_compressed_file=True)
 
 
+class STSBModelWithoutEmbeddings(glue_models.STSBModel):
+
+  def get_embedding_table(self):
+    raise NotImplementedError('get_embedding_table() not implemented for ' +
+                              self.__class__.__name__)
+
+
 class ModelBasedHotflipTest(absltest.TestCase):
 
   def setUp(self):
@@ -45,6 +52,11 @@ class ModelBasedHotflipTest(absltest.TestCase):
     # Regression model determining similarity between two input sentences.
     self.regression_model = glue_models.STSBModel(STSB_PATH)
     self.regression_config = {hotflip.PREDICTION_KEY: 'score'}
+
+    # A wrapped version of the above regression model that does not expose
+    # emeddings.
+    self.regression_model_without_embeddings = STSBModelWithoutEmbeddings(
+        STSB_PATH)
 
   def test_find_fields(self):
     fields = self.hotflip.find_fields(self.classification_model.output_spec(),
@@ -85,6 +97,21 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.assertLen(
         self.hotflip.generate(ex, self.regression_model, None,
                               self.regression_config), 2)
+
+  def test_hotflip_num_ex_without_embeddings(self):
+    ex = {'sentence1': 'this long movie is terrible.',
+          'sentence2': 'this short movie is great.'}
+    self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 2
+    thresh = 2
+    self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    with self.assertRaises(NotImplementedError):
+      self.hotflip.generate(ex, self.regression_model_without_embeddings, None,
+                            self.regression_config)
+
+    self.regression_config[hotflip.DROP_TOKENS_KEY] = True
+    self.assertLen(
+        self.hotflip.generate(ex, self.regression_model_without_embeddings,
+                              None, self.regression_config), 2)
 
   def test_hotflip_freeze_tokens(self):
     ex = {'sentence': 'this long movie is terrible.'}
@@ -140,6 +167,13 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.regression_config[hotflip.DROP_TOKENS_KEY] = True
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
+    for cf in cfs:
+      self.assertLessEqual(len(cf['tokens_sentence1']), 6)
+      self.assertLessEqual(len(cf['tokens_sentence2']), 6)
+
+    # Test with the wrapped model that does not expose embeddings.
+    cfs = self.hotflip.generate(ex, self.regression_model_without_embeddings,
+                                None, self.regression_config)
     for cf in cfs:
       self.assertLessEqual(len(cf['tokens_sentence1']), 6)
       self.assertLessEqual(len(cf['tokens_sentence2']), 6)
@@ -200,7 +234,6 @@ class ModelBasedHotflipTest(absltest.TestCase):
           (cf['sentence2'] == ex['sentence2']))
 
   def test_hotflip_changes_pred_class(self):
-    # Test with a classification model.
     ex = {'sentence': 'this long movie is terrible.'}
     ex_output = list(self.classification_model.predict([ex]))[0]
     pred_class = str(np.argmax(ex_output['probas']))
@@ -221,6 +254,14 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
+    cf_outputs = self.regression_model.predict(cfs)
+    for cf_output in cf_outputs:
+      self.assertNotEqual((ex_output['score'] <= thresh),
+                          (cf_output['score'] <= thresh))
+    # Test with the wrapped model that does not expose embeddings.
+    self.regression_config[hotflip.DROP_TOKENS_KEY] = True
+    cfs = self.hotflip.generate(ex, self.regression_model_without_embeddings,
+                                None, self.regression_config)
     cf_outputs = self.regression_model.predict(cfs)
     for cf_output in cf_outputs:
       self.assertNotEqual((ex_output['score'] <= thresh),
