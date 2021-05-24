@@ -23,6 +23,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
 from lit_nlp.lib import serialize
@@ -89,6 +90,10 @@ def main(_):
     train_data = glue.STSBData("train")
     val_data = glue.STSBData("validation")
     model = glue_models.STSBModel(FLAGS.encoder_name)
+  elif FLAGS.task == "toxicity":
+    train_data = classification.ToxicityData("train")
+    val_data = classification.ToxicityData("test")
+    model = glue_models.ToxicityModel(FLAGS.encoder_name)
   else:
     raise ValueError(f"Unrecognized task name: '{FLAGS.task:s}'")
 

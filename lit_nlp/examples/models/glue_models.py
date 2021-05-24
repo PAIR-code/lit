@@ -507,3 +507,16 @@ class STSBModel(GlueModel):
         text_b_name="sentence2",
         labels=None,
         **kw)
+
+
+class ToxicityModel(GlueModel):
+  """Classification model on Jigsaw Toxicity Dataset."""
+
+  def __init__(self, *args, **kw):
+    super().__init__(
+        *args,
+        text_a_name="sentence",
+        text_b_name=None,
+        labels=["non-toxic", "toxic"],
+        null_label_idx=0,
+        **kw)
