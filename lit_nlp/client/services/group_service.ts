@@ -83,10 +83,19 @@ export class GroupService extends LitService {
     return names;
   }
 
-  /** Get the names of all features (categorical and numeric.) */
+  /** Get the names of the boolean features. */
   @computed
-  get categoricalAndNumericalFeatureNames(): string[] {
-    return [...this.categoricalFeatureNames, ...this.numericalFeatureNames];
+  get booleanFeatureNames(): string[] {
+    const dataSpec = this.appState.currentDatasetSpec;
+    const names = findSpecKeys(dataSpec, 'Boolean');
+    return names;
+  }
+
+  /** Get the names of all dense features (boolean, categorical, and numeric) */
+  @computed
+  get denseFeatureNames(): string[] {
+    return [...this.categoricalFeatureNames, ...this.numericalFeatureNames,
+            ...this.booleanFeatureNames];
   }
 
   /**
@@ -144,11 +153,16 @@ export class GroupService extends LitService {
       // The number of bins that the domain is divided into is specified by the
       // FreedmanDiaconis algorithm. The first bin.x0 is always equal to the
       // minimum domain value, and the last bin.x1 is always equal to the
-      // maximum domain value.
+      // maximum domain value. Fall back to a sensible default if the algorithm
+      // returns an invalid valid.
+      let numBins = d3.thresholdFreedmanDiaconis(values, min, max);
+      if (numBins === 0 || !isFinite(numBins)) {
+        numBins = 10;
+      }
       const generator: d3.HistogramGeneratorNumber<number, number> =
           d3.histogram<number, number>()
               .domain([min, max])
-              .thresholds(d3.thresholdFreedmanDiaconis(values, min, max));
+              .thresholds(numBins);
       const generatedBins = generator(values);
       const keyToRanges: {[name: string]: number[]} = {};
 
@@ -207,6 +221,9 @@ export class GroupService extends LitService {
       if (this.numericalFeatureNames.includes(v)) {
         return Object.keys(this.numericalFeatureBins[v]).length;
       }
+      if (this.booleanFeatureNames.includes(v)) {
+        return 2;
+      }
       return 0;
     });
     const total = numLabels.reduce((a, b) => a * b);
@@ -236,7 +253,7 @@ export class GroupService extends LitService {
       const dFilters: FacetMap = {};
       features.forEach(key => {
         const featValForData = getFeatValForInput(d, i, key);
-        if (!!featValForData) {
+        if (featValForData != null) {
           dFilters[key] = featValForData;
         }
       });

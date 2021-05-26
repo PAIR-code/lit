@@ -215,8 +215,9 @@ mwc-textfield {
 
 /* Toolbar container for module controls. */
 .module-toolbar {
-  height: 24px;
+  min-height: 24px;
   display: flex;
+  flex-wrap: wrap;
   flex-direction: row;
   align-items: center;
 }

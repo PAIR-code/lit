@@ -372,7 +372,7 @@ export class MetricsModule extends LitModule {
       </lit-checkbox>
       <label class="cb-label">Facet by</label>
        ${
-        this.groupService.categoricalAndNumericalFeatureNames.map(
+        this.groupService.denseFeatureNames.map(
             facetName => this.renderCheckbox(facetName, false,
                 (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}

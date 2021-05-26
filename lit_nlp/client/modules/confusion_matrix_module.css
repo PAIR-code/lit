@@ -1,9 +1,3 @@
-.multiline-toolbar {
-  height: unset;
-  flex-flow: row wrap;
-  margin-bottom: 4px;
-}
-
 .dropdown {
   max-width: fit-content;
 }

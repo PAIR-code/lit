@@ -220,7 +220,7 @@ export class SliceModule extends LitModule {
       // clang-format on
     };
     return html`${
-        this.groupService.categoricalAndNumericalFeatureNames.map(
+        this.groupService.denseFeatureNames.map(
             key => renderFeatureCheckbox(key))}`;
   }
 

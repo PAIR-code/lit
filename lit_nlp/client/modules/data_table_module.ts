@@ -91,7 +91,7 @@ export class DataTableModule extends LitModule {
 
   @computed
   get defaultColumns(): string[] {
-    return ['index', 'id', ...this.keys];
+    return ['index', ...this.keys];
   }
 
   @computed
@@ -283,6 +283,7 @@ export class DataTableModule extends LitModule {
     this.defaultColumns.forEach((column) => {
       columnVisibility.set(column, true);
     });
+    columnVisibility.set('id', false);
 
     // Update the map of column names with a possible column for every
     // combination of model, pred key, and classification/regression info type.

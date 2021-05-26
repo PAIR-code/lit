@@ -311,7 +311,7 @@ export class ConfusionMatrixModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar multiline-toolbar'>
+        <div class='module-toolbar'>
           ${this.renderControls()}
         </div>
         <div class='module-results-area matrices-holder'>
