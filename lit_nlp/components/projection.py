@@ -127,7 +127,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
                         model: lit_model.Model,
                         dataset: lit_dataset.Dataset,
                         model_outputs: Optional[List[JsonDict]] = None,
-                        config: Dict[Text, Any] = None):
+                        config: Optional[Dict[Text, Any]] = None):
     del config  # unused - configure in constructor instead
     del dataset  # unused - pass examples to constructor instead
     return self._run(model, indexed_inputs, model_outputs, do_fit=False)
@@ -201,7 +201,7 @@ class ProjectionManager(lit_components.Interpreter):
                          model: lit_model.Model,
                          dataset: lit_dataset.IndexedDataset,
                          model_outputs: Optional[List[JsonDict]] = None,
-                         config: Dict[Text, Any] = None):
+                         config: Optional[Dict[Text, Any]] = None):
     instance_key = _key_from_dict(config)
     logging.info("Projection request: instance key: %s", instance_key)
     # Fit a new instance if necessary

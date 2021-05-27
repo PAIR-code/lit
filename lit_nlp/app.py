@@ -202,12 +202,18 @@ class LitApp(object):
       example['id'] = caching.input_hash(example['data'])
     return data['inputs']
 
-  def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
+  def _get_dataset(self,
+                   unused_data,
+                   dataset_name: Optional[Text] = None,
+                   **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
     return self._datasets[dataset_name].indexed_examples
 
-  def _create_dataset(self, unused_data, dataset_name: Text = None,
-                      dataset_path: Text = None, **unused_kw):
+  def _create_dataset(self,
+                      unused_data,
+                      dataset_name: Optional[Text] = None,
+                      dataset_path: Optional[Text] = None,
+                      **unused_kw):
     """Create dataset from a path, updating and returning the metadata."""
 
     assert dataset_name is not None, 'No dataset specified.'

@@ -189,8 +189,8 @@ class IndexedDataset(Dataset):
         for example in examples
     ]  # pyformat: disable
 
-  def __init__(self, *args, id_fn: IdFnType = None,
-               indexed_examples: List[IndexedInput] = None, **kw):
+  def __init__(self, *args, id_fn: Optional[IdFnType] = None,
+               indexed_examples: Optional[List[IndexedInput]] = None, **kw):
     super().__init__(*args, **kw)
     assert id_fn is not None, 'id_fn must be specified.'
     self.id_fn = id_fn
