@@ -302,6 +302,13 @@ class TokenGradients(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageGradients(LitType):
+  """Gradients with respect to per-pixel inputs, as <float>[num_pixels]."""
+  align: Optional[Text] = None  # name of an image field
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class AttentionHeads(LitType):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
   # input and output Tokens fields; for self-attention these can be the same
