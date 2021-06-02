@@ -31,7 +31,7 @@ export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
     'SpanLabels'|'EdgeLabels'|'MultiSegmentAnnotations'|'Embeddings'|
     'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
     'FieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|'ImageBytes'|
-    'SparseMultilabelPreds';
+    'SparseMultilabelPreds'|'ImageGradients';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
