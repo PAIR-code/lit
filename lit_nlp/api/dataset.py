@@ -280,6 +280,14 @@ class IndexedDataset(Dataset):
     return IndexedDataset(base=self._base, indexed_examples=examples, spec=spec,
                           description=description, id_fn=self.id_fn)
 
+  def __hash__(self):
+    return hash(tuple([ex['id'] for ex in self._indexed_examples]))
+
+  def __eq__(self, other):
+    self_ids = [ex['id'] for ex in self._indexed_examples]
+    other_ids = [ex['id'] for ex in other._indexed_examples]
+    return self_ids == other_ids
+
 
 class NoneDataset(Dataset):
   """Empty dataset, with fields as the union of model specs."""
