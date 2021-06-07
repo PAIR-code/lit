@@ -1,15 +1,20 @@
 :host {
   --table-header-height: 40px;
+  --table-footer-height: 26px;
 }
 
 #holder{
   height: 100%;
 }
 
-#rows-container{
+.rows-container{
   width: 100%;
   height: calc(100% - var(--table-header-height));
   overflow-y: auto;
+}
+
+.rows-container.with-footer{
+  height: calc(100% - var(--table-header-height) - var(--table-footer-height));
 }
 
 #rows {
@@ -26,6 +31,24 @@
   flex-direction: row;
   align-items: center;
   min-width: 100%;
+}
+
+#footer-container {
+  width: 100%;
+  overflow-x:hidden;
+  height: var(--table-footer-height);
+  background: #f5fcfc;
+  color: #04394b;
+}
+
+#footer {
+  min-width: 100%;
+  display: flex;
+  flex-direction: row;
+  font-weight: 400;
+  font-size: 10pt;
+  line-height: 12pt;
+  padding-top: 6px;
 }
 
 .column-header {
@@ -180,4 +203,44 @@ td div {
 /* TODO(lit-dev): Make the table image width configurable. */
 .table-img{
   width: 100px;
+}
+
+.current-page-num {
+  display: inline-block;
+  text-align: center;
+  min-width: 16px;
+}
+
+/* TODO(lit-dev): Move this to shared_styles and ensure elements can use shared
+ * styles
+ */
+/**
+ * For standalone MWC icons as buttons.
+ * We don't use mwc-icon-button because this adds
+ * a large backdrop and extra whitespace.
+ */
+mwc-icon.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}
+
+mwc-icon.disabled {
+  cursor: default;
+  color: rgba(60, 64, 67, 0.38);
+}
+
+mwc-icon.disabled:hover {
+  opacity: 1;
 }

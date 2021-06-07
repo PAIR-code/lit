@@ -69,6 +69,7 @@ enum SpanAnchor {
 
 const IMAGE_PREFIX = 'data:image';
 
+const CONTAINER_HEIGHT_CHANGE_DELTA = 20;
 
 /**
  * A generic data table component
@@ -98,6 +99,7 @@ export class DataTable extends ReactiveElement {
   // Mode controls
   @observable @property({type: Boolean}) selectionEnabled: boolean = false;
   @observable @property({type: Boolean}) searchEnabled: boolean = false;
+  @observable @property({type: Boolean}) paginationEnabled: boolean = false;
 
   // Callbacks
   @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
@@ -116,6 +118,8 @@ export class DataTable extends ReactiveElement {
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
   @observable private headerWidths: number[] = [];
+  @observable private pageNum = 0;
+  @observable private entriesPerPage = 10;
 
   // Sorted data. We manage updates with a reaction to enable "sticky" behavior,
   // where subsequent sorts are based on the last sort rather than the original
@@ -124,6 +128,8 @@ export class DataTable extends ReactiveElement {
   @observable private stickySortedData?: TableRowInternal[]|null = null;
 
   private resizeObserver!: ResizeObserver;
+  private needsEntriesPerPageRecompute = true;
+  private lastContainerHeight = 0;
 
   private selectedIndicesSetForRender = new Set<number>();
 
@@ -133,15 +139,18 @@ export class DataTable extends ReactiveElement {
   private hoveredIndex: number|null = null;
 
   firstUpdated() {
-    const container = this.shadowRoot!.getElementById('rows')!;
+    const container = this.shadowRoot!.querySelector('.rows-container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.computeHeaderWidths();
+      this.adjustEntriesIfHeightChanged();
     });
     this.resizeObserver.observe(container);
 
     // If inputs changed, re-sort data based on the new inputs.
     this.reactImmediately(() => this.rowFilteredData, filteredData => {
       this.stickySortedData = null;
+      this.needsEntriesPerPageRecompute = true;
+      this.pageNum = 0;
       this.requestUpdate();
     });
     // If sort settings are changed, re-sort data optionally using result of
@@ -149,7 +158,15 @@ export class DataTable extends ReactiveElement {
     const triggerSort = () => [this.sortName, this.sortAscending];
     this.reactImmediately(triggerSort, () => {
       this.stickySortedData = this.getSortedData(this.displayData);
+      this.pageNum = 0;
       this.requestUpdate();
+    });
+    // Reset page number if invalid on change in total pages.
+    const triggerPageChange = () => this.totalPages;
+    this.reactImmediately(triggerPageChange, () => {
+      if (this.pageNum >= this.totalPages) {
+        this.pageNum = 0;
+      }
     });
   }
 
@@ -162,6 +179,66 @@ export class DataTable extends ReactiveElement {
       this.shiftSelectionEndIndex = 0;
     }
     return true;
+  }
+
+  updated() {
+    if (this.needsEntriesPerPageRecompute) {
+      this.computeEntriesPerPage();
+    }
+  }
+
+  private getRowsContainerHeight() {
+    const container: HTMLElement =
+        this.shadowRoot!.querySelector('.rows-container')!;
+    return container.getBoundingClientRect().height;
+  }
+
+  // If the row container's height has changed significantly, then recompute
+  // entries per row.
+  private adjustEntriesIfHeightChanged() {
+    const containerHeight = this.getRowsContainerHeight();
+    if (Math.abs(containerHeight - this.lastContainerHeight) >
+        CONTAINER_HEIGHT_CHANGE_DELTA) {
+      this.lastContainerHeight = containerHeight;
+      this.computeEntriesPerPage();
+    }
+  }
+
+  private computeEntriesPerPage() {
+    this.needsEntriesPerPageRecompute = false;
+
+    // If pagination is disabled, then ensure all entires can fit on a single
+    // page.
+    if (!this.paginationEnabled) {
+      this.entriesPerPage = this.rowFilteredData.length + 1;
+      return;
+    }
+
+    const containerHeight = this.getRowsContainerHeight();
+    const rows: NodeListOf<HTMLElement> =
+        this.shadowRoot!.querySelectorAll('tr');
+    let height = 0;
+    let i = 0;
+
+    // Iterate over rows, adding up their height until they fill the container,
+    // to get the number of rows to display per page.
+    for (i = 0; i < rows.length; i++) {
+      height += rows[i].getBoundingClientRect().height;
+      if (height > containerHeight) {
+        this.entriesPerPage = i + 1;
+        break;
+      }
+    }
+    if (height === 0) {
+      this.entriesPerPage = 10;
+    } else if (height <= containerHeight) {
+      // If there aren't enough entries to take up the entire container,
+      // calculate how many will fill the container based on the heights so far.
+      const heightPerEntry = height / i;
+      this.entriesPerPage = Math.ceil(containerHeight / heightPerEntry);
+    }
+    // Round up to the nearest 10.
+    this.entriesPerPage = Math.ceil(this.entriesPerPage / 10) * 10;
   }
 
   private computeHeaderWidths() {
@@ -260,6 +337,24 @@ export class DataTable extends ReactiveElement {
   @computed
   get displayData(): TableRowInternal[] {
     return this.stickySortedData ?? this.rowFilteredData;
+  }
+
+  @computed
+  get totalPages(): number {
+    return Math.ceil(this.displayData.length / this.entriesPerPage);
+  }
+
+  // The entries that fit on the current page in the table.
+  @computed
+  get pageData(): TableRowInternal[] {
+    const begin = this.pageNum * this.entriesPerPage;
+    const end = begin + this.entriesPerPage;
+    return this.displayData.slice(begin, end);
+  }
+
+  @computed
+  get hasFooter(): boolean {
+    return this.displayData.length > this.entriesPerPage;
   }
 
   private setShiftSelectionSpan(startIndex: number, endIndex: number) {
@@ -443,6 +538,11 @@ export class DataTable extends ReactiveElement {
       }
     };
 
+    //TODO: calculate correct # of entries per page.
+    const rowsContainerClasses = classMap({
+      'rows-container': true,
+      'with-footer': this.hasFooter
+    });
     // clang-format off
     return html`
       <div id="holder">
@@ -451,16 +551,56 @@ export class DataTable extends ReactiveElement {
             ${this.columnNames.map((c, i) => this.renderColumnHeader(c, i))}
           </div>
         </div>
-        <div id="rows-container" @scroll=${onScroll}>
+        <div class=${rowsContainerClasses} @scroll=${onScroll}>
           <table id="rows">
             <tbody>
-              ${this.displayData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
+              ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
             </tbody>
           </table>
         </div>
+        ${this.renderFooter()}
       </div>
     `;
     // clang-format on
+  }
+
+  renderFooter() {
+    if (!this.hasFooter) {
+      return null;
+    }
+    const pageDisplayNum = this.pageNum + 1;
+    // Use this modulo function so that if pageNum is negative (when
+    // decrementing pages), the modulo returns the expected positive value.
+    const modPageNumber = (pageNum: number) => {
+      return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
+    };
+    const nextPage = () => {
+      const newPageNum = modPageNumber(this.pageNum + 1);
+      this.pageNum = newPageNum;
+    };
+    const prevPage = () => {
+      const newPageNum = modPageNumber(this.pageNum -1);
+      this.pageNum = newPageNum;
+    };
+    // clang-format off
+    return html`
+      <div id="footer-container">
+        <div id="footer">
+          <mwc-icon class='icon-button'
+            @click=${prevPage}>
+            chevron_left
+          </mwc-icon>
+          <div>
+           Page
+           <span class="current-page-num">${pageDisplayNum}</span>
+           of ${this.totalPages}
+          </div>
+          <mwc-icon class='icon-button'
+             @click=${nextPage}>
+            chevron_right
+          </mwc-icon>
+        </div>
+      </div>`;
   }
 
   renderColumnHeader(title: string, index: number) {
@@ -566,6 +706,7 @@ export class DataTable extends ReactiveElement {
 
   renderRow(data: TableRowInternal, rowIndex: number) {
     const dataIndex = data.inputIndex;
+    const displayDataIndex = rowIndex + this.pageNum * this.entriesPerPage;
 
     const isSelected = this.selectedIndicesSetForRender.has(dataIndex);
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
@@ -579,7 +720,7 @@ export class DataTable extends ReactiveElement {
     });
     const mouseDown = (e: MouseEvent) => {
       if (!this.selectionEnabled) return;
-      this.handleRowClick(e, dataIndex, rowIndex);
+      this.handleRowClick(e, dataIndex, displayDataIndex);
     };
     const mouseEnter = (e: MouseEvent) => {
       this.handleRowMouseEnter(e, dataIndex);

@@ -511,6 +511,7 @@ export class DataTableModule extends LitModule {
         .onHover=${(i: number|null)=> { this.onHover(i); }}
         searchEnabled
         selectionEnabled
+        paginationEnabled
       ></lit-data-table>
     `;
     // clang-format on
