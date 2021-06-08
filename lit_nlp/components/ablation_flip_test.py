@@ -16,6 +16,7 @@
 """Tests for lit_nlp.components.ablation_flip."""
 
 from absl.testing import absltest
+from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
 # TODO(lit-dev): Move glue_models out of lit_nlp/examples
 from lit_nlp.examples.models import glue_models
@@ -31,6 +32,14 @@ STSB_PATH = transformers.file_utils.cached_path(STSB_PATH,
   extract_compressed_file=True)
 
 
+class SST2ModelNonRequiredField(glue_models.SST2Model):
+
+  def input_spec(self):
+    spec = super().input_spec()
+    spec['sentence'] = types.TextSegment(required=False, default='')
+    return spec
+
+
 class ModelBasedAblationFlipTest(absltest.TestCase):
 
   def setUp(self):
@@ -40,6 +49,11 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     # Classification model that clasifies a given input sentence.
     self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
     self.classification_config = {ablation_flip.PREDICTION_KEY: 'probas'}
+
+    # The above clasification model with the 'sentence' field marked as
+    # non-required.
+    self.classification_model_non_required_field = SST2ModelNonRequiredField(
+        BERT_TINY_PATH)
 
     # Regression model determining similarity between two input sentences.
     self.regression_model = glue_models.STSBModel(STSB_PATH)
@@ -179,6 +193,16 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     with self.assertRaises(AssertionError):
       self.ablation_flip.generate(ex, self.classification_model, None, None)
 
+  def test_ablation_flip_required_field(self):
+    ex = {'sentence': 'terrible'}
+    self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 1
+    self.assertEmpty(
+        self.ablation_flip.generate(
+            ex, self.classification_model, None, self.classification_config))
+    self.assertLen(
+        self.ablation_flip.generate(
+            ex, self.classification_model_non_required_field,
+            None, self.classification_config), 1)
 
 if __name__ == '__main__':
   absltest.main()

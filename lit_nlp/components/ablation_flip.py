@@ -99,10 +99,6 @@ class AblationFlip(lit_components.Generator):
       max_ablations: int,
       tokens_to_ignore: List[str]) -> Iterator[Tuple[int, ...]]:
     """Generates sets of token positions that are eligible for ablation."""
-    # Update max_ablations so that it is at most len(tokens) - 1 (we don't
-    # want to ablate all tokens!).
-    max_ablations = min(len(tokens)-1, max_ablations)
-
     # Consider all combinations of tokens upto length max_ablations.
     # TODO(ataly): When the total number of tokens is a above a threshold,
     # only consider the top k tokens by attributions for the purpose of
@@ -184,9 +180,15 @@ class AblationFlip(lit_components.Generator):
                    str(text_field))
       text = example[text_field]
       tokens = self.tokenize(text)
+
+      max_ablations_for_field = max_ablations
+      if input_spec[text_field].required:
+        # Update max_ablations_for_field so that it is at most len(tokens) - 1
+        # (we don't want to ablate all tokens!).
+        max_ablations_for_field = min(len(tokens)-1, max_ablations)
       successful_positions = []
       for token_idxs in self._gen_token_idxs_to_ablate(
-          tokens, max_ablations, tokens_to_ignore):
+          tokens, max_ablations_for_field, tokens_to_ignore):
         if len(successful_cfs) >= num_examples:
           return successful_cfs
 
