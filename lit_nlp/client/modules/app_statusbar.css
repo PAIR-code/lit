@@ -1,3 +1,7 @@
+:host {
+  height: 24px;
+}
+
 #at-bottom {
   bottom: 0;
   position: sticky;

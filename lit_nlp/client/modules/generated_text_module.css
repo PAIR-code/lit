@@ -1,3 +1,17 @@
+.module-toolbar {
+  justify-content: space-between;
+}
+
 .diff-selector > * {
   cursor: pointer;
+}
+
+.switch-container {
+  display: flex;
+  align-items: center;
+}
+
+.switch-container > mwc-switch {
+  margin-left: 4px;
+  margin-right: 4px;
 }

@@ -38,7 +38,7 @@ import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
 const NUM_COLS = 12;
 
 // Width of a minimized widget group. From widget_group.css.
-const MINIMIZED_WIDTH_PX = 36;
+const MINIMIZED_WIDTH_PX = 36 + 2 + 8; /* width + border + padding */
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.

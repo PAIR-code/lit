@@ -11,12 +11,27 @@
   padding: 4px;
 }
 
+.candidate {
+  display: flex;
+  flex-direction: row;
+}
+
+.candidate-score {
+  margin-right: 12px;
+}
+
 /* use this style instead of .token-chip-label.selected */
 .candidate-selected {
   border: 1px solid #80868b;
 }
 
-.highlighted {
-  color: #ffa500;
+.highlighted-diff {
+/*   color: #ffa500; */
+  color: #a93d00;
+  font-weight: bold;
+}
+
+.highlighted-match {
+  color: #129eaf;
   font-weight: bold;
 }

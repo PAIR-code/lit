@@ -61,6 +61,7 @@ export class GeneratedTextVis extends ReactiveElement {
   @observable @property({type: String}) referenceFieldName?: string;
   @observable @property({type: String}) referenceText?: string;
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
+  @observable @property({type: Boolean}) highlightMatch: boolean = false;
   @observable @property({type: Number}) selectedIdx = 0;
 
   static get styles() {
@@ -93,7 +94,10 @@ export class GeneratedTextVis extends ReactiveElement {
     }
 
     const displaySpans = displayStrings.map((output, i) => {
-      const classes = classMap({highlighted: !equal[i]});
+      const classes = classMap({
+        'highlighted-diff': !this.highlightMatch && !equal[i],
+        'highlighted-match': this.highlightMatch && equal[i]
+      });
       return html`<span class=${classes}>${output}</span>`;
     });
     return displaySpans;
@@ -118,18 +122,27 @@ export class GeneratedTextVis extends ReactiveElement {
 
   renderCandidates() {
     const renderedCandidates = this.candidates.map((candidate, i) => {
-      const inner = this.textDiff !== undefined && i === this.selectedIdx ?
+      const formattedText =
+          this.textDiff !== undefined && i === this.selectedIdx ?
           this.renderDiffString(
               this.textDiff.outputStrings, this.textDiff.equal) :
           candidate[0];
       const classes = classMap({
         'token-chip-label': true,
+        'candidate': true,
         'candidate-selected': this.selectedIdx === i,
       });
       const onClickSelect = () => {
         this.selectedIdx = i;
       };
-      return html`<div class=${classes} @click=${onClickSelect}>${inner}</div>`;
+      // clang-format off
+      return html`
+        <div class=${classes} @click=${onClickSelect}>
+          <div class='candidate-score'>${candidate[1]?.toFixed(3)}</div>
+          <div class='candidate-text'>${formattedText}</div>
+        </div>
+      `;
+      // clang-format on
     });
 
     // clang-format off
