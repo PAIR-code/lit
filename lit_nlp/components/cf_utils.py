@@ -21,20 +21,24 @@ from lit_nlp.api import types
 import numpy as np
 
 
-def update_label(example: types.JsonDict,
-                 example_output: types.JsonDict,
-                 output_spec: types.JsonDict,
-                 pred_key: Text):
+def update_prediction(example: types.JsonDict,
+                      example_output: types.JsonDict,
+                      output_spec: types.JsonDict,
+                      pred_key: Text):
   """Updates prediction label in the provided example assuming a classification model."""
-  # TODO(lit-dev): provide a general system for handling labels on
-  # generated examples.
-  assert isinstance(output_spec[pred_key], types.MulticlassPreds)
-  probabilities = example_output[pred_key]
-  pred_class = np.argmax(probabilities)
-  label_key = cast(types.MulticlassPreds, output_spec[pred_key]).parent
-  label_names = cast(types.MulticlassPreds, output_spec[pred_key]).vocab
-  example_label = label_names[pred_class]
-  example[label_key] = example_label
+  prediction = example_output[pred_key]
+  example[pred_key] = prediction
+  pred_spec = output_spec[pred_key]
+  if isinstance(pred_spec, types.MulticlassPreds):
+    # Update label
+    # TODO(lit-dev): provide a general system for handling labels on
+    # generated examples.
+    pred_spec = cast(types.MulticlassPreds, pred_spec)
+    label_key = pred_spec.parent
+    label_names = pred_spec.vocab
+    pred_class = np.argmax(prediction)
+    example_label = label_names[pred_class]
+    example[label_key] = example_label
 
 
 def is_prediction_flip(cf_output: types.JsonDict,

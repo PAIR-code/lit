@@ -305,11 +305,7 @@ class HotFlip(lit_components.Generator):
         if cf_utils.is_prediction_flip(
             cf_output, orig_output, output_spec, pred_key, regression_thresh):
           # Prediciton flip found!
+          cf_utils.update_prediction(cf, cf_output, output_spec, pred_key)
           successful_cfs.append(cf)
           successful_positions.append(set(token_idxs))
-          if not is_regression:
-            # Update label if multi-class prediction.
-            # TODO(lit-dev): provide a general system for handling labels on
-            # generated examples.
-            cf_utils.update_label(cf, cf_output, output_spec, pred_key)
     return successful_cfs
