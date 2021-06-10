@@ -582,10 +582,21 @@ export class DataTable extends ReactiveElement {
       const newPageNum = modPageNumber(this.pageNum -1);
       this.pageNum = newPageNum;
     };
+    const firstPage = () => {
+      this.pageNum = 0;
+    };
+    const firstPageButtonClasses = {
+      'icon-button': true,
+      'disabled': this.pageNum === 0
+    };
     // clang-format off
     return html`
       <div id="footer-container">
         <div id="footer">
+          <mwc-icon class=${classMap(firstPageButtonClasses)}
+            @click=${firstPage}>
+            first_page
+          </mwc-icon>
           <mwc-icon class='icon-button'
             @click=${prevPage}>
             chevron_left
