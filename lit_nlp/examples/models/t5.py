@@ -355,14 +355,18 @@ class TranslationWrapper(lit_model.Model):
   def description(self) -> str:
     return "T5 for machine translation\n" + self.model.description()
 
+  # TODO(b/170662608): remove these after batching API is cleaned up.
   def max_minibatch_size(self) -> int:
-    return self.model.max_minibatch_size()
+    raise NotImplementedError("Use predict() instead.")
 
   def predict_minibatch(self, inputs):
+    raise NotImplementedError("Use predict() instead.")
+
+  def predict(self, inputs):
     """Predict on a single minibatch of examples."""
-    model_inputs = [self.preprocess(ex) for ex in inputs]
-    outputs = self.model.predict_minibatch(model_inputs)
-    return [utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs]
+    model_inputs = (self.preprocess(ex) for ex in inputs)
+    outputs = self.model.predict(model_inputs)
+    return (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
 
   def input_spec(self):
     spec = lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
@@ -406,14 +410,19 @@ class SummarizationWrapper(lit_model.Model):
   def description(self) -> str:
     return "T5 for summarization\n" + self.model.description()
 
+  # TODO(b/170662608): remove these after batching API is cleaned up.
   def max_minibatch_size(self) -> int:
-    return self.model.max_minibatch_size()
+    raise NotImplementedError("Use predict() instead.")
 
   def predict_minibatch(self, inputs):
+    raise NotImplementedError("Use predict() instead.")
+
+  def predict(self, inputs):
     """Predict on a single minibatch of examples."""
-    model_inputs = [self.preprocess(ex) for ex in inputs]
-    outputs = self.model.predict_minibatch(model_inputs)
-    outputs = [utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs]
+    inputs = list(inputs)  # needs to be referenced below, so keep full list
+    model_inputs = (self.preprocess(ex) for ex in inputs)
+    outputs = self.model.predict(model_inputs)
+    outputs = (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
 
     # TODO(gehrmann): temp solution to get ROUGE scores in data table.
     for ex, mo in zip(inputs, outputs):
@@ -421,7 +430,7 @@ class SummarizationWrapper(lit_model.Model):
           target=ex["reference"],
           prediction=self._get_pred_string(mo["output_text"]))
       mo["rougeL"] = float(score["rougeL"].fmeasure)
-    return outputs
+      yield mo
 
   def input_spec(self):
     return lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
