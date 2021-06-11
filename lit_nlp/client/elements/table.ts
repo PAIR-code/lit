@@ -189,7 +189,8 @@ export class DataTable extends ReactiveElement {
 
   private getRowsContainerHeight() {
     const container: HTMLElement =
-        this.shadowRoot!.querySelector('.rows-container')!;
+        // tslint:disable-next-line:no-unnecessary-type-assertion
+        this.shadowRoot!.querySelector('.rows-container')! as HTMLElement;
     return container.getBoundingClientRect().height;
   }
 
