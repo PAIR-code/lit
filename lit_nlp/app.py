@@ -37,6 +37,7 @@ from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
 from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
+from lit_nlp.components import pdp
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
 from lit_nlp.components import tcav
@@ -397,6 +398,7 @@ class LitApp(object):
           'tcav': tcav.TCAV(),
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
+          'pdp': pdp.PdpInterpreter(),
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
           'pca': projection.ProjectionManager(pca.PCAModel),

@@ -221,6 +221,26 @@ export function doesOutputSpecContain(
   return false;
 }
 
+/**
+ * Checks if any of the model input specs contain any of the provided types.
+ * Can be provided a single type string or a list of them.
+ */
+export function doesInputSpecContain(
+    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    checkRequired: boolean): boolean {
+  const modelNames = Object.keys(models);
+  for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
+    const inputSpec = models[modelNames[modelNum]].spec.input;
+    let keys = findSpecKeys(inputSpec, typesToCheck);
+    if (checkRequired) {
+      keys = keys.filter(spec => inputSpec[spec].required);
+    }
+    if (keys.length) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Helper function to make an object into a human readable key.

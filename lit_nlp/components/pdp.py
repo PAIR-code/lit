@@ -93,11 +93,14 @@ class PdpInterpreter(lit_components.Interpreter):
         if len(provided_range) == 2
         else self.get_vals_to_test(feature, dataset))
 
+    # If no specific inputs provided, use the entire dataset.
+    inputs_to_use = inputs if inputs else dataset.examples
+
     # For each alternate value for a given feature.
     for new_val in vals_to_test:
       # Create copies of all provided inputs with the value replaced.
       edited_inputs = []
-      for inp in inputs:
+      for inp in inputs_to_use:
         edited_input = copy.deepcopy(inp)
         edited_input[feature] = new_val
         edited_inputs.append(edited_input)

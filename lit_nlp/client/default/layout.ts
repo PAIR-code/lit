@@ -32,6 +32,7 @@ import {GeneratedTextModule} from '../modules/generated_text_module';
 import {GeneratorModule} from '../modules/generator_module';
 import {LanguageModelPredictionModule} from '../modules/lm_prediction_module';
 import {MetricsModule} from '../modules/metrics_module';
+import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
@@ -93,6 +94,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Predictions': [
         ScalarModule,
         ...MODEL_PREDS_MODULES,
+        PdpModule,
       ],
       'Performance': [
         MetricsModule,
@@ -116,6 +118,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         ScalarModule,
+        PdpModule,
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,
@@ -142,6 +145,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         ScalarModule,
+        PdpModule,
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,
