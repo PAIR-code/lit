@@ -79,14 +79,12 @@ export class WidgetGroup extends LitElement {
     const title = configGroup[0].moduleType.title;
 
     // Maximization.
-    const maxIconName = this.maximized ? 'close_fullscreen' : 'open_in_full';
     const onMaxClick = () => {
       this.maximized = !this.maximized;
       this.setMinimized(false);
     };
 
     // Minimization.
-    const minIconName = this.minimized ? 'south_east' : 'south_west'; //Icons for arrows.
     const onMinClick = () => {
       this.setMinimized(!this.minimized);
       this.maximized = false;
@@ -124,10 +122,10 @@ export class WidgetGroup extends LitElement {
           renderScrollSyncControl()
         }
         <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${minIconName}
+          ${this.minimized ? 'maximize' : 'minimize'}
         </mwc-icon>
         <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
-          ${maxIconName}
+          ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
     // clang-format on
@@ -146,15 +144,8 @@ export class WidgetGroup extends LitElement {
     host.style.setProperty('--width', width);
     host.style.setProperty('--min-width', width);
 
-    const outsideClasses = classMap({
-      'outside': true,
-      'maximized': this.maximized,
-    });
-
     const wrapperClasses = classMap({
       'wrapper': true,
-      'minimized': this.minimized,
-      'maximized': this.maximized,
       'dragging': this.dragging,
     });
 
@@ -183,7 +174,7 @@ export class WidgetGroup extends LitElement {
     };
     // clang-format off
     return html`
-      <div class=${outsideClasses} @click=${onBackgroundClick}>
+      <div class='outside' @click=${onBackgroundClick}>
         <div class=${wrapperClasses} @click=${onWrapperClick} >
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>

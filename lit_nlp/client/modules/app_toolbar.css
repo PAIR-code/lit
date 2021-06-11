@@ -13,12 +13,10 @@
   background-color: #2f8c9b;
   font-family: 'Google Sans' !important;
   color: white;
-  font-size: 12pt;
+  font-size: 18px;
+  line-height: 24px;
   letter-spacing: +0.1;
-}
-
-#title-group {
-  font-size: 14pt;
+  height: 40px;
 }
 
 .headline-section {

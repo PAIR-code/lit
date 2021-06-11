@@ -10,7 +10,7 @@
 #main-panel {
   display: flex;
   border-bottom: 1px solid #dadce0;
-  overflow-x: scroll;
+  overflow-x: auto;
 }
 
 #component-groups{
@@ -37,6 +37,8 @@
   color: #5f6368;
   background: white;
   display: flex;
+  align-items: center;
+  height: 30px;
 }
 
 
@@ -45,6 +47,8 @@
   width: 50%;
   height: 100%;
   margin-left:auto;
+  display: flex;
+  align-items: center;
 }
 
 #drag-handler {

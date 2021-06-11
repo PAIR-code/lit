@@ -4,6 +4,7 @@
   box-sizing: border-box;
   height: 100%;
   background: white;
+  --lit-widget-header-height: 24px;
 }
 
 .holder {
@@ -21,7 +22,7 @@
   position: relative;
   display: flex;
   flex: 1;
-  height: 0px; /** Height must be explicitly set **/
+  height: calc(100% - var(--lit-widget-header-height));
 }
 
 .content {
@@ -36,6 +37,7 @@
 }
 
 .header {
+  height: var(--lit-widget-header-height);
   color: rgb(32, 33, 36);
   line-height: 16pt;
   display: flex;
