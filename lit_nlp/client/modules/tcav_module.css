@@ -1,3 +1,7 @@
+.outer-container {
+  display: flex;
+}
+
 .field-name {
   font-weight: bold;
 }
@@ -7,11 +11,8 @@
 }
 
 .controls-holder {
-  padding: 8px;
-  margin-right: 10px;
   display: flex;
   flex-flow: row wrap;
-  margin-bottom: 10px;
   justify-content: space-between;
 }
 
@@ -21,7 +22,7 @@
 }
 
 #vis-container {
-  margin: 0 5px;
+  width: 100%;
 }
 
 #warning-text {
@@ -37,4 +38,71 @@
   position: absolute;
   top: 150px;
   left: 80px;
+}
+
+.collapse-bar {
+  background: rgb(248, 249, 250);
+  width: 100%;
+  height: 36px;
+  cursor: pointer;
+  padding: 3px 5px;
+  width: 100%;
+  border: 1px solid rgb(232, 234, 237);
+  outline: none;
+  font-size: 13.33333px;
+  display: flex;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.collapse-content {
+  flex: 1 1 0%
+}
+
+.left-container {
+  width: 400px;
+  border: 1px solid #E8EAED;
+}
+
+.controls-buttons {
+  display: flex;
+  flex-direction: row;
+}
+
+.controls-actions {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  border: 1px solid #E8EAED;
+  width: 100%;
+}
+
+#clear-button {
+  color: #5F6368;
+}
+
+.output-controls {
+  height: 32px;
+  border: 1px solid #E8EAED;
+  display: flex;
+}
+
+#examples-selected-label {
+  margin: auto 4px;
+}
+
+.require-text {
+  margin: 4px 8px 16px 4px;
+}
+
+.clear-table-button {
+  margin: 6px 6px 6px auto;
+}
+
+.label-2 {
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 12px;
+  color: #80868B;
 }

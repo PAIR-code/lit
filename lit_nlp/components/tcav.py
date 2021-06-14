@@ -43,6 +43,7 @@ class TCAVConfig(object):
   concept_set_ids: List[str] = []
   class_to_explain: Any = ''
   grad_layer: Text = ''
+  dataset_name: str = ''
   # Percentage of the example set to use in the test set when training the LM.
   test_size: Optional[float] = 0.33
   random_state: Optional[int] = 42
@@ -102,6 +103,7 @@ class TCAV(lit_components.Interpreter):
           'class_to_explain': [gradient class to explain],
           'grad_layer': [the Gradient field key of the layer to explain],
           'random_state': [an optional seed to make outputs deterministic]
+          'dataset_name': [the name of the dataset (used for caching)]
         }
 
     Returns:
@@ -126,13 +128,16 @@ class TCAV(lit_components.Interpreter):
     non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
 
     # Get outputs using model.predict().
-    dataset_outputs = list(model.predict_with_metadata(dataset_examples))
+    dataset_outputs = list(model.predict_with_metadata(
+        dataset_examples, dataset_name=config.dataset_name))
 
     def _subsample(examples, n):
       return random.sample(examples, n) if n < len(examples) else examples
 
-    concept_outputs = list(model.predict_with_metadata(concept_set))
-    non_concept_outputs = list(model.predict_with_metadata(non_concept_set))
+    concept_outputs = list(model.predict_with_metadata(
+        concept_set, dataset_name=config.dataset_name))
+    non_concept_outputs = list(model.predict_with_metadata(
+        non_concept_set, dataset_name=config.dataset_name))
 
     concept_results = []
     # If there are more concept set examples than non-concept set examples, we
@@ -141,7 +146,7 @@ class TCAV(lit_components.Interpreter):
     # splits of the non-concept examples as the comparison set.
     n = min(len(concept_set), len(non_concept_set))
 
-    # If there are an equal number of concept and non-concept examples, we
+    # If there are equal numbers of concept and non-concept examples, we
     # decrease n by one so that we also sample a different set in each TCAV run.
     if len(concept_set) == len(non_concept_set):
       n -= 1

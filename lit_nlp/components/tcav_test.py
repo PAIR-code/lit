@@ -23,6 +23,7 @@ from lit_nlp.api import types as lit_types
 from lit_nlp.components import tcav
 # TODO(lit-dev): Move glue_models out of lit_nlp/examples
 from lit_nlp.examples.models import glue_models
+from lit_nlp.lib import caching  # for hash id fn
 from lit_nlp.lib import testing_utils
 import numpy as np
 
@@ -42,7 +43,8 @@ class ModelBasedTCAVTest(absltest.TestCase):
   def setUp(self):
     super(ModelBasedTCAVTest, self).setUp()
     self.tcav = tcav.TCAV()
-    self.model = glue_models.SST2Model(BERT_TINY_PATH)
+    self.model = caching.CachingModelWrapper(
+        glue_models.SST2Model(BERT_TINY_PATH), 'test')
 
   def test_tcav(self):
     random.seed(0)  # Sets seed since create_comparison_splits() uses random.
@@ -56,71 +58,22 @@ class ModelBasedTCAVTest(absltest.TestCase):
         {'sentence': 'e'},
         {'sentence': 'f'},
         {'sentence': 'g'},
-        {'sentence': 'h'}]
-    indexed_inputs = [
-        {
-            'id': '1',
-            'data': {
-                'sentence': 'a'
-            }
-        },
-        {
-            'id': '2',
-            'data': {
-                'sentence': 'b'
-            }
-        },
-        {
-            'id': '3',
-            'data': {
-                'sentence': 'c'
-            }
-        },
-        {
-            'id': '4',
-            'data': {
-                'sentence': 'd'
-            }
-        },
-        {
-            'id': '5',
-            'data': {
-                'sentence': 'e'
-            }
-        },
-        {
-            'id': '6',
-            'data': {
-                'sentence': 'f'
-            }
-        },
-        {
-            'id': '7',
-            'data': {
-                'sentence': 'g'
-            }
-        },
-        {
-            'id': '8',
-            'data': {
-                'sentence': 'h'
-            }
-        },
-        {
-            'id': '9',
-            'data': {
-                'sentence': 'i'
-            }
-        },
-    ]
+        {'sentence': 'h'},
+        {'sentence': 'i'}]
 
-    dataset_spec = {'sentence': lit_types.TextSegment()}
-    dataset = lit_dataset.Dataset(dataset_spec, examples)
+    indexed_inputs = [{'id': caching.input_hash(ex), 'data': ex}
+                      for ex in examples]
+    dataset = lit_dataset.IndexedDataset(id_fn=caching.input_hash,
+                                         indexed_examples=indexed_inputs)
     config = {
-        'concept_set_ids': ['1', '3', '4', '8'],
+        'concept_set_ids': [indexed_inputs[0]['id'],
+                            indexed_inputs[2]['id'],
+                            indexed_inputs[3]['id'],
+                            indexed_inputs[7]['id']],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
-        'random_state': 0
+        'random_state': 0,
+        'dataset_name': 'test'
     }
     result = self.tcav.run_with_metadata(indexed_inputs, self.model, dataset,
                                          config=config)
@@ -163,60 +116,17 @@ class ModelBasedTCAVTest(absltest.TestCase):
         {'sentence': 'f'},
         {'sentence': 'g'},
         {'sentence': 'h'}]
-    indexed_inputs = [
-        {
-            'id': '1',
-            'data': {
-                'sentence': 'a'
-            }
-        },
-        {
-            'id': '2',
-            'data': {
-                'sentence': 'b'
-            }
-        },
-        {
-            'id': '3',
-            'data': {
-                'sentence': 'c'
-            }
-        },
-        {
-            'id': '4',
-            'data': {
-                'sentence': 'd'
-            }
-        },
-        {
-            'id': '5',
-            'data': {
-                'sentence': 'e'
-            }
-        },
-        {
-            'id': '6',
-            'data': {
-                'sentence': 'f'
-            }
-        },
-        {
-            'id': '7',
-            'data': {
-                'sentence': 'g'
-            }
-        },
-        {
-            'id': '8',
-            'data': {
-                'sentence': 'h'
-            }
-        },
-    ]
-    dataset_spec = {'sentence': lit_types.TextSegment()}
-    dataset = lit_dataset.Dataset(dataset_spec, examples)
+
+    indexed_inputs = [{'id': caching.input_hash(ex), 'data': ex}
+                      for ex in examples]
+    dataset = lit_dataset.IndexedDataset(id_fn=caching.input_hash,
+                                         indexed_examples=indexed_inputs)
     config = {
-        'concept_set_ids': ['1', '3', '4', '5', '8'],
+        'concept_set_ids': [indexed_inputs[0]['id'],
+                            indexed_inputs[2]['id'],
+                            indexed_inputs[3]['id'],
+                            indexed_inputs[4]['id'],
+                            indexed_inputs[7]['id']],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0

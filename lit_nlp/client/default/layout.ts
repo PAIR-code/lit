@@ -113,7 +113,6 @@ export const LAYOUTS: LitComponentLayouts = {
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
-        TCAVModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
@@ -126,6 +125,9 @@ export const LAYOUTS: LitComponentLayouts = {
         AttentionModule,
       ],
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
+      'TCAV': [
+        TCAVModule,
+      ],
     },
     description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
   },
@@ -140,7 +142,6 @@ export const LAYOUTS: LitComponentLayouts = {
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
-        TCAVModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
@@ -153,6 +154,9 @@ export const LAYOUTS: LitComponentLayouts = {
         AttentionModule,
       ],
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
+      'TCAV': [
+        TCAVModule,
+      ],
     },
     description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
   },
