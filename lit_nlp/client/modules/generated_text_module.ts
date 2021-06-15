@@ -16,13 +16,16 @@
  */
 
 // tslint:disable:no-new-decorators
+import '@material/mwc-switch';
 import '../elements/generated_text_vis';
 
 import {customElement, html} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {DiffMode, GeneratedTextCandidate} from '../elements/generated_text_vis';
+import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
 
@@ -53,12 +56,13 @@ export class GeneratedTextModule extends LitModule {
       ['GeneratedText', 'GeneratedTextCandidates'];
 
   static get styles() {
-    return [sharedStyles, styles];
+    return [sharedStyles, visStyles, styles];
   }
 
   @observable private inputData: Input|null = null;
   @observable private generatedText: GeneratedTextResult = {};
   @observable private diffMode: DiffMode = DiffMode.NONE;
+  @observable private invertDiffs: boolean = false;
 
   @computed
   get referenceFields(): Map<string, string> {
@@ -113,18 +117,37 @@ export class GeneratedTextModule extends LitModule {
       return null;
     }
 
+    const isDiffActive = this.diffMode !== DiffMode.NONE;
+
     const setDiffMode = (e: Event) => {
       this.diffMode = (e.target as HTMLInputElement).value as DiffMode;
     };
+
+    const toggleInvertDiffs = () => {
+      this.invertDiffs = !this.invertDiffs;
+    };
+
     // clang-format off
     return html`
       <div class="diff-selector">
-        Highlight diffs:
+        Highlight comparison:
         ${Object.values(DiffMode).map(val => html`
           <input type="radio" name="diffSelect" value="${val}" id='diff${val}'
            ?checked=${val === this.diffMode} @change=${setDiffMode}>
           <label for='diff${val}'>${val}</label>
         `)}
+      </div>
+      <div class=${classMap({'switch-container': true,
+                             'switch-container-disabled': !isDiffActive})}
+        @click=${isDiffActive ? toggleInvertDiffs : null}>
+        <div class=${isDiffActive && !this.invertDiffs ? 'highlighted-diff' : ''}>
+          Diffs
+        </div>
+        <mwc-switch .checked=${this.invertDiffs} ?disabled=${!isDiffActive}>
+        </mwc-switch>
+        <div class=${isDiffActive && this.invertDiffs ? 'highlighted-match' : ''}>
+          Matches
+        </div>
       </div>
     `;
     // clang-format on
@@ -139,7 +162,8 @@ export class GeneratedTextModule extends LitModule {
                           .candidates=${this.generatedText[name]}
                           .referenceFieldName=${referenceFieldName}
                           .referenceText=${referenceText}
-                          .diffMode=${this.diffMode}>
+                          .diffMode=${this.diffMode}
+                          ?highlightMatch=${this.invertDiffs}>
       </generated-text-vis>
     `;
     // clang-format on

@@ -61,6 +61,7 @@ export class GeneratedTextVis extends ReactiveElement {
   @observable @property({type: String}) referenceFieldName?: string;
   @observable @property({type: String}) referenceText?: string;
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
+  @observable @property({type: Boolean}) highlightMatch: boolean = false;
   @observable @property({type: Number}) selectedIdx = 0;
 
   static get styles() {
@@ -93,7 +94,10 @@ export class GeneratedTextVis extends ReactiveElement {
     }
 
     const displaySpans = displayStrings.map((output, i) => {
-      const classes = classMap({highlighted: !equal[i]});
+      const classes = classMap({
+        'highlighted-diff': !this.highlightMatch && !equal[i],
+        'highlighted-match': this.highlightMatch && equal[i]
+      });
       return html`<span class=${classes}>${output}</span>`;
     });
     return displaySpans;
