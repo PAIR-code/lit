@@ -24,3 +24,12 @@
   border: 1px solid rgb(232, 234, 237);
   padding: 5px;
 }
+
+.charts-holder {
+  display: flex;
+}
+
+.chart-label {
+  width: 100%;
+  text-align: center;
+}

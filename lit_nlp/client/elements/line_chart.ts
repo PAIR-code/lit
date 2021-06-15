@@ -24,18 +24,18 @@ import {customElement, html, property} from 'lit-element';
 import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 
-import {styles} from './tcav_bar_vis.css';
-
+import {styles} from './line_chart.css';
 
 /**
- * TCAV Bar chart visualization component.
+ * Line chart visualization component.
  */
-@customElement('tcav-bar-vis')
-export class TCAVBarVis extends ReactiveElement {
-  @observable @property({type: Object}) scores = new Map<string, number>();
+@customElement('line-chart')
+export class LineChart extends ReactiveElement {
+  @observable @property({type: Object}) scores = new Map<number, number>();
   @property({type: Number}) margin = 30;  // Default margin size.
   @property({type: Number}) width = 0;
   @property({type: Number}) height = 0;
+  @property({type: Array}) yScale: number[] = [];
 
   static get styles() {
     return [styles];
@@ -51,28 +51,28 @@ export class TCAVBarVis extends ReactiveElement {
   }
 
   private getXScale() {
-    // Make x and y scales.
     const labels = Array.from(this.scores.keys());
-    return d3.scaleBand().domain(labels).range([0, this.width]).padding(0.1);
+    return d3.scaleLinear().domain([d3.min(labels)!, d3.max(labels)!]).range(
+        [0, this.width]);
   }
 
   private getYScale() {
-    return d3.scaleLinear().domain([0, 1]).range([this.height, 0]);
+    let scale: number[] = this.yScale;
+    if (scale == null || scale.length < 2) {
+      const vals = Array.from(this.scores.values());
+      scale = [d3.min(vals)!, d3.max(vals)!];
+    }
+    return d3.scaleLinear().domain(scale).range([this.height, 0]);
   }
 
   private initializeChart() {
-    /* Sets svg dimensions, adds a group for the chart, and adds line at 0.5.*/
+    /* Sets svg dimensions and adds a group for the chart.*/
     const canvas = this.shadowRoot!.querySelector('#chart') as SVGGElement;
     if (canvas == null) return;
     const chartSVG = d3.select(canvas)
                          .attr('width', this.width + 2 * this.margin)
                          .attr('height', this.height + 2 * this.margin);
-    chartSVG.append('line')
-        .attr('x1', this.margin)
-        .attr('y1', (this.height) / 2 + this.margin)
-        .attr('x2', this.width + this.margin)
-        .attr('y2', (this.height) / 2 + this.margin)
-        .style('stroke', 'gray');
+    chartSVG.selectAll("*").remove();
     chartSVG.append('g')
         .attr('id', 'chart-group')
         .attr('transform', `translate(${this.margin}, ${this.margin})`);
@@ -81,12 +81,7 @@ export class TCAVBarVis extends ReactiveElement {
   }
 
   private renderChart() {
-    // Format concept scores as bar chart data.
-    const data = Array.from(this.scores.entries()).map((entry, i) => {
-      const key = entry[0];
-      const value = entry[1];
-      return {'label': key, 'score': value};
-    });
+    const data = Array.from(this.scores.entries());
 
     // Get x and y scales.
     const x = this.getXScale();
@@ -100,58 +95,68 @@ export class TCAVBarVis extends ReactiveElement {
     chart.selectAll('*').remove();
 
     // Make axes.
-    const xAxis = d3.axisBottom(x).ticks(1);
-    const yAxis = d3.axisLeft(y).ticks(10);
+    const xAxis = d3.axisBottom(x);
+    const yAxis = d3.axisLeft(y).ticks(5);
     chart.append('g')
         .attr('transform', `translate(0, ${this.height})`)
         .attr('class', 'axis')
         .call(xAxis);
     chart.append('g').attr('class', 'axis').call(yAxis);
 
-    // Add bars.
-    chart.selectAll('rect')
-        .data(data)
-        .enter()
-        .append('rect')
-        .attr('width', x.bandwidth())
-        .style('fill', '#07a3ba')
-        // clang-format off
-        .attr('height', (d) => {
-          // The y-axis displays the TCAV score.
-          return this.height - y(d['score']);
-        })
-        .attr('x',(d) => {
-          // The x-axis displays the concept name.
-          const xVal = x(d['label']);
-          return xVal == null ? 0 : xVal;
-        })
-        .attr('y', (d) => {
-          return y(d['score']);
-        })
-        // clang-format on
-        // Show tooltip on mouseover (displays TCAV score, y-value of the bar).
-        .on('mouseover',
-            (d, i, e) => {
-              const el = e[i];
-              this.displayTooltip(d.score.toFixed(3).toString(), el);
-            })
-        .on('mouseout', (d, i, e) => {
-          this.hideTooltip();
-        });
-  }
+    // Add line.
+    chart.append('path')
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", "#07a3ba")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x((d) => x(d[0]))
+        .y((d) => y(d[1])));
 
-  private displayTooltip(value: string, element: SVGGElement) {
-    const tooltip = this.shadowRoot!.querySelector('#tooltip') as HTMLElement;
-    tooltip.innerText = value;
-    tooltip.style.visibility = 'visible';
-    const bcr = (element).getBoundingClientRect();
-    tooltip.style.left = `${(bcr.left + bcr.right) / 2}px`;
-    tooltip.style.top = `${bcr.top}px`;
-  }
+    const focus = chart.append("g")
+        .attr("class", "focus")
+        .style("display", "none");
 
-  private hideTooltip() {
-    const tooltip = this.shadowRoot!.querySelector('#tooltip') as HTMLElement;
-    tooltip.style.visibility = 'hidden';
+    focus.append("circle")
+        .attr("r", 4)
+        .attr("fill", "#07a3ba")
+        .attr("stroke", "#07a3ba");
+
+    const mousemove = () => {
+      console.log(d3.mouse(this));
+      const xLocation = d3.mouse(this)[0] - this.margin;
+      const x0 = x.invert(xLocation);
+      const bisect = d3.bisect(data.map(data => data[0]), x0);
+      let d = data[bisect];
+      if (bisect > 0) {
+        const adjacentBisect = bisect - 1;
+        if (x0 - data[adjacentBisect][0] < data[bisect][0] - x0) {
+          d = data[adjacentBisect];
+        }
+      }
+      focus.attr("transform", `translate(${x(d[0])},${y(d[1])})`);
+
+      const tooltipStr = `${d[0].toFixed(2)}, value: ${d[1].toFixed(2)}`;
+      const tooltip = this.shadowRoot!.querySelector('#tooltip') as HTMLElement;
+      tooltip.innerText = tooltipStr;
+      tooltip.style.visibility = 'visible';
+      tooltip.style.left = `${x(d[0])}px`;
+      tooltip.style.top = `${y(d[1])}px`;
+    };
+
+    chart.append("rect")
+        .attr("class", "overlay")
+        .attr("width", this.width)
+        .attr("height", this.height)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .on("mouseover", () => { focus.style("display", null); })
+        .on("mouseout", () => {
+          focus.style("display", "none");
+          const tooltip = this.shadowRoot!.querySelector('#tooltip') as HTMLElement;
+          tooltip.style.visibility = 'hidden';
+        })
+        .on("mousemove", () => { mousemove(); });
   }
 
   render() {
@@ -168,6 +173,6 @@ export class TCAVBarVis extends ReactiveElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'tcav-bar-vis': TCAVBarVis;
+    'line-chart': LineChart;
   }
 }

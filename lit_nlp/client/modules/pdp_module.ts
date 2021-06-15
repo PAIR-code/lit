@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
+import '../elements/line_chart';
+import '../elements/bar_chart';
 // tslint:disable:no-new-decorators
 import {customElement, html} from 'lit-element';
 import {until} from 'lit-html/directives/until';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
-import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, setEquals} from '../lib/utils';
+import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
 
 import {styles} from './pdp_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -35,6 +37,9 @@ interface PdpInfo {
 interface AllPdpInfo {
   [predKey: string]: PdpInfo;
 }
+
+// Data for bar or line charts.
+type ChartInfo = Map<string|number, number>;
 
 /**
  * A LIT module that renders regression results.
@@ -110,6 +115,9 @@ export class PdpModule extends LitModule {
       return null;
     }
 
+    const spec = this.appState.getModelSpec(this.model);
+    const isNumeric = isLitSubtype(spec.input[feat], 'Scalar');
+
     // Get plot info if already fetched by front-end, or make call to back-end
     // to calcuate it.
     const getPlotInfo = (feat: string): Promise<AllPdpInfo> => {
@@ -134,12 +142,65 @@ export class PdpModule extends LitModule {
           </div>`;
     };
 
-    // TODO(jwexler): Implement line and bar chart elements and use them to
-    // display PDP results.
+    const renderPredPlots = (plot: PdpInfo, predKey: string) => {
+      const data = new Array<ChartInfo>();
+      data.push(new Map<string|number, number>());
+      for (const key of Object.keys(plot)) {
+        const val = plot[key];
+        const xVal = isNumeric ? +key : key;
+        if (Array.isArray(val)) {
+          for (let i = 0; i < val.length; i++) {
+            if (data.length <= i) {
+              data.push(new Map<string|number, number>());
+            }
+            data[i].set(xVal, val[i]);
+          }
+        } else {
+          data[0].set(xVal, val);
+        }
+      }
+
+      const nullIdx = spec.output[predKey].null_idx;
+      const vocab = spec.output[predKey].vocab;
+      const isClassification = isLitSubtype(
+          spec.output[predKey], 'MulticlassPreds');
+      const yRange = isClassification ? [0, 1] : [];
+      const renderChart = (chartData: ChartInfo) => {
+        if (isNumeric) {
+          return html`
+              <line-chart height=150 width=300
+                  .scores=${chartData} .yScale=${yRange}>
+              </line-chart>`;
+        } else {
+          return html`
+              <bar-chart height=150 width=300
+                  .scores=${chartData} .yScale=${yRange}>
+              </bar-chart>`;
+        }
+
+      };
+      return html`
+          <div class="charts-holder">
+            ${data.map((chartData, i) => {
+              const label = vocab != null && vocab.length > i ? vocab[i] : '';
+              if (nullIdx == null || nullIdx !== i) {
+                return html`
+                    <div>
+                      <div class="chart-label">${label}</div>
+                      ${renderChart(chartData)}
+                    </div>`;
+              } else {
+                return null;
+              }
+            })}
+          </div>`;
+    };
     const renderPlotInfo = (plotInfo: AllPdpInfo) => {
       return html`
           <div class='pdp-background'>
-            <div>${JSON.stringify(this.plotInfo.get(feat))}</div>
+            ${Object.keys(plotInfo).map(predKey => {
+              return renderPredPlots(plotInfo[predKey], predKey);
+            })}
           </div>`;
     };
 
