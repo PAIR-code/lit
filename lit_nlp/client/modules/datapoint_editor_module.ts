@@ -18,6 +18,7 @@
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
 import {customElement, html} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable, when} from 'mobx';
 
@@ -62,6 +63,7 @@ export class DatapointEditorModule extends LitModule {
   @observable editedData: Input = {};
   @observable datapointEdited: boolean = false;
   @observable inputHeights: {[name: string]: string} = {};
+  @observable maximizedImageFields = new Set<string>();
 
   @computed
   get dataTextLengths(): {[key: string]: number} {
@@ -315,9 +317,27 @@ export class DatapointEditorModule extends LitModule {
 
     // Render an image.
     const renderImage = () => {
+      const toggleImageSize = () => {
+        if (this.maximizedImageFields.has(key)) {
+          this.maximizedImageFields.delete(key);
+        } else {
+          this.maximizedImageFields.add(key);
+        }
+      };
+      const maximizeImage = this.maximizedImageFields.has(key);
+      const imageClasses = classMap({
+        'image-min': !maximizeImage,
+      });
       const imageSource = (value == null) ? '' : value.toString() as string;
       return html`
-      <img class='image' src=${imageSource}>`;
+        <div class="image-holder">
+          <img class=${imageClasses} src=${imageSource}>
+          <mwc-icon class="image-toggle" @click=${toggleImageSize}
+                    title="Toggle full size">
+            ${maximizeImage ? 'close_fullscreen' : 'open_in_full'}
+          </mwc-icon>
+        </div>
+      `;
     };
 
     const inputStyle = {'height': this.inputHeights[key]};
