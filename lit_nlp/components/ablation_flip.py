@@ -40,7 +40,6 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import cf_utils
-from lit_nlp.lib import utils
 import numpy as np
 
 JsonDict = types.JsonDict
@@ -79,13 +78,6 @@ class AblationFlip(lit_components.Generator):
     self.tokenize = str.split
     self.detokenize = " ".join
 
-  def _get_input_text_fields(self,
-                             input_spec: JsonDict,
-                             example: JsonDict) -> List[str]:
-    """Returns names of all text fields in the input_spec."""
-    # Find text fields.
-    return [key for key in utils.find_spec_keys(input_spec, types.TextSegment)]
-
   def _subset_exists(self, cand_set, sets):
     """Checks whether a subset of 'cand_set' exists in 'sets'."""
     for s in sets:
@@ -112,13 +104,17 @@ class AblationFlip(lit_components.Generator):
 
   def _create_cf(self,
                  example: JsonDict,
-                 text_field: str,
+                 input_spec: Spec,
+                 input_field: str,
                  tokens: List[str],
                  token_idxs: Tuple[int, ...]) -> JsonDict:
     cf = copy.deepcopy(example)
     modified_tokens = [t for i, t in enumerate(tokens)
                        if i not in token_idxs]
-    cf[text_field] = self.detokenize(modified_tokens)
+    if isinstance(input_spec[input_field], types.TextSegment):
+      cf[input_field] = self.detokenize(modified_tokens)
+    elif isinstance(input_spec[input_field], types.SparseMultilabel):
+      cf[input_field] = modified_tokens
     return cf
 
   def config_spec(self) -> types.Spec:
@@ -126,6 +122,8 @@ class AblationFlip(lit_components.Generator):
         NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
         MAX_ABLATIONS_KEY: types.TextSegment(
             default=str(MAX_ABLATIONS_DEFAULT)),
+        # TODO(ataly,tolgab): Replace this option with one that lets the user
+        # freeze entire fields.
         TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
         PREDICTION_KEY: types.FieldMatcher(spec="output",
                                            types=["MulticlassPreds",
@@ -167,22 +165,20 @@ class AblationFlip(lit_components.Generator):
     # Get model outputs.
     orig_output = list(model.predict([example]))[0]
 
-    # Get input text segments.
-    text_fields = self._get_input_text_fields(input_spec, example)
-    assert text_fields, (
-        "No text input field found. Cannot generate AblationFlips")
-
     successful_cfs = []
-    for text_field in text_fields:
-      if text_field not in example:
+    for input_field in input_spec.keys():
+      if input_field not in example:
+        continue
+      if isinstance(input_spec[input_field], types.TextSegment):
+        tokens = self.tokenize(example[input_field])
+      elif isinstance(input_spec[input_field], types.SparseMultilabel):
+        tokens = example[input_field]
+      else:
         continue
       logging.info("Identifying AblationFlips for input field: %s",
-                   str(text_field))
-      text = example[text_field]
-      tokens = self.tokenize(text)
-
+                   str(input_field))
       max_ablations_for_field = max_ablations
-      if input_spec[text_field].required:
+      if input_spec[input_field].required:
         # Update max_ablations_for_field so that it is at most len(tokens) - 1
         # (we don't want to ablate all tokens!).
         max_ablations_for_field = min(len(tokens)-1, max_ablations)
@@ -199,7 +195,8 @@ class AblationFlip(lit_components.Generator):
           continue
 
         # Create counterfactual.
-        cf = self._create_cf(example, text_field, tokens, token_idxs)
+        cf = self._create_cf(example, input_spec, input_field,
+                             tokens, token_idxs)
         # Obtain model prediction.
         cf_output = list(model.predict([cf]))[0]
 
