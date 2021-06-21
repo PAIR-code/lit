@@ -15,12 +15,15 @@
 # Lint as: python3
 """Tests for lit_nlp.components.ablation_flip."""
 
+from typing import Iterable, Iterator
+
 from absl.testing import absltest
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
-# TODO(lit-dev): Move glue_models out of lit_nlp/examples
 from lit_nlp.examples.models import glue_models
 import numpy as np
+
+# TODO(lit-dev): Move glue_models out of lit_nlp/examples
 
 
 BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
@@ -40,6 +43,21 @@ class SST2ModelNonRequiredField(glue_models.SST2Model):
     return spec
 
 
+class SST2ModelWithPredictCounter(glue_models.SST2Model):
+
+  def __init__(self, *args, **kw):
+    super().__init__(*args, **kw)
+    self.predict_counter = 0
+
+  def predict(self,
+              inputs: Iterable[types.JsonDict],
+              scrub_arrays=True,
+              **kw) -> Iterator[types.JsonDict]:
+    results = super().predict(inputs, scrub_arrays, **kw)
+    self.predict_counter += 1
+    return results
+
+
 class ModelBasedAblationFlipTest(absltest.TestCase):
 
   def setUp(self):
@@ -50,10 +68,16 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
     self.classification_config = {ablation_flip.PREDICTION_KEY: 'probas'}
 
-    # The above clasification model with the 'sentence' field marked as
+    # Clasification model with the 'sentence' field marked as
     # non-required.
     self.classification_model_non_required_field = SST2ModelNonRequiredField(
         BERT_TINY_PATH)
+
+    # Clasification model with a counter to count number of predict calls.
+    # TODO(ataly): Consider setting up a Mock object to count number of
+    # predict calls.
+    self.classification_model_with_predict_counter = (
+        SST2ModelWithPredictCounter(BERT_TINY_PATH))
 
     # Regression model determining similarity between two input sentences.
     self.regression_model = glue_models.STSBModel(STSB_PATH)
@@ -83,6 +107,38 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.assertLen(
         self.ablation_flip.generate(ex, self.regression_model, None,
                                     self.regression_config), 2)
+
+  def test_ablation_flip_long_sentence(self):
+    sentence = (
+        'this was a terrible terrible movie but I am a writing '
+        'a nice long review for testing whether AblationFlip '
+        'can handle long sentences with a bounded number of '
+        'predict calls.')
+    ex = {'sentence': sentence}
+    self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 100
+    self.classification_config[ablation_flip.MAX_ABLATIONS_KEY] = 100
+    model = self.classification_model_with_predict_counter
+    cfs = self.ablation_flip.generate(
+        ex, model, None, self.classification_config)
+
+    # This example must yield 19 ablation_flips.
+    self.assertLen(cfs, 19)
+
+    # Number of predict calls made by ablation_flip should be upper-bounded by
+    # <number of tokens in sentence> + 2**MAX_ABLATABLE_TOKENS
+    num_tokens = len(model.tokenizer(sentence))
+    num_predict_calls = model.predict_counter
+    self.assertLessEqual(num_predict_calls,
+                         num_tokens + 2**ablation_flip.MAX_ABLATABLE_TOKENS)
+
+    # We use a smaller value of MAX_ABLATABLE_TOKENS and check that the
+    # number of predict calls is smaller, and that the prediction bound still
+    # holds.
+    model.predict_counter = 0
+    ablation_flip.MAX_ABLATABLE_TOKENS = 5
+    self.assertLessEqual(model.predict_counter, num_predict_calls)
+    self.assertLessEqual(model.predict_counter,
+                         num_tokens + 2**ablation_flip.MAX_ABLATABLE_TOKENS)
 
   def test_ablation_flip_freeze_tokens(self):
     ex = {'sentence': 'this long movie is terrible'}

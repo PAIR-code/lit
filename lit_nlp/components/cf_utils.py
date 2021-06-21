@@ -25,7 +25,7 @@ def update_prediction(example: types.JsonDict,
                       example_output: types.JsonDict,
                       output_spec: types.JsonDict,
                       pred_key: Text):
-  """Updates prediction label in the provided example assuming a classification model."""
+  """Updates prediction score and label (if classification model) in the provided example."""
   prediction = example_output[pred_key]
   example[pred_key] = prediction
   pred_spec = output_spec[pred_key]
@@ -55,3 +55,19 @@ def is_prediction_flip(cf_output: types.JsonDict,
     cf_pred_class = np.argmax(cf_output[pred_key])
     orig_pred_class = np.argmax(orig_output[pred_key])
   return cf_pred_class != orig_pred_class
+
+
+def prediction_difference(cf_output: types.JsonDict,
+                          orig_output: types.JsonDict,
+                          output_spec: types.JsonDict,
+                          pred_key: Text) -> float:
+  """Returns the difference in prediction between cf_output and orig_output."""
+  if isinstance(output_spec[pred_key], types.RegressionScore):
+    # regression model. We use the provided threshold to binarize the output.
+    cf_pred = cf_output[pred_key]
+    orig_pred = orig_output[pred_key]
+  else:
+    orig_pred_class = np.argmax(orig_output[pred_key])
+    cf_pred = cf_output[pred_key][orig_pred_class]
+    orig_pred = orig_output[pred_key][orig_pred_class]
+  return cf_pred - orig_pred

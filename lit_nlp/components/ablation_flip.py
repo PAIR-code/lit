@@ -32,7 +32,7 @@ This generator builds on ideas from the following paper.
 
 import copy
 import itertools
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, List, Optional, Text, Tuple
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -54,6 +54,8 @@ TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
 TOKENS_TO_IGNORE_DEFAULT = []
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 0.0
+MAX_ABLATABLE_TOKENS = 10
+ABLATED_FIELD_KEY = "ablation_field"
 
 
 class AblationFlip(lit_components.Generator):
@@ -71,6 +73,13 @@ class AblationFlip(lit_components.Generator):
   The returned counterfactuals are guaranteed to be minimal in the sense that
   no strict subset of the applied ablations would have resulted in a
   prediction flip.
+
+  The number of model predictions made by this generator per input field is
+  upper-bounded by
+  <number of tokens> + 2**MAX_ABLATABLE_TOKENS
+  Since MAX_ABLATABLE_TOKENS is a constant, effectively this generator makes
+  O(k*n) model predictions, where k is the number of input fields, and n is the
+  maximum number of tokens across all fields.
   """
 
   def __init__(self):
@@ -88,18 +97,32 @@ class AblationFlip(lit_components.Generator):
   def _gen_token_idxs_to_ablate(
       self,
       tokens: List[str],
+      loo_scores: List[float],
       max_ablations: int,
-      tokens_to_ignore: List[str]) -> Iterator[Tuple[int, ...]]:
+      tokens_to_ignore: List[str],
+      orig_regression_score: Optional[float] = None,
+      regression_thresh: Optional[float] = None) -> Iterator[Tuple[int, ...]]:
     """Generates sets of token positions that are eligible for ablation."""
+
+    # Order tokens by their leave-one-out ablation scores. (Note that these
+    # would be negative if the ablation results in reducing the score.) We use
+    # ascending order for classification tasks. For regression tasks, the order
+    # is based on whether the original score is above or below the threshold --
+    # we use ascending order for the former, and descending for the latter.
+    token_idxs = np.argsort(loo_scores)
+    if regression_thresh and orig_regression_score <= regression_thresh:
+      token_idxs = token_idxs[::-1]
+
+    # Drop tokens that the user has asked to ignore.
+    token_idxs = [idx for idx in token_idxs
+                  if tokens[idx] not in tokens_to_ignore]
+
+    # Only consider the top tokens up to MAX_ABLATABLE_TOKENS.
+    token_idxs = token_idxs[:MAX_ABLATABLE_TOKENS]
+
     # Consider all combinations of tokens upto length max_ablations.
-    # TODO(ataly): When the total number of tokens is a above a threshold,
-    # only consider the top k tokens by attributions for the purpose of
-    # ablation.
-    token_idxs = np.arange(len(tokens))
-    token_idxs_to_ablate = [idx for idx in token_idxs
-                            if tokens[idx] not in tokens_to_ignore]
-    for i in range(min(len(token_idxs_to_ablate), max_ablations)):
-      for s in itertools.combinations(token_idxs_to_ablate, i+1):
+    for i in range(min(len(token_idxs), max_ablations)):
+      for s in itertools.combinations(token_idxs, i+1):
         yield s
 
   def _create_cf(self,
@@ -116,6 +139,26 @@ class AblationFlip(lit_components.Generator):
     elif isinstance(input_spec[input_field], types.SparseMultilabel):
       cf[input_field] = modified_tokens
     return cf
+
+  def _generate_leave_one_out_ablation_score(
+      self,
+      example: JsonDict,
+      model: lit_model.Model,
+      input_spec: Spec,
+      output_spec: Spec,
+      orig_output: JsonDict,
+      pred_key: Text,
+      input_field: str,
+      tokens: List[str]) -> List[float]:
+    # Returns a list of leave-one-out ablation score for the provided tokens.
+    loo_scores = []
+    for i in range(len(tokens)):
+      cf = self._create_cf(example, input_spec, input_field, tokens,
+                           tuple([i]))
+      cf_output = list(model.predict([cf]))[0]
+      loo_scores.append(cf_utils.prediction_difference(
+          cf_output, orig_output, output_spec, pred_key))
+    return loo_scores
 
   def config_spec(self) -> types.Spec:
     return {
@@ -182,9 +225,22 @@ class AblationFlip(lit_components.Generator):
         # Update max_ablations_for_field so that it is at most len(tokens) - 1
         # (we don't want to ablate all tokens!).
         max_ablations_for_field = min(len(tokens)-1, max_ablations)
+
+      loo_scores = self._generate_leave_one_out_ablation_score(
+          example, model, input_spec, output_spec, orig_output, pred_key,
+          input_field, tokens)
+
+      if isinstance(output_spec[pred_key], types.RegressionScore):
+        token_idxs_to_ablate = self._gen_token_idxs_to_ablate(
+            tokens, loo_scores, max_ablations_for_field, tokens_to_ignore,
+            orig_output[pred_key], regression_thresh)
+      else:
+        # classification
+        token_idxs_to_ablate = self._gen_token_idxs_to_ablate(
+            tokens, loo_scores, max_ablations_for_field, tokens_to_ignore)
+
       successful_positions = []
-      for token_idxs in self._gen_token_idxs_to_ablate(
-          tokens, max_ablations_for_field, tokens_to_ignore):
+      for token_idxs in token_idxs_to_ablate:
         if len(successful_cfs) >= num_examples:
           return successful_cfs
 
@@ -204,6 +260,8 @@ class AblationFlip(lit_components.Generator):
             cf_output, orig_output, output_spec, pred_key, regression_thresh):
           # Prediction flip found!
           cf_utils.update_prediction(cf, cf_output, output_spec, pred_key)
+          cf[ABLATED_FIELD_KEY] = (
+              f"{input_field}{[tokens[idx] for idx in token_idxs]}")
           successful_cfs.append(cf)
           successful_positions.append(set(token_idxs))
     return successful_cfs
