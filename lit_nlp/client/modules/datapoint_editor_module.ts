@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import '../elements/checkbox';
+
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
 import {customElement, html} from 'lit-element';
@@ -34,7 +36,7 @@ import {styles as sharedStyles} from './shared_styles.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.
-type InputConverterFn = (s: string) => string|number|string[];
+type InputConverterFn = (s: string) => string|number|string[]|boolean;
 
 /**
  * A LIT module that allows the user to view and edit a datapoint.
@@ -412,7 +414,24 @@ export class DatapointEditorModule extends LitModule {
       return html`${value ? (value as EdgeLabel[]).map(renderLabel) : null}`;
     };
 
+    // For boolean values, render a checkbox.
+    const renderBoolean = () => {
+      const handleCheckboxChange = (e: Event) => {
+        // Converter function ignores 'value' input string, uses checked status.
+        handleInputChange(e, () => !!(e.target as HTMLInputElement).checked);
+      };
+      return html`
+      <lit-checkbox
+        ?checked=${value}
+        @change=${handleCheckboxChange}
+      ></lit-checkbox>`;
+    };
+
     let renderInput = renderFreeformInput;  // default: free text
+    const entryContentClasses = {
+      'entry-content': true,
+      'freeform': false,
+    };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
     if (vocab != null) {
@@ -432,6 +451,10 @@ export class DatapointEditorModule extends LitModule {
           renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
     } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
+    } else if (isLitSubtype(fieldSpec, 'Boolean')) {
+      renderInput = renderBoolean;
+    } else {
+      entryContentClasses['freeform'] = true;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
@@ -465,7 +488,8 @@ export class DatapointEditorModule extends LitModule {
       const params = new URLSearchParams();
       params.set('q', value);
       headerContent = html`
-        <a href="https://www.google.com/search?${params.toString()}" target="_blank">
+        <a href="https://www.google.com/search?${
+          params.toString()}" target="_blank">
           ${headerContent}
           <mwc-icon class="icon-button">search</mwc-icon>
         </a>`;
@@ -484,7 +508,7 @@ export class DatapointEditorModule extends LitModule {
           <div class='field-name'>${headerContent}</div>
           <div class='field-type'>(${fieldSpec.__name__})</div>
         </div>
-        <div>
+        <div class=${classMap(entryContentClasses)}>
           ${renderInput()}
         </div>
       </div>

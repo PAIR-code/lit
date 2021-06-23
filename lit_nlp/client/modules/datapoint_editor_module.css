@@ -18,9 +18,10 @@
 }
 
 .field-header {
+  align-items: baseline;
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-flow: row wrap;
+  gap: .5em;
   justify-content: space-between;
 }
 
@@ -61,7 +62,17 @@
 }
 
 .entry {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-between;
   margin: 10px 5px;
+}
+
+.freeform {
+  flex-grow: 1;
+  flex-basis: 100%;
 }
 
 textarea {
