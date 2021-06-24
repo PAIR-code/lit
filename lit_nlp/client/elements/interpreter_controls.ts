@@ -106,11 +106,16 @@ export class InterpreterControls extends ReactiveElement {
         if (isLitSubtype(spec[name], 'SparseMultilabel')) {
           this.settings[name] = spec[name].default as string[];
         }
+        // If select all is True, default value is all of vocab.
+        if (isLitSubtype(spec[name], 'MultiFieldMatcher')) {
+          this.settings[name] = spec[name].select_all!?
+              spec[name].vocab as string[] :
+              spec[name].default as string[];
+        }
         // FieldMatcher has its vocab set outside of this element.
         else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
           this.settings[name] = spec[name].vocab![0];
-        }
-        else {
+        } else {
           this.settings[name] = spec[name].default as string;
         }
       }
@@ -126,7 +131,7 @@ export class InterpreterControls extends ReactiveElement {
   }
 
   renderControl(name: string, controlType: LitType) {
-    if (isLitSubtype(controlType, 'SparseMultilabel')) {
+    if (isLitSubtype(controlType, ['SparseMultilabel', 'MultiFieldMatcher'])) {
       // Render checkboxes, with the first item selected.
       const renderCheckboxes =
           () => controlType.vocab!.map(option => {
@@ -148,8 +153,7 @@ export class InterpreterControls extends ReactiveElement {
         `;
       });
       return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
-     }
-     else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
+    } else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);
@@ -165,8 +169,7 @@ export class InterpreterControls extends ReactiveElement {
           .value=${defaultValue}>
         ${options}
       </select>`;
-    }
-    else if (isLitSubtype(controlType, ['Scalar'])) {
+    } else if (isLitSubtype(controlType, ['Scalar'])) {
       // Render a dropdown, with the first item selected.
       const updateSettings = (e: Event) => {
         const input = (e.target as HTMLInputElement);
@@ -193,8 +196,7 @@ export class InterpreterControls extends ReactiveElement {
         </div>
         <div>${this.settings[name]}</div>
         `;
-    }
-    else if (isLitSubtype(controlType, ['Boolean'])) {
+    } else if (isLitSubtype(controlType, ['Boolean'])) {
       // Render a checkbox.
       const toggleVal = () => {
         const val = !!this.settings[name];
@@ -208,8 +210,7 @@ export class InterpreterControls extends ReactiveElement {
         </lit-checkbox>
       `;
       // clang-format on
-    }
-    else if (isLitSubtype(controlType, ['Tokens'])) {
+    } else if (isLitSubtype(controlType, ['Tokens'])) {
       // Render a text input box and split on commas.
       const value = this.settings[name] as string || '';
       const updateText = (e: Event) => {
@@ -218,8 +219,7 @@ export class InterpreterControls extends ReactiveElement {
       };
       return html`<input class="control" type="text" @input=${updateText}
           .value="${value}" />`;
-    }
-    else {
+    } else {
       // Render a text input box.
       const value = this.settings[name] as string || '';
       const updateText = (e: Event) => {

@@ -351,11 +351,27 @@ class FieldMatcher(LitType):
   """For matching spec fields.
 
   The front-end will perform spec matching and fill in the vocab field
-  accordingly.
+  accordingly. UI will materialize this to a dropdown-list.
+  Use MultiFieldMatcher when your intent is selecting more than one field in UI.
   """
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
   vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MultiFieldMatcher(LitType):
+  """For matching spec fields.
+
+  The front-end will perform spec matching and fill in the vocab field
+  accordingly. UI will materialize this to multiple checkboxes. Use this when
+  the user needs to pick more than one field in UI.
+  """
+  spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
+  types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
+  vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+  default: Sequence[Text] = []  # default names of selected items.
+  select_all: bool = False  # Select all by default (overriddes default).
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

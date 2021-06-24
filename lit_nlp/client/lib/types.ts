@@ -30,8 +30,8 @@ export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
     'Scalar'|'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
     'SpanLabels'|'EdgeLabels'|'MultiSegmentAnnotations'|'Embeddings'|
     'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
-    'FieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|'ImageBytes'|
-    'SparseMultilabelPreds'|'ImageGradients';
+    'FieldMatcher'|'MultiFieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|
+    'ImageBytes'|'SparseMultilabelPreds'|'ImageGradients';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
@@ -59,6 +59,7 @@ export interface LitType {
   autorun?: boolean;
   signed?: boolean;
   mask_token?: string;
+  select_all?: boolean;
 }
 
 export interface Spec {

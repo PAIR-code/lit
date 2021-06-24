@@ -319,7 +319,8 @@ export class GeneratorModule extends LitModule {
             for (const fieldName of Object.keys(clonedSpec)) {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+              if (isLitSubtype(clonedSpec[fieldName],
+                               ['FieldMatcher','MultiFieldMatcher'])) {
                 clonedSpec[fieldName].vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
                         clonedSpec[fieldName], this.modelName);

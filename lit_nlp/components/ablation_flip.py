@@ -52,6 +52,7 @@ MAX_ABLATIONS_KEY = "Maximum number of token ablations"
 MAX_ABLATIONS_DEFAULT = 3
 TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
 TOKENS_TO_IGNORE_DEFAULT = []
+FIELDS_TO_ABLATE_KEY = "Fields to ablate"
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 0.0
 MAX_ABLATABLE_TOKENS = 10
@@ -167,12 +168,18 @@ class AblationFlip(lit_components.Generator):
             default=str(MAX_ABLATIONS_DEFAULT)),
         # TODO(ataly,tolgab): Replace this option with one that lets the user
         # freeze entire fields.
-        TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
-        PREDICTION_KEY: types.FieldMatcher(spec="output",
-                                           types=["MulticlassPreds",
-                                                  "RegressionScore"]),
-        REGRESSION_THRESH_KEY: types.TextSegment(
-            default=str(REGRESSION_THRESH_DEFAULT)),
+        TOKENS_TO_IGNORE_KEY:
+            types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
+        PREDICTION_KEY:
+            types.FieldMatcher(
+                spec="output", types=["MulticlassPreds", "RegressionScore"]),
+        FIELDS_TO_ABLATE_KEY:
+            types.MultiFieldMatcher(
+                spec="input",
+                types=["TextSegment", "SparseMultilabel"],
+                select_all=True),
+        REGRESSION_THRESH_KEY:
+            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
     }
 
   def generate(self,
@@ -188,12 +195,15 @@ class AblationFlip(lit_components.Generator):
     max_ablations = int(config.get(MAX_ABLATIONS_KEY, MAX_ABLATIONS_DEFAULT))
     tokens_to_ignore = config.get(TOKENS_TO_IGNORE_KEY,
                                   TOKENS_TO_IGNORE_DEFAULT)
-    pred_key = config.get(PREDICTION_KEY, "")
-    regression_thresh = float(config.get(REGRESSION_THRESH_KEY,
-                                         REGRESSION_THRESH_DEFAULT))
     assert model is not None, "Please provide a model for this generator."
 
     input_spec = model.input_spec()
+    # If config key is missing, ablate all fields.
+    fields_to_ablate = config.get(FIELDS_TO_ABLATE_KEY, input_spec.keys())
+    pred_key = config.get(PREDICTION_KEY, "")
+    regression_thresh = float(config.get(REGRESSION_THRESH_KEY,
+                                         REGRESSION_THRESH_DEFAULT))
+
     output_spec = model.output_spec()
     assert pred_key, "Please provide the prediction key"
     assert pred_key in output_spec, "Invalid prediction key"
@@ -210,7 +220,7 @@ class AblationFlip(lit_components.Generator):
 
     successful_cfs = []
     for input_field in input_spec.keys():
-      if input_field not in example:
+      if input_field not in example or input_field not in fields_to_ablate:
         continue
       if isinstance(input_spec[input_field], types.TextSegment):
         tokens = self.tokenize(example[input_field])
