@@ -26,9 +26,9 @@ import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {customElement, html, property, TemplateResult} from 'lit-element';
+import {isTemplateResult} from 'lit-html/directive-helpers';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
-import {isTemplateResult} from 'lit-html/directive-helpers';
 import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
@@ -257,7 +257,7 @@ export class DataTable extends ReactiveElement {
     // Passthrough values if TableEntry is number or string. If it is
     // TemplateResult return 0 for sorting purposes. If it is a sortable
     // tempate result then sort by the underlying sortable value.
-    if (typeof colEntry === "string" || isNumber(colEntry)) {
+    if (typeof colEntry === 'string' || isNumber(colEntry)) {
       return colEntry as SortableTableEntry;
     }
     if (isTemplateResult(colEntry)) {
@@ -514,7 +514,7 @@ export class DataTable extends ReactiveElement {
 
   resetView() {
     this.columnSearchQueries.clear();
-    this.sortName = undefined;  // reset to input ordering
+    this.sortName = undefined;    // reset to input ordering
     this.showColumnMenu = false;  // hide search bar
     // Reset sticky sort and re-render from input data.
     this.stickySortedData = null;
@@ -539,10 +539,10 @@ export class DataTable extends ReactiveElement {
       }
     };
 
-    //TODO: calculate correct # of entries per page.
+    // TODO: calculate correct # of entries per page.
     const rowsContainerClasses = classMap({
       'rows-container': true,
-      'with-footer': this.hasFooter
+      'with-footer': this.hasFooter,
     });
     // clang-format off
     return html`
@@ -580,7 +580,7 @@ export class DataTable extends ReactiveElement {
       this.pageNum = newPageNum;
     };
     const prevPage = () => {
-      const newPageNum = modPageNumber(this.pageNum -1);
+      const newPageNum = modPageNumber(this.pageNum - 1);
       this.pageNum = newPageNum;
     };
     const firstPage = () => {
@@ -758,8 +758,8 @@ export class DataTable extends ReactiveElement {
             return html`<td>${templateResult}</td>`;
           }
           const entryClasses = {numeric: isNumber(d)};
-          return html`<td><div class="${classMap(entryClasses)}">
-              ${formatForDisplay(d, undefined, true)}</div></td>`;
+          return html`<td><div class="${classMap(entryClasses)}"
+            >${formatForDisplay(d, undefined, true)}</div></td>`;
         })}
       </tr>
     `;

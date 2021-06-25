@@ -194,6 +194,7 @@ td {
 td div {
   max-height: 150px;
   overflow: auto;
+  white-space: pre-wrap;
 }
 
 .numeric {
