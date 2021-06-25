@@ -149,6 +149,12 @@ class GeneratedTextCandidates(TextSegment):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ReferenceTexts(LitType):
+  """Multiple candidates for TextSegment; values are List[(text, score)]."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URL(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass

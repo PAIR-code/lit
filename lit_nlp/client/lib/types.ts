@@ -26,12 +26,13 @@ export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
 export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
-    'GeneratedTextCandidates'|'URL'|'SearchQuery'|'Tokens'|'TokenTopKPreds'|
-    'Scalar'|'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
-    'SpanLabels'|'EdgeLabels'|'MultiSegmentAnnotations'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
-    'FieldMatcher'|'MultiFieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|
-    'ImageBytes'|'SparseMultilabelPreds'|'ImageGradients';
+    'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|'SearchQuery'|'Tokens'|
+    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
+    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
+    'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'MultiFieldMatcher'|
+    'Gradients'|'Boolean'|'SalienceMap'|'ImageBytes'|'SparseMultilabelPreds'|
+    'ImageGradients';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];

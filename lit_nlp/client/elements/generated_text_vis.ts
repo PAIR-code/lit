@@ -59,10 +59,12 @@ export class GeneratedTextVis extends ReactiveElement {
   @property({type: Array})
   candidates: GeneratedTextCandidate[] = [];
   @observable @property({type: String}) referenceFieldName?: string;
-  @observable @property({type: String}) referenceText?: string;
+  @observable @property({type: Array}) referenceTexts: GeneratedTextCandidate[] = [];
+
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
   @observable @property({type: Boolean}) highlightMatch: boolean = false;
   @observable @property({type: Number}) selectedIdx = 0;
+  @observable @property({type: Number}) selectedRefIdx = 0;
 
   static get styles() {
     return [sharedStyles, styles];
@@ -70,13 +72,14 @@ export class GeneratedTextVis extends ReactiveElement {
 
   @computed
   get textDiff() {
-    if (this.referenceText === undefined) return;
+    if (this.referenceTexts === undefined) return;
     if (this.candidates[this.selectedIdx] === undefined) return;
     if (this.diffMode === DiffMode.NONE) return;
-    // Actually compute diffs
+    // Actually compute diffs - first get the selected output/reference.
     const outputText = this.candidates[this.selectedIdx][0];
     const byWord = (this.diffMode === DiffMode.WORD);
-    return getTextDiff(this.referenceText, outputText, byWord);
+    const referenceText = this.referenceTexts[this.selectedRefIdx][0];
+    return getTextDiff(referenceText, outputText, byWord);
   }
 
   renderDiffString(strings: string[], equal: boolean[]) {
@@ -103,18 +106,36 @@ export class GeneratedTextVis extends ReactiveElement {
     return displaySpans;
   }
 
-  renderReference() {
+  renderReferences() {
+    const renderedReferences = this.referenceTexts.map((candidate, i) => {
+      const formattedText =
+          this.textDiff !== undefined && i === this.selectedRefIdx ?
+          this.renderDiffString(
+              this.textDiff.inputStrings, this.textDiff.equal) :
+              candidate[0];
+      const classes = classMap({
+        'token-chip-label': true,
+        'candidate': true,
+        'candidate-selected': this.selectedRefIdx === i,
+      });
+      const onClickSelect = () => {
+        this.selectedRefIdx = i;
+      };
+      // clang-format off
+      return html`
+        <div class=${classes} @click=${onClickSelect}>
+          <div class='candidate-score'>${candidate[1]?.toFixed(3)}</div>
+          <div class='candidate-text'>${formattedText}</div>
+        </div>
+      `;
+      // clang-format on
+    });
+
     // clang-format off
     return html`
       <tr class='output-row'>
         <th>${this.referenceFieldName}</th>
-        <td>
-          <div class='token-chip-label'>
-            ${this.textDiff ? this.renderDiffString(this.textDiff.inputStrings,
-                                                    this.textDiff.equal)
-                            : this.referenceText}
-          </div>
-        </td>
+        <td><div class='candidates'>${renderedReferences}</div></td>
       </tr>
     `;
     // clang-format on
@@ -160,7 +181,7 @@ export class GeneratedTextVis extends ReactiveElement {
     return html`
       <div class='output'>
         <table class='output-table'>
-          ${this.referenceFieldName != null ? this.renderReference() : null}
+          ${this.referenceFieldName != null ? this.renderReferences() : null}
           ${this.renderCandidates()}
         </table>
       </div>

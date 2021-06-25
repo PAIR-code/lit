@@ -155,13 +155,22 @@ export class GeneratedTextModule extends LitModule {
 
   renderOutputGroup(name: string) {
     const referenceFieldName = this.referenceFields.get(name) ?? undefined;
-    const referenceText = this.inputData?.[referenceFieldName!] ?? undefined;
+    let referenceTexts = this.inputData?.[referenceFieldName!] ?? undefined;
+    // If the reference is a TextSegment, up-cast the single string to the
+    // expected candidate list type GenereatedTextCandidate[].
+    if (referenceFieldName !== undefined){
+      const spec = this.appState.getModelSpec(this.model).input;
+      if (!isLitSubtype(spec[referenceFieldName], 'ReferenceTexts')) {
+        referenceTexts = [[referenceTexts, null]];
+      }
+    }
+
     // clang-format off
     return html`
       <generated-text-vis .fieldName=${name}
                           .candidates=${this.generatedText[name]}
                           .referenceFieldName=${referenceFieldName}
-                          .referenceText=${referenceText}
+                          .referenceTexts=${referenceTexts}
                           .diffMode=${this.diffMode}
                           ?highlightMatch=${this.invertDiffs}>
       </generated-text-vis>
