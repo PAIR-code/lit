@@ -15,7 +15,8 @@
 # Lint as: python3
 """Utility functions for generating counterfactuals."""
 
-from typing import Optional, Text, cast
+import re
+from typing import List, Optional, Text, Tuple, cast
 
 from lit_nlp.api import types
 import numpy as np
@@ -71,3 +72,50 @@ def prediction_difference(cf_output: types.JsonDict,
     cf_pred = cf_output[pred_key][orig_pred_class]
     orig_pred = orig_output[pred_key][orig_pred_class]
   return cf_pred - orig_pred
+
+
+def _tokenize_url(url: str) -> List[Tuple[str, int, int]]:
+  """Tokenizes a URL and returns list of triples specifying the token string and its start and end position."""
+  if not url:
+    return []
+  separator_regex = "[^a-zA-Z0-9]"
+  separator_matches = list(re.finditer(separator_regex, url))
+  if not separator_matches:
+    # If no separator is found, use the entire string.
+    return [(url, 0, len(url))]
+
+  tokens = []  # a list of tuples of token, start index, end index.
+  start_idx = 0  # start index for next token
+  for i in range(len(separator_matches)):
+    sep = separator_matches[i]
+    sep_start_idx = sep.start()
+    if sep_start_idx > start_idx:
+      tokens.append((url[start_idx:sep_start_idx], start_idx, sep_start_idx))
+    start_idx = sep.end()
+
+  if start_idx < len(url):
+    tokens.append((url[start_idx:], start_idx, len(url)))
+  return tokens
+
+
+def tokenize_url(url: str) -> List[str]:
+  """Tokenizes the provided URL and returns a list of token strings."""
+  url_tokens = _tokenize_url(url)
+  return [t for t, _, _ in url_tokens]
+
+
+def ablate_url_tokens(url: str,
+                      token_idxs_to_ablate: Tuple[int, ...]) -> str:
+  """Ablates the tokens at the provided indices and returns the resulting URL."""
+  url_tokens = _tokenize_url(url)
+  start = 0
+  modified_url_pieces = []
+  for token_idx in token_idxs_to_ablate:
+    assert token_idx < len(url_tokens), (
+        "token_idxs_to_ablate must all fall in the range 0 to number of tokens"
+        " returned by tokenize_url")
+    _, token_start, token_end = url_tokens[token_idx]
+    modified_url_pieces.append(url[start:token_start])
+    start = token_end
+  modified_url_pieces.append(url[start:])
+  return "".join(modified_url_pieces)

@@ -131,14 +131,19 @@ class AblationFlip(lit_components.Generator):
                  input_spec: Spec,
                  input_field: str,
                  tokens: List[str],
-                 token_idxs: Tuple[int, ...]) -> JsonDict:
+                 token_idxs_to_ablate: Tuple[int, ...]) -> JsonDict:
     cf = copy.deepcopy(example)
     modified_tokens = [t for i, t in enumerate(tokens)
-                       if i not in token_idxs]
-    if isinstance(input_spec[input_field], types.TextSegment):
+                       if i not in token_idxs_to_ablate]
+    input_ty = input_spec[input_field]
+    if isinstance(input_ty, types.TextSegment):
       cf[input_field] = self.detokenize(modified_tokens)
-    elif isinstance(input_spec[input_field], types.SparseMultilabel):
+    elif isinstance(input_ty, types.SparseMultilabel):
       cf[input_field] = modified_tokens
+    elif isinstance(input_ty, types.URL):
+      url = example[input_field]
+      modified_url = cf_utils.ablate_url_tokens(url, token_idxs_to_ablate)
+      cf[input_field] = modified_url
     return cf
 
   def _generate_leave_one_out_ablation_score(
@@ -222,10 +227,13 @@ class AblationFlip(lit_components.Generator):
     for input_field in input_spec.keys():
       if input_field not in example or input_field not in fields_to_ablate:
         continue
-      if isinstance(input_spec[input_field], types.TextSegment):
-        tokens = self.tokenize(example[input_field])
-      elif isinstance(input_spec[input_field], types.SparseMultilabel):
+      input_ty = input_spec[input_field]
+      if isinstance(input_ty, types.URL):
+        tokens = cf_utils.tokenize_url(example[input_field])
+      elif isinstance(input_ty, types.SparseMultilabel):
         tokens = example[input_field]
+      elif isinstance(input_ty, types.TextSegment):
+        tokens = self.tokenize(example[input_field])
       else:
         continue
       logging.info("Identifying AblationFlips for input field: %s",
