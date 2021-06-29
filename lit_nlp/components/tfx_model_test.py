@@ -31,8 +31,8 @@ class TfxModelTest(tf.test.TestCase):
         'output_0':
             lit_types.MulticlassPreds(vocab=['0', '1'], parent='input_0')
     }
-    lit_model = tfx_model.TFXModel(
-        self._path, input_spec=input_spec, output_spec=output_spec)
+    config = tfx_model.TFXModelConfig(self._path, input_spec, output_spec)
+    lit_model = tfx_model.TFXModel(config)
     result = list(lit_model.predict([{'input_0': 0.5}]))
     self.assertLen(result, 1)
     result = result[0]
