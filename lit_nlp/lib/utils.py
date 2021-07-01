@@ -19,8 +19,9 @@ import copy
 import queue
 import threading
 
-from typing import Dict, List, TypeVar, Callable, Any
+from typing import Dict, Iterable, Iterator, List, Sequence, TypeVar, Callable, Any
 
+T = TypeVar('T')
 K = TypeVar('K')
 V = TypeVar('V')
 
@@ -71,6 +72,40 @@ def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
     new dict with fields renamed
   """
   return {keymap.get(k, k): d[k] for k in d}
+
+
+def batch_iterator(items: Iterable[T],
+                   max_batch_size: int) -> Iterator[List[T]]:
+  """Create batches from an input stream.
+
+  Use this to create batches, e.g. to feed to a model.
+  The output can be easily flattened again using itertools.chain.from_iterable.
+
+  Args:
+    items: stream of items
+    max_batch_size: maximum size of resulting batches
+
+  Yields:
+    batches of size <= max_batch_size
+  """
+  minibatch = []
+  for item in items:
+    if len(minibatch) < max_batch_size:
+      minibatch.append(item)
+    if len(minibatch) >= max_batch_size:
+      yield minibatch
+      minibatch = []
+  if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
+    yield minibatch
+
+
+def batch_inputs(input_records: Sequence[Dict[K, V]]) -> Dict[K, List[V]]:
+  """Batch inputs from list-of-dicts to dict-of-lists."""
+  assert input_records, 'Must have non-empty batch!'
+  ret = {}
+  for k in input_records[0]:
+    ret[k] = [r[k] for r in input_records]
+  return ret
 
 
 def _extract_batch_length(preds):
