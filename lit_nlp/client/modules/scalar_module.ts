@@ -827,8 +827,7 @@ export class ScalarModule extends LitModule {
     // displays the positive class.
     const nullIdx = spec.output[key].null_idx;
     if (predictionLabels.length === 2 && nullIdx != null) {
-      return html`<div>${this.renderThresholdSlider(margins, key)}</div>
-          ${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
+      return html`${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
     }
 
     // Otherwise, return one plot per label in the multiclass case.
@@ -890,62 +889,16 @@ export class ScalarModule extends LitModule {
     // clang-format on
   }
 
-  renderThresholdSlider(margins: NumericSetting, key: string) {
-    // Convert between margin and classification threshold when displaying
-    // margin as a threshold, as is done for binary classifiers.
-    // Threshold is between 0 and 1 and represents the minimum score of the
-    // positive (non-null) class before a datapoint is classified as positive.
-    // A margin of 0 is the same as a threshold of .5 - meaning we take the
-    // argmax class. A negative margin is a threshold below .5. Margin ranges
-    // from -5 to 5, and can be converted the threshold through the equation
-    // margin = ln(threshold / (1 - threshold)).
-    const onChange = (e: Event) => {
-      const newThresh = +(e.target as HTMLInputElement).value;
-      const newMargin = newThresh !== 1 ?
-          (newThresh !== 0 ? Math.log(newThresh / (1 - newThresh)) : -5) :
-          5;
-      margins[key] = newMargin;
-    };
-    const marginToVal = (margin: number) => {
-      const val = getThresholdFromMargin(+margin);
-      return Math.round(100 * val) / 100;
-    };
-    return this.renderSlider(
-        margins, key, 0, 1, 0.01, onChange, marginToVal, 'threshold');
-  }
-
   renderMarginSlider(margins: NumericSetting, key: string) {
-    const onChange = (e: Event) => {
-      const newMargin = (e.target as HTMLInputElement).value;
-      margins[key] = +newMargin;
-    };
-    const marginToVal = (margin: number) => margin;
-    return this.renderSlider(
-        margins, key, -5, 5, 0.05, onChange, marginToVal, 'margin');
-  }
-
-  renderSlider(
-      margins: NumericSetting, key: string, min: number, max: number,
-      step: number, onChange: (e: Event) => void,
-      marginToVal: (margin: number) => number, title: string) {
     const margin = margins[key];
-    if (margin == null) {
-      return;
-    }
-    const val = marginToVal(margins[key]);
-    const isDefaultValue = margins[key] === 0;
-    const reset = (e: Event) => {
-      margins[key] = 0;
+    const callback = (e: Event) => {
+      // tslint:disable-next-line:no-any
+      margins[(e as any).detail.predKey] = (e as any).detail.margin;
     };
     return html`
-        <div class="slider-row">
-          <div>${key} ${title}:</div>
-          <input type="range" min="${min}" max="${max}" step="${step}"
-                 .value="${val.toString()}" class="slider"
-                 @change=${onChange}>
-          <div class="slider-label">${val}</div>
-          <button @click=${reset} ?disabled="${isDefaultValue}">Reset</button>
-        </div>`;
+        <threshold-slider .margin=${margin} predKey=${key}
+                          ?isThreshold=${false} @threshold-changed=${callback}>
+        </threshold-slider>`;
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
