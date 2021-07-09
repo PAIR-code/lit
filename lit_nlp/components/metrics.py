@@ -333,3 +333,58 @@ class CorpusBLEU(SimpleMetrics):
     bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
+
+
+class BinaryConfusionMetrics(SimpleMetrics):
+  """Confusion matrix values for binary classification."""
+
+  def get_all_metrics(self,
+                      y_true: Sequence[int],
+                      y_pred: Sequence[int],
+                      vocab: Sequence[Text],
+                      null_idx: Optional[int] = None):
+    # Filter out unlabeled examples before calculating metrics.
+    labeled_example_indices = [
+        index for index, y in enumerate(y_true) if y != -1
+    ]
+    y_true = [y_true[i] for i in labeled_example_indices]
+    y_pred = [y_pred[i] for i in labeled_example_indices]
+
+    # Return binary confusion matrix entries.
+    ret = collections.OrderedDict()
+    matrix = sklearn_metrics.confusion_matrix(y_true, y_pred)
+    ret['TN'] = matrix[0][0]
+    ret['FP'] = matrix[0][1]
+    ret['FN'] = matrix[1][0]
+    ret['TP'] = matrix[1][1]
+    return ret
+
+  def is_compatible(self, field_spec: types.LitType) -> bool:
+    """Return true if binary classification with ground truth."""
+    if not isinstance(field_spec, types.MulticlassPreds):
+      return False
+    class_spec = cast(types.MulticlassPreds, field_spec)
+    return len(class_spec.vocab) == 2 and class_spec.parent
+
+  def compute(self,
+              labels: Sequence[Text],
+              preds: Sequence[np.ndarray],
+              label_spec: types.CategoryLabel,
+              pred_spec: types.MulticlassPreds,
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del label_spec  # Unused; get vocab from pred_spec.
+
+    if not labels or not preds:
+      return {}
+
+    label_idxs = [
+        pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
+        for label in labels
+    ]
+    # Get classifications using possible margin value to control threshold
+    # of positive classification.
+    pred_idxs = get_classifications(preds, pred_spec, config)
+
+    return self.get_all_metrics(
+        label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
