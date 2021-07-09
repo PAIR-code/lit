@@ -39,6 +39,7 @@ import {ScalarModule} from '../modules/scalar_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
+import {ThresholderModule} from '../modules/thresholder_module';
 import {MultilabelModule} from '../modules/multilabel_module';
 
 // clang-format off
@@ -92,6 +93,7 @@ export const LAYOUTS: LitComponentLayouts = {
     components : {
       'Main': DEFAULT_MAIN_GROUP,
       'Predictions': [
+        ThresholderModule,
         ScalarModule,
         ...MODEL_PREDS_MODULES,
         PdpModule,
@@ -116,6 +118,7 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
+        ThresholderModule,
         ScalarModule,
         PdpModule,
       ],
@@ -145,6 +148,7 @@ export const LAYOUTS: LitComponentLayouts = {
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
+        ThresholderModule,
         ScalarModule,
         PdpModule,
       ],

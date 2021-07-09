@@ -32,20 +32,6 @@
   margin: 5px 0;
 }
 
-.slider-row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 8px 5px;
-}
-
-.slider-row div {
-  padding-top: 9px;
-}
-
-.slider-label {
-  width: 30px;
-}
-
 .collapse-bar {
   width: 100%;
   height: 30px;

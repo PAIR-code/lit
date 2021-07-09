@@ -134,7 +134,7 @@ class SimpleMetrics(lit_components.Interpreter):
           pred_spec=spec.output[pred_key],
           indices=indices,
           metas=metas,
-          config=config.get(label_key) if config else None)
+          config=config.get(pred_key) if config else None)
       # NaN is not a valid JSON value, so replace with None which will be
       # serialized as null.
       # TODO(lit-team): move this logic into serialize.py somewhere instead?
