@@ -140,34 +140,19 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.assertLessEqual(model.predict_counter,
                          num_tokens + 2**ablation_flip.MAX_ABLATABLE_TOKENS)
 
-  def test_ablation_flip_freeze_tokens(self):
-    ex = {'sentence': 'this long movie is terrible'}
-    self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 10
-    tokens_to_freeze = ['long', 'terrible']
-    self.classification_config[
-        ablation_flip.TOKENS_TO_IGNORE_KEY] = tokens_to_freeze
-    cfs = self.ablation_flip.generate(ex, self.classification_model, None,
-                                      self.classification_config)
-    for cf in cfs:
-      tokens = self.ablation_flip.tokenize(cf['sentence'])
-      self.assertContainsSubset(tokens_to_freeze, tokens)
-
-  def test_ablation_flip_freeze_tokens_multi_input(self):
+  def test_ablation_flip_freeze_fields(self):
     ex = {'sentence1': 'this long movie is terrible',
           'sentence2': 'this long movie is great'}
     self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 10
     thresh = 2
     self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = thresh
-    self.regression_config[ablation_flip.TOKENS_TO_IGNORE_KEY] = [
-        'long', 'terrible'
+    self.regression_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence1'
     ]
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
                                       self.regression_config)
     for cf in cfs:
-      tokens1 = self.ablation_flip.tokenize(cf['sentence1'])
-      tokens2 = self.ablation_flip.tokenize(cf['sentence2'])
-      self.assertContainsSubset(['long', 'terrible'], tokens1)
-      self.assertContainsSubset(['long'], tokens2)
+      self.assertEqual(cf['sentence2'], ex['sentence2'])
 
   def test_ablation_flip_max_ablations(self):
     ex = {'sentence': 'this movie is terrible'}
@@ -193,8 +178,7 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex_tokens2 = self.ablation_flip.tokenize(ex['sentence2'])
 
     self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 20
-    thresh = 2
-    self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = 2
     max_ablations = 1
     self.regression_config[ablation_flip.MAX_ABLATIONS_KEY] = max_ablations
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
@@ -203,20 +187,33 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
       # Number of ablations in each field should be no more than MAX_ABLATIONS.
       cf_tokens1 = self.ablation_flip.tokenize(cf['sentence1'])
       cf_tokens2 = self.ablation_flip.tokenize(cf['sentence2'])
-      self.assertGreaterEqual(len(cf_tokens1), len(ex_tokens1) - max_ablations)
-      self.assertGreaterEqual(len(cf_tokens2), len(ex_tokens2) - max_ablations)
+      self.assertGreaterEqual(
+          len(cf_tokens1) + len(cf_tokens2),
+          len(ex_tokens1) + len(ex_tokens2) - max_ablations)
 
-  def test_ablation_flip_only_ablate_from_one_field(self):
-    ex = {'sentence1': 'this long movie is terrible',
+  def test_ablation_flip_yields_multi_field_ablations(self):
+    ex = {'sentence1': 'this short movie is awesome',
           'sentence2': 'this short movie is great'}
-    self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 10
-    thresh = 2
-    self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = thresh
+    ex_tokens1 = self.ablation_flip.tokenize(ex['sentence1'])
+    ex_tokens2 = self.ablation_flip.tokenize(ex['sentence2'])
+
+    self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 20
+    self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = 2
+    self.regression_config[ablation_flip.MAX_ABLATIONS_KEY] = 5
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
                                       self.regression_config)
+
+    # Verify that at least one counterfactual involves ablations across
+    # multiple fields.
+    multi_field_ablation_found = False
     for cf in cfs:
-      self.assertTrue((cf['sentence1'] == ex['sentence1']) or
-                      (cf['sentence2'] == ex['sentence2']))
+      cf_tokens1 = self.ablation_flip.tokenize(cf['sentence1'])
+      cf_tokens2 = self.ablation_flip.tokenize(cf['sentence2'])
+      if ((len(cf_tokens1) < len(ex_tokens1))
+          and (len(cf_tokens2) < len(ex_tokens2))):
+        multi_field_ablation_found = True
+        break
+    self.assertTrue(multi_field_ablation_found)
 
   def test_ablation_flip_changes_pred_class(self):
     ex = {'sentence': 'this long movie is terrible'}
