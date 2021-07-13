@@ -1,6 +1,6 @@
 # 🔥 Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-13' } *-->
 
 The Language Interpretability Tool (LIT) is a visual, interactive
 model-understanding tool for NLP models. It can be run as a standalone server,
@@ -172,6 +172,11 @@ For a full walkthrough, see
 LIT is easy to extend with new interpretability components, generators, and
 more, both on the frontend or the backend. See the
 [developer guide](documentation/development.md) to get started.
+
+## Pull Request Process
+
+To make code changes to LIT, please work off of the `dev` branch and create
+pull requests against that branch. The `main` branch is for stable releases, and it is expected that the `dev` branch will always be ahead of `main` in terms of commits.
 
 ## Citing LIT
 
