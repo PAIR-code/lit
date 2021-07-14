@@ -41,6 +41,7 @@ from lit_nlp.components import pdp
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
 from lit_nlp.components import tcav
+from lit_nlp.components import thresholder
 from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
@@ -396,6 +397,7 @@ class LitApp(object):
           'LIME': lime_explainer.LIME(),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
+          'thresholder': thresholder.Thresholder(),
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
           'pdp': pdp.PdpInterpreter(),

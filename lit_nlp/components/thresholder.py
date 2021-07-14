@@ -89,11 +89,11 @@ class Thresholder(lit_components.Interpreter):
     """
     config = TresholderConfig(**config) if config else TresholderConfig()
 
-    label_keys = []
-    for field_spec in model.output_spec().values():
+    pred_keys = []
+    for pred_key, field_spec in model.output_spec().items():
       if self.metrics_gen.is_compatible(field_spec) and cast(
           types.MulticlassPreds, field_spec).parent:
-        label_keys.append(cast(types.MulticlassPreds, field_spec).parent)
+        pred_keys.append(pred_key)
 
     # Try all margins for thresholds from 0 to 1, by hundreths.
     margins_to_try = [
@@ -103,8 +103,8 @@ class Thresholder(lit_components.Interpreter):
     results = []
     for margin in margins_to_try:
       metrics_config = {}
-      for label_key in label_keys:
-        metrics_config[label_key] = margin
+      for pred_key in pred_keys:
+        metrics_config[pred_key] = margin
 
       results.append(self.metrics_gen.run_with_metadata(
           indexed_inputs, model, dataset, model_outputs, metrics_config))

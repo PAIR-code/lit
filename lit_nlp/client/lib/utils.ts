@@ -137,6 +137,16 @@ export function getThresholdFromMargin(margin: number) {
 }
 
 /**
+ *  Converts the threshold value for binary classification to the margin.
+ */
+export function getMarginFromThreshold(threshold: number) {
+  const margin = threshold !== 1 ?
+      (threshold !== 0 ? Math.log(threshold / (1 - threshold)) : -5) :
+      5;
+  return margin;
+}
+
+/**
  * Shortens the id of an input data to be displayed in the UI.
  */
 export function shortenId(id: string|null) {
@@ -210,12 +220,24 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[]): boolean {
+    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    extraCheck?: (litType: LitType) => boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
     const outputSpec = models[modelNames[modelNum]].spec.output;
-    if (findSpecKeys(outputSpec, typesToCheck).length) {
-      return true;
+    const matchedSpecs = findSpecKeys(outputSpec, typesToCheck);
+    // If there are matching fields, and there is no extra check then return
+    // true, otherwise return true if the extra check suceeds for any field.
+    if (matchedSpecs.length) {
+      if (extraCheck != null) {
+        for (const matchedSpec of matchedSpecs) {
+          if (extraCheck(outputSpec[matchedSpec])) {
+            return true;
+          }
+        }
+      } else {
+        return true;
+      }
     }
   }
   return false;
@@ -240,6 +262,13 @@ export function doesInputSpecContain(
     }
   }
   return false;
+}
+
+/** Returns if a LitType specifies binary classification. */
+export function isBinaryClassification(litType: LitType) {
+    const predictionLabels = litType.vocab!;
+    const nullIdx = litType.null_idx;
+    return predictionLabels.length === 2 && nullIdx != null;
 }
 
 /**
