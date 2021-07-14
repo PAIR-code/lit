@@ -11,13 +11,6 @@ For specific API documentation, see:
 *   [Python API](python_api.md)
 *   [Frontend Client](client.md)
 
-## Pull Request Process
-
-To make code changes to LIT, please work off of the "dev" branch and create
-pull requests against that branch. The "main" branch is for stable releases, not
-for active development. The "dev" branch will always be ahead of the "main"
-branch in terms of commits.
-
 ## Design Overview
 
 ![LIT system design](images/lit-design-complex.png)
