@@ -375,10 +375,10 @@ class LitApp(object):
       self._generators = generators
     else:
       self._generators = {
-          'ablation_flip': ablation_flip.AblationFlip(),
-          'hotflip': hotflip.HotFlip(),
-          'scrambler': scrambler.Scrambler(),
-          'word_replacer': word_replacer.WordReplacer(),
+          'Ablation Flip': ablation_flip.AblationFlip(),
+          'Hotflip': hotflip.HotFlip(),
+          'Scrambler': scrambler.Scrambler(),
+          'Word Replacer': word_replacer.WordReplacer(),
       }
 
     if interpreters is not None:
