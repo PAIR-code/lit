@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
+import '@material/mwc-switch/deprecated';
 import '../elements/checkbox';
 
 import {customElement, html, query} from 'lit-element';
