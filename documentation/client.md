@@ -1,4 +1,4 @@
-# Frontend Client
+# LIT UI Guide
 
 <!-- client docs placeholder - DO NOT REMOVE -->
 
