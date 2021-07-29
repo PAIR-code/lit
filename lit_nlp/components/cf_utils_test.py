@@ -59,6 +59,11 @@ class CfUtilsTest(absltest.TestCase):
     self.assertEqual(expected_url,
                      cf_utils.ablate_url_tokens(url, token_idxs_to_ablate))
 
+    token_idxs_to_ablate = [4, 3, 0]
+    expected_url = "://www.gmail.//u/1/#inbox"
+    self.assertEqual(expected_url,
+                     cf_utils.ablate_url_tokens(url, token_idxs_to_ablate))
+
     token_idxs_to_ablate = [0, 1, 2, 3, 4, 5, 6, 7]
     expected_url = "://..////#"
     self.assertEqual(expected_url,

@@ -110,6 +110,7 @@ def ablate_url_tokens(url: str,
   url_tokens = _tokenize_url(url)
   start = 0
   modified_url_pieces = []
+  token_idxs_to_ablate = sorted(token_idxs_to_ablate)
   for token_idx in token_idxs_to_ablate:
     assert token_idx < len(url_tokens), (
         "token_idxs_to_ablate must all fall in the range 0 to number of tokens"
