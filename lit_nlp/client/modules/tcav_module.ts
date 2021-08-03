@@ -21,6 +21,7 @@ import '../elements/tcav_score_bar';
 import '@material/mwc-switch/deprecated';
 
 import {customElement, html} from 'lit-element';
+import {TemplateResult} from 'lit-html';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -38,10 +39,19 @@ import {styles} from './tcav_module.css';
 
 const MIN_EXAMPLES_LENGTH = 3;  // minimum examples needed to train the CAV.
 const TCAV_INTERPRETER_NAME = 'tcav';
-const COLUMN_NAMES =
-    ['Positive Slice', 'Run', 'Embedding', 'Class', 'CAV Score', 'Score Bar'];
-const WARNING_TEXT =
-    `this run was not statistically significant (p > 0.05)`;
+const COLUMN_NAMES = [
+  'Positive Slice', 'Negative Slice', 'Run', 'Embedding', 'Class', 'CAV Score',
+  'Score Bar'
+];
+
+const RELATIVE_TCAV_MIN_EXAMPLES = 6;  // MIN_SPLIT_SIZE * MIN_SPLITS in tcav.py
+const NO_T_TESTING_WARNING = `Did not run t-testing (requires at least ${
+    RELATIVE_TCAV_MIN_EXAMPLES} positive and ${
+    RELATIVE_TCAV_MIN_EXAMPLES} negative samples)`;
+
+const MAX_P_VAL = 0.05;
+const HIGH_P_VAL_WARNING =
+    `this run was not statistically significant (p > ${MAX_P_VAL})`;
 
 /**
  * The TCAV module.
@@ -65,6 +75,7 @@ export class TCAVModule extends LitModule {
   @observable private readonly selectedSlices = new Set<string>();
   @observable private readonly selectedLayers = new Set<string>();
   @observable private readonly selectedClasses = new Set<string>();
+  @observable private readonly negativeSlices = new Set<string>();
   @observable private isLoading: boolean = false;
   @observable private isSliceHidden: boolean = false;
   @observable private isClassHidden: boolean = true;
@@ -88,6 +99,31 @@ export class TCAVModule extends LitModule {
     return this.sliceService.sliceNames.filter(
         name => name !== STARRED_SLICE_NAME);
   }
+
+  // Returns pairs in the format [positive slice, negative slice (or null)]
+  // for slices selected in the settings.
+  @computed
+  get slicePairs(): Array<[string, string|null]> {
+    const positiveSlices: string[] = Array.from(this.selectedSlices.values());
+    const negativeSlices: string[] = Array.from(this.negativeSlices.values());
+
+    if (positiveSlices.length === 0) return [];
+
+    if (negativeSlices.length === 0) {
+      return positiveSlices.map((slice: string) => {
+        return [slice, null];
+      });
+    }
+    const pairs: Array<[string, string | null]> = [];
+    for (const positiveSlice of positiveSlices) {
+      for (const negativeSlice of negativeSlices) {
+        pairs.push([positiveSlice, negativeSlice]);
+      }
+    }
+    return pairs;
+  }
+
+
 
   @computed
   get predClasses() {
@@ -125,8 +161,9 @@ export class TCAVModule extends LitModule {
   }
 
   renderCollapseBar(
-      title: string, toggle: () => void, isHidden: boolean, items: string[],
-      columnName: string, selectSet: Set<string>) {
+      title: string, barToggled: () => void, isHidden: boolean, items: string[],
+      columnName: string, selectSet: Set<string>, secondSelectName: string = '',
+      secondSelectSet: Set<string>|null = null) {
     const checkboxChanged = (e: Event, item: string) => {
       const checkbox = e.target as HTMLInputElement;
       if (checkbox.checked) {
@@ -135,6 +172,7 @@ export class TCAVModule extends LitModule {
         selectSet.delete(item);
       }
     };
+
     const data = items.map((item) => {
       const row = [
         // clang-format off
@@ -144,13 +182,34 @@ export class TCAVModule extends LitModule {
         // clang-format on
         item
       ];
+      if (secondSelectSet != null) {
+        const secondCheckboxChanged = (e: Event, item: string) => {
+          const checkbox = e.target as HTMLInputElement;
+          if (checkbox.checked) {
+            secondSelectSet.add(item);
+          } else {
+            secondSelectSet.delete(item);
+          }
+        };
+        row.push(
+            // clang-format off
+            html`<lit-checkbox id='compare-switch'
+                  ?checked=${secondSelectSet.has(item)}
+                  @change='${(e: Event) => {secondCheckboxChanged(e, item);}}'>
+                </lit-checkbox>`
+            // clang-format on
+        );
+      }
       return row;
     });
     const columns = ['selected', columnName];
+    if (secondSelectSet != null) {
+      columns.push(secondSelectName);
+    }
 
     // clang-format off
     return html`
-      <div class='collapse-bar' @click=${toggle}>
+      <div class='collapse-bar' @click=${barToggled}>
         <div class="axis-title">
           <div>${title}</div>
         </div>
@@ -190,6 +249,7 @@ export class TCAVModule extends LitModule {
       this.selectedClasses.clear();
       this.selectedLayers.clear();
       this.selectedSlices.clear();
+      this.negativeSlices.clear();
     };
 
     const clearTable = () => {
@@ -226,8 +286,9 @@ export class TCAVModule extends LitModule {
                                      toggleSliceCollapse,
                                      this.isSliceHidden,
                                      this.TCAVSliceNames,
-                                     'Slice',
-                                     this.selectedSlices)}
+                                     'Positive slice',
+                                     this.selectedSlices,
+                                     'Negative slice', this.negativeSlices)}
             ${this.renderCollapseBar('Explainable Classes',
                                      toggleClassCollapse,
                                      this.isClassHidden,
@@ -249,7 +310,8 @@ export class TCAVModule extends LitModule {
                 @click=${clearOptions}
                 ?disabled=${this.selectedClasses.size === 0 &&
                   this.selectedLayers.size === 0 &&
-                  this.selectedSlices.size === 0}>Clear</button>
+                  this.selectedSlices.size === 0 &&
+                  this.negativeSlices.size === 0}>Clear</button>
               <button id='submit'
                 class='text-button' title=${shouldDisable() ? disabledText: ''}
                 @click=${() => this.runTCAV()} ?disabled=${
@@ -273,7 +335,8 @@ export class TCAVModule extends LitModule {
     // clang-format on
   }
 
-  private async runSingleTCAV(config: CallConfig, sliceName: string) {
+  private async runSingleTCAV(
+      config: CallConfig, positiveSlice: string, negativeSlice: string) {
     const comparisonSetLength = this.appState.currentInputData.length -
         config['concept_set_ids'].length;
     if (config['concept_set_ids'].length < MIN_EXAMPLES_LENGTH ||
@@ -293,11 +356,12 @@ export class TCAVModule extends LitModule {
       return;
     }
     // TODO(lit-dev): Show local TCAV scores in the scalar chart.
-    const score = result[0]['result']['score'];
     return {
-      'slice': sliceName,
+      'positiveSlice': positiveSlice,
+      'negativeSlice': negativeSlice,
       'config': config,
-      'score': result[0]['p_val'] < 0.05 ? score : '-',
+      'score': result[0]['result']['score'],
+      'p_val': result[0]['p_val'],
       'random_mean': result[0]['random_mean']
     };
   }
@@ -308,17 +372,26 @@ export class TCAVModule extends LitModule {
     // TODO(lit-dev): Add option to run TCAV on selected examples.
     // TODO(lit-dev): Add option to run TCAV on categorical features.
     const promises = [];
-    for (const slice of this.selectedSlices.values()) {
+    for (const slicePair of this.slicePairs) {
       for (const gradClass of this.selectedClasses.values()) {
         for (const layer of this.selectedLayers.values()) {
-          const selectedIds = this.sliceService.getSliceByName(slice)!;
+          const positiveSlice = slicePair[0];
+          const negativeSlice = slicePair[1];
+          const conceptSetIds =
+              this.sliceService.getSliceByName(positiveSlice)!;
           const config: CallConfig = {
-            'concept_set_ids': selectedIds,
+            'concept_set_ids': conceptSetIds,
             'class_to_explain': gradClass,
             'grad_layer': layer,
             'dataset_name': this.appState.currentDataset,
           };
-          promises.push(this.runSingleTCAV(config, slice));
+          if (negativeSlice != null) {
+            const negativeSliceIds =
+                this.sliceService.getSliceByName(negativeSlice)!;
+            config['negative_set_ids'] = negativeSliceIds;
+          }
+          promises.push(
+              this.runSingleTCAV(config, positiveSlice, negativeSlice ?? '-'));
         }
       }
     }
@@ -329,20 +402,33 @@ export class TCAVModule extends LitModule {
     for (const res of results) {
       if (res == null) continue;
       if (res['config'] == null || res['score'] == null) continue;
+
+      // clang-format off
+      let scoreBar: TemplateResult|string = html`<tcav-score-bar
+             score=${res['score']}
+             meanVal=${res['random_mean']}
+             clampVal=${1}>
+           </tcav-score-bar>`;
+      // clang-format on
+      let displayScore = res['score'];
+
+      if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
+        displayScore = '-';
+        scoreBar = HIGH_P_VAL_WARNING;
+      }
+      if (res['p_val'] == null) {
+        scoreBar = NO_T_TESTING_WARNING;
+      }
+
+
       this.resultsTableData.push({
-        'Positive Slice': res['slice'],
+        'Positive Slice': res['positiveSlice'],
+        'Negative Slice': res['negativeSlice'],
         'Run': this.cavCounter,
         'Embedding': res['config']['grad_layer'],
         'Class': res['config']['class_to_explain'],
-        'CAV Score': res['score'],
-        // clang-format off
-        'Score Bar': res['score'] === '-' ? WARNING_TEXT :
-            html`<tcav-score-bar
-                   score=${res['score']}
-                   meanVal=${res['random_mean']}
-                   clampVal=${1}>
-                 </tcav-score-bar>`
-        // clang-format on
+        'CAV Score': displayScore,
+        'Score Bar': scoreBar
       });
     }
     this.cavCounter++;

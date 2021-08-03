@@ -23,6 +23,7 @@
 
 #vis-container {
   width: 100%;
+  height: 100%;
 }
 
 #warning-text {
@@ -60,7 +61,7 @@
 }
 
 .left-container {
-  width: 400px;
+  width: 500px;
   border: 1px solid #E8EAED;
 }
 
