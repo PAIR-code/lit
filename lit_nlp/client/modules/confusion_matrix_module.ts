@@ -23,7 +23,7 @@ import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
 import {MatrixCell} from '../elements/data_matrix';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, objToDictKey} from '../lib/utils';
+import {doesOutputSpecContain, facetMapToDictKey, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {GetFeatureFunc, GroupService} from '../services/group_service';
 import {ClassificationService} from '../services/services';
@@ -261,8 +261,10 @@ export class ConfusionMatrixModule extends LitModule {
           return {ids: [], selected: false};
         }
         // Find the bin corresponding to this row/column value combination.
-        const facetsDict = {[colName]: colLabel, [rowName]: rowLabel};
-        const bin = bins[objToDictKey(facetsDict)];
+        const facetsDict = {
+          [colName]: {val:colLabel, displayVal: colLabel},
+          [rowName]: {val:rowLabel, displayVal: rowLabel}};
+        const bin = bins[facetMapToDictKey(facetsDict)];
         const ids = bin ? bin.data.map(example => example.id) : [];
         return {ids, selected: false};
       });

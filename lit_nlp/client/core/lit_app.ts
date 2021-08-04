@@ -137,12 +137,12 @@ export class LITApp {
     const urlService = new UrlService();
     const appState = new AppState(apiService, statusService);
     const sliceService = new SliceService(selectionService, appState);
-    const classificationService =
-        new ClassificationService(apiService, appState);
     const regressionService = new RegressionService(apiService, appState);
     const settingsService =
         new SettingsService(appState, modulesService, selectionService);
     const groupService = new GroupService(appState);
+    const classificationService =
+        new ClassificationService(apiService, appState, groupService);
     const colorService = new ColorService(
         appState, groupService, classificationService, regressionService);
     const focusService = new FocusService(selectionService);

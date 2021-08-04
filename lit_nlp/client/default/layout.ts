@@ -93,7 +93,6 @@ export const LAYOUTS: LitComponentLayouts = {
     components : {
       'Main': DEFAULT_MAIN_GROUP,
       'Predictions': [
-        ThresholderModule,
         ScalarModule,
         ...MODEL_PREDS_MODULES,
         PdpModule,
@@ -101,6 +100,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
+        ThresholderModule,
       ],
       'Counterfactuals': [GeneratorModule],
     },
@@ -115,10 +115,10 @@ export const LAYOUTS: LitComponentLayouts = {
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
+        ThresholderModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
-        ThresholderModule,
         ScalarModule,
         PdpModule,
       ],
@@ -145,10 +145,10 @@ export const LAYOUTS: LitComponentLayouts = {
       'Performance': [
         MetricsModule,
         ConfusionMatrixModule,
+        ThresholderModule,
       ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
-        ThresholderModule,
         ScalarModule,
         PdpModule,
       ],

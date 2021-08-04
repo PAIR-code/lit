@@ -23,7 +23,7 @@ import {styles as sharedStyles} from '../modules/shared_styles.css';
 @customElement('threshold-slider')
 export class ThresholdSlider extends LitElement {
   @property({type: Number}) margin = 0;
-  @property({type: String}) predKey = '';
+  @property({type: String}) label = '';
   // Threshold sliders are between 0 and 1 for binary classification thresholds.
   // The other type of sliders are margin sliders between -5 and 5 for use with
   // mutliclass classifiers.
@@ -53,7 +53,7 @@ export class ThresholdSlider extends LitElement {
     `];
   }
 
-  renderThresholdSlider(margin: number, key: string) {
+  renderThresholdSlider(margin: number, label: string) {
     // Convert between margin and classification threshold when displaying
     // margin as a threshold, as is done for binary classifiers.
     // Threshold is between 0 and 1 and represents the minimum score of the
@@ -67,7 +67,7 @@ export class ThresholdSlider extends LitElement {
       const newMargin = getMarginFromThreshold(newThresh);
       const event = new CustomEvent('threshold-changed', {
         detail: {
-          predKey: key,
+          label,
           margin: newMargin
         }
       });
@@ -78,15 +78,15 @@ export class ThresholdSlider extends LitElement {
       return Math.round(100 * val) / 100;
     };
     return this.renderSlider(
-        margin, key, 0, 1, 0.01, onChange, marginToVal, 'threshold');
+        margin, label, 0, 1, 0.01, onChange, marginToVal, 'threshold');
   }
 
-  renderMarginSlider(margin: number, key: string) {
+  renderMarginSlider(margin: number, label: string) {
     const onChange = (e: Event) => {
       const newMargin = (e.target as HTMLInputElement).value;
       const event = new CustomEvent('threshold-changed', {
         detail: {
-          predKey: key,
+          label,
           margin: newMargin
         }
       });
@@ -94,19 +94,19 @@ export class ThresholdSlider extends LitElement {
     };
     const marginToVal = (margin: number) => margin;
     return this.renderSlider(
-        margin, key, -5, 5, 0.05, onChange, marginToVal, 'margin');
+        margin, label, -5, 5, 0.05, onChange, marginToVal, 'margin');
   }
 
   renderSlider(
-      margin: number, key: string, min: number, max: number,
+      margin: number, label: string, min: number, max: number,
       step: number, onChange: (e: Event) => void,
       marginToVal: (margin: number) => number, title: string) {
     const val = marginToVal(margin);
     const isDefaultValue = margin === 0;
-    const reset = (e: Event) => {
+    const reset = () => {
       const event = new CustomEvent('threshold-changed', {
         detail: {
-          predKey: key,
+          label,
           margin: 0
         }
       });
@@ -114,7 +114,7 @@ export class ThresholdSlider extends LitElement {
     };
     return html`
         <div class="slider-row">
-          <div>${key} ${title}:</div>
+          <div>${label} ${title}:</div>
           <input type="range" min="${min}" max="${max}" step="${step}"
                  .value="${val.toString()}" class="slider"
                  @change=${onChange}>
@@ -126,8 +126,8 @@ export class ThresholdSlider extends LitElement {
 
   render() {
     return html`${this.isThreshold ?
-        this.renderThresholdSlider(this.margin, this.predKey) :
-        this.renderMarginSlider(this.margin, this.predKey)}`;
+        this.renderThresholdSlider(this.margin, this.label) :
+        this.renderMarginSlider(this.margin, this.label)}`;
   }
 }
 

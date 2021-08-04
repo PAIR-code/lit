@@ -19,11 +19,11 @@
 import * as d3 from 'd3';
 import {action, computed, observable, reaction} from 'mobx';
 
-import {ColorOption, D3Scale, IndexedInput, NumericSetting, Preds, Spec} from '../lib/types';
+import {ColorOption, D3Scale, FacetedData, GroupedExamples, IndexedInput, Preds, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
 import {LitService} from './lit_service';
-import {ApiService, AppState} from './services';
+import {ApiService, AppState, GroupService} from './services';
 
 interface AllClassificationInfo {
   [id: string]: PerExampleClassificationInfo;
@@ -57,17 +57,89 @@ const classificationDisplayNames = new Map([
   ['predictionCorrect', 'prediction correct'],
 ]);
 
-interface MarginSettings {
-  [model: string]: NumericSetting;
+/**
+ * A margin setting is the margin value and the facet information for which
+ * datapoints from a dataset that margin value applies to.
+ */
+interface MarginSetting {
+  facetData?: FacetedData;
+  margin: number;
+}
+
+/**
+ * Any facet of a dataset can have its own margin value. Key string represents
+ * the facet key/value pairs.
+ */
+interface MarginsPerFacet {
+  [facetString: string]: MarginSetting;
+}
+
+/** Each output field has its own margin settings. */
+export interface MarginsPerField {
+  [fieldName: string]: MarginsPerFacet;
+}
+
+/**
+ * Classification margin settings across all models and prediction heads.
+ *
+ * Margins are a generalized way to define classification thresholds beyond
+ * binary classification score threshoods.
+ */
+export interface MarginSettings {
+  [model: string]: MarginsPerField;
+}
+
+/**
+ * Given an example and the margins for a field, return the appropriate margin
+ * to use for the example.
+ */
+function getMarginSettingForExample(
+    input: IndexedInput, marginsPerFacet: MarginsPerFacet,
+    groupService?: GroupService) {
+  // If there is an empty string entry, this represents the margin for the
+  // entire dataset.
+  if ("" in marginsPerFacet) {
+    return marginsPerFacet[""];
+  }
+  // Find the facet that matches the example provided.
+  for (const group of Object.values(marginsPerFacet)) {
+    let matches = true;
+    for (const field of Object.keys(group.facetData!.facets!)) {
+      if (groupService != null &&
+          groupService.numericalFeatureNames.includes(field)) {
+        const facet = groupService.getNumericalBinForExample(
+            input, field)!;
+        const groupRange = group.facetData!.facets![field].val as number[];
+        if (facet[0] !== groupRange[0] || facet[1] !== groupRange[1]) {
+          matches = false;
+          break;
+        }
+      } else if (input.data[field] !== group.facetData!.facets![field]) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) {
+      return group;
+    }
+  }
+  return null;
 }
 
 /**
  * Return the predicted class index given prediction scores and settings.
  */
 export function getPredictionClass(
-    scores: number[], predKey: string, outputSpec: Spec,
-    margins?: NumericSetting) {
-  const margin = margins?.[predKey] == null ? 0 : margins[predKey];
+    scores: number[], predKey: string, outputSpec: Spec, input: IndexedInput,
+    groupService?: GroupService, margins?: MarginsPerField) {
+  let margin = 0;
+  if (margins?.[predKey] != null) {
+    const group = getMarginSettingForExample(
+        input, margins[predKey], groupService);
+    if (group != null) {
+      margin = margins[predKey][group.facetData?.displayName || ""].margin;
+    }
+  }
   const nullIdx = outputSpec[predKey].null_idx;
   let maxScore = -Infinity;
   let maxIndex = 0;
@@ -101,7 +173,8 @@ export class ClassificationService extends LitService {
 
   constructor(
       private readonly apiService: ApiService,
-      private readonly appState: AppState) {
+      private readonly appState: AppState,
+      private readonly groupService: GroupService) {
     super();
     reaction(() => this.allMarginSettings, margins => {
       this.updateClassifications();
@@ -116,16 +189,77 @@ export class ClassificationService extends LitService {
   // TODO(lit-team): Remove need for this intermediate object (b/156100081)
   @computed
   get allMarginSettings(): number[] {
-    return Object.values(this.marginSettings)
-        .flatMap((setting: NumericSetting) => Object.values(setting));
+    const res: number[] = [];
+    for (const settingsPerModel of Object.values(this.marginSettings)) {
+      for (const settingsPerPredKey of Object.values(settingsPerModel)) {
+         for (const settingsPerFacet of Object.values(settingsPerPredKey)) {
+           res.push(settingsPerFacet.margin);
+         }
+      }
+    }
+    return res;
   }
 
+  /**
+   * Reset the facet groups that store margins for a field based on the
+   * facets from the groupedExamples.
+   */
   @action
-  setMargin(model: string, fieldName: string, value: number) {
+  setMarginGroups(model: string, fieldName: string,
+                  groupedExamples: GroupedExamples) {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
-    this.marginSettings[model][fieldName] = value;
+    this.marginSettings[model][fieldName] = {};
+    for (const group of Object.values(groupedExamples)) {
+      this.marginSettings[model][fieldName][group.displayName!] =
+          {facetData: group, margin: 0};
+    }
+  }
+
+  @action
+  setMargin(model: string, fieldName: string, value: number,
+            facet?: FacetedData) {
+    console.log('setMargin');
+    if (this.marginSettings[model] == null) {
+      this.marginSettings[model] = {};
+    }
+    if (this.marginSettings[model][fieldName] == null) {
+      this.marginSettings[model][fieldName] = {};
+    }
+    if (facet == null) {
+      // If no facet provided, then update the facet for the entire dataset
+      // if one exists, otherwise update all facets with the provided margin.
+      if ("" in this.marginSettings[model][fieldName]) {
+        this.marginSettings[model][fieldName][""] =
+            {facetData: facet, margin: value};
+      } else {
+        for (const key of Object.keys(this.marginSettings[model][fieldName])) {
+          this.marginSettings[model][fieldName][key].margin = value;
+        }
+      }
+    } else {
+      this.marginSettings[model][fieldName][facet.displayName!] =
+          {facetData: facet, margin: value};
+    }
+  }
+
+  getMargin(model: string, fieldName: string, facet?: FacetedData) {
+    if (this.marginSettings[model] == null ||
+        this.marginSettings[model][fieldName] == null) {
+      return 0;
+    }
+    if (facet == null) {
+      if (this.marginSettings[model][fieldName][""] == null) {
+        return 0;
+      }
+      return this.marginSettings[model][fieldName][""].margin;
+    } else {
+      if (this.marginSettings[model][fieldName][facet.displayName!] == null) {
+        return 0;
+      }
+      return this.marginSettings[model][fieldName][facet.displayName!].margin;
+    }
   }
 
   /**
@@ -183,9 +317,9 @@ export class ClassificationService extends LitService {
       fields: ClassificationInfo, input: IndexedInput, predKey: string,
       model: string) {
     const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-    const datasetSpec = this.appState.currentDatasetSpec;
     fields.predictedClassIdx = getPredictionClass(
-        fields.predictions, predKey, outputSpec, this.marginSettings[model]);
+        fields.predictions, predKey, outputSpec, input, this.groupService,
+        this.marginSettings[model]);
     // If there are labels, use those. Otherwise just use prediction
     // array indices.
     const labelKey = `${model}:${predKey}`;

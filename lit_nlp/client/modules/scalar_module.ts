@@ -26,7 +26,7 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
-import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, NumericSetting, Preds, Spec} from '../lib/types';
+import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
 import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
@@ -456,10 +456,12 @@ export class ScalarModule extends LitModule {
         continue;
       }
 
-      if (margins[key] == null) {
+      // If there is no margin set for the entire dataset (empty string) facet
+      // name, then do not draw a threshold on the plot.
+      if (margins[key] == null || margins[key][''] == null) {
         continue;
       }
-      const threshold = getThresholdFromMargin(+margins[key]);
+      const threshold = getThresholdFromMargin(margins[key][""].margin);
 
       const thresholdSelection = d3.select(scatterplot).select('#threshold');
       thresholdSelection.selectAll('line').remove();
@@ -821,7 +823,6 @@ export class ScalarModule extends LitModule {
   renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
     const predictionLabels = spec.output[key].vocab!;
-    const margins = this.classificationService.marginSettings[this.model] || {};
 
     // In the binary classification case, only render one plot that
     // displays the positive class.
@@ -834,7 +835,7 @@ export class ScalarModule extends LitModule {
     // clang-format off
     return html`
         ${(predictionLabels != null && nullIdx != null) ?
-          this.renderMarginSlider(margins, key) : null}
+          this.renderMarginSlider(key) : null}
         ${predictionLabels.map(label => this.renderPlot(key, label))}`;
     // clang-format on
   }
@@ -889,16 +890,16 @@ export class ScalarModule extends LitModule {
     // clang-format on
   }
 
-  renderMarginSlider(margins: NumericSetting, key: string) {
-    const margin = margins[key];
+  renderMarginSlider(key: string) {
+    const margin = this.classificationService.getMargin(this.model, key);
     const callback = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      margins[(e as any).detail.predKey] = (e as any).detail.margin;
+      this.classificationService.setMargin(
+          // tslint:disable-next-line:no-any
+          this.model, key, (e as any).detail.margin);
     };
-    return html`
-        <threshold-slider .margin=${margin} predKey=${key}
-                          ?isThreshold=${false} @threshold-changed=${callback}>
-        </threshold-slider>`;
+    return html`<threshold-slider .margin=${margin} label=${key}
+                  ?isThreshold=${false} @threshold-changed=${callback}>
+                </threshold-slider>`;
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

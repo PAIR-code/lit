@@ -191,9 +191,9 @@ export class MetricsModule extends LitModule {
             facetMap?: FacetMap) {
     let facetString = '';
     if (facetMap != null) {
-      Object.values(facetMap).forEach(facetVal => {
-        facetString += `${facetVal}-`;
-      });
+      for (const facetVal of Object.values(facetMap)) {
+        facetString += `${facetVal.displayVal}-`;
+      }
     }
     return `${model}-${datapointsId}-${predKey}-${facetString}`;
   }
@@ -298,7 +298,7 @@ export class MetricsModule extends LitModule {
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {
         if (row.facets && row.facets[facet]) {
-          return row.facets[facet];
+          return row.facets[facet].displayVal;
         }
         return '-';
       });

@@ -275,8 +275,9 @@ export function isBinaryClassification(litType: LitType) {
  * Helper function to make an object into a human readable key.
  * Sorts object keys, so order of object does not matter.
  */
-export function objToDictKey(dict: FacetMap) {
-  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join(' ');
+export function facetMapToDictKey(dict: FacetMap) {
+  return Object.keys(dict).sort().map(
+      key => `${key}:${dict[key].displayVal}`).join(' ');
 }
 
 /**

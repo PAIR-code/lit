@@ -235,13 +235,23 @@ export type Constructor<T> = {
 // tslint:enable:no-any
 
 /**
+ * Information on a facet for grouping examples. The value is either a string
+ * or numeric value to match, or a bucket of a numerical range, [min, max).
+ * The displayVal is used for displaying the facet information.
+ */
+export interface FacetInfo {
+  val: string|number|number[];
+  displayVal: string;
+}
+
+/**
  * Dictionary of features (e.g., features of an Input). Used for grouping sets
  * of Inputs in the slices module, metrics module, etc. Features may be strings
  * (e.g. 'neutral', 'entailment'), or numerical features (e.g., sentence
- * similarity in stsb).
+ * similarity in stsb), or a range of numbers used for bucketed numbers.
  */
 export interface FacetMap {
-  [fieldName: string]: string|number;
+  [fieldName: string]: FacetInfo;
 }
 
 /**

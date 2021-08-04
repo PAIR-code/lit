@@ -104,7 +104,7 @@ class Thresholder(lit_components.Interpreter):
     for margin in margins_to_try:
       metrics_config = {}
       for pred_key in pred_keys:
-        metrics_config[pred_key] = margin
+        metrics_config[pred_key] = {'': {'margin': margin}}
 
       results.append(self.metrics_gen.run_with_metadata(
           indexed_inputs, model, dataset, model_outputs, metrics_config))
