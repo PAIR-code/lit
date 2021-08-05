@@ -141,12 +141,52 @@ class SimpleMetrics(lit_components.Interpreter):
     """As compute(), but has access to indices and metadata."""
     return self.compute(labels, preds, label_spec, pred_spec, config)
 
+  def run(self,
+          inputs: List[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[List[JsonDict]] = None,
+          config: Optional[JsonDict] = None):
+    if model_outputs is None:
+      model_outputs = list(model.predict(inputs))
+
+    spec = model.spec()
+    field_map = map_pred_keys(dataset.spec(), spec.output, self.is_compatible)
+    ret = []
+    for pred_key, label_key in field_map.items():
+      # Extract fields
+      labels = [ex[label_key] for ex in inputs]
+      preds = [mo[pred_key] for mo in model_outputs]
+      # Compute metrics, as dict(str -> float)
+      metrics = self.compute(
+          labels,
+          preds,
+          label_spec=dataset.spec()[label_key],
+          pred_spec=spec.output[pred_key],
+          config=config.get(pred_key) if config else None)
+      # NaN is not a valid JSON value, so replace with None which will be
+      # serialized as null.
+      # TODO(lit-team): move this logic into serialize.py somewhere instead?
+      metrics = {
+          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
+      }
+      # Format for frontend.
+      ret.append({
+          'pred_key': pred_key,
+          'label_key': label_key,
+          'metrics': metrics
+      })
+    return ret
+
   def run_with_metadata(self,
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
+    if model_outputs is None:
+      model_outputs = list(model.predict_with_metadata(indexed_inputs))
+
     # TODO(lit-team): pre-compute this mapping in constructor?
     # This would require passing a model name to this function so we can
     # reference a pre-computed list.
