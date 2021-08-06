@@ -202,11 +202,11 @@ export class ApiService extends LitService {
       return input;
     });
 
+    const paramsArray =
+        Object.keys(params).map((key: string) => `${key}=${params[key]}`);
+    const url = encodeURI(`${endpoint}?${paramsArray.join('&')}`);
+    const body = JSON.stringify({inputs: processedInputs, config});
     try {
-      const paramsArray =
-          Object.keys(params).map((key: string) => `${key}=${params[key]}`);
-      const url = encodeURI(`${endpoint}?${paramsArray.join('&')}`);
-      const body = JSON.stringify({inputs: processedInputs, config});
       const res = await fetch(url, {method: 'POST', body});
       // If there is tsserver error, the response contains text (not json).
       if (!res.ok) {
@@ -215,17 +215,19 @@ export class ApiService extends LitService {
       }
       const json = await res.json();
       finished();
+      // When a call finishes, clear any previous error of the same call.
+      this.statusService.removeError(url);
       return json;
     } catch (err) {
       finished();
       // Extract error text if returned from tsserver.
-      const found = err.message.match('(?<=<code>).*?(?=<br><br>)');
+      const found = err.message.match('^.*?(?=\n\nDetails:)');
       if (!found) {
-        this.statusService.addError('Unknown error');
+        this.statusService.addError(
+            'Unknown error', err.toString(), url);
       } else {
-        this.statusService.addError(found[0]);
+        this.statusService.addError(found[0], err.toString(), url);
       }
-      // TODO(b/156624955) Catch this error and console.log instead.
       throw (err);
     }
   }

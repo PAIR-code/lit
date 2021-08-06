@@ -204,7 +204,7 @@ class App(object):
     except Exception as e:  # pylint: disable=broad-except
       errors = (str(e), str(traceback.format_exc()))
       html_response = (
-          '<code>Uncaught error: %s <br><br> <code>%s</code></code>' % errors)
+          'Uncaught error: %s\n\nDetails: %s' % errors)
       logging.error('Uncaught error: %s \n\n %s', *errors)
       response = self.respond(request, html_response, 'text/html', 500)
 

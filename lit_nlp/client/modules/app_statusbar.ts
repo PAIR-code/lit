@@ -19,16 +19,18 @@
  * LIT App toolbar and drawer menu.
  */
 
+// tslint:disable:no-new-decorators
 import '@material/mwc-icon';
 import './global_settings';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html, property} from 'lit-element';
+import {observable} from 'mobx';
+import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 
 import {app} from '../core/lit_app';
-import {AppState, StatusService} from '../services/services';
+import {StatusService} from '../services/services';
 
 import {styles} from './app_statusbar.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -42,13 +44,13 @@ export class StatusbarComponent extends MobxLitElement {
     return [sharedStyles, styles];
   }
 
-  private readonly appState = app.getService(AppState);
   private readonly statusService = app.getService(StatusService);
+  @observable private renderFullMessages = false;
 
   render() {
     const progressClass = classMap({
-      'progress-line': this.statusService.hasMessage,
-      'no-progress-line': !this.statusService.hasMessage
+      'progress-line': this.statusService.isLoading,
+      'no-progress-line': !this.statusService.isLoading
     });
 
     // clang-format off
@@ -73,6 +75,7 @@ export class StatusbarComponent extends MobxLitElement {
           <div class=${progressClass}></div>
         </div>
       </div>
+      ${this.renderFullMessages ? this.renderPopup() : null}
     `;
     // clang-format on
   }
@@ -83,13 +86,44 @@ export class StatusbarComponent extends MobxLitElement {
     `;
   }
 
+  renderPopup() {
+    const close = () => {
+      this.renderFullMessages = false;
+    };
+    return html`
+        <div class='modal-container'>
+          <div class="model-overlay" @click=${() => {close();}}></div>
+          <div class='modal'>
+            <div class='error-messages-holder'>
+              <div class='error-message-header'>Error details:</div>
+              ${this.statusService.errorFullMessages.map(
+                  message => html`<pre class="full-message">${message}</pre>`)}
+            </div>
+            <div class='close-button-holder'>
+              <button class='hairline-button' @click=${() => {close();}}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>`;
+  }
+
   renderError() {
+    const onGetErrorDetailsClick = () => {
+      this.renderFullMessages = true;
+    };
     const onClearErrorsClick = () => {
       this.statusService.clearErrors();
     };
     return html`
-     <div class="error">${this.statusService.errorMessage}</div>
-      <mwc-icon class="icon-button" id="clear-errors" @click=${
+     <div class="error" @click=${onGetErrorDetailsClick}>
+        ${this.statusService.errorMessage}
+      </div>
+      <mwc-icon class="icon-button error" @click=${
+        onGetErrorDetailsClick}>
+        info
+      </mwc-icon>
+      <mwc-icon class="icon-button error" @click=${
         onClearErrorsClick}>
         clear
       </mwc-icon>

@@ -46,6 +46,7 @@ class LitWidget(object):
     app_flags['server_type'] = 'notebook'
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
+    app_flags['warm_start'] = 1
     app_flags.update(kw)
 
     lit_demo = dev_server.Server(

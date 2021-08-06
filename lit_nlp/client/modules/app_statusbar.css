@@ -29,11 +29,13 @@
 
 .error {
   color: red;
+  cursor: pointer;
 }
 
-#clear-errors{
+.icon-button.error {
   color: red;
 }
+
 
 #status {
   display: flex;
@@ -91,6 +93,56 @@ mwc-icon.icon-button:hover {
   content: '';
   -webkit-animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.modal-container {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  z-index: 4;
+  position: fixed;
+}
+
+.modal {
+  position: absolute;
+  top: 12vh;
+  left: 10vw;
+  height: 80vh;
+  width: 80vw;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.model-overlay {
+  background: rgba(4, 29, 51, .47);
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  transition: opacity 250ms;
+}
+
+.close-button-holder {
+  display: flex;
+  flex-direction: row-reverse;
+  margin: 10px;
+}
+
+.error-messages-holder {
+  overflow-y: auto;
+}
+
+.error-message-header {
+  margin: 10px;
+  font-weight: bold;
+}
+
+.full-message {
+  margin: 10px;
 }
 
 @-webkit-keyframes running-progress {
