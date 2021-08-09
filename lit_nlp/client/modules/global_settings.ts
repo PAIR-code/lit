@@ -327,6 +327,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
       // Render the expanded info section, which holds the comparable
       // datasets and the description of the model.
       const allDatasets = Object.keys(this.appState.metadata.datasets);
+      const ospec = this.appState.getModelSpec(name).output;
       // clang-format off
       const expandedInfoHtml = html`
         <div class='info-group-title'>
@@ -343,7 +344,18 @@ export class GlobalSettingsComponent extends MobxLitElement {
               <mwc-icon>${icon}</mwc-icon>
               ${datasetDisplayName(datasetName)}
             </div>`;
-        })}`;
+        })}
+        <div class='info-group-title'>
+          Output Fields
+        </div>
+        ${Object.keys(ospec).map((fieldName: string) => {
+          return html`
+            <div class='info-line'>
+              ${fieldName} (${ospec[fieldName].__name__})
+            </div>`;
+        })}
+      `;
+      // clang-format on
       const description = this.appState.metadata.models[name].description;
       return this.renderLine(
           name, renderSelector, selected, disabled, expanderOpen,
@@ -388,9 +400,19 @@ export class GlobalSettingsComponent extends MobxLitElement {
         `;
 
       // Expanded info contains available datasets.
+      const spec = this.appState.metadata.datasets[name].spec;
       const allModels = [...this.modelCheckboxValues.keys()];
       // clang-format off
       const expandedInfoHtml = html`
+        <div class='info-group-title'>
+          Features
+        </div>
+        ${Object.keys(spec).map((fieldName: string) => {
+          return html`
+            <div class='info-line'>
+              ${fieldName} (${spec[fieldName].__name__})
+            </div>`;
+        })}
         <div class='info-group-title'>
           Model Compatibility
         </div>
@@ -405,9 +427,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
           <mwc-icon>${icon}</mwc-icon>
           ${modelName} 
         </div>`;
-      })}`;
-      const description = this.appState.metadata.datasets[name].description;
+        })}
+      `;
       // clang-format on
+      const description = this.appState.metadata.datasets[name].description;
       return this.renderLine(
           name, renderSelector, selected, disabled, expanderOpen,
           onExpanderClick, true, expandedInfoHtml, description);

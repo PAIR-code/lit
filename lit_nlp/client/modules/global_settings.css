@@ -227,7 +227,7 @@ a:hover {
 }
 
 .expanded-info.open {
-  padding: 5pt 5pt 5pt 0;
+  padding: 6px 6px 6px 0;
   max-height: 25vh;
   overflow: auto;
   border-bottom: 1px solid #dadce0;
@@ -239,7 +239,12 @@ a:hover {
 
 .info-group-title {
   text-transform: uppercase;
-  padding-bottom: 5pt;
+  padding-top: 8px;
+  padding-bottom: 4px;
+}
+
+.info-group-title:first-child {
+  padding-top: 0px;
 }
 
 .info-group-subtitle {
