@@ -37,11 +37,8 @@ class TresholderConfig(object):
   """Config options for Thresholder component."""
   # Ratio of cost of a false negative to a false positive.
   cost_ratio: Optional[float] = 1
-
-  # TODO(jwexler): Calculate optimal thresholds for faceted subgroups of
-  # examples given the provided fairness strategies.
-  faceted_examples: Optional[List[List[str]]] = []
-  strategies: Optional[List[str]] = []
+  # Facets of datapoints to calculate individual thresholds for.
+  facets: Optional[JsonDict] = {'': {}}
 
 
 class Thresholder(lit_components.Interpreter):
@@ -118,6 +115,12 @@ class Thresholder(lit_components.Interpreter):
                for metrics_for_threshold in metrics_list]
       best_idx = np.argmin(costs)
       # Divide best index by 100 to get threshold value between 0 and 1.
-      ret.append({'pred_key': pred_key, 'threshold': best_idx / 100})
+      single_threshold = best_idx / 100
+      faceted_thresholds = {}
+      for facet_key in config.facets:
+        faceted_thresholds[facet_key] = {
+            'Single': single_threshold,
+        }
+      ret.append({'pred_key': pred_key, 'thresholds': faceted_thresholds})
     return ret
 

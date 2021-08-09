@@ -898,7 +898,8 @@ export class ScalarModule extends LitModule {
           this.model, key, (e as any).detail.margin);
     };
     return html`<threshold-slider .margin=${margin} label=${key}
-                  ?isThreshold=${false} @threshold-changed=${callback}>
+                  ?isThreshold=${false} ?showControls=${true}
+                  @threshold-changed=${callback}>
                 </threshold-slider>`;
   }
 

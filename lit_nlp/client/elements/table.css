@@ -61,10 +61,23 @@
   padding: 5px 2px;
   cursor: pointer;
   display: flex;
+  flex-grow: 1;
+  flex-direction: row;
   align-items: center;
   position: relative;
   box-sizing: border-box;
   height: var(--table-header-height);
+}
+
+.column-header.right-align {
+  flex-direction: row-reverse;
+  padding-right: 8px;
+}
+
+.header-holder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 }
 
 .header-text {

@@ -16,6 +16,7 @@
  */
 
 import {css, customElement, html, LitElement, property} from 'lit-element';
+import {classMap} from 'lit-html/directives/class-map';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';
 import {styles as sharedStyles} from '../modules/shared_styles.css';
 
@@ -28,6 +29,7 @@ export class ThresholdSlider extends LitElement {
   // The other type of sliders are margin sliders between -5 and 5 for use with
   // mutliclass classifiers.
   @property({type: Boolean}) isThreshold = true;
+  @property({type: Boolean}) showControls = false;
 
   static get styles() {
     return [sharedStyles, css`
@@ -37,11 +39,15 @@ export class ThresholdSlider extends LitElement {
           margin: 8px 5px;
         }
 
-        .slider-row div {
+        .text-with-controls {
           padding-top: 9px;
         }
 
-        .slider-label {
+        .text-no-controls {
+          padding-top: 2px;
+        }
+
+        .slider-val {
           width: 30px;
         }
 
@@ -112,15 +118,33 @@ export class ThresholdSlider extends LitElement {
       });
       this.dispatchEvent(event);
     };
+    const labelClasses = {
+      'text-with-controls': this.showControls,
+      'text-no-controls': !this.showControls
+    };
+    const valClasses = {
+      'text-with-controls': this.showControls,
+      'text-no-controls': !this.showControls,
+      'slider-val': true
+    };
+    const renderLabel = () => {
+      if (this.showControls) {
+        return html`
+          <div class=${classMap(labelClasses)}>${label} ${title}:</div>`;
+      } else {
+        return null;
+      }
+    };
     return html`
         <div class="slider-row">
-          <div>${label} ${title}:</div>
+          ${renderLabel()}
           <input type="range" min="${min}" max="${max}" step="${step}"
                  .value="${val.toString()}" class="slider"
                  @change=${onChange}>
-          <div class="slider-label">${val}</div>
-          <button class='hairline-button reset-button' @click=${reset}
-                  ?disabled="${isDefaultValue}">Reset</button>
+          <div class=${classMap(valClasses)}>${val}</div>
+          ${this.showControls ?
+              html`<button class='hairline-button reset-button' @click=${reset}
+                   ?disabled="${isDefaultValue}">Reset</button>` : null}
         </div>`;
   }
 

@@ -17,15 +17,32 @@
 
 import '../elements/threshold_slider';
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
+import {css, customElement, html} from 'lit-element';
+import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
+import {ColumnHeader, TableEntry} from '../elements/table';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {doesOutputSpecContain, getMarginFromThreshold, findSpecKeys, isBinaryClassification} from '../lib/utils';
+import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
 import {styles as sharedStyles} from './shared_styles.css';
 
+
+/** Margins for each optimization type. */
+interface CaculatedMargins {
+  [optimizer: string]: number;
+}
+
+/** Any facet of a dataset can have its own margin value. */
+interface CalculatedMarginsPerFacet {
+  [facetString: string]: CaculatedMargins;
+}
+
+/** Each output field has its own margin settings. */
+interface CalculatedMarginsPerField {
+  [fieldName: string]: CalculatedMarginsPerFacet;
+}
 
 /**
  * A LIT module that renders regression results.
@@ -40,7 +57,11 @@ export class ThresholderModule extends LitModule {
   };
 
   static get styles() {
-    return [sharedStyles];
+    return [sharedStyles, css`
+        .cost-ratio-input {
+          width: 50px;
+        }
+    `];
   }
 
   // Cost ratio of false positives to false negatives to use in calculating
@@ -49,6 +70,9 @@ export class ThresholderModule extends LitModule {
 
   // Selected features to create faceted thresholds from.
   @observable private readonly selectedFacets: string[] = [];
+
+  // Hold all calculated margins from the tresholder component.
+  @observable private calculatedMargins: CalculatedMarginsPerField = {};
 
   private readonly classificationService =
     app.getService(ClassificationService);
@@ -67,9 +91,15 @@ export class ThresholderModule extends LitModule {
    * facet groups selected.
    */
   private updateMarginCategories(groupedExamples: GroupedExamples) {
+    this.calculatedMargins = {};
     for (const predKey of this.binaryClassificationKeys) {
       this.classificationService.setMarginGroups(
           this.model, predKey, groupedExamples);
+      const marginsForKey: CalculatedMarginsPerFacet = {};
+      for (const facets of Object.keys(groupedExamples)) {
+        marginsForKey[facets] = {};
+      }
+      this.calculatedMargins[predKey] = marginsForKey;
     }
   }
 
@@ -82,14 +112,28 @@ export class ThresholderModule extends LitModule {
   }
 
   private async calculateThresholds() {
-    const config = {'cost_ratio': this.costRatio};
+    const config = {
+      'cost_ratio': this.costRatio,
+      'facets': this.groupedExamples
+    };
     const thresholds = await this.apiService.getInterpretations(
         this.appState.currentInputData, this.model,
         this.appState.currentDataset, 'thresholder', config);
+    // Add returned faceted thresholds to the store calculated margins.
     for (const thresholdResults of thresholds) {
-      this.classificationService.setMargin(
-          this.model, thresholdResults['pred_key'],
-          getMarginFromThreshold(thresholdResults['threshold']));
+      const marginsForKey =
+          this.calculatedMargins[thresholdResults['pred_key']];
+      for (const facetedThresholds of Object.keys(
+               thresholdResults['thresholds'])) {
+        const marginsForThresholdTypes: CaculatedMargins = {};
+        for (const thresholdType of Object.keys(
+                 thresholdResults['thresholds'][facetedThresholds])) {
+          marginsForThresholdTypes[thresholdType] = getMarginFromThreshold(
+              thresholdResults['thresholds'][facetedThresholds][thresholdType]);
+        }
+        marginsForKey[facetedThresholds] = marginsForThresholdTypes;
+      }
+      this.calculatedMargins[thresholdResults['pred_key']] = marginsForKey;
     }
   }
 
@@ -102,9 +146,47 @@ export class ThresholderModule extends LitModule {
     return groupedExamples;
   }
 
-  renderSliders(predKey: string) {
-    const facetKeys = Object.keys(this.groupedExamples);
-    const sliders = facetKeys.map(facetKey => {
+  renderTable(predKey: string) {
+    const buttonStyles = {
+      'background': 'transparent',
+      'border-radius': '4px',
+      'border': '1px solid rgb(189, 193, 198)',
+      'color': 'rgb(26, 115, 232)'
+    };
+    const columnNames: Array<string|ColumnHeader> = ['Facet'];
+    const margins = this.calculatedMargins[predKey];
+    if (margins == null) {
+      return null;
+    }
+    let firstFacet = true;
+    const tableRows: TableEntry[][] = [];
+    for (const facetKey of Object.keys(margins)) {
+      const facetKeyDisplay = facetKey === '' ? 'All' : facetKey;
+      const row: TableEntry[] = [facetKeyDisplay];
+      for (const thresholdType of Object.keys(margins[facetKey])) {
+        if (firstFacet) {
+          // For the table header, add names of different optimized thresholds
+          // and buttons to apply them.
+          const applyThreshold = () => {
+            for (const fKey of Object.keys(margins)) {
+              this.classificationService.setMargin(
+                this.model, predKey, margins[fKey][thresholdType],
+                this.groupedExamples[fKey]);
+            }
+          };
+          columnNames.push({
+            name: thresholdType,
+            html: html`
+              <div>${thresholdType}</div>
+              <button style=${styleMap(buttonStyles)} @click=${applyThreshold}>
+                Apply
+              </button>`,
+            rightAlign: true
+          });
+        }
+        row.push(getThresholdFromMargin(
+            margins[facetKey][thresholdType]).toFixed(2));
+      }
       const margin = this.classificationService.getMargin(
           this.model, predKey, this.groupedExamples[facetKey]);
       const callback = (e: Event) => {
@@ -113,13 +195,19 @@ export class ThresholderModule extends LitModule {
             this.model, predKey, (e as any).detail.margin,
             this.groupedExamples[facetKey]);
       };
-      return html`<threshold-slider .margin=${margin} label=${facetKey}
+      row.push(html`<threshold-slider .margin=${margin} label=${facetKey}
                     ?isThreshold=${true} @threshold-changed=${callback}>
-                  </threshold-slider>`;
-    });
+                  </threshold-slider>`);
+      firstFacet = false;
+      tableRows.push(row);
+    }
+    columnNames.push(predKey + ' threshold');
     return html`
-        <div class="pred-key-label">${predKey}</div>
-        ${sliders}`;
+        <lit-data-table
+          .columnNames=${columnNames}
+          .data=${tableRows}
+        ></lit-data-table>
+    `;
   }
 
   private renderCheckbox(
@@ -155,31 +243,35 @@ export class ThresholderModule extends LitModule {
     };
 
     const costRatioTooltip = "The cost of false positives relative to false " +
-        "negatives. Used to find optimal binary classifier thresholds";
+        "negatives. Used to find optimal classifier thresholds";
+    const calculateTooltip = "Calculate optimal threholds for each facet " +
+        "using the cost ratio and a number of different techniques";
     return html`
-        <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
-        <input type=number step="0.01" min=0 max=100 .value=${this.costRatio.toString()}
-            @input=${handleCostRatioInput}>
         <label class="cb-label">Facet by</label>
        ${
         this.groupService.denseFeatureNames.map(
             (facetName: string) => this.renderCheckbox(facetName, false,
                 (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
-        <button class='hairline-button' @click=${this.calculateThresholds}>
-          Set optimal threshold
+        <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
+        <input type=number step="0.1" min=0 max=20
+           .value=${this.costRatio.toString()} class="cost-ratio-input"
+            @input=${handleCostRatioInput}>
+        <button class='hairline-button' title=${calculateTooltip}
+           @click=${this.calculateThresholds}>
+          Get optimal thresholds
         </button>`;
   }
 
   render() {
-    const sliders =
-        this.binaryClassificationKeys.map(key => this.renderSliders(key));
+    const tables =
+        this.binaryClassificationKeys.map(key => this.renderTable(key));
     return html`
         <div class='module-container'>
           <div class='module-toolbar'>
             ${this.renderControls()}
           </div>
           <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
-            ${sliders}
+            ${tables}
           </div>
         </div>
         `;

@@ -48,6 +48,12 @@ export type TableEntry = string|number|TemplateResult|SortableTemplateResult;
 /** Wrapper types for the data supplied to the data table */
 export type TableData = TableEntry[]|{[key: string]: TableEntry};
 
+/** Wrapper type for column header with optional custom template. */
+export interface ColumnHeader {
+  name: string;
+  html?: TemplateResult;
+  rightAlign?: boolean;
+}
 
 /** Internal data, including metadata */
 interface TableRowInternal {
@@ -88,7 +94,8 @@ export class DataTable extends ReactiveElement {
   // This could save performance, since calling code can always do [...data]
   // to generate a new reference and force a refresh if needed.
   @observable.struct @property({type: Array}) data: TableData[] = [];
-  @observable.struct @property({type: Array}) columnNames: string[] = [];
+  @observable.struct @property({type: Array})
+  columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) selectedIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
@@ -269,7 +276,17 @@ export class DataTable extends ReactiveElement {
   @computed
   get sortIndex(): number|undefined {
     return (this.sortName == null) ? undefined :
-                                     this.columnNames.indexOf(this.sortName);
+                                     this.columnStrings.indexOf(this.sortName);
+  }
+
+  @computed
+  get columnStrings(): string[] {
+    return this.columnNames.map(columnHeaderInfo => {
+      if (typeof columnHeaderInfo === 'string') {
+        return columnHeaderInfo;
+      }
+      return columnHeaderInfo.name;
+    });
   }
 
   /**
@@ -290,7 +307,7 @@ export class DataTable extends ReactiveElement {
     // Convert any objects to simple arrays by selecting fields.
     const convertedData: TableEntry[][] = this.data.map((d: TableData) => {
       if (d instanceof Array) return d;
-      return this.columnNames.map(k => d[k]);
+      return this.columnStrings.map(k => d[k]);
     });
     return convertedData.map((rowData: TableEntry[], inputIndex: number) => {
       return {inputIndex, rowData};
@@ -306,7 +323,7 @@ export class DataTable extends ReactiveElement {
       let isShownByTextFilter = true;
       // Apply column search filters
       for (const [key, value] of this.columnSearchQueries) {
-        const index = this.columnNames.indexOf(key);
+        const index = this.columnStrings.indexOf(key);
         if (index === -1) return;
 
         const col = item.rowData[index];
@@ -615,7 +632,8 @@ export class DataTable extends ReactiveElement {
       </div>`;
   }
 
-  renderColumnHeader(title: string, index: number) {
+  renderColumnHeader(
+      header: string|ColumnHeader, index: number) {
     // this.headerWidths sometimes hasn't been updated when this method is
     // called since it's set in this.computeHeaderWidths() which uses the
     // table cells' clientWidth to set this.headerWidths.
@@ -624,6 +642,11 @@ export class DataTable extends ReactiveElement {
     const headerWidth = this.headerWidths[index];
     const width = headerWidth ? `${headerWidth}px` : '';
 
+    const displayAsString = typeof header === "string";
+    const title: string = displayAsString
+        ? (header as string) : (header as ColumnHeader).name;
+    const rightAlign = displayAsString ? false :
+        (header as ColumnHeader).rightAlign!!;
     let searchText = this.columnSearchQueries.get(title);
     if (searchText === undefined) {
       searchText = '';
@@ -688,20 +711,30 @@ export class DataTable extends ReactiveElement {
       active: isDownActive,
       inactive: isDownInactive,
     });
+    const headerClasses = classMap({
+      'column-header': true,
+      'right-align': rightAlign
+    });
 
     const style = styleMap({width});
     // clang-format off
     return html`
         <div>
-          <div class="column-header" title=${title} style=${style}>
-            <div class="header-text">${title}</div>
-            ${this.searchEnabled ? html`
-            <div class="menu-button-container">
-              <mwc-icon class="menu-button" style=${menuButtonStyle} @click=${handleMenuButton}>search</mwc-icon>
-            </div>` : null}
-            <div class="arrow-container" @click=${handleClick}>
-              <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
-              <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+          <div class=${headerClasses} title=${title} style=${style}>
+            <div class="header-holder">
+              <div>
+                ${displayAsString ?
+                html`<div class="header-text">${title}</div>` :
+                html`${(header as ColumnHeader).html}`}
+              </div>
+              ${this.searchEnabled ? html`
+              <div class="menu-button-container">
+                <mwc-icon class="menu-button" style=${menuButtonStyle} @click=${handleMenuButton}>search</mwc-icon>
+              </div>` : null}
+              <div class="arrow-container" @click=${handleClick}>
+                <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
+                <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+              </div>
             </div>
           </div>
           ${this.searchEnabled ? html`

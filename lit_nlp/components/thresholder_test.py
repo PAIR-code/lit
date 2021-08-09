@@ -70,21 +70,21 @@ class ThresholderTest(absltest.TestCase):
         config=config)
     self.assertLen(result, 1)
     self.assertEqual('probas', result[0]['pred_key'])
-    self.assertEqual(0.71, result[0]['threshold'])
+    self.assertEqual(0.71, result[0]['thresholds']['']['Single'])
 
   def test_thresholder_cost_ratio_high(self):
-    config = {'cost_ratio': 5}
+    config = {'cost_ratio': 5, 'facets': {'': {}}}
     result = self.thresholder.run_with_metadata(
         self.indexed_inputs, self.model, self.dataset, self.model_outputs,
         config=config)
-    self.assertEqual(0.86, result[0]['threshold'])
+    self.assertEqual(0.86, result[0]['thresholds']['']['Single'])
 
   def test_thresholder_cost_ratio_low(self):
-    config = {'cost_ratio': 0.2}
+    config = {'cost_ratio': 0.2, 'facets': {'': {}}}
     result = self.thresholder.run_with_metadata(
         self.indexed_inputs, self.model, self.dataset, self.model_outputs,
         config=config)
-    self.assertEqual(0, result[0]['threshold'])
+    self.assertEqual(0, result[0]['thresholds']['']['Single'])
 
 if __name__ == '__main__':
   absltest.main()
