@@ -239,6 +239,24 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     """Return true if compatible with this field."""
     return self._metrics.is_compatible(field_spec)
 
+  def run(self,
+          inputs: List[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[List[JsonDict]] = None,
+          config: Optional[JsonDict] = None):
+    # Get margin for each input for each pred key and add them to a config dict
+    # to pass to the wrapped metrics.
+    field_map = map_pred_keys(dataset.spec(),
+                              model.spec().output, self.is_compatible)
+    margin_config = {}
+    for pred_key in field_map:
+      field_config = config.get(pred_key) if config else None
+      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margin_config[pred_key] = margins
+    return self._metrics.run(inputs, model, dataset, model_outputs,
+                             margin_config)
+
   def run_with_metadata(self,
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
