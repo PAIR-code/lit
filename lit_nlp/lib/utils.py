@@ -18,8 +18,9 @@
 import copy
 import queue
 import threading
+import time
 
-from typing import Dict, Iterable, Iterator, List, Sequence, TypeVar, Callable, Any
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -72,6 +73,13 @@ def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
     new dict with fields renamed
   """
   return {keymap.get(k, k): d[k] for k in d}
+
+
+def rate_limit(iterable, qps: Union[int, float]):
+  """Rate limit an iterator."""
+  for item in iterable:
+    yield item
+    time.sleep(1.0 / qps)
 
 
 def batch_iterator(items: Iterable[T],

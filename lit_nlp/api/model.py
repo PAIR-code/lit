@@ -16,10 +16,13 @@
 """Base classes for LIT models."""
 import abc
 import inspect
-from typing import List, Tuple, Iterable, Iterator, Text
+import itertools
+import multiprocessing  # for ThreadPool
+from typing import List, Tuple, Iterable, Iterator, Text, Union
 
 import attr
 from lit_nlp.api import types
+from lit_nlp.lib import utils
 import numpy as np
 
 JsonDict = types.JsonDict
@@ -192,3 +195,47 @@ class Model(metaclass=abc.ABCMeta):
                             **kw) -> Iterator[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     return self.predict((ex['data'] for ex in indexed_inputs), **kw)
+
+
+class BatchedRemoteModel(Model):
+  """Generic base class for remotely-hosted models.
+
+  Implements concurrent request batching; subclass need only implement
+  predict_minibatch() and max_minibatch_size().
+
+  If subclass overrides __init__, it should be sure to call super().__init__()
+  to set up the threadpool.
+  """
+
+  def __init__(self,
+               max_concurrent_requests: int = 4,
+               max_qps: Union[int, float] = 25):
+    # Use a local thread pool for concurrent requests, so we can keep the server
+    # busy during network transit time and local pre/post-processing.
+    self._max_qps = max_qps
+    self._pool = multiprocessing.pool.ThreadPool(max_concurrent_requests)
+
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+    batches = utils.batch_iterator(
+        inputs, max_batch_size=self.max_minibatch_size())
+    batches = utils.rate_limit(batches, self._max_qps)
+    pred_batches = self._pool.imap(self.predict_minibatch, batches)
+    return itertools.chain.from_iterable(pred_batches)
+
+  def max_minibatch_size(self) -> int:
+    """Maximum minibatch size for this model. Subclass can override this."""
+    return 1
+
+  @abc.abstractmethod
+  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+    """Run prediction on a batch of inputs.
+
+    Subclass should implement this.
+
+    Args:
+      inputs: sequence of inputs, following model.input_spec()
+
+    Returns:
+      list of outputs, following model.output_spec()
+    """
+    return

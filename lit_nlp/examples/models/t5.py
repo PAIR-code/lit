@@ -48,42 +48,55 @@ class T5ModelConfig(object):
   output_attention: bool = False
 
 
-class T5Model(lit_model.Model):
-  """Base class for bare T5 models.
+def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
+  """Validate that a given model looks like a T5 model.
 
-  This defines the minimum interface for a black-box seq2seq model; subclasses
-  should implement the actual model loading and inference code to conform to or
-  extend this spec.
+  This checks the model spec at runtime; it is intended to be used before server
+  start, such as in the __init__() method of a wrapper class.
 
-  Wrapper classes for specific tasks (such as summarization or GLUE tasks) can
-  use this class as an interface to abstract away the underlying model code.
+  Args:
+    model: a LIT model
+
+  Returns:
+    model: the same model
+
+  Raises:
+    AssertionError: if the model's spec does not match that expected for a T5
+    model.
   """
+  # Check inputs
+  ispec = model.input_spec()
+  assert "input_text" in ispec
+  assert isinstance(ispec["input_text"], lit_types.TextSegment)
+  if "target_text" in ispec:
+    assert isinstance(ispec["target_text"], lit_types.TextSegment)
 
-  def input_spec(self):
-    return {
-        "input_text": lit_types.TextSegment(),
-        "target_text": lit_types.TextSegment(required=False),
-    }
+  # Check outputs
+  ospec = model.output_spec()
+  assert "output_text" in ospec
+  assert isinstance(
+      ospec["output_text"],
+      (lit_types.GeneratedText, lit_types.GeneratedTextCandidates))
+  assert ospec["output_text"].parent == "target_text"
 
-  def output_spec(self):
-    return {"output_text": lit_types.GeneratedText(parent="target_text")}
+  return model
 
 
-class T5SavedModel(T5Model):
+class T5SavedModel(lit_model.Model):
   """T5 from a TensorFlow SavedModel, for black-box access.
 
   To create a SavedModel from a regular T5 checkpoint, see
   https://github.com/google-research/text-to-text-transfer-transformer#export
   """
 
-  def __init__(self, saved_model_path: str, **config_kw):
+  def __init__(self, saved_model_path: str, model=None, **config_kw):
     super().__init__()
     # By default, SavedModels from the original T5 codebase have batch_size=1
     # hardcoded. Use setdefault here so that the user can still override if
     # they've fixed this upstream.
     config_kw.setdefault("inference_batch_size", 1)
     self.config = T5ModelConfig(**config_kw)
-    self.model = tf.saved_model.load(saved_model_path)
+    self.model = model or tf.saved_model.load(saved_model_path)
 
   ##
   # LIT API implementations
@@ -100,8 +113,17 @@ class T5SavedModel(T5Model):
         "output_text": m.decode("utf-8")
     } for m in model_outputs["outputs"].numpy()]
 
+  def input_spec(self):
+    return {
+        "input_text": lit_types.TextSegment(),
+        "target_text": lit_types.TextSegment(required=False),
+    }
 
-class T5HFModel(T5Model):
+  def output_spec(self):
+    return {"output_text": lit_types.GeneratedText(parent="target_text")}
+
+
+class T5HFModel(lit_model.Model):
   """T5 using HuggingFace Transformers and Keras.
 
   This version supports embeddings, attention, and force-decoding of the target
@@ -112,12 +134,17 @@ class T5HFModel(T5Model):
   def num_layers(self):
     return self.model.config.num_layers
 
-  def __init__(self, model_name="t5-small", **config_kw):
+  def __init__(self,
+               model_name="t5-small",
+               model=None,
+               tokenizer=None,
+               **config_kw):
     super().__init__()
     self.config = T5ModelConfig(**config_kw)
     assert self.config.num_to_generate <= self.config.beam_size
-    self.tokenizer = transformers.T5Tokenizer.from_pretrained(model_name)
-    self.model = model_utils.load_pretrained(
+    self.tokenizer = tokenizer or transformers.T5Tokenizer.from_pretrained(
+        model_name)
+    self.model = model or model_utils.load_pretrained(
         transformers.TFT5ForConditionalGeneration,
         model_name,
         output_hidden_states=True,
@@ -288,15 +315,21 @@ class T5HFModel(T5Model):
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
     return list(map(self._postprocess, unbatched_outputs))
 
+  def input_spec(self):
+    return {
+        "input_text": lit_types.TextSegment(),
+        "target_text": lit_types.TextSegment(required=False),
+    }
+
   def output_spec(self):
-    spec = super().output_spec()  # has 'output_text'
-    spec.update({
+    spec = {
+        "output_text": lit_types.GeneratedText(parent="target_text"),
         "input_tokens": lit_types.Tokens(parent="input_text"),
         "encoder_final_embedding": lit_types.Embeddings(),
         # If target text is given, the following will also be populated.
         "target_tokens": lit_types.Tokens(parent="target_text"),
         "pred_tokens": lit_types.TokenTopKPreds(align="target_tokens"),
-    })
+    }
     if self.config.num_to_generate > 1:
       spec["output_text"] = lit_types.GeneratedTextCandidates(
           parent="target_text")
@@ -318,7 +351,7 @@ class T5HFModel(T5Model):
 class TranslationWrapper(lit_model.Model):
   """Wrapper class for machine translation."""
 
-  # Mapping from generic T5 fields (see T5Model) to this task
+  # Mapping from generic T5 fields to this task
   FIELD_RENAMES = {
       "input_text": "source",
       "target_text": "target",
@@ -336,8 +369,8 @@ class TranslationWrapper(lit_model.Model):
 
   INPUT_TEMPLATE = "translate {source_language} to {target_language}: {source}"
 
-  def __init__(self, model: T5Model):
-    self.model = model
+  def __init__(self, model: lit_model.Model):
+    self.model = validate_t5_model(model)
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
     input_kw = {
@@ -381,14 +414,14 @@ class TranslationWrapper(lit_model.Model):
 class SummarizationWrapper(lit_model.Model):
   """Wrapper class to perform a summarization task."""
 
-  # Mapping from generic T5 fields (see T5Model) to this task
+  # Mapping from generic T5 fields to this task
   FIELD_RENAMES = {
       "input_text": "document",
       "target_text": "reference",
   }
 
-  def __init__(self, model: T5Model):
-    self.model = model
+  def __init__(self, model: lit_model.Model):
+    self.model = validate_t5_model(model)
 
     # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
