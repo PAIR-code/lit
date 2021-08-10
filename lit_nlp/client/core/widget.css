@@ -37,7 +37,7 @@
 }
 
 .header {
-  height: var(--lit-widget-header-height);
+  min-height: var(--lit-widget-header-height);
   color: rgb(32, 33, 36);
   line-height: 16pt;
   display: flex;

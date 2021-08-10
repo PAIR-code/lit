@@ -58,7 +58,7 @@ export class StatusbarComponent extends MobxLitElement {
       <div id="at-bottom">
         <div class="toolbar">
           <div class="text-line">
-            <div id="status" class="info">
+            <div class="status-info">
               ${this.statusService.hasMessage ? this.renderMessages() : null}
             </div>
             <div class="signature">
@@ -90,22 +90,24 @@ export class StatusbarComponent extends MobxLitElement {
     const close = () => {
       this.renderFullMessages = false;
     };
+    // clang-format off
     return html`
-        <div class='modal-container'>
-          <div class="model-overlay" @click=${() => {close();}}></div>
-          <div class='modal'>
-            <div class='error-messages-holder'>
-              <div class='error-message-header'>Error details:</div>
-              ${this.statusService.errorFullMessages.map(
-                  message => html`<pre class="full-message">${message}</pre>`)}
-            </div>
-            <div class='close-button-holder'>
-              <button class='hairline-button' @click=${() => {close();}}>
-                Close
-              </button>
-            </div>
+      <div class='modal-container'>
+        <div class="model-overlay" @click=${() => {close();}}></div>
+        <div class='modal'>
+          <div class='error-messages-holder'>
+            <div class='error-message-header'>Error Details</div>
+            ${this.statusService.errorFullMessages.map(
+                message => html`<pre class="full-message">${message}</pre>`)}
           </div>
-        </div>`;
+          <div class='close-button-holder'>
+            <button class='hairline-button' @click=${() => {close();}}>
+              Close
+            </button>
+          </div>
+        </div>
+      </div>`;
+    // clang-format on
   }
 
   renderError() {

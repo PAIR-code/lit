@@ -23,8 +23,13 @@
   font-size: 10pt;
 }
 
-.info {
+.status-info {
+  display: flex;
   padding-left: 10px;
+}
+
+.status-info > * {
+  margin: 0 2px;
 }
 
 .error {
@@ -34,11 +39,6 @@
 
 .icon-button.error {
   color: red;
-}
-
-
-#status {
-  display: flex;
 }
 
 mwc-icon.icon-button {
@@ -132,17 +132,15 @@ mwc-icon.icon-button:hover {
   margin: 10px;
 }
 
-.error-messages-holder {
-  overflow-y: auto;
-}
-
 .error-message-header {
-  margin: 10px;
-  font-weight: bold;
+  font-size: 1.5rem;
+  margin-left: 10px;
+  margin-top: 10px;
 }
 
 .full-message {
   margin: 10px;
+  overflow: auto;
 }
 
 @-webkit-keyframes running-progress {
