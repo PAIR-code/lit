@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import '../elements/spinner';
 import '../elements/tcav_score_bar';
-import '@material/mwc-switch/deprecated';
+import '@material/mwc-switch';
 
 import {customElement, html} from 'lit-element';
 import {TemplateResult} from 'lit-html';
@@ -52,6 +52,17 @@ const NO_T_TESTING_WARNING = `Did not run t-testing (requires at least ${
 const MAX_P_VAL = 0.05;
 const HIGH_P_VAL_WARNING =
     `this run was not statistically significant (p > ${MAX_P_VAL})`;
+
+interface TcavResults {
+  positiveSlice: string;
+  negativeSlice: string;
+  config: CallConfig;
+  score: number;
+  // tslint:disable-next-line:enforce-name-casing
+  p_val: number;
+  // tslint:disable-next-line:enforce-name-casing
+  random_mean: number;
+}
 
 /**
  * The TCAV module.
@@ -336,7 +347,8 @@ export class TCAVModule extends LitModule {
   }
 
   private async runSingleTCAV(
-      config: CallConfig, positiveSlice: string, negativeSlice: string) {
+      config: CallConfig, positiveSlice: string, negativeSlice: string):
+      Promise<TcavResults|undefined> {
     const comparisonSetLength = this.appState.currentInputData.length -
         config['concept_set_ids'].length;
     if (config['concept_set_ids'].length < MIN_EXAMPLES_LENGTH ||
@@ -371,7 +383,7 @@ export class TCAVModule extends LitModule {
 
     // TODO(lit-dev): Add option to run TCAV on selected examples.
     // TODO(lit-dev): Add option to run TCAV on categorical features.
-    const promises = [];
+    const promises: Array<Promise<TcavResults|undefined>> = [];
     for (const slicePair of this.slicePairs) {
       for (const gradClass of this.selectedClasses.values()) {
         for (const layer of this.selectedLayers.values()) {
@@ -410,7 +422,7 @@ export class TCAVModule extends LitModule {
              clampVal=${1}>
            </tcav-score-bar>`;
       // clang-format on
-      let displayScore = res['score'];
+      let displayScore = res['score'].toString();
 
       if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
         displayScore = '-';

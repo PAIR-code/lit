@@ -20,7 +20,7 @@
  */
 
 import '@material/mwc-icon';
-import '@material/mwc-switch/deprecated';
+import '@material/mwc-switch';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';

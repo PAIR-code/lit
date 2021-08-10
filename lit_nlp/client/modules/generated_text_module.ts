@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch/deprecated';
+import '@material/mwc-switch';
 import '../elements/generated_text_vis';
 
 import {customElement, html} from 'lit-element';
