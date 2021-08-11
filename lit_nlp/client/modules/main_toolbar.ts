@@ -468,7 +468,7 @@ export class LitMainToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-    <div class='toolbar' id='main-toolbar'>
+    <div class='toolbar main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
         <div class='compare-container' @click=${compareDisabled ? null:
