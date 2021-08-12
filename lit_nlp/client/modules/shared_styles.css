@@ -82,6 +82,19 @@ mwc-textfield {
   padding: 2pt;
 }
 
+/* For in-line icons in a <span> */
+.material-icon {
+  font-family: 'Material Icons';
+  vertical-align: middle;
+  margin: 0;
+}
+
+.material-icon-outlined {
+  font-family: 'Material Icons Outlined';
+  vertical-align: middle;
+  margin: 0;
+}
+
 /* 'Text' Button Style */
 .text-button {
   margin: 0 4px;
@@ -208,6 +221,7 @@ mwc-textfield {
  * the results area will scroll while the toolbar remains at the top.
  */
 .module-container {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -231,6 +245,30 @@ mwc-textfield {
   overflow-y: auto;
 }
 
+.module-content {
+  box-sizing: border-box;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.module-footer {
+  min-height: 32px;
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  flex-grow: 0;
+  flex-shrink: 0;
+  justify-content: flex-start;
+}
+
+/** Status text in a module footer. **/
+.module-status {
+  color: #3c4043;
+  font-style: italic;
+  font-weight: normal;
+  margin: 0 0.5em;
+}
 
 /**
  * Spacer div: insert this before content if you want a module without a
@@ -249,4 +287,8 @@ mwc-switch {
   --mdc-ripple-hover-opacity: 0;
   --mdc-ripple-press-opacity: 0;
   --mdc-ripple-focus-opacity: 0;
+}
+
+mwc-icon.outlined {
+  --mdc-icon-font: "Material Icons Outlined";
 }

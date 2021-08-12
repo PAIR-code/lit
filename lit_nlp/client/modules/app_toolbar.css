@@ -63,19 +63,6 @@ mwc-icon.icon-button:active {
   margin: 0px 4px;
 }
 
-/* For in-line icons in a <span> */
-.material-icon {
-  font-family: 'Material Icons';
-  vertical-align: middle;
-  margin: 0;
-}
-
-.material-icon-outlined {
-  font-family: 'Material Icons Outlined';
-  vertical-align: middle;
-  margin: 0;
-}
-
 /* Custom button style to work with the dark background */
 button {
   font-size: 12pt;

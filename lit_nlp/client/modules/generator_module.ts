@@ -16,9 +16,11 @@
  */
 
 import '../elements/interpreter_controls';
+import '@material/mwc-icon';
 
+import {MobxLitElement} from '@adobe/lit-mobx';
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
+import {css, customElement, html} from 'lit-element';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
@@ -31,6 +33,51 @@ import {SelectionService} from '../services/services';
 
 import {styles} from './generator_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
+
+/**
+ * Custom element for in-table add/remove controls.
+ * We use a custom element here so we can encapsulate styles.
+ */
+@customElement('generated-row-controls')
+export class GeneratedRowControls extends MobxLitElement {
+  static get styles() {
+    return [
+      sharedStyles, styles, css`
+            :host {
+              display: flex;
+              flex-direction: row;
+              color: #1a73e8;
+            }
+            :host > * {
+              margin-right: 4px;
+            }
+            `
+    ];
+  }
+
+  render() {
+    const addPoint = () => {
+      const event = new CustomEvent('add-point');
+      this.dispatchEvent(event);
+    };
+
+    const removePoint = () => {
+      const event = new CustomEvent('remove-point');
+      this.dispatchEvent(event);
+    };
+
+    // clang-format off
+    return html`
+      <mwc-icon class="icon-button outlined" @click=${addPoint}>
+        add_box
+      </mwc-icon>
+      <mwc-icon class="icon-button outlined" @click=${removePoint}>
+        delete
+      </mwc-icon>
+    `;
+    // clang-format on
+  }
+}
 
 /**
  * A LIT module that allows the user to generate new examples.
@@ -122,6 +169,7 @@ export class GeneratorModule extends LitModule {
   private async generate(
       generator: string, modelName: string, config?: CallConfig) {
     this.isGenerating = true;
+    this.appliedGenerator = generator;
     const sourceExamples = this.selectionService.selectedOrAllInputData;
     try {
       const generated = await this.apiService.getGenerated(
@@ -135,7 +183,6 @@ export class GeneratorModule extends LitModule {
         }
       }
       this.generated = generated;
-      this.appliedGenerator = generator;
       this.isGenerating = false;
     } catch (err) {
       this.isGenerating = false;
@@ -170,48 +217,91 @@ export class GeneratorModule extends LitModule {
 
   render() {
     return html`
-      <div class="generator-module-wrapper">
-        ${this.renderGeneratorButtons()}
-        ${this.renderGenerated()}
+      <div class="module-container generator-module-container">
+        <div class="module-content generator-module-content">
+          ${this.renderGeneratorButtons()}
+          ${this.renderGenerated()}
+        </div>
+        <div class="module-footer generator-module-footer">
+          <p class="module-status">${this.getStatus()}</p>
+          ${this.renderOverallControls()}
+        </div>
       </div>
     `;
   }
 
-  renderGenerated() {
-    const isGenerating = this.isGenerating;
-    const nothingGenerated =
-        this.appliedGenerator !== null && this.totalNumGenerated === 0;
+  /**
+   * Determine module's status as a string to display in the footer.
+   */
+  getStatus(): string {
+    if (this.isGenerating) {
+      return 'Generating...';
+    }
 
-    const renderStatus = () => {
-      if (isGenerating) {
-        return html`<div>Generating...</div>`;
-      }
-      if (this.appliedGenerator == null) {
-        return null;
-      }
-      if (nothingGenerated) {
-        return html`<div>Nothing available for this generator</div>`;
-      }
-      return html`
-        <div class="counterfactuals-count">
-          Generated ${this.totalNumGenerated}
-          ${this.totalNumGenerated === 1 ?
-          'counterfactual' : 'counterfactuals'}
-          from ${this.appliedGenerator}.
-        </div>
-        ${this.renderOverallControls()}
+    if (this.appliedGenerator) {
+      const s = this.totalNumGenerated === 1 ? '' : 's';
+      return `
+        Generated ${this.totalNumGenerated}
+        counterfactual${s} from ${this.appliedGenerator}.
       `;
-    };
+    }
+
+    const generatorsInfo = this.appState.metadata.generators;
+    const generators = Object.keys(generatorsInfo);
+    if (!generators.length) {
+      return 'No generator components available.';
+    }
+
+    const data = this.selectionService.selectedOrAllInputData;
+    const s = data.length === 1 ? '' : 's';
+    return `
+      Generate counterfactuals for current selection
+      (${data.length} datapoint${s}).
+    `;
+  }
+
+  renderInterstitial() {
+    // clang-format off
+    return html`
+      <div class="interstitial">
+        <img src="static/interstitial-select.png" />
+        <p>
+          <strong>Counterfactual Generators</strong>
+          Create new datapoints derived from the current selection.
+        </p>
+      </div>`;
+    // clang-format on
+  }
+
+  renderEmptyNotice() {
+    // clang-format off
+    return html`
+      <div class="interstitial">
+        <p>No examples generated.</p>
+      </div>`;
+    // clang-format on
+  }
+
+  renderGenerated() {
     const rows: TableData[] = this.createEntries();
-    const columnNames = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    if (!this.appliedGenerator) {
+      return this.renderInterstitial();
+    }
+
+    if (rows.length <= 0) {
+      if (this.isGenerating) {
+        return null;
+      } else {
+        return this.renderEmptyNotice();
+      }
+    }
+
     // clang-format off
     return html`
       <div class="results-holder">
-        <div id='generated-holder'>
-          ${renderStatus()}
-        </div>
         <lit-data-table class="table"
-            .columnNames=${columnNames}
+            .columnNames=${Object.keys(rows[0])}
             .data=${rows}
         ></lit-data-table>
       </div>
@@ -240,7 +330,6 @@ export class GeneratorModule extends LitModule {
         const fieldNames = Object.keys(generated.data);
 
         // render values for each datapoint.
-        // clang-format off
         const row: {[key: string]: TableEntry} = {};
         for (const key of fieldNames) {
           const editable =
@@ -248,14 +337,10 @@ export class GeneratorModule extends LitModule {
           row[key] = editable ? this.renderEntry(generated.data, key)
               : generated.data[key];
         }
-        row['Controls'] =
-            html`
-            <div class="flex">
-              <button class="button add-button" @click=${addPoint}>Add</button>
-              <button class="button" @click=${removePoint}>Remove</button>
-            </div>`;
+        row['Add/Remove'] = html`<generated-row-controls
+                                @add-point=${addPoint}
+                                @remove-point=${removePoint} />`;
         rows.push(row);
-        // clang-format on
       }
     }
     return rows;
@@ -269,39 +354,34 @@ export class GeneratorModule extends LitModule {
 
     // clang-format off
     return html`
-      <div class='overall-controls'>
-        ${this.totalNumGenerated <= 0 ? null : html`
-          <button class='button add-button' @click=${onAddAll}>
-             Add all
-          </button>
-          <button class='button' @click=${this.resetEditedData}>
-             Clear
-          </button>
-        `}
+      <div class="overall-controls">
+        <button class="hairline-button" ?disabled=${this.totalNumGenerated <= 0}
+           @click=${onAddAll}>
+           Add all
+        </button>
+        <button class="hairline-button" ?disabled=${this.totalNumGenerated <= 0}
+           @click=${this.resetEditedData}>
+           Clear
+        </button>
       </div>`;
     // clang-format on
   }
 
   renderGeneratorButtons() {
-    const data = this.selectionService.selectedOrAllInputData;
     const generatorsInfo = this.appState.metadata.generators;
     const generators = Object.keys(generatorsInfo);
-    const text = generators.length > 0 ?
-        `Generate counterfactuals for current selection (${
-            data.length} datapoint${data.length === 1 ? '' : `s`}):` :
-        'No generators provided by the server.';
 
     // Add event listener for generation events.
-    const onGenClick = (event: Event) => {
+    const onGenClick = (event: CustomEvent) => {
       const globalParams = {
         'model_name': this.modelName,
         'dataset_name': this.datasetName,
       };
       // tslint:disable-next-line:no-any
-      const generatorParams: {[setting: string]: string} = (event as any)
-          .detail.settings;
+      const generatorParams: {[setting: string]: string} =
+          event.detail.settings;
       // tslint:disable-next-line:no-any
-      const generatorName =  (event as any).detail.name;
+      const generatorName = event.detail.name;
 
       // Add user-specified parameters from the applied generator.
       const allParams = Object.assign({}, globalParams, generatorParams);
@@ -310,8 +390,7 @@ export class GeneratorModule extends LitModule {
 
     // clang-format off
     return html`
-        <div id="generators">
-          <div>${text}</div>
+        <div class="generators-panel">
           ${generators.map(genName => {
             const spec = generatorsInfo[genName].configSpec;
             const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
@@ -374,15 +453,18 @@ export class GeneratorModule extends LitModule {
     const renderFreeformInput = () => {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
-      const editable =  !isLitSubtype(fieldSpec, nonEditableSpecs);
       const formattedVal = formatForDisplay(value, fieldSpec);
-      return editable ?
-          {template:
-               html`<input type="text" class="input-box"
-                 @input=${handleInputChange}
-                .value="${formattedVal}"/>`,
-           value: formattedVal}:
-          formattedVal;
+
+      if (isLitSubtype(fieldSpec, nonEditableSpecs)) {
+        return formattedVal;
+      }
+
+      return {
+        template: html`<input type="text" class="input-box"
+            @input=${handleInputChange}
+            .value="${formattedVal}" />`,
+        value: formattedVal,
+      };
     };
 
     return isCategorical ? renderCategoricalInput() : renderFreeformInput();
