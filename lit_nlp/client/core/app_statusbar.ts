@@ -32,8 +32,8 @@ import {observable} from 'mobx';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StatusService} from '../services/services';
 
+import {app} from './app';
 import {styles} from './app_statusbar.css';
-import {app} from './lit_app';
 
 /**
  * The bottom status bar of the LIT app.

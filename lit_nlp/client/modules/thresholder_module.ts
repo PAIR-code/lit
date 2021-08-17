@@ -20,7 +20,7 @@ import '../elements/threshold_slider';
 import {css, customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';

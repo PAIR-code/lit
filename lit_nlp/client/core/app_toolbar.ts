@@ -33,9 +33,9 @@ import {datasetDisplayName} from '../lib/types';
 import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
+import {app} from './app';
 import {styles} from './app_toolbar.css';
 import {GlobalSettingsComponent, TabName} from './global_settings';
-import {app} from './lit_app';
 
 /**
  * The header/toolbar of the LIT app.

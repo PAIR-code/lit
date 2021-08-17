@@ -33,14 +33,14 @@ import {customElement, html, property, TemplateResult} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {action, computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName, NONE_DS_DICT_KEY} from '../lib/types';
 import {linkifyUrls} from '../lib/utils';
 import {getModuleConstructor} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
 
+import {app} from './app';
 import {styles} from './global_settings.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Names of available settings tabs.

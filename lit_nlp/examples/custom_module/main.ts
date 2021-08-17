@@ -4,9 +4,9 @@
 
 // Imports the main LIT App web component, which is declared here then attached
 // to the DOM as <lit-app>
-import '../../client/core/app';
+import '../../client/core/lit_app';
 
-import {app} from '../../client/core/lit_app';
+import {app} from '../../client/core/app';
 import {LAYOUTS} from '../../client/default/layout';
 import {ClassificationModule} from '../../client/modules/classification_module';
 import {DataTableModule} from '../../client/modules/data_table_module';

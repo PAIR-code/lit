@@ -20,7 +20,7 @@
 import {customElement, html} from 'lit-element';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';

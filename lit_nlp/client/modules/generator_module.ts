@@ -23,7 +23,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, customElement, html, TemplateResult} from 'lit-element';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';

@@ -24,7 +24,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable, when} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';

@@ -35,7 +35,7 @@ import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
-import {app} from './lit_app';
+import {app} from './app';
 import {styles} from './main_toolbar.css';
 
 

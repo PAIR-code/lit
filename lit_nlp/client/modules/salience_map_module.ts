@@ -30,7 +30,7 @@ import {styleMap} from 'lit-html/directives/style-map';
 import {until} from 'lit-html/directives/until';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';

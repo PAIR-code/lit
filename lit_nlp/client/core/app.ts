@@ -15,40 +15,159 @@
  * limitations under the License.
  */
 
+// Import Services
+// Import and add injection functionality to LitModule
+import {reaction} from 'mobx';
+
+import {Constructor, LitComponentLayouts} from '../lib/types';
+
+import {ApiService} from '../services/api_service';
+import {ClassificationService} from '../services/classification_service';
+import {ColorService} from '../services/color_service';
+import {FocusService} from '../services/focus_service';
+import {GroupService} from '../services/group_service';
+import {LitService} from '../services/lit_service';
+import {ModulesService} from '../services/modules_service';
+import {RegressionService} from '../services/regression_service';
+import {SelectionService} from '../services/selection_service';
+import {SettingsService} from '../services/settings_service';
+import {SliceService} from '../services/slice_service';
+import {AppState} from '../services/state_service';
+import {StatusService} from '../services/status_service';
+import {UrlService} from '../services/url_service';
+
+
 /**
- * Client-side (UI) code for the LIT tool.
+ * The class responsible for building and managing the LIT App.
  */
-
-import './app_statusbar';
-import './app_toolbar';
-import './modules';
-
-import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html} from 'lit-element';
-
-import {app} from '../core/lit_app';
-import {AppState} from '../services/services';
-
-import {styles} from './app_styles.css';
-
-/**
- * The main LIT app. Contains app-level infrastructure (such as the header,
- * footer, drawers), and renders LIT modules via the `main-page` component.
- */
-@customElement('lit-app')
-export class AppComponent extends MobxLitElement {
-  static get styles() {
-    return [styles];
+export class LitApp {
+  constructor() {
+    this.buildServices();
   }
 
-  private readonly appState = app.getService(AppState);
+  /**
+   * Begins loading data from the LIT server, and computes the layout that
+   * the `modules` component will use to render.
+   */
+  async initialize(layouts: LitComponentLayouts) {
+    const appState = this.getService(AppState);
+    const modulesService = this.getService(ModulesService);
+    appState.layouts = layouts;
 
-  render() {
-    return html`
-      <lit-app-toolbar></lit-app-toolbar>
-      <!-- Main content -->
-      ${this.appState.initialized ? html`<lit-modules></lit-modules>` : null}
-      <lit-app-statusbar></lit-app-statusbar>
-    `;
+    await appState.initialize();
+    if (appState.metadata.pageTitle) {
+      document.querySelector('html head title')!.textContent = appState.metadata.pageTitle;
+    }
+    modulesService.initializeLayout(
+        appState.layout, appState.currentModelSpecs,
+        appState.currentDatasetSpec, appState.compareExamplesEnabled);
+
+    // If we need more than one selectionService, create and append it to the
+    // list.
+    const numSelectionServices = modulesService.numberOfSelectionServices;
+    const selectionServices = this.getServiceArray(SelectionService);
+    for (let i = 0; i < numSelectionServices - 1; i++) {
+      const selectionService = new SelectionService();
+      selectionService.setAppState(appState);
+      selectionServices.push(selectionService);
+    }
+
+    // Select the initial datapoint, if one was set in the url.
+    await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
+
+    //  Reaction to sync other selection services to selections of the main one.
+    reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
+      this.syncSelectionServices();
+    }, {fireImmediately: true});
+  }
+
+  private readonly services =
+      new Map<Constructor<LitService>, LitService|LitService[]>();
+
+  /** Sync selection services */
+  syncSelectionServices() {
+    const selectionServices = this.getServiceArray(SelectionService);
+    for (const selectionService of selectionServices.slice(1)) {
+      // TODO(lit-dev): can we just copy the object instead, and skip this
+      // logic?
+      selectionService.syncFrom(selectionServices[0]);
+    }
+  }
+
+  /** Simple DI service system */
+  getService<T extends LitService>(t: Constructor<T>): T {
+    let service = this.services.get(t);
+    /**
+     * Modules that don't support example comparison will always get index
+     * 0 of selectionService. This way we do not have to edit any module that
+     * does not explicitly support cloning
+     */
+    if (Array.isArray(service)) {
+      service = service[0];
+    }
+    if (service === undefined) {
+      throw new Error(`Service is undefined: ${t.name}`);
+    }
+    return service as T;
+  }
+
+  /**
+   * Intended for selectionService only, returns an array of services for
+   * indexing within modules.
+   */
+  getServiceArray<T extends LitService>(t: Constructor<T>): T[] {
+    const services = this.services.get(t) as T[];
+    if (services === undefined) {
+      throw new Error(`Service is undefined: ${t.name}`);
+    }
+    return services;
+  }
+
+  /**
+   * Builds services via simple constructor / composition based dependency
+   * injection. We'll might want to come up with something more robust down the
+   * line, but for now this allows us to construct all of our singleton
+   * services in one location in a simple way.
+   */
+  private buildServices() {
+    const statusService = new StatusService();
+    const apiService = new ApiService(statusService);
+    const modulesService = new ModulesService();
+    const selectionService = new SelectionService();
+    const urlService = new UrlService();
+    const appState = new AppState(apiService, statusService);
+    const sliceService = new SliceService(selectionService, appState);
+    const regressionService = new RegressionService(apiService, appState);
+    const settingsService =
+        new SettingsService(appState, modulesService, selectionService);
+    const groupService = new GroupService(appState);
+    const classificationService =
+        new ClassificationService(apiService, appState, groupService);
+    const colorService = new ColorService(
+        appState, groupService, classificationService, regressionService);
+    const focusService = new FocusService(selectionService);
+
+    selectionService.setAppState(appState);
+
+    // Initialize url syncing of state
+    urlService.syncStateToUrl(appState, selectionService, modulesService);
+
+    // Populate the internal services map for dependency injection
+    this.services.set(ApiService, apiService);
+    this.services.set(AppState, appState);
+    this.services.set(ClassificationService, classificationService);
+    this.services.set(ColorService, colorService);
+    this.services.set(FocusService, focusService);
+    this.services.set(GroupService, groupService);
+    this.services.set(ModulesService, modulesService);
+    this.services.set(RegressionService, regressionService);
+    this.services.set(SelectionService, [selectionService]);
+    this.services.set(SettingsService, settingsService);
+    this.services.set(SliceService, sliceService);
+    this.services.set(StatusService, statusService);
+    this.services.set(UrlService, urlService);
   }
 }
+
+/** The exported singleton instance of the LIT App */
+export const app = new LitApp();

@@ -19,7 +19,7 @@
 import {customElement, html} from 'lit-element';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';

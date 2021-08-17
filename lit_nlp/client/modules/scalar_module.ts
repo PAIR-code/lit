@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';

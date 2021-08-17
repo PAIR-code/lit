@@ -19,15 +19,15 @@ import 'jasmine';
 
 import {toJS} from 'mobx';
 
-import {LITApp} from '../core/lit_app';
+import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
+import {LitComponentLayout} from '../lib/types';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 
 import {ApiService} from './api_service';
 import {ModulesService} from './modules_service';
 import {AppState} from './state_service';
-import {LitComponentLayout} from '../lib/types';
 
 const MOCK_LAYOUT: LitComponentLayout = {
   components: {
@@ -46,7 +46,7 @@ describe('modules service test', async () => {
   let appState: AppState, modulesService: ModulesService;
   beforeEach(async () => {
     // Set up.
-    const app = new LITApp();
+    const app = new LitApp();
     // tslint:disable-next-line:no-any (to spyOn a private method)
     spyOn<any>(app.getService(ApiService), 'queryServer').and.returnValue(null);
     appState = app.getService(AppState);

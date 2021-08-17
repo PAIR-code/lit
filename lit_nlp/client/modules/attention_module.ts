@@ -24,7 +24,7 @@ import {css, customElement, html, svg} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';

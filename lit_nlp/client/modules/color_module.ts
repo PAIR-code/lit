@@ -23,7 +23,7 @@
 import {customElement, html} from 'lit-element';
 import {styleMap} from 'lit-html/directives/style-map';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {D3Scale} from '../lib/types';

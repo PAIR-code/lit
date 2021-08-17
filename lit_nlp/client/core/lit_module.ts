@@ -17,14 +17,13 @@
 
 // tslint:disable:no-new-decorators
 import {property} from 'lit-element';
-import {computed} from 'mobx';
-import { observable } from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {LitModuleClass, SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {ApiService, AppState, SelectionService} from '../services/services';
 
-import {app} from './lit_app';
+import {app} from './app';
 
 /**
  * An interface describing the LitWidget element that contains the LitModule.

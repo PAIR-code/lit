@@ -26,7 +26,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, ModelInfoMap, Spec} from '../lib/types';

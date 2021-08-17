@@ -23,7 +23,7 @@ import {customElement, html} from 'lit-element';
 import {TemplateResult} from 'lit-html';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';

@@ -25,11 +25,11 @@ import {customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 
-import {app} from '../core/lit_app';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
+import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';

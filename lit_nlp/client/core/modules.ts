@@ -19,17 +19,18 @@
  * Client-side (UI) code for the LIT tool.
  */
 // tslint:disable:no-new-decorators
+import '@material/mwc-icon';
+
 import {customElement, html, property} from 'lit-element';
-import {observable} from 'mobx';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
-import '@material/mwc-icon';
+import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {LitRenderConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
-import {app} from './lit_app';
+import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
 import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';

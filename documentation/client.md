@@ -39,8 +39,8 @@ which modules to render).
 The LIT app bootstrapping takes place in two steps: First, the served
 [`index.html`](../lit_nlp/client/static/index.html)
 page contains a single web component for the
-[`<lit-app>`](../lit_nlp/client/app/app.ts). This
-component is responsible for the overall layout of the app, including the
+[`<lit-app>`](../lit_nlp/client/core/lit_app.ts).
+This component is responsible for the overall layout of the app, including the
 toolbar, footer, and the
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)
 component. The `<lit-modules>` component is responsible for actually laying out
@@ -53,10 +53,9 @@ first imports the loaded, the `<lit-app>` web component is declared, and
 attaches itself to the DOM, waiting for the app to be initialized.
 
 The second step is kicking off app initialization. The
-[`LitApp`](../lit_nlp/client/core/lit_app.ts)
-singleton class is provided with a layout declaring which `LitModule` components
-to use, then builds the app services and kicks off app initialization and
-loading data.
+[`LitApp`](../lit_nlp/client/core/app.ts) singleton
+class is provided with a layout declaring which `LitModule` components to use,
+then builds the app services and kicks off app initialization and loading data.
 
 ### Layout
 

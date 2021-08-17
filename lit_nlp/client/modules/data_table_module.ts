@@ -22,7 +22,7 @@ import '../elements/checkbox';
 import {customElement, html, query} from 'lit-element';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {DataTable, TableData} from '../elements/table';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';

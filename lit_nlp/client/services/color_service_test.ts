@@ -23,7 +23,7 @@ import 'jasmine';
 
 import * as d3 from 'd3';
 
-import {LITApp} from '../core/lit_app';
+import {LitApp} from '../core/app';
 import {IndexedInput} from '../lib/types';
 
 import {ClassificationService} from './classification_service';
@@ -53,7 +53,7 @@ describe('Color service test', () => {
   } as unknown as GroupService;
 
 
-  const app = new LITApp();
+  const app = new LitApp();
   const colorService = new ColorService(
       app.getService(AppState), mockGroupService,
       app.getService(ClassificationService), app.getService(RegressionService));
