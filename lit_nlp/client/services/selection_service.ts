@@ -119,6 +119,12 @@ export class SelectionService extends LitService implements
     this.setLastUser(user);
   }
 
+  @action
+  selectAll(user: ServiceUser = null) {
+    const ids = this.appState.currentInputData.map(d => d.id);
+    this.selectIds(ids, user);
+  }
+
   /**
    * Sync state from another selection service.
    * Atomic, so we only trigger a single set of reactions.

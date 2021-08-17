@@ -74,11 +74,6 @@
   flex-direction: row;
 }
 
-.entries {
-  max-height: calc(100% - 20px); /** Offset the height of the toolbar**/
-  overflow-y: scroll;
-}
-
 .input-label {
   margin-right: 4px;
   padding: 10px;
@@ -88,24 +83,22 @@
   width: 95%;
 }
 
-.row {
-  display: flex;
+.overall-controls {
   align-items: center;
-}
-
-.row:hover {
-    background: #f8f9fa;
-}
-
-.counterfactuals-count {
-  padding-bottom: 5px;
-}
-
-.overall-controls{
   display: flex;
   flex-direction: row;
-  flex-grow: 1;
   justify-content: flex-end;
+}
+
+.slice-name-input {
+  margin-left: 4px;
+  width: 250px;
+}
+
+.select-all {
+  color: #1a73e8;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* TODO(lit-dev): move to shared styles? */

@@ -20,7 +20,7 @@ import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 // tslint:disable:no-new-decorators
-import {css, customElement, html} from 'lit-element';
+import {css, customElement, html, TemplateResult} from 'lit-element';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/lit_app';
@@ -29,7 +29,7 @@ import {TableData, TableEntry} from '../elements/table';
 import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
-import {SelectionService} from '../services/services';
+import {SelectionService, SliceService} from '../services/services';
 
 import {styles} from './generator_module.css';
 import {styles as sharedStyles} from './shared_styles.css';
@@ -93,6 +93,7 @@ export class GeneratorModule extends LitModule {
 
   static duplicateForModelComparison = false;
   private readonly groupService = app.getService(GroupService);
+  private readonly sliceService = app.getService(SliceService);
 
   static get styles() {
     return [sharedStyles, styles];
@@ -103,7 +104,7 @@ export class GeneratorModule extends LitModule {
 
   @observable generated: IndexedInput[][] = [];
   @observable appliedGenerator: string|null = null;
-
+  @observable sliceName: string = '';
 
   @computed
   get datasetName() {
@@ -113,6 +114,14 @@ export class GeneratorModule extends LitModule {
   @computed
   get modelName() {
     return this.appState.currentModels[0];
+  }
+
+  @computed
+  get globalParams() {
+    return {
+      'model_name': this.modelName,
+      'dataset_name': this.datasetName,
+    };
   }
 
   @computed
@@ -157,6 +166,7 @@ export class GeneratorModule extends LitModule {
   private resetEditedData() {
     this.generated = [];
     this.appliedGenerator = null;
+    this.sliceName = '';
   }
 
   private handleGeneratorClick(generator: string, config?: CallConfig) {
@@ -166,11 +176,23 @@ export class GeneratorModule extends LitModule {
     }
   }
 
+  private makeAutoSliceName(generator: string, config?: CallConfig) {
+    const segments: string[] = [generator];
+    if (config != null) {
+      for (const key of Object.keys(config)) {
+        // Skip these since they don't come from the actual controls form.
+        if (this.globalParams.hasOwnProperty(key)) continue;
+        segments.push(`${key}=${config[key]}`);
+      }
+    }
+    return segments.join(':');
+  }
+
   private async generate(
       generator: string, modelName: string, config?: CallConfig) {
     this.isGenerating = true;
     this.appliedGenerator = generator;
-    const sourceExamples = this.selectionService.selectedOrAllInputData;
+    const sourceExamples = this.selectionService.selectedInputData;
     try {
       const generated = await this.apiService.getGenerated(
           sourceExamples, modelName, this.appState.currentDataset, generator,
@@ -184,6 +206,7 @@ export class GeneratorModule extends LitModule {
       }
       this.generated = generated;
       this.isGenerating = false;
+      this.sliceName = this.makeAutoSliceName(generator, config);
     } catch (err) {
       this.isGenerating = false;
     }
@@ -194,6 +217,10 @@ export class GeneratorModule extends LitModule {
     this.appState.commitNewDatapoints(newExamples);
     const newIds = newExamples.map(d => d.id);
     if (newIds.length === 0) return;
+
+    if (this.sliceName !== '') {
+      this.sliceService.addOrAppendToSlice(this.sliceName, newIds);
+    }
 
     const parentIds =
         new Set<string>(newExamples.map(ex => ex.meta['parentId']!));
@@ -224,16 +251,32 @@ export class GeneratorModule extends LitModule {
         </div>
         <div class="module-footer generator-module-footer">
           <p class="module-status">${this.getStatus()}</p>
+          <p class="module-status">${this.getSliceStatus()}</p>
           ${this.renderOverallControls()}
         </div>
       </div>
     `;
   }
 
+  getSliceStatus(): TemplateResult|null {
+    const sliceExists = this.sliceService.namedSlices.has(this.sliceName);
+    if (!sliceExists) return null;
+
+    const existingSliceSize =
+        this.sliceService.getSliceByName(this.sliceName)!.length;
+    const s = existingSliceSize === 1 ? '' : 's';
+    // clang-format off
+    return html`
+       Slice exists (${existingSliceSize} point${s});
+       will append ${this.totalNumGenerated} more.
+    `;
+    // clang-format on
+  }
+
   /**
    * Determine module's status as a string to display in the footer.
    */
-  getStatus(): string {
+  getStatus(): string|TemplateResult {
     if (this.isGenerating) {
       return 'Generating...';
     }
@@ -241,8 +284,8 @@ export class GeneratorModule extends LitModule {
     if (this.appliedGenerator) {
       const s = this.totalNumGenerated === 1 ? '' : 's';
       return `
-        Generated ${this.totalNumGenerated}
-        counterfactual${s} from ${this.appliedGenerator}.
+        ${this.appliedGenerator}: generated ${this.totalNumGenerated}
+        counterfactual${s} from ${this.generated.length} inputs.
       `;
     }
 
@@ -252,10 +295,21 @@ export class GeneratorModule extends LitModule {
       return 'No generator components available.';
     }
 
-    const data = this.selectionService.selectedOrAllInputData;
+    const data = this.selectionService.selectedInputData;
+    const selectAll = () => {
+      this.selectionService.selectAll();
+    };
+    if (data.length <= 0) {
+      return html`
+          No examples selected.
+          <span class='select-all' @click=${selectAll}>
+            Select entire dataset?
+          </span>`;
+    }
+
     const s = data.length === 1 ? '' : 's';
     return `
-      Generate counterfactuals for current selection
+      Generate counterfactuals from current selection
       (${data.length} datapoint${s}).
     `;
   }
@@ -352,14 +406,36 @@ export class GeneratorModule extends LitModule {
       this.resetEditedData();
     };
 
+    const onClickCompare = async () => {
+      this.appState.compareExamplesEnabled = true;
+      // this.createNewDatapoints() will set reference selection if
+      // comparison mode is enabled.
+      await onAddAll();
+    };
+
+    const setSliceName = (e: Event) => {
+      // tslint:disable-next-line:no-any
+      this.sliceName = (e as any).target.value;
+    };
+
+    const controlsDisabled = this.totalNumGenerated <= 0;
+
     // clang-format off
     return html`
       <div class="overall-controls">
-        <button class="hairline-button" ?disabled=${this.totalNumGenerated <= 0}
+        <label for="slice-name">Slice name:</label>
+        <input type="text" class="slice-name-input" name="slice-name"
+         .value=${this.sliceName} @input=${setSliceName}
+         placeholder="Name for generated set">
+        <button class="hairline-button" ?disabled=${controlsDisabled}
            @click=${onAddAll}>
            Add all
         </button>
-        <button class="hairline-button" ?disabled=${this.totalNumGenerated <= 0}
+        <button class='hairline-button'
+          @click=${onClickCompare} ?disabled=${controlsDisabled}>
+          Add and compare
+        </button>
+        <button class="hairline-button" ?disabled=${controlsDisabled}
            @click=${this.resetEditedData}>
            Clear
         </button>
@@ -373,10 +449,6 @@ export class GeneratorModule extends LitModule {
 
     // Add event listener for generation events.
     const onGenClick = (event: CustomEvent) => {
-      const globalParams = {
-        'model_name': this.modelName,
-        'dataset_name': this.datasetName,
-      };
       // tslint:disable-next-line:no-any
       const generatorParams: {[setting: string]: string} =
           event.detail.settings;
@@ -384,7 +456,7 @@ export class GeneratorModule extends LitModule {
       const generatorName = event.detail.name;
 
       // Add user-specified parameters from the applied generator.
-      const allParams = Object.assign({}, globalParams, generatorParams);
+      const allParams = Object.assign({}, this.globalParams, generatorParams);
       this.handleGeneratorClick(generatorName, allParams);
     };
 

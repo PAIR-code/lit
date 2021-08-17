@@ -104,6 +104,15 @@ export class SliceService extends LitService {
   }
 
   @action
+  addOrAppendToSlice(name: SliceName, ids: string[]) {
+    if (!this.namedSlices.has(name)) {
+      this.addNamedSlice(name, ids);
+    } else {
+      this.addIdsToSlice(name, ids);
+    }
+  }
+
+  @action
   removeIdsFromSlice(name: SliceName, ids: string[]) {
     const sliceIds = this.namedSlices.get(name);
     if (sliceIds == null) {
