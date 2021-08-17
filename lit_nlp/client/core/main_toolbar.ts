@@ -29,14 +29,14 @@ import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
 import {MenuItem} from '../elements/menu';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
+import {app} from './lit_app';
 import {styles} from './main_toolbar.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**

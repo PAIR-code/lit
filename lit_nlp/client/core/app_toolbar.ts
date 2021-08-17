@@ -28,14 +28,14 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html, query} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 
-import {app} from '../core/lit_app';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';
 import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
 import {styles} from './app_toolbar.css';
 import {GlobalSettingsComponent, TabName} from './global_settings';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {app} from './lit_app';
 
 /**
  * The header/toolbar of the LIT app.

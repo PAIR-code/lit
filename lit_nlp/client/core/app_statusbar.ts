@@ -25,15 +25,15 @@ import './global_settings';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {observable} from 'mobx';
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
+import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StatusService} from '../services/services';
 
 import {styles} from './app_statusbar.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {app} from './lit_app';
 
 /**
  * The bottom status bar of the LIT app.
