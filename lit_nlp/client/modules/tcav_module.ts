@@ -34,7 +34,7 @@ import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './tcav_module.css';
 
 const MIN_EXAMPLES_LENGTH = 3;  // minimum examples needed to train the CAV.

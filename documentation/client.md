@@ -2,7 +2,7 @@
 
 <!-- client docs placeholder - DO NOT REMOVE -->
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-08-17' } *-->
 
 This document aims to describe the current LIT frontend system, including
 conventions, best practices, and gotchas.
@@ -205,7 +205,7 @@ Styles are also declared with a static get method (4), following the lit-element
 convention. These styles can be built using the lit-element `css` template
 function, or by importing a separate .css file. Styles can be shared between
 components by importing a shared styles .css file (for instance,
-[`shared_styles.css`](../lit_nlp/client/modules/shared_styles.css))
+[`shared_styles.css`](../lit_nlp/client/lib/shared_styles.css))
 
 Services are used by requesting them from the LitApp `app` singleton class (5).
 This can be thought of as a super-simple dependency injection system, and allows

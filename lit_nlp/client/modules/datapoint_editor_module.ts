@@ -26,13 +26,13 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/lit_app';
 import {LitModule} from '../core/lit_module';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
 import {styles} from './datapoint_editor_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.

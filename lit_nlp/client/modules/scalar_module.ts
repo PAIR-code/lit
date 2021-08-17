@@ -32,7 +32,7 @@ import {FocusData} from '../services/focus_service';
 import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * The maximum number of scatterplots to render on page load.

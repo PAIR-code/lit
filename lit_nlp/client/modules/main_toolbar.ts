@@ -36,7 +36,7 @@ import {AppState, ColorService, SelectionService, SliceService} from '../service
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './main_toolbar.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**

@@ -11,8 +11,8 @@ import {computed, observable} from 'mobx';
 
 import {VizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatSpanLabel, SpanLabel} from '../lib/types';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 import {styles} from './annotated_text_vis.css';
 

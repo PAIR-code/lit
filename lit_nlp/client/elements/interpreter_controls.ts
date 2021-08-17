@@ -18,15 +18,17 @@
 // tslint:disable:no-new-decorators
 import './checkbox';
 import '@material/mwc-icon';
+
 import {customElement, html, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {observable} from 'mobx';
-import {ReactiveElement} from '../lib/elements';
 
+import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitType, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
+
 import {styles} from './interpreter_controls.css';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 /**
  * Controls panel for an interpreter.

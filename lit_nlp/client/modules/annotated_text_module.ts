@@ -22,7 +22,7 @@ import {AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** LIT module for model output. */
 @customElement('annotated-text-gold-module')

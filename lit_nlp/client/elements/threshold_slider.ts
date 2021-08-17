@@ -17,8 +17,9 @@
 
 import {css, customElement, html, LitElement, property} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
+
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 /** A slider for setting classifcation thresholds/margins. */
 @customElement('threshold-slider')

@@ -31,7 +31,7 @@ import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService, FocusService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface ProjectorOptions {
   displayName: string;

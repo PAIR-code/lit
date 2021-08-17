@@ -31,7 +31,7 @@ import {range} from '../lib/utils';
 import {ColorService} from '../services/services';
 
 import {styles} from './color_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**

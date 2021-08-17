@@ -29,7 +29,7 @@ import {ClassificationInfo} from '../services/classification_service';
 import {ClassificationService} from '../services/services';
 
 import {styles} from './classification_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface DisplayInfo {
   label: string;

@@ -32,7 +32,7 @@ import {GroupService} from '../services/group_service';
 import {SelectionService, SliceService} from '../services/services';
 
 import {styles} from './generator_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Custom element for in-table add/remove controls.

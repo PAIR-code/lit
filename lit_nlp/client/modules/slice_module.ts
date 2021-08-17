@@ -29,7 +29,7 @@ import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './slice_module.css';
 
 /**

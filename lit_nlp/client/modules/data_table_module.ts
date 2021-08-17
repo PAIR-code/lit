@@ -32,7 +32,7 @@ import {RegressionInfo} from '../services/regression_service';
 import {ClassificationService, FocusService, RegressionService, SelectionService, UrlService} from '../services/services';
 
 import {styles} from './data_table_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * A LIT module showing a table containing the InputData examples. Allows the

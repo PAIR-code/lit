@@ -33,7 +33,7 @@ import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
 
 import {styles as salienceMapStyles} from './salience_map_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 const COUNTERFACTUAL_INTERPRETER_NAME = 'counterfactual explainer';
 

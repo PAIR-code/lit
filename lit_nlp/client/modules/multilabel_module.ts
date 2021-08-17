@@ -26,7 +26,7 @@ import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/typ
 import {doesOutputSpecContain} from '../lib/utils';
 
 import {styles} from './multilabel_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface DisplayInfo {
   label: string;

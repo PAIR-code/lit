@@ -30,7 +30,7 @@ import {IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface GeneratedTextResult {
   [key: string]: GeneratedTextCandidate[];

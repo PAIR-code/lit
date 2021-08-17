@@ -27,7 +27,7 @@ import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * A LIT module that renders masked predictions for a masked LM.

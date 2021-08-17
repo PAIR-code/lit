@@ -40,7 +40,7 @@ import {getModuleConstructor} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {styles} from './global_settings.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Names of available settings tabs.

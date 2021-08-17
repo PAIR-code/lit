@@ -29,7 +29,7 @@ import {GetFeatureFunc, GroupService} from '../services/group_service';
 import {ClassificationService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**

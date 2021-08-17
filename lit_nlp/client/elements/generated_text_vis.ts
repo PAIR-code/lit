@@ -23,7 +23,7 @@ import {classMap} from 'lit-html/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './generated_text_vis.css';
 

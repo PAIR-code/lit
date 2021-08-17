@@ -33,7 +33,7 @@ import {app} from '../core/lit_app';
 import {StatusService} from '../services/services';
 
 import {styles} from './app_statusbar.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * The bottom status bar of the LIT app.

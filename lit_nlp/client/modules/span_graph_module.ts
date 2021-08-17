@@ -33,7 +33,7 @@ import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
 import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface FieldNameMultimap {
   [fieldName: string]: string[];

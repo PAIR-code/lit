@@ -35,7 +35,7 @@ import {AppState, ModulesService, SettingsService, StatusService} from '../servi
 
 import {styles} from './app_toolbar.css';
 import {GlobalSettingsComponent, TabName} from './global_settings';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * The header/toolbar of the LIT app.

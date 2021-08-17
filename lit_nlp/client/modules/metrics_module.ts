@@ -28,7 +28,7 @@ import {GroupService} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 import {styles} from './metrics_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 // Each entry from the server.
 interface MetricsResponse {

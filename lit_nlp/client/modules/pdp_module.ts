@@ -26,7 +26,7 @@ import {ModelInfoMap, Spec} from '../lib/types';
 import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
 
 import {styles} from './pdp_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 // Dict of possible feature values to model outputs for a given prediction head
 // (list for classification, single number for regression).
