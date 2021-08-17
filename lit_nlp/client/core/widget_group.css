@@ -102,7 +102,8 @@ lit-widget {
 :host([maximized]) {
   margin: 0;
   padding: 0;
-  width: calc(100vw - 90px) !important;
+  width: calc(100vw - 90px) !important; /* override in-line size */
+  min-width: calc(100vw - 90px) !important; /* override in-line size */
   height: calc(100vh - 130px);
   position: fixed;
   z-index: 2;
