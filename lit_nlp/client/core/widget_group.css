@@ -102,17 +102,22 @@ lit-widget {
 :host([maximized]) {
   margin: 0;
   padding: 0;
-  width: calc(100vw - 90px) !important; /* override in-line size */
-  min-width: calc(100vw - 90px) !important; /* override in-line size */
-  height: calc(100vh - 130px);
+  --lit-maximized-vpad: 15px;
+  --lit-maximized-hpad: 45px;
+  /* Override whatever size this would have been in-line. */
+  width: calc(100vw - 2*var(--lit-maximized-hpad)) !important;
+  min-width: calc(100vw - 2*var(--lit-maximized-hpad)) !important;
   position: fixed;
   z-index: 2;
-  /** Top set to place the maximized module right below the toolbars. */
-  top: 76px;
+  /* Fix size to fill the main modules area, but not cover toolbars. */
+  /* --top-toolbar-offset and --modules-area-height are set by modules.ts. */
+  top: var(--top-toolbar-offset);
+  height: calc(var(--modules-area-height) - 2*var(--lit-maximized-vpad));
+  left: 0px;
 }
 
 :host([maximized]) .outside {
-  padding: 15px 45px;
+  padding: var(--lit-maximized-vpad) var(--lit-maximized-hpad);
   background: rgba(4, 29, 51, .47);
 }
 

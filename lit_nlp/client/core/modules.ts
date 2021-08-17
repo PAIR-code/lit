@@ -72,10 +72,19 @@ export class LitModules extends ReactiveElement {
       this.requestUpdate();
     });
 
+    const container: HTMLElement =
+        this.shadowRoot!.querySelector('.outer-container')!;
+
     this.resizeObserver = new ResizeObserver(() => {
       this.calculateWidths(this.modulesService.getRenderLayout());
+      // Set offset for maximized modules. This module doesn't know which
+      // toolbars are present, but we can just find the bounding area
+      // explicitly.
+      const bcr = container.getBoundingClientRect();
+      container.style.setProperty('--top-toolbar-offset', `${bcr.top}px`);
+      container.style.setProperty('--modules-area-height', `${bcr.height}px`);
     });
-    this.resizeObserver.observe(this);
+    this.resizeObserver.observe(container);
 
     this.reactImmediately(
         () => this.modulesService.getRenderLayout(), renderLayout => {
@@ -112,8 +121,10 @@ export class LitModules extends ReactiveElement {
         numMinimized +=1;
       }
     }
-    const widthAvailable =
-        window.innerWidth - MINIMIZED_WIDTH_PX * numMinimized;
+    const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
+                               .getBoundingClientRect()
+                               .width;
+    const widthAvailable = containerWidth - MINIMIZED_WIDTH_PX * numMinimized;
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
@@ -170,10 +181,11 @@ export class LitModules extends ReactiveElement {
     const mainPanelConfig = layout['Main'];
     const compGroupNames = Object.keys(layout).filter(k => k !== 'Main');
 
-    // Set the centerPage custom value from settings.
-    this.style.setProperty(
-      'align-self',
-      this.modulesService.getSetting('centerPage') ? `center` : `unset`);
+    const containerClasses = classMap({
+      'outer-container': true,
+      'outer-container-centered':
+          Boolean(this.modulesService.getSetting('centerPage')),
+    });
 
     // By default, set the selected tab to the first tab.
     if (this.modulesService.selectedTab === '') {
@@ -189,28 +201,32 @@ export class LitModules extends ReactiveElement {
 
     // clang-format off
     return html`
-      <div id='main-panel' style=${styles}>
-        ${this.renderWidgetGroups(mainPanelConfig, 'Main')}
-      </div>
-      <div id='center-bar'>
-        <div id='tabs'>
-          ${this.renderTabs(compGroupNames, tabToSelect)}
+      <div id='outer-container' class=${containerClasses}>
+        <div id='main-panel' style=${styles}>
+          ${this.renderWidgetGroups(mainPanelConfig, 'Main')}
         </div>
-        <div id='drag-container'>
-          <mwc-icon class="drag-icon">drag_handle</mwc-icon>
-          <div id='drag-handler' draggable='true'
-              @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
+        <div id='center-bar'>
+          <div id='tabs'>
+            ${this.renderTabs(compGroupNames, tabToSelect)}
+          </div>
+          <div id='drag-container'>
+            <mwc-icon class="drag-icon">drag_handle</mwc-icon>
+            <div id='drag-handler' draggable='true'
+                @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
+            </div>
           </div>
         </div>
-      </div>
-      <div id='component-groups'>
-        ${this.renderComponentGroups(layout, compGroupNames, tabToSelect)}
+        <div id='component-groups'>
+          ${this.renderComponentGroups(layout, compGroupNames, tabToSelect)}
+        </div>
       </div>
     `;
     // clang-format on
   }
 
   private onBarDragged(e: DragEvent) {
+    // TODO(lit-dev): compute this relative to the container, rather than using
+    // vh?
     const main = this.shadowRoot!.getElementById('main-panel')!;
     const mainTopPos = main.getBoundingClientRect().top;
     this.mainSectionHeight =
