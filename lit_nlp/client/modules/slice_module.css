@@ -1,3 +1,7 @@
+:host {
+  --slice-selector-right-col-width: 140px;
+}
+
 .container {
   display: flex;
   flex-wrap: wrap;
@@ -26,6 +30,10 @@
 
 .selector-item:hover {
   background: #f8f9fa;
+}
+
+.selector-item > * {
+  vertical-align: middle;
 }
 
 .selected {
@@ -76,7 +84,7 @@
 }
 
 .slice-name {
-  max-width: calc(100% - 130px);
+  max-width: calc(100% - var(--slice-selector-right-col-width));
   display: inline-block;
   overflow: auto;
 }
@@ -84,25 +92,20 @@
 .number-label {
   float: right;
   color: #5f6368;
-  max-width: 120px;
+  max-width: var(--slice-selector-right-col-width);
 }
 
-/* For in-line icons in a <span> */
-[data-icon] {
-  margin: 0;
-}
-
-[data-icon]:before {
-  font-family: 'Material Icons';
-  content: attr(data-icon);
-  vertical-align: middle;
-}
-
-.delete-icon {
+.selector-item .icon-button {
   font-size: 18px;
   vertical-align: middle;
   margin-left: 3px;
   margin-bottom: 5px;
+}
+
+.selector-item .icon-button.disabled {
+  pointer-events: none;
+  cursor: auto;
+  opacity: .2;
 }
 
 .hidden {
@@ -125,4 +128,8 @@ mwc-icon.icon-button {
 
 mwc-icon.icon-button:hover {
   opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
 }

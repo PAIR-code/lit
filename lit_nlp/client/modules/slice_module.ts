@@ -153,26 +153,61 @@ export class SliceModule extends LitModule {
       const newSliceName = selectedSliceName === sliceName ? null : sliceName;
       this.selectSlice(newSliceName);
     };
-    const numDatapoints = this.sliceService.getSliceByName(sliceName)?.length;
+    const numDatapoints =
+        this.sliceService.getSliceByName(sliceName)?.length ?? 0;
 
-    const iconClass = classMap({
-      'delete-icon': true,
-      'icon-button': true,
-      'hidden': sliceName === STARRED_SLICE_NAME
-    });
-    const deleteClicked = () => {
+    // Only enable appending if there are new examples to add.
+    const appendButtonEnabled =
+        this.selectionService.selectedIds
+            .filter(id => !this.sliceService.isInSlice(sliceName, id))
+            .length > 0;
+    const appendIconClass =
+        classMap({'icon-button': true, 'disabled': !appendButtonEnabled});
+    const appendClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
+      this.sliceService.addIdsToSlice(
+          sliceName, this.selectionService.selectedIds);
+    };
+
+
+    const deleteClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
       this.sliceService.deleteNamedSlice(sliceName);
     };
+
+    const clearIconClass = classMap({
+      'icon-button': true,
+      'mdi-outlined': true,
+      'disabled': numDatapoints <= 0
+    });
+    const clearClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
+      const ids = this.sliceService.getSliceByName(sliceName) ?? [];
+      this.sliceService.removeIdsFromSlice(sliceName, ids);
+    };
+
+    // clang-format off
     return html`
       <div class=${itemClass} @click=${itemClicked}>
         <span class='slice-name'>${sliceName}</span>
         <span class="number-label">
           ${numDatapoints} ${numDatapoints === 1 ? 'datapoint' : 'datapoints'}
-        <mwc-icon class=${iconClass} @click=${deleteClicked}>
-           delete_outline
-         </mwc-icon>
+          <mwc-icon class=${appendIconClass} @click=${appendClicked}
+           title="Add selected to this slice">
+           add_circle_outline
+          </mwc-icon>
+          ${sliceName === STARRED_SLICE_NAME ?
+            html`<mwc-icon class=${clearIconClass} @click=${clearClicked}
+                  title="Reset this slice">
+                   clear
+                 </mwc-icon>` :
+            html`<mwc-icon class='icon-button' @click=${deleteClicked}
+                  title="Delete this slice">
+                   delete_outline
+                 </mwc-icon>`}
         </span>
       </div>`;
+    // clang-format on
   }
 
   renderSliceSelector() {
