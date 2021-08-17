@@ -15,14 +15,13 @@
  * limitations under the License.
  */
 
-
 /**
  * Client-side (UI) code for the LIT tool.
  */
 
-import '../core/app_toolbar';
-import '../core/app_statusbar';
-import '../core/modules';
+import './app_statusbar';
+import './app_toolbar';
+import './modules';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement, html} from 'lit-element';
