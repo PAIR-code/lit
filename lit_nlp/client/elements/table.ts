@@ -124,7 +124,6 @@ export class DataTable extends ReactiveElement {
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
-  @observable private headerWidths: number[] = [];
   @observable private pageNum = 0;
   @observable private entriesPerPage = 10;
 
@@ -146,9 +145,8 @@ export class DataTable extends ReactiveElement {
   private hoveredIndex: number|null = null;
 
   firstUpdated() {
-    const container = this.shadowRoot!.querySelector('.rows-container')!;
+    const container = this.shadowRoot!.querySelector('.holder')!;
     this.resizeObserver = new ResizeObserver(() => {
-      this.computeHeaderWidths();
       this.adjustEntriesIfHeightChanged();
     });
     this.resizeObserver.observe(container);
@@ -194,17 +192,17 @@ export class DataTable extends ReactiveElement {
     }
   }
 
-  private getRowsContainerHeight() {
+  private getContainerHeight() {
     const container: HTMLElement =
         // tslint:disable-next-line:no-unnecessary-type-assertion
-        this.shadowRoot!.querySelector('.rows-container')! as HTMLElement;
+        this.shadowRoot!.querySelector('.holder')! as HTMLElement;
     return container.getBoundingClientRect().height;
   }
 
   // If the row container's height has changed significantly, then recompute
   // entries per row.
   private adjustEntriesIfHeightChanged() {
-    const containerHeight = this.getRowsContainerHeight();
+    const containerHeight = this.getContainerHeight();
     if (Math.abs(containerHeight - this.lastContainerHeight) >
         CONTAINER_HEIGHT_CHANGE_DELTA) {
       this.lastContainerHeight = containerHeight;
@@ -222,9 +220,16 @@ export class DataTable extends ReactiveElement {
       return;
     }
 
-    const containerHeight = this.getRowsContainerHeight();
+    const containerHeight = this.getContainerHeight();
+    // Account for the height of the header and footer.
+    const headerHeight =
+        this.shadowRoot!.querySelector('thead')!.getBoundingClientRect().height;
+    const footerHeight =
+        this.shadowRoot!.querySelector('tfoot')!.getBoundingClientRect().height;
+    const availableHeight =
+        Math.max(0, containerHeight - headerHeight - footerHeight);
     const rows: NodeListOf<HTMLElement> =
-        this.shadowRoot!.querySelectorAll('tr');
+        this.shadowRoot!.querySelectorAll('tbody > tr');
     let height = 0;
     let i = 0;
 
@@ -232,32 +237,21 @@ export class DataTable extends ReactiveElement {
     // to get the number of rows to display per page.
     for (i = 0; i < rows.length; i++) {
       height += rows[i].getBoundingClientRect().height;
-      if (height > containerHeight) {
+      if (height > availableHeight) {
         this.entriesPerPage = i + 1;
         break;
       }
     }
     if (height === 0) {
       this.entriesPerPage = 10;
-    } else if (height <= containerHeight) {
+    } else if (height <= availableHeight) {
       // If there aren't enough entries to take up the entire container,
       // calculate how many will fill the container based on the heights so far.
       const heightPerEntry = height / i;
-      this.entriesPerPage = Math.ceil(containerHeight / heightPerEntry);
+      this.entriesPerPage = Math.ceil(availableHeight / heightPerEntry);
     }
     // Round up to the nearest 10.
     this.entriesPerPage = Math.ceil(this.entriesPerPage / 10) * 10;
-  }
-
-  private computeHeaderWidths() {
-    // Compute the table header sizes based on the table layout
-    // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
-    const row: any = this.shadowRoot!.querySelector('tr');
-    if (row) {
-      this.headerWidths = [...row.children].map((child: HTMLElement) => {
-        return child.getBoundingClientRect().width;
-      });
-    }
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
@@ -547,36 +541,20 @@ export class DataTable extends ReactiveElement {
     // in the row render method
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
-    // Synchronizes the horizontal scrolling of the header with the rows.
-    const onScroll = (e: Event) => {
-      const header = this.shadowRoot!.getElementById('header-container');
-      const body = e.target as HTMLElement;
-      if (header != null && body != null) {
-        header.scrollLeft = body.scrollLeft;
-      }
-    };
-
-    // TODO: calculate correct # of entries per page.
-    const rowsContainerClasses = classMap({
-      'rows-container': true,
-      'with-footer': this.hasFooter,
-    });
     // clang-format off
     return html`
-      <div id="holder">
-        <div id="header-container">
-          <div id="header">
+      <div class="holder">
+        <table>
+          <thead>
             ${this.columnNames.map((c, i) => this.renderColumnHeader(c, i))}
-          </div>
-        </div>
-        <div class=${rowsContainerClasses} @scroll=${onScroll}>
-          <table id="rows">
-            <tbody>
-              ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-            </tbody>
-          </table>
-        </div>
-        ${this.renderFooter()}
+          </thead>
+          <tbody>
+            ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
+          </tbody>
+          <tfoot>
+            ${this.renderFooter()}
+          </tfoot>
+        </table>
       </div>
     `;
     // clang-format on
@@ -609,44 +587,37 @@ export class DataTable extends ReactiveElement {
     };
     // clang-format off
     return html`
-      <div id="footer-container">
-        <div id="footer">
-          <mwc-icon class=${classMap(firstPageButtonClasses)}
-            @click=${firstPage}>
-            first_page
-          </mwc-icon>
-          <mwc-icon class='icon-button'
-            @click=${prevPage}>
-            chevron_left
-          </mwc-icon>
-          <div>
-           Page
-           <span class="current-page-num">${pageDisplayNum}</span>
-           of ${this.totalPages}
+      <tr>
+        <td colspan=${this.columnNames.length}>
+          <div class="footer">
+            <mwc-icon class=${classMap(firstPageButtonClasses)}
+              @click=${firstPage}>
+              first_page
+            </mwc-icon>
+            <mwc-icon class='icon-button'
+              @click=${prevPage}>
+              chevron_left
+            </mwc-icon>
+            <div>
+             Page
+             <span class="current-page-num">${pageDisplayNum}</span>
+             of ${this.totalPages}
+            </div>
+            <mwc-icon class='icon-button'
+               @click=${nextPage}>
+              chevron_right
+            </mwc-icon>
           </div>
-          <mwc-icon class='icon-button'
-             @click=${nextPage}>
-            chevron_right
-          </mwc-icon>
-        </div>
-      </div>`;
+        </td>
+      </tr>`;
   }
 
-  renderColumnHeader(
-      header: string|ColumnHeader, index: number) {
-    // this.headerWidths sometimes hasn't been updated when this method is
-    // called since it's set in this.computeHeaderWidths() which uses the
-    // table cells' clientWidth to set this.headerWidths.
-    // Return if the index is out of bounds.
-    if (index >= this.headerWidths.length) return;
-    const headerWidth = this.headerWidths[index];
-    const width = headerWidth ? `${headerWidth}px` : '';
-
-    const displayAsString = typeof header === "string";
-    const title: string = displayAsString
-        ? (header as string) : (header as ColumnHeader).name;
-    const rightAlign = displayAsString ? false :
-        (header as ColumnHeader).rightAlign!!;
+  renderColumnHeader(header: string|ColumnHeader, index: number) {
+    const displayAsString = typeof header === 'string';
+    const title: string =
+        displayAsString ? (header as string) : (header as ColumnHeader).name;
+    const rightAlign =
+        displayAsString ? false : (header as ColumnHeader).rightAlign!;
     let searchText = this.columnSearchQueries.get(title);
     if (searchText === undefined) {
       searchText = '';
@@ -671,7 +642,6 @@ export class DataTable extends ReactiveElement {
     };
 
     const searchMenuStyle = styleMap({
-      width,
       'visibility':
           (this.showColumnMenu && this.columnMenuName === title ? 'visible' :
                                                                   'hidden'),
@@ -711,16 +681,13 @@ export class DataTable extends ReactiveElement {
       active: isDownActive,
       inactive: isDownInactive,
     });
-    const headerClasses = classMap({
-      'column-header': true,
-      'right-align': rightAlign
-    });
+    const headerClasses =
+        classMap({'column-header': true, 'right-align': rightAlign});
 
-    const style = styleMap({width});
     // clang-format off
     return html`
-        <div>
-          <div class=${headerClasses} title=${title} style=${style}>
+        <th>
+          <div class=${headerClasses} title=${title}>
             <div class="header-holder">
               <div>
                 ${displayAsString ?
@@ -739,15 +706,14 @@ export class DataTable extends ReactiveElement {
           </div>
           ${this.searchEnabled ? html`
           <div class='togglable-menu-holder' style=${searchMenuStyle}>
-              <input type="search" id='search-menu-container'
+              <input type="search" class='search-input'
               .value=${searchText}
               placeholder="Search" @input=${handleSearchChange}/>
           </div>` : null}
-        </div>
+        </th>
       `;
     // clang-format on
   }
-
 
   renderRow(data: TableRowInternal, rowIndex: number) {
     const dataIndex = data.inputIndex;
@@ -790,7 +756,7 @@ export class DataTable extends ReactiveElement {
               d : (d as SortableTemplateResult).template;
             return html`<td>${templateResult}</td>`;
           }
-          const entryClasses = {numeric: isNumber(d)};
+          const entryClasses = {'text-cell': true, numeric: isNumber(d)};
           return html`<td><div class="${classMap(entryClasses)}"
             >${formatForDisplay(d, undefined, true)}</div></td>`;
         })}
