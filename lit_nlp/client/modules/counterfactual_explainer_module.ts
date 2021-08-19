@@ -97,19 +97,19 @@ export class SignedSalienceCmap extends SalienceCmap {
 @customElement('counterfactual-explainer-module')
 export class CounterfactualExplainerModule extends LitModule {
   static title = 'Counterfactual Explanation';
-  static numCols = 10;
-  static collapseByDefault = true;
-  static duplicateForExampleComparison = true;
+  static override numCols = 10;
+  static override collapseByDefault = true;
+  static override duplicateForExampleComparison = true;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<counterfactual-explainer-module model=${
         model} selectionServiceIndex=${
         selectionServiceIndex}></counterfactual-explainer-module>`;
   };
 
-  @property({type: String}) model = '';
-  @property({type: Number}) selectionServiceIndex = 0;
+  @property({type: String}) override model = '';
+  @property({type: Number}) override selectionServiceIndex = 0;
 
-  static get styles() {
+  static override get styles() {
     return [
       sharedStyles,
       salienceMapStyles,
@@ -142,7 +142,7 @@ export class CounterfactualExplainerModule extends LitModule {
     cmap: new SignedSalienceCmap(/* gamma */ 4.0)
   };
 
-  firstUpdated() {
+  override firstUpdated() {
     // React to change in primary selection.
     const getPrimaryData = () => this.selectionService.primarySelectedInputData;
     this.react(getPrimaryData, data => {
@@ -227,7 +227,7 @@ export class CounterfactualExplainerModule extends LitModule {
     this.state.salience = salience[0];
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Imperative tooltip implementation
@@ -299,7 +299,7 @@ export class CounterfactualExplainerModule extends LitModule {
     `;
   }
 
-  render() {
+  override render() {
     const salience = this.state.salience;
     const cmap = this.state.cmap;
 

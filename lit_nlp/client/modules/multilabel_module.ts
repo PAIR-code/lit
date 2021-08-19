@@ -38,20 +38,20 @@ interface DisplayInfo {
 @customElement('multilabel-module')
 export class MultilabelModule extends LitModule {
   static title = 'Multilabel Results';
-  static duplicateForExampleComparison = true;
-  static numCols = 3;
+  static override duplicateForExampleComparison = true;
+  static override numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<multilabel-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></multilabel-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
   @observable private labeledPredictions: {[name: string]: DisplayInfo[]} = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.react(getSelectedInput, selectedInput => {
@@ -101,7 +101,7 @@ export class MultilabelModule extends LitModule {
     return labeledPredictions;
   }
 
-  render() {
+  override render() {
     const keys = Object.keys(this.labeledPredictions);
     return html`
         ${keys.map((key) => this.renderRow(key, this.labeledPredictions[key]))}

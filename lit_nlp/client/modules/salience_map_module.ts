@@ -121,8 +121,8 @@ export class SignedSalienceCmap extends SalienceCmap {
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
   static title = 'Salience Maps';
-  static numCols = 6;
-  static duplicateForExampleComparison = true;
+  static override numCols = 6;
+  static override duplicateForExampleComparison = true;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<salience-map-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></salience-map-module>`;
@@ -130,7 +130,7 @@ export class SalienceMapModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -148,7 +148,7 @@ export class SalienceMapModule extends LitModule {
     return this.state[name].autorun;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const interpreters = this.appState.metadata.interpreters;
     const validInterpreters =
         this.appState.metadata.models[this.model].interpreters;
@@ -248,7 +248,7 @@ export class SalienceMapModule extends LitModule {
     });
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Imperative tooltip implementation
@@ -469,7 +469,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

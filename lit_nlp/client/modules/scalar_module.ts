@@ -55,7 +55,7 @@ interface BrushObject {
 @customElement('scalar-module')
 export class ScalarModule extends LitModule {
   static title = 'Scalars';
-  static numCols = 4;
+  static override numCols = 4;
   static template = (model = '') => {
     return html`
       <scalar-module model=${model}>
@@ -72,7 +72,7 @@ export class ScalarModule extends LitModule {
   static yLabelOffsetY = -25;
   static zeroLineColor = '#cccccc';
 
-  static get styles() {
+  static override get styles() {
     return [
       sharedStyles,
       styles,
@@ -116,7 +116,7 @@ export class ScalarModule extends LitModule {
     return findSpecKeys(outputSpec, 'MulticlassPreds');
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const modelSpec = this.appState.getModelSpec(this.model);
     this.classificationKeys.forEach((predKey) => {
       const predSpec = modelSpec.output[predKey];
@@ -806,7 +806,7 @@ export class ScalarModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     this.numPlotsRendered = 0;
     // clang-format off
     return html`

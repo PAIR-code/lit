@@ -35,15 +35,15 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 @customElement('lm-prediction-module')
 export class LanguageModelPredictionModule extends LitModule {
   static title = 'LM Predictions';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = true;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = true;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<lm-prediction-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></lm-prediction-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -93,7 +93,7 @@ export class LanguageModelPredictionModule extends LitModule {
         undefined;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getSelectedInputData, selectedInput => {
@@ -181,7 +181,7 @@ export class LanguageModelPredictionModule extends LitModule {
     this.mlmResults = results[0][this.predKey];
   }
 
-  render() {
+  override render() {
     return html`
       <div class='module-container'>
         ${this.renderControls()}

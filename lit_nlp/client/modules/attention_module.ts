@@ -42,14 +42,14 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static title = 'Attention';
-  static numCols = 6;
-  static duplicateForExampleComparison = true;
+  static override numCols = 6;
+  static override duplicateForExampleComparison = true;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<attention-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></attention-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     const styles = css`
         .head-selector-chip {
           margin: 0px 1px;
@@ -76,7 +76,7 @@ export class AttentionModule extends LitModule {
   @observable private selectedHeadIndex: number = 0;
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getSelectedInput, selectedInput => {
@@ -103,7 +103,7 @@ export class AttentionModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     if (!this.preds) return;
 
     // Scrolling inside this module is done inside the module-results-area div.

@@ -54,10 +54,10 @@ export class ConfusionMatrixModule extends LitModule {
       <confusion-matrix-module model=${model}>
       </confusion-matrix-module>`;
   };
-  static numCols = 3;
-  static duplicateForModelComparison = false;
+  static override numCols = 3;
+  static override duplicateForModelComparison = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -82,7 +82,7 @@ export class ConfusionMatrixModule extends LitModule {
     this.setInitialOptions();
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // Calculate the initial confusion matrix.
     const getCurrentInputData = () => this.appState.currentInputData;
     this.react(getCurrentInputData, currentInputData => {
@@ -303,7 +303,7 @@ export class ConfusionMatrixModule extends LitModule {
     return '';
   }
 
-  render() {
+  override render() {
     const renderMatrices = () => {
       return Object.keys(this.matrices).map(id => {
         const [row, col] = this.getOptionsFromMatrixId(id);

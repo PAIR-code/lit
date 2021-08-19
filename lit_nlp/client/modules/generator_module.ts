@@ -40,7 +40,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
  */
 @customElement('generated-row-controls')
 export class GeneratedRowControls extends MobxLitElement {
-  static get styles() {
+  static override get styles() {
     return [
       sharedStyles, styles, css`
             :host {
@@ -55,7 +55,7 @@ export class GeneratedRowControls extends MobxLitElement {
     ];
   }
 
-  render() {
+  override render() {
     const addPoint = () => {
       const event = new CustomEvent('add-point');
       this.dispatchEvent(event);
@@ -85,17 +85,17 @@ export class GeneratedRowControls extends MobxLitElement {
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static title = 'Datapoint Generator';
-  static numCols = 10;
+  static override numCols = 10;
 
   static template = () => {
     return html`<generator-module></generator-module>`;
   };
 
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
   private readonly groupService = app.getService(GroupService);
   private readonly sliceService = app.getService(SliceService);
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -129,7 +129,7 @@ export class GeneratorModule extends LitModule {
     return this.generated.reduce((a, b) => a + b.length, 0);
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getSelectedData, selectedData => {
@@ -148,7 +148,7 @@ export class GeneratorModule extends LitModule {
   }
 
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Update the header items to be the width of the rows of the table.
@@ -242,7 +242,7 @@ export class GeneratorModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     return html`
       <div class="module-container generator-module-container">
         <div class="module-content generator-module-content">

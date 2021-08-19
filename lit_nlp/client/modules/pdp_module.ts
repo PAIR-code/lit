@@ -47,14 +47,14 @@ type ChartInfo = Map<string|number, number>;
 @customElement('pdp-module')
 export class PdpModule extends LitModule {
   static title = 'Partial Dependence Plots';
-  static duplicateForExampleComparison = true;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<pdp-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></pdp-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -65,7 +65,7 @@ export class PdpModule extends LitModule {
   // is for the current selection before displaying it.
   private selectionSet = new Set<string>();
 
-  firstUpdated() {
+  override firstUpdated() {
     const getInputSpec = () => this.appState.getModelSpec(this.model).input;
     this.reactImmediately(
         getInputSpec, inputSpec => {
@@ -234,7 +234,7 @@ export class PdpModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     return html`${Array.from(this.plotVisibility.keys()).map(
         feat => this.renderPlotHolder(feat))}`;
   }

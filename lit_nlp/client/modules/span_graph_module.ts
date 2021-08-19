@@ -159,10 +159,10 @@ function renderTokenGroups(
 @customElement('span-graph-gold-module')
 export class SpanGraphGoldModule extends LitModule {
   static title = 'Structured Prediction (gold)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
-  static duplicateAsRow = false;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
+  static override duplicateAsRow = false;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module>`;
@@ -184,12 +184,12 @@ export class SpanGraphGoldModule extends LitModule {
     }
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, moduleStyles];
   }
 
   // tslint:disable:no-any
-  render() {
+  override render() {
     return html`
       ${!this.appState.compareExamplesEnabled ? html`<div class='offset-for-module-header'></div>` : null}
       <div id="gold-group" class='outer-container'>
@@ -214,9 +214,9 @@ export class SpanGraphGoldModule extends LitModule {
 @customElement('span-graph-module')
 export class SpanGraphModule extends LitModule {
   static title = 'Structured Prediction (model preds)';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = false;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = false;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module>`;
@@ -246,11 +246,11 @@ export class SpanGraphModule extends LitModule {
     }
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, moduleStyles];
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.reactImmediately(
         () => this.selectionService.primarySelectedInputData, input => {
           this.updatePredDisplayData(input);
@@ -258,7 +258,7 @@ export class SpanGraphModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  render() {
+  override render() {
     return html`
       <div id="pred-group" class='outer-container'>
         ${
@@ -290,10 +290,10 @@ export class SpanGraphModule extends LitModule {
 /** Gold predictions module class. */
 @customElement('span-graph-gold-module-vertical')
 export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
-  static duplicateAsRow = true;
-  static orientation = 'vertical';
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override duplicateAsRow = true;
+  static override orientation = 'vertical';
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module-vertical selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module-vertical>`;
   };
@@ -302,9 +302,9 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
 /** Model output module class. */
 @customElement('span-graph-module-vertical')
 export class SpanGraphModuleVertical extends SpanGraphModule {
-  static duplicateAsRow = true;
-  static orientation = 'vertical';
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override duplicateAsRow = true;
+  static override orientation = 'vertical';
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module-vertical model=${
         model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module-vertical>`;

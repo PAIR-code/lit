@@ -39,14 +39,14 @@ interface RegressionResult {
 @customElement('regression-module')
 export class RegressionModule extends LitModule {
   static title = 'Regression Results';
-  static duplicateForExampleComparison = true;
-  static numCols = 3;
+  static override duplicateForExampleComparison = true;
+  static override numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<regression-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></regression-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -54,7 +54,7 @@ export class RegressionModule extends LitModule {
 
   @observable private result: RegressionResult|null = null;
 
-  firstUpdated() {
+  override firstUpdated() {
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(
@@ -90,7 +90,7 @@ export class RegressionModule extends LitModule {
     this.result = results[0];
   }
 
-  render() {
+  override render() {
     if (this.result == null) {
       return null;
     }

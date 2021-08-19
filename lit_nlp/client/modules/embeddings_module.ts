@@ -62,18 +62,18 @@ export class EmbeddingsModule extends LitModule {
     return html`<embeddings-module></embeddings-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
 
   static projectorChoices: {[key: string]: ProjectorOptions} = {
     'pca': {displayName: 'PCA', interpreterName: 'pca'},
     'umap': {displayName: 'UMAP', interpreterName: 'umap'},
   };
 
-  static numCols = 3;
+  static override numCols = 3;
 
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
@@ -208,7 +208,7 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const scatterContainer =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
@@ -382,7 +382,7 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     const onSelectNearest = () => {
       if (this.selectionService.primarySelectedInputData != null) {
         this.getNearestNeighbors(

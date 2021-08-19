@@ -50,13 +50,13 @@ interface CalculatedMarginsPerField {
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
   static title = 'Binary Classifier Thresholds';
-  static numCols = 3;
+  static override numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<thresholder-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></thresholder-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, css`
         .cost-ratio-input {
           width: 50px;
@@ -78,7 +78,7 @@ export class ThresholderModule extends LitModule {
     app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
 
-  firstUpdated() {
+  override firstUpdated() {
     const getGroupedExamples = () => this.groupedExamples;
     this.reactImmediately(
         getGroupedExamples, groupedExamples => {
@@ -262,7 +262,7 @@ export class ThresholderModule extends LitModule {
         </button>`;
   }
 
-  render() {
+  override render() {
     const tables =
         this.binaryClassificationKeys.map(key => this.renderTable(key));
     return html`

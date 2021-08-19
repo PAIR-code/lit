@@ -44,12 +44,12 @@ export class DataTableModule extends LitModule {
   static template = () => {
     return html`<data-table-module></data-table-module>`;
   };
-  static numCols = 4;
-  static get styles() {
+  static override numCols = 4;
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
 
   private readonly classificationService =
       app.getService(ClassificationService);
@@ -206,7 +206,7 @@ export class DataTableModule extends LitModule {
     });
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const getCurrentInputData = () => this.appState.currentInputData;
     this.reactImmediately(getCurrentInputData, currentInputData => {
       if (currentInputData == null) return;
@@ -517,7 +517,7 @@ export class DataTableModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

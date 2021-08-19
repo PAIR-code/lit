@@ -69,12 +69,12 @@ interface TcavResults {
  */
 @customElement('tcav-module')
 export class TCAVModule extends LitModule {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
   static title = 'TCAV Explorer';
-  static numCols = 12;
-  static duplicateForModelComparison = true;
+  static override numCols = 12;
+  static override duplicateForModelComparison = true;
 
   static template = (model = '') => {
     return html`
@@ -150,7 +150,7 @@ export class TCAVModule extends LitModule {
     return this.modelSpec.output[predKeys[0]].null_idx!;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // Set the first grad key as default in selector.
     if (this.selectedLayers.size === 0 && this.gradKeys.length > 0) {
       this.selectedLayers.add(this.gradKeys[0]);
@@ -241,7 +241,7 @@ export class TCAVModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const shouldDisable = () => {
       for (const slice of this.selectedSlices) {
         const examples = this.sliceService.getSliceByName(slice);

@@ -44,18 +44,18 @@ type InputConverterFn = (s: string) => string|number|string[]|boolean;
 @customElement('datapoint-editor-module')
 export class DatapointEditorModule extends LitModule {
   static title = 'Datapoint Editor';
-  static numCols = 2;
+  static override numCols = 2;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></datapoint-editor-module>`;
   };
 
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
 
   private readonly groupService = app.getService(GroupService);
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -90,7 +90,7 @@ export class DatapointEditorModule extends LitModule {
     return defaultLengths;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const container = this.shadowRoot!.getElementById('edit-table')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.resize();
@@ -112,7 +112,7 @@ export class DatapointEditorModule extends LitModule {
     });
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
@@ -166,7 +166,7 @@ export class DatapointEditorModule extends LitModule {
     this.editedData = data;
   }
 
-  render() {
+  override render() {
     // Scrolling inside this module is done inside a div with ID 'container'.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons

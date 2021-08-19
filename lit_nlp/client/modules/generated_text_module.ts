@@ -42,8 +42,8 @@ interface GeneratedTextResult {
 @customElement('generated-text-module')
 export class GeneratedTextModule extends LitModule {
   static title = 'Generated Text';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = false;
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = false;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-text-module model=${model}
@@ -55,7 +55,7 @@ export class GeneratedTextModule extends LitModule {
   static supportedTypes: LitName[] =
       ['GeneratedText', 'GeneratedTextCandidates'];
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, visStyles, styles];
   }
 
@@ -81,7 +81,7 @@ export class GeneratedTextModule extends LitModule {
   }
 
 
-  firstUpdated() {
+  override firstUpdated() {
     this.reactImmediately(
         () => this.selectionService.primarySelectedInputData, data => {
           this.updateSelection(data);
@@ -178,7 +178,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

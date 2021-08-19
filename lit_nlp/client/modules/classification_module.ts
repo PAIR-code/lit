@@ -43,14 +43,14 @@ interface DisplayInfo {
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
   static title = 'Classification Results';
-  static duplicateForExampleComparison = true;
-  static numCols = 3;
+  static override duplicateForExampleComparison = true;
+  static override numCols = 3;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`<classification-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></classification-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -59,7 +59,7 @@ export class ClassificationModule extends LitModule {
 
   @observable private labeledPredictions: {[name: string]: DisplayInfo[]} = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.react(getSelectedInput, selectedInput => {
@@ -129,7 +129,7 @@ export class ClassificationModule extends LitModule {
     return labeledPredictions;
   }
 
-  render() {
+  override render() {
     const keys = Object.keys(this.labeledPredictions);
     return html`
         ${keys.map((key) => this.renderRow(key, this.labeledPredictions[key]))}

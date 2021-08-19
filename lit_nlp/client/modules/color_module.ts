@@ -39,14 +39,14 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
  */
 @customElement('color-module')
 export class ColorModule extends LitModule {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
   static title = 'Color';
-  static numCols = 1;
-  static collapseByDefault = true;
-  static duplicateForModelComparison = false;
+  static override numCols = 1;
+  static override collapseByDefault = true;
+  static override duplicateForModelComparison = false;
 
   static template = () => {
     return html`<color-module></color-module>`;
@@ -54,7 +54,7 @@ export class ColorModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
 
-  render() {
+  override render() {
     const options = this.colorService.colorableOptions;
     const htmlOptions = options.map((option, optionIndex) => {
       const selected =

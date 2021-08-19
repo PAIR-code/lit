@@ -28,9 +28,9 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 @customElement('annotated-text-gold-module')
 export class AnnotatedTextGoldModule extends LitModule {
   static title = 'Annotated Text (gold)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-gold-module
@@ -38,11 +38,11 @@ export class AnnotatedTextGoldModule extends LitModule {
       </annotated-text-gold-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return sharedStyles;
   }
 
-  render() {
+  override render() {
     const input = this.selectionService.primarySelectedInputData;
     if (!input) return null;
 
@@ -80,9 +80,9 @@ export class AnnotatedTextGoldModule extends LitModule {
 @customElement('annotated-text-module')
 export class AnnotatedTextModule extends LitModule {
   static title = 'Annotated Text (predicted)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = true;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = true;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-module model=${model}
@@ -90,14 +90,14 @@ export class AnnotatedTextModule extends LitModule {
       </annotated-text-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return sharedStyles;
   }
 
   @observable private currentData?: IndexedInput;
   @observable private currentPreds: AnnotationGroups = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getPrimarySelectedInputData, data => {
@@ -126,7 +126,7 @@ export class AnnotatedTextModule extends LitModule {
     this.currentPreds = results[0] as AnnotationGroups;
   }
 
-  render() {
+  override render() {
     if (!this.currentData) return null;
 
     const segmentNames =

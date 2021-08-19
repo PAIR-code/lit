@@ -83,13 +83,13 @@ interface TableHeaderAndData {
 @customElement('metrics-module')
 export class MetricsModule extends LitModule {
   static title = 'Metrics';
-  static numCols = 6;
+  static override numCols = 6;
   static template = () => {
     return html`<metrics-module></metrics-module>`;
   };
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -104,7 +104,7 @@ export class MetricsModule extends LitModule {
   @observable private pendingCalls = 0;
 
 
-  firstUpdated() {
+  override firstUpdated() {
     this.react(() => this.appState.currentInputData, entireDataset => {
       this.metricsMap = {};
       this.addMetrics(this.appState.currentInputData, Source.DATASET);
@@ -318,7 +318,7 @@ export class MetricsModule extends LitModule {
     };
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class="module-container">

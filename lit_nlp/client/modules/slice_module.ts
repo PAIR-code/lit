@@ -37,14 +37,14 @@ import {styles} from './slice_module.css';
  */
 @customElement('lit-slice-module')
 export class SliceModule extends LitModule {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
   static title = 'Slice Editor';
-  static numCols = 2;
-  static collapseByDefault = true;
-  static duplicateForModelComparison = false;
+  static override numCols = 2;
+  static override collapseByDefault = true;
+  static override duplicateForModelComparison = false;
 
   static template = () => {
     return html`<lit-slice-module></lit-slice-module>`;
@@ -271,7 +271,7 @@ export class SliceModule extends LitModule {
     return '';
   }
 
-  render() {
+  override render() {
     return html`
       ${this.renderCreate()}
       <div class="container" >
