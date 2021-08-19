@@ -491,7 +491,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
 
     # Return binary confusion matrix entries.
     ret = collections.OrderedDict()
-    matrix = sklearn_metrics.confusion_matrix(y_true, y_pred)
+    matrix = sklearn_metrics.confusion_matrix(y_true, y_pred, labels=[0, 1])
     ret['TN'] = matrix[0][0]
     ret['FP'] = matrix[0][1]
     ret['FN'] = matrix[1][0]

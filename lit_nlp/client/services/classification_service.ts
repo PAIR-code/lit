@@ -114,7 +114,7 @@ function getMarginSettingForExample(
           matches = false;
           break;
         }
-      } else if (input.data[field] !== group.facetData!.facets![field]) {
+      } else if (input.data[field] !== group.facetData!.facets![field].val) {
         matches = false;
         break;
       }
