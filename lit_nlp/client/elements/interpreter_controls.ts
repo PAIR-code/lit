@@ -42,11 +42,11 @@ export class InterpreterControls extends ReactiveElement {
   @observable settings: {[name: string]: string|number|boolean|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  render() {
+  override render() {
     const apply = () => {
       // Event to be dispatched when an interpreter is applied.
       const event = new CustomEvent('interpreter-click', {

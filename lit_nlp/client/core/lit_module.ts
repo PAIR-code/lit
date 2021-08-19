@@ -85,7 +85,7 @@ export abstract class LitModule extends ReactiveElement {
     return app.getServiceArray(SelectionService)[this.selectionServiceIndex];
   }
 
-  updated() {
+  override updated() {
     // If the class defined by SCROLL_SYNC_CSS_CLASS is used in the module then
     // set its onscroll callback to be the provided onSyncScroll.
     // There is no need to use this class if a module scrolls through the

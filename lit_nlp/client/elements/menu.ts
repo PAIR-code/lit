@@ -47,7 +47,7 @@ export interface MenuItem {
 export class MenuToolbar extends MobxLitElement {
   @property({type: Object}) menuData = new Map<string, MenuItem[]>();
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -57,7 +57,7 @@ export class MenuToolbar extends MobxLitElement {
   }
 
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class="toolbar" id="menu-toolbar">
@@ -91,7 +91,7 @@ export class LitMenu extends LitElement {
   private readonly openSubmenus = new Set<string>();
   private menuOpen = false;
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -128,7 +128,7 @@ export class LitMenu extends LitElement {
     });
   }
 
-  updated() {
+  override updated() {
     // Anchor the menu to its button.
     if (this.menu == null || this.button == null) return;
     this.menu.anchor = this.button;
@@ -241,7 +241,7 @@ export class LitMenu extends LitElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const toggleMenu = () => {
       if (this.menu == null) return;
       if (!this.menuOpen) {

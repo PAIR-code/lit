@@ -68,11 +68,11 @@ class AnnotatedText extends LitElement {
   @property({type: Array}) spans: StyledSpan[] = [];  // aligned to this segment
   @property({type: Boolean}) isURL: boolean = false;  // if true, make a link
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  render() {
+  override render() {
     // Gather all endpoints, for chunking.
     const allEndpoints = new Set<number>();
     for (const span of this.spans) {
@@ -160,11 +160,11 @@ export class AnnotatedTextVis extends ReactiveElement {
     return activeAnnotations;
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     this.reactImmediately(() => this.annotations, annotations => {
       this.annotationVisibility = {};
@@ -247,7 +247,7 @@ export class AnnotatedTextVis extends ReactiveElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const renderedSegments = Object.keys(this.segmentSpec)
         .map(name => this.renderTextSegment(name));
 

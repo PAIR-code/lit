@@ -36,7 +36,7 @@ type ReactionInputFn<T> = (r: IReactionPublic) => T;
 export abstract class ReactiveElement extends MobxLitElement {
   private readonly reactionDisposers: IReactionDisposer[] = [];
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
     super.disconnectedCallback();
     this.reactionDisposers.forEach(disposer => {
       disposer();

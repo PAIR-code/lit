@@ -31,7 +31,7 @@ export class LitCheckbox extends LitElement {
   @property({type: Boolean}) disabled = false;
   @property({type: String}) value = '';
 
-  static get styles() {
+  static override get styles() {
     return css`
       :host {
         outline: none;
@@ -56,7 +56,7 @@ export class LitCheckbox extends LitElement {
     `;
   }
 
-  render() {
+  override render() {
     const handleChange = (e: Event) => {
       this.checked = (e.target as HTMLInputElement).checked;
       const changeEvent = new Event('change');

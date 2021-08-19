@@ -17,12 +17,12 @@ import {ModelInfoMap, Spec} from '../../client/lib/types';
 @customElement('potato-module')
 export class PotatoModule extends LitModule {
   static title = 'Potato';
-  static numCols = 4;
+  static override numCols = 4;
   static template = () => {
     return html`<potato-module></potato-module>`;
   };
 
-  render() {
+  override render() {
     const style = styleMap({'width': '100%', 'height': '100%'});
     // clang-format off
     return html`

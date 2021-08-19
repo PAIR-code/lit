@@ -114,7 +114,7 @@ export class DataTable extends ReactiveElement {
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -144,7 +144,7 @@ export class DataTable extends ReactiveElement {
   private shiftSpanAnchor = SpanAnchor.START;
   private hoveredIndex: number|null = null;
 
-  firstUpdated() {
+  override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.holder')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.adjustEntriesIfHeightChanged();
@@ -176,7 +176,7 @@ export class DataTable extends ReactiveElement {
   }
 
   // tslint:disable-next-line:no-any
-  shouldUpdate(changedProperties: any) {
+  override shouldUpdate(changedProperties: any) {
     if (changedProperties.get('data')) {
       // Let's just punt on the issue of maintaining shift selection behavior
       // when the data changes (via filtering, for example)
@@ -186,7 +186,7 @@ export class DataTable extends ReactiveElement {
     return true;
   }
 
-  updated() {
+  override updated() {
     if (this.needsEntriesPerPageRecompute) {
       this.computeEntriesPerPage();
     }
@@ -536,7 +536,7 @@ export class DataTable extends ReactiveElement {
     return this.displayData.map(d => d.inputIndex);
   }
 
-  render() {
+  override render() {
     // Make a private, temporary set of selectedIndices to simplify lookup
     // in the row render method
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);

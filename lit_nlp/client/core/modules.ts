@@ -60,11 +60,11 @@ export class LitModules extends ReactiveElement {
   @observable layoutWidths: LayoutWidths = {};
   private resizeObserver!: ResizeObserver;
 
-  static get styles() {
+  static override get styles() {
     return styles;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // We set up a callback in the modulesService to allow it to explicitly
     // trigger a rerender of this component when visible modules have been
     // updated by the user. Normally we'd do this in a reactive way, but we'd
@@ -151,13 +151,13 @@ export class LitModules extends ReactiveElement {
     }
   }
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
     super.disconnectedCallback();
     // We clear the callback if / when the lit-modules component is removed.
     this.modulesService.setRenderModulesCallback(() => {});
   }
 
-  updated() {
+  override updated() {
     // Since the widget parent element is responsible for displaying the load
     // status of its child litModule, and we can't provide a callback to a
     // dynamically created template string component (in
@@ -177,7 +177,7 @@ export class LitModules extends ReactiveElement {
     });
   }
 
-  render() {
+  override render() {
     const layout = this.modulesService.getRenderLayout();
     const mainPanelConfig = layout['Main'];
     const compGroupNames = Object.keys(layout).filter(k => k !== 'Main');

@@ -128,7 +128,7 @@ export class SpanGraphVis extends LitElement {
   /* Internal rendering state */
   private tokenXBounds: Array<[number, number]> = [];
 
-  static get styles() {
+  static override get styles() {
     return styles;
   }
 
@@ -211,7 +211,7 @@ export class SpanGraphVis extends LitElement {
         SVGGElement;
   }
 
-  render() {
+  override render() {
     return svg`
       <svg id='svg' xmlns='http://www.w3.org/2000/svg'><g id='all'>
         ${this.data ? this.renderTokens(this.data.tokens) : ''}
@@ -358,7 +358,7 @@ export class SpanGraphVis extends LitElement {
    * sizes which need to depend on the positions of each token. Also sets up
    * mouseover behavior.
    */
-  updated() {
+  override updated() {
     if (this.data == null) {
       this.tokenXBounds = [];
       return;

@@ -29,7 +29,7 @@ export class TcavScoreBar extends LitElement {
   // maximum score value (any greater value gets clamped to this value)
   @property({type: Number}) clampVal = 0;
 
-  static get styles() {
+  static override get styles() {
     return css`
         .cell {
           position: relative;
@@ -56,7 +56,7 @@ export class TcavScoreBar extends LitElement {
     `;
   }
 
-  render() {
+  override render() {
     const score = this.score;
     const clampVal = this.clampVal;
     const meanVal = this.meanVal;

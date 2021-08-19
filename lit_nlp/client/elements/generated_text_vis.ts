@@ -66,7 +66,7 @@ export class GeneratedTextVis extends ReactiveElement {
   @observable @property({type: Number}) selectedIdx = 0;
   @observable @property({type: Number}) selectedRefIdx = 0;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -176,7 +176,7 @@ export class GeneratedTextVis extends ReactiveElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='output'>

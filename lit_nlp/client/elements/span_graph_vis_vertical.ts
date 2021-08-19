@@ -81,11 +81,11 @@ export class SpanGraphVis extends ReactiveElement {
   // Padding for SVG viewport, to avoid clipping some elements (like polyline).
   @property({ type: Number }) viewPad: number = 5;
 
-  static get styles() {
+  static override get styles() {
     return styles;
   }
 
-  render() {
+  override render() {
     if (!this.data) {
       return ``;
     }

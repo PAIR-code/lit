@@ -59,16 +59,16 @@ export class WidgetGroup extends LitElement {
   // Instead using requestUpdate to ensure re-renders on change.
   private syncScrolling = true;
 
-  static get styles() {
+  static override get styles() {
     return [widgetGroupStyles];
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
   }
 
-  render() {
+  override render() {
     return this.renderModules(this.configGroup);
   }
 
@@ -298,11 +298,11 @@ export class LitWidget extends MobxLitElement {
   @property({ type: Number }) widgetScrollTop = 0;
   @property({ type: Number }) widgetScrollLeft = 0;
 
-  static get styles() {
+  static override get styles() {
     return widgetStyles;
   }
 
-  async updated() {
+  override async updated() {
     // Perform this after updateComplete so that the child module has completed
     // its updated() lifecycle method before this logic is executed.
     await this.updateComplete;
@@ -346,7 +346,7 @@ export class LitWidget extends MobxLitElement {
     }
   }
 
-  render() {
+  override render() {
     const contentClasses = classMap({
       content: true,
       loading: this.isLoading,

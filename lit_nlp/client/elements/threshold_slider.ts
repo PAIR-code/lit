@@ -32,7 +32,7 @@ export class ThresholdSlider extends LitElement {
   @property({type: Boolean}) isThreshold = true;
   @property({type: Boolean}) showControls = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, css`
         .slider-row {
           display: flex;
@@ -149,7 +149,7 @@ export class ThresholdSlider extends LitElement {
         </div>`;
   }
 
-  render() {
+  override render() {
     return html`${this.isThreshold ?
         this.renderThresholdSlider(this.margin, this.label) :
         this.renderMarginSlider(this.margin, this.label)}`;

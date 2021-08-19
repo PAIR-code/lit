@@ -38,7 +38,7 @@ export interface MatrixCell {
  */
 @customElement('data-matrix')
 export class DataMatrix extends LitElement {
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -260,7 +260,7 @@ export class DataMatrix extends LitElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     if (this.matrixCells.length === 0) {
       return null;
     }

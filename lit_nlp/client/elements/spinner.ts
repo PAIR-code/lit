@@ -31,7 +31,7 @@ export class SpinnerComponent extends LitElement {
   @property({type: Number}) size = 16;
   @property({type: String}) color = '';
 
-  static get styles() {
+  static override get styles() {
     return [
       css`
         #spinner {
@@ -50,7 +50,7 @@ export class SpinnerComponent extends LitElement {
     ];
   }
 
-  render() {
+  override render() {
     const size = `${this.size}px`;
     const borderWidth = this.size / 8;
     const color = this.color === '' ? DEFAULT_COLOR : this.color;

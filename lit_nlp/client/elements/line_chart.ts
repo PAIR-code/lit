@@ -37,11 +37,11 @@ export class LineChart extends ReactiveElement {
   @property({type: Number}) height = 0;
   @property({type: Array}) yScale: number[] = [];
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.initializeChart();
 
     const getScores = () => this.scores;
@@ -159,7 +159,7 @@ export class LineChart extends ReactiveElement {
         .on("mousemove", () => { mousemove(); });
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div id="holder">
