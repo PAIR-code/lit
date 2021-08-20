@@ -27,7 +27,7 @@ import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
 import {DataTableModule} from '../modules/data_table_module';
-import {DatapointEditorModule} from '../modules/datapoint_editor_module';
+import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
 import {GeneratedImageModule} from '../modules/generated_image_module';
 import {GeneratedTextModule} from '../modules/generated_text_module';
@@ -77,10 +77,10 @@ export const LAYOUTS: LitComponentLayouts = {
   'simple':  {
     components : {
       'Main': [
-        DatapointEditorModule,
+        SimpleDatapointEditorModule,
       ],
       'Predictions': [ ...MODEL_PREDS_MODULES],
-      'Data': [DataTableModule],
+      'History': [DataTableModule],
     },
     layoutSettings: {
       hideToolbar: true,

@@ -62,6 +62,9 @@ export class DatapointEditorModule extends LitModule {
   private resizeObserver!: ResizeObserver;
   private isShiftPressed = false; /** Newline edits are shift + enter */
 
+  protected addButtonText = 'Add';
+  protected showAddAndCompare = true;
+
   @observable editedData: Input = {};
   @observable datapointEdited: boolean = false;
   @observable inputHeights: {[name: string]: string} = {};
@@ -242,7 +245,7 @@ export class DatapointEditorModule extends LitModule {
     const analyzeButton = html`
       <button id="make" class='hairline-button'
         @click=${onClickNew} ?disabled="${!makeEnabled}">
-        Add
+        ${this.addButtonText}
       </button>
     `;
     const compareButton = html`
@@ -267,7 +270,7 @@ export class DatapointEditorModule extends LitModule {
     // clang-format off
     return html`
       ${analyzeButton}
-      ${compareButton}
+      ${this.showAddAndCompare ? compareButton : null}
       ${resetButton}
       ${clearButton}
     `;
@@ -521,8 +524,22 @@ export class DatapointEditorModule extends LitModule {
   }
 }
 
+/**
+ * Simplified version of the above; omits add-and-compare button.
+ */
+@customElement('simple-datapoint-editor-module')
+export class SimpleDatapointEditorModule extends DatapointEditorModule {
+  protected addButtonText = 'Analyze';
+  protected showAddAndCompare = false;
+  static template = (model = '', selectionServiceIndex = 0) => {
+    return html`<simple-datapoint-editor-module selectionServiceIndex=${
+        selectionServiceIndex}></simple-datapoint-editor-module>`;
+  };
+}
+
 declare global {
   interface HTMLElementTagNameMap {
     'datapoint-editor-module': DatapointEditorModule;
+    'simple-datapoint-editor-module': SimpleDatapointEditorModule;
   }
 }
