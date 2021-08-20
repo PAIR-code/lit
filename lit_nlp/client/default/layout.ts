@@ -17,6 +17,7 @@
 
 // Import Modules
 import '../modules/span_graph_module';
+
 import {LitModuleType} from '../core/lit_module';
 import {LitComponentLayouts} from '../lib/types';
 import {AnnotatedTextGoldModule, AnnotatedTextModule} from '../modules/annotated_text_module';
@@ -28,10 +29,12 @@ import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer
 import {DataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
+import {GeneratedImageModule} from '../modules/generated_image_module';
 import {GeneratedTextModule} from '../modules/generated_text_module';
 import {GeneratorModule} from '../modules/generator_module';
 import {LanguageModelPredictionModule} from '../modules/lm_prediction_module';
 import {MetricsModule} from '../modules/metrics_module';
+import {MultilabelModule} from '../modules/multilabel_module';
 import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
@@ -40,7 +43,6 @@ import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
 import {ThresholderModule} from '../modules/thresholder_module';
-import {MultilabelModule} from '../modules/multilabel_module';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
@@ -53,6 +55,7 @@ const MODEL_PREDS_MODULES: LitModuleType[] = [
   GeneratedTextModule,
   AnnotatedTextGoldModule,
   AnnotatedTextModule,
+  GeneratedImageModule,
 ];
 
 const DEFAULT_MAIN_GROUP: LitModuleType[] = [
