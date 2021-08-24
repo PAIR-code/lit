@@ -37,13 +37,13 @@ import {styles} from './lit_app_styles.css';
  */
 @customElement('lit-app')
 export class AppComponent extends MobxLitElement {
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
   private readonly appState = app.getService(AppState);
 
-  render() {
+  override render() {
     return html`
       <lit-app-toolbar></lit-app-toolbar>
       <!-- Main content -->

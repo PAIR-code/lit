@@ -30,8 +30,8 @@ import {doesOutputSpecContain} from '../lib/utils';
 @customElement('generated-image-module')
 export class GeneratedImageModule extends LitModule {
   static title = 'Generated Images';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = true;
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = true;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-image-module model=${model}
@@ -42,7 +42,7 @@ export class GeneratedImageModule extends LitModule {
 
   static supportedTypes: LitName[] = ['ImageBytes'];
 
-  static get styles() {
+  static override get styles() {
     const styles = css`
       .field-group {
         padding: 4px;
@@ -61,7 +61,7 @@ export class GeneratedImageModule extends LitModule {
 
   @observable private generatedImages: {[key: string]: string} = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     this.reactImmediately(
         () => this.selectionService.primarySelectedInputData, data => {
           this.updateSelection(data);
@@ -93,7 +93,7 @@ export class GeneratedImageModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

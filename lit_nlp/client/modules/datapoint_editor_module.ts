@@ -529,9 +529,9 @@ export class DatapointEditorModule extends LitModule {
  */
 @customElement('simple-datapoint-editor-module')
 export class SimpleDatapointEditorModule extends DatapointEditorModule {
-  protected addButtonText = 'Analyze';
-  protected showAddAndCompare = false;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  protected override addButtonText = 'Analyze';
+  protected override showAddAndCompare = false;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<simple-datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></simple-datapoint-editor-module>`;
   };

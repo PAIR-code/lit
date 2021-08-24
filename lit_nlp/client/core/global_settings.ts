@@ -62,7 +62,7 @@ const INCOMPATIBLE_TXT = 'Incompatible';
 export class GlobalSettingsComponent extends MobxLitElement {
   @property({type: Boolean}) isOpen = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
   private readonly apiService = app.getService(ApiService);
@@ -149,7 +149,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     });
   }
 
-  render() {
+  override render() {
     const hiddenClassMap = classMap({hide: !this.isOpen});
     // clang-format off
     return html`
@@ -681,7 +681,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     `;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Escape') this.close();
     });

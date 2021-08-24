@@ -44,7 +44,7 @@ import {GlobalSettingsComponent, TabName} from './global_settings';
 export class ToolbarComponent extends MobxLitElement {
   @query('lit-global-settings') globalSettingsElement!: GlobalSettingsComponent;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -209,7 +209,7 @@ export class ToolbarComponent extends MobxLitElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const doRenderToolbar =
         (this.appState.initialized &&
          !this.modulesService.getSetting('hideToolbar'));

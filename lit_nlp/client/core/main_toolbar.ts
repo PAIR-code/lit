@@ -44,7 +44,7 @@ import {styles} from './main_toolbar.css';
  */
 @customElement('lit-main-menu')
 export class LitMainMenu extends MobxLitElement {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -203,7 +203,7 @@ export class LitMainMenu extends MobxLitElement {
     return menuData;
   }
 
-  render() {
+  override render() {
     return html`<lit-menu-toolbar .menuData=${
         this.getMenuData()}></lit-menu-toolbar>`;
   }
@@ -214,7 +214,7 @@ export class LitMainMenu extends MobxLitElement {
  */
 @customElement('lit-main-toolbar')
 export class LitMainToolbar extends MobxLitElement {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -442,7 +442,7 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
     };

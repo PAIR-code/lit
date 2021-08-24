@@ -40,14 +40,14 @@ import {styles} from './app_statusbar.css';
  */
 @customElement('lit-app-statusbar')
 export class StatusbarComponent extends MobxLitElement {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
   private readonly statusService = app.getService(StatusService);
   @observable private renderFullMessages = false;
 
-  render() {
+  override render() {
     const progressClass = classMap({
       'progress-line': this.statusService.isLoading,
       'no-progress-line': !this.statusService.isLoading
