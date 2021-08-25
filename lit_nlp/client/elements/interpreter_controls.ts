@@ -168,7 +168,7 @@ export class InterpreterControls extends ReactiveElement {
       });
       const defaultValue = controlType.vocab![0];
       return html`<select class="dropdown control" @change=${updateDropdown}
-          .value=${defaultValue}>
+          .value=${defaultValue} ?disabled=${controlType.vocab!.length < 2}>
         ${options}
       </select>`;
     } else if (isLitSubtype(controlType, ['Scalar'])) {
