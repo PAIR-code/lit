@@ -32,7 +32,7 @@ import attr
 
 JsonDict = Dict[Text, Any]
 Input = JsonDict  # TODO(lit-dev): stronger typing using NewType
-IndexedInput = NewType('IndexedInput', JsonDict)  # has keys: id, data, meta
+IndexedInput = NewType("IndexedInput", JsonDict)  # has keys: id, data, meta
 ExampleId = Text
 TokenTopKPredsList = List[List[Tuple[str, float]]]
 
@@ -52,26 +52,26 @@ class LitType(metaclass=abc.ABCMeta):
     if not isinstance(self, type(other)):
       return False
     d1 = attr.asdict(self)
-    d1.pop('required', None)
+    d1.pop("required", None)
     d2 = attr.asdict(other)
-    d2.pop('required', None)
+    d2.pop("required", None)
     return d1 == d2
 
   def to_json(self) -> JsonDict:
     """Used by serialize.py."""
     d = attr.asdict(self)
-    d['__class__'] = 'LitType'
-    d['__name__'] = self.__class__.__name__
+    d["__class__"] = "LitType"
+    d["__name__"] = self.__class__.__name__
     # All parent classes, from method resolution order (mro).
     # Use this to check inheritance on the frontend.
-    d['__mro__'] = [a.__name__ for a in self.__class__.__mro__]
+    d["__mro__"] = [a.__name__ for a in self.__class__.__mro__]
     return d
 
   @staticmethod
   def from_json(d: JsonDict):
     """Used by serialize.py."""
-    cls = globals()[d.pop('__name__')]  # class by name from this module
-    del d['__mro__']
+    cls = globals()[d.pop("__name__")]  # class by name from this module
+    del d["__mro__"]
     return cls(**d)
 
 
@@ -79,7 +79,7 @@ Spec = Dict[Text, LitType]
 
 # Attributes that should be treated as a reference to other fields.
 FIELD_REF_ATTRIBUTES = frozenset(
-    {'parent', 'align', 'align_in', 'align_out', 'grad_for'})
+    {"parent", "align", "align_in", "align_out", "grad_for"})
 
 
 def _remap_leaf(leaf: LitType, keymap: Dict[str, str]) -> LitType:
@@ -101,24 +101,27 @@ def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
     ret[new_key] = new_value
   return ret
 
+
 ##
 # Concrete type clases
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class String(LitType):
-  """User-editable text input. All automated edits are disabled for this type.
+  """User-editable text input.
+
+  All automated edits are disabled for this type.
 
   Mainly used for string inputs that have special formatting, and should only
   be edited manually.
   """
-  default: Text = ''
+  default: Text = ""
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TextSegment(LitType):
   """Text input (untokenized), a single string."""
-  default: Text = ''
+  default: Text = ""
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -145,7 +148,7 @@ class GeneratedTextCandidates(TextSegment):
 
   @staticmethod
   def top_text(value: ScoredTextCandidates) -> str:
-    return value[0][0] if len(value) else ''
+    return value[0][0] if len(value) else ""
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -338,7 +341,7 @@ class SparseMultilabel(LitType):
   vocab: Optional[Sequence[Text]] = None  # label names
   default: Sequence[Text] = []
   # TODO(b/162269499) Migrate non-comma separators to custom type.
-  separator: Text = ','  # Used for display purposes.
+  separator: Text = ","  # Used for display purposes.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
