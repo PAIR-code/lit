@@ -70,7 +70,7 @@
   margin: 10px 5px;
 }
 
-.freeform {
+.entry-content-long {
   flex-grow: 1;
   flex-basis: 100%;
 }

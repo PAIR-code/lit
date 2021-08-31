@@ -78,17 +78,29 @@ export class DatapointEditorModule extends LitModule {
     // to determine the default height of the input box.
     const percentileForDefault = 0.8;
 
-    // Get non-categorical keys.
-    const keys = this.appState.currentInputDataKeys.filter((key) => {
-      return !(
-          this.groupService.categoricalFeatureNames.includes(key) ||
-          this.groupService.numericalFeatureNames.includes(key));
-    });
-    // Get input string lengths for non-categorical keys.
-    for (const key of keys) {
-      const lengths = this.appState.currentInputData.map(
-          indexedInput => indexedInput.data[key]?.length);
+    const spec = this.appState.currentDatasetSpec;
+    for (const key of this.appState.currentInputDataKeys) {
+      // Skip numerical and categorical keys.
+      if (this.groupService.categoricalFeatureNames.includes(key)) continue;
+      if (this.groupService.numericalFeatureNames.includes(key)) continue;
+
+      // Correctly handle fields with value type string[]
+      const fieldSpec = spec[key];
+      const isListField = isLitSubtype(
+          fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
+      const lengths = this.appState.currentInputData.map(indexedInput => {
+        const value = indexedInput.data[key];
+        return isListField ? value?.join(fieldSpec.separator ?? ',').length :
+                             value?.length;
+      });
       defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
+      // Override if the distribution is short-tailed, we can expand a bit to
+      // avoid scrolling at all. This is useful if everything in a particular
+      // column is close to the same length.
+      const maxLength = Math.max(...lengths);
+      if (percentileForDefault * maxLength <= defaultLengths[key]) {
+        defaultLengths[key] = maxLength;
+      }
     }
     return defaultLengths;
   }
@@ -139,7 +151,7 @@ export class DatapointEditorModule extends LitModule {
       const defaultCharLength = this.dataTextLengths[key];
 
       // Heuristic for computing height.
-      const characterWidth = 13;  // estimate for character width in pixels
+      const characterWidth = 8.3;  // estimate for character width in pixels
       const numLines = Math.ceil(
           characterWidth * defaultCharLength / inputBoxElement.clientWidth);
       const pad = 1;
@@ -433,7 +445,7 @@ export class DatapointEditorModule extends LitModule {
     let renderInput = renderFreeformInput;  // default: free text
     const entryContentClasses = {
       'entry-content': true,
-      'freeform': false,
+      'entry-content-long': false,
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
@@ -445,6 +457,7 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderNumericInput;
     } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
       renderInput = renderTokensInput;
+      entryContentClasses['entry-content-long'] = true;
     } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
@@ -452,12 +465,13 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput =
           renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
+      entryContentClasses['entry-content-long'] = true;
     } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
     } else if (isLitSubtype(fieldSpec, 'Boolean')) {
       renderInput = renderBoolean;
     } else {
-      entryContentClasses['freeform'] = true;
+      entryContentClasses['entry-content-long'] = true;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
