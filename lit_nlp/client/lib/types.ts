@@ -155,6 +155,10 @@ export interface Preds {
   [key: string]: any;
 }
 
+export interface NumericResults {
+  [key: string]: number;
+}
+
 export interface TopKResult {
   // tslint:disable-next-line:enforce-name-casing
   0: string;

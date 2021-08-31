@@ -1,7 +1,10 @@
-.classification-row-title {
-  font-size: 10pt;
+.top-holder {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-.classification-row-holder {
-  padding-bottom: 10px;
+.table-holder {
+  flex: 1 1 0%;
+  overflow-y: auto;
 }

@@ -16,45 +16,58 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, TemplateResult} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import '../elements/score_bar';
+import {customElement, html} from 'lit-element';
 import {observable} from 'mobx';
 
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {TableData} from '../elements/table';
-import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
-import {doesOutputSpecContain} from '../lib/utils';
+import {SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {formatBoolean, IndexedInput, ModelInfoMap, NumericResults, Spec} from '../lib/types';
+import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {SelectionService} from '../services/services';
 
 import {styles} from './multilabel_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
-interface DisplayInfo {
-  label: string;
-  value: number;
-  isGroundTruth?: boolean;
+// Dict of prediction results for each predicted class.
+interface PredKeyResultInfo {
+  [className: string]: NumericResults;
 }
+
+// Contains all prediction results for display by the module.
+interface AllResultsInfo {
+  [predKey: string]: PredKeyResultInfo;
+}
+
 
 /** Model output module class. */
 @customElement('multilabel-module')
 export class MultilabelModule extends LitModule {
   static title = 'Multilabel Results';
-  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
   static override numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
-    return html`<multilabel-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></multilabel-module>`;
+  static template = () => {
+    return html`<multilabel-module></multilabel-module>`;
   };
 
   static override get styles() {
     return [sharedStyles, styles];
   }
 
-  @observable private labeledPredictions: {[name: string]: DisplayInfo[]} = {};
+  @observable private resultsInfo: AllResultsInfo = {};
+  private datapoints: IndexedInput[] = [];
+  private readonly groundTruthLabels = new Set<string>();
+  private maxValues: {[predKey: string]: number} = {};
 
   override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.react(getSelectedInput, selectedInput => {
+      this.updateSelection();
+    });
+    this.react(() => this.appState.compareExamplesEnabled,
+        compareExamplesEnabled => {
       this.updateSelection();
     });
     // Update once on init, to avoid duplicate calls.
@@ -64,88 +77,160 @@ export class MultilabelModule extends LitModule {
   private async updateSelection() {
     const data = this.selectionService.primarySelectedInputData;
     if (data === null) {
-      this.labeledPredictions = {};
+      this.resultsInfo = {};
       return;
     }
 
-    const result = this.apiService.getPreds(
-        [data], this.model, this.appState.currentDataset,
-        ['SparseMultilabelPreds']);
-    const preds = await result;
-    if (preds === null) return;
-
-    this.labeledPredictions = await this.parseResult(preds[0], data);
-  }
-
-  private async parseResult(result: Preds, data: IndexedInput) {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const predictedKeys = Object.keys(result);
-    const labeledPredictions: {[name: string]: DisplayInfo[]} = {};
-
-    for (let predIndex = 0; predIndex < predictedKeys.length; predIndex++) {
-      const predictionName = predictedKeys[predIndex];
-      const labelField = outputSpec[predictionName].parent;
-      const preds = result[predictionName] as Array<[string, number]>;
-      const labeledExample = preds.map((pred: [string, number], i: number) => {
-        const dict: DisplayInfo = {
-          value: pred[1],
-          label: pred[0],
-        };
-        if (labelField != null && data.data[labelField].indexOf(dict['label']) !== -1) {
-          dict.isGroundTruth = true;
-        }
-        return dict;
-      });
-      labeledPredictions[predictionName] = labeledExample;
+    // Collect datapoints to predict.
+    const selectionServices = app.getServiceArray(SelectionService);
+    const datapoints: IndexedInput[] = [];
+    for (const selectionService of selectionServices) {
+      const selected = selectionService.primarySelectedInputData;
+      if (selected != null) {
+        datapoints.push(selected);
+      }
+      if (!this.appState.compareExamplesEnabled) {
+        break;
+      }
     }
-    return labeledPredictions;
+    this.datapoints = datapoints;
+
+    // Run predictions on all models.
+    const models = this.appState.currentModels;
+    const results = await Promise.all(models.map(async model =>
+      this.apiService.getPreds(
+        datapoints, model, this.appState.currentDataset,
+        ['SparseMultilabelPreds'])));
+    if (results === null) {
+      this.resultsInfo = {};
+      return;
+    }
+
+    // Store all ground truth labels for all models, for use in display.
+    this.groundTruthLabels.clear();
+    for (const model of models) {
+      const outputSpec = this.appState.currentModelSpecs[model].spec.output;
+      const predKeys = findSpecKeys(outputSpec, 'SparseMultilabelPreds');
+      for (const predKey of predKeys) {
+        const labelField = outputSpec[predKey].parent;
+        if (labelField != null) {
+          this.groundTruthLabels.add(labelField);
+        }
+      }
+    }
+
+    // Parse results for display purposes.
+    this.maxValues = {};
+    const allResults: AllResultsInfo = {};
+    for (let modelIdx = 0; modelIdx < results.length; modelIdx++) {
+      for (let datapointIdx = 0; datapointIdx < results[modelIdx].length;
+           datapointIdx++) {
+        for (const predKey of Object.keys(results[modelIdx][datapointIdx])) {
+          if (allResults[predKey] == null) {
+            allResults[predKey] = {};
+          }
+          const preds = results[modelIdx][datapointIdx][predKey];
+          for (const labelAndScore of preds) {
+            const label = labelAndScore[0];
+            const score = labelAndScore[1];
+            if (allResults[predKey][label] == null) {
+              allResults[predKey][label] = {};
+            }
+            let key = `${models[modelIdx]}`;
+            // If there are two datapoints, then label them.
+            if (results[modelIdx].length > 1) {
+              key += (datapointIdx === 0) ? ' main' : ' reference';
+            }
+            allResults[predKey][label][key] = score;
+            if (this.maxValues[predKey] == null) {
+              this.maxValues[predKey] = 0;
+            }
+            if (score > this.maxValues[predKey]) {
+              this.maxValues[predKey] = score;
+            }
+          }
+        }
+      }
+    }
+    this.resultsInfo = allResults;
   }
 
   override render() {
-    const keys = Object.keys(this.labeledPredictions);
+    const keys = Object.keys(this.resultsInfo);
     return html`
-        ${keys.map((key) => this.renderRow(key, this.labeledPredictions[key]))}
+        <div class="top-holder">
+          ${keys.map((key) => this.renderTable(key, this.resultsInfo[key]))}
+        </div>
     `;
   }
 
-  private renderBar(fieldName: string, pred: DisplayInfo): TemplateResult {
-    // TODO(b/181692911): Style through CSS when data table supports it.
-    const pad = 0.75;
-    const margin = 0.35;
-    const barStyle: {[name: string]: string} = {};
-    const scale = 90;
-    barStyle['width'] = `${scale * pred['value']}%`;
-    barStyle['background-color'] = '#07a3ba';
-    barStyle['padding-left'] = `${pad}%`;
-    barStyle['padding-right'] = `${pad}%`;
-    barStyle['margin-left'] = `${margin}%`;
-    barStyle['margin-right'] = `${margin}%`;
-    const holderStyle: {[name: string]: string} = {};
-    holderStyle['width'] = '100px';
-    holderStyle['height'] = '20px';
-    holderStyle['display'] = 'flex';
-    holderStyle['position'] = 'relative';
-    return html`
-        <div style='${styleMap(holderStyle)}'>
-          <div style='${styleMap(barStyle)}'></div>
-        </div>`;
+  private renderBar(val: number, maxScore: number): SortableTemplateResult {
+    return {
+      template: html`
+          <score-bar score=${val} maxScore=${maxScore}></score-bar>`,
+      value: val
+    };
   }
 
-  private renderRow(fieldName: string, prediction: DisplayInfo[]) {
-    const rows: TableData[] = prediction.map((pred) => {
-      const row = [
-        pred['label'],
-        formatBoolean(pred['isGroundTruth']!),
-        (+pred['value']).toFixed(3),
-        this.renderBar(fieldName, pred)
-      ];
+  private renderTable(fieldName: string, prediction: PredKeyResultInfo) {
+    const columnNames = [`${fieldName} class`];
+
+    // Add columns for ground truth labels.
+    for (let i = 0; i < this.datapoints.length; i++) {
+      for (const label of this.groundTruthLabels) {
+        let labelColName = label;
+        if (this.datapoints.length > 1) {
+          labelColName += i === 0 ? ' main' : ' reference';
+        }
+        columnNames.push(labelColName);
+      }
+    }
+
+    // Add columns for model predictions and deltas of predictions against
+    // the first model/datapoint prediction.
+    const cols = new Set<string>();
+    for (const row of Object.values(prediction)) {
+      for (const key of Object.keys(row)) {
+       cols.add(key);
+      }
+    }
+    const predCols = Array.from(cols.values());
+    for (let i = 0; i < predCols.length; i++) {
+      const col = predCols[i];
+      columnNames.push(col);
+      if (i > 0) {
+        columnNames.push(col + ' Δ');
+      }
+    }
+
+    const maxScore = Math.ceil(this.maxValues[fieldName]);
+    // Create the table data.
+    const rows: TableData[] = Object.keys(prediction).map((className) => {
+      const row: TableEntry[] = [className];
+      for (let i = 0; i < this.datapoints.length; i++) {
+        const ex = this.datapoints[i];
+        for (const label of this.groundTruthLabels.keys()) {
+          row.push(formatBoolean(ex.data[label] === className));
+        }
+      }
+      let baselineScore = 0;
+      for (let i = 0; i < predCols.length; i++) {
+        const col = predCols[i];
+        const score = prediction[className][col] == null ? 0 :
+            prediction[className][col];
+        row.push(this.renderBar(score, maxScore));
+        if (i === 0) {
+          baselineScore = score;
+        } else {
+          const delta = score - baselineScore;
+          row.push(delta.toFixed(3));
+        }
+      }
       return row;
     });
-    const columnNames = ["Class", "Label", "Score", "Score Bar"];
 
     return html`
-        <div class='classification-row-holder'>
-          <div class='classification-row-title'>${fieldName}</div>
+        <div class="table-holder">
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}
