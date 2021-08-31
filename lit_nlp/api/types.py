@@ -293,7 +293,9 @@ class Embeddings(LitType):
 class Gradients(LitType):
   """Gradients with respect to embeddings."""
   grad_for: Optional[Text] = None  # name of Embeddings field
-  grad_target: Optional[Text] = None  # class for computing gradients (string)
+  # Name of the field in the input that can be used to specify the target class
+  # for the gradients.
+  grad_target_field_key: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -307,14 +309,19 @@ class TokenGradients(LitType):
   """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # name of a Tokens field
   grad_for: Optional[Text] = None  # name of TokenEmbeddings field
-  grad_target: Optional[Text] = None  # class for computing gradients (string)
+  # Name of the field in the input that can be used to specify the target class
+  # for the gradients.
+  grad_target_field_key: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ImageGradients(LitType):
-  """Gradients with respect to per-pixel inputs, as <float>[num_pixels]."""
-  align: Optional[Text] = None  # name of an image field
-  grad_target: Optional[Text] = None  # class for computing gradients (string)
+  """Gradients with respect to per-pixel inputs, as a multidimensional array."""
+  # Name of the field in the input for which the gradients are computed.
+  align: Optional[Text] = None
+  # Name of the field in the input that can be used to specify the target class
+  # for the gradients.
+  grad_target_field_key: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -388,6 +395,16 @@ class SalienceMap(LitType):
   """Metadata about a returned salience map, returned as dtypes.SalienceMap."""
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageSalience(LitType):
+  """Metadata about a returned image saliency.
+
+  The data is returned as an image in the base64 URL encoded format, e.g.,
+  data:image/jpg;base64,w4J3k1Bfa...
+  """
+  autorun: bool = False  # If the saliency technique is automatically run.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

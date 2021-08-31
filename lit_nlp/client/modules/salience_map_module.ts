@@ -19,7 +19,6 @@
  * LIT module for salience maps, such as gradients or LIME.
  */
 
-import * as d3 from 'd3';
 import '../elements/checkbox';
 import '../elements/spinner';
 
@@ -27,7 +26,6 @@ import '../elements/spinner';
 import {customElement, html} from 'lit-element';
 import {classMap} from 'lit-html/directives/class-map';
 import {styleMap} from 'lit-html/directives/style-map';
-import {until} from 'lit-html/directives/until';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -46,11 +44,15 @@ interface SalienceResult {
   [key: string]: {tokens: string[], salience: number[]};
 }
 
+interface ImageSalienceResult {
+  [key: string]: string;
+}
+
 /**
  * UI status for each interpreter.
  */
 interface InterpreterState {
-  salience: SalienceResult;
+  salience: SalienceResult|ImageSalienceResult;
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
@@ -154,8 +156,8 @@ export class SalienceMapModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
-      const salienceKeys =
-          findSpecKeys(interpreters[key].metaSpec, 'SalienceMap');
+      const salienceKeys = findSpecKeys(
+          interpreters[key].metaSpec, ['SalienceMap', 'ImageSalience']);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -294,62 +296,10 @@ export class SalienceMapModule extends LitModule {
     }
   }
 
-  renderImage(salience: SalienceResult, gradKey: string, cmap: SalienceCmap) {
-    const saliences = salience[gradKey].salience;
-
-    // Create the salience map with a canvas and then render it as an <img>
-    const renderSalienceImage = (size: number[]) => {
-      const width = size[0];
-      const height = size[1];
-      const buffer = new Uint8ClampedArray(width * height * 4);
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const saliencesIdx = (y * width + x);
-          const pos = saliencesIdx * 4;
-          // Get the pixel color from the provided color map and the pixel's
-          // saliency value.
-          const color = cmap.bgCmap(saliences[saliencesIdx]);
-          const colorObj = d3.color(color)!.rgb();
-          buffer[pos] = colorObj.r;
-          buffer[pos + 1] = colorObj.g;
-          buffer[pos + 2] = colorObj.b;
-          buffer[pos + 3] = 255; // alpha
-        }
-      }
-
-      // Create canvas with saliency image.
-      const canvas = document.createElement('canvas'),
-      ctx = canvas.getContext('2d')!;
-      canvas.width = width;
-      canvas.height = height;
-      const idata = ctx.createImageData(width, height);
-      idata.data.set(buffer);
-      ctx.putImageData(idata, 0, 0);
-
-      // Render it as an image.
-      return html`<img src=${canvas.toDataURL()}></img>`;
-    };
-
-    // Async method to get width and height of an encoded image.
-    const getImageDimensions = (imageStr: string):
-        Promise<number[]> => {
-      return new Promise ((resolved, rejected) => {
-        const img = new Image();
-        img.onload = () => {
-          resolved([img.width, img.height]);
-        };
-        img.src = imageStr;
-      });
-    };
-
-    const spec = this.appState.getModelSpec(this.model);
-    const imageKey = spec.output[gradKey].align!;
-    const imageBytes =
-        this.selectionService.primarySelectedInputData!.data[imageKey];
-
-    return html`${until(getImageDimensions(imageBytes).then(size => {
-      return renderSalienceImage(size);
-    }))}`;
+  renderImage(
+      salience: ImageSalienceResult, gradKey: string) {
+    const salienceImage = salience[gradKey];
+    return html`<img src='${salienceImage}'></img>`;
   }
 
   // TODO(lit-dev): consider moving this to a standalone viz class.
@@ -376,12 +326,15 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  renderGroup(salience: SalienceResult, gradKey: string, cmap: SalienceCmap) {
+  renderGroup(
+      salience: SalienceResult|ImageSalienceResult, gradKey: string,
+      cmap: SalienceCmap) {
     const spec = this.appState.getModelSpec(this.model);
     if (isLitSubtype(spec.output[gradKey], 'ImageGradients')) {
-      return this.renderImage(salience, gradKey, cmap);
-    }
-    else {
+      salience = salience as ImageSalienceResult;
+      return this.renderImage(salience, gradKey);
+    } else {
+      salience = salience as SalienceResult;
       return this.renderTokens(salience, gradKey, cmap);
     }
   }

@@ -221,7 +221,7 @@ class IntegratedGradients(lit_components.Interpreter):
       assert isinstance(output_spec[tokens_field], types.Tokens)
 
       embeddings_field = output_spec[f].grad_for
-      grad_class_key = output_spec[f].grad_target
+      grad_class_key = output_spec[f].grad_target_field_key
       if embeddings_field is not None and grad_class_key is not None:
         assert embeddings_field in input_spec
         assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
@@ -292,7 +292,7 @@ class IntegratedGradients(lit_components.Interpreter):
     # which could flip between interpolated inputs). If class_to_explain is -1,
     # then explain the argmax class.
     grad_class_key = cast(types.TokenGradients,
-                          output_spec[grad_fields[0]]).grad_target
+                          output_spec[grad_fields[0]]).grad_target_field_key
     if class_to_explain == -1:
       grad_class = model_output[grad_class_key]
     else:

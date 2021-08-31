@@ -118,18 +118,22 @@ class TestModelClassification(lit_model.Model):
             'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])}
 
   def output_spec(self):
-    return {'probas': lit_types.MulticlassPreds(
-        parent='label',
-        vocab=['0', '1'],
-        null_idx=0),
-            'input_embs': lit_types.TokenEmbeddings(align='tokens'),
-            'input_embs_grad': lit_types.TokenGradients(align='tokens',
-                                                        grad_for='input_embs',
-                                                        grad_target='grad_class'
-                                                        ),
-            'tokens': lit_types.Tokens(),
-            'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])
-            }
+    return {
+        'probas':
+            lit_types.MulticlassPreds(
+                parent='label', vocab=['0', '1'], null_idx=0),
+        'input_embs':
+            lit_types.TokenEmbeddings(align='tokens'),
+        'input_embs_grad':
+            lit_types.TokenGradients(
+                align='tokens',
+                grad_for='input_embs',
+                grad_target_field_key='grad_class'),
+        'tokens':
+            lit_types.Tokens(),
+        'grad_class':
+            lit_types.CategoryLabel(vocab=['0', '1'])
+    }
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     output = {'probas': np.array([0.2, 0.8]),

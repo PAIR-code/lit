@@ -441,8 +441,8 @@ class GlueModel(lit_model.Model):
           vocab=self.config.labels,
           null_idx=self.config.null_label_idx)
     ret["cls_emb"] = lit_types.Embeddings()
-    ret["cls_grad"] = lit_types.Gradients(grad_for="cls_emb",
-                                          grad_target="grad_class")
+    ret["cls_grad"] = lit_types.Gradients(
+        grad_for="cls_emb", grad_target_field_key="grad_class")
 
     # The input_embs_ and grad_class fields are used for Integrated Gradients.
     ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
@@ -458,12 +458,12 @@ class GlueModel(lit_model.Model):
       ret["token_grad_" + self.config.text_a_name] = lit_types.TokenGradients(
           align="tokens_" + self.config.text_a_name,
           grad_for="input_embs_" + self.config.text_a_name,
-          grad_target="grad_class")
+          grad_target_field_key="grad_class")
       if self.config.text_b_name:
         ret["token_grad_" + self.config.text_b_name] = lit_types.TokenGradients(
             align="tokens_" + self.config.text_b_name,
             grad_for="input_embs_" + self.config.text_b_name,
-            grad_target="grad_class")
+            grad_target_field_key="grad_class")
 
     # Attention heads, one field for each layer.
     for i in range(self.model.config.num_hidden_layers):

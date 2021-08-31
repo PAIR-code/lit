@@ -125,7 +125,8 @@ class TCAV(lit_components.Interpreter):
     emb_layer = cast(types.Gradients, output_spec[grad_layer]).grad_for
 
     # Get the class that the gradients were computed for.
-    grad_class_key = cast(types.Gradients, output_spec[grad_layer]).grad_target
+    grad_class_key = cast(types.Gradients,
+                          output_spec[grad_layer]).grad_target_field_key
 
     ids_set = set(config.concept_set_ids)
     concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
