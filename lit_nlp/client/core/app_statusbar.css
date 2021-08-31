@@ -128,19 +128,24 @@ mwc-icon.icon-button:hover {
 
 .close-button-holder {
   display: flex;
-  flex-direction: row-reverse;
+  justify-content: flex-end;
   margin: 10px;
 }
 
 .error-message-header {
   font-size: 1.5rem;
-  margin-left: 10px;
-  margin-top: 10px;
+  margin: 10px;
 }
 
-.full-message {
+.error-message-holder {
   margin: 10px;
+  height: 100%;
   overflow: auto;
+}
+
+.error-message {
+  font-family: monospace;
+  white-space: pre;
 }
 
 @-webkit-keyframes running-progress {

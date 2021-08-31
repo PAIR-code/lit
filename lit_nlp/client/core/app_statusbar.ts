@@ -95,10 +95,10 @@ export class StatusbarComponent extends MobxLitElement {
       <div class='modal-container'>
         <div class="model-overlay" @click=${() => {close();}}></div>
         <div class='modal'>
-          <div class='error-messages-holder'>
-            <div class='error-message-header'>Error Details</div>
+          <div class='error-message-header'>Error Details</div>
+          <div class='error-message-holder'>
             ${this.statusService.errorFullMessages.map(
-                message => html`<pre class="full-message">${message}</pre>`)}
+                message => html`<div class="error-message">${message}</div>`)}
           </div>
           <div class='close-button-holder'>
             <button class='hairline-button' @click=${() => {close();}}>
