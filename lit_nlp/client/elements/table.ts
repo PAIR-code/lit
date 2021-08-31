@@ -657,6 +657,13 @@ export class DataTable extends ReactiveElement {
         this.columnMenuName = title;
         this.showColumnMenu = true;
       }
+      // Focus cursor on newly-shown input box.
+      if (this.showColumnMenu) {
+        window.requestAnimationFrame(() => {
+          const inputElem = this.shadowRoot!.querySelector(`th#${title} .togglable-menu-holder input`) as HTMLElement;
+          inputElem.focus();
+        });
+      }
     };
 
     const handleSearchChange = (e: KeyboardEvent) => {
@@ -686,7 +693,7 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
-        <th>
+        <th id=${title}>
           <div class=${headerClasses} title=${title}>
             <div class="header-holder">
               <div>
