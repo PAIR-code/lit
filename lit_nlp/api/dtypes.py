@@ -30,7 +30,7 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Dict, List, Optional, Text, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Text, Tuple, Union
 
 import attr
 
@@ -93,11 +93,22 @@ class AnnotationCluster(DataTuple):
     return d
 
 
+# TODO(b/196886684): document API for salience interpreters.
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SalienceMap(DataTuple):
   """Dataclass for a salience map over tokens."""
   tokens: List[str]
   salience: List[float]  # parallel to tokens
+
+
+# TODO(b/196886684): document API for salience interpreters.
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SequenceSalienceMap(DataTuple):
+  """Dataclass for a salience map over a target sequence."""
+  tokens_in: List[str]
+  tokens_out: List[str]
+  # <float>[num_tokens_out, num_tokens_in + num_tokens_out]
+  salience: Sequence[Sequence[float]]  # usually, a np.ndarray
 
 
 # LINT.IfChange

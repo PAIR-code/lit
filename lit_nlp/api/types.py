@@ -415,6 +415,13 @@ class ImageSalience(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SequenceSalience(LitType):
+  """Metadata about a returned sequence salience map, returned as dtypes.SalienceMap."""
+  autorun: bool = False  # If the saliency technique is automatically run.
+  signed: bool  # If the returned values are signed.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Boolean(LitType):
   """Boolean value."""
   default: bool = False

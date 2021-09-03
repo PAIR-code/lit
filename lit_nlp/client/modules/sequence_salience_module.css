@@ -1,0 +1,92 @@
+.field-title {
+  font-family: 'Google Sans';
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  color: #5f6368; /* Grey/700 */
+}
+
+table.field-table {
+  width: 100%;
+  min-width: 100%;
+  border-spacing: 0;
+}
+
+table.field-table th {
+  vertical-align: top;
+  text-align: start;
+}
+
+.subfield-title {
+  padding-top: 5px; /* align title with first row of content */
+}
+
+.token-holder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.token-spacer {
+  font-family: 'Roboto Mono';
+}
+
+.token-focused {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.salient-token {
+  /* color and background set individually vis styleMap */
+  font-family: 'Roboto';
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px 4px; /* wider horizontally */
+  margin: 3px;
+  width: fit-content;
+}
+
+.target-token {
+  cursor: pointer;
+}
+
+/**
+ * Module controls
+ */
+
+.module-footer {
+  border-top: 1px solid #dadce0;
+  min-height: 32px;
+  justify-content: space-between;
+}
+
+.controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.controls-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.controls-group > * {
+  margin: 0 2px;
+}
+
+.cmap-block {
+  width: 28px;
+  height: 20px;
+  border: 1px solid gray;
+  border-radius: 3px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.gamma-value {
+  min-width: 32px;
+}

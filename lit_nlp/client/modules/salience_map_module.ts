@@ -438,6 +438,8 @@ export class SalienceMapModule extends LitModule {
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // TODO(b/177963928): determine visibility based on component list
+    // and model compatibility?
     return true;
   }
 }
