@@ -40,10 +40,8 @@ jobs:
       # Setup environment for LIT
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: lit-nlp
-          environment-file: environment.yml
-          auto-update-conda: true
           python-version: ${{ matrix.python-version }}
+      - run: conda env create -f environment.yml
       - run: conda activate lit-nlp
 
       # Install packages needed for testing
