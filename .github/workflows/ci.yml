@@ -32,29 +32,23 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7"]
-    defaults:
-      run:
-        shell: bash -l {0}
+#    defaults:
+#      run:
+#        shell: bash -l {0}
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
       
-      # Setup environment for LIT
+      # Setup environment for LIT and test python
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - run: conda env create -f environment.yml
-      - run: conda activate lit-nlp
       - run: |
-          conda info
-          conda list
-
-      # Install packages needed for testing
-      - run: pip install pytest lime
-
-      # Test python
-      - run: pytest -v
+          conda env create -f environment.yml
+          conda activate lit-nlp
+          pip install pytest lime
+          pytest -v
 
       # Build front-end
       - uses: actions/setup-node@v2
