@@ -34,6 +34,7 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+TARGET_HEAD_KEY = 'Output field to explain'
 CLASS_KEY = 'Class index to explain'
 KERNEL_WIDTH_KEY = 'Kernel width'
 MASK_KEY = 'Mask'
@@ -79,18 +80,16 @@ class LIME(lit_components.Interpreter):
       config: Optional[JsonDict] = None,
   ) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
+    config_defaults = {k: v.default for k, v in self.config_spec().items()}
+    config = dict(config_defaults, **(config or {}))  # update and return
 
-    class_to_explain = int(config[CLASS_KEY] if config else
-                           self.config_spec()[CLASS_KEY].default)
-    kernel_width = int(config[KERNEL_WIDTH_KEY] if config else
-                       self.config_spec()[KERNEL_WIDTH_KEY].default)
-    num_samples = int(config[NUM_SAMPLES_KEY] if config else
-                      self.config_spec()[NUM_SAMPLES_KEY].default)
-    mask_string = (config[MASK_KEY] if config
-                   else self.config_spec()[MASK_KEY].default)
-    seed_str = (config[SEED_KEY] if config
-                else self.config_spec()[SEED_KEY].default)
-    seed = int(seed_str) if seed_str else None
+    class_to_explain = int(config[CLASS_KEY])
+    kernel_width = int(config[KERNEL_WIDTH_KEY])
+    num_samples = int(config[NUM_SAMPLES_KEY])
+    mask_string = (config[MASK_KEY])
+    # pylint: disable=g-explicit-bool-comparison
+    seed = int(config[SEED_KEY]) if config[SEED_KEY] != '' else None
+    # pylint: enable=g-explicit-bool-comparison
 
     # Find keys of input (text) segments to explain.
     # Search in the input spec, since it's only useful to look at ones that are
@@ -107,8 +106,8 @@ class LIME(lit_components.Interpreter):
     if not pred_keys:
       logging.warning('LIME did not find any supported output fields.')
       return None
+    pred_key = config[TARGET_HEAD_KEY] or pred_keys[0]
 
-    pred_key = pred_keys[0]  # TODO(lit-dev): configure which prob field to use.
     all_results = []
 
     # Explain each input.
@@ -118,7 +117,7 @@ class LIME(lit_components.Interpreter):
       predict_fn = functools.partial(
           _predict_fn, model=model, original_example=input_, pred_key=pred_key)
 
-       # If class_to_explain is -1, then explain the argmax class
+      # If class_to_explain is -1, then explain the argmax class
       if (isinstance(model.output_spec()[pred_key], types.MulticlassPreds) and
           class_to_explain == -1):
         pred = list(model.predict([input_]))[0]
@@ -158,10 +157,12 @@ class LIME(lit_components.Interpreter):
     return all_results
 
   def config_spec(self) -> types.Spec:
+    matcher_types = ['MulticlassPreds', 'RegressionScore']
     return {
+        TARGET_HEAD_KEY: types.FieldMatcher(spec='output', types=matcher_types),
         CLASS_KEY: types.TextSegment(default='-1'),
-        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
         MASK_KEY: types.TextSegment(default='[MASK]'),
+        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
         NUM_SAMPLES_KEY: types.TextSegment(default='256'),
         SEED_KEY: types.TextSegment(default=''),
     }
