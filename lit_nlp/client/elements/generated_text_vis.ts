@@ -54,12 +54,14 @@ interface TextDiff {
 @customElement('generated-text-vis')
 export class GeneratedTextVis extends ReactiveElement {
   /* Data binding */
-  @observable @property({type: String}) fieldName: string = '';
+  @observable @property({type: String}) fieldName?: string;
   @observable
   @property({type: Array})
   candidates: GeneratedTextCandidate[] = [];
   @observable @property({type: String}) referenceFieldName?: string;
   @observable @property({type: Array}) referenceTexts: GeneratedTextCandidate[] = [];
+  // Optional model scores for the target texts.
+  @observable @property({type: Array}) referenceModelScores: number[] = [];
 
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
   @observable @property({type: Boolean}) highlightMatch: boolean = false;
@@ -68,6 +70,24 @@ export class GeneratedTextVis extends ReactiveElement {
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  @computed
+  get showModelScoreColumn() {
+    return (
+        this.referenceModelScores.length > 0 ||
+        this.candidates.filter(candidate => candidate[1] != null).length > 0);
+  }
+
+  @computed
+  get showTargetScoreColumn() {
+    return this.referenceTexts.filter(candidate => candidate[1] != null)
+               .length > 0;
+  }
+
+  @computed
+  get showHeader() {
+    return this.showModelScoreColumn || this.showTargetScoreColumn;
   }
 
   @computed
@@ -106,6 +126,29 @@ export class GeneratedTextVis extends ReactiveElement {
     return displaySpans;
   }
 
+  renderHeader() {
+    // clang-format off
+    return html`
+      <thead>
+      <tr class='output-row'>
+        <th class='field-name'>Field name</th>
+        <td>
+          <div class="candidate-row">
+            ${this.showModelScoreColumn ? html`
+              <div class='model-score column-header'>Model score</div>
+            ` : null}
+            ${this.showTargetScoreColumn ? html`
+              <div class='reference-score column-header'>Target score</div>
+            ` : null}
+            <div class='candidate-text column-header'>Text</div>
+          </div>
+        </td>
+      </tr>
+      </thead>
+    `;
+    // clang-format on
+  }
+
   renderReferences() {
     const renderedReferences = this.referenceTexts.map((candidate, i) => {
       const formattedText =
@@ -115,7 +158,7 @@ export class GeneratedTextVis extends ReactiveElement {
               candidate[0];
       const classes = classMap({
         'token-chip-label': true,
-        'candidate': true,
+        'candidate-row': true,
         'candidate-selected': this.selectedRefIdx === i,
       });
       const onClickSelect = () => {
@@ -124,7 +167,16 @@ export class GeneratedTextVis extends ReactiveElement {
       // clang-format off
       return html`
         <div class=${classes} @click=${onClickSelect}>
-          <div class='candidate-score'>${candidate[1]?.toFixed(3)}</div>
+          ${this.showModelScoreColumn ? html`
+            <div class='model-score' title="Model score">
+              ${this.referenceModelScores[i]?.toFixed(3) ?? null}
+            </div>
+          `: null}
+          ${this.showTargetScoreColumn ? html`
+            <div class='reference-score' title="Reference score">
+              ${candidate[1]?.toFixed(3) ?? null}
+            </div>
+          ` : null}
           <div class='candidate-text'>${formattedText}</div>
         </div>
       `;
@@ -134,7 +186,7 @@ export class GeneratedTextVis extends ReactiveElement {
     // clang-format off
     return html`
       <tr class='output-row'>
-        <th>${this.referenceFieldName}</th>
+        <th class='field-name'>${this.referenceFieldName}</th>
         <td><div class='candidates'>${renderedReferences}</div></td>
       </tr>
     `;
@@ -150,7 +202,7 @@ export class GeneratedTextVis extends ReactiveElement {
           candidate[0];
       const classes = classMap({
         'token-chip-label': true,
-        'candidate': true,
+        'candidate-row': true,
         'candidate-selected': this.selectedIdx === i,
       });
       const onClickSelect = () => {
@@ -159,7 +211,15 @@ export class GeneratedTextVis extends ReactiveElement {
       // clang-format off
       return html`
         <div class=${classes} @click=${onClickSelect}>
-          <div class='candidate-score'>${candidate[1]?.toFixed(3)}</div>
+          ${this.showModelScoreColumn ? html`
+            <div class='model-score'>
+              ${candidate[1]?.toFixed(3) ?? null}
+            </div>
+          `: null}
+          ${this.showTargetScoreColumn ? html`
+            <div class='reference-score' title="Reference score">
+            </div>
+          ` : null}
           <div class='candidate-text'>${formattedText}</div>
         </div>
       `;
@@ -169,7 +229,7 @@ export class GeneratedTextVis extends ReactiveElement {
     // clang-format off
     return html`
       <tr class='output-row'>
-        <th>${this.fieldName}</th>
+        <th class='field-name'>${this.fieldName}</th>
         <td><div class='candidates'>${renderedCandidates}</div></td>
       </tr>
     `;
@@ -181,8 +241,11 @@ export class GeneratedTextVis extends ReactiveElement {
     return html`
       <div class='output'>
         <table class='output-table'>
-          ${this.referenceFieldName != null ? this.renderReferences() : null}
-          ${this.renderCandidates()}
+          ${this.showHeader ? this.renderHeader() : null}
+          <tbody>
+            ${this.referenceFieldName != null ? this.renderReferences() : null}
+            ${this.fieldName != null ? this.renderCandidates() : null}
+          </tbody>
         </table>
       </div>
     `;

@@ -2,22 +2,65 @@
   margin-bottom: 8px;
 }
 
-.output-row {
+.output-table {
+  border-spacing: 0;
+  width: 100%;
+  --score-col-width: 80px;
+}
+
+.output-table thead {
+  position: sticky;
+  top: 0;
+
+  background: #f5fcfc;
+}
+
+.output-table tr {
   text-align: left;
   vertical-align: initial;
 }
 
-.output-row > * {
+.output-table tr > * {
   padding: 4px;
 }
 
-.candidate {
-  display: flex;
-  flex-direction: row;
+.output-table tbody th {
+  vertical-align: top;
 }
 
-.candidate-score {
-  margin-right: 12px;
+.candidate-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 0 2px; /* align with content row hpad */
+}
+
+.candidate-row > * {
+  padding: 4px;
+}
+
+.field-name {
+  width: 100px;
+}
+
+.model-score {
+  margin-right: 8px;
+  font-family: 'Roboto';
+  width: var(--score-col-width);
+  min-width: var(--score-col-width);
+}
+
+.candidate-text {
+  flex-grow: 1;
+}
+
+.reference-score {
+  margin-right: 8px;
+  font-family: 'Roboto';
+  width: var(--score-col-width);
+  min-width: var(--score-col-width);
 }
 
 /* use this style instead of .token-chip-label.selected */

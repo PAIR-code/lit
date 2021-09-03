@@ -207,6 +207,13 @@ class RegressionScore(Scalar):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ReferenceScores(LitType):
+  """Score of one or more target sequences, as List[float]."""
+  # name of a TextSegment or ReferenceTexts field in the input
+  parent: Optional[Text] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class CategoryLabel(LitType):
   """Category or class label, a single string."""
   # Optional vocabulary to specify allowed values.
