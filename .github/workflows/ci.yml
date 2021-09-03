@@ -46,6 +46,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: conda env create -f environment.yml
       - run: conda activate lit-nlp
+      - run: |
+          conda info
+          conda list
 
       # Install packages needed for testing
       - run: pip install pytest lime
