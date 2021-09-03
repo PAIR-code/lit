@@ -32,6 +32,9 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7"]
+    defaults:
+      run:
+        shell: bash
     runs-on: ubuntu-latest
 
     steps:
