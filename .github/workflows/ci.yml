@@ -36,21 +36,24 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
+      # Setup environment for LIT
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: lit-nlp
           environment-file: environment.yml
           auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-      
-      # Build front-end
-      - uses: actions/setup-node@v2
-      - run: pushd lit_nlp && yarn && yarn build && popd
-      
+      - run: conda activate lit-nlp
+
       # Install packages needed for testing
       - run: pip install pytest lime
 
       # Test python
       - run: pytest -v
 
-      # TODO(jwexler): Test typescript code
+      # Build front-end
+      - uses: actions/setup-node@v2
+      - run: pushd lit_nlp && yarn && yarn build && popd
+
+      # TODO(jwexler): Test front-end
