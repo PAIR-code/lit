@@ -29,7 +29,7 @@ from lit_nlp.api import types
 from lit_nlp.lib import image_utils
 from lit_nlp.lib import utils as lit_utils
 import numpy as np
-import saliency.core as saliency
+import saliency
 
 
 JsonDict = types.JsonDict
@@ -180,11 +180,11 @@ def get_call_model_func(
       gradients = prediction[grad_field_key]
       gradients_batch.append(gradients)
 
-    assert saliency.base.OUTPUT_LAYER_VALUES not in expected_keys
+    assert saliency.core.base.OUTPUT_LAYER_VALUES not in expected_keys
 
     # Convert the result to the format acceptable by the saliency library.
     return {
-        saliency.base.INPUT_OUTPUT_GRADIENTS: np.asarray(gradients_batch),
+        saliency.core.base.INPUT_OUTPUT_GRADIENTS: np.asarray(gradients_batch),
     }
 
   return call_model_func
@@ -278,7 +278,7 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.ImageSalience(autorun=False)}
 
-  def make_saliency_call(self, saliency_object: saliency.CoreSaliency,
+  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
                          x_value: np.ndarray, call_model_function: Callable[
                              [np.ndarray, Any, List[str]], Dict[str,
                                                                 np.ndarray]],
@@ -310,8 +310,8 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
 class VanillaGradients(SaliencyLibInterpreter):
   """Vanilla gradients interpreter."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.GradientSaliency()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.GradientSaliency()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -331,8 +331,8 @@ class VanillaGradients(SaliencyLibInterpreter):
 class IntegratedGradients(SaliencyLibInterpreter):
   """Integrated Gradients interpreter."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.IntegratedGradients()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.IntegratedGradients()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -361,8 +361,8 @@ class IntegratedGradients(SaliencyLibInterpreter):
 class BlurIG(SaliencyLibInterpreter):
   """Blur IG interpreter."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.BlurIG()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.BlurIG()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -391,8 +391,8 @@ class BlurIG(SaliencyLibInterpreter):
 class GuidedIG(SaliencyLibInterpreter):
   """Guided Integrated Gradients interpreter."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.GuidedIG()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.GuidedIG()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -427,8 +427,8 @@ class GuidedIG(SaliencyLibInterpreter):
 class XRAI(SaliencyLibInterpreter):
   """XRAI Interpreter."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.XRAI()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.XRAI()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -444,15 +444,15 @@ class XRAI(SaliencyLibInterpreter):
             types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1)
     }
 
-  def make_saliency_call(self, saliency_object: saliency.CoreSaliency,
+  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
                          x_value: np.ndarray, call_model_function: Callable[
                              [np.ndarray, Any, List[str]], Dict[str,
                                                                 np.ndarray]],
                          extra_saliency_params: Dict[str, Any]) -> np.ndarray:
 
-    xrai_params = saliency.XRAIParameters(
+    xrai_params = saliency.core.XRAIParameters(
         steps=extra_saliency_params['steps'], algorithm='fast')
-    xrai_output = cast(saliency.XRAI, saliency_object).GetMaskWithDetails(
+    xrai_output = cast(saliency.core.XRAI, saliency_object).GetMaskWithDetails(
         x_value=x_value,
         call_model_function=call_model_function,
         extra_parameters=xrai_params)
@@ -471,8 +471,8 @@ class XRAI(SaliencyLibInterpreter):
 class XRAIGIG(SaliencyLibInterpreter):
   """XRAI Interpreter that uses Guided IG as the base attribution."""
 
-  def get_saliency_object(self) -> saliency.CoreSaliency:
-    return saliency.XRAI()
+  def get_saliency_object(self) -> saliency.core.CoreSaliency:
+    return saliency.core.XRAI()
 
   def get_extra_saliency_params(self,
                                 config: Optional[JsonDict] = None
@@ -494,21 +494,21 @@ class XRAIGIG(SaliencyLibInterpreter):
             types.Scalar(min_val=0.0, max_val=1.0, default=0.1, step=0.02)
     }
 
-  def make_saliency_call(self, saliency_object: saliency.CoreSaliency,
+  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
                          x_value: np.ndarray, call_model_function: Callable[
                              [np.ndarray, Any, List[str]], Dict[str,
                                                                 np.ndarray]],
                          extra_saliency_params: Dict[str, Any]) -> np.ndarray:
 
-    gig_object = saliency.GuidedIG()
+    gig_object = saliency.core.GuidedIG()
     gig_saliency = gig_object.GetMask(
         x_value=x_value,
         call_model_function=call_model_function,
         **extra_saliency_params)
 
-    xrai_params = saliency.XRAIParameters(
+    xrai_params = saliency.core.XRAIParameters(
         steps=extra_saliency_params['x_steps'], algorithm='fast')
-    xrai_output = cast(saliency.XRAI, saliency_object).GetMaskWithDetails(
+    xrai_output = cast(saliency.core.XRAI, saliency_object).GetMaskWithDetails(
         x_value=x_value,
         call_model_function=call_model_function,
         base_attribution=gig_saliency,
