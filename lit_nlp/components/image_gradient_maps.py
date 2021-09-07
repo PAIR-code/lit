@@ -29,7 +29,7 @@ from lit_nlp.api import types
 from lit_nlp.lib import image_utils
 from lit_nlp.lib import utils as lit_utils
 import numpy as np
-import saliency.saliency.core as saliency
+import saliency.core as saliency
 
 
 JsonDict = types.JsonDict

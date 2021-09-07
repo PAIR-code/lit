@@ -63,7 +63,7 @@ export function getModuleConstructor(moduleType: LitComponentSpecifier):
       throw (new Error(
           `Malformed layout; unable to find element '${moduleType}'`));
     }
-    return moduleClass;
+    return moduleClass as unknown as LitModuleClass;
   }
   return moduleType;
 }
