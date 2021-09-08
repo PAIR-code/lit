@@ -204,7 +204,7 @@ export class ApiService extends LitService {
 
     const paramsArray =
         Object.keys(params).map((key: string) => `${key}=${params[key]}`);
-    const url = encodeURI(`${endpoint}?${paramsArray.join('&')}`);
+    const url = encodeURI(`.${endpoint}?${paramsArray.join('&')}`);
     const body = JSON.stringify({inputs: processedInputs, config});
     try {
       const res = await fetch(url, {method: 'POST', body});

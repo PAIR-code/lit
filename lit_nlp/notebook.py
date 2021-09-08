@@ -116,6 +116,8 @@ def _display_jupyter(port, height, proxy_url):
     port: The port the LIT server is running on.
     height: The height of the LIT UI in pixels.
     proxy_url: Optional proxy URL, if using in a notebook with a server proxy.
+        If not provided, LIT also checks to see if the environment variable
+        LIT_PROXY_URL is set, and if so, it uses that value as the proxy URL.
   """
 
   # Add height to jupyter output_scroll div to fully contain LIT UI.
@@ -138,6 +140,10 @@ def _display_jupyter(port, height, proxy_url):
       })();
     </script>
   """
+
+  if proxy_url is None:
+    proxy_url = os.environ.get('LIT_PROXY_URL')
+
   if proxy_url is not None:
     # Allow %PORT% in proxy_url.
     proxy_url = proxy_url.replace('%PORT%', '%d' % port)
