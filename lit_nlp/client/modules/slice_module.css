@@ -2,26 +2,32 @@
   --slice-selector-right-col-width: 140px;
 }
 
-.container {
+.module-container {
+  padding: 6px;
+}
+
+.row-container {
   display: flex;
   flex-wrap: wrap;
   flex-direction: row;
-  padding-left: 4pt;
   align-items: center;
+
+  margin-bottom: 10px;
+}
+
+#select-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: 100%;
 }
 
 #slice-selector {
-  width: 95%;
-  height: 250px;
   border: 1px solid rgb(218, 220, 224);
+  flex: 1;
+  min-height: 250px;
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-#selector-container {
-  padding-right: 4pt;
-  align-items: center;
 }
 
 .selector-item {
@@ -58,25 +64,7 @@
 }
 
 #input-box {
-  width: 52%;
-}
-
-#create-container {
-  margin-top: 8px;
-}
-
-#create {
-  width: 100px;
-}
-
-#select-container {
-  margin-top: 10px;
-  width: 100%;
-}
-
-#delete {
-  margin-top: 8px;
-  margin-left: 0px;
+  flex: 1;
 }
 
 .checkbox-holder {

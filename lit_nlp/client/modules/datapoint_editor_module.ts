@@ -189,11 +189,10 @@ export class DatapointEditorModule extends LitModule {
     // details.
     return html`
       <div class='module-container'>
-        <div id="container"
-             class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
+        <div class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
           ${this.renderEditText()}
         </div>
-        <div id="buttons">
+        <div class="module-footer">
           ${this.renderButtons()}
         </div>
       </div>
@@ -419,14 +418,16 @@ export class DatapointEditorModule extends LitModule {
     const renderSpanLabelsNonEditable = () => {
       const renderLabel = (d: SpanLabel) =>
           html`<div class="span-label">${formatSpanLabel(d)}</div>`;
-      return html`${value ? (value as SpanLabel[]).map(renderLabel) : null}`;
+      return html`<div>${
+          value ? (value as SpanLabel[]).map(renderLabel) : null}</div>`;
     };
     // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
         return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
       };
-      return html`${value ? (value as EdgeLabel[]).map(renderLabel) : null}`;
+      return html`<div>${
+          value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
     };
 
     // For boolean values, render a checkbox.

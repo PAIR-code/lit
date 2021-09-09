@@ -72,6 +72,15 @@ button:disabled {
   font-family: 'Share Tech Mono', monospace;
 }
 
+/* Field name headings, for use in module content. */
+.field-title {
+  color: #5f6368; /* Grey/700 */
+  font-family: 'Google Sans';
+  font-size: 14px;
+  letter-spacing: 0.25px;
+  line-height: 20px;
+}
+
 mwc-textfield {
   --mdc-theme-primary: #2f8c9b;
 }
@@ -229,11 +238,12 @@ mwc-textfield {
 
 /* Toolbar container for module controls. */
 .module-toolbar {
-  min-height: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
   align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  margin-bottom: 4px;
+  margin-top: 4px;
+  min-height: 24px;
 }
 
 .module-toolbar > * {
@@ -252,14 +262,15 @@ mwc-textfield {
 }
 
 .module-footer {
-  min-height: 32px;
   align-items: center;
+  border-top: 1px solid #dadce0;
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
   flex-grow: 0;
   flex-shrink: 0;
   justify-content: space-between;
+  min-height: 32px;
 }
 
 /** Status text in a module footer. **/
@@ -277,8 +288,8 @@ mwc-textfield {
  * have a subtitle for the model name.
  */
 .offset-for-module-header {
-  margin-top: 17pt;
   height: 0;
+  margin-top: 25px;
 }
 
 

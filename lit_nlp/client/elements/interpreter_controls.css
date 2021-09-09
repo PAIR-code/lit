@@ -1,3 +1,6 @@
+.bordered {
+  border: 1px solid #e8eaed;
+}
 
 .description {
   font-size: 8pt;
@@ -20,12 +23,6 @@
   box-sizing: border-box;
 }
 
-.bordered-header {
-  border-top: 1px solid #e8eaed;
-  border-left: 1px solid #e8eaed;
-  border-right: 1px solid #e8eaed;
-}
-
 .content {
   padding: 0 8px;
   overflow: hidden;
@@ -34,9 +31,6 @@
   box-sizing: border-box;
 }
 
-.bordered-content {
-  border: 1px solid #e8eaed;
-}
 .content.minimized {
   max-height: 0;
   border-bottom: none;

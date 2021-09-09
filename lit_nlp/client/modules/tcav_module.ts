@@ -290,56 +290,58 @@ export class TCAVModule extends LitModule {
     // clang-format off
     // TODO(lit-dev): Switch the current barchart viz to a table-based viz.
     return html`
-      <div class="outer-container">
-        <div class="left-container">
-          <div class="controls-holder">
-            ${this.renderCollapseBar('Select Slices',
-                                     toggleSliceCollapse,
-                                     this.isSliceHidden,
-                                     this.TCAVSliceNames,
-                                     'Positive slice',
-                                     this.selectedSlices,
-                                     'Negative slice', this.negativeSlices)}
-            ${this.renderCollapseBar('Explainable Classes',
-                                     toggleClassCollapse,
-                                     this.isClassHidden,
-                                     this.predClasses,
-                                     'Class',
-                                     this.selectedClasses)}
-            ${this.renderCollapseBar('Embeddings',
-                                     toggleEmbeddingCollapse,
-                                     this.isEmbeddingHidden,
-                                     this.gradKeys,
-                                     'Embedding',
-                                     this.selectedLayers)}
-          </div>
-          <div class="controls-actions">
-            <div id='examples-selected-label'
-              class="label-2">${cavCount} CAV Results</div>
-            <div class="controls-buttons">
-              <button id='clear-button' class='text-button'
-                @click=${clearOptions}
-                ?disabled=${this.selectedClasses.size === 0 &&
-                  this.selectedLayers.size === 0 &&
-                  this.selectedSlices.size === 0 &&
-                  this.negativeSlices.size === 0}>Clear</button>
-              <button id='submit'
-                class='text-button' title=${shouldDisable() ? disabledText: ''}
-                @click=${() => this.runTCAV()} ?disabled=${
-                 shouldDisable()}>Run TCAV</button>
+      <div class="module-container">
+        <div class="module-content">
+          <div class="left-container">
+            <div class="controls-holder">
+              ${this.renderCollapseBar('Select Slices',
+                                       toggleSliceCollapse,
+                                       this.isSliceHidden,
+                                       this.TCAVSliceNames,
+                                       'Positive slice',
+                                       this.selectedSlices,
+                                       'Negative slice', this.negativeSlices)}
+              ${this.renderCollapseBar('Explainable Classes',
+                                       toggleClassCollapse,
+                                       this.isClassHidden,
+                                       this.predClasses,
+                                       'Class',
+                                       this.selectedClasses)}
+              ${this.renderCollapseBar('Embeddings',
+                                       toggleEmbeddingCollapse,
+                                       this.isEmbeddingHidden,
+                                       this.gradKeys,
+                                       'Embedding',
+                                       this.selectedLayers)}
+            </div>
+            <div class="controls-actions">
+              <div id='examples-selected-label'
+                class="label-2">${cavCount} CAV Results</div>
+              <div class="controls-buttons">
+                <button id='clear-button' class="hairline-button"
+                  @click=${clearOptions}
+                  ?disabled=${this.selectedClasses.size === 0 &&
+                    this.selectedLayers.size === 0 &&
+                    this.selectedSlices.size === 0 &&
+                    this.negativeSlices.size === 0}>Clear</button>
+                <button id='submit'
+                  class="hairline-button" title=${shouldDisable() ? disabledText: ''}
+                  @click=${() => this.runTCAV()} ?disabled=${
+                   shouldDisable()}>Run TCAV</button>
+              </div>
             </div>
           </div>
-        </div>
-        <div id='vis-container' class=${classMap({'loading': this.isLoading})}>
-          ${this.isLoading ? this.renderSpinner(): ''}
-          <div class="output-controls">
-            <button class='clear-table-button text-button' @click=${clearTable}
-               ?disabled=${this.resultsTableData.length === 0}>Clear</button>
+          <div id='vis-container' class=${classMap({'loading': this.isLoading})}>
+            ${this.isLoading ? this.renderSpinner(): ''}
+            <lit-data-table
+                .columnNames=${COLUMN_NAMES}
+                .data=${[...this.resultsTableData]}
+            ></lit-data-table>
           </div>
-          <lit-data-table
-              .columnNames=${COLUMN_NAMES}
-              .data=${[...this.resultsTableData]}
-          ></lit-data-table>
+        </div>
+        <div class="module-footer">
+          <button class="hairline-button" @click=${clearTable}
+             ?disabled=${this.resultsTableData.length === 0}>Clear</button>
         </div>
       </div>
     `;

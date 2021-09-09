@@ -5,6 +5,7 @@
 .matrices-holder {
   display: flex;
   flex-flow: wrap;
+  padding: 4px;
 }
 
 .matrix {

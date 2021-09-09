@@ -132,11 +132,12 @@ export class SliceModule extends LitModule {
     };
     // clang-format off
     return html`
-      <div class="container" id="create-container">
+      <div class="row-container">
         <input type="text" id="input-box" .value=${this.sliceName}
           placeholder="Enter name" @input=${onInputChange}
           @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}/>
-        <button ?disabled="${!this.createButtonEnabled}" id="create"
+        <button class='hairline-button'
+          ?disabled="${!this.createButtonEnabled}"
           @click=${onClickCreate}>${this.sliceByFeatures.length > 0 ?
           'Create slices': 'Create slice'}
         </button>
@@ -272,17 +273,19 @@ export class SliceModule extends LitModule {
   }
 
   override render() {
+    // clang-format off
     return html`
-      ${this.renderCreate()}
-      <div class="container" >
-        <label>Slice by feature</label>
-        ${this.renderFilters()}
-        ${this.renderNumSlices()}
-      </div>
-      <div class="container" id="selector-container">
+      <div class='module-container'>
+        ${this.renderCreate()}
+        <div class="row-container" >
+          <label>Slice by feature</label>
+          ${this.renderFilters()}
+          ${this.renderNumSlices()}
+        </div>
         ${this.renderSliceSelector()}
       </div>
     `;
+    // clang-format on
   }
 
   static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {

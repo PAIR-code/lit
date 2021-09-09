@@ -17,7 +17,6 @@
   box-sizing: border-box;
 }
 
-
 .container {
   position: relative;
   display: flex;
@@ -27,7 +26,6 @@
 
 .content {
   overflow-y: auto;
-  padding: 4px;
   width: 100%;
 }
 

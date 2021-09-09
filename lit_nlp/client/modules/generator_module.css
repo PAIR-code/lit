@@ -1,16 +1,7 @@
-.generator-module-container {
-  border: 1px solid #dadce0;
-}
-
 .generator-module-content {
   display: flex;
   flex-direction: row;
   overflow: hidden;
-}
-
-.generator-module-footer {
-  border-top: 1px solid #dadce0;
-  min-height: 32px;
 }
 
 .generators-panel {

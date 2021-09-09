@@ -65,6 +65,10 @@ export class AttentionModule extends LitModule {
         .head-selector-chip:hover {
           background: #f3e8fd;
         }
+
+        .padded-container {
+          padding: 4px;
+        }
     `;
     return [sharedStyles, styles];
   }
@@ -118,7 +122,7 @@ export class AttentionModule extends LitModule {
           ${this.renderLayerSelector()}
           ${this.renderHeadSelector()}
         </div>
-        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
+        <div class='module-results-area padded-container ${SCROLL_SYNC_CSS_CLASS}'>
           ${this.renderAttnHead()}
         </div>
       </div>

@@ -177,7 +177,7 @@ export class ClassificationModule extends LitModule {
 
     return html`
         <div class='classification-row-holder'>
-          <div class='classification-row-title'>${fieldName}</div>
+          <div class='field-title'>${fieldName}</div>
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}

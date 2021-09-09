@@ -28,8 +28,9 @@
   opacity: .25;
 }
 
-#container{
-  margin: 5px 0;
+.plot-holder {
+  border-top: 1px solid rgb(232, 234, 237);
+  border-bottom: 1px solid rgb(232, 234, 237);
 }
 
 .collapse-bar {
@@ -38,7 +39,6 @@
   cursor: pointer;
   padding: 3px 5px;
   width: 100%;
-  border: 1px solid rgb(232, 234, 237);
   outline: none;
   font-size: 13.33333px;
   display: flex;
@@ -48,7 +48,6 @@
 
 .scatterplot-background {
   background: rgb(248, 249, 250);
-  border: 1px solid rgb(232, 234, 237);
   padding-bottom: 15px;
   padding-top: 5px;
 }

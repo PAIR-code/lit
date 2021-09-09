@@ -54,8 +54,11 @@ const moduleStyles = css`
   }
 
   .token-group {
-    padding-left: 5px;
     padding-top: 30pt;
+  }
+
+  .field-title {
+    padding: 4px;
   }
 
   #pred-group {
@@ -144,15 +147,19 @@ function renderTokenGroups(
           showLayerLabel}></span-graph-vis>`;
     }
   };
+  // clang-format off
   return html`${Object.keys(tokenToTags).map(tokenKey => {
     const labelHere = data[tokenKey]?.layers?.length === 1;
     return html`
       <div id=${tokenKey} class="token-group">
-        ${labelHere ? html`<div>${data[tokenKey].layers[0].name}</div>` : null}
+        ${labelHere ?
+          html`<div class='field-title'>${data[tokenKey].layers[0].name}</div>`
+          : null}
         ${visElement(data[tokenKey], !labelHere)}
       </div>
     `;
   })}`;
+  // clang-format on
 }
 
 /** Gold predictions module class. */

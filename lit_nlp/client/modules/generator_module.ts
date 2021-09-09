@@ -244,12 +244,12 @@ export class GeneratorModule extends LitModule {
 
   override render() {
     return html`
-      <div class="module-container generator-module-container">
+      <div class="module-container">
         <div class="module-content generator-module-content">
           ${this.renderGeneratorButtons()}
           ${this.renderGenerated()}
         </div>
-        <div class="module-footer generator-module-footer">
+        <div class="module-footer">
           <p class="module-status">${this.getStatus()}</p>
           <p class="module-status">${this.getSliceStatus()}</p>
           ${this.renderOverallControls()}

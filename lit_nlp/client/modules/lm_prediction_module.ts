@@ -246,7 +246,7 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format off
     return html`
       <div class='input-group'>
-        <div class='group-title'>
+        <div class='field-title input-group-title'>
           ${this.tokens.length > 0 ? this.outputTokensKey : null}
         </div>
         <div class="input-words">${this.tokens.map(renderToken)}</div>

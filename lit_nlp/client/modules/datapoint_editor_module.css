@@ -2,18 +2,11 @@
   margin-bottom: 10px;
 }
 
-#container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.module-footer {
+  justify-content: flex-end;
 }
 
-#buttons {
-  border-top: 1px solid rgb(218, 220, 224);
-  display: flex;
-}
-
-#buttons button {
+.module-footer button {
   margin: 4px;
 }
 
@@ -61,13 +54,24 @@
   width: -webkit-fill-available;
 }
 
+select.dropdown {
+  margin-right: 4px;
+  min-width: 50px;
+}
+
 .entry {
   align-items: center;
   box-sizing: border-box;
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
-  margin: 10px 5px;
+  margin: 8px;
+}
+
+/* right-align content, particularly dropdowns */
+.entry-content {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .entry-content-long {
