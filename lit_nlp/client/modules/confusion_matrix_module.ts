@@ -74,6 +74,10 @@ export class ConfusionMatrixModule extends LitModule {
   private lastSelectedRow = -1;
   private lastSelectedCol = -1;
 
+  // Maximum allowed entries in a row or column feature that can be selected.
+  // TODO(lit-dev): Fix b/199503959 to remove this limitation.
+  private readonly MAX_ENTRIES = 50;
+
   // Map of matrices for rendering. Computed asynchronously.
   @observable matrices: {[id: string]: MatrixCell[][]} = {};
 
@@ -159,6 +163,9 @@ export class ConfusionMatrixModule extends LitModule {
     const categoricalFeatures = this.groupService.categoricalFeatures;
     for (const labelKey of Object.keys(categoricalFeatures)) {
       const labelList = categoricalFeatures[labelKey];
+      if (labelList.length > this.MAX_ENTRIES) {
+        continue;
+      }
       const getLabelsFn = (d: IndexedInput, i: number) =>
           this.groupService.getFeatureValForInput(d, i, labelKey);
       const labelsRunner = async (dataset: IndexedInput[]) =>
@@ -174,6 +181,9 @@ export class ConfusionMatrixModule extends LitModule {
         const labelKey = outputSpec[predKey].parent;
         // Note: vocab should always be present for MulticlassPreds.
         const labelList = outputSpec[predKey].vocab!;
+        if (labelList.length > this.MAX_ENTRIES) {
+          continue;
+        }
         // Preds for this key.
         const predsRunner = async (dataset: IndexedInput[]) => {
           const preds = await this.classificationService.getClassificationPreds(
@@ -248,7 +258,6 @@ export class ConfusionMatrixModule extends LitModule {
     const getFeatFunc: GetFeatureFunc = (d, i, key) => resultsDict[key][i];
     const bins = this.groupService.groupExamplesByFeatures(
         data, [rowName, colName], getFeatFunc);
-
 
     const id = this.getMatrixId(row, col);
     const matrixCells = rowLabels.map(rowLabel => {

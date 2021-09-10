@@ -19,7 +19,6 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {customElement, html, svg} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
@@ -867,8 +866,6 @@ export class ScalarModule extends LitModule {
     // collapseByDefault setting if isPlotHidden hasn't been set yet.
     const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
         collapseByDefault: this.isPlotHidden.get(axisTitle);
-    const scatterplotStyle = styleMap(
-        {'display': `${isHidden ? 'none': 'block'}`});
     return html`
         <div class='plot-holder'>
           <div class='collapse-bar' @click=${toggleCollapse}>
@@ -880,11 +877,12 @@ export class ScalarModule extends LitModule {
               ${isHidden ? 'expand_more': 'expand_less'}
             </mwc-icon>
           </div>
-          <div class='scatterplot-background' style=${scatterplotStyle}>
-            ${svg`<svg class='scatterplot' data-key='${key}'
-                data-label='${label}'>
-            </svg>`}
-          </div>
+          ${isHidden ? null : html`
+            <div class='scatterplot-background'>
+              ${svg`<svg class='scatterplot' data-key='${key}'
+                  data-label='${label}'>
+                </svg>`}
+            </div>`}
         </div>
       `;
     // clang-format on
