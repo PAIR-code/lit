@@ -30,7 +30,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
 
@@ -40,7 +40,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 /**
  * Results for calls to fetch salience.
  */
-interface SalienceResult {
+interface TokenSalienceResult {
   [key: string]: {tokens: string[], salience: number[]};
 }
 
@@ -48,11 +48,19 @@ interface ImageSalienceResult {
   [key: string]: string;
 }
 
+interface FeatureSalienceMap {
+  [feature: string]: number;
+}
+
+interface FeatureSalienceResult {
+  [key: string]: {salience: FeatureSalienceMap};
+}
+
 /**
  * UI status for each interpreter.
  */
 interface InterpreterState {
-  salience: SalienceResult|ImageSalienceResult;
+  salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult;
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
@@ -132,6 +140,10 @@ export class SalienceMapModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
 
+  // Types that contain salience information to display.
+  private readonly salienceTypes: LitName[] =
+      ['TokenSalience', 'ImageSalience', 'FeatureSalience'];
+
   static override get styles() {
     return [sharedStyles, styles];
   }
@@ -157,7 +169,7 @@ export class SalienceMapModule extends LitModule {
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
       const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, ['SalienceMap', 'ImageSalience']);
+          interpreters[key].metaSpec, this.salienceTypes);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -303,7 +315,8 @@ export class SalienceMapModule extends LitModule {
   }
 
   // TODO(lit-dev): consider moving this to a standalone viz class.
-  renderTokens(salience: SalienceResult, gradKey: string, cmap: SalienceCmap) {
+  renderTokens(salience: TokenSalienceResult, gradKey: string,
+               cmap: SalienceCmap) {
     const tokens = salience[gradKey].tokens;
     const saliences = salience[gradKey].salience;
     const tokensDOM = tokens.map(
@@ -326,15 +339,47 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
+  renderFeatureSalience(salience: FeatureSalienceResult, gradKey: string,
+                        cmap: SalienceCmap) {
+    const saliences = salience[gradKey].salience;
+    const features = Object.keys(saliences).sort(
+        (a, b) => saliences[b] - saliences[a]);
+    const tokensDOM = features.map(
+        (feat: string) => {
+          const val =
+              this.selectionService.primarySelectedInputData!.data[feat];
+          const str = `${feat}: ${val}`;
+          return this.renderToken(str, saliences[feat], cmap, gradKey);
+    });
+
+    // clang-format off
+    return html`
+      <div class="tokens-group">
+        <div class="tokens-group-title">
+          ${gradKey}
+        </div>
+        <div class="tokens-holder">
+          ${tokensDOM}
+        </div>
+        <div class="salience-tooltip">
+        </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
   renderGroup(
-      salience: SalienceResult|ImageSalienceResult, gradKey: string,
-      cmap: SalienceCmap) {
+      salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult,
+      gradKey: string, cmap: SalienceCmap) {
     const spec = this.appState.getModelSpec(this.model);
     if (isLitSubtype(spec.output[gradKey], 'ImageGradients')) {
       salience = salience as ImageSalienceResult;
       return this.renderImage(salience, gradKey);
+    } else if (isLitSubtype(spec.output[gradKey], 'FeatureSalience')) {
+      salience = salience as FeatureSalienceResult;
+      return this.renderFeatureSalience(salience, gradKey, cmap);
     } else {
-      salience = salience as SalienceResult;
+      salience = salience as TokenSalienceResult;
       return this.renderTokens(salience, gradKey, cmap);
     }
   }

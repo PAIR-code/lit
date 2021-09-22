@@ -150,7 +150,7 @@ class LIME(lit_components.Interpreter):
         scores = explanation.feature_importance
         # TODO(lit-dev): Move score normalization to the UI.
         scores = citrus_util.normalize_scores(scores)
-        result[text_key] = dtypes.SalienceMap(input_string.split(), scores)
+        result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
 
       all_results.append(result)
 
@@ -174,4 +174,4 @@ class LIME(lit_components.Interpreter):
     return len(text_keys) and len(pred_keys)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=False, signed=True)}

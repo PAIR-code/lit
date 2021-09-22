@@ -35,6 +35,7 @@ from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
 from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
+from lit_nlp.components import model_salience
 from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import pdp
@@ -395,6 +396,7 @@ class LitApp(object):
           'Grad ⋅ Input': gradient_maps.GradientDotInput(),
           'Integrated Gradients': gradient_maps.IntegratedGradients(),
           'LIME': lime_explainer.LIME(),
+          'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
           'thresholder': thresholder.Thresholder(),

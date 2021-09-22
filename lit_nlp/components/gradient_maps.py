@@ -85,7 +85,7 @@ class GradientNorm(lit_components.Interpreter):
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
         scores = self._interpret(o[grad_field], tokens)
-        result[grad_field] = dtypes.SalienceMap(tokens, scores)
+        result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
 
     return all_results
@@ -95,7 +95,7 @@ class GradientNorm(lit_components.Interpreter):
     return len(compatible_fields)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=True, signed=False)}
+    return {'saliency': types.TokenSalience(autorun=True, signed=False)}
 
 
 class GradientDotInput(lit_components.Interpreter):
@@ -164,7 +164,7 @@ class GradientDotInput(lit_components.Interpreter):
 
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
-        result[grad_field] = dtypes.SalienceMap(tokens, scores)
+        result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
 
     return all_results
@@ -175,7 +175,7 @@ class GradientDotInput(lit_components.Interpreter):
     return len(compatible_fields)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=True, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=True, signed=True)}
 
 
 class IntegratedGradients(lit_components.Interpreter):
@@ -371,7 +371,7 @@ class IntegratedGradients(lit_components.Interpreter):
       scores = scores[len(tokens):]  # <float32>[num_remaining_tokens]
 
       assert len(tokens) == len(sliced_scores)
-      result[grad_field] = dtypes.SalienceMap(tokens, sliced_scores)
+      result[grad_field] = dtypes.TokenSalience(tokens, sliced_scores)
     return result
 
   def run(self,
@@ -424,4 +424,4 @@ class IntegratedGradients(lit_components.Interpreter):
     }
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=False, signed=True)}

@@ -398,9 +398,16 @@ class MultiFieldMatcher(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SalienceMap(LitType):
-  """Metadata about a returned salience map, returned as dtypes.SalienceMap."""
+class TokenSalience(LitType):
+  """Metadata about a returned token salience map, returned as dtypes.TokenSalience."""
   autorun: bool = False  # If the saliency technique is automatically run.
+  signed: bool  # If the returned values are signed.
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class FeatureSalience(LitType):
+  """Metadata about a returned feature salience map, returned as dtypes.FeatureSalience."""
+  autorun: bool = True  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 
 
@@ -416,7 +423,7 @@ class ImageSalience(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SequenceSalience(LitType):
-  """Metadata about a returned sequence salience map, returned as dtypes.SalienceMap."""
+  """Metadata about a returned sequence salience map, returned as dtypes.SequenceSalienceMap."""
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 

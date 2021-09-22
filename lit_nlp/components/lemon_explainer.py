@@ -122,6 +122,6 @@ class LEMON(lit_components.Interpreter):
       # Normalize feature values.
       scores = citrus_utils.normalize_scores(scores)
 
-      result[text_key] = dtypes.SalienceMap(input_string.split(), scores)
+      result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
 
     return [result]

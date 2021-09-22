@@ -95,10 +95,16 @@ class AnnotationCluster(DataTuple):
 
 # TODO(b/196886684): document API for salience interpreters.
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class SalienceMap(DataTuple):
+class TokenSalience(DataTuple):
   """Dataclass for a salience map over tokens."""
   tokens: List[str]
   salience: List[float]  # parallel to tokens
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class FeatureSalience(DataTuple):
+  """Dataclass for a salience map over categorical and/or scalar features."""
+  salience: Dict[str, float]
 
 
 # TODO(b/196886684): document API for salience interpreters.

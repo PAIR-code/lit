@@ -317,7 +317,7 @@ we might have:
 
     # do rest of the work to create the salience maps for each available field
 
-    # return a dtypes.SalienceMap for each input, which has a list of
+    # return a dtypes.TokenSalience for each input, which has a list of
     # tokens (from the model) and their associated scores.
 ```
 
