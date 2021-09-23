@@ -19,7 +19,9 @@
 import '@material/mwc-switch';
 import '../elements/checkbox';
 
-import {customElement, html, query} from 'lit-element';
+import {query} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

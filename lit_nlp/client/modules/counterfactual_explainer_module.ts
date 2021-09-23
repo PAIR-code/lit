@@ -23,9 +23,11 @@ import '../elements/checkbox';
 import '../elements/spinner';
 
 // tslint:disable:no-new-decorators
-import {css, customElement, html, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';

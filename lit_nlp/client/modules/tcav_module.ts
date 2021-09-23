@@ -20,10 +20,11 @@ import '../elements/spinner';
 import '../elements/tcav_score_bar';
 import '@material/mwc-switch';
 
-import {customElement, html} from 'lit-element';
-import {TemplateResult} from 'lit-html';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

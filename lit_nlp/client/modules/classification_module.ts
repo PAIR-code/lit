@@ -16,8 +16,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, TemplateResult} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html, TemplateResult} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';

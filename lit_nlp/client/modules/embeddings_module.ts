@@ -19,8 +19,9 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
-import {customElement, html} from 'lit-element';
-import {TemplateResult} from 'lit-html';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

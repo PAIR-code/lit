@@ -17,8 +17,9 @@
 
 import '../elements/threshold_slider';
 // tslint:disable:no-new-decorators
-import {css, customElement, html} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';

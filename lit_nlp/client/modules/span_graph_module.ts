@@ -24,8 +24,9 @@
 import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
-import {css, customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
