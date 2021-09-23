@@ -29,8 +29,10 @@ import '@material/mwc-textfield';
 import '../elements/checkbox';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html, property, TemplateResult} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';

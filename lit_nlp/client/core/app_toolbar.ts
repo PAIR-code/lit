@@ -25,8 +25,10 @@ import './global_settings';
 import './main_toolbar';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html, query} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {query} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';

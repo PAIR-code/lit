@@ -21,7 +21,7 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
-import {html, TemplateResult} from 'lit-element';
+import {html, TemplateResult} from 'lit';
 import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /**

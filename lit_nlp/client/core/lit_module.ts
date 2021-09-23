@@ -16,7 +16,8 @@
  */
 
 // tslint:disable:no-new-decorators
-import {property} from 'lit-element';
+import {property} from 'lit/decorators';
+
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

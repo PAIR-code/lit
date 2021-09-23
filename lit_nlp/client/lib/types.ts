@@ -18,7 +18,7 @@
 // tslint:disable:enforce-comments-on-exported-symbols enforce-name-casing
 import * as d3 from 'd3';
 
-import {TemplateResult} from 'lit-html';
+import {TemplateResult} from 'lit';
 import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any

@@ -25,8 +25,9 @@ import './global_settings';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';

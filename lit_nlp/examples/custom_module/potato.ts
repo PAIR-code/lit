@@ -7,8 +7,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
 import {LitModule} from '../../client/core/lit_module';
 import {ModelInfoMap, Spec} from '../../client/lib/types';
