@@ -16,8 +16,10 @@
  */
 
 import {Checkbox} from '@material/mwc-checkbox';
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 
 /**
  * A custom wrapper around the mwc-checkbox which is a) smaller and b) has a

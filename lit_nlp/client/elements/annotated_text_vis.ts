@@ -3,10 +3,12 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, LitElement, property} from 'lit-element';
-import {TemplateResult} from 'lit-html';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, LitElement} from 'lit';
+import {TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {VizColor} from '../lib/colors';

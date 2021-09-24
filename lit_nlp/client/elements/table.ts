@@ -25,10 +25,12 @@
 import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
-import {customElement, html, property, TemplateResult} from 'lit-element';
-import {isTemplateResult} from 'lit-html/directive-helpers';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, TemplateResult} from 'lit';
+import {isTemplateResult} from 'lit/directive-helpers';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

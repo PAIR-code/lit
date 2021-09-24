@@ -10,7 +10,7 @@
   "author": "",
   "license": "Apache 2",
   "dependencies": {
-    "@adobe/lit-mobx": "0.0.4",
+    "@adobe/lit-mobx": "^2.0.0-rc.4",
     "@material/mwc-checkbox": "^0.15.0",
     "@material/mwc-formfield": "^0.15.0",
     "@material/mwc-icon-button-toggle": "^0.15.0",
@@ -21,6 +21,7 @@
     "@material/mwc-textfield": "^0.15.0",
     "d3": "^5.16.0",
     "difflib": "^0.2.4",
+    "lit": "^2.0.0",
     "lit-element": "^2.5.1",
     "lit-html": "^1.4.1",
     "mobx": "^5.15.4",

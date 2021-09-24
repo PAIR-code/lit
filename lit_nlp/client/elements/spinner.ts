@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
 const TRANSPARENT_COLOR = 'rgba(0,0,0,0)';
 const DEFAULT_COLOR = 'var(--app-primary-color)';

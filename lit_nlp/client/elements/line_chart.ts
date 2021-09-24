@@ -20,7 +20,9 @@ import '@material/mwc-icon';
 import '../elements/spinner';
 
 import * as d3 from 'd3';
-import {customElement, html, property} from 'lit-element';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 

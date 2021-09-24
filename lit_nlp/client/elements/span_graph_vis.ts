@@ -20,9 +20,10 @@
  */
 
 import * as d3 from 'd3';
-import {css, customElement, html, LitElement, property, svg} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {html, LitElement, svg} from 'lit';
+import {customElement, property} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 
 import {VizColor} from '../lib/colors';
 import {EdgeLabel} from '../lib/types';

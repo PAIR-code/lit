@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';

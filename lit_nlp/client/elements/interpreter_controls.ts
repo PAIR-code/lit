@@ -19,8 +19,10 @@
 import './checkbox';
 import '@material/mwc-icon';
 
-import {customElement, html, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

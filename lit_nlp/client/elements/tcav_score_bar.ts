@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
 /**
  * A custom wrapper around the mwc-checkbox which is a) smaller and b) has a
