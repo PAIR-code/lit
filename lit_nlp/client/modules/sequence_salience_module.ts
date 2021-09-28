@@ -33,9 +33,9 @@ interface TokenFocusState {
 @customElement('sequence-salience-module')
 export class SequenceSalienceModule extends LitModule {
   static title = 'Sequence Salience';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = true;
-  static numCols = 4;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = true;
+  static override numCols = 4;
   static template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <sequence-salience-module model=${model}
@@ -43,7 +43,7 @@ export class SequenceSalienceModule extends LitModule {
       </sequence-salience-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
