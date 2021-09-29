@@ -211,8 +211,8 @@ export class GeneratedTextModule extends LitModule {
       }
     }
 
-    const referenceModelScores = referenceFieldName != null ?
-        this.referenceScores[referenceFieldName] :
+    const referenceModelScores = g.referenceModelScores != null ?
+        this.referenceScores[g.referenceModelScores] :
         [];
 
     // clang-format off
