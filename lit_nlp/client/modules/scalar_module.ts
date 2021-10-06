@@ -54,9 +54,9 @@ interface BrushObject {
  */
 @customElement('scalar-module')
 export class ScalarModule extends LitModule {
-  static title = 'Scalars';
+  static override title = 'Scalars';
   static override numCols = 4;
-  static template = (model = '') => {
+  static override template = (model = '') => {
     return html`
       <scalar-module model=${model}>
       </scalar-module>`;
@@ -902,7 +902,7 @@ export class ScalarModule extends LitModule {
                 </threshold-slider>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
   }
 }

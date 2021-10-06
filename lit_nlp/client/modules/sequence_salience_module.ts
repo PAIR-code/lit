@@ -32,11 +32,11 @@ interface TokenFocusState {
 /** LIT module for model output. */
 @customElement('sequence-salience-module')
 export class SequenceSalienceModule extends LitModule {
-  static title = 'Sequence Salience';
+  static override title = 'Sequence Salience';
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <sequence-salience-module model=${model}
        selectionServiceIndex=${selectionServiceIndex}>
@@ -268,7 +268,7 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // TODO(b/177963928): determine visibility based on component list
     // and model compatibility?
     return true;

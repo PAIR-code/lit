@@ -30,10 +30,10 @@ import {doesOutputSpecContain} from '../lib/utils';
  */
 @customElement('generated-image-module')
 export class GeneratedImageModule extends LitModule {
-  static title = 'Generated Images';
+  static override title = 'Generated Images';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-image-module model=${model}
         selectionServiceIndex=${selectionServiceIndex}>
@@ -107,7 +107,7 @@ export class GeneratedImageModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(
         modelSpecs, GeneratedImageModule.supportedTypes);
   }

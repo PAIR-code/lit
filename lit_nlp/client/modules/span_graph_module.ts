@@ -166,12 +166,12 @@ function renderTokenGroups(
 /** Gold predictions module class. */
 @customElement('span-graph-gold-module')
 export class SpanGraphGoldModule extends LitModule {
-  static title = 'Structured Prediction (gold)';
+  static override title = 'Structured Prediction (gold)';
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module>`;
   };
@@ -210,7 +210,7 @@ export class SpanGraphGoldModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
@@ -221,11 +221,11 @@ export class SpanGraphGoldModule extends LitModule {
 /** Model output module class. */
 @customElement('span-graph-module')
 export class SpanGraphModule extends LitModule {
-  static title = 'Structured Prediction (model preds)';
+  static override title = 'Structured Prediction (model preds)';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module>`;
   };
@@ -278,7 +278,7 @@ export class SpanGraphModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;

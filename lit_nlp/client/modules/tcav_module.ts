@@ -73,11 +73,11 @@ export class TCAVModule extends LitModule {
   static override get styles() {
     return [sharedStyles, styles];
   }
-  static title = 'TCAV Explorer';
+  static override title = 'TCAV Explorer';
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
-  static template = (model = '') => {
+  static override template = (model = '') => {
     return html`
       <tcav-module model=${model}>
       </tcav-module>`;
@@ -451,7 +451,7 @@ export class TCAVModule extends LitModule {
     this.requestUpdate();
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');
     const supportsGrads = doesOutputSpecContain(modelSpecs, 'Gradients');
     const multiclassPreds =

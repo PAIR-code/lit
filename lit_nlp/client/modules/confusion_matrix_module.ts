@@ -49,8 +49,8 @@ interface CmatOption {
  */
 @customElement('confusion-matrix-module')
 export class ConfusionMatrixModule extends LitModule {
-  static title = 'Confusion Matrix';
-  static template = (model = '') => {
+  static override title = 'Confusion Matrix';
+  static override template = (model = '') => {
     return html`
       <confusion-matrix-module model=${model}>
       </confusion-matrix-module>`;
@@ -450,7 +450,7 @@ export class ConfusionMatrixModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

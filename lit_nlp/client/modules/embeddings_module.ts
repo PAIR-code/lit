@@ -58,8 +58,8 @@ const DEFAULT_NUM_NEAREST = 10;
  */
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
-  static title = 'Embeddings';
-  static template = () => {
+  static override title = 'Embeddings';
+  static override template = () => {
     return html`<embeddings-module></embeddings-module>`;
   };
 
@@ -485,7 +485,7 @@ export class EmbeddingsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'Embeddings');
   }
 }

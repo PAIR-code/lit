@@ -35,11 +35,11 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
  */
 @customElement('lm-prediction-module')
 export class LanguageModelPredictionModule extends LitModule {
-  static title = 'LM Predictions';
+  static override title = 'LM Predictions';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<lm-prediction-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></lm-prediction-module>`;
   };
@@ -301,7 +301,7 @@ export class LanguageModelPredictionModule extends LitModule {
     });
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const modelInfo of Object.values(modelSpecs)) {
       if (LanguageModelPredictionModule.findTargetFields(modelInfo.spec.output)
               .length > 0) {

@@ -47,10 +47,10 @@ type ChartInfo = Map<string|number, number>;
  */
 @customElement('pdp-module')
 export class PdpModule extends LitModule {
-  static title = 'Partial Dependence Plots';
+  static override title = 'Partial Dependence Plots';
   static override duplicateForExampleComparison = true;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<pdp-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></pdp-module>`;
   };
@@ -240,7 +240,7 @@ export class PdpModule extends LitModule {
         feat => this.renderPlotHolder(feat))}`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['RegressionScore', 'MulticlassPreds'])
         && doesInputSpecContain(modelSpecs, ['Scalar', 'CategoryLabel'], true);
   }

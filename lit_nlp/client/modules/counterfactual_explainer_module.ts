@@ -98,11 +98,11 @@ export class SignedSalienceCmap extends SalienceCmap {
  */
 @customElement('counterfactual-explainer-module')
 export class CounterfactualExplainerModule extends LitModule {
-  static title = 'Counterfactual Explanation';
+  static override title = 'Counterfactual Explanation';
   static override numCols = 10;
   static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<counterfactual-explainer-module model=${
         model} selectionServiceIndex=${
         selectionServiceIndex}></counterfactual-explainer-module>`;
@@ -379,7 +379,7 @@ export class CounterfactualExplainerModule extends LitModule {
   }
 
   // tslint:disable-next-line:no-any
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const model of Object.keys(modelSpecs)) {
       const inputSpec = modelSpecs[model].spec.input;
       const outputSpec = modelSpecs[model].spec.output;

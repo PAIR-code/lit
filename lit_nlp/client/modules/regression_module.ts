@@ -39,10 +39,10 @@ interface RegressionResult {
  */
 @customElement('regression-module')
 export class RegressionModule extends LitModule {
-  static title = 'Regression Results';
+  static override title = 'Regression Results';
   static override duplicateForExampleComparison = true;
   static override numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<regression-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></regression-module>`;
   };
@@ -146,7 +146,7 @@ export class RegressionModule extends LitModule {
       ></lit-data-table>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'RegressionScore');
   }
 }

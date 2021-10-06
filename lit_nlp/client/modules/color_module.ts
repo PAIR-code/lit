@@ -44,12 +44,12 @@ export class ColorModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static title = 'Color';
+  static override title = 'Color';
   static override numCols = 1;
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
 
-  static template = () => {
+  static override template = () => {
     return html`<color-module></color-module>`;
   };
 
@@ -151,7 +151,7 @@ export class ColorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

@@ -83,9 +83,9 @@ interface TableHeaderAndData {
  */
 @customElement('metrics-module')
 export class MetricsModule extends LitModule {
-  static title = 'Metrics';
+  static override title = 'Metrics';
   static override numCols = 6;
-  static template = () => {
+  static override template = () => {
     return html`<metrics-module></metrics-module>`;
   };
   static override duplicateForModelComparison = false;
@@ -405,7 +405,7 @@ export class MetricsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

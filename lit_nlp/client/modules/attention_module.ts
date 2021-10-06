@@ -42,10 +42,10 @@ type AttentionHeads = number[][][];
  */
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
-  static title = 'Attention';
+  static override title = 'Attention';
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<attention-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></attention-module>`;
   };
@@ -318,7 +318,7 @@ export class AttentionModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
   }
 }

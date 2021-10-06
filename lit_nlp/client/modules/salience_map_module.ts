@@ -131,10 +131,10 @@ export class SignedSalienceCmap extends SalienceCmap {
  */
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
-  static title = 'Salience Maps';
+  static override title = 'Salience Maps';
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<salience-map-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></salience-map-module>`;
   };
@@ -483,7 +483,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // TODO(b/177963928): determine visibility based on component list
     // and model compatibility?
     return true;

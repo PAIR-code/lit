@@ -44,9 +44,9 @@ type InputConverterFn = (s: string) => string|number|string[]|boolean;
  */
 @customElement('datapoint-editor-module')
 export class DatapointEditorModule extends LitModule {
-  static title = 'Datapoint Editor';
+  static override title = 'Datapoint Editor';
   static override numCols = 2;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></datapoint-editor-module>`;
   };
@@ -535,7 +535,7 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

@@ -28,11 +28,11 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 /** LIT module for model output. */
 @customElement('annotated-text-gold-module')
 export class AnnotatedTextGoldModule extends LitModule {
-  static title = 'Annotated Text (gold)';
+  static override title = 'Annotated Text (gold)';
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-gold-module
         selectionServiceIndex=${selectionServiceIndex}>
@@ -72,7 +72,7 @@ export class AnnotatedTextGoldModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return findSpecKeys(datasetSpec, 'MultiSegmentAnnotations').length > 0;
   }
 }
@@ -80,11 +80,11 @@ export class AnnotatedTextGoldModule extends LitModule {
 /** LIT module for model output. */
 @customElement('annotated-text-module')
 export class AnnotatedTextModule extends LitModule {
-  static title = 'Annotated Text (predicted)';
+  static override title = 'Annotated Text (predicted)';
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-module model=${model}
        selectionServiceIndex=${selectionServiceIndex}>
@@ -150,7 +150,7 @@ export class AnnotatedTextModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MultiSegmentAnnotations');
   }
 }

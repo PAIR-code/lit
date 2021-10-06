@@ -45,10 +45,10 @@ interface AllResultsInfo {
 /** Model output module class. */
 @customElement('multilabel-module')
 export class MultilabelModule extends LitModule {
-  static title = 'Multilabel Results';
+  static override title = 'Multilabel Results';
   static override duplicateForModelComparison = false;
   static override numCols = 3;
-  static template = () => {
+  static override template = () => {
     return html`<multilabel-module></multilabel-module>`;
   };
 
@@ -239,7 +239,7 @@ export class MultilabelModule extends LitModule {
         </div>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'SparseMultilabelPreds');
   }
 }

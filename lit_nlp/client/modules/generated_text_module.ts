@@ -52,10 +52,10 @@ interface OutputGroupKeys {
  */
 @customElement('generated-text-module')
 export class GeneratedTextModule extends LitModule {
-  static title = 'Generated Text';
+  static override title = 'Generated Text';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-text-module model=${model}
         selectionServiceIndex=${selectionServiceIndex}>
@@ -264,7 +264,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(
         modelSpecs, GeneratedTextModule.generationTypes);
   }

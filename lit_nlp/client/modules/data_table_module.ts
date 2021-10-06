@@ -42,8 +42,8 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
  */
 @customElement('data-table-module')
 export class DataTableModule extends LitModule {
-  static title = 'Data Table';
-  static template = () => {
+  static override title = 'Data Table';
+  static override template = () => {
     return html`<data-table-module></data-table-module>`;
   };
   static override numCols = 4;
@@ -534,7 +534,7 @@ export class DataTableModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

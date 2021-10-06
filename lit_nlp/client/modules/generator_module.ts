@@ -85,10 +85,10 @@ export class GeneratedRowControls extends MobxLitElement {
  */
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
-  static title = 'Datapoint Generator';
+  static override title = 'Datapoint Generator';
   static override numCols = 10;
 
-  static template = () => {
+  static override template = () => {
     return html`<generator-module></generator-module>`;
   };
 
@@ -543,7 +543,7 @@ export class GeneratorModule extends LitModule {
     return isCategorical ? renderCategoricalInput() : renderFreeformInput();
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

@@ -50,9 +50,9 @@ interface CalculatedMarginsPerField {
  */
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
-  static title = 'Binary Classifier Thresholds';
+  static override title = 'Binary Classifier Thresholds';
   static override numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<thresholder-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></thresholder-module>`;
   };
@@ -278,7 +278,7 @@ export class ThresholderModule extends LitModule {
         `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
                                  isBinaryClassification);
   }

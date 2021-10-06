@@ -43,10 +43,10 @@ interface DisplayInfo {
 /** Model output module class. */
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
-  static title = 'Classification Results';
+  static override title = 'Classification Results';
   static override duplicateForExampleComparison = true;
   static override numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<classification-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></classification-module>`;
   };
@@ -186,7 +186,7 @@ export class ClassificationModule extends LitModule {
         </div>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

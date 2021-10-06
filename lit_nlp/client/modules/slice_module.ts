@@ -42,12 +42,12 @@ export class SliceModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static title = 'Slice Editor';
+  static override title = 'Slice Editor';
   static override numCols = 2;
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
 
-  static template = () => {
+  static override template = () => {
     return html`<lit-slice-module></lit-slice-module>`;
   };
 
@@ -289,7 +289,7 @@ export class SliceModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }
