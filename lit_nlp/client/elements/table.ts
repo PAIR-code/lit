@@ -275,14 +275,32 @@ export class DataTable extends ReactiveElement {
                                      this.columnStrings.indexOf(this.sortName);
   }
 
+  private shouldRightAlignColumn(index: number) {
+    const values = this.pageData.map(row => row.rowData[index]);
+    const numericValues = values.filter(d => isNumber(d));
+    if (numericValues.length / values.length > 0.5) {
+      return true;
+    }
+    return false;
+  }
+
+  @computed
+  get columnHeaders(): ColumnHeader[] {
+    return this.columnNames.map((columnName, index) => {
+      const header: ColumnHeader = (typeof columnName === 'string') ?
+          {name: columnName} :
+          {...columnName};
+      header.html =
+          header.html ?? html`<div class="header-text">${header.name}</div>`;
+      header.rightAlign =
+          header.rightAlign ?? this.shouldRightAlignColumn(index);
+      return header;
+    });
+  }
+
   @computed
   get columnStrings(): string[] {
-    return this.columnNames.map(columnHeaderInfo => {
-      if (typeof columnHeaderInfo === 'string') {
-        return columnHeaderInfo;
-      }
-      return columnHeaderInfo.name;
-    });
+    return this.columnHeaders.map(header => header.name);
   }
 
   /**
@@ -548,7 +566,7 @@ export class DataTable extends ReactiveElement {
       <div class="holder">
         <table>
           <thead>
-            ${this.columnNames.map((c, i) => this.renderColumnHeader(c, i))}
+            ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
           </thead>
           <tbody>
             ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
@@ -612,20 +630,18 @@ export class DataTable extends ReactiveElement {
           </div>
         </td>
       </tr>`;
+    // clang-format on
   }
 
-  renderColumnHeader(header: string|ColumnHeader, index: number) {
-    const displayAsString = typeof header === 'string';
-    const title: string =
-        displayAsString ? (header as string) : (header as ColumnHeader).name;
-    const rightAlign =
-        displayAsString ? false : (header as ColumnHeader).rightAlign!;
-    let searchText = this.columnSearchQueries.get(title);
-    if (searchText === undefined) {
-      searchText = '';
-    }
+  renderColumnHeader(header: ColumnHeader) {
+    const title = header.name;
 
-    const handleClick = () => {
+    const handleBackgroundClick = (e: Event) => {
+      this.resetView();
+    };
+
+    const toggleSort = (e: Event) => {
+      e.stopPropagation();
       if (this.sortName === title) {
         this.sortAscending = !this.sortAscending;
       } else {
@@ -633,6 +649,8 @@ export class DataTable extends ReactiveElement {
         this.sortAscending = true;
       }
     };
+
+    const searchText = this.columnSearchQueries.get(title) ?? '';
 
     const isSearchActive = () => {
       const searchString = this.columnSearchQueries.get(title);
@@ -652,7 +670,8 @@ export class DataTable extends ReactiveElement {
     const menuButtonStyle =
         styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
 
-    const handleMenuButton = () => {
+    const handleMenuButton = (e: Event) => {
+      e.stopPropagation();
       if (this.columnMenuName === title) {
         this.showColumnMenu = !this.showColumnMenu;
       } else {
@@ -691,34 +710,31 @@ export class DataTable extends ReactiveElement {
       inactive: isDownInactive,
     });
     const headerClasses =
-        classMap({'column-header': true, 'right-align': rightAlign});
+        classMap({'column-header': true, 'right-align': header.rightAlign!});
 
     // clang-format off
     return html`
-        <th id=${title}>
+        <th id=${title} @click=${handleBackgroundClick}>
           <div class=${headerClasses} title=${title}>
             <div class="header-holder">
-              <div>
-                ${displayAsString ?
-                html`<div class="header-text">${title}</div>` :
-                html`${(header as ColumnHeader).html}`}
-              </div>
+              <div @click=${toggleSort}>${header.html!}</div>
               ${this.searchEnabled ? html`
-              <div class="menu-button-container">
-                <mwc-icon class="menu-button" style=${menuButtonStyle} @click=${handleMenuButton}>search</mwc-icon>
-              </div>` : null}
-              <div class="arrow-container" @click=${handleClick}>
+                <div class="menu-button-container">
+                  <mwc-icon class="menu-button" style=${menuButtonStyle}
+                   @click=${handleMenuButton}>search</mwc-icon>
+                </div>` : null}
+              <div class="arrow-container" @click=${toggleSort}>
                 <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
                 <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
               </div>
             </div>
           </div>
           ${this.searchEnabled ? html`
-          <div class='togglable-menu-holder' style=${searchMenuStyle}>
-              <input type="search" class='search-input'
-              .value=${searchText}
-              placeholder="Search" @input=${handleSearchChange}/>
-          </div>` : null}
+            <div class='togglable-menu-holder' style=${searchMenuStyle}>
+                <input type="search" class='search-input'
+                .value=${searchText}
+                placeholder="Search" @input=${handleSearchChange}/>
+            </div>` : null}
         </th>
       `;
     // clang-format on
@@ -749,26 +765,33 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, dataIndex);
     };
 
+    const formatCellContents = (d: TableEntry) => {
+      if (d == null) return null;
+
+      if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
+        return html`<img class='table-img' src=${d.toString()}>`;
+      }
+      if (isTemplateResult(d) || d.constructor === Object) {
+        const templateResult =
+            isTemplateResult(d) ? d : (d as SortableTemplateResult).template;
+        return html`${templateResult}`;
+      }
+
+      // Text formatting uses pre-wrap, so be sure that this template doesn't
+      // add any extra whitespace inside the div.
+      // clang-format off
+      return html`
+          <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
+      // clang-format on
+    };
+
+    const cellClasses = this.columnHeaders.map(
+        h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
     // clang-format off
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
-        ${data.rowData.map(d => {
-          if (d == null) {
-            return html`<td></td>`;
-          }
-          if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
-            return html`<td><img class='table-img' src=${d.toString()}></td>`;
-          }
-          if (isTemplateResult(d) || d.constructor === Object) {
-            const templateResult = isTemplateResult(d) ?
-              d : (d as SortableTemplateResult).template;
-            return html`<td>${templateResult}</td>`;
-          }
-          const entryClasses = {'text-cell': true, numeric: isNumber(d)};
-          return html`<td><div class="${classMap(entryClasses)}"
-            >${formatForDisplay(d, undefined, true)}</div></td>`;
-        })}
+        ${data.rowData.map((d, i) => html`<td><div class=${cellClasses[i]}>${formatCellContents(d)}</div></td>`)}
       </tr>
     `;
     // clang-format on
