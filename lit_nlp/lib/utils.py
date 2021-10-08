@@ -16,6 +16,7 @@
 """Miscellaneous helper functions."""
 
 import copy
+import itertools
 import queue
 import threading
 import time
@@ -143,6 +144,31 @@ def unbatch_preds(preds):
   else:
     for i in range(_extract_batch_length(preds)):
       yield {key: value[i] for key, value in preds.items()}
+
+
+def find_all_combinations(l: List[Any], min_element_count: int,
+                          max_element_count: int) -> List[List[Any]]:
+  """Finds all possible ways how elements of a list can be combined.
+
+  E.g., all combinations of list [1, 2, 3] are
+  [[1], [2], [3], [1, 2], [1, 3], [2, 3], [1, 2, 3]].
+
+  Args:
+    l: a list of arbitrary elements.
+    min_element_count: the minimum number of elements that every combination
+      should contain.
+    max_element_count: the maximum number of elements that every combination
+      should contain.
+
+  Returns:
+    The list of all possible combinations given the constraints.
+  """
+  result: List[List[Any]] = []
+  min_element_count = max(1, min_element_count)
+  max_element_count = min(max_element_count, len(l))
+  for element_count in range(min_element_count, max_element_count + 1):
+    result.extend(list(x) for x in itertools.combinations(l, element_count))
+  return result
 
 
 class TaskQueue(queue.Queue):
