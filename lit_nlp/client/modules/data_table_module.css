@@ -40,9 +40,11 @@
 
 .switch-container {
   display: flex;
+  flex-direction: row;
   align-items: center;
 }
 
-.switch-container > * {
+.switch-container > mwc-switch {
+  margin-left: 4px;
   margin-right: 4px;
 }

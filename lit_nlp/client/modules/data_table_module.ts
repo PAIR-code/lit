@@ -19,22 +19,21 @@
 import '@material/mwc-switch';
 import '../elements/checkbox';
 
-import {query} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
+import {customElement, query} from 'lit/decorators';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {DataTable, TableData} from '../elements/table';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
-import {ClassificationService, FocusService, RegressionService, SelectionService, UrlService} from '../services/services';
+import {ClassificationService, FocusService, RegressionService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * A LIT module showing a table containing the InputData examples. Allows the
@@ -65,15 +64,8 @@ export class DataTableModule extends LitModule {
   @observable searchText = '';
 
   // Module options / configuration state
-  @observable private filterSelected: boolean = true;
+  @observable private onlyShowSelected: boolean = false;
   @observable private columnDropdownVisible: boolean = false;
-
-  // Persistent selection state
-  @observable private selectedInputData: IndexedInput[] = [];
-
-  // Used to manage selection response; should not be interacted
-  // with directly.
-  private readonly urlService = app.getService(UrlService);
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -98,8 +90,8 @@ export class DataTableModule extends LitModule {
 
   @computed
   get filteredData(): IndexedInput[] {
-    return this.filterSelected ? this.selectedInputData :
-                                 this.appState.currentInputData;
+    return this.onlyShowSelected ? this.selectionService.selectedInputData :
+                                   this.appState.currentInputData;
   }
 
   @computed
@@ -226,23 +218,6 @@ export class DataTableModule extends LitModule {
     this.react(getKeys, keys => {
       this.updateColumns();
     });
-    // React to change in selection.
-    this.reactImmediately(
-        () => this.selectionService.selectedOrAllInputData, inputData => {
-          // Don't react to selection set from within this module.
-          if (this.selectionService.lastUser === this) {
-            return;
-          }
-          // If selection set from URL, also show the full dataset only.
-          if (this.selectionService.lastUser === this.urlService) {
-            this.selectedInputData = this.appState.currentInputData;
-          } else {
-            this.selectedInputData = inputData;
-          }
-          if (this.table) {
-            this.table.resetView();
-          }
-        });
 
     this.updateColumns();
   }
@@ -443,12 +418,15 @@ export class DataTableModule extends LitModule {
       this.columnDropdownVisible = !this.columnDropdownVisible;
     };
 
+    const onClickSwitch = () => {
+      this.onlyShowSelected = !this.onlyShowSelected;
+    };
+
     // clang-format off
     return html`
-      <div class='switch-container'
-        @click=${() => { this.filterSelected = !this.filterSelected; }}>
-        <mwc-switch .checked=${this.filterSelected}></mwc-switch>
-        Only show selected
+      <div class='switch-container' @click=${onClickSwitch}>
+        <div>Hide unselected</div>
+        <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
