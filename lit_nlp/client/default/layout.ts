@@ -90,36 +90,11 @@ export const LAYOUTS: LitComponentLayouts = {
     description: 'A basic layout just containing a datapoint creator/editor, the predictions, and the data table. There are also some visual simplifications: the toolbar is hidden, and the modules are centered on the page rather than being full width.'
   },
   /**
-   * A layout for black-box models (no embs, grads, or attention).
-   */
-  'blackbox':  {
-    components : {
-      'Main': DEFAULT_MAIN_GROUP,
-      'Predictions': [
-        ScalarModule,
-        ...MODEL_PREDS_MODULES,
-        PdpModule,
-      ],
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-        ThresholderModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
-    },
-    description: "A layout for exploring predictions on an eval set. Includes modules for aggregate and counterfactual analysis, but not model internals."
-  },
-  /**
    * A default layout for LIT Modules
    */
   'default':  {
     components : {
       'Main': [EmbeddingsModule, ...DEFAULT_MAIN_GROUP],
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-        ThresholderModule,
-      ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         ScalarModule,
@@ -129,6 +104,11 @@ export const LAYOUTS: LitComponentLayouts = {
         ...MODEL_PREDS_MODULES,
         SalienceMapModule,
         AttentionModule,
+      ],
+      'Metrics': [
+        MetricsModule,
+        ConfusionMatrixModule,
+        ThresholderModule,
       ],
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
       'TCAV': [
