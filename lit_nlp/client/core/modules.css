@@ -54,7 +54,7 @@
   background: white;
   display: flex;
   align-items: center;
-  height: 30px;
+  height: 36px;
 }
 
 
@@ -75,26 +75,30 @@
 }
 
 #tabs {
-  max-width: 100%;
+  align-items: end; /* bottom */
   display: flex;
-  font-size: 9pt;
+  font-size: 14px;
+  height: 100%;
   margin-right: 38px;
+  max-width: 100%;
+  padding: 2px 0;
 }
 
 .tab {
-  padding: 2pt 5pt;
-  width: 150px;
-  text-align: center;
   border-bottom: 2px solid #dadce0;
+  box-sizing: border-box;
+  padding: 8px 4px 8px 8px;
+  text-align: center;
   white-space: nowrap;
+  width: 150px;
 }
 .tab:hover{
   background: #eee;
 }
 .tab.selected {
   font-weight: bold;
-  border-bottom: 2px solid #129EAF;
-  color: black;
+  border-bottom: 2px solid rgb(47, 140, 155);
+  color: rgb(47, 140, 155);
 }
 .drag-icon {
   pointer-events: none;
