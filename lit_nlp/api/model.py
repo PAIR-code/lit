@@ -119,6 +119,25 @@ class Model(metaclass=abc.ABCMeta):
     """
     return
 
+  def load(self, path: str):
+    """Load and return a new instance of this model loaded from a new path.
+
+    By default this method does nothing. Models can override this method in
+    order to allow dynamic model loading in LIT through the UI. Models
+    overriding this method should use the provided path string and create and
+    return a new instance of its model class.
+
+    Args:
+      path: The path to the persisted model information, used in model's
+      construction.
+
+    Returns:
+      (Model) A model loaded with information from the provided path.
+    """
+    del path
+    raise NotImplementedError('Model has no load method defined for dynamic '
+                              'loading')
+
   @abc.abstractmethod
   def input_spec(self) -> types.Spec:
     """Return a spec describing model inputs."""

@@ -112,6 +112,10 @@ class BertMLM(lit_model.Model):
     # Postprocess to remove padding and decode predictions.
     return map(self._postprocess, unbatched_outputs)
 
+  def load(self, model_name_or_path):
+    """Dynamically load a new BertMLM model given a model name."""
+    return BertMLM(model_name_or_path, self.top_k)
+
   def input_spec(self):
     return {
         "text": lit_types.TextSegment(),

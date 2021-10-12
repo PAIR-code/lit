@@ -231,6 +231,25 @@ class LitApp(object):
     else:
       return None
 
+  def _create_model(self,
+                    unused_data,
+                    model_name: Optional[Text] = None,
+                    model_path: Optional[Text] = None,
+                    **unused_kw):
+    """Create model from a path, updating and returning the metadata."""
+
+    assert model_name is not None, 'No model specified.'
+    assert model_path is not None, 'No model path specified.'
+    new_model = self._models[model_name].load(model_path)
+    if new_model is not None:
+      new_model_name = model_name + ':' + os.path.basename(model_path)
+      self._models[new_model_name] = caching.CachingModelWrapper(
+          new_model, new_model_name, cache_dir=self._data_dir)
+      self._info = self._build_metadata()
+      return (self._info, new_model_name)
+    else:
+      return None
+
   def _get_generated(self, data, model: Text, dataset_name: Text,
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
@@ -359,6 +378,7 @@ class LitApp(object):
     self._default_layout = default_layout
     self._canonical_url = canonical_url
     self._page_title = page_title
+    self._data_dir = data_dir
     self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
@@ -440,6 +460,7 @@ class LitApp(object):
         # Dataset-related endpoints.
         '/get_dataset': self._get_dataset,
         '/create_dataset': self._create_dataset,
+        '/create_model': self._create_model,
         '/get_generated': self._get_generated,
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,

@@ -185,6 +185,9 @@ class CachingModelWrapper(lit_model.Model):
         "to access cache via example IDs.")
     return self._model.predict(*args, **kw)
 
+  def load(self, path):
+    return self._model.load(path)
+
   def spec(self) -> lit_model.ModelSpec:
     return self._model.spec()
 

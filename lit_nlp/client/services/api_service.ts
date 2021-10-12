@@ -64,6 +64,22 @@ export class ApiService extends LitService {
   }
 
   /**
+   * Request the server to create a new model.
+   * Loads the model on the backend.
+   * Returns (updated metadata, name of just-loaded model)
+   * @param model name of (base) model to dispatch to load()
+   * @param modelPath path to load from
+   */
+  async createModel(model: string, modelPath: string):
+      Promise<[LitMetadata, string]> {
+    const loadMessage = 'Loading new model';
+    return this.queryServer(
+        '/create_model',
+        {'model_name': model, 'model_path': modelPath},
+        [], loadMessage);
+  }
+
+  /**
    * Send a request to the server to get dataset info.
    */
   async getInfo(): Promise<LitMetadata> {

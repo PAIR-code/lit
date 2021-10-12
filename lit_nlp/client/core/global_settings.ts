@@ -78,6 +78,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   @observable private pathForDatapoints: string = '';
   @observable private datapointsStatus: string = '';
+  @observable private pathForModel: string = '';
+  @observable private modelStatus: string = '';
 
   // tslint:disable:no-inferrable-new-expression
   @observable private readonly openModelKeys: Set<string> = new Set();
@@ -105,6 +107,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @computed
   get newDatapoints() {
    return this.appState.currentInputData.filter(input => input.meta['added']);
+  }
+
+  @computed
+  get loadModelButtonDisabled() {
+    return this.selectedModels.length !== 1 || this.pathForModel === '';
   }
 
   /**
@@ -366,7 +373,44 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     const configListHTML = availableModels.map(name => renderModelSelect(name));
     const buttonsHTML = html`${this.nextPrevButton('Dataset', true)}`;
-    return this.renderConfigPage('Models', MODEL_DESC, configListHTML, buttonsHTML);
+
+    const updatePath = (e: Event) => {
+      const input = e.target! as HTMLInputElement;
+      this.pathForModel = input.value;
+    };
+    const loadNewModel = async () => {
+      const newInfo = await this.apiService.createModel(
+          this.selectedModels[0], this.pathForModel);
+      if (newInfo == null) {
+        this.modelStatus = 'Unable to load model from path.';
+        return;
+      }
+      this.appState.metadata = newInfo[0];
+      this.appState.currentModels.push(newInfo[1]);
+      this.initializeLocalState();
+      this.datapointsStatus = 'New model added to models list';
+    };
+    const modelLoadingControlsHTML =
+      this.appState.metadata.demoMode ? html`` : html`
+        <div class='datapoints-line'>
+          <div class='datapoints-label-holder'>
+            <label for="path">File path:</label>
+            <input type="text" name="path" class="datapoints-file-input"
+                   value=${this.pathForModel}
+                   @input=${updatePath}>
+          </div>
+          <button
+            ?disabled=${this.loadModelButtonDisabled}
+            @click=${loadNewModel}
+          >Create new model from path
+          </button>
+          <div class='datapoints-label-holder'>
+            <div>${this.modelStatus}</div>
+          </div>
+        </div>`;
+
+    return this.renderConfigPage('Models', MODEL_DESC, configListHTML,
+                                 buttonsHTML, modelLoadingControlsHTML);
   }
 
   /** Render the datasets page content. */
