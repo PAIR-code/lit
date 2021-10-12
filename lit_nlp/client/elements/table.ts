@@ -25,9 +25,8 @@
 import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html, TemplateResult} from 'lit';
+import {html, TemplateResult} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {isTemplateResult} from 'lit/directive-helpers';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
@@ -284,23 +283,30 @@ export class DataTable extends ReactiveElement {
     return false;
   }
 
+
+  /**
+   * Column names. To avoid cyclical dependencies, this needs to be independent
+   * of columnHeaders, since the names are used to select the table data,
+   * which is in turn used to compute some formatting defaults.
+   */
+  @computed
+  get columnStrings(): string[] {
+    return this.columnNames.map(
+        colInfo => (typeof colInfo === 'string') ? colInfo : colInfo.name);
+  }
+
   @computed
   get columnHeaders(): ColumnHeader[] {
-    return this.columnNames.map((columnName, index) => {
-      const header: ColumnHeader = (typeof columnName === 'string') ?
-          {name: columnName} :
-          {...columnName};
+    return this.columnNames.map((colInfo, index) => {
+      const header: ColumnHeader = (typeof colInfo === 'string') ?
+          {name: colInfo} :
+          {...colInfo};
       header.html =
           header.html ?? html`<div class="header-text">${header.name}</div>`;
       header.rightAlign =
           header.rightAlign ?? this.shouldRightAlignColumn(index);
       return header;
     });
-  }
-
-  @computed
-  get columnStrings(): string[] {
-    return this.columnHeaders.map(header => header.name);
   }
 
   /**
