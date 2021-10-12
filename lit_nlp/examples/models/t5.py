@@ -208,10 +208,10 @@ class T5HFModel(lit_model.Model):
     if self.config.output_attention:
       for i in range(len(results.decoder_attentions)):
         batched_outputs[
-            f"decoder_layer_{i:d}_attention"] = results.decoder_attentions[i]
+            f"decoder_layer_{i+1:d}_attention"] = results.decoder_attentions[i]
       for i in range(len(results.encoder_attentions)):
         batched_outputs[
-            f"encoder_layer_{i:d}_attention"] = results.encoder_attentions[i]
+            f"encoder_layer_{i+1:d}_attention"] = results.encoder_attentions[i]
 
     return batched_outputs
 
@@ -337,9 +337,9 @@ class T5HFModel(lit_model.Model):
     if self.config.output_attention:
       # Add attention for each layer.
       for i in range(self.num_layers):
-        spec[f"encoder_layer_{i:d}_attention"] = lit_types.AttentionHeads(
+        spec[f"encoder_layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
             align_in="input_tokens", align_out="input_tokens")
-        spec[f"decoder_layer_{i:d}_attention"] = lit_types.AttentionHeads(
+        spec[f"decoder_layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
             align_in="target_tokens", align_out="target_tokens")
     return spec
 

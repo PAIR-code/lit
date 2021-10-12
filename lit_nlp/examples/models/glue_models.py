@@ -359,9 +359,23 @@ class GlueModel(lit_model.Model):
           "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
           "input_embs": input_embs,
       }
+
+      # First entry is embeddings, then output from each transformer layer.
+      assert len(out.hidden_states) == self.model.config.num_hidden_layers + 1
+      # <float32>[batch_size, num_tokens, 1]
+      token_mask = tf.expand_dims(
+          tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
+      # <float32>[batch_size, 1]
+      denom = tf.reduce_sum(token_mask, axis=1)
+      for i, layer_output in enumerate(out.hidden_states):
+        # layer_output is <float32>[batch_size, num_tokens, emb_dim]
+        # average over tokens to get <float32>[batch_size, emb_dim]
+        batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
+            layer_output * token_mask, axis=1) / denom
+
       assert len(out.attentions) == self.model.config.num_hidden_layers
       for i, layer_attention in enumerate(out.attentions):
-        batched_outputs[f"layer_{i}/attention"] = layer_attention
+        batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
         # <tf.float32>[batch_size]
@@ -441,6 +455,10 @@ class GlueModel(lit_model.Model):
           vocab=self.config.labels,
           null_idx=self.config.null_label_idx)
     ret["cls_emb"] = lit_types.Embeddings()
+    # Average embeddings, one per layer including embeddings.
+    for i in range(1 + self.model.config.num_hidden_layers):
+      ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
+
     ret["cls_grad"] = lit_types.Gradients(
         grad_for="cls_emb", grad_target_field_key="grad_class")
 
@@ -467,7 +485,7 @@ class GlueModel(lit_model.Model):
 
     # Attention heads, one field for each layer.
     for i in range(self.model.config.num_hidden_layers):
-      ret[f"layer_{i}/attention"] = lit_types.AttentionHeads(
+      ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
           align_in="tokens", align_out="tokens")
     return ret
 

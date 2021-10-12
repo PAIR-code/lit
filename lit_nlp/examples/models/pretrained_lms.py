@@ -201,7 +201,7 @@ class GPT2LanguageModel(lit_model.Model):
 
     # Convert representations for each layer from tuples to single Tensor.
     for i in range(len(out.attentions)):
-      batched_outputs[f"layer_{i:d}_attention"] = out.attentions[i]
+      batched_outputs[f"layer_{i+1:d}_attention"] = out.attentions[i]
     for i in range(len(out.hidden_states)):
       batched_outputs[f"layer_{i:d}_avg_embedding"] = tf.math.reduce_mean(
           out.hidden_states[i], axis=1)
@@ -278,7 +278,7 @@ class GPT2LanguageModel(lit_model.Model):
     }
     # Add attention and embeddings from each layer.
     for i in range(self.num_layers):
-      spec[f"layer_{i:d}_attention"] = lit_types.AttentionHeads(
+      spec[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
           align_in="tokens", align_out="tokens")
       spec[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
     return spec

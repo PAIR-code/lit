@@ -288,8 +288,11 @@ class LitApp(object):
     """Pre-compute UMAP/PCA projections with default arguments."""
     for model, model_info in self._info['models'].items():
       for dataset_name in model_info['datasets']:
-        for field_name in utils.find_spec_keys(model_info['spec']['output'],
-                                               types.Embeddings):
+        embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
+                                                types.Embeddings)
+        # Only warm-start on the first embedding field, since if models return
+        # many different embeddings this can take a long time.
+        for field_name in embedding_fields[:1]:
           config = dict(
               dataset_name=dataset_name,
               model_name=model,
