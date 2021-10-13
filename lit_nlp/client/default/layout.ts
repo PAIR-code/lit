@@ -117,35 +117,5 @@ export const LAYOUTS: LitComponentLayouts = {
     },
     description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
   },
-  /**
-   * A default layout for LIT Modules without EmbeddingsModule
-   * TODO(lit-dev): move to a custom frontend build,
-   * or remove this if b/159186274 is resolved to speed up page load.
-   */
-  'default_no_projector':  {
-    components : {
-      'Main': DEFAULT_MAIN_GROUP,
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-        ThresholderModule,
-      ],
-      'Predictions': [
-        ...MODEL_PREDS_MODULES,
-        ScalarModule,
-        PdpModule,
-      ],
-      'Explanations': [
-        ...MODEL_PREDS_MODULES,
-        SalienceMapModule,
-        AttentionModule,
-      ],
-      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
-      'TCAV': [
-        TCAVModule,
-      ],
-    },
-    description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
-  },
 };
 // clang-format on
