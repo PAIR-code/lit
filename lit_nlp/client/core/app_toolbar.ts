@@ -171,18 +171,63 @@ export class ToolbarComponent extends MobxLitElement {
     // clang-format on
   }
 
+  renderLayoutInfo() {
+    const layouts = Object.keys(this.appState.layouts);
+    const currentLayout = this.appState.layoutName;
+
+    if (2 <= layouts.length && layouts.length <= 4) {
+      // If we have more than one layout (but not too many),
+      // show the in-line selector.
+      const layoutChips = layouts.map(name => {
+        const isSelected = (name === currentLayout);
+        const classes = {
+          'headline-button': true,
+          'unselected': !isSelected,  // not the same as default; see CSS
+          'selected': isSelected,
+        };
+        const iconClass =
+            isSelected ? 'material-icon' : 'material-icon-outlined';
+        const updateLayoutSelection = () => {
+          this.settingsService.updateSettings({'layoutName': name});
+          this.requestUpdate();
+        };
+        const title = `Change layout to ${name}`;
+        // clang-format off
+        return html`
+          <button class=${classMap(classes)} title=${title}
+            @click=${updateLayoutSelection}>
+            <span class=${iconClass}>view_compact</span>
+            &nbsp;${name}
+          </button>
+        `;
+        // clang-format on
+      });
+      // clang-format off
+      return html`${layoutChips}`;
+      // clang-format on
+    } else {
+      // Otherwise, give a regular button that opens the layouts menu.
+      // clang-format off
+      return html`
+        <button class='headline-button' title="Select UI layout."
+          @click=${() => { this.jumpToSettingsTab("Layout"); }}>
+          <span class='material-icon'>view_compact</span>
+          &nbsp;${currentLayout}&nbsp;
+          <span class='material-icon'>arrow_drop_down</span>
+        </button>
+      `;
+      // clang-format on
+    }
+  }
+
   renderConfigControls() {
     // clang-format off
     return html`
       ${this.appState.initialized ? this.renderModelInfo() : null}
       ${this.appState.initialized ? this.renderDatasetInfo() : null}
       <div class='vertical-separator'></div>
-      <div title="Change layout" id="layout">
-        <mwc-icon class="icon-button"
-          @click=${() => { this.jumpToSettingsTab("Layout"); }}>
-          view_compact
-        </mwc-icon>
-      </div>
+      ${this.renderLayoutInfo()}
+      <div class='vertical-separator'></div>
       <div title="Configure models, dataset, and UI." id="config">
         <mwc-icon class="icon-button"
           @click=${this.toggleGlobalSettings}>
