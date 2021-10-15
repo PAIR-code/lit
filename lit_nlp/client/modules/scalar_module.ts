@@ -394,7 +394,7 @@ export class ScalarModule extends LitModule {
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
-      0, this.plotWidth - ScalarModule.plotLeftMargin
+      0, this.plotWidth - ScalarModule.plotLeftMargin * 2
     ]);
   }
 
