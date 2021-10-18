@@ -39,12 +39,11 @@ Stay up to date on LIT by joining the
 [lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](documentation/user_guide.md).
+[user guide](documentation/ui_guide.md).
 
 ## Documentation
 
-*   [User Guide](documentation/user_guide.md)
-*   [Developer Guide](documentation/development.md)
+*   [Documenation index](documentation/index.md)
 *   [FAQ](documentation/faq.md)
 *   [Release notes](./RELEASE.md)
 
@@ -94,8 +93,8 @@ Explore a collection of hosted demos on the
 [LIT website demos page](https://pair-code.github.io/lit/demos).
 
 Colab notebooks showing the use of LIT inside of notebooks can be found at
-google3/third_party/py/lit_nlp/example/notebooks. A simple example can be viewed
-[here](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+google3/third_party/py/lit_nlp/examples/notebooks. A simple example can be viewed
+[here](https://colab.research.google.com/github/pair-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 
 ### Quick-start: classification and regression
 
@@ -148,7 +147,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](documentation/user_guide.md), or
+To learn about LIT's features, check out the [user guide](documentation/ui_guide.md), or
 watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
@@ -158,20 +157,20 @@ launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The basic
 steps are:
 
 *   Write a data loader which follows the
-    [`Dataset` API](documentation/python_api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](documentation/python_api.md#models)
+    [`Dataset` API](documentation/api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](documentation/api.md#models)
 *   Pass models, datasets, and any additional
-    [components](documentation/python_api.md#interpretation-components) to the LIT server
+    [components](documentation/api.md#interpretation-components) to the LIT server
     class
 
 For a full walkthrough, see
-[adding models and data](documentation/python_api.md#adding-models-and-data).
+[adding models and data](documentation/api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
-more, both on the frontend or the backend. See the
-[developer guide](documentation/development.md) to get started.
+more, both on the frontend or the backend. See our
+[documentation](documentation/index.md) to get started.
 
 ## Pull Request Process
 

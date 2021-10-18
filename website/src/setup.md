@@ -112,7 +112,7 @@ the notebook.
 # Use LIT on your own models and data
 
 This is a brief overview of how to run LIT with your own models and datasets.
-For more details, see the documentation in the [code repository](https://github.com/pair-code/lit).
+For more details, see the [documentation](https://github.com/PAIR-code/lit/blob/main/documentation/index.md).
 
 To run LIT with your own models and data, you can create a custom `demo.py`
 script that passes these to the LIT server. For example:
@@ -151,7 +151,7 @@ For full examples, see
 *   [`simple_pytorch_demo.py`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py)
     for a self-contained PyTorch model for sentiment analysis.
   
-You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/blob/main/documentation/development.md#custom-client--modules) for more.
+You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/blob/main/documentation/frontend_development.md#custom-client--modules) for more.
 
 <a name="datasets"></a>
 ## Datasets

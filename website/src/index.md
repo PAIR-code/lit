@@ -101,7 +101,7 @@ And more...
 <div class="mdl-grid no-padding">
   {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'CODE', 
   title: 'Contribute to LIT', desc: 'LIT is open to anyone who wants to help develop and improve it!', 
-  cta-text:"View developer guide", link: 'https://github.com/PAIR-code/lit/blob/main/documentation/development.md', external:"true" %}
+  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/blob/main/documentation/index.md', external:"true" %}
   
   {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES', 
   title: 'Latest updates', desc: 'New features, updates, and improvements to LIT.', 

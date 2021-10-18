@@ -11,21 +11,21 @@ The code required to deploy LIT as a containerized web app can be seen by
 looking at our masked language model demo.
 
 First, let's look at the relevant code in
-[lm_demo.py](../lit_nlp/examples/lm_demo.py):
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py):
 
 The `get_wsgi_app()` method is what is invoked by the Dockerfile. It sets the
 `server_type` to `"external"`, constructs the LIT `Server` instance, and returns
 the result of it's `serve()` method which is the underlying `LitApp` WSGI
 application.
 
-Now, let's explore the [Dockerfile](https://github.com/PAIR-code/lit/blob/main/Dockerfile):
+Now, let's explore the [`Dockerfile`](https://github.com/PAIR-code/lit/blob/main/Dockerfile):
 
 The Dockerfile installs all necessary dependencies for LIT and builds the
 front-end code from source. Then it runs [gunicorn](https://gunicorn.org/) as
 the HTTP server, invoking the `get_wsgi_app()` method from our demo file to get
 the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
-[gunicorn_config.py](../lit_nlp/examples/gunicorn_config.py).
+[`gunicorn_config.py`](../lit_nlp/examples/gunicorn_config.py).
 
 Then, our container is built and deployed following the basics of the
 [GKE tutorial](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app).

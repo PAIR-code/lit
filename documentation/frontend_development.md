@@ -1,13 +1,12 @@
-# LIT UI Guide
-
-<!-- client docs placeholder - DO NOT REMOVE -->
+# Frontend Developer Guide
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2021-08-17' } *-->
 
+<!-- [TOC] placeholder - DO NOT REMOVE -->
+
+
 This document aims to describe the current LIT frontend system, including
 conventions, best practices, and gotchas.
-
-<!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## High Level Overview
 
@@ -27,7 +26,7 @@ We highly recommend reading the docs for both projects - they both have fairly
 simple APIs and are easy to digest in comparison to some heavier-weight toolkits
 like Angular.
 
-## LIT Application Architecture
+## Application Architecture
 
 The LIT client frontend is roughly divided into three conceptual groups -
 **Modules** (which render visualizations), **Services** (which manage data), and
@@ -88,7 +87,7 @@ const layout: LitComponentLayout = {
 ```
 
 The full layouts are defined in
-[layout.ts](../lit_nlp/client/default/layout.ts). To
+[`layout.ts`](../lit_nlp/client/default/layout.ts). To
 use a specific layout for a given LIT instance, pass the key (e.g., "simple" or
 "mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
 layout can be set on-the-fly a URL param (the url param overrides the server
@@ -112,7 +111,7 @@ starting the initial load of data from the server. This process consists of:
     to use.
 1.  Determining which models/datasets to load and then loding them.
 
-## LIT Modules
+## Modules (LitModule)
 
 The
 [`LitModule`](../lit_nlp/client/core/lit_module.ts)
@@ -129,13 +128,13 @@ outlined below:
  */
 @customElement('demo-module')                                                   // (0)
 export class DemoTextModule extends LitModule {
-  static title = 'Demo Module';                                                 // (1)
-  static template = (model = '') => {                                           // (2)
+  static override title = 'Demo Module';                                        // (1)
+  static override template = (model = '') => {                                  // (2)
     return html`<demo-module model=${model}></demo-module>`;
   };
-  static duplicateForModelComparison = true;                                    // (3)
+  static override duplicateForModelComparison = true;                           // (3)
 
-  static get styles() {
+  static override get styles() {
     return [styles];                                                            // (4)
   }
 
@@ -143,7 +142,7 @@ export class DemoTextModule extends LitModule {
 
   @observable private pigLatin: string = '';                                    // (6)
 
-  firstUpdated() {
+  override firstUpdated() {
     this.reactImmediately(() => this.selectionService.primarySelectedInputData, // (7)
       primarySelectedInputData => {
         this.getTranslation(primarySelectedInputData);
@@ -160,7 +159,7 @@ export class DemoTextModule extends LitModule {
     this.pigLatin = results;
   }
 
-  render() {                                                                    // (10)
+  override render() {                                                           // (10)
     const color = this.colorService.getDatapointColor(
         this.selectionService.primarySelectedInputData);
     return html`
@@ -186,7 +185,7 @@ The above LitModule, while just a dummy example, illustrates all of the
 necessary static properties and many of the most common patterns found in the
 LIT app.
 
-### LitModule Setup
+### Setup
 
 First, a `LitModule` must declare a static `title` string (1) and `template`
 function (2). The `template` function determines how the modules layout renders
@@ -224,7 +223,7 @@ Finally, the `@customElement('demo-module')` decorator (0) defines this class as
 a custom HTML element `<demo-module>`, and (12) ensures this is accessible to
 other TypeScript files in different build units.
 
-### LitModule functionality
+### Functionality
 
 The above module has a very simple task - When the user selects input data, it
 makes a request to an API service to fetch and display a pig latin translation
@@ -264,7 +263,7 @@ purely observable data to declaratively specify what gets rendered is very
 powerful for simpligying the logic around building larger, more complex
 components.
 
-### LitModule Escape Hatches
+### Escape Hatches
 
 Finally, it's worth noting that the declarative template-based rendering setup,
 while effective for handling most component render logic, is sometimes
@@ -295,4 +294,123 @@ reconciliation of what needs to be updated per render.
   render() {
     return html`<canvas></canvas>`;
   }
+```
+
+## Style Guide
+
+*   Please disable clang-format on `lit-html` templates and format these
+    manually instead:
+
+    ```ts
+    // clang-format off
+    return html`
+      <div class=...>
+        <button id=... @click=${doSomething}>Foo</button>
+      </div>
+    `;
+    // clang format on
+    ```
+
+*   For new modules, in most cases you should implement two
+    classes: one module (subclassing
+    [`LitModule`](../lit_nlp/client/core/lit_module.ts))
+    that interfaces with the LIT framework, and another element which subclasses
+    `LitElement`, `MobxLitElement`, or preferably,
+    [`ReactiveElement`](../lit_nlp/client/lib/elements.ts?),
+    and implements self-contained visualization code. For an example, see
+    [modules/annotated_text_module.ts](../lit_nlp/client/modules/annotated_text_module.ts)
+    and
+    [elements/annotated_text_vis.ts](../lit_nlp/client/elements/annotated_text_vis.ts).
+
+*   On supported components (`ReactiveElement` and `LitModule`), use
+    `this.react()` or `this.reactImmediately()` instead of registering reactions
+    directly. This ensures that reactions will be properly cleaned up if the
+    element is later removed (such as a layout change or leaving comparison
+    mode).
+
+*   Use
+    [shared styles](../lit_nlp/client/lib/shared_styles.css)
+    when possible.
+
+## Development Tips (open-source)
+
+If you're modifying any TypeScript code, you'll need to re-build the frontend.
+You can have yarn do this automatically. In one terminal, run:
+
+```sh
+cd ~/lit/lit_nlp
+yarn
+yarn build --watch
+```
+
+And in the second, run the LIT server:
+
+```sh
+cd ~/lit
+python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
+```
+
+You can then access the LIT UI at http://localhost:5432.
+
+If you only change frontend files, you can use <kbd>Ctrl/Cmd+Shift+R</kbd> to do
+a hard refresh in your browser, and it should automatically pick up the updated
+source from the build output.
+
+If you're modifying the Python backend, there is experimental support for
+hot-reloading the LIT application logic (`app.py`) and some dependencies without
+needing to re-load models or datasets. See
+[`dev_server.py`](../lit_nlp/dev_server.py) for details.
+
+You can use the `--data_dir` flag (see
+[`server_flags.py`](../lit_nlp/server_flags.py) to save the predictions cache to
+disk, and automatically re-load it on a subsequent run. In conjunction with
+`--warm_start`, you can use this to avoid re-running inference during
+development - though if you modify the model at all, you should be sure to
+remove any stale cache files.
+
+## Custom Client / Modules
+
+The LIT frontend can be extended with custom visualizations or interactive
+modules, though this is currently provided as "best effort" support and the API
+is not as mature as for Python extensions.
+
+An example of a custom LIT client application, including a custom
+(potato-themed) module can be found in `lit_nlp/examples/custom_module`. In
+short, to build and serve a custom LIT client application, create a new
+directory containing a `main.ts` entrypoint. This should import any custom
+modules, define a layout that includes them, and call `app.initialize`. For
+example:
+
+```ts
+import {PotatoModule} from './potato';
+
+LAYOUTS = {};  // or import existing set from client/default/layout.ts
+LAYOUTS['potato'] = {
+  components: {
+    'Main': [DatapointEditorModule, ClassificationModule],
+    'Data': [DataTableModule, PotatoModule],
+  },
+};
+app.initialize(LAYOUTS);
+```
+
+Then, build the app, specifying the directory to build with the `env.build`
+flag. For example, to build the `custom_module` demo app:
+
+```sh
+yarn build --env.build=examples/custom_module
+```
+
+This builds the client app and moves all static assets to a `build` directory in
+the specified directory containing the `main.ts` file
+(`examples/custom_module/build`).
+
+Finally, to serve the bundle, set the `client_root` flag in your python code to
+point to this build directory. For this example we specify the build directory
+in `examples/custom_module/potato_demo.py`.
+
+```python
+# Here, client build/ is in the same directory as this file
+parent_dir = os.path.join(pathlib.Path(__file__).parent.absolute()
+FLAGS.set_default("client_root", parent_dir, "build"))
 ```

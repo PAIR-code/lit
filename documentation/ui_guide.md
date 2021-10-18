@@ -1,18 +1,13 @@
-# User Guide
+# UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-23' } *-->
 
-This is a user guide for the Language Interpretability Tool (LIT).
+This is a user guide for the Language Interpretability Tool (LIT) UI.
 
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
-
-## Running LIT
-
-For detailed information on how to start up your own instance of LIT, see the
-[development guide](development.md).
 
 ## General Layout
 
@@ -20,7 +15,7 @@ LIT lives inside a single page web application, comprised of multiple toolbars
 and a main section consisting of individual modules. Modules will automatically
 display if they are applicable to the current model and dataset; for example,
 the module that shows classification results will only show if the model returns
-`MulticlassPreds`. See the [development guide](development.md) for more details.
+`MulticlassPreds`.
 
 ![LIT overall UI](./images/lit-ui.png "LIT overall UI")
 
