@@ -425,7 +425,7 @@ export class TCAVModule extends LitModule {
              clampVal=${1}>
            </tcav-score-bar>`;
       // clang-format on
-      let displayScore = res['score'].toString();
+      let displayScore = res.score.toFixed(3);
 
       if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
         displayScore = '-';
