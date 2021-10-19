@@ -62,17 +62,8 @@ export class LitApp {
         appState.layout, appState.currentModelSpecs,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
-    // If we need more than one selectionService, create and append it to the
-    // list.
-    const numSelectionServices = modulesService.numberOfSelectionServices;
-    const selectionServices = this.getServiceArray(SelectionService);
-    for (let i = 0; i < numSelectionServices - 1; i++) {
-      const selectionService = new SelectionService();
-      selectionService.setAppState(appState);
-      selectionServices.push(selectionService);
-    }
-
     // Select the initial datapoint, if one was set in the url.
+    const selectionServices = this.getServiceArray(SelectionService);
     await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
 
     //  Reaction to sync other selection services to selections of the main one.
@@ -87,11 +78,9 @@ export class LitApp {
   /** Sync selection services */
   syncSelectionServices() {
     const selectionServices = this.getServiceArray(SelectionService);
-    for (const selectionService of selectionServices.slice(1)) {
-      // TODO(lit-dev): can we just copy the object instead, and skip this
-      // logic?
-      selectionService.syncFrom(selectionServices[0]);
-    }
+    // TODO(lit-dev): can we just copy the object instead, and skip this
+    // logic?
+    selectionServices[1].syncFrom(selectionServices[0]);
   }
 
   /** Simple DI service system */
@@ -133,24 +122,23 @@ export class LitApp {
     const statusService = new StatusService();
     const apiService = new ApiService(statusService);
     const modulesService = new ModulesService();
-    const selectionService = new SelectionService();
     const urlService = new UrlService();
     const appState = new AppState(apiService, statusService);
-    const sliceService = new SliceService(selectionService, appState);
+    const selectionService0 = new SelectionService(appState);
+    const selectionService1 = new SelectionService(appState);
+    const sliceService = new SliceService(selectionService0, appState);
     const regressionService = new RegressionService(apiService, appState);
     const settingsService =
-        new SettingsService(appState, modulesService, selectionService);
+        new SettingsService(appState, modulesService, selectionService0);
     const groupService = new GroupService(appState);
     const classificationService =
         new ClassificationService(apiService, appState, groupService);
     const colorService = new ColorService(
         appState, groupService, classificationService, regressionService);
-    const focusService = new FocusService(selectionService);
-
-    selectionService.setAppState(appState);
+    const focusService = new FocusService(selectionService0);
 
     // Initialize url syncing of state
-    urlService.syncStateToUrl(appState, selectionService, modulesService);
+    urlService.syncStateToUrl(appState, selectionService0, modulesService);
 
     // Populate the internal services map for dependency injection
     this.services.set(ApiService, apiService);
@@ -161,7 +149,7 @@ export class LitApp {
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);
     this.services.set(RegressionService, regressionService);
-    this.services.set(SelectionService, [selectionService]);
+    this.services.set(SelectionService, [selectionService0, selectionService1]);
     this.services.set(SettingsService, settingsService);
     this.services.set(SliceService, sliceService);
     this.services.set(StatusService, statusService);

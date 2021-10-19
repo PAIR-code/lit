@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, reaction} from 'mobx';
 
-import {arrayContainsSame, setEquals} from '../lib/utils';
+import {arrayContainsSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {AppState, ModulesService, SelectionService} from './services';
@@ -44,7 +44,9 @@ export class SettingsService extends LitService {
     super();
     // If compare examples changes, update layout using the 'quick' path.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
-      this.updateLayout();
+      this.modulesService.quickUpdateLayout(
+          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          compareExamplesEnabled);
     });
   }
 
@@ -58,27 +60,6 @@ export class SettingsService extends LitService {
     return availableDatasets.includes(dataset);
   }
 
-  @action
-  private clearLayout() {
-    this.modulesService.computeRenderLayout(
-        {}, {}, /* compareExamples */ false);
-    this.modulesService.renderModules();
-  }
-
-  /**
-   * Recompute layout without clearing modules.
-   * Use this for comparison mode to provide a faster refresh, and avoid
-   * clearing module-level state such as datatable filters.
-   */
-  @action
-  private updateLayout() {
-    // Recompute layout
-    this.modulesService.computeRenderLayout(
-        this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
-        this.appState.compareExamplesEnabled);
-    this.modulesService.renderModules();
-  }
-
   /**
    * Update settings and do a 'full refresh' of all modules.
    * Use this if changing models or datasets to ensure that modules don't make
@@ -87,7 +68,7 @@ export class SettingsService extends LitService {
   @action
   async updateSettings(updateParams: UpdateSettingsParams) {
     // Clear all modules.
-    this.clearLayout();
+    this.modulesService.clearLayout();
 
     // After one animation frame, the modules have been cleared. Now make
     // settings changes and recompute the layout.
@@ -123,11 +104,13 @@ export class SettingsService extends LitService {
       this.modulesService.initializeLayout(
         this.appState.layout, this.appState.currentModelSpecs,
         this.appState.currentDatasetSpec, this.appState.compareExamplesEnabled);
+      this.modulesService.renderModules();
+    } else {
+      // Recompute layout using the 'quick' path.
+      this.modulesService.quickUpdateLayout(
+          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          this.appState.compareExamplesEnabled);
     }
-
-
-    // Recompute layout.
-    this.updateLayout();
   }
 
   private async raf() {

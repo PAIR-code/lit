@@ -16,10 +16,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {observable} from 'mobx';
+import {action, observable} from 'mobx';
 
-import {LitComponentSpecifier, LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
-import {LayoutSettings, LitComponentLayout} from '../lib/types';
+import {LayoutSettings, LitComponentLayout, LitComponentSpecifier, LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
@@ -43,8 +42,8 @@ export interface LitRenderConfig {
  * to render and whether it renders on a per-model basis.
  */
 export interface RenderConfig {
+  key: string;
   moduleType: LitModuleClass;
-  tab: string;
   modelName?: string;
   selectionServiceIndex?: number;
 }
@@ -104,21 +103,32 @@ export class ModulesService extends LitService implements
   initializeLayout(
       layout: LitComponentLayout, currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
-    this.setModuleLayout(layout);
+    this.declaredLayout = layout;
     this.declaredLayout.layoutSettings = layout.layoutSettings || {};
-    this.computeRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
+    this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
   }
   @observable hiddenModuleKeys = new Set<string>();
-  /**
-   * This module calculates how many selectionServices will be required based
-   * on the module layout. If the app enters compare example mode ModulesService
-   * checks every modules behavior to determine if it will be cloned or not,
-   * sets up the new layout with cloned modules and updates this to required
-   * number of selectionServices. Currently this number is fixed at 2.
-   */
-  @observable numberOfSelectionServices: number = 2;
-
   allModuleKeys = new Set<string>();
+
+  @action
+  clearLayout() {
+    this.updateRenderLayout({}, {}, /* compareExamples */ false);
+    this.renderModules();
+  }
+
+  /**
+   * Recompute layout without clearing modules.
+   * Use this for comparison mode to provide a faster refresh, and avoid
+   * clearing module-level state such as datatable filters.
+   */
+  @action
+  quickUpdateLayout(
+      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
+      compareExamples: boolean) {
+    // Recompute layout
+    this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
+    this.renderModules();
+  }
 
   setHiddenModules(keys: Set<string>|string[]) {
     // Ensure we copy to a new set
@@ -132,16 +142,14 @@ export class ModulesService extends LitService implements
   }
 
   isModuleGroupHidden(config: RenderConfig) {
-    const key = this.getModuleKey(config);
-    return this.hiddenModuleKeys.has(key);
+    return this.hiddenModuleKeys.has(config.key);
   }
 
   toggleHiddenModule(config: RenderConfig, isHidden: boolean) {
-    const key = this.getModuleKey(config);
     if (isHidden) {
-      this.hiddenModuleKeys.add(key);
+      this.hiddenModuleKeys.add(config.key);
     } else {
-      this.hiddenModuleKeys.delete(key);
+      this.hiddenModuleKeys.delete(config.key);
     }
   }
 
@@ -158,14 +166,14 @@ export class ModulesService extends LitService implements
    * is visible for the selected models and user settings, and whether to render
    * copies of a module per model based on the module behavior.
    */
-  computeRenderLayout(
+  updateRenderLayout(
       currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
       compareExamples: boolean) {
     const renderLayout: LitRenderConfig = {};
     const allModuleKeys = new Set<string>();
 
     const componentGroupNames = Object.keys(this.declaredLayout.components);
-    componentGroupNames.forEach(groupName => {
+    for (const groupName of componentGroupNames) {
       const components = this.declaredLayout.components[groupName];
       // Look up classes for this group, if anything is given as a string.
       const componentClasses = components.map(getModuleConstructor);
@@ -174,21 +182,19 @@ export class ModulesService extends LitService implements
       const configs = this.getRenderConfigs(
           componentClasses, currentModelSpecs, datasetSpec, compareExamples,
           groupName);
-      configs.forEach(configGroup => {
-        configGroup.forEach(config => {
-          const key = this.getModuleKey(config);
-          allModuleKeys.add(key);
+      for (const configGroup of configs) {
+        for (const config of configGroup) {
+          allModuleKeys.add(config.key);
 
           if (config.moduleType.collapseByDefault) {
-            this.hiddenModuleKeys.add(key);
+            this.hiddenModuleKeys.add(config.key);
           }
-        });
-      });
+        }
+      }
       if (configs.length !== 0) {
         renderLayout[groupName] = configs;
       }
-    });
-
+    }
     this.allModuleKeys = allModuleKeys;
 
     // Clean up any extraneous hidden module keys that are not part of the
@@ -209,62 +215,55 @@ export class ModulesService extends LitService implements
    */
   private getRenderConfigs(
       modules: LitModuleClass[], currentModelSpecs: ModelInfoMap,
-      datasetSpec: Spec, compareExamples: boolean, tab: string) {
+      datasetSpec: Spec, compareExamples: boolean,
+      tab: string): RenderConfig[][] {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
     // modules that display one per model.
-    modules.forEach(moduleType => {
+    for (const moduleType of modules) {
+      if (!moduleType.shouldDisplayModule(currentModelSpecs, datasetSpec)) {
+        continue;
+      }
+
+      const configs: RenderConfig[] = [];
+
       // Is compare examples mode on and does this module require duplication?
       const compare =
           compareExamples && moduleType.duplicateForExampleComparison;
-      if (!moduleType.shouldDisplayModule(currentModelSpecs, datasetSpec)) {
-        return;
-      } else if (!moduleType.duplicateForModelComparison) {
-        const config: RenderConfig[] = [];
-        if (compare) {
-          config.push(this.makeRenderConfig(moduleType, tab, undefined, 1));
-          config.push(this.makeRenderConfig(moduleType, tab, undefined, 0));
-        } else {
-          config.push(this.makeRenderConfig(
-              moduleType, tab, undefined, compareExamples ? 0 : undefined));
-        }
-        renderConfigs.push(config);
-      } else {
-        const selectedModels = Object.keys(currentModelSpecs);
-        const configs =
-            selectedModels.reduce((accArray: RenderConfig[], modelName) => {
-              if (compare) {
-                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 1));
-                accArray.push(this.makeRenderConfig(moduleType, tab, modelName, 0));
-              } else {
-                accArray.push(this.makeRenderConfig(
-                    moduleType, tab, modelName, compareExamples ? 0 : undefined));
-              }
-              return accArray;
-            }, []);
-        renderConfigs.push(configs);
+      const key = `${tab}_${moduleType.title}`;
+
+      // model = undefined means the resulting module(s) will not be keyed to
+      // a specific model; they can access the list of active models via
+      // this.appState.currentModels.
+      let selectedModels: Array<string|undefined> = [undefined];
+      if (moduleType.duplicateForModelComparison) {
+        selectedModels = Object.keys(currentModelSpecs);
       }
-    });
+      for (const modelName of selectedModels) {
+        if (compare) {
+          // The 'reference' selection service is index 1, but we want this to
+          // render on top/left, so create this config first.
+          configs.push(this.makeRenderConfig(key, moduleType, modelName, 1));
+          configs.push(this.makeRenderConfig(key, moduleType, modelName, 0));
+        } else {
+          configs.push(this.makeRenderConfig(
+              key, moduleType, modelName, compareExamples ? 0 : undefined));
+        }
+      }
+      renderConfigs.push(configs);
+    }
 
     return renderConfigs;
   }
 
   private makeRenderConfig(
-      moduleType: LitModuleClass, tab: string, modelName?: string,
+      key: string, moduleType: LitModuleClass, modelName?: string,
       selectionServiceIndex?: number): RenderConfig {
     return {
+      key,
       moduleType,
-      tab,
       modelName,
       selectionServiceIndex,
     };
-  }
-
-  private getModuleKey(config: RenderConfig) {
-    return `${config.tab}_${config.moduleType.title}`;
-  }
-
-  setModuleLayout(layout: LitComponentLayout) {
-    this.declaredLayout = layout;
   }
 }

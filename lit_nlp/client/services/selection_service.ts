@@ -37,10 +37,8 @@ export interface AppState {
  */
 export class SelectionService extends LitService implements
     SelectionObservedByUrlService {
-  // Service linking helper methods (to be called after construction)
-  private appState!: AppState;
-  setAppState(appState: AppState) {
-    this.appState = appState;
+  constructor(private readonly appState: AppState) {
+    super();
   }
 
   @observable private readonly selectedIdsSet = new Set<string>();

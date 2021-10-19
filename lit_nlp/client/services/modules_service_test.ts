@@ -75,10 +75,10 @@ describe('modules service test', async () => {
     expect(modulesService.declaredLayout).toEqual(MOCK_LAYOUT);
   });
 
-  it('tests computeRenderLayout (standard)', () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (standard)', () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = false;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
@@ -94,10 +94,10 @@ describe('modules service test', async () => {
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 
-  it('tests computeRenderLayout (comparing examples)', () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing examples)', () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = true;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
@@ -107,11 +107,11 @@ describe('modules service test', async () => {
     expect(configs[0].length).toEqual(2);  // Two examples to compare.
   });
 
-  it('tests computeRenderLayout (comparing models)', async () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing models)', async () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = false;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
@@ -121,11 +121,11 @@ describe('modules service test', async () => {
     expect(configs[0].length).toEqual(2);  // Two models to compare.
   });
 
-  it('tests computeRenderLayout (comparing models and examples)', async () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing models and examples)', async () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = true;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
