@@ -27,6 +27,7 @@
 
 .charts-holder {
   display: flex;
+  flex-wrap: wrap;
 }
 
 .chart-label {

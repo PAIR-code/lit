@@ -223,6 +223,9 @@ consist of categorical or scalar features using the `CategoryLabel` or `Scalar`
 types. LIT can be used as a replacement for the [What-If Tool](https://whatif-tool.dev),
 containing a similar feature set but with more extensibility.
 
+*   For a demo using a penguin stats dataset/binary classification task, see
+    google3/third_party/py/lit_nlp/examples/penguin_demo.py.
+
 ### Images
 
 LIT also contains support for models with images as input features or generated

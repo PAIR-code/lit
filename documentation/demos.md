@@ -141,6 +141,19 @@ https://pair-code.github.io/lit/tutorials/coref
 
 ## Multimodal {#multimodal .demo-section-header}
 
+### Tabular Data: Penguin Classification {#penguin .demo-header}
+
+**Code:** ../lit_nlp/examples/penguin_demo.py
+
+*   Binary classification on
+    [penguin dataset](https://www.tensorflow.org/datasets/catalog/penguins).
+*   Showing using of LIT on non-text data (numeric and categorical features).
+*   Use partial-dependence plots to understand feature importance on individual
+    examples, selections, or the entire evaluation dataset.
+*   Use binary classifier threshold setters to find best thresholds for slices
+    of examples to achieve specific fairness constraints, such as demographic
+    parity.
+
 ### Image Classification with MobileNet {#mobilenet .demo-header}
 
 **Code:** google3/third_party/py/lit_nlp/examples/image_demo.py
