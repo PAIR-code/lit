@@ -49,6 +49,7 @@ export interface LitType {
   vocab?: string[];
   null_idx?: number;
   required?: boolean;
+  annotated?: boolean;
   default? : string|string[]|number|number[];
   spec?: string;
   types?: LitName|LitName[];

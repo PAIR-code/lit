@@ -57,7 +57,7 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
-  indexDatapoints: (data: IndexedInput[]) => Promise<IndexedInput[]>;
+  annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
 }
 
@@ -303,7 +303,7 @@ export class UrlService extends LitService {
     // from them and select all passed data points.
     // TODO(b/185155960) Allow specifying selection for passed examples in url.
     if (dataToAdd.length > 0) {
-      const data = await appState.indexDatapoints(dataToAdd);
+      const data = await appState.annotateNewData(dataToAdd);
       appState.commitNewDatapoints(data);
       selectionService.selectIds(data.map((d) => d.id), this);
     }

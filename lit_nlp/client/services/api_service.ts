@@ -133,12 +133,20 @@ export class ApiService extends LitService {
   }
 
   /**
-   * Calls the server to create and set the IDs for the provided inputs.
+   * Calls the server to create and set the IDs and other data for the provided
+   * inputs.
    * @param inputs Inputs to get the IDs for.
+   * @param datasetName current dataset
+   *
    * @return Inputs with the IDs correctly set.
    */
-  getDatapointIds(inputs: IndexedInput[]): Promise<IndexedInput[]> {
-    return this.queryServer<IndexedInput[]>('/get_datapoint_ids', {}, inputs);
+  annotateNewData(
+      inputs: IndexedInput[], datasetName: string): Promise<IndexedInput[]> {
+    return this.queryServer<IndexedInput[]>(
+        '/annotate_new_data', {
+          'dataset_name': datasetName,
+        },
+        inputs);
   }
 
   /**

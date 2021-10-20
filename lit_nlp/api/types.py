@@ -43,6 +43,7 @@ TokenTopKPredsList = List[List[Tuple[str, float]]]
 class LitType(metaclass=abc.ABCMeta):
   """Base class for LIT Types."""
   required: bool = True  # for input fields, mark if required by the model.
+  annotated: bool = False  # If this type is created from an Annotator.
   # TODO(lit-dev): Add defaults for all LitTypes
   default = None  # an optional default value for a given type.
 

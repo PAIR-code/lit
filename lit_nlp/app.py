@@ -199,11 +199,24 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _get_datapoint_ids(self, data, **unused_kw) -> List[IndexedInput]:
-    """Fill in unique example hashes for the provided datapoints."""
+  def _annotate_new_data(self, data, dataset_name: Optional[Text] = None,
+                         **unused_kw) -> List[IndexedInput]:
+    """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
-    for example in data['inputs']:
+    assert dataset_name is not None, 'No dataset specified.'
+
+    # Generate annotated versions of new datapoints.
+    dataset = self._datasets[dataset_name]
+    input_examples = [example['data'] for example in data['inputs']]
+    dataset_to_annotate = lit_dataset.Dataset(
+        base=dataset, examples=input_examples)
+    annotated_dataset = self._run_annotators(dataset_to_annotate)
+
+    # Add annotations and IDs to new datapoints.
+    for i, example in enumerate(data['inputs']):
+      example['data'] = annotated_dataset.examples[i]
       example['id'] = caching.input_hash(example['data'])
+
     return data['inputs']
 
   def _get_dataset(self,
@@ -260,9 +273,19 @@ class LitApp(object):
     all_generated: List[List[Input]] = generator.run_with_metadata(
         data['inputs'], self._models[model], dataset, config=data.get('config'))
 
+    # Annotate datapoints
+    def annotate_generated(datapoints):
+      dataset_to_annotate = lit_dataset.Dataset(
+          base=dataset, examples=datapoints)
+      annotated_dataset = self._run_annotators(dataset_to_annotate)
+      return annotated_dataset.examples
+
+    annotated_generated = [
+        annotate_generated(generated) for generated in all_generated]
+
     # Add metadata.
     all_generated_indexed: List[List[IndexedInput]] = [
-        dataset.index_inputs(generated) for generated in all_generated
+        dataset.index_inputs(generated) for generated in annotated_generated
     ]
     for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
       for generated in indexed_generated:
@@ -322,6 +345,15 @@ class LitApp(object):
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
 
+  def _run_annotators(
+      self, dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
+    datapoints = [dict(ex) for ex in dataset.examples]
+    annotated_spec = dict(dataset.spec())
+    for annotator in self._annotators:
+      annotator.annotate(datapoints, dataset, annotated_spec)
+    return lit_dataset.Dataset(
+        base=dataset, examples=datapoints, spec=annotated_spec)
+
   def make_handler(self, fn):
     """Convenience wrapper to handle args and serialization.
 
@@ -361,6 +393,7 @@ class LitApp(object):
       datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
+      annotators: Optional[List[lit_components.Annotator]] = None,
       layouts: Optional[Mapping[Text, dtypes.LitComponentLayout]] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
@@ -391,6 +424,14 @@ class LitApp(object):
 
     self._datasets = dict(datasets)
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+
+    self._annotators = annotators or []
+
+    # Run annotation on each dataset, creating an annotated dataset and
+    # replace the datasets with the annotated versions.
+    for ds_key, ds in self._datasets.items():
+      self._datasets[ds_key] = self._run_annotators(ds)
+
     # Index all datasets
     self._datasets = lit_dataset.IndexedDataset.index_all(
         self._datasets, caching.input_hash)
@@ -464,7 +505,7 @@ class LitApp(object):
         '/get_generated': self._get_generated,
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
-        '/get_datapoint_ids': self._get_datapoint_ids,
+        '/annotate_new_data': self._annotate_new_data,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,

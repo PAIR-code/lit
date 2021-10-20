@@ -233,7 +233,7 @@ export class DatapointEditorModule extends LitModule {
           parentId: this.selectionService.primarySelectedId!
         },
       };
-      const data: IndexedInput[] = await this.appState.indexDatapoints([datum]);
+      const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
       this.appState.commitNewDatapoints(data);
       this.selectionService.selectIds(data.map(d => d.id));
     };

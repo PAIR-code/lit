@@ -231,13 +231,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Generation logic
   /**
-   * Index one or more bare datapoints.
+   * Annotate one or more bare datapoints.
    * @param data input examples; ids will be overwritten.
    */
-  async indexDatapoints(data: IndexedInput[]): Promise<IndexedInput[]> {
+  async annotateNewData(data: IndexedInput[]): Promise<IndexedInput[]> {
     // Legacy: this exists as a pass-through so lit_app.ts and url_service.ts
     // don't need to depend on the ApiService directly.
-    return this.apiService.getDatapointIds(data);
+    return this.apiService.annotateNewData(data, this.currentDataset);
   }
 
 
