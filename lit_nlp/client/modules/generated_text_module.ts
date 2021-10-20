@@ -154,7 +154,7 @@ export class GeneratedTextModule extends LitModule {
     }
   }
 
-  renderControls() {
+  renderToolbar() {
     if (!this.referenceFields.size) {
       return null;
     }
@@ -171,24 +171,26 @@ export class GeneratedTextModule extends LitModule {
 
     // clang-format off
     return html`
-      <div class="diff-selector">
-        Highlight comparison:
-        ${Object.values(DiffMode).map(val => html`
-          <input type="radio" name="diffSelect" value="${val}" id='diff${val}'
-           ?checked=${val === this.diffMode} @change=${setDiffMode}>
-          <label for='diff${val}'>${val}</label>
-        `)}
-      </div>
-      <div class=${classMap({'switch-container': true,
-                             'switch-container-disabled': !isDiffActive})}
-        @click=${isDiffActive ? toggleInvertDiffs : null}>
-        <div class=${isDiffActive && !this.invertDiffs ? 'highlighted-diff' : ''}>
-          Diffs
+      <div class='module-toolbar'>
+        <div class="diff-selector">
+          Highlight comparison:
+          ${Object.values(DiffMode).map(val => html`
+            <input type="radio" name="diffSelect" value="${val}" id='diff${val}'
+             ?checked=${val === this.diffMode} @change=${setDiffMode}>
+            <label for='diff${val}'>${val}</label>
+          `)}
         </div>
-        <mwc-switch .checked=${this.invertDiffs} ?disabled=${!isDiffActive}>
-        </mwc-switch>
-        <div class=${isDiffActive && this.invertDiffs ? 'highlighted-match' : ''}>
-          Matches
+        <div class=${classMap({'switch-container': true,
+                               'switch-container-disabled': !isDiffActive})}
+          @click=${isDiffActive ? toggleInvertDiffs : null}>
+          <div class=${isDiffActive && !this.invertDiffs ? 'highlighted-diff' : ''}>
+            Diffs
+          </div>
+          <mwc-switch .checked=${this.invertDiffs} ?disabled=${!isDiffActive}>
+          </mwc-switch>
+          <div class=${isDiffActive && this.invertDiffs ? 'highlighted-match' : ''}>
+            Matches
+          </div>
         </div>
       </div>
     `;
@@ -253,9 +255,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar'>
-          ${this.renderControls()}
-        </div>
+        ${this.renderToolbar()}
         <div class="module-results-area">
           ${outputGroups.map(g => this.renderOutputGroup(g))}
         </div>
