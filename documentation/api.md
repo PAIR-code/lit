@@ -590,7 +590,7 @@ lime.run([dataset.examples[0]], model, dataset)
 # will return {"tokens": ..., "salience": ...} for each example given
 ```
 
-For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_Components_Example.ipynb.
+For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
 
 ## Type System
 

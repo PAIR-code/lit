@@ -15,7 +15,7 @@ For a guide to the many features available, check out the
 [UI guide](./ui_guide.md) or this
 [short video](https://www.youtube.com/watch?v=j0OfBWFUqIE).
 
-## LIT with your model {#custom-demos}
+## LIT with your model <!-- DO NOT REMOVE {#custom-demos} -->
 
 LIT provides a simple [Python API](./api.md) for use with custom models and
 data, as well as components such as metrics and counterfactual generators. Most
@@ -40,23 +40,23 @@ features that are available, and how to enable them for your model.
 
 Also, join https://groups.google.com/g/lit-annoucements to receive announcements and updates on new LIT features.
 
-## Using LIT in notebooks {#colab}
+## Using LIT in notebooks <!-- DO NOT REMOVE {#colab} -->
 
 LIT can also be used directly from Colab and Jupyter notebooks, with the LIT UI
-rendered in an output cell. See https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb for an example.
+rendered in an output cell. See https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb for an example.
 
 Note: if you see a 403 error in the output cell where LIT should render, you may
 need to enable cookies on the Colab site.
 
-## Stand-alone components {#standalone}
+## Stand-alone components <!-- DO NOT REMOVE {#standalone} -->
 
 Many LIT components - such as models, datasets, metrics, and salience methods -
 are stand-alone Python classes and can be easily used outside of the LIT UI. For
 additional details, see the
 [API documentation](./api.md#using-components-outside-lit) and an example Colab
-at https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_Components_Example.ipynb.
+at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
 
-## Run an existing example {#running-lit}
+## Run an existing example <!-- DO NOT REMOVE {#running-lit} -->
 
 The [demos page](./demos.md) lists some of the pre-built demos available for a
 variety of model types. The code for these is under
