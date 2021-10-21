@@ -27,6 +27,8 @@ import transformers  # for path caching
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_bool(
     "quickstart", False,
     "Quick-start mode, loads smaller models and a subset of the full data.")

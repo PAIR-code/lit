@@ -49,6 +49,8 @@ import transformers
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",

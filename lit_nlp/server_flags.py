@@ -71,6 +71,8 @@ flags.DEFINE_string(
     'What url base to use when copying the LIT url (e.g., something other '
     'than just a local server address.')
 flags.DEFINE_string('page_title', None, 'Custom page title for this server.')
+flags.DEFINE_bool('development_demo', False, 'If true, signifies this LIT '
+                  'instance is a development demo.')
 
 flags.DEFINE_string(
     'client_root',

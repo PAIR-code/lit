@@ -119,6 +119,10 @@ class CachingModelWrapper(lit_model.Model):
       self._cache_path = os.path.join(cache_dir, name + ".cache.pkl")
     self.load_cache()
 
+  @property
+  def cached_model(self):
+    return self._model
+
   def load_cache(self):
     if not self._cache_path:
       logging.info("%s: no cache path specified, not loading.",

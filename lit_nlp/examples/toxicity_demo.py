@@ -26,6 +26,8 @@ extract_compressed_file=True)
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_string("model_path", TOXICITY_MODEL_PATH,
                     "Path to save trained model.")
 flags.DEFINE_integer(

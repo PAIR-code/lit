@@ -41,6 +41,8 @@ import transformers
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_string(
     "model_path", None,
     "Path to trained model, in standard transformers format, e.g. as "

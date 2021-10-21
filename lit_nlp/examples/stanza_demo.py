@@ -34,6 +34,8 @@ import stanza
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_list(
     "sequence_tasks",
     ["upos", "xpos", "lemma"],

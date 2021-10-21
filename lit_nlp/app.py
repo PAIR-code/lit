@@ -404,10 +404,12 @@ class LitApp(object):
       default_layout: Optional[str] = None,
       canonical_url: Optional[str] = None,
       page_title: Optional[str] = None,
+      development_demo: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
     self._demo_mode = demo_mode
+    self._development_demo = development_demo
     self._default_layout = default_layout
     self._canonical_url = canonical_url
     self._page_title = page_title

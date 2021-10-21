@@ -67,6 +67,9 @@ config.canonical_url = config_dict.placeholder(str)
 # Custom page title for this server.
 config.page_title = config_dict.placeholder(str)
 
+# Whether the LIT instance is a development demo.
+config.development_demo = False
+
 config.client_root = os.path.join(
         pathlib.Path(__file__).parent.absolute(), 'client', 'build',
         'default')

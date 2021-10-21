@@ -31,6 +31,8 @@ import transformers  # for path caching
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_list(
     "languages", ["en", "es", "hi", "zh"],
     "Languages to load from XNLI. Available languages: "

@@ -31,6 +31,8 @@ from lit_nlp.examples.models import pretrained_lms
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_list(
     "models", ["bert-base-uncased", "gpt2"],
     "Models to load. Currently supports variants of BERT and GPT-2.")
