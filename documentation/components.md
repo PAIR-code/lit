@@ -605,9 +605,94 @@ datapoints, giving a global view of feature effects.
 
 ![Partial Dependence Plots Module](./images/components/lit-pdps.png){style="max-width:400px"}
 
-### TCAV
+## TCAV
 
-TODO(jwexler, ellenj): coming soon!
+Many interpretability methods provide importance values per input feature (e.g,
+token). By contrast, [TCAV](https://arxiv.org/abs/1711.11279) shows the
+importance of high-level concepts (e.g., color, gender, race) for a prediction
+class, which is more akin to how humans communicate.
+
+From those examples, TCAV learns a vector representing those concepts in a model
+layer, which we call a concept activation vector (CAV). A CAV is learned using a
+linear classifier. Intuitively, CAV measures how sensitive prediction is to the
+concept (i.e., directional derivative of the prediction with respect to the
+CAV). Unlike many local attribution methods mentioned above, TCAV is a global
+method. This means that TCAV explains "a class" rather than "a data point". TCAV
+does this by aggregating concepts' influence on data points in a class (i.e.,
+ratio of data points with positive directional derivatives).
+
+The TCAV method can be applied to models with any input modality. To enable
+TCAV, your model should return one or more example-level Embeddings fields for a
+layer, the predicted class, and the corresponding gradient values for that layer
+and class.
+
+### Example
+
+1.) To use TCAV, begin by creating one or more 'concept' slices.
+
+Every dataset/model is different, but for images, as low as 15 data points are
+shown to be sufficient. Start by adding at least 3 data points and add more as
+needed
+
+For this example, we select all examples containing the word 'humor' in the data
+table.
+
+![Data table - select examples](./images/components/tcav-search-examples.png){style="max-width:400px"}
+
+2.) Next, name the slice and click 'Create slice'.
+
+![Slice](./images/components/tcav-create-slice.png){style="max-width:280px"}
+
+3.) Finally, navigate to the TCAV tab, select the newly created slice, and click
+'Run TCAV'.
+
+This initiates standard TCAV, which compares the selected examples against
+random splits of examples in the rest of the dataset. Alternatively, selecting a
+second 'negative' slice would initiate relative TCAV, which compares the
+selected slice's examples against those in the negative slice.
+
+![TCAV1](./images/components/tcav-select-slice.png){style="max-width:800px"}
+
+When the run is complete (usually after a few seconds), the results are
+displayed in the table. In this example, the TCAV score is ~0.8, which is higher
+than the baseline indicated by the black bar. (Technically, the baseline
+represents 'null hypothesis', calculated with random concepts.) From this, we
+gather that the humor concept positively influences the prediction class 1, or
+positive sentiment.
+
+![TCAV2](./images/components/tcav-results-table.png){style="max-width:800px"}
+
+### Statistical Significance
+
+One of the pitfalls with the TCAV method is the potential generating meaningless
+CAVs, since any randomly chosen set of images will still produce a CAV (even if
+it is not meaningful).
+
+To guard against this, we use statistical testing to verify whether CAVs are
+statistically significant. For standard TCAV, we generate 15 possibly meaningful
+CAVs using the selected concept slice and random splits of the same size from
+the remainder of the dataset. We also generate 15 random CAVs using random
+splits against random splits. We then do a t-test to check if these two sets of
+scores are from the same distribution and reject CAVs as insignificant if the
+p-value is greater than 0.05. (If this happens, a warning is displayed in place of
+the TCAV score in the UI.)
+
+For relative TCAV, users would ideally test concepts with at least ~100 examples
+each so we can perform ~15 runs on unique subsets. In practice, users may not
+pass in this many examples.
+
+To accommodate this, we use a cross-validation approach, where we will try
+different subset split sizes, and return one with a statistically significant
+result (when compared against random CAVs). We set the minimum number of
+examples to run TCAV at 3 examples, and need at least 2 runs for statistical
+testing. If there are too few examples for this, we will perform 1 run of size
+min(concept set length, negative set length), and return the result without
+statistical testing (which is indicated in the UI).
+
+### Sorting by Cosine Similarity
+
+The option to sort examples by cosine similarity to a CAV will be available in
+an upcoming release.
 
 ## Counterfactual Analysis
 
