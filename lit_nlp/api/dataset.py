@@ -82,7 +82,7 @@ class Dataset(object):
       self._description = self._base.description()
 
     # Override from direct arguments.
-    self._examples = examples or self._examples
+    self._examples = examples if examples is not None else self._examples
     self._spec = spec or self._spec
     self._description = description or self._description
 
