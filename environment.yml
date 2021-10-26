@@ -24,7 +24,6 @@ dependencies:
     - pip
     - pip:
         - tensorflow
-        - tensorflow_decision_forests
         - tfds-nightly
         - tensorflow-text
         - rouge-score
@@ -38,3 +37,4 @@ dependencies:
         - ml-collections
         - saliency
         - matplotlib
+        - attrs

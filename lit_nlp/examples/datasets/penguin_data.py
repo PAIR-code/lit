@@ -25,17 +25,20 @@ class PenguinDataset(lit_dataset.Dataset):
     dataset_df = tfds.as_dataframe(peng['train'])
 
     # Filter out invalid rows
-    filtered_pd = dataset_df.loc[dataset_df['sex'] != 2]
+    dataset_df = dataset_df.loc[dataset_df['sex'] != 2]
 
-    examples = filtered_pd.to_dict(orient='records')
-
-    # Convert categorical features to strings.
-    for ex in examples:
-      ex['island'] = VOCABS['island'][ex['island']]
-      ex['sex'] = VOCABS['sex'][ex['sex']]
-      ex['species'] = VOCABS['species'][ex['species']]
-
-    self._examples = examples
+    records = dataset_df.to_dict(orient='records')
+    for rec in records:
+      ex = {
+          'body_mass_g': rec['body_mass_g'],
+          'culmen_depth_mm': rec['culmen_depth_mm'],
+          'culmen_length_mm': rec['culmen_length_mm'],
+          'flipper_length_mm': rec['flipper_length_mm'],
+          'island': VOCABS['island'][rec['island']],
+          'sex': VOCABS['sex'][rec['sex']],
+          'species': VOCABS['species'][rec['species']]
+      }
+      self._examples.append(ex)
 
   def spec(self):
     return {
