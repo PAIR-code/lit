@@ -13,7 +13,7 @@ from lit_nlp import server_flags
 from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.components import image_gradient_maps
 
-from lit_nlp.examples.datasets import open_images
+from lit_nlp.examples.datasets import imagenette
 from lit_nlp.examples.models import mobilenet
 
 
@@ -40,7 +40,7 @@ def main(_):
       },
       description='Basic layout for image demo',
   )
-  datasets = {'open_images': open_images.OpenImagesDataset()}
+  datasets = {'imagenette': imagenette.ImagenetteDataset()}
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
       'Grad': image_gradient_maps.VanillaGradients(),
