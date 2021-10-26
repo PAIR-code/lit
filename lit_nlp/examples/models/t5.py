@@ -348,7 +348,7 @@ class T5HFModel(lit_model.Model):
 # Task-specific wrapper classes.
 
 
-class TranslationWrapper(lit_model.Model):
+class TranslationWrapper(lit_model.ModelWrapper):
   """Wrapper class for machine translation."""
 
   # Mapping from generic T5 fields to this task
@@ -370,12 +370,8 @@ class TranslationWrapper(lit_model.Model):
   INPUT_TEMPLATE = "translate {source_language} to {target_language}: {source}"
 
   def __init__(self, model: lit_model.Model):
-    self.model = validate_t5_model(model)
-
-  @property
-  def wrapped(self):
-    """Return the underlying (wrapped) T5 model."""
-    return self.model
+    model = validate_t5_model(model)
+    super().__init__(model)
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
     input_kw = {
@@ -391,7 +387,7 @@ class TranslationWrapper(lit_model.Model):
   ##
   # LIT API implementation
   def description(self) -> str:
-    return "T5 for machine translation\n" + self.model.description()
+    return "T5 for machine translation\n" + self.wrapped.description()
 
   # TODO(b/170662608): remove these after batching API is cleaned up.
   def max_minibatch_size(self) -> int:
@@ -403,20 +399,24 @@ class TranslationWrapper(lit_model.Model):
   def predict(self, inputs):
     """Predict on a single minibatch of examples."""
     model_inputs = (self.preprocess(ex) for ex in inputs)
-    outputs = self.model.predict(model_inputs)
+    outputs = self.wrapped.predict(model_inputs)
     return (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
 
+  def predict_with_metadata(self, indexed_inputs):
+    """As predict(), but inputs are IndexedInput."""
+    return self.predict((ex["data"] for ex in indexed_inputs))
+
   def input_spec(self):
-    spec = lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
+    spec = lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
     spec["source_language"] = lit_types.CategoryLabel()
     spec["target_language"] = lit_types.CategoryLabel()
     return spec
 
   def output_spec(self):
-    return lit_types.remap_spec(self.model.output_spec(), self.FIELD_RENAMES)
+    return lit_types.remap_spec(self.wrapped.output_spec(), self.FIELD_RENAMES)
 
 
-class SummarizationWrapper(lit_model.Model):
+class SummarizationWrapper(lit_model.ModelWrapper):
   """Wrapper class to perform a summarization task."""
 
   # Mapping from generic T5 fields to this task
@@ -426,7 +426,8 @@ class SummarizationWrapper(lit_model.Model):
   }
 
   def __init__(self, model: lit_model.Model):
-    self.model = validate_t5_model(model)
+    model = validate_t5_model(model)
+    super().__init__(model)
 
     # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
@@ -437,11 +438,6 @@ class SummarizationWrapper(lit_model.Model):
         lit_types.GeneratedTextCandidates.top_text if self._multi_output else
         (lambda x: x))
 
-  @property
-  def wrapped(self):
-    """Return the underlying (wrapped) T5 model."""
-    return self.model
-
   def preprocess(self, ex: JsonDict) -> JsonDict:
     ret = {"input_text": "summarize: " + ex["document"]}
     if "reference" in ex:
@@ -451,7 +447,7 @@ class SummarizationWrapper(lit_model.Model):
   ##
   # LIT API implementation
   def description(self) -> str:
-    return "T5 for summarization\n" + self.model.description()
+    return "T5 for summarization\n" + self.wrapped.description()
 
   # TODO(b/170662608): remove these after batching API is cleaned up.
   def max_minibatch_size(self) -> int:
@@ -464,7 +460,7 @@ class SummarizationWrapper(lit_model.Model):
     """Predict on a single minibatch of examples."""
     inputs = list(inputs)  # needs to be referenced below, so keep full list
     model_inputs = (self.preprocess(ex) for ex in inputs)
-    outputs = self.model.predict(model_inputs)
+    outputs = self.wrapped.predict(model_inputs)
     outputs = (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
 
     # TODO(gehrmann): temp solution to get ROUGE scores in data table.
@@ -475,10 +471,14 @@ class SummarizationWrapper(lit_model.Model):
       mo["rougeL"] = float(score["rougeL"].fmeasure)
       yield mo
 
+  def predict_with_metadata(self, indexed_inputs):
+    """As predict(), but inputs are IndexedInput."""
+    return self.predict((ex["data"] for ex in indexed_inputs))
+
   def input_spec(self):
-    return lit_types.remap_spec(self.model.input_spec(), self.FIELD_RENAMES)
+    return lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
 
   def output_spec(self):
-    spec = lit_types.remap_spec(self.model.output_spec(), self.FIELD_RENAMES)
+    spec = lit_types.remap_spec(self.wrapped.output_spec(), self.FIELD_RENAMES)
     spec["rougeL"] = lit_types.Scalar()
     return spec
