@@ -120,6 +120,10 @@ class CachingModelWrapper(lit_model.Model):
     self.load_cache()
 
   @property
+  def wrapped(self):
+    return self._model
+
+  @property
   def cached_model(self):
     return self._model
 

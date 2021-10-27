@@ -372,6 +372,11 @@ class TranslationWrapper(lit_model.Model):
   def __init__(self, model: lit_model.Model):
     self.model = validate_t5_model(model)
 
+  @property
+  def wrapped(self):
+    """Return the underlying (wrapped) T5 model."""
+    return self.model
+
   def preprocess(self, ex: JsonDict) -> JsonDict:
     input_kw = {
         "source_language": self.LANGCODE_TO_NAME[ex["source_language"]],
@@ -431,6 +436,11 @@ class SummarizationWrapper(lit_model.Model):
     self._get_pred_string = (
         lit_types.GeneratedTextCandidates.top_text if self._multi_output else
         (lambda x: x))
+
+  @property
+  def wrapped(self):
+    """Return the underlying (wrapped) T5 model."""
+    return self.model
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
     ret = {"input_text": "summarize: " + ex["document"]}

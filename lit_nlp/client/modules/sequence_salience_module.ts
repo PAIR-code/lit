@@ -54,7 +54,7 @@ export class SequenceSalienceModule extends LitModule {
   @observable private focusState?: TokenFocusState = undefined;
 
   // Options
-  @observable private cmapGamma: number = 0.5;
+  @observable private cmapGamma: number = 2.0;
 
   @computed
   get cmap() {
@@ -65,6 +65,7 @@ export class SequenceSalienceModule extends LitModule {
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getPrimarySelectedInputData, data => {
+      this.focusState = undefined; /* clear focus */
       this.updateToSelection(data);
     });
   }
@@ -165,7 +166,6 @@ export class SequenceSalienceModule extends LitModule {
           <tr>
             <th><div class='subfield-title'>${targetFieldName}</div></th>
              <td><div class='token-holder'>
-                <div class='salient-token token-spacer'>&gt;&gt;</div>
                 ${preds.targetTokens.map((token, i) => {
                   const val = salience[i + preds.sourceTokens.length];
                   const tokenStyle = styleMap({
@@ -237,7 +237,7 @@ export class SequenceSalienceModule extends LitModule {
         </div>
         <div class="controls-group">
           <label for="gamma-slider">Gamma:</label>
-          <input type="range" min=0.25 max=4 step=0.25
+          <input type="range" min=0.25 max=6 step=0.25
             .value=${this.cmapGamma.toString()} class="slider" id="gamma-slider"
              @input=${onChangeGamma}>
           <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>
@@ -256,7 +256,8 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format off
     return html`
       <div class="module-container">
-        <div class="module-content" @click=${clearStickyFocus}>
+        <div class="module-content module-pad-content"
+         @click=${clearStickyFocus}>
           ${this.renderContent()}
         </div>
         <div class="module-footer">
@@ -269,9 +270,12 @@ export class SequenceSalienceModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    // TODO(b/177963928): determine visibility based on component list
-    // and model compatibility?
-    return true;
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('sequence_salience') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

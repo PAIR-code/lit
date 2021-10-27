@@ -120,8 +120,10 @@ def _extract_batch_length(preds):
   """Extracts batch length of predictions."""
   batch_length = None
   for key, value in preds.items():
-    batch_length = batch_length or value.shape[0]
-    if value.shape[0] != batch_length:
+    this_length = (
+        len(value) if isinstance(value, (list, tuple)) else value.shape[0])
+    batch_length = batch_length or this_length
+    if this_length != batch_length:
       raise ValueError('Batch length of predictions should be same. %s has '
                        'different batch length than others.' % key)
   return batch_length
