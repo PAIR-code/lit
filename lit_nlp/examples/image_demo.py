@@ -6,6 +6,7 @@ To run:
 Then navigate to localhost:5432 to access the demo UI.
 """
 
+import sys
 from absl import app
 from absl import flags
 from lit_nlp import dev_server
@@ -23,6 +24,16 @@ FLAGS.set_default('development_demo', True)
 FLAGS.set_default('warm_start', 1)
 FLAGS.set_default('default_layout', 'demo_layout')
 FLAGS.set_default('page_title', 'LIT Image Demo')
+
+
+# Function for running demo through gunicorn instead of the local dev server.
+def get_wsgi_app():
+  FLAGS.set_default('server_type', 'external')
+  FLAGS.set_default('demo_mode', True)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
 
 
 def main(_):

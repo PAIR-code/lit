@@ -14,10 +14,9 @@ from lit_nlp import server_flags
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
 
-MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin_keras.tar.gz'  # pylint: disable=line-too-long
+MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
 import transformers
-MODEL_PATH = transformers.file_utils.cached_path(MODEL_PATH,
-extract_compressed_file=True)
+MODEL_PATH = transformers.file_utils.cached_path(MODEL_PATH)
 
 FLAGS = flags.FLAGS
 
@@ -40,7 +39,7 @@ def main(_):
   models = {'species classifier': penguin_model.PenguinModel(model_path)}
   datasets = {'penguins': penguin_data.PenguinDataset()}
   lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 if __name__ == '__main__':
