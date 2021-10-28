@@ -97,7 +97,7 @@ class PredsCache(object):
       exit(1)
 
 
-class CachingModelWrapper(lit_model.Model):
+class CachingModelWrapper(lit_model.ModelWrapper):
   """Wrapper to add per-example caching to a LIT model."""
 
   def __init__(self,
@@ -111,21 +111,13 @@ class CachingModelWrapper(lit_model.Model):
       name: name, used for logging and data files
       cache_dir: if given, will load/save data to disk
     """
+    super().__init__(model)
     self._log_prefix = f"CachingModelWrapper '{name:s}'"
-    self._model = model
     self._cache = PredsCache()
     self._cache_path = None
     if cache_dir:
       self._cache_path = os.path.join(cache_dir, name + ".cache.pkl")
     self.load_cache()
-
-  @property
-  def wrapped(self):
-    return self._model
-
-  @property
-  def cached_model(self):
-    return self._model
 
   def load_cache(self):
     if not self._cache_path:
@@ -160,50 +152,26 @@ class CachingModelWrapper(lit_model.Model):
   def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict],
                                   dataset_name: Text):
     """For use with UMAP and other preprocessing transforms."""
-    outputs = list(self._model.fit_transform_with_metadata(indexed_inputs))
+    outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
     with self._cache.lock:
       for i, output in enumerate(outputs):
         self._cache.put(output, key_fn(indexed_inputs[i]))
     return outputs
 
-  ##
-  # LIT model API implementation.
-  def description(self) -> str:
-    """Pass-through underlying model description."""
-    return self._model.description()
-
-  def max_minibatch_size(self):
-    return self._model.max_minibatch_size()
-
-  def get_embedding_table(self):
-    return self._model.get_embedding_table()
-
   def predict_minibatch(self, *args, **kw):
     logging.warning(
         "CachingModelWrapper.predict_minibatch() bypasses the cache - "
         "if this is not intended, use predict_with_metadata() instead "
         "to access cache via example IDs.")
-    return self._model.predict_minibatch(*args, **kw)
+    return self.wrapped.predict_minibatch(*args, **kw)
 
   def predict(self, *args, **kw):
     logging.warning(
         "CachingModelWrapper.predict() bypasses the cache - "
         "if this is not intended, use predict_with_metadata() instead "
         "to access cache via example IDs.")
-    return self._model.predict(*args, **kw)
-
-  def load(self, path):
-    return self._model.load(path)
-
-  def spec(self) -> lit_model.ModelSpec:
-    return self._model.spec()
-
-  def input_spec(self):
-    return self._model.input_spec()
-
-  def output_spec(self):
-    return self._model.output_spec()
+    return self.wrapped.predict(*args, **kw)
 
   def predict_with_metadata(self, *args, **kw):
     """As predict(), but inputs are IndexedInput."""
@@ -223,7 +191,7 @@ class CachingModelWrapper(lit_model.Model):
     # (null keys skip cache), and removing this codepath.
     if dataset_name is None:
       logging.info("\n\nCache disabled for current call.\n\n")
-      results = list(self._model.predict_with_metadata(indexed_inputs))
+      results = list(self.wrapped.predict_with_metadata(indexed_inputs))
       return results
 
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
@@ -240,8 +208,11 @@ class CachingModelWrapper(lit_model.Model):
     # and actually run the model on these inputs.
     model_inputs = [indexed_inputs[i] for i in miss_idxs]
     logging.info("Prepared %d inputs for model", len(model_inputs))
-    model_preds = list(self._model.predict_with_metadata(model_inputs))
+    model_preds = list(self.wrapped.predict_with_metadata(model_inputs))
     logging.info("Received %d predictions from model", len(model_preds))
+    assert len(model_preds) == len(
+        model_inputs
+    ), f"Received {len(model_preds)} predictions, which does not match {len(model_inputs)}, the number of inputs."
 
     # Merge results back into the output list.
     for i, orig_idx in enumerate(miss_idxs):

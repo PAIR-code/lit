@@ -253,7 +253,8 @@ class LitApp(object):
 
     assert model_name is not None, 'No model specified.'
     assert model_path is not None, 'No model path specified.'
-    new_model = self._models[model_name].load(model_path)
+    # Load using the underlying model class, then wrap explicitly in a cache.
+    new_model = self._models[model_name].wrapped.load(model_path)
     if new_model is not None:
       new_model_name = model_name + ':' + os.path.basename(model_path)
       self._models[new_model_name] = caching.CachingModelWrapper(

@@ -148,6 +148,7 @@ class Model(metaclass=abc.ABCMeta):
     """Return a spec describing model outputs."""
     return
 
+  # TODO(lit-dev): annotate as @final once we migrate to python 3.8+
   def spec(self) -> ModelSpec:
     return ModelSpec(input=self.input_spec(), output=self.output_spec())
 
@@ -210,10 +211,72 @@ class Model(metaclass=abc.ABCMeta):
     if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
       yield from self.predict_minibatch(minibatch, **kw)
 
+  # TODO(b/171513556): remove this method.
   def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
                             **kw) -> Iterator[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     return self.predict((ex['data'] for ex in indexed_inputs), **kw)
+
+
+class ModelWrapper(Model):
+  """Wrapper for a LIT model.
+
+  This class acts as an identity function, with pass-through implementations of
+  the Model API. Subclasses of this can implement only those methods that need
+  to be modified.
+  """
+
+  def __init__(self, model: Model):
+    self._wrapped = model
+
+  @property
+  def wrapped(self):
+    """Access the wrapped model."""
+    return self._wrapped
+
+  def description(self) -> str:
+    return self.wrapped.description()
+
+  def max_minibatch_size(self) -> int:
+    return self.wrapped.max_minibatch_size()
+
+  def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
+    return self.wrapped.predict_minibatch(inputs, **kw)
+
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict(inputs, **kw)
+
+  # NOTE: if a subclass modifies predict(), it should also override this to
+  # call the custom predict() method - otherwise this will delegate to the
+  # wrapped class and call /that class's/ predict() method, likely leading to
+  # incorrect results.
+  # b/171513556 will solve this problem by removing the need for any
+  # *_with_metadata() methods.
+  def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
+                            **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict_with_metadata(indexed_inputs, **kw)
+
+  def load(self, path: str):
+    """Load a new model and wrap it with this class."""
+    new_model = self.wrapped.load(path)
+    return self.__class__(new_model)
+
+  def input_spec(self) -> types.Spec:
+    return self.wrapped.input_spec()
+
+  def output_spec(self) -> types.Spec:
+    return self.wrapped.output_spec()
+
+  def spec(self) -> ModelSpec:
+    return ModelSpec(input=self.input_spec(), output=self.output_spec())
+
+  ##
+  # Special methods
+  def get_embedding_table(self) -> Tuple[List[Text], np.ndarray]:
+    return self.wrapped.get_embedding_table()
+
+  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict]):
+    return self.wrapped.fit_transform_with_metadata(indexed_inputs)
 
 
 class BatchedRemoteModel(Model):
