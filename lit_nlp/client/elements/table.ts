@@ -119,7 +119,7 @@ export class DataTable extends ReactiveElement {
     return [styles];
   }
 
-  // If sortName is undefined, we use the order of the input data.
+  // Sort order precedence: 1) sortName, 2) input order
   @observable private sortName?: string;
   @observable private sortAscending = true;
   @observable private showColumnMenu = false;
@@ -153,17 +153,18 @@ export class DataTable extends ReactiveElement {
     this.resizeObserver.observe(container);
 
     // If inputs changed, re-sort data based on the new inputs.
-    this.reactImmediately(() => this.rowFilteredData, filteredData => {
+    this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
       this.stickySortedData = null;
       this.needsEntriesPerPageRecompute = true;
       this.pageNum = 0;
       this.requestUpdate();
     });
+
     // If sort settings are changed, re-sort data optionally using result of
     // previous sort.
     const triggerSort = () => [this.sortName, this.sortAscending];
     this.reactImmediately(triggerSort, () => {
-      this.stickySortedData = this.getSortedData(this.displayData);
+      this.stickySortedData = this.getSortedData(this.rowFilteredData);
       this.pageNum = 0;
       this.requestUpdate();
     });
@@ -270,8 +271,8 @@ export class DataTable extends ReactiveElement {
 
   @computed
   get sortIndex(): number|undefined {
-    return (this.sortName == null) ? undefined :
-                                     this.columnStrings.indexOf(this.sortName);
+    return this.sortName != null ? this.columnStrings.indexOf(this.sortName) :
+                                   undefined;
   }
 
   private shouldRightAlignColumn(index: number) {
@@ -316,9 +317,12 @@ export class DataTable extends ReactiveElement {
    * - indexedData converts to parallel-list form and adds input indices
    *   for later reference
    * - rowFilteredData filters to a subset of rows, based on search criteria
-   * - getSortedData() is called in a reaction to sort this if sort-by-column
-   *   is used. The result is stored in this.stickySortedData so that future
-   *   sorts can be "stable" rather than re-sorting from the input.
+   * - getSortedData() is used to sort the data if 1) the user has enabled sort-
+   *   by-column by clicking a column header, or 2) a DataTable consumer wants
+   *   to impose a context-specific sort behavior (e.g., ClassificationModule
+   *   defining sort based on the Score associated with that class). The result
+   *   is stored in this.stickySortedData so that future sorts can be "stable"
+   *   rather than re-sorting from the input.
    * - displayData is stickySortedData, or rowFilteredData if that is unset.
    *   This is used to actually render the table.
    */
@@ -362,19 +366,24 @@ export class DataTable extends ReactiveElement {
   }
 
   getSortedData(source: TableRowInternal[]): TableRowInternal[] {
-    let sortedData = source.slice();
     if (this.sortName != null) {
-      sortedData = sortedData.sort(
-          (a, b) => (this.sortAscending ? ascending : descending)(
-              this.getSortableEntry(a.rowData[this.sortIndex!]),
-              this.getSortableEntry(b.rowData[this.sortIndex!])));
+      const sorter = this.sortAscending ? ascending : descending;
+
+      return source.slice().sort((a, b) => sorter(
+        this.getSortableEntry(a.rowData[this.sortIndex!]),
+        this.getSortableEntry(b.rowData[this.sortIndex!])));
     }
-    return sortedData;
+
+    return source;
   }
 
   @computed
   get displayData(): TableRowInternal[] {
-    return this.stickySortedData ?? this.rowFilteredData;
+    if (this.stickySortedData != null) {
+      return this.stickySortedData;
+    } else {
+      return this.getSortedData(this.rowFilteredData);
+    }
   }
 
   @computed

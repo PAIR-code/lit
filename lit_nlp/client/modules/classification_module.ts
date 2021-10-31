@@ -17,13 +17,13 @@
 
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html, TemplateResult} from 'lit';
-import {styleMap} from 'lit/directives/style-map';
+import { html } from 'lit';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
+import '../elements/score_bar';
 import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
@@ -137,44 +137,21 @@ export class ClassificationModule extends LitModule {
     `;
   }
 
-  private renderBar(fieldName: string, pred: DisplayInfo): TemplateResult {
-    // TODO(b/181692911): Style through CSS when data table supports it.
-    const numLabels =
-        this.classificationService.getLabelNames(this.model, fieldName).length;
-    const pad = 0.75;
-    const margin = 0.35;
-    const barStyle: {[name: string]: string} = {};
-    const scale = 100 - 2 * (pad + margin) * numLabels;
-    barStyle['width'] = `${scale * pred['value']}%`;
-    barStyle['background-color'] = '#07a3ba';
-    barStyle['padding-left'] = `${pad}%`;
-    barStyle['padding-right'] = `${pad}%`;
-    barStyle['margin-left'] = `${margin}%`;
-    barStyle['margin-right'] = `${margin}%`;
-    const holderStyle: {[name: string]: string} = {};
-    holderStyle['width'] = '100px';
-    holderStyle['height'] = '20px';
-    holderStyle['display'] = 'flex';
-    holderStyle['position'] = 'relative';
-    return html`
-        <div style='${styleMap(holderStyle)}'>
-          <div style='${styleMap(barStyle)}'></div>
-        </div>`;
-  }
-
   private renderRow(fieldName: string, prediction: DisplayInfo[]) {
     const rows: TableData[] = prediction.map((pred) => {
       const row = [
-        pred['label'],
-        formatBoolean(pred['isGroundTruth']!),
-        formatBoolean(pred['isPredicted']),
-        pred['value'].toFixed(3),
-        {template: this.renderBar(fieldName, pred),
-         value: pred['value']}
+        pred.label,
+        formatBoolean(pred.isGroundTruth!),
+        formatBoolean(pred.isPredicted),
+        {
+          template: html`
+            <score-bar score=${pred.value} maxScore=${1}></score-bar>`,
+          value: pred.value
+        }
       ];
       return row;
     });
-    const columnNames = ["Class", "Label", "Predicted", "Score", "Score Bar"];
+    const columnNames = ["Class", "Label", "Predicted", "Score"];
 
     return html`
         <div class='classification-row-holder'>
