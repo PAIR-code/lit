@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html } from 'lit';
+import {html} from 'lit';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -153,12 +153,17 @@ export class ClassificationModule extends LitModule {
     });
     const columnNames = ["Class", "Label", "Predicted", "Score"];
 
+    const autosort = this.appState
+      .currentModelSpecs[this.model].spec.output['preds']?.autosort;
+
     return html`
         <div class='classification-row-holder'>
           <div class='field-title'>${fieldName}</div>
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}
+            .sortName=${autosort ? "Score" : undefined}
+            .sortAscending=${!autosort}
           ></lit-data-table>
         </div>`;
   }

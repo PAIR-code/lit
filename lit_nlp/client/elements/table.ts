@@ -120,8 +120,8 @@ export class DataTable extends ReactiveElement {
   }
 
   // Sort order precedence: 1) sortName, 2) input order
-  @observable private sortName?: string;
-  @observable private sortAscending = true;
+  @observable @property({type: String}) sortName?: string;
+  @observable @property({type: Boolean}) sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
@@ -657,11 +657,20 @@ export class DataTable extends ReactiveElement {
 
     const toggleSort = (e: Event) => {
       e.stopPropagation();
-      if (this.sortName === title) {
-        this.sortAscending = !this.sortAscending;
-      } else {
+
+      // Table supports three sort states/transitions after a click:
+      if (this.sortName !== title) {
+        //   1. If title !== sortName, sort by that title in ascending order
         this.sortName = title;
         this.sortAscending = true;
+      } else {
+        if (this.sortAscending) {
+          // 2. If title === sortName && ascending, switch to descending
+          this.sortAscending = false;
+        } else {
+          // 3. If title === sortName && descending, turn off sort
+          this.sortName = undefined;
+        }
       }
     };
 

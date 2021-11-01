@@ -63,6 +63,7 @@ export interface LitType {
   signed?: boolean;
   mask_token?: string;
   select_all?: boolean;
+  autosort?: boolean;
 }
 
 export interface Spec {
@@ -137,11 +138,11 @@ export interface IndexedInput {
  * Examples faceted by a given set of features.
  */
 export interface FacetedData {
-  'data': IndexedInput[];
+  data: IndexedInput[];
   /** Name to display */
-  'displayName'?: string;
+  displayName?: string;
   /** What values were used as filters to get this data */
-  'facets'?: FacetMap;
+  facets?: FacetMap;
 }
 
 /**
@@ -168,10 +169,10 @@ export interface TopKResult {
 }
 
 export interface SpanLabel {
-  'start': number;  // inclusive
-  'end': number;    // exclusive
-  'label': string;
-  'align'?: string;
+  start: number;  // inclusive
+  end: number;    // exclusive
+  label: string;
+  align?: string;
 }
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
@@ -192,9 +193,9 @@ export function formatSpanLabel(s: SpanLabel): string {
  * See https://arxiv.org/abs/1905.06316 for more on this formalism.
  */
 export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string|number;
+  span1: [number, number];   // inclusive, exclusive
+  span2?: [number, number];  // inclusive, exclusive
+  label: string|number;
 }
 export function formatEdgeLabel(e: EdgeLabel): string {
   const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
