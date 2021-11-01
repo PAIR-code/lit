@@ -265,7 +265,7 @@ export interface FacetMap {
  * Usually, set to 'this' from the calling module, so it can distinguish
  * selection updates from itself vs another module.
  */
-export type ServiceUser = object|null;
+export type ServiceUser = object;
 
 /**
  * We can't define abstract static properties/methods in typescript, so we
