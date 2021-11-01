@@ -39,6 +39,7 @@ import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
+import {SequenceSalienceModule} from '../modules/sequence_salience_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
@@ -81,7 +82,7 @@ export const LAYOUTS: LitComponentLayouts = {
     },
     lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
-      'Salience': [SalienceMapModule],
+      'Salience': [SalienceMapModule, SequenceSalienceModule],
     },
     layoutSettings: {
       hideToolbar: true,
@@ -104,6 +105,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Explanations': [
         ...MODEL_PREDS_MODULES,
         SalienceMapModule,
+        SequenceSalienceModule,
         AttentionModule,
       ],
       'Metrics': [
