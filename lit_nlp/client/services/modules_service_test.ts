@@ -22,8 +22,8 @@ import {toJS} from 'mobx';
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
 import {LitComponentLayout} from '../lib/types';
+import {ClassificationModule} from '../modules/classification_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
-import {SalienceMapModule} from '../modules/salience_map_module';
 
 import {ApiService} from './api_service';
 import {ModulesService} from './modules_service';
@@ -36,7 +36,7 @@ const MOCK_LAYOUT: LitComponentLayout = {
     ],
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      SalienceMapModule
+      ClassificationModule
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true}
@@ -90,7 +90,8 @@ describe('modules service test', async () => {
     // Check that the two modules we added to the layout are reflected in
     // allModuleKeys.
     const keys =
-        new Set([`Main_${DatapointEditorModule.title}`, `internals_${SalienceMapModule.title}`]);
+        new Set([`Main_${DatapointEditorModule.title}`,
+                 `internals_${ClassificationModule.title}`]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 

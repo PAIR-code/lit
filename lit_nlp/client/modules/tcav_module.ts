@@ -452,12 +452,19 @@ export class TCAVModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Ensure the models can support TCAV and that the TCAV interpreter is
+    // loaded.
     const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');
     const supportsGrads = doesOutputSpecContain(modelSpecs, 'Gradients');
     const multiclassPreds =
         doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
-    if (supportsGrads && supportsEmbs && multiclassPreds) {
-      return true;
+    if (!supportsGrads || !supportsEmbs || !multiclassPreds) {
+      return false;
+    }
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('tcav') !== -1) {
+        return true;
+      }
     }
     return false;
   }

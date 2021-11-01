@@ -486,7 +486,18 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'Embeddings');
+    // Ensure there are embeddings to use and that projection interpreters
+    // are loaded.
+    if (!doesOutputSpecContain(modelSpecs, 'Embeddings')) {
+      return false;
+    }
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('umap') !== -1 ||
+          modelInfo.interpreters.indexOf('pca') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

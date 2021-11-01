@@ -406,7 +406,12 @@ export class MetricsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return true;
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('metrics') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 
