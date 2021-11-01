@@ -59,8 +59,7 @@ at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examp
 ## Run an existing example <!-- DO NOT REMOVE {#running-lit} -->
 
 The [demos page](./demos.md) lists some of the pre-built demos available for a
-variety of model types. The code for these is under
-google3/third_party/py/lit_nlp/examples
+variety of model types. The code for these is under [lit_nlp/examples](../lit_nlp/examples)
 ;
 each is a small script that loads one or more models and starts a LIT server.
 

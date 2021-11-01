@@ -31,9 +31,6 @@ on every invocation.) Generally, you'll need to:
 *   In your `predict()` or `predict_minibatch()` function, build a feed dict and
     call `session.run` directly.
 
-For an example implementation using BERT, see
-[`text_similarity_demo.py`](http://google3/learning/vis/lit/examples/estimator/text_similarity_demo.py).
-
 Alternatively, you can export to a SavedModel and load this in an eager mode
 runtime. This leads to much simpler code (see
 [this example](../lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
@@ -60,7 +57,7 @@ the server, while the LIT `Model` implementation simply manages the RPC stub and
 handles format conversion and any additional pre- or post-processing.
 
 *   For a general-purpose interface to connect to another LIT server over HTTP,
-    see google3/third_party/py/lit_nlp/components/remote_model.py.
+    see [lit_nlp/components/remote_model.py](../lit_nlp/components/remote_model.py).
 
 ### Static predictions
 
@@ -109,7 +106,7 @@ confusion matricies, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
 *   For a basic example on a binary sentiment task, see
-    google3/third_party/py/lit_nlp/examples/simple_tf2_demo.py.
+    [lit_nlp/examples/simple_tf2_demo.py](../lit_nlp/examples/simple_tf2_demo.py).
 *   Models should define a `MulticlassPreds` field in their output spec with the
     `vocab=` attribute as the set of class labels, and for each example should
     return a vector of probabilities for each class.
@@ -147,7 +144,7 @@ LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
-*   For a basic example on an image labeling task, see google3/third_party/py/lit_nlp/examples/image_demo.py.
+*   For a basic example on an image labeling task, see [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -179,7 +176,7 @@ or decoder.
     as `List[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
 *   For modeling examples, see
-    google3/third_party/py/lit_nlp/examples/models/t5.py
+    [lit_nlp/examples/models/t5.py](../lit_nlp/examples/models/t5.py)
 
 ![Generated Text Module](images/components/generation-results.png){style="max-width:600px"}
 
@@ -214,7 +211,7 @@ and otherwise to different parts of the input.
     [Dataset class documentation](./api.md#datasets) and the corresponding
     [Model](./api.md#models).
 *   For a more involved code example including per-token gradients, see
-    google3/third_party/py/lit_nlp/examples/glue_demo.py.
+    [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py).
 
 ### Tabular data
 
@@ -224,7 +221,7 @@ types. LIT can be used as a replacement for the [What-If Tool](https://whatif-to
 containing a similar feature set but with more extensibility.
 
 *   For a demo using a penguin stats dataset/binary classification task, see
-    google3/third_party/py/lit_nlp/examples/penguin_demo.py.
+    [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py).
 
 ### Images
 
@@ -237,10 +234,10 @@ NOTE: We may transition images away from encded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See google3/third_party/py/lit_nlp/examples/datasets/open_images.py for a dataset
+*   See [lit_nlp/examples/datasets/open_images.py](../lit_nlp/examples/datasets/open_images.py) for a dataset
     containing images, including converting images to base64 encoded strings.
 *   For a demo of an image classifier, see
-    google3/third_party/py/lit_nlp/examples/image_demo.py.
+    [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
 
 ## Token-based Salience
 

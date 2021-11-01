@@ -14,12 +14,12 @@ https://pair-code.github.io/lit/demos/.
 
 --------------------------------------------------------------------------------
 
-## Classification {#classification .demo-section-header}
+## Classification <!-- DO NOT REMOVE {#classification .demo-section-header} -->
 
-### Sentiment and NLI {#glue .demo-header}
+### Sentiment and NLI <!-- DO NOT REMOVE {#glue .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html \
-**Code:** ../lit_nlp/examples/glue_demo.py
+**Code:** [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py)
 
 *   Multi-task demo:
     *   Sentiment analysis as a binary classification task
@@ -45,9 +45,9 @@ https://pair-code.github.io/lit/demos/.
 Tip: check out a case study for this demo on the public LIT website:
 https://pair-code.github.io/lit/tutorials/sentiment
 
-### Multilingual (XNLI) {#xnli .demo-header}
+### Multilingual (XNLI) <!-- DO NOT REMOVE {#xnli .demo-header} -->
 
-**Code:** ../lit_nlp/examples/xnli_demo.py
+**Code:** [lit_nlp/examples/xnli_demo.py](../lit_nlp/examples/xnli_demo.py)
 
 *   [XNLI](https://cims.nyu.edu/~sbowman/xnli/) dataset translates a subset of
     MultiNLI into 14 different languages.
@@ -60,12 +60,12 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 --------------------------------------------------------------------------------
 
-## Regression / Scoring {#scoring .demo-section-header}
+## Regression / Scoring <!-- DO NOT REMOVE {#scoring .demo-section-header} -->
 
-### Textual Similarity (STS-B) {#stsb .demo-header}
+### Textual Similarity (STS-B) <!-- DO NOT REMOVE {#stsb .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html?models=stsb&dataset=stsb_dev \
-**Code:** ../lit_nlp/examples/glue_demo.py
+**Code:** [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py)
 
 *   STS-B textual similarity task, predicting scores on a range from 0
     (unrelated) to 5 (very similar).
@@ -80,11 +80,11 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 --------------------------------------------------------------------------------
 
-## Sequence-to-Sequence {#seq2seq .demo-section-header}
+## Sequence-to-Sequence <!-- DO NOT REMOVE {#seq2seq .demo-section-header} -->
 
-### Open-source T5 {#t5 .demo-header}
+### Open-source T5 <!-- DO NOT REMOVE {#t5 .demo-header} -->
 
-**Code:** ../lit_nlp/examples/t5_demo.py
+**Code:** [lit_nlp/examples/t5_demo.py](../lit_nlp/examples/t5_demo.py)
 
 *   Supports HuggingFace TF2 (Keras) models as well as TensorFlow SavedModel
     formats.
@@ -102,11 +102,11 @@ https://pair-code.github.io/lit/tutorials/generation
 
 --------------------------------------------------------------------------------
 
-## Language Modeling {#lm .demo-section-header}
+## Language Modeling <!-- DO NOT REMOVE {#lm .demo-section-header} -->
 
-### BERT and GPT-2 {#bert .demo-header}
+### BERT and GPT-2 <!-- DO NOT REMOVE {#bert .demo-header} -->
 
-**Code:** ../lit_nlp/examples/lm_demo.py
+**Code:** [lit_nlp/examples/lm_demo.py](../lit_nlp/examples/lm_demo.py)
 
 *   Compare multiple BERT and GPT-2 models side-by-side on a variety of
     plain-text corpora.
@@ -118,11 +118,11 @@ https://pair-code.github.io/lit/tutorials/generation
 
 --------------------------------------------------------------------------------
 
-## Structured Prediction {#structured .demo-section-header}
+## Structured Prediction <!-- DO NOT REMOVE {#structured .demo-section-header} -->
 
-### Gender Bias in Coreference {#coref .demo-header}
+### Gender Bias in Coreference <!-- DO NOT REMOVE {#coref .demo-header} -->
 
-**Code:** ../lit_nlp/examples/coref/coref_demo.py
+**Code:** [lit_nlp/examples/coref/coref_demo.py](../lit_nlp/examples/coref/coref_demo.py)
 
 *   Gold-mention coreference model, trained on
     [OntoNotes](https://catalog.ldc.upenn.edu/LDC2013T19).
@@ -139,11 +139,11 @@ https://pair-code.github.io/lit/tutorials/coref
 
 --------------------------------------------------------------------------------
 
-## Multimodal {#multimodal .demo-section-header}
+## Multimodal <!-- DO NOT REMOVE {#multimodal .demo-section-header} -->
 
-### Tabular Data: Penguin Classification {#penguin .demo-header}
+### Tabular Data: Penguin Classification <!-- DO NOT REMOVE {#penguin .demo-header} -->
 
-**Code:** ../lit_nlp/examples/penguin_demo.py
+**Code:** [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py)
 
 *   Binary classification on
     [penguin dataset](https://www.tensorflow.org/datasets/catalog/penguins).
@@ -154,9 +154,9 @@ https://pair-code.github.io/lit/tutorials/coref
     of examples to achieve specific fairness constraints, such as demographic
     parity.
 
-### Image Classification with MobileNet {#mobilenet .demo-header}
+### Image Classification with MobileNet <!-- DO NOT REMOVE {#mobilenet .demo-header} -->
 
-**Code:** google3/third_party/py/lit_nlp/examples/image_demo.py
+**Code:** [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py)
 
 *   Classification on ImageNet labels using a MobileNet model.
 *   Showing using of LIT on image data.

@@ -174,7 +174,8 @@ class SimpleSentimentModel(lit_model.Model):
   def output_spec(self) -> lit_types.Spec:
     ret = {
         "tokens": lit_types.Tokens(),
-        "probas": lit_types.MulticlassPreds(parent="label", vocab=self.LABELS),
+        "probas": lit_types.MulticlassPreds(parent="label", vocab=self.LABELS,
+                                            null_idx=0),
         "cls_emb": lit_types.Embeddings()
     }
     # Gradients, if requested.

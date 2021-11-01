@@ -39,3 +39,4 @@ dependencies:
         - matplotlib
         - attrs
         - Jinja2
+        - stanza
