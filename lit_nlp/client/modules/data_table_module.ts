@@ -52,6 +52,8 @@ export class DataTableModule extends LitModule {
 
   static override duplicateForModelComparison = false;
 
+  protected showControls = true;
+
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly regressionService = app.getService(RegressionService);
@@ -501,9 +503,11 @@ export class DataTableModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar'>
-          ${this.renderControls()}
-        </div>
+        ${this.showControls ? html`
+          <div class='module-toolbar'>
+            ${this.renderControls()}
+          </div>
+        ` : null}
         <div class='module-results-area'>
           ${this.renderTable()}
         </div>
@@ -517,8 +521,21 @@ export class DataTableModule extends LitModule {
   }
 }
 
+/**
+ * Simplified version of the above; omits toolbar controls add-and-compare
+ * button.
+ */
+@customElement('simple-data-table-module')
+export class SimpleDataTableModule extends DataTableModule {
+  protected override showControls = false;
+  static override template = () => {
+    return html`<simple-data-table-module></simple-data-table-module>`;
+  };
+}
+
 declare global {
   interface HTMLElementTagNameMap {
     'data-table-module': DataTableModule;
+    'simple-data-table-module': SimpleDataTableModule;
   }
 }

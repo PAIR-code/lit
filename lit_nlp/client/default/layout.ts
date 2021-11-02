@@ -26,7 +26,7 @@ import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
-import {DataTableModule} from '../modules/data_table_module';
+import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
 import {GeneratedImageModule} from '../modules/generated_image_module';
@@ -78,7 +78,7 @@ export const LAYOUTS: LitComponentLayouts = {
   'simple':  {
     upper: {
       "Editor": [SimpleDatapointEditorModule],
-      "Examples": [DataTableModule],
+      "Examples": [SimpleDataTableModule],
     },
     lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
