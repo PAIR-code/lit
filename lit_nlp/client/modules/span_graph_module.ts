@@ -198,8 +198,15 @@ export class SpanGraphGoldModule extends LitModule {
 
   // tslint:disable:no-any
   override render() {
+    // If more than one model is selected, SpanGraphModule will be offset
+    // vertically due to the model name header, while this one won't be.
+    // So, add an offset so that the content still aligns when there is a
+    // SpanGraphGoldModule and a SpanGraphModule side-by-side.
+    const offsetForHeader = !this.appState.compareExamplesEnabled &&
+        this.appState.currentModels.length > 1;
+    // clang-format off
     return html`
-      ${!this.appState.compareExamplesEnabled ? html`<div class='offset-for-module-header'></div>` : null}
+      ${offsetForHeader? html`<div class='offset-for-module-header'></div>` : null}
       <div id="gold-group" class='outer-container'>
         ${
         renderTokenGroups(
@@ -207,6 +214,7 @@ export class SpanGraphGoldModule extends LitModule {
             (this.constructor as any).orientation)}
       </div>
     `;
+    // clang-format on
   }
   // tslint:enable:no-any
 

@@ -174,13 +174,17 @@ export class WidgetGroup extends LitElement {
     const onWrapperClick = (e: Event) => {
       e.stopPropagation();
     };
+
+    // Omit subtitle if there's only one in the group.
+    const showSubtitle = configGroup.length > 1;
+
     // clang-format off
     return html`
       <div class='outside' @click=${onBackgroundClick}>
         <div class=${wrapperClasses} @click=${onWrapperClick} >
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
-            ${configGroup.map(config => this.renderModule(config, widgetStyle))}
+            ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
             ${this.renderExpander()}
           </div>
         </div>
@@ -190,7 +194,9 @@ export class WidgetGroup extends LitElement {
   }
 
 
-  renderModule(config: RenderConfig, styles: {[key: string]: string}) {
+  renderModule(
+      config: RenderConfig, styles: {[key: string]: string},
+      showSubtitle: boolean) {
     const moduleType = config.moduleType;
     const modelName = config.modelName;
     const selectionServiceIndex = config.selectionServiceIndex;
@@ -217,7 +223,7 @@ export class WidgetGroup extends LitElement {
     return html`
       <lit-widget
         displayTitle=${moduleType.title}
-        subtitle=${subtitle}
+        subtitle=${showSubtitle ? subtitle : ''}
         ?highlight=${selectionServiceIndex === 1}
         @widget-scroll="${widgetScrollCallback}"
         widgetScrollLeft=${this.widgetScrollLeft}

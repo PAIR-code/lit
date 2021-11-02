@@ -288,7 +288,7 @@ mwc-textfield {
  */
 .offset-for-module-header {
   height: 0;
-  margin-top: 25px;
+  margin-top: 24px; /* match .header height from widget.css */
 }
 
 
