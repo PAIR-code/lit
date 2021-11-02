@@ -517,7 +517,7 @@ For example, the following spec:
 
 will give this form to configure backtranslation:
 
-![Backtranslation Config Form](./images/api/backtranslation-form-example.png){style="max-width:400px"}
+![Backtranslation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 Currently `config_spec()` is supported only for generators and salience methods,
 though any component can support the `config` argument to its `run()` method,
