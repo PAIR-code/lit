@@ -6,16 +6,6 @@
   cursor: pointer;
 }
 
-.switch-container {
-  display: flex;
-  align-items: center;
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
-}
-
 .switch-container-disabled {
   color: rgba(60, 64, 67, 0.38);
 }

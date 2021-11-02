@@ -119,7 +119,6 @@ table.field-table th {
  * Module controls
  */
 .module-toolbar {
-  min-height: 32px;
   border-bottom: 1px solid #dadce0;
   box-sizing: border-box;
 }
@@ -146,20 +145,6 @@ table.field-table th {
   height: 1.2rem;
   padding: 0;
   margin: 0 8px;
-}
-
-/* TODO: move to shared styles? */
-.switch-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: 32px; /* make the actual switch visible */
-  overflow-y: clip; /* keep mwc-switch overdraw from messing up layout */
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
 }
 
 .cmap-blocks-holder {

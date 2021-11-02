@@ -437,10 +437,10 @@ export class DataTableModule extends LitModule {
           Select all
         </button>
         <button class='hairline-button' @click=${onToggleShowColumn}>
-          Columns
-          <span
-          data-icon=${this.columnDropdownVisible ? "expand_less" :
-          "expand_more"}></span>
+          Columns&nbsp;
+          <span class='material-icon'>
+            ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
+          </span>
         </button>
       </div>
       ${this.renderColumnDropdown()}
