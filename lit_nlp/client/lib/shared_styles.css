@@ -241,8 +241,7 @@ mwc-textfield {
   align-items: center;
   display: flex;
   flex-flow: row wrap;
-  margin-bottom: 4px;
-  margin-top: 4px;
+  padding: 4px 0;
   min-height: 24px;
 }
 

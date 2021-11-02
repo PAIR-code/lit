@@ -85,19 +85,26 @@ abstract class SalienceCmap {
  */
 export class UnsignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
     const hue = 270;  // purple
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${100 * intensity}%)`;
+    return `hsl(${hue}, 50%, ${100 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (d > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
@@ -106,23 +113,28 @@ export class UnsignedSalienceCmap extends SalienceCmap {
  */
 export class SignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.abs(d);
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
-    let hue = 188;  // teal from WHAM
-    if (d < 0.) {
-      hue = 354;    // red(ish) from WHAM
-      d = Math.abs(d);  // make positive for intensity
-    }
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${25 + 75 * intensity}%)`;
+    const hue =
+        (d >= 0) ? 188 /* teal from WHAM */ : 354 /* red(ish) from WHAM */;
+    return `hsl(${hue}, 50%, ${25 + 75 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (Math.abs(d) > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
