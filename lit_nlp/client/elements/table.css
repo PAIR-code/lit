@@ -250,3 +250,7 @@ mwc-icon.disabled {
 mwc-icon.disabled:hover {
   opacity: 1;
 }
+
+mwc-icon.button-extra-margin {
+  margin-left: 4px;
+}

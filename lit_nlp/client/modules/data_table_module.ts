@@ -522,8 +522,7 @@ export class DataTableModule extends LitModule {
 }
 
 /**
- * Simplified version of the above; omits toolbar controls add-and-compare
- * button.
+ * Simplified version of the above; omits toolbar controls.
  */
 @customElement('simple-data-table-module')
 export class SimpleDataTableModule extends DataTableModule {
