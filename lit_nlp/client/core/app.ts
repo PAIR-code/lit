@@ -52,7 +52,7 @@ export class LitApp {
   async initialize(layouts: LitComponentLayouts) {
     const appState = this.getService(AppState);
     const modulesService = this.getService(ModulesService);
-    appState.layouts = layouts;
+    appState.addLayouts(layouts);
 
     await appState.initialize();
     if (appState.metadata.pageTitle) {

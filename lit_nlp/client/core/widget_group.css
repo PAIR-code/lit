@@ -11,7 +11,6 @@
 }
 
 .wrapper {
-  padding: 4px;
   height: 100%;
   box-sizing: border-box;
   background-color: white;
@@ -26,6 +25,7 @@
   align-items: center;
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);
+  box-sizing: border-box;
 }
 
 .title {
@@ -129,17 +129,25 @@ lit-widget {
  * Minimized state
  */
 :host([minimized]) {
-  min-width: calc(var(--lit-group-header-height) + 8px);
+  min-width: calc(var(--lit-group-header-height) + 6px);
+  width: calc(var(--lit-group-header-height) + 6px);
+}
+
+:host([minimized]) .outside {
+  width: calc(var(--lit-group-header-height) + 2px);
 }
 
 :host([minimized]) .wrapper {
-  width: calc(var(--lit-group-header-height) + 8px);
+  width: calc(var(--lit-group-header-height) + 2px);
 }
 
 :host([minimized]) .header {
-  padding: 4px 0; /* top icon should align with horizontal toolbar */
-  height: calc(100% - 8px);
-  width: 100%;
+  padding-top: 4px;
+  padding-bottom: 2px; /* top icon should align with horizontal toolbar */
+  padding-left: 0;
+  padding-right: 0;
+  height: 100%;
+  width: calc(var(--lit-group-header-height) + 2px);
   writing-mode: vertical-lr;
   transform: rotate(180deg);
 }

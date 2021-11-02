@@ -75,12 +75,13 @@ export const LAYOUTS: LitComponentLayouts = {
    * A "simple demo server" layout.
    */
   'simple':  {
-    components : {
-      'Main': [
-        SimpleDatapointEditorModule,
-      ],
+    upper: {
+      "Editor": [SimpleDatapointEditorModule],
+      "Examples": [DataTableModule],
+    },
+    lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
-      'History': [DataTableModule],
+      'Salience': [SalienceMapModule],
     },
     layoutSettings: {
       hideToolbar: true,
