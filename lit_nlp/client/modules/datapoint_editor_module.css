@@ -79,9 +79,16 @@ select.dropdown {
   flex-basis: 100%;
 }
 
+input {
+  font-family: 'Roboto', sans;
+  font-size: 14px; /* slightly larger than regular text */
+}
+
 textarea {
   resize: vertical;
   height: 100px;
+  font-family: 'Roboto', sans;
+  font-size: 14px; /* slightly larger than regular text */
 }
 
 .span-label {

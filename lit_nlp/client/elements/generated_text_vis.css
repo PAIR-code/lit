@@ -39,6 +39,7 @@
 
 .candidate-row > * {
   padding: 4px;
+  font-family: 'Roboto', sans;
 }
 
 .field-name {
