@@ -1,6 +1,14 @@
 /**
  * Shared styles for all modules.
  */
+:host {
+  --lit-gray-700: #5f6368;
+  --lit-gray-800: #3c4043;
+  /* For field names, etc. like preds (MulticlassPreds) */
+  --lit-bold-label-color: #3f5259;
+  --lit-light-label-color: #72868f;
+}
+
 button {
   width: fit-content;
   max-height: 100%;
@@ -74,11 +82,13 @@ button:disabled {
 
 /* Field name headings, for use in module content. */
 .field-title {
-  color: #5f6368; /* Grey/700 */
-  font-family: 'Google Sans';
   font-size: 14px;
-  letter-spacing: 0.25px;
-  line-height: 20px;
+}
+
+/* Smaller field name headings, as in the data table. */
+.field-name {
+  font-weight: bold;
+  color: var(--lit-bold-label-color);
 }
 
 mwc-textfield {
@@ -243,6 +253,7 @@ mwc-textfield {
   flex-flow: row wrap;
   min-height: 36px;
   box-sizing: border-box;
+  padding: 0 4px;
 }
 
 .module-toolbar > * {
@@ -270,6 +281,7 @@ mwc-textfield {
   flex-shrink: 0;
   justify-content: space-between;
   min-height: 36px;
+  padding: 0 4px;
 }
 
 /** Status text in a module footer. **/

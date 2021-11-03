@@ -10,7 +10,7 @@ table.field-table th {
 }
 
 .subfield-title {
-  padding-top: 5px; /* align title with first row of content */
+  padding-top: 6px; /* align title with first row of content */
 }
 
 .token-holder {

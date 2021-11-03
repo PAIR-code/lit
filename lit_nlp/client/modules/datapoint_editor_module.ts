@@ -525,7 +525,7 @@ export class DatapointEditorModule extends LitModule {
         >
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
-          <div class='field-type'>(${fieldSpec.__name__})</div>
+          <div class='field-type'>${fieldSpec.__name__}</div>
         </div>
         <div class=${classMap(entryContentClasses)}>
           ${renderInput()}

@@ -28,6 +28,7 @@
   flex-shrink: 1;
   justify-content: center;
   overflow: hidden;
+  font-family: 'Google Sans', sans;
 }
 
 .interstitial > * {
@@ -48,6 +49,7 @@
 .interstitial strong {
   display: block;
   font-size: 1.5em;
+  margin-bottom: 4px;
 }
 
 .generators-panel .label {
