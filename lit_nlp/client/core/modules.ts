@@ -36,9 +36,6 @@ import {LitModule} from './lit_module';
 import {styles} from './modules.css';
 import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
 
-// Number of columns in the full width of the layout.
-const NUM_COLS = 12;
-
 // Width of a minimized widget group. From widget_group.css.
 const MINIMIZED_WIDTH_PX = 38 + 4; /* width + padding */
 
@@ -151,16 +148,13 @@ export class LitModules extends ReactiveElement {
       const numColsList = configGroup.map(config => config.moduleType.numCols);
       totalCols += Math.max(...numColsList);
     }
-    // Ensure that when a panel requests less than the full width of columns
-    // that the widget groups still use up the entire width available.
-    const totalColsToUse = Math.min(totalCols, NUM_COLS);
 
     // Set the width for each widget group based on the maximum number of
     // columns it's widgets have specified and the width available.
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
-      const width = Math.max(...numColsList) / totalColsToUse * widthAvailable;
+      const width = Math.max(...numColsList) / totalCols * widthAvailable;
       layoutWidths[panelName][i] = width;
     }
   }

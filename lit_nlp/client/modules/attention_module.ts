@@ -43,7 +43,7 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
-  static override numCols = 6;
+  static override numCols = 3;
   static override duplicateForExampleComparison = true;
   static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<attention-module model=${model} selectionServiceIndex=${
