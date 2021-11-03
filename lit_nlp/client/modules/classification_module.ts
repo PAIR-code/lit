@@ -158,11 +158,11 @@ export class ClassificationModule extends LitModule {
 
     return html`
         <div class='classification-row-holder'>
-          <div class='field-title'>${fieldName}</div>
+          <div class='field-name row-title'>${fieldName}</div>
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}
-            .sortName=${autosort ? "Score" : undefined}
+            .sortName=${autosort ? 'Score' : undefined}
             .sortAscending=${!autosort}
           ></lit-data-table>
         </div>`;

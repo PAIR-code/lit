@@ -13,9 +13,7 @@
   width: 100%;
   min-width: 100%;
   border-spacing: 0;
-  font-family: 'Google Sans', sans-serif;
-  font-size: 10pt;
-  line-height: 130%;
+  color: var(--lit-gray-800);
   position: relative;
   z-index: 0;
 }
@@ -33,8 +31,6 @@
 
 .holder table > thead > th {
   font-weight: 400;
-  font-size: 10pt;
-  line-height: 12pt;
   color: #04394b;
   border-bottom: solid 1px #dadce0;
 }
@@ -133,15 +129,15 @@ tbody tr:hover {
 }
 
 tbody tr.selected {
-  background: #c5e4e8;
-  color: #04394b;
+  background: #eefbf8;
+  color: var(--lit-gray-800);
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
 tbody tr.primary-selected {
-  background: #9bb7ba;
-  color: #04394b;
+  background: #c0e7e3;
+  color: #142838;
   transition-duration: 0.2s;
   transition-property: background-color;
 }
@@ -157,7 +153,7 @@ tbody tr.reference-selected {
 }
 
 tbody td {
-  vertical-align: middle;
+  vertical-align: top;
   min-width: 80px;
   box-sizing: border-box;
 }

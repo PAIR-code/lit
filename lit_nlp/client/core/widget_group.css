@@ -20,7 +20,7 @@
 .header {
   height: var(--lit-group-header-height);
   display: flex;
-  padding: 0 4px;
+  padding: 0 8px;
   line-height: 20pt;
   align-items: center;
   justify-content: space-between;
@@ -30,6 +30,7 @@
 
 .title {
   font-size: 14px;
+  font-family: 'Google Sans', sans;
   white-space: nowrap;
   overflow: hidden;
   flex: 1;
@@ -142,7 +143,7 @@ lit-widget {
 }
 
 :host([minimized]) .header {
-  padding-top: 4px;
+  padding-top: 8px;
   padding-bottom: 2px; /* top icon should align with horizontal toolbar */
   padding-left: 0;
   padding-right: 0;

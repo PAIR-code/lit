@@ -68,7 +68,7 @@ export class AttentionModule extends LitModule {
         }
 
         .padded-container {
-          padding: 4px;
+          padding: 4px 8px;
         }
     `;
     return [sharedStyles, styles];

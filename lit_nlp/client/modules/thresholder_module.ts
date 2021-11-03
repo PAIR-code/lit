@@ -58,11 +58,17 @@ export class ThresholderModule extends LitModule {
   };
 
   static override get styles() {
-    return [sharedStyles, css`
+    return [
+      sharedStyles, css`
         .cost-ratio-input {
           width: 50px;
         }
-    `];
+
+        .module-toolbar {
+          margin-bottom: 4px;
+        }
+    `
+    ];
   }
 
   // Cost ratio of false positives to false negatives to use in calculating

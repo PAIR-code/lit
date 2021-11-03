@@ -10,7 +10,7 @@ table.field-table th {
 }
 
 .subfield-title {
-  padding-top: 5px; /* align title with first row of content */
+  padding-top: 6px; /* align title with first row of content */
 }
 
 .token-holder {
@@ -121,10 +121,10 @@ table.field-table th {
 .module-toolbar {
   border-bottom: 1px solid #dadce0;
   box-sizing: border-box;
+  justify-content: space-between;
 }
 
 .module-footer {
-  min-height: 32px;
   justify-content: space-between;
 }
 
@@ -137,6 +137,17 @@ table.field-table th {
 
 .controls-group > * {
   margin: 0 2px;
+}
+
+/* Allow dropdown area to grow, but not to cause line wrapping. */
+.controls-group-variable {
+  flex: 1;
+  overflow-x: clip;
+  margin-right: 8px;
+}
+
+.controls-group-variable .dropdown {
+  max-width: 100%;
 }
 
 .vertical-separator {

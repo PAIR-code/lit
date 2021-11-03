@@ -24,11 +24,15 @@
   align-items: center;
 }
 
-.headline-section>* {
+.headline-section > * {
   padding: 4px;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+#title-group {
+  font-family: 'Google Sans', sans;
 }
 
 mwc-icon.icon-button {

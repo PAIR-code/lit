@@ -61,10 +61,6 @@ const moduleStyles = css`
   .field-title {
     padding: 4px;
   }
-
-  #pred-group {
-    outline: 1px dashed gray;
-  }
 `;
 
 const supportedPredTypes: LitName[] =
@@ -111,6 +107,7 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
     const annotationLayers: AnnotationLayer[] = [];
     for (const tagKey of tokenToTags[tokenKey]) {
       let edges = data[tagKey];
+      let hideBracket = false;
       // Temporary workaround: if we manually create a new datapoint, the span
       // or tag field may be "" rather than [].
       // TODO(lit-team): remove this once the datapoint editor is type-safe
@@ -120,10 +117,11 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
       }
       if (isLitSubtype(spec[tagKey], 'SequenceTags')) {
         edges = tagsToEdges(edges);
+        hideBracket = true;
       } else if (isLitSubtype(spec[tagKey], 'SpanLabels')) {
         edges = spansToEdges(edges);
       }
-      annotationLayers.push({name: tagKey, edges});
+      annotationLayers.push({name: tagKey, edges, hideBracket});
     }
     // Try to infer tokens from text, if that field is empty.
     let tokens = data[tokenKey];

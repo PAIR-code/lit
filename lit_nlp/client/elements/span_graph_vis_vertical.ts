@@ -45,8 +45,8 @@ import {styles} from './span_graph_vis_vertical.css';
  * https://arxiv.org/abs/1905.06316 for more on this formalism.
  */
 export interface SpanGraph {
-  'tokens': string[];
-  'layers': AnnotationLayer[];
+  tokens: string[];
+  layers: AnnotationLayer[];
 }
 
 /**
@@ -54,8 +54,9 @@ export interface SpanGraph {
  * or 'ner' (named entities).
  */
 export interface AnnotationLayer {
-  'name': string;
-  'edges': EdgeLabel[];
+  name: string;
+  edges: EdgeLabel[];
+  hideBracket?: boolean;
 }
 
 function formatEdgeLabel(label: string|number): string {
@@ -226,6 +227,7 @@ export class SpanGraphVis extends ReactiveElement {
       width,
       'border-radius': `0pt ${rad}pt ${rad}pt 0pt`,
       left: isArc ? `${colWidth + 10}pt` : '',
+      visibility: layer.hideBracket ? 'hidden' : 'visble',
     });
 
     const arrowHeadClasses = classMap({
