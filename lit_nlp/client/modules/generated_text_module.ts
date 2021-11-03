@@ -33,7 +33,10 @@ import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
 
-interface GeneratedTextResult {
+/**
+ * Preds type for text generation.
+ */
+export interface GeneratedTextResult {
   [outputFieldName: string]: GeneratedTextCandidate[];
 }
 
@@ -46,6 +49,13 @@ interface OutputGroupKeys {
   generated?: string;            /* field of this.generatedText */
   referenceModelScores?: string; /* field of this.referenceScores */
 }
+
+/**
+ * Types for sequence generation output
+ */
+export const GENERATION_TYPES: LitName[] =
+    ['GeneratedText', 'GeneratedTextCandidates'];
+
 
 /**
  * A LIT module that renders generated text.
@@ -62,12 +72,6 @@ export class GeneratedTextModule extends LitModule {
       </generated-text-module>`;
   };
 
-
-  static generationTypes: LitName[] =
-      ['GeneratedText', 'GeneratedTextCandidates'];
-  static supportedTypes: LitName[] =
-      [...GeneratedTextModule.generationTypes, 'ReferenceScores'];
-
   static override get styles() {
     return [sharedStyles, visStyles, styles];
   }
@@ -83,8 +87,7 @@ export class GeneratedTextModule extends LitModule {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
     const refMap = new Map<string, string>();
-    const textKeys =
-        findSpecKeys(outputSpec, GeneratedTextModule.generationTypes);
+    const textKeys = findSpecKeys(outputSpec, GENERATION_TYPES);
     for (const textKey of textKeys) {
       const parent = outputSpec[textKey].parent;
       if (parent && dataSpec[parent]) {
@@ -125,8 +128,7 @@ export class GeneratedTextModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset,
-        [...GeneratedTextModule.generationTypes, 'ReferenceScores'],
+        [input], this.model, dataset, [...GENERATION_TYPES, 'ReferenceScores'],
         'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;
@@ -265,8 +267,7 @@ export class GeneratedTextModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(
-        modelSpecs, GeneratedTextModule.generationTypes);
+    return doesOutputSpecContain(modelSpecs, GENERATION_TYPES);
   }
 }
 

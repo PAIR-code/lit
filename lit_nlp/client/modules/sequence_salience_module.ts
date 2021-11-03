@@ -11,9 +11,10 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {sumArray} from '../lib/utils';
+import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype, sumArray} from '../lib/utils';
 
+import {GeneratedTextResult, GENERATION_TYPES} from './generated_text_module';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from './salience_map_module';
 import {styles} from './sequence_salience_module.css';
 
@@ -56,8 +57,10 @@ export class SequenceSalienceModule extends LitModule {
 
   // Current data
   @observable private currentData?: IndexedInput;
+  @observable private currentPreds?: GeneratedTextResult;
+  @observable private salienceTarget?: string;
   @observable
-  private currentPreds: {[fieldName: string]: SequenceSalienceMap} = {};
+  private currentSalience: {[fieldName: string]: SequenceSalienceMap} = {};
   @observable private selectedSalienceField?: string = undefined;
   @observable private focusState?: TokenFocusState = undefined;
 
@@ -84,6 +87,61 @@ export class SequenceSalienceModule extends LitModule {
     }
   }
 
+  @computed
+  get allReferenceTexts(): string[] {
+    if (!this.currentData) return [];
+
+    const ret: string[] = [];
+
+    // Search input fields: anything referenced in model's output spec
+    const dataSpec = this.appState.currentDatasetSpec;
+    const outputSpec = this.appState.getModelSpec(this.model).output;
+    const inputReferenceKeys = new Set<string>();
+    for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
+      const parent = outputSpec[outKey].parent;
+      if (parent && dataSpec[parent]) {
+        inputReferenceKeys.add(parent);
+      }
+    }
+    for (const key of inputReferenceKeys) {
+      const fieldData = this.currentData.data[key];
+      if (fieldData instanceof Array) {
+        for (const textAndScore of fieldData) {
+          ret.push(textAndScore[0]);
+        }
+      } else {
+        ret.push(fieldData);
+      }
+    }
+    return ret;
+  }
+
+  @computed
+  get allOutputTexts(): string[] {
+    if (!this.currentPreds || !this.currentData) return [];
+
+    const ret: string[] = [];
+
+    // Search output fields.
+    const outputSpec = this.appState.getModelSpec(this.model).output;
+    for (const key of findSpecKeys(outputSpec, GENERATION_TYPES)) {
+      const fieldData = this.currentPreds[key];
+      if (fieldData instanceof Array) {
+        for (const textAndScore of fieldData) {
+          ret.push(textAndScore[0]);
+        }
+      } else {
+        ret.push(fieldData);
+      }
+    }
+    return ret;
+  }
+
+  @computed
+  get salienceTargetStrings(): string[] {
+    return [...this.allReferenceTexts, ...this.allOutputTexts];
+  }
+
   override firstUpdated() {
     if (this.selectedSalienceField === undefined) {
       this.selectedSalienceField = Object.keys(this.salienceSpecInfo)[0];
@@ -91,25 +149,63 @@ export class SequenceSalienceModule extends LitModule {
 
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
-    this.reactImmediately(getPrimarySelectedInputData, data => {
+    this.reactImmediately(getPrimarySelectedInputData, async data => {
       this.focusState = undefined; /* clear focus */
-      this.updateToSelection(data);
+      await this.updateToSelection(data);
+      this.salienceTarget = this.salienceTargetStrings[0];
+    });
+
+    this.reactImmediately(() => this.salienceTarget, target => {
+      this.updateSalience(this.currentData, target);
     });
   }
 
   private async updateToSelection(input: IndexedInput|null) {
     if (input == null) {
       this.currentData = undefined;
-      this.currentPreds = {};
+      this.currentPreds = undefined;
       return;
     }
     // Before waiting for the backend call, update data and clear annotations.
     this.currentData = input;
-    this.currentPreds = {};  // empty preds will render as (no data)
+    this.currentPreds = undefined;
 
+    const promise = this.apiService.getPreds(
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        'Generating text');
+    const results = await this.loadLatest('preds', promise);
+    if (results === null) return;
+
+    // Post-process results.
+    // TODO(lit-dev): unify this with similar code in GeneratedTextModule.
+    const spec = this.appState.getModelSpec(this.model).output;
+    const result = results[0];
+    const preds: Preds = {};
+    for (const key of Object.keys(result)) {
+      if (isLitSubtype(spec[key], 'GeneratedText')) {
+        preds[key] = [[result[key], null]];
+      }
+      if (isLitSubtype(spec[key], 'GeneratedTextCandidates')) {
+        preds[key] = result[key];
+      }
+    }
+    // Update data again, in case selection changed rapidly.
+    this.currentData = input;
+    this.currentPreds = preds;
+  }
+
+  private async updateSalience(input?: IndexedInput, targetText?: string) {
+    if (input == null || targetText == null) {
+      this.currentSalience = {};
+      return;
+    }
+    // Before waiting for the backend call, clear annotations.
+    this.currentSalience = {};
+
+    const salienceTargetConfig = {'target_text': [targetText]};
     const promise = this.apiService.getInterpretations(
         [input], this.model, this.appState.currentDataset, 'sequence_salience',
-        {}, `Computing sequence salience`);
+        salienceTargetConfig, `Computing sequence salience`);
     const results = await this.loadLatest('salience', promise);
     if (results === null) return;
 
@@ -123,12 +219,12 @@ export class SequenceSalienceModule extends LitModule {
       };
     }
     // Update data again, in case selection changed rapidly.
-    this.currentData = input;
-    this.currentPreds = processedPreds;
+    this.currentSalience = processedPreds;
   }
 
+
   renderField(fieldName: string) {
-    const preds = this.currentPreds[fieldName];
+    const preds = this.currentSalience[fieldName];
 
     // Output token to show salience for.
     const focusIdx = this.focusState?.idx ?? -1;
@@ -262,12 +358,16 @@ export class SequenceSalienceModule extends LitModule {
   renderContent() {
     if (!this.currentData) return null;
     if (this.selectedSalienceField === undefined) return null;
-    if (!this.currentPreds[this.selectedSalienceField]) return null;
+    if (!this.currentSalience[this.selectedSalienceField]) return null;
 
     return this.renderField(this.selectedSalienceField);
   }
 
   renderHeaderControls() {
+    const onChangeTarget = (e: Event) => {
+      this.salienceTarget = (e.target as HTMLInputElement).value;
+    };
+
     const onChangeMethod = (e: Event) => {
       this.selectedSalienceField = (e.target as HTMLInputElement).value;
     };
@@ -277,26 +377,36 @@ export class SequenceSalienceModule extends LitModule {
           (e.target as HTMLInputElement).value as ColorScalingMode;
     };
 
-    const options = Object.keys(this.salienceSpecInfo);
-    const currentValue = this.selectedSalienceField;
-
     // clang-format off
     return html`
-      <div class="controls-group" title="Type of salience map to use.">
-        <label class="dropdown-label">Method:</label>
-        <select class="dropdown" @change=${onChangeMethod}>
-          ${options.map(k =>
-            html`<option value=${k} ?selected=${k === currentValue}>${k}</option>`)}
-        </select>
-      </div>
-      <div class="controls-group" title="Method to scale raw values for display.">
-        <label class="dropdown-label">Scaling:</label>
-        <select class="dropdown" @change=${onChangeScalingMode}>
-          ${Object.values(ColorScalingMode).map((mode: ColorScalingMode) =>
-            html`<option value=${mode} ?selected=${mode === this.cmapScalingMode}>
-                   ${mode}
+      <div class="controls-group controls-group-variable" title="Target string for salience.">
+        <label class="dropdown-label">Target:</label>
+        <select class="dropdown" @change=${onChangeTarget}>
+          ${this.salienceTargetStrings.map(target =>
+            html`<option value=${target} ?selected=${target === this.salienceTarget}>
+                   ${target}
                  </option>`)}
         </select>
+      </div>
+      <div class="controls-group">
+        <div title="Type of salience map to use.">
+          <label class="dropdown-label">Method:</label>
+          <select class="dropdown" @change=${onChangeMethod}>
+            ${Object.keys(this.salienceSpecInfo).map(k =>
+              html`<option value=${k} ?selected=${k === this.selectedSalienceField}>
+                     ${k}
+                   </option>`)}
+          </select>
+        </div>
+        <div title="Method to scale raw values for display.">
+          <label class="dropdown-label">Scaling:</label>
+          <select class="dropdown" @change=${onChangeScalingMode}>
+            ${Object.values(ColorScalingMode).map((mode: ColorScalingMode) =>
+              html`<option value=${mode} ?selected=${mode === this.cmapScalingMode}>
+                     ${mode}
+                   </option>`)}
+          </select>
+        </div>
       </div>
     `;
     // clang-format on
