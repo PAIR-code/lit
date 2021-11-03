@@ -122,7 +122,9 @@ export class InterpreterControls extends ReactiveElement {
         }
         // FieldMatcher has its vocab set outside of this element.
         else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
-          this.settings[name] = spec[name].vocab![0];
+          this.settings[name] =
+              spec[name].vocab != null && spec[name].vocab!.length > 0 ?
+              spec[name].vocab![0] : '';
         } else {
           this.settings[name] = spec[name].default as string;
         }
@@ -172,7 +174,9 @@ export class InterpreterControls extends ReactiveElement {
           <option value=${optionIndex}>${option}</option>
         `;
       });
-      const defaultValue = controlType.vocab![0];
+      const defaultValue =
+          controlType.vocab != null && controlType.vocab.length > 0 ?
+          controlType.vocab[0] : '';
       return html`<select class="dropdown control" @change=${updateDropdown}
           .value=${defaultValue} ?disabled=${controlType.vocab!.length < 2}>
         ${options}

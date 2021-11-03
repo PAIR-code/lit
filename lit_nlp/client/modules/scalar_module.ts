@@ -849,7 +849,8 @@ export class ScalarModule extends LitModule {
     if (this.selectionService.primarySelectedId != null) {
       const selectedIndex = this.appState.getIndexById(
           this.selectionService.primarySelectedId);
-      if (selectedIndex != null && this.preds[selectedIndex] != null) {
+      if (selectedIndex != null && selectedIndex < this.preds.length &&
+          this.preds[selectedIndex] != null) {
         const spec = this.appState.getModelSpec(this.model);
         const displayVal = formatForDisplay(
             this.getValue(this.preds[selectedIndex], spec, key, label));
