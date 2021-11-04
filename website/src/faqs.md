@@ -32,7 +32,7 @@ Additionally, we're working on expanding the maximum number of datapoints that t
     f-copy: "
     
 LIT can handle a variety of models, regardless of ML framework used, or output modality of the model.
-It is not limited to a strict set of model types. For more information, see the [documentation](https://github.com/PAIR-code/lit/blob/main/documentation/index.md)." %}
+It is not limited to a strict set of model types. For more information, see the [documentation](https://github.com/PAIR-code/lit/wiki/)." %}
 
 {% include partials/faq-element 
   f-title: "I have proprietary data. Is LIT secure for my team to use?", 

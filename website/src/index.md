@@ -29,9 +29,9 @@ Use LIT to ask and answer questions like:
 
 LIT contains many built-in capabilities but is also customizable, with the ability to add custom interpretability techniques, metrics calculations, counterfactual generators, visualizations, and more.
 
-For a similar tool to explore general-purpose machine learning models, check out the [What-If Tool](https://whatif-tool.dev).
+LIT also contains preliminary support for non-language models, working with tabular and image data. For a similar tool built to explore general-purpose machine learning models, check out the [What-If Tool](https://whatif-tool.dev).
 
-LIT can be run as a standalone server, or inside of python notebook environments such as Colab and Jupyter.
+LIT can be run as a standalone server, or inside of python notebook environments such as Colab, Jupyter, and Google Cloud Vertex AI Notebooks.
 </div>
 
 {% include partials/spacer height:50 %}
@@ -54,6 +54,8 @@ Model and datapoint comparison
 
 Embedding visualization
 
+Testing with Concept Activation Vectors
+
 And more...
 
 " %}
@@ -70,6 +72,8 @@ Masked language models
 Span labeling
 
 Multi-headed models
+
+Image and tabular data support
 
 And more...
 
@@ -101,7 +105,7 @@ And more...
 <div class="mdl-grid no-padding">
   {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'CODE', 
   title: 'Contribute to LIT', desc: 'LIT is open to anyone who wants to help develop and improve it!', 
-  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/blob/main/documentation/index.md', external:"true" %}
+  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/wiki', external:"true" %}
   
   {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES', 
   title: 'Latest updates', desc: 'New features, updates, and improvements to LIT.', 

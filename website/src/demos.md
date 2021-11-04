@@ -29,4 +29,10 @@ color: "#49596c"
 
   {% include partials/demo-card c-title: "Text generation", link: "/demos/t5.html",
   c-data-source: "CNN / Daily Mail", c-copy: "Use a T5 model to summarize text. For any example of interest, quickly find similar examples from the training set, using an approximate nearest-neighbors index.", tags: "T5, generation", external:"true" %}
+
+  {% include partials/demo-card c-title: "Tabular data", link: "/demos/penguins.html",
+  c-data-source: "Palmer Penguins", c-copy: "Analyze a tabular data model with LIT, including exploring partial dependence plots and automatically finding counterfactuals.", tags: "tabular, binary classification", external:"true" %}
+
+  {% include partials/demo-card c-title: "Image classification", link: "/demos/images.html",
+  c-data-source: "Imagenette", c-copy: "Analyze an image classification model with LIT, including muliple image salience techniques.", tags: "images, mutli-class classification", external:"true" %}
   </div>
