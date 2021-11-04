@@ -73,10 +73,10 @@ python -m lit_nlp.examples.glue_demo \
 
 Then navigate to https://localhost:4321 to access the UI.
 
-Note:
-
-You can also pass `--warm_start=1.0`, and LIT will run inference and cache the
-results before server start.
+For most models we recommend using a GPU, though the `--quickstart` flag above
+loads a set of smaller models that run well on CPU. You can also pass
+`--warm_start=1.0`, and LIT will run inference and cache the results before
+server start.
 
 For an overview of supported model types and frameworks, see the
 [components guide](./components.md).
