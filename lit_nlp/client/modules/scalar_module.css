@@ -61,3 +61,16 @@
 .selected-value {
   padding-right: 8px;
 }
+
+/**
+ * d3.brush() sets up some questionable CSS styles, like pointer-events: all,
+ * which will cause this module to respond to clicks in surprising ways even
+ * when it is hidden. So, override this to 'visible' keep this from happening.
+ */
+g#brushGroup {
+  pointer-events: visible !important;
+}
+
+#brushGroup .overlay {
+  pointer-events: visible !important;
+}
