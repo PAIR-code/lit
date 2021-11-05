@@ -227,8 +227,7 @@ accordingly.
 Note: there are a few additional methods in the model API - see
 [`Model`](../lit_nlp/api/model.py) for details.
 
-If your model is served over RPC, consider using the
-[`BatchedRemoteModel`](https://source.corp.google.com/piper///depot/google3/third_party/py/lit_nlp/api/model.py?q=symbol:BatchedRemoteModel)
+If your model is on a remote server, consider using the `BatchedRemoteModel`
 base class, which implements parallel batched requests using a thread pool.
 
 ### Adding more outputs
