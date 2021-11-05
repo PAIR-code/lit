@@ -11,6 +11,7 @@ from absl import app
 from absl import flags
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.components import minimal_targeted_counterfactuals
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
 
@@ -38,7 +39,12 @@ def main(_):
 
   models = {'species classifier': penguin_model.PenguinModel(model_path)}
   datasets = {'penguins': penguin_data.PenguinDataset()}
-  lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+  generators = {
+      'Minimal Targeted Counterfactuals':
+          minimal_targeted_counterfactuals.TabularMTC()
+  }
+  lit_demo = dev_server.Server(
+      models, datasets, generators=generators, **server_flags.get_flags())
   return lit_demo.serve()
 
 
