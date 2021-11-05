@@ -86,8 +86,11 @@ export class ModulesService extends LitService implements
       {upper: {}, lower: {}, layoutSettings: {}, description: ''};
   @observable selectedTabUpper: string = '';
   @observable selectedTabLower: string = '';
-  private renderLayout: LitRenderConfig = {upper: {}, lower: {}};
+  @observable private renderLayout: LitRenderConfig = {upper: {}, lower: {}};
   private renderModulesCallback: RenderModulesCallback = () => {};
+
+  // TODO(b/168201937): Remove imperative logic and use observables/reactions
+  // for all module logic.
 
   /**
    * We need to make the rendering of modules an explicit, callback-driven
