@@ -23,6 +23,8 @@
  * style names.
  */
 
+import * as d3 from 'd3';
+
 interface ColorEntry {
   color: string;
   textColor: string;
@@ -71,6 +73,14 @@ function at (palette:ColorEntry[], index:number): ColorEntry {
   index = index % palette.length;
   if (index < 0) { index = index + palette.length; }
   return palette[index];
+}
+
+/**
+ * Creates a D3-compatible color ramp function from a list of hex color values
+ * using D3's interpolateRgbBasis() function.
+ */
+function ramp (range:string[]): (t:number) => string {
+  return d3.interpolateRgbBasis(range);
 }
 
 /**
@@ -138,6 +148,16 @@ export function getBrandColor (version:LitBrandPaletteKey,
 }
 
 /**
+ * List of color hex values from Brand Cyea palette
+ */
+export const CYEA_COLORS = BRAND_COLORS.cyea.map(c => c.color);
+
+/**
+ * Continuous color ramp from Cyea-200 thorugh Cyea-900
+ */
+export const CYEA_RAMP = ramp(CYEA_COLORS.slice(2));
+
+/**
  * LIT Major Tonal colors by palette with text color
  */
 export const MAJOR_TONAL_COLORS:
@@ -202,6 +222,15 @@ export function getMajorTonalColor (version:LitMajorTonalPaletteKey,
   return at(palette, index);
 }
 
+/**
+ * List of color hex values from Major Tonal Primary palette
+ */
+export const PRIMARY_COLORS = MAJOR_TONAL_COLORS.primary.map(p => p.color);
+
+/**
+ * Continuous color ramp from Major Tonal Primary-200 thorugh Primary-900
+ */
+export const PRIMARY_RAMP = ramp(PRIMARY_COLORS.slice(2));
 
 /**
  * LIT Minor Tonal colors by palette with text color
@@ -336,3 +365,27 @@ export function getVizColor (version: VizPaletteKey,
     return at(palette, index);
   }
 }
+
+/**
+ * List of color hex values for normal colors from VizColors Pastel palette
+ */
+export const VIZ_COLORS_PASTEL = VIZ_COLORS.pastel
+  .slice(0, -1).map(p => p.color);
+
+/**
+ * List of color hex values for normal colors from VizColors Bright palette
+ */
+export const VIZ_COLORS_BRIGHT = VIZ_COLORS.bright
+  .slice(0, -1).map(b => b.color);
+
+/**
+ * List of color hex values for normal colors from VizColors Deep palette
+ */
+export const VIZ_COLORS_DEEP = VIZ_COLORS.deep
+  .slice(0, -1).map(d => d.color);
+
+/**
+ * List of color hex values for normal colors from VizColors Dark palette
+ */
+export const VIZ_COLORS_DARK = VIZ_COLORS.dark
+  .slice(0, -1).map(d => d.color);

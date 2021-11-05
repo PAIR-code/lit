@@ -20,6 +20,7 @@ import * as d3 from 'd3';
 import {computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
+import {getBrandColor, CYEA_RAMP, VIZ_COLORS_BRIGHT} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
 import {GroupService} from './group_service';
@@ -42,7 +43,7 @@ export class ColorService extends LitService {
     });
   }
 
-  private readonly defaultColor = d3.schemeCategory10[0];
+  private readonly defaultColor = getBrandColor('cyea', '400').color;
 
   private readonly defaultOption: ColorOption = {
     name: 'None',
@@ -68,24 +69,24 @@ export class ColorService extends LitService {
   get colorableOptions() {
     const catInputFeatureOptions =
         this.groupService.categoricalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.categoricalFeatures[feature];
+          const range = domain.length > 2 ? VIZ_COLORS_BRIGHT :[
+                          this.defaultColor,
+                          getBrandColor('neutral', '400').color
+                        ];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale:
-                d3.scaleOrdinal(d3.schemeCategory10)
-                    .domain(this.groupService.categoricalFeatures[feature]) as
-                D3Scale
+            scale: d3.scaleOrdinal(range).domain(domain) as D3Scale
           };
         });
     const numInputFeatureOptions =
         this.groupService.numericalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.numericalFeatureRanges[feature];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale: d3.scaleSequential(d3.interpolateViridis)
-                       .domain(
-                           this.groupService.numericalFeatureRanges[feature]) as
-                D3Scale
+            scale: d3.scaleSequential(CYEA_RAMP).domain(domain) as D3Scale
           };
         });
     return [

@@ -29,6 +29,7 @@ import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {getBrandColor} from '../lib/colors';
 import {ColorService, FocusService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
@@ -341,7 +342,6 @@ export class EmbeddingsModule extends LitModule {
   private pointColorer(
       i: number, selectedIndices: Set<number>, hoveredIndex: number|null) {
     const currentPoint = this.appState.currentInputData[i];
-    let color = this.colorService.getDatapointColor(currentPoint);
 
     const isSelected = currentPoint != null &&
         this.selectionService.isIdSelected(currentPoint.id);
@@ -351,17 +351,20 @@ export class EmbeddingsModule extends LitModule {
         this.focusService.focusData.datapointId === currentPoint.id &&
         this.focusService.focusData.io == null;
 
-    if (isHovered) {
-      color = 'red';
-    }
+    const color = isHovered ?
+        getBrandColor('mage', '300').color :
+        this.colorService.getDatapointColor(currentPoint);
+
     // Add some transparency if not selected or hovered.
     const colorObject = d3.color(color)!;
 
-    if (!isSelected && !isHovered) {
-      colorObject.opacity =
-          this.selectionService.selectedInputData.length === 0 ? 0.7 : 0.1;
+    if (isHovered || isPrimarySelected) {
+      colorObject.opacity = 1.0;
     } else if (isSelected && !isPrimarySelected) {
-      colorObject.opacity = .5;
+      colorObject.opacity = 0.5;
+    } else {
+      colorObject.opacity =
+          this.selectionService.selectedInputData.length ? 0.1 : 0.7;
     }
 
     return colorObject.toString();

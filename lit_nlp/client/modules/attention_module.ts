@@ -32,6 +32,7 @@ import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArr
 import {FocusService} from '../services/services';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getBrandColor} from '../lib/colors';
 
 type Tokens = string[];
 // <float>[num_heads, num_tokens, num_tokens]
@@ -262,7 +263,8 @@ export class AttentionModule extends LitModule {
                     y1=${y1}
                     x2=${xIn(j)}
                     y2=${y2}
-                    stroke="rgba(100,3,250,${attnVal})"
+                    stroke="${getBrandColor('cyea', '600').color}"
+                    stroke-opacity="${attnVal}"
                     stroke-width=2>
                   </line>`;
               }

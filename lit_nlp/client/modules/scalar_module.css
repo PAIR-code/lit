@@ -5,22 +5,19 @@
 .primary-selected-point {
   r: 4px;
   opacity: 1.0;
-  stroke-width: 1px;
-  stroke: #000;
+  stroke-width: 2px;
+  stroke: #fff;
 }
 
 .hovered-point {
   r: 4px;
   opacity: 1.0;
-  stroke-width: 2px;
-  stroke: red;
+  fill: var(--lit-mage-300) !important;
 }
 
 .selected-point {
-  r: 5px;
+  r: 4px;
   fill-opacity: 0.8;
-  stroke-width: 2px;
-  stroke: #fff;
 }
 
 .point {

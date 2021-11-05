@@ -21,10 +21,9 @@
 
 import 'jasmine';
 
-import * as d3 from 'd3';
-
 import {LitApp} from '../core/app';
 import {IndexedInput} from '../lib/types';
+import {getBrandColor} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
 import {ColorService} from './color_service';
@@ -87,22 +86,22 @@ describe('Color service test', () => {
 
     // With no change in settings, the color should be the default color.
     let color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual(d3.schemeCategory10[0]);
+    expect(color).toEqual(getBrandColor('cyea', '400').color);
 
     // When the settings are updated, getDatapointColor() should reflect the
     // update.
     colorService.selectedColorOption = colorService.colorableOptions[0];
     color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual(d3.schemeCategory10[1]);
+    expect(color).toEqual(getBrandColor('neutral', '400').color);
 
     // Updating to a numerical color scheme.
     colorService.selectedColorOption = colorService.colorableOptions[2];
     color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual('#21918c');
+    expect(color).toEqual('rgb(42, 113, 141)');
 
     // After resetting, getDatapointColor() should reset.
     colorService.reset();
     color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual(d3.schemeCategory10[0]);
+    expect(color).toEqual(getBrandColor('cyea', '400').color);
   });
 });
