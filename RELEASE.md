@@ -1,5 +1,25 @@
 # Language Interpretability Tool releases
 
+## Release 0.4
+
+This release adds a lot of new features. The website and documentation have
+been updated accordingly.
+
+The UI has been slightly revamped, bugs have been fixed, and new capabilities
+have been added. Noteable changes include:
+- Support for Google Cloud Vertex AI notebooks.
+- Preliminary support for tabular and image data, in addition to NLP models.
+- Addition of TCAV global interpretability method.
+- New counterfactual generators for ablating or flipping text tokens for
+  minimal changes to flip predictions.
+- New counterfactual generator for tabular data for minimal changes to flip
+  predictions.
+- Partial depdence plots for tabular input features.
+- Ability to set binary classification thresholds separately for different
+  facets of the dataset
+- Controls to find optimal thresholds across facets given different fairness
+  constraints, such as demographic parity or equal opportunity.
+
 ## Release 0.3
 
 This release adds the ability to use LIT directly in colab and jupyter
