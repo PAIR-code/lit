@@ -30,7 +30,7 @@ import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
-import {VizColor} from '../lib/colors';
+import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
 import {EdgeLabel} from '../lib/types';
 
@@ -132,7 +132,7 @@ export class SpanGraphVis extends ReactiveElement {
     }
 
     const layerStyles = styleMap({
-      '--group-color': VizColor.getColor('dark', i).color
+      '--group-color': getVizColor('dark', i).color
     });
 
     // The column width is the width of the longest label, in pixels.
