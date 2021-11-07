@@ -31,7 +31,8 @@ class BertMLM(lit_model.Model):
 
   def __init__(self, model_name="bert-base-uncased", top_k=10):
     super().__init__()
-    self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+        model_name, use_fast=False)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
     self.model = model_utils.load_pretrained(
@@ -152,7 +153,7 @@ class GPT2LanguageModel(lit_model.Model):
     super().__init__()
     # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, pad_token="<pad>")
+        model_name, pad_token="<pad>", use_fast=False)
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
         model_name, output_hidden_states=True, output_attentions=True)
     self.top_k = top_k
@@ -258,7 +259,6 @@ class GPT2LanguageModel(lit_model.Model):
         texts,
         return_tensors="tf",
         add_special_tokens=True,
-        add_prefix_space=True,
         padding="longest",
         truncation="longest_first")
 
