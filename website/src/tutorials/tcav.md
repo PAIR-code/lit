@@ -1,10 +1,10 @@
 ---
-title: Performing Global Model Analysis in LIT with TCAV
+title: Performing Global Model Analysis with TCAV
 layout: layouts/tutorial.liquid
 
 hero-image: /assets/images/sample-banner.png
 hero-title: "TCAV"
-hero-copy: "Performing Global Model Analysis in LIT with TCAV"
+hero-copy: "Performing Global Model Analysis with TCAV"
 
 bc-anchor-category: "analysis"
 bc-category-title: "Analysis"
@@ -14,7 +14,7 @@ time: "15 minutes"
 takeaways: "Learn what TCAV is and how to perform TCAV analysis in the Language Interpretability Tool."
 ---
 
-## Performing Global Model Analysis in LIT with TCAV
+## Performing Global Model Analysis with TCAV
 {% include partials/link-out link: "../../demos/glue.html", text: "Follow along in the hosted demo." %}
 {% include partials/spacer height:10 %}
 
@@ -30,7 +30,7 @@ TCAV shows the importance of high-level concepts on a model’s prediction, as o
 
 #### Use Case
 
-[One of our LIT demos](https://pair-code.github.io/lit/demos/glue.html) is a BERT-based binary classifier of movie review sentences (from the [Stanford Sentiment Treebank 2 dataset](https://pair-code.github.io/lit/demos/glue.html)). It classifies the sentiment of sentences as positive (class 1) or negative (class 0).
+[One of our LIT demos](https://pair-code.github.io/lit/demos/glue.html) is a BERT-based binary classifier of movie review sentences (from the [Stanford Sentiment Treebank dataset](https://pair-code.github.io/lit/demos/glue.html)). It classifies the sentiment of sentences as positive (class 1) or negative (class 0).
 
 Let's try to determine if there is any correlation between other language features, such as the use of the terms “acting”, “actor”, and “actress”, or mentions of music, with the classification of sentiment. This can help us understand what concepts a model is sensitive to, and when and how errors may occur.
 
@@ -60,7 +60,7 @@ Now we can go to the TCAV module and select our options to run the method. There
 For our use-case, we click on our “acting” slice as the concept to test, and can use the default selections of explaining class 1 and using the “cls_grad” embedding, which is the only per-datapoint embedding returned by this model. In our BERT-based model, the “cls_grad” embedding is the activation of the “\[CLS\]” token, which captures information about the entire sentence to be used for the final classification layer of the model.
 
 
-{% include partials/inset-image image: '/assets/images/lit_tcav_settings_annotated.png', 
+{% include partials/inset-image-small image: '/assets/images/lit_tcav_settings_annotated.png', 
   caption: '1: Selecting a slice as a concept and 2: running TCAV with the specified options'%}
 
 #### Interpreting TCAV scores

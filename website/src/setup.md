@@ -13,6 +13,8 @@ color: "#fef0f7"
 
 <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
 
+For complete details on setting up and using LIT, see the GitHub [documentation](https://github.com/PAIR-code/lit/wiki).
+
 <a name="install"></a>
 
 # Install LIT

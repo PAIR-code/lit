@@ -54,7 +54,7 @@ Model and datapoint comparison
 
 Embedding visualization
 
-Testing with Concept Activation Vectors
+TCAV
 
 And more...
 
@@ -73,7 +73,7 @@ Span labeling
 
 Multi-headed models
 
-Image and tabular data support
+Image and tabular data
 
 And more...
 
@@ -108,7 +108,7 @@ And more...
   cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'CODE', 
-  title: 'Contribute to LIT', desc: 'LIT is open to anyone who wants to help develop and improve it!', 
+  title: 'Documentation', desc: 'LIT is open-source and easily extensible to new models, tasks, and more.', 
   cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/wiki', external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH', 
