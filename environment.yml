@@ -27,6 +27,7 @@ dependencies:
         - keras==2.6.0
         - tfds-nightly
         - tensorflow-text==2.6.0
+        - tensorflow-estimator==2.6.0
         - rouge-score
         - sacrebleu
         - umap-learn
