@@ -60,12 +60,13 @@ export class AttentionModule extends LitModule {
         }
 
         .head-selector-chip.selected {
-          color: #6403fa;
-          border-color: #6403fa;
+          color: var(--lit-cyea-600);
+          border-color: var(--lit-cyea-600);
         }
 
         .head-selector-chip:hover {
-          background: #f3e8fd;
+          background: var(--lit-cyea-100);
+          cursor: pointer;
         }
 
         .padded-container {
