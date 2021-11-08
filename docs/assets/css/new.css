@@ -639,3 +639,7 @@ img.status-emoji {
   height: 24px;
   padding-right: 4px;
 }
+
+.tutorial-caption {
+  padding-bottom: 16px;
+}

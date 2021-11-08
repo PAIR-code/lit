@@ -103,13 +103,13 @@ And more...
 ## What’s the latest
 
 <div class="mdl-grid no-padding">
+  {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES', 
+  title: 'Version 0.4', desc: 'New features, updates, and improvements to LIT.', 
+  cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
+
   {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'CODE', 
   title: 'Contribute to LIT', desc: 'LIT is open to anyone who wants to help develop and improve it!', 
   cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/wiki', external:"true" %}
-  
-  {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES', 
-  title: 'Latest updates', desc: 'New features, updates, and improvements to LIT.', 
-  cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH', 
   title: 'Demo Paper at EMNLP ‘20', desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.', 
