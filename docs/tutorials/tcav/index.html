@@ -14,7 +14,7 @@
   gtag('config', 'G-Q74F5RJLXB');
 </script>
 
-    <title>Performing Global Model Analysis in LIT with TCAV</title>
+    <title>Performing Global Model Analysis with TCAV</title>
     
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="/lit/assets/css/material.min.css">
@@ -73,7 +73,7 @@
             <div class="tutorial-breadcrumbs">
   <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > TCAV
 </div>
-            <h2>Performing Global Model Analysis in LIT with TCAV</h2>
+            <h2>Performing Global Model Analysis with TCAV</h2>
 <div class="link-out"><a href="../../demos/glue.html" target="_blank">Follow along in the hosted demo.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
 <div class="spacer" style="height:10px;"></div>
 <p>LIT contains many techniques to analyze individual predictions, such as salience maps and counterfactual analysis. But, what if you want to understand more global characteristics about a model, and not just its behavior on a single example/prediction? Or what if you have too many input features or your input features are too complicated that saliency maps aren’t as insightful? One technique that can help here is called <a href="https://arxiv.org/abs/1711.11279">Testing with Concept Activation Vectors</a>, or TCAV. For more technical details on how TCAV works, see our <a href="https://github.com/PAIR-code/lit/wiki/components.md#tcav">LIT documentation on the feature</a>. This tutorial provides a walkthrough of using TCAV inside of LIT.</p>
@@ -84,7 +84,7 @@
 </div>
 <h3>Running TCAV in LIT</h3>
 <h4>Use Case</h4>
-<p><a href="https://pair-code.github.io/lit/demos/glue.html">One of our LIT demos</a> is a BERT-based binary classifier of movie review sentences (from the <a href="https://pair-code.github.io/lit/demos/glue.html">Stanford Sentiment Treebank 2 dataset</a>). It classifies the sentiment of sentences as positive (class 1) or negative (class 0).</p>
+<p><a href="https://pair-code.github.io/lit/demos/glue.html">One of our LIT demos</a> is a BERT-based binary classifier of movie review sentences (from the <a href="https://pair-code.github.io/lit/demos/glue.html">Stanford Sentiment Treebank dataset</a>). It classifies the sentiment of sentences as positive (class 1) or negative (class 0).</p>
 <p>Let's try to determine if there is any correlation between other language features, such as the use of the terms “acting”, “actor”, and “actress”, or mentions of music, with the classification of sentiment. This can help us understand what concepts a model is sensitive to, and when and how errors may occur.</p>
 <h4>Create a Concept</h4>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
@@ -113,7 +113,7 @@
 </li>
 </ol>
 <p>For our use-case, we click on our “acting” slice as the concept to test, and can use the default selections of explaining class 1 and using the “cls_grad” embedding, which is the only per-datapoint embedding returned by this model. In our BERT-based model, the “cls_grad” embedding is the activation of the “[CLS]” token, which captures information about the entire sentence to be used for the final classification layer of the model.</p>
-<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+<div class="mdl-cell mdl-cell--6-col mdl-cell--3-col-tablet mdl-cell--2-col-phone">
   <img class="tutorial-image" src="/lit/assets/images/lit_tcav_settings_annotated.png"/>
   <div class="tutorial-caption">1: Selecting a slice as a concept and 2: running TCAV with the specified options</div>
 </div>

@@ -44,7 +44,7 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 
 ## Documentation
 
-*   [Documentation index](https://github.com/PAIR-code/lit/wiki/)
+*   [Documentation index](https://github.com/PAIR-code/lit/wiki)
 *   [FAQ](https://github.com/PAIR-code/lit/wiki/faq.md)
 *   [Release notes](./RELEASE.md)
 
@@ -93,8 +93,8 @@ running the demos.
 Explore a collection of hosted demos on the
 [LIT website demos page](https://pair-code.github.io/lit/demos).
 
-Colab notebooks showing the use of LIT inside of notebooks can be found at
-google3/third_party/py/lit_nlp/examples/notebooks. A simple example can be viewed
+Colab notebooks showing the use of LIT inside of notebooks can be found at [lit_nlp/examples/notebooks](./lit_nlp/examples/notebooks).
+A simple example can be viewed
 [here](https://colab.research.google.com/github/pair-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 
 ### Quick-start: classification and regression
@@ -171,7 +171,7 @@ For a full walkthrough, see
 
 LIT is easy to extend with new interpretability components, generators, and
 more, both on the frontend or the backend. See our
-[documentation](https://github.com/PAIR-code/lit/wiki/index.md) to get started.
+[documentation](https://github.com/PAIR-code/lit/wiki) to get started.
 
 ## Pull Request Process
 
