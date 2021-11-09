@@ -30,7 +30,8 @@ dependencies:
         - tensorflow-estimator==2.6.0
         - rouge-score
         - sacrebleu
-        - umap-learn
+        - numba==0.53.1
+        - umap-learn==0.5.1
         - transformers==4.1.1
         - sentencepiece
         - google-cloud-translate
