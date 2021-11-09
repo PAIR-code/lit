@@ -1,0 +1,15 @@
+#tooltip {
+  position: absolute;
+  padding: 5px;
+  margin: auto;
+  text-align: center;
+  font-size: 12px;
+  pointer-events: none;
+  visibility: hidden;
+  background: rgba(255, 255, 255, .5);
+  border-radius: 10px;
+}
+
+#holder {
+  position: relative;
+}

@@ -18,19 +18,22 @@
 // tslint:disable:enforce-comments-on-exported-symbols enforce-name-casing
 import * as d3 from 'd3';
 
-import {TemplateResult} from 'lit-html';
-import {isLitSubtype} from './utils';
+import {TemplateResult} from 'lit';
+import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
 export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
-    'GeneratedTextCandidates'|'URL'|'SearchQuery'|'Tokens'|'TokenTopKPreds'|
-    'Scalar'|'RegressionScore'|'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|
-    'SpanLabels'|'EdgeLabels'|'MultiSegmentAnnotations'|'Embeddings'|
-    'TokenGradients'|'TokenEmbeddings'|'AttentionHeads'|'SparseMultilabel'|
-    'FieldMatcher'|'Gradients'|'Boolean'|'SalienceMap'|'ImageBytes';
+    'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|'SearchQuery'|'Tokens'|
+    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
+    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
+    'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
+    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'MultiFieldMatcher'|
+    'Gradients'|'Boolean'|'TokenSalience'|'ImageBytes'|'SparseMultilabelPreds'|
+    'ImageGradients'|'ImageSalience'|'SequenceSalience'|'ReferenceScores'|
+    'FeatureSalience';
 
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
@@ -46,9 +49,10 @@ export interface LitType {
   vocab?: string[];
   null_idx?: number;
   required?: boolean;
+  annotated?: boolean;
   default? : string|string[]|number|number[];
   spec?: string;
-  type?: LitName;
+  types?: LitName|LitName[];
   min_val?: number;
   max_val?: number;
   step?: number;
@@ -58,6 +62,8 @@ export interface LitType {
   autorun?: boolean;
   signed?: boolean;
   mask_token?: string;
+  select_all?: boolean;
+  autosort?: boolean;
 }
 
 export interface Spec {
@@ -132,11 +138,11 @@ export interface IndexedInput {
  * Examples faceted by a given set of features.
  */
 export interface FacetedData {
-  'data': IndexedInput[];
+  data: IndexedInput[];
   /** Name to display */
-  'displayName'?: string;
+  displayName?: string;
   /** What values were used as filters to get this data */
-  'facets'?: FacetMap;
+  facets?: FacetMap;
 }
 
 /**
@@ -152,6 +158,10 @@ export interface Preds {
   [key: string]: any;
 }
 
+export interface NumericResults {
+  [key: string]: number;
+}
+
 export interface TopKResult {
   // tslint:disable-next-line:enforce-name-casing
   0: string;
@@ -159,10 +169,10 @@ export interface TopKResult {
 }
 
 export interface SpanLabel {
-  'start': number;  // inclusive
-  'end': number;    // exclusive
-  'label': string;
-  'align'?: string;
+  start: number;  // inclusive
+  end: number;    // exclusive
+  label: string;
+  align?: string;
 }
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
@@ -183,9 +193,9 @@ export function formatSpanLabel(s: SpanLabel): string {
  * See https://arxiv.org/abs/1905.06316 for more on this formalism.
  */
 export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string|number;
+  span1: [number, number];   // inclusive, exclusive
+  span2?: [number, number];  // inclusive, exclusive
+  label: string|number;
 }
 export function formatEdgeLabel(e: EdgeLabel): string {
   const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
@@ -232,13 +242,23 @@ export type Constructor<T> = {
 // tslint:enable:no-any
 
 /**
+ * Information on a facet for grouping examples. The value is either a string
+ * or numeric value to match, or a bucket of a numerical range, [min, max).
+ * The displayVal is used for displaying the facet information.
+ */
+export interface FacetInfo {
+  val: string|number|number[];
+  displayVal: string;
+}
+
+/**
  * Dictionary of features (e.g., features of an Input). Used for grouping sets
  * of Inputs in the slices module, metrics module, etc. Features may be strings
  * (e.g. 'neutral', 'entailment'), or numerical features (e.g., sentence
- * similarity in stsb).
+ * similarity in stsb), or a range of numbers used for bucketed numbers.
  */
 export interface FacetMap {
-  [fieldName: string]: string|number;
+  [fieldName: string]: FacetInfo;
 }
 
 /**
@@ -246,7 +266,7 @@ export interface FacetMap {
  * Usually, set to 'this' from the calling module, so it can distinguish
  * selection updates from itself vs another module.
  */
-export type ServiceUser = object|null;
+export type ServiceUser = object;
 
 /**
  * We can't define abstract static properties/methods in typescript, so we
@@ -295,7 +315,7 @@ export function defaultValueByField(key: string, spec: Spec) {
  * Dictionary of lit layouts. See LitComponentLayout
  */
 export declare interface LitComponentLayouts {
-  [key: string] : LitComponentLayout;
+  [key: string]: LitComponentLayout|LitCanonicalLayout;
 }
 
 /**
@@ -307,17 +327,40 @@ export type LitComponentSpecifier =
     LitModuleClass|(keyof HTMLElementTagNameMap);
 
 // LINT.IfChange
+export declare interface LitTabGroupLayout {
+  [tabName: string]: LitComponentSpecifier[];
+}
+
 /**
- * A layout is defined by a set of main components that are always visible,
- * (designated in the object by the "main" key)
- * and a set of tabs that each contain a group other components.
+ * A layout is defined by a set of modules arranged into tabs and groups.
  *
- * LitComponentLayout is a mapping of tab names to module types.
+ * This is a legacy layout format, where components contains several keys
+ * including 'Main', and values are lists of module classes.
+ * - The 'Main' group will appear in the upper half of the UI
+ * - The remaining groups will appear in the lower half of the UI,
+ *   with a tab bar to select the active group.
+ *
+ * See layout.ts for examples.
  */
 export declare interface LitComponentLayout {
-  components: {[name: string]: LitComponentSpecifier[];};
+  components: LitTabGroupLayout;
   layoutSettings?: LayoutSettings;
-  description ?: string;
+  description?: string;
+}
+
+/**
+ * UI layout in canonical form.
+ *
+ * This has explicit tab groups for the upper and lower UI areas.
+ * Recommended for new layouts.
+ *
+ * See layout.ts for examples.
+ */
+export declare interface LitCanonicalLayout {
+  upper: LitTabGroupLayout;
+  lower: LitTabGroupLayout;
+  layoutSettings: LayoutSettings;
+  description: string;
 }
 
 /**
@@ -329,6 +372,38 @@ export declare interface LayoutSettings {
   mainHeight?: number;
   centerPage?: boolean;
 }
+
+/**
+ * Convert a layout to canonical form.
+ * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
+ */
+export function canonicalizeLayout(layout: LitComponentLayout|
+                                   LitCanonicalLayout): LitCanonicalLayout {
+  if (!layout.hasOwnProperty('components')) {
+    return layout as LitCanonicalLayout;
+  }
+  // Legacy layout to convert.
+  layout = layout as LitComponentLayout;
+
+  const canonicalLayout: LitCanonicalLayout = {
+    upper: {},
+    lower: {},
+    layoutSettings: layout.layoutSettings ?? {},
+    description: layout.description ?? '',
+  };
+
+  // Handle upper layout.
+  canonicalLayout.upper['Main'] = layout.components['Main'];
+
+  // Handle lower layout.
+  for (const tabName of Object.keys(layout.components)) {
+    if (tabName === 'Main') continue;
+    canonicalLayout.lower[tabName] = layout.components[tabName];
+  }
+
+  return canonicalLayout;
+}
+
 // LINT.ThenChange(../../api/dtypes.py)
 
 /** Display name for the "no dataset" dataset in settings. */
@@ -353,10 +428,10 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
 /**
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
- * TODO(lit-dev): allow passing custom HTML to table, not just strings.
  */
 // tslint:disable-next-line:no-any
-export function formatForDisplay(input: any, fieldSpec?: LitType): string {
+export function formatForDisplay(input: any, fieldSpec?: LitType,
+                                 limitWords?: boolean): string {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
@@ -379,6 +454,9 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
       if (typeof item === 'number') {
         return formatNumber(item);
       }
+      if (limitWords) {
+        return chunkWords(item);
+      }
       return `${item}`;
     });
     return `${strings.join(', ')}`;
@@ -393,6 +471,9 @@ export function formatForDisplay(input: any, fieldSpec?: LitType): string {
   }
 
   // Fallback: just coerce to string.
+  if (limitWords) {
+    return chunkWords(input);
+  }
   return `${input}`;
 }
 

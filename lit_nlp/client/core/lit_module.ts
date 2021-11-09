@@ -16,15 +16,15 @@
  */
 
 // tslint:disable:no-new-decorators
-import {property} from 'lit-element';
-import {computed} from 'mobx';
-import { observable } from 'mobx';
+import {html, TemplateResult} from 'lit';
+import {property} from 'lit/decorators';
+import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {LitModuleClass, SCROLL_SYNC_CSS_CLASS} from '../lib/types';
+import {LitModuleClass, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {ApiService, AppState, SelectionService} from '../services/services';
 
-import {app} from './lit_app';
+import {app} from './app';
 
 /**
  * An interface describing the LitWidget element that contains the LitModule.
@@ -56,6 +56,9 @@ export abstract class LitModule extends ReactiveElement {
    */
   @observable @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
 
+  // Name of this module, to show in the UI.
+  static title: string = '';
+
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
 
@@ -71,6 +74,10 @@ export abstract class LitModule extends ReactiveElement {
   // If true, duplicate this module as rows, instead of columns.
   static duplicateAsRow: boolean = false;
 
+  // Template function. Should return HTML to create this element in the DOM.
+  static template:
+      (model: string,
+       selectionServiceIndex: number) => TemplateResult = () => html``;
 
   @property({type: String}) model = '';
   @observable @property({type: Number}) selectionServiceIndex = 0;
@@ -86,7 +93,7 @@ export abstract class LitModule extends ReactiveElement {
     return app.getServiceArray(SelectionService)[this.selectionServiceIndex];
   }
 
-  updated() {
+  override updated() {
     // If the class defined by SCROLL_SYNC_CSS_CLASS is used in the module then
     // set its onscroll callback to be the provided onSyncScroll.
     // There is no need to use this class if a module scrolls through the
@@ -121,6 +128,14 @@ export abstract class LitModule extends ReactiveElement {
     }
 
     return null;
+  }
+
+  /**
+   * Decide if this module should be displayed, based on the current model(s)
+   * and dataset.
+   */
+  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    return true;
   }
 }
 

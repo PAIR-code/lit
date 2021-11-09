@@ -1,5 +1,10 @@
-.classification-row-title {
-  font-size: 10pt;
+.field-name {
+  font-weight: bold;
+  color: var(--lit-bold-label-color);
+}
+
+.row-title {
+  padding: 4px 8px;
 }
 
 .classification-row-holder {

@@ -1,23 +1,33 @@
-.container {
+:host {
+  --slice-selector-right-col-width: 140px;
+}
+
+.module-container {
+  padding: 6px;
+}
+
+.row-container {
   display: flex;
   flex-wrap: wrap;
   flex-direction: row;
-  padding-left: 4pt;
   align-items: center;
+
+  margin-bottom: 10px;
+}
+
+#select-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: 100%;
 }
 
 #slice-selector {
-  width: 95%;
-  height: 250px;
   border: 1px solid rgb(218, 220, 224);
+  flex: 1;
+  min-height: 250px;
   overflow-x: hidden;
   overflow-y: auto;
-}
-
-#selector-container {
-  padding-right: 4pt;
-  align-items: center;
 }
 
 .selector-item {
@@ -26,6 +36,10 @@
 
 .selector-item:hover {
   background: #f8f9fa;
+}
+
+.selector-item > * {
+  vertical-align: middle;
 }
 
 .selected {
@@ -50,25 +64,7 @@
 }
 
 #input-box {
-  width: 52%;
-}
-
-#create-container {
-  margin-top: 8px;
-}
-
-#create {
-  width: 100px;
-}
-
-#select-container {
-  margin-top: 10px;
-  width: 100%;
-}
-
-#delete {
-  margin-top: 8px;
-  margin-left: 0px;
+  flex: 1;
 }
 
 .checkbox-holder {
@@ -76,7 +72,7 @@
 }
 
 .slice-name {
-  max-width: calc(100% - 130px);
+  max-width: calc(100% - var(--slice-selector-right-col-width));
   display: inline-block;
   overflow: auto;
 }
@@ -84,25 +80,20 @@
 .number-label {
   float: right;
   color: #5f6368;
-  max-width: 120px;
+  max-width: var(--slice-selector-right-col-width);
 }
 
-/* For in-line icons in a <span> */
-[data-icon] {
-  margin: 0;
-}
-
-[data-icon]:before {
-  font-family: 'Material Icons';
-  content: attr(data-icon);
-  vertical-align: middle;
-}
-
-.delete-icon {
+.selector-item .icon-button {
   font-size: 18px;
   vertical-align: middle;
   margin-left: 3px;
   margin-bottom: 5px;
+}
+
+.selector-item .icon-button.disabled {
+  pointer-events: none;
+  cursor: auto;
+  opacity: .2;
 }
 
 .hidden {
@@ -125,4 +116,8 @@ mwc-icon.icon-button {
 
 mwc-icon.icon-button:hover {
   opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
 }

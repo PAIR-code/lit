@@ -1,0 +1,10 @@
+/* Remove some extraneous whitespace between headings. */
+
+.demo-section-header {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+
+.demo-header {
+  margin-top: 0.5em;
+}

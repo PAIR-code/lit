@@ -28,6 +28,8 @@ from google.cloud import translate_v2 as translate
 
 JsonDict = types.JsonDict
 
+FIELDS_TO_BACKTRANSLATE_KEY = 'Fields to backtranslate'
+
 
 class Backtranslator(lit_components.Generator):
   """Use Cloud Translate API as a Generator.
@@ -45,6 +47,15 @@ class Backtranslator(lit_components.Generator):
     self._source_lang = source_language
     self._pivot_langs = list(pivot_languages)
     self._translate_client = translate.Client()
+
+  def config_spec(self) -> types.Spec:
+    return {
+        FIELDS_TO_BACKTRANSLATE_KEY:
+            types.MultiFieldMatcher(
+                spec='input',
+                types=['TextSegment'],
+                select_all=True),
+    }
 
   def generate_all(self,
                    inputs: List[JsonDict],
@@ -82,11 +93,15 @@ class Backtranslator(lit_components.Generator):
     """
     all_outputs = [[] for _ in inputs]
 
-    # Find text fields
+    config = config or {}
+
+    # Find text fields.
     text_fields = utils.find_spec_keys(dataset.spec(), types.TextSegment)
-    # TODO(lit-team): configure a subset of fields to operate on
+    # If config key is missing, backtranslate all text fields.
+    fields_to_backtranslate = list(
+        config.get(FIELDS_TO_BACKTRANSLATE_KEY, text_fields))
     candidates_by_field = {}
-    for field_name in text_fields:
+    for field_name in fields_to_backtranslate:
       texts = [ex[field_name] for ex in inputs]
       candidates_by_field[field_name] = self.generate_from_texts(texts)
     # Generate by substituting in each field.

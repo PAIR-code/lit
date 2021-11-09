@@ -2,98 +2,43 @@
   flex: var(--flex);
   min-width: var(--width);
   width: var(--width);
-  transition: all .25s;
+  --lit-group-header-height: 36px;
 }
 
-
-:host([minimized]) {
-  width: 36px !important;
-  min-width: 36px !important;
-  flex: unset !important;
-}
-
-:host([maximized]) {
-  transition: none;
-  margin: 15px 45px;
-  padding: 0;
-  width: calc(100vw - 90px) !important;
-  height: calc(100vh - 130px);
-  position: fixed;
-  z-index: 2;
-  left: 0;
-  top: 82px;
-  box-shadow: rgba(0, 0, 0, 0.14) 0px 2px 2px 0px, rgba(0, 0, 0, 0.2) 0px 3px 1px -2px, rgba(0, 0, 0, 0.12) 0px 1px 5px 0px;
-}
-
-:host([dragging]) {
-  transition: none;
+.outside {
+  width: 100%;
+  height: 100%;
 }
 
 .wrapper {
-  padding: 4pt;
   height: 100%;
   box-sizing: border-box;
   background-color: white;
   background-clip: content-box;
-  display: flex;
-  flex-direction: column;
-}
-
-:host([maximized]) .wrapper {
-  padding: 0;
-}
-
-.holder {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  flex: 1;
 }
 
 .header {
+  height: var(--lit-group-header-height);
   display: flex;
-  padding-left: 2pt;
+  padding: 0 8px;
   line-height: 20pt;
   align-items: center;
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);
+  box-sizing: border-box;
 }
 
 .title {
-  font-size: 10pt;
+  font-size: 14px;
+  font-family: 'Google Sans', sans;
   white-space: nowrap;
   overflow: hidden;
   flex: 1;
   display: flex;
 }
 
-.minimized .title {
-  text-align: right;
-  cursor: pointer;
-}
-
-.component-row {
-  display: flex;
-  flex-direction: row;
-  overflow-x: auto;
-}
-
-.component-column {
-  display: flex;
-  flex-direction: column;
-}
-
-lit-widget {
-  min-height: 125pt;
-}
-
 .min-button {
   text-align: right;
-}
-
-.minimized .min-button {
-  text-align: left;
 }
 
 .scroll-toggle {
@@ -113,17 +58,27 @@ lit-widget {
   opacity: .7;
 }
 
-
-.minimized lit-widget{
-  display: none;
+.holder {
+  height: calc(100% - var(--lit-group-header-height));
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex: 1;
 }
 
-.minimized .header {
-  writing-mode: vertical-lr;
-  transform: rotate(180deg);
-  flex-direction: row-reverse;
-  height: 100%;
-  padding: 0pt 0pt 2pt 0pt;
+.component-row {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.component-column {
+  display: flex;
+  flex-direction: column;
+}
+
+lit-widget {
+  min-height: 128px;
 }
 
 .expander {
@@ -140,4 +95,82 @@ lit-widget {
   width: 100%;
   height:100%;
   opacity: 0;
+}
+
+/**
+ * Maximized state
+ */
+:host([maximized]) {
+  margin: 0;
+  padding: 0;
+  --lit-maximized-vpad: 15px;
+  --lit-maximized-hpad: 45px;
+  /* Override whatever size this would have been in-line. */
+  width: calc(100vw - 2*var(--lit-maximized-hpad)) !important;
+  min-width: calc(100vw - 2*var(--lit-maximized-hpad)) !important;
+  position: fixed;
+  z-index: 2;
+  /* Fix size to fill the main modules area, but not cover toolbars. */
+  /* --top-toolbar-offset and --modules-area-height are set by modules.ts. */
+  top: var(--top-toolbar-offset);
+  height: calc(var(--modules-area-height) - 2*var(--lit-maximized-vpad));
+  left: 0px;
+}
+
+:host([maximized]) .outside {
+  padding: var(--lit-maximized-vpad) var(--lit-maximized-hpad);
+  background: rgba(4, 29, 51, .47);
+}
+
+:host([maximized]) .wrapper {
+  padding: 0;
+}
+
+/**
+ * Minimized state
+ */
+:host([minimized]) {
+  min-width: calc(var(--lit-group-header-height) + 6px);
+  width: calc(var(--lit-group-header-height) + 6px);
+}
+
+:host([minimized]) .outside {
+  width: calc(var(--lit-group-header-height) + 2px);
+}
+
+:host([minimized]) .wrapper {
+  width: calc(var(--lit-group-header-height) + 2px);
+}
+
+:host([minimized]) .header {
+  padding-top: 8px;
+  padding-bottom: 2px; /* top icon should align with horizontal toolbar */
+  padding-left: 0;
+  padding-right: 0;
+  height: 100%;
+  width: calc(var(--lit-group-header-height) + 2px);
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+}
+
+:host([minimized]) .header > * {
+  margin: 2px 0;
+}
+
+:host([minimized]) mwc-icon {
+  /* Undo outer rotation, so these are oriented normally. */
+  transform: rotate(90deg);
+}
+
+:host([minimized]) .title {
+  text-align: right;
+  cursor: pointer;
+}
+
+:host([minimized]) .holder {
+  height: 0;
+}
+
+:host([minimized]) lit-widget{
+  display: none;
 }

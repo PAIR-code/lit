@@ -20,14 +20,19 @@ import '@material/mwc-list/mwc-list-item';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {Menu} from '@material/mwc-menu';
-import {customElement, html, LitElement, property, query, TemplateResult} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {query} from 'lit/decorators';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, LitElement, TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed} from 'mobx';
 
 import {styles} from './menu.css';
 
 type ClickCallback = () => void;
+
+const MAX_TEXT_LENGTH = 25;
 
 /** Holds the properties for an item in the menu. */
 export interface MenuItem {
@@ -45,7 +50,7 @@ export interface MenuItem {
 export class MenuToolbar extends MobxLitElement {
   @property({type: Object}) menuData = new Map<string, MenuItem[]>();
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -55,7 +60,7 @@ export class MenuToolbar extends MobxLitElement {
   }
 
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class="toolbar" id="menu-toolbar">
@@ -89,7 +94,7 @@ export class LitMenu extends LitElement {
   private readonly openSubmenus = new Set<string>();
   private menuOpen = false;
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
@@ -126,7 +131,7 @@ export class LitMenu extends LitElement {
     });
   }
 
-  updated() {
+  override updated() {
     // Anchor the menu to its button.
     if (this.menu == null || this.button == null) return;
     this.menu.anchor = this.button;
@@ -161,6 +166,9 @@ export class LitMenu extends LitElement {
     const itemTextClass =
         classMap({'item-text': true, 'text-disabled': item.disabled});
 
+    // TODO(b/184549342): Consider rewriting component without Material menu
+    // due to styling issues (e.g. with setting max width with
+    // text-overflow:ellipses in CSS).
     // clang-format off
     return html`
       <div class=${itemClass} graphic='icon' id=${itemId} @click=${
@@ -169,7 +177,10 @@ export class LitMenu extends LitElement {
           <mwc-icon slot='graphic' class='check' style=${iconStyle}>
             ${hasSubmenu ? 'arrow_right' : 'check'}
           </mwc-icon>
-          <span class=${itemTextClass}>${item.itemText}</span>
+          <span title=${item.itemText} class=${itemTextClass}>
+            ${item.itemText.slice(0, MAX_TEXT_LENGTH) +
+            ((item.itemText.length > MAX_TEXT_LENGTH) ? '...': '')}
+          </span>
       </div>
     `;
     // clang-format on
@@ -233,7 +244,7 @@ export class LitMenu extends LitElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const toggleMenu = () => {
       if (this.menu == null) return;
       if (!this.menuOpen) {

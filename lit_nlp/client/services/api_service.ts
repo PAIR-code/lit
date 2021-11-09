@@ -64,6 +64,22 @@ export class ApiService extends LitService {
   }
 
   /**
+   * Request the server to create a new model.
+   * Loads the model on the backend.
+   * Returns (updated metadata, name of just-loaded model)
+   * @param model name of (base) model to dispatch to load()
+   * @param modelPath path to load from
+   */
+  async createModel(model: string, modelPath: string):
+      Promise<[LitMetadata, string]> {
+    const loadMessage = 'Loading new model';
+    return this.queryServer(
+        '/create_model',
+        {'model_name': model, 'model_path': modelPath},
+        [], loadMessage);
+  }
+
+  /**
    * Send a request to the server to get dataset info.
    */
   async getInfo(): Promise<LitMetadata> {
@@ -117,12 +133,20 @@ export class ApiService extends LitService {
   }
 
   /**
-   * Calls the server to create and set the IDs for the provided inputs.
+   * Calls the server to create and set the IDs and other data for the provided
+   * inputs.
    * @param inputs Inputs to get the IDs for.
+   * @param datasetName current dataset
+   *
    * @return Inputs with the IDs correctly set.
    */
-  getDatapointIds(inputs: IndexedInput[]): Promise<IndexedInput[]> {
-    return this.queryServer<IndexedInput[]>('/get_datapoint_ids', {}, inputs);
+  annotateNewData(
+      inputs: IndexedInput[], datasetName: string): Promise<IndexedInput[]> {
+    return this.queryServer<IndexedInput[]>(
+        '/annotate_new_data', {
+          'dataset_name': datasetName,
+        },
+        inputs);
   }
 
   /**
@@ -202,11 +226,11 @@ export class ApiService extends LitService {
       return input;
     });
 
+    const paramsArray =
+        Object.keys(params).map((key: string) => `${key}=${params[key]}`);
+    const url = encodeURI(`.${endpoint}?${paramsArray.join('&')}`);
+    const body = JSON.stringify({inputs: processedInputs, config});
     try {
-      const paramsArray =
-          Object.keys(params).map((key: string) => `${key}=${params[key]}`);
-      const url = encodeURI(`${endpoint}?${paramsArray.join('&')}`);
-      const body = JSON.stringify({inputs: processedInputs, config});
       const res = await fetch(url, {method: 'POST', body});
       // If there is tsserver error, the response contains text (not json).
       if (!res.ok) {
@@ -215,17 +239,19 @@ export class ApiService extends LitService {
       }
       const json = await res.json();
       finished();
+      // When a call finishes, clear any previous error of the same call.
+      this.statusService.removeError(url);
       return json;
     } catch (err) {
       finished();
       // Extract error text if returned from tsserver.
-      const found = err.message.match('(?<=<code>).*?(?=<br><br>)');
+      const found = err.message.match('^.*?(?=\n\nDetails:)');
       if (!found) {
-        this.statusService.addError('Unknown error');
+        this.statusService.addError(
+            'Unknown error', err.toString(), url);
       } else {
-        this.statusService.addError(found[0]);
+        this.statusService.addError(found[0], err.toString(), url);
       }
-      // TODO(b/156624955) Catch this error and console.log instead.
       throw (err);
     }
   }

@@ -61,6 +61,8 @@ flags.DEFINE_boolean(
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 
 def get_wsgi_app():
   FLAGS.set_default("server_type", "external")

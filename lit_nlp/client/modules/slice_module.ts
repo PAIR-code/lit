@@ -16,11 +16,12 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
@@ -29,7 +30,7 @@ import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './slice_module.css';
 
 /**
@@ -37,16 +38,16 @@ import {styles} from './slice_module.css';
  */
 @customElement('lit-slice-module')
 export class SliceModule extends LitModule {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  static title = 'Slice Editor';
-  static numCols = 2;
-  static collapseByDefault = true;
-  static duplicateForModelComparison = false;
+  static override title = 'Slice Editor';
+  static override numCols = 2;
+  static override collapseByDefault = true;
+  static override duplicateForModelComparison = false;
 
-  static template = () => {
+  static override template = () => {
     return html`<lit-slice-module></lit-slice-module>`;
   };
 
@@ -132,11 +133,12 @@ export class SliceModule extends LitModule {
     };
     // clang-format off
     return html`
-      <div class="container" id="create-container">
+      <div class="row-container">
         <input type="text" id="input-box" .value=${this.sliceName}
           placeholder="Enter name" @input=${onInputChange}
           @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}/>
-        <button ?disabled="${!this.createButtonEnabled}" id="create"
+        <button class='hairline-button'
+          ?disabled="${!this.createButtonEnabled}"
           @click=${onClickCreate}>${this.sliceByFeatures.length > 0 ?
           'Create slices': 'Create slice'}
         </button>
@@ -153,26 +155,61 @@ export class SliceModule extends LitModule {
       const newSliceName = selectedSliceName === sliceName ? null : sliceName;
       this.selectSlice(newSliceName);
     };
-    const numDatapoints = this.sliceService.getSliceByName(sliceName)?.length;
+    const numDatapoints =
+        this.sliceService.getSliceByName(sliceName)?.length ?? 0;
 
-    const iconClass = classMap({
-      'delete-icon': true,
-      'icon-button': true,
-      'hidden': sliceName === STARRED_SLICE_NAME
-    });
-    const deleteClicked = () => {
+    // Only enable appending if there are new examples to add.
+    const appendButtonEnabled =
+        this.selectionService.selectedIds
+            .filter(id => !this.sliceService.isInSlice(sliceName, id))
+            .length > 0;
+    const appendIconClass =
+        classMap({'icon-button': true, 'disabled': !appendButtonEnabled});
+    const appendClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
+      this.sliceService.addIdsToSlice(
+          sliceName, this.selectionService.selectedIds);
+    };
+
+
+    const deleteClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
       this.sliceService.deleteNamedSlice(sliceName);
     };
+
+    const clearIconClass = classMap({
+      'icon-button': true,
+      'mdi-outlined': true,
+      'disabled': numDatapoints <= 0
+    });
+    const clearClicked = (e: Event) => {
+      e.stopPropagation(); /* don't select row */
+      const ids = this.sliceService.getSliceByName(sliceName) ?? [];
+      this.sliceService.removeIdsFromSlice(sliceName, ids);
+    };
+
+    // clang-format off
     return html`
       <div class=${itemClass} @click=${itemClicked}>
         <span class='slice-name'>${sliceName}</span>
         <span class="number-label">
           ${numDatapoints} ${numDatapoints === 1 ? 'datapoint' : 'datapoints'}
-        <mwc-icon class=${iconClass} @click=${deleteClicked}>
-           delete_outline
-         </mwc-icon>
+          <mwc-icon class=${appendIconClass} @click=${appendClicked}
+           title="Add selected to this slice">
+           add_circle_outline
+          </mwc-icon>
+          ${sliceName === STARRED_SLICE_NAME ?
+            html`<mwc-icon class=${clearIconClass} @click=${clearClicked}
+                  title="Reset this slice">
+                   clear
+                 </mwc-icon>` :
+            html`<mwc-icon class='icon-button' @click=${deleteClicked}
+                  title="Delete this slice">
+                   delete_outline
+                 </mwc-icon>`}
         </span>
       </div>`;
+    // clang-format on
   }
 
   renderSliceSelector() {
@@ -220,7 +257,7 @@ export class SliceModule extends LitModule {
       // clang-format on
     };
     return html`${
-        this.groupService.categoricalAndNumericalFeatureNames.map(
+        this.groupService.denseFeatureNames.map(
             key => renderFeatureCheckbox(key))}`;
   }
 
@@ -236,21 +273,23 @@ export class SliceModule extends LitModule {
     return '';
   }
 
-  render() {
+  override render() {
+    // clang-format off
     return html`
-      ${this.renderCreate()}
-      <div class="container" >
-        <label>Slice by feature</label>
-        ${this.renderFilters()}
-        ${this.renderNumSlices()}
-      </div>
-      <div class="container" id="selector-container">
+      <div class='module-container'>
+        ${this.renderCreate()}
+        <div class="row-container" >
+          <label>Slice by feature</label>
+          ${this.renderFilters()}
+          ${this.renderNumSlices()}
+        </div>
         ${this.renderSliceSelector()}
       </div>
     `;
+    // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

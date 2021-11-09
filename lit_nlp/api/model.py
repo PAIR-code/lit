@@ -16,10 +16,13 @@
 """Base classes for LIT models."""
 import abc
 import inspect
-from typing import List, Tuple, Iterable, Iterator, Text
+import itertools
+import multiprocessing  # for ThreadPool
+from typing import List, Tuple, Iterable, Iterator, Text, Union
 
 import attr
 from lit_nlp.api import types
+from lit_nlp.lib import utils
 import numpy as np
 
 JsonDict = types.JsonDict
@@ -116,6 +119,25 @@ class Model(metaclass=abc.ABCMeta):
     """
     return
 
+  def load(self, path: str):
+    """Load and return a new instance of this model loaded from a new path.
+
+    By default this method does nothing. Models can override this method in
+    order to allow dynamic model loading in LIT through the UI. Models
+    overriding this method should use the provided path string and create and
+    return a new instance of its model class.
+
+    Args:
+      path: The path to the persisted model information, used in model's
+      construction.
+
+    Returns:
+      (Model) A model loaded with information from the provided path.
+    """
+    del path
+    raise NotImplementedError('Model has no load method defined for dynamic '
+                              'loading')
+
   @abc.abstractmethod
   def input_spec(self) -> types.Spec:
     """Return a spec describing model inputs."""
@@ -126,6 +148,7 @@ class Model(metaclass=abc.ABCMeta):
     """Return a spec describing model outputs."""
     return
 
+  # TODO(lit-dev): annotate as @final once we migrate to python 3.8+
   def spec(self) -> ModelSpec:
     return ModelSpec(input=self.input_spec(), output=self.output_spec())
 
@@ -188,7 +211,113 @@ class Model(metaclass=abc.ABCMeta):
     if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
       yield from self.predict_minibatch(minibatch, **kw)
 
+  # TODO(b/171513556): remove this method.
   def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
                             **kw) -> Iterator[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     return self.predict((ex['data'] for ex in indexed_inputs), **kw)
+
+
+class ModelWrapper(Model):
+  """Wrapper for a LIT model.
+
+  This class acts as an identity function, with pass-through implementations of
+  the Model API. Subclasses of this can implement only those methods that need
+  to be modified.
+  """
+
+  def __init__(self, model: Model):
+    self._wrapped = model
+
+  @property
+  def wrapped(self):
+    """Access the wrapped model."""
+    return self._wrapped
+
+  def description(self) -> str:
+    return self.wrapped.description()
+
+  def max_minibatch_size(self) -> int:
+    return self.wrapped.max_minibatch_size()
+
+  def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
+    return self.wrapped.predict_minibatch(inputs, **kw)
+
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict(inputs, **kw)
+
+  # NOTE: if a subclass modifies predict(), it should also override this to
+  # call the custom predict() method - otherwise this will delegate to the
+  # wrapped class and call /that class's/ predict() method, likely leading to
+  # incorrect results.
+  # b/171513556 will solve this problem by removing the need for any
+  # *_with_metadata() methods.
+  def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
+                            **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict_with_metadata(indexed_inputs, **kw)
+
+  def load(self, path: str):
+    """Load a new model and wrap it with this class."""
+    new_model = self.wrapped.load(path)
+    return self.__class__(new_model)
+
+  def input_spec(self) -> types.Spec:
+    return self.wrapped.input_spec()
+
+  def output_spec(self) -> types.Spec:
+    return self.wrapped.output_spec()
+
+  def spec(self) -> ModelSpec:
+    return ModelSpec(input=self.input_spec(), output=self.output_spec())
+
+  ##
+  # Special methods
+  def get_embedding_table(self) -> Tuple[List[Text], np.ndarray]:
+    return self.wrapped.get_embedding_table()
+
+  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict]):
+    return self.wrapped.fit_transform_with_metadata(indexed_inputs)
+
+
+class BatchedRemoteModel(Model):
+  """Generic base class for remotely-hosted models.
+
+  Implements concurrent request batching; subclass need only implement
+  predict_minibatch() and max_minibatch_size().
+
+  If subclass overrides __init__, it should be sure to call super().__init__()
+  to set up the threadpool.
+  """
+
+  def __init__(self,
+               max_concurrent_requests: int = 4,
+               max_qps: Union[int, float] = 25):
+    # Use a local thread pool for concurrent requests, so we can keep the server
+    # busy during network transit time and local pre/post-processing.
+    self._max_qps = max_qps
+    self._pool = multiprocessing.pool.ThreadPool(max_concurrent_requests)
+
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+    batches = utils.batch_iterator(
+        inputs, max_batch_size=self.max_minibatch_size())
+    batches = utils.rate_limit(batches, self._max_qps)
+    pred_batches = self._pool.imap(self.predict_minibatch, batches)
+    return itertools.chain.from_iterable(pred_batches)
+
+  def max_minibatch_size(self) -> int:
+    """Maximum minibatch size for this model. Subclass can override this."""
+    return 1
+
+  @abc.abstractmethod
+  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+    """Run prediction on a batch of inputs.
+
+    Subclass should implement this.
+
+    Args:
+      inputs: sequence of inputs, following model.input_spec()
+
+    Returns:
+      list of outputs, following model.output_spec()
+    """
+    return

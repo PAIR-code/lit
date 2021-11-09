@@ -18,8 +18,9 @@
 import '../elements/checkbox';
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -27,23 +28,23 @@ import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * A LIT module that renders masked predictions for a masked LM.
  */
 @customElement('lm-prediction-module')
 export class LanguageModelPredictionModule extends LitModule {
-  static title = 'LM Predictions';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = true;
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'LM Predictions';
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = true;
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<lm-prediction-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></lm-prediction-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -93,7 +94,7 @@ export class LanguageModelPredictionModule extends LitModule {
         undefined;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getSelectedInputData, selectedInput => {
@@ -181,7 +182,7 @@ export class LanguageModelPredictionModule extends LitModule {
     this.mlmResults = results[0][this.predKey];
   }
 
-  render() {
+  override render() {
     return html`
       <div class='module-container'>
         ${this.renderControls()}
@@ -246,7 +247,7 @@ export class LanguageModelPredictionModule extends LitModule {
     // clang-format off
     return html`
       <div class='input-group'>
-        <div class='group-title'>
+        <div class='field-title input-group-title'>
           ${this.tokens.length > 0 ? this.outputTokensKey : null}
         </div>
         <div class="input-words">${this.tokens.map(renderToken)}</div>
@@ -300,7 +301,7 @@ export class LanguageModelPredictionModule extends LitModule {
     });
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const modelInfo of Object.values(modelSpecs)) {
       if (LanguageModelPredictionModule.findTargetFields(modelInfo.spec.output)
               .length > 0) {

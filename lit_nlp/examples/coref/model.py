@@ -93,10 +93,6 @@ class FrozenEncoderCoref(lit_model.Model):
           span1=orig_edge.span1, span2=orig_edge.span2, label=ep['proba'])
       preds[edge['src_idx']]['coref'].append(new_edge)
     for ex, p in zip(inputs, preds):
-      # TODO(b/172975096): allow plotting of scalars from input data,
-      # so we don't need to add this to the predictions.
-      if 'pf_bls' in ex:
-        p['pf_bls'] = ex['pf_bls']
       # Choose an answer if there are only two target edges.
       if len(p['coref']) == 2 and 'answer' in ex:
         probas = np.array([ep.label for ep in p['coref']])
@@ -136,8 +132,4 @@ class FrozenEncoderCoref(lit_model.Model):
         'pred_answer':
             lit_types.MulticlassPreds(
                 vocab=winogender.ANSWER_VOCAB, parent='answer'),
-        # TODO(b/172975096): allow plotting of scalars from input data,
-        # so we don't need to add this to the predictions.
-        'pf_bls':
-            lit_types.Scalar(),
     }

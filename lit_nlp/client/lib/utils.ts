@@ -21,7 +21,7 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
-import {html, TemplateResult} from 'lit-element';
+import {html, TemplateResult} from 'lit';
 import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /**
@@ -137,6 +137,16 @@ export function getThresholdFromMargin(margin: number) {
 }
 
 /**
+ *  Converts the threshold value for binary classification to the margin.
+ */
+export function getMarginFromThreshold(threshold: number) {
+  const margin = threshold !== 1 ?
+      (threshold !== 0 ? Math.log(threshold / (1 - threshold)) : -5) :
+      5;
+  return margin;
+}
+
+/**
  * Shortens the id of an input data to be displayed in the UI.
  */
 export function shortenId(id: string|null) {
@@ -210,24 +220,64 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[]): boolean {
+    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    extraCheck?: (litType: LitType) => boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
     const outputSpec = models[modelNames[modelNum]].spec.output;
-    if (findSpecKeys(outputSpec, typesToCheck).length) {
+    const matchedSpecs = findSpecKeys(outputSpec, typesToCheck);
+    // If there are matching fields, and there is no extra check then return
+    // true, otherwise return true if the extra check suceeds for any field.
+    if (matchedSpecs.length) {
+      if (extraCheck != null) {
+        for (const matchedSpec of matchedSpecs) {
+          if (extraCheck(outputSpec[matchedSpec])) {
+            return true;
+          }
+        }
+      } else {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Checks if any of the model input specs contain any of the provided types.
+ * Can be provided a single type string or a list of them.
+ */
+export function doesInputSpecContain(
+    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    checkRequired: boolean): boolean {
+  const modelNames = Object.keys(models);
+  for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
+    const inputSpec = models[modelNames[modelNum]].spec.input;
+    let keys = findSpecKeys(inputSpec, typesToCheck);
+    if (checkRequired) {
+      keys = keys.filter(spec => inputSpec[spec].required);
+    }
+    if (keys.length) {
       return true;
     }
   }
   return false;
 }
 
+/** Returns if a LitType specifies binary classification. */
+export function isBinaryClassification(litType: LitType) {
+    const predictionLabels = litType.vocab!;
+    const nullIdx = litType.null_idx;
+    return predictionLabels.length === 2 && nullIdx != null;
+}
 
 /**
  * Helper function to make an object into a human readable key.
  * Sorts object keys, so order of object does not matter.
  */
-export function objToDictKey(dict: FacetMap) {
-  return Object.keys(dict).sort().map(key => `${key}:${dict[key]}`).join(' ');
+export function facetMapToDictKey(dict: FacetMap) {
+  return Object.keys(dict).sort().map(
+      key => `${key}:${dict[key].displayVal}`).join(' ');
 }
 
 /**
@@ -328,3 +378,15 @@ export function getTokOffsets(tokWidths: number[], spaceWidth: number): number[]
   }
   return tokOffsets;
 }
+
+/** Creates a hash code from a string similar to Java's hashCode method. */
+export function hashCode(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const chr = str.charCodeAt(i);
+    hash  = ((hash << 5) - hash) + chr;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return hash;
+}
+

@@ -29,14 +29,20 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
+from lit_nlp.components import ablation_flip
 from lit_nlp.components import gradient_maps
+from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
 from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
+from lit_nlp.components import model_salience
+from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
+from lit_nlp.components import pdp
 from lit_nlp.components import projection
 from lit_nlp.components import scrambler
 from lit_nlp.components import tcav
+from lit_nlp.components import thresholder
 from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
@@ -193,19 +199,38 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _get_datapoint_ids(self, data, **unused_kw) -> List[IndexedInput]:
-    """Fill in unique example hashes for the provided datapoints."""
+  def _annotate_new_data(self, data, dataset_name: Optional[Text] = None,
+                         **unused_kw) -> List[IndexedInput]:
+    """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
-    for example in data['inputs']:
+    assert dataset_name is not None, 'No dataset specified.'
+
+    # Generate annotated versions of new datapoints.
+    dataset = self._datasets[dataset_name]
+    input_examples = [example['data'] for example in data['inputs']]
+    dataset_to_annotate = lit_dataset.Dataset(
+        base=dataset, examples=input_examples)
+    annotated_dataset = self._run_annotators(dataset_to_annotate)
+
+    # Add annotations and IDs to new datapoints.
+    for i, example in enumerate(data['inputs']):
+      example['data'] = annotated_dataset.examples[i]
       example['id'] = caching.input_hash(example['data'])
+
     return data['inputs']
 
-  def _get_dataset(self, unused_data, dataset_name: Text = None, **unused_kw):
+  def _get_dataset(self,
+                   unused_data,
+                   dataset_name: Optional[Text] = None,
+                   **unused_kw):
     """Attempt to get dataset, or override with a specific path."""
     return self._datasets[dataset_name].indexed_examples
 
-  def _create_dataset(self, unused_data, dataset_name: Text = None,
-                      dataset_path: Text = None, **unused_kw):
+  def _create_dataset(self,
+                      unused_data,
+                      dataset_name: Optional[Text] = None,
+                      dataset_path: Optional[Text] = None,
+                      **unused_kw):
     """Create dataset from a path, updating and returning the metadata."""
 
     assert dataset_name is not None, 'No dataset specified.'
@@ -219,6 +244,26 @@ class LitApp(object):
     else:
       return None
 
+  def _create_model(self,
+                    unused_data,
+                    model_name: Optional[Text] = None,
+                    model_path: Optional[Text] = None,
+                    **unused_kw):
+    """Create model from a path, updating and returning the metadata."""
+
+    assert model_name is not None, 'No model specified.'
+    assert model_path is not None, 'No model path specified.'
+    # Load using the underlying model class, then wrap explicitly in a cache.
+    new_model = self._models[model_name].wrapped.load(model_path)
+    if new_model is not None:
+      new_model_name = model_name + ':' + os.path.basename(model_path)
+      self._models[new_model_name] = caching.CachingModelWrapper(
+          new_model, new_model_name, cache_dir=self._data_dir)
+      self._info = self._build_metadata()
+      return (self._info, new_model_name)
+    else:
+      return None
+
   def _get_generated(self, data, model: Text, dataset_name: Text,
                      generator: Text, **unused_kw):
     """Generate new datapoints based on the request."""
@@ -229,9 +274,19 @@ class LitApp(object):
     all_generated: List[List[Input]] = generator.run_with_metadata(
         data['inputs'], self._models[model], dataset, config=data.get('config'))
 
+    # Annotate datapoints
+    def annotate_generated(datapoints):
+      dataset_to_annotate = lit_dataset.Dataset(
+          base=dataset, examples=datapoints)
+      annotated_dataset = self._run_annotators(dataset_to_annotate)
+      return annotated_dataset.examples
+
+    annotated_generated = [
+        annotate_generated(generated) for generated in all_generated]
+
     # Add metadata.
     all_generated_indexed: List[List[IndexedInput]] = [
-        dataset.index_inputs(generated) for generated in all_generated
+        dataset.index_inputs(generated) for generated in annotated_generated
     ]
     for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
       for generated in indexed_generated:
@@ -276,8 +331,11 @@ class LitApp(object):
     """Pre-compute UMAP/PCA projections with default arguments."""
     for model, model_info in self._info['models'].items():
       for dataset_name in model_info['datasets']:
-        for field_name in utils.find_spec_keys(model_info['spec']['output'],
-                                               types.Embeddings):
+        embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
+                                                types.Embeddings)
+        # Only warm-start on the first embedding field, since if models return
+        # many different embeddings this can take a long time.
+        for field_name in embedding_fields[:1]:
           config = dict(
               dataset_name=dataset_name,
               model_name=model,
@@ -287,6 +345,15 @@ class LitApp(object):
           for interpreter_name in interpreters:
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
+
+  def _run_annotators(
+      self, dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
+    datapoints = [dict(ex) for ex in dataset.examples]
+    annotated_spec = dict(dataset.spec())
+    for annotator in self._annotators:
+      annotator.annotate(datapoints, dataset, annotated_spec)
+    return lit_dataset.Dataset(
+        base=dataset, examples=datapoints, spec=annotated_spec)
 
   def make_handler(self, fn):
     """Convenience wrapper to handle args and serialization.
@@ -327,6 +394,7 @@ class LitApp(object):
       datasets: Mapping[Text, lit_dataset.Dataset],
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
+      annotators: Optional[List[lit_components.Annotator]] = None,
       layouts: Optional[Mapping[Text, dtypes.LitComponentLayout]] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
@@ -337,13 +405,16 @@ class LitApp(object):
       default_layout: Optional[str] = None,
       canonical_url: Optional[str] = None,
       page_title: Optional[str] = None,
+      development_demo: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
     self._demo_mode = demo_mode
+    self._development_demo = development_demo
     self._default_layout = default_layout
     self._canonical_url = canonical_url
     self._page_title = page_title
+    self._data_dir = data_dir
     self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
@@ -356,6 +427,14 @@ class LitApp(object):
 
     self._datasets = dict(datasets)
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+
+    self._annotators = annotators or []
+
+    # Run annotation on each dataset, creating an annotated dataset and
+    # replace the datasets with the annotated versions.
+    for ds_key, ds in self._datasets.items():
+      self._datasets[ds_key] = self._run_annotators(ds)
+
     # Index all datasets
     self._datasets = lit_dataset.IndexedDataset.index_all(
         self._datasets, caching.input_hash)
@@ -364,8 +443,10 @@ class LitApp(object):
       self._generators = generators
     else:
       self._generators = {
-          'scrambler': scrambler.Scrambler(),
-          'word_replacer': word_replacer.WordReplacer(),
+          'Ablation Flip': ablation_flip.AblationFlip(),
+          'Hotflip': hotflip.HotFlip(),
+          'Scrambler': scrambler.Scrambler(),
+          'Word Replacer': word_replacer.WordReplacer(),
       }
 
     if interpreters is not None:
@@ -382,9 +463,13 @@ class LitApp(object):
           'Grad ⋅ Input': gradient_maps.GradientDotInput(),
           'Integrated Gradients': gradient_maps.IntegratedGradients(),
           'LIME': lime_explainer.LIME(),
+          'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
+          'thresholder': thresholder.Thresholder(),
+          'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
+          'pdp': pdp.PdpInterpreter(),
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
           'pca': projection.ProjectionManager(pca.PCAModel),
@@ -419,10 +504,11 @@ class LitApp(object):
         # Dataset-related endpoints.
         '/get_dataset': self._get_dataset,
         '/create_dataset': self._create_dataset,
+        '/create_model': self._create_model,
         '/get_generated': self._get_generated,
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
-        '/get_datapoint_ids': self._get_datapoint_ids,
+        '/annotate_new_data': self._annotate_new_data,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,

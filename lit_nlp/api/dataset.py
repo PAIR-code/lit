@@ -82,7 +82,7 @@ class Dataset(object):
       self._description = self._base.description()
 
     # Override from direct arguments.
-    self._examples = examples or self._examples
+    self._examples = examples if examples is not None else self._examples
     self._spec = spec or self._spec
     self._description = description or self._description
 
@@ -189,8 +189,11 @@ class IndexedDataset(Dataset):
         for example in examples
     ]  # pyformat: disable
 
-  def __init__(self, *args, id_fn: IdFnType = None,
-               indexed_examples: List[IndexedInput] = None, **kw):
+  def __init__(self,
+               *args,
+               id_fn: Optional[IdFnType] = None,
+               indexed_examples: Optional[List[IndexedInput]] = None,
+               **kw):
     super().__init__(*args, **kw)
     assert id_fn is not None, 'id_fn must be specified.'
     self.id_fn = id_fn
@@ -260,14 +263,16 @@ class IndexedDataset(Dataset):
       if new_dataset is not None:
         description = (f'{len(new_dataset)} examples from '
                        f'{path}\n{self._base.description()}')
-        return IndexedDataset(base=new_dataset, id_fn=self.id_fn,
-                              description=description)
+        return IndexedDataset(
+            base=new_dataset, id_fn=self.id_fn, description=description)
 
       path += LIT_FILE_EXTENSION
 
     with open(path, 'r') as fd:
-      examples = [cast(IndexedInput, serialize.from_json(line))
-                  for line in fd.readlines()]
+      examples = [
+          cast(IndexedInput, serialize.from_json(line))
+          for line in fd.readlines()
+      ]
 
     # Load the side-by-side spec if it exists on disk.
     spec_path = path + LIT_SPEC_EXTENSION
@@ -277,8 +282,20 @@ class IndexedDataset(Dataset):
 
     description = (f'{len(examples)} examples from '
                    f'{path}\n{self._base.description()}')
-    return IndexedDataset(base=self._base, indexed_examples=examples, spec=spec,
-                          description=description, id_fn=self.id_fn)
+    return IndexedDataset(
+        base=self._base,
+        indexed_examples=examples,
+        spec=spec,
+        description=description,
+        id_fn=self.id_fn)
+
+  def __hash__(self):
+    return hash(tuple([ex['id'] for ex in self._indexed_examples]))
+
+  def __eq__(self, other):
+    self_ids = [ex['id'] for ex in self._indexed_examples]
+    other_ids = [ex['id'] for ex in other._indexed_examples]
+    return self_ids == other_ids
 
 
 class NoneDataset(Dataset):

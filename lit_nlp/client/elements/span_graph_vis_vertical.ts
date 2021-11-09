@@ -23,12 +23,14 @@
 
 import '@material/mwc-icon';
 
-import {customElement, html, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
-import {VizColor} from '../lib/colors';
+import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
 import {EdgeLabel} from '../lib/types';
 
@@ -43,8 +45,8 @@ import {styles} from './span_graph_vis_vertical.css';
  * https://arxiv.org/abs/1905.06316 for more on this formalism.
  */
 export interface SpanGraph {
-  'tokens': string[];
-  'layers': AnnotationLayer[];
+  tokens: string[];
+  layers: AnnotationLayer[];
 }
 
 /**
@@ -52,8 +54,9 @@ export interface SpanGraph {
  * or 'ner' (named entities).
  */
 export interface AnnotationLayer {
-  'name': string;
-  'edges': EdgeLabel[];
+  name: string;
+  edges: EdgeLabel[];
+  hideBracket?: boolean;
 }
 
 function formatEdgeLabel(label: string|number): string {
@@ -81,11 +84,11 @@ export class SpanGraphVis extends ReactiveElement {
   // Padding for SVG viewport, to avoid clipping some elements (like polyline).
   @property({ type: Number }) viewPad: number = 5;
 
-  static get styles() {
+  static override get styles() {
     return styles;
   }
 
-  render() {
+  override render() {
     if (!this.data) {
       return ``;
     }
@@ -129,7 +132,7 @@ export class SpanGraphVis extends ReactiveElement {
     }
 
     const layerStyles = styleMap({
-      '--group-color': VizColor.getColor('dark', i).color
+      '--group-color': getVizColor('dark', i).color
     });
 
     // The column width is the width of the longest label, in pixels.
@@ -224,6 +227,7 @@ export class SpanGraphVis extends ReactiveElement {
       width,
       'border-radius': `0pt ${rad}pt ${rad}pt 0pt`,
       left: isArc ? `${colWidth + 10}pt` : '',
+      visibility: layer.hideBracket ? 'hidden' : 'visble',
     });
 
     const arrowHeadClasses = classMap({

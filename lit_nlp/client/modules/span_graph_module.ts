@@ -24,8 +24,9 @@
 import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
-import {css, customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -33,7 +34,7 @@ import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
 import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface FieldNameMultimap {
   [fieldName: string]: string[];
@@ -54,12 +55,11 @@ const moduleStyles = css`
   }
 
   .token-group {
-    padding-left: 5px;
     padding-top: 30pt;
   }
 
-  #pred-group {
-    outline: 1px dashed gray;
+  .field-title {
+    padding: 4px;
   }
 `;
 
@@ -107,6 +107,7 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
     const annotationLayers: AnnotationLayer[] = [];
     for (const tagKey of tokenToTags[tokenKey]) {
       let edges = data[tagKey];
+      let hideBracket = false;
       // Temporary workaround: if we manually create a new datapoint, the span
       // or tag field may be "" rather than [].
       // TODO(lit-team): remove this once the datapoint editor is type-safe
@@ -116,10 +117,11 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
       }
       if (isLitSubtype(spec[tagKey], 'SequenceTags')) {
         edges = tagsToEdges(edges);
+        hideBracket = true;
       } else if (isLitSubtype(spec[tagKey], 'SpanLabels')) {
         edges = spansToEdges(edges);
       }
-      annotationLayers.push({name: tagKey, edges});
+      annotationLayers.push({name: tagKey, edges, hideBracket});
     }
     // Try to infer tokens from text, if that field is empty.
     let tokens = data[tokenKey];
@@ -144,26 +146,30 @@ function renderTokenGroups(
           showLayerLabel}></span-graph-vis>`;
     }
   };
+  // clang-format off
   return html`${Object.keys(tokenToTags).map(tokenKey => {
     const labelHere = data[tokenKey]?.layers?.length === 1;
     return html`
       <div id=${tokenKey} class="token-group">
-        ${labelHere ? html`<div>${data[tokenKey].layers[0].name}</div>` : null}
+        ${labelHere ?
+          html`<div class='field-title'>${data[tokenKey].layers[0].name}</div>`
+          : null}
         ${visElement(data[tokenKey], !labelHere)}
       </div>
     `;
   })}`;
+  // clang-format on
 }
 
 /** Gold predictions module class. */
 @customElement('span-graph-gold-module')
 export class SpanGraphGoldModule extends LitModule {
-  static title = 'Structured Prediction (gold)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
-  static duplicateAsRow = false;
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Structured Prediction (gold)';
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
+  static override duplicateAsRow = false;
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module>`;
   };
@@ -184,14 +190,21 @@ export class SpanGraphGoldModule extends LitModule {
     }
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, moduleStyles];
   }
 
   // tslint:disable:no-any
-  render() {
+  override render() {
+    // If more than one model is selected, SpanGraphModule will be offset
+    // vertically due to the model name header, while this one won't be.
+    // So, add an offset so that the content still aligns when there is a
+    // SpanGraphGoldModule and a SpanGraphModule side-by-side.
+    const offsetForHeader = !this.appState.compareExamplesEnabled &&
+        this.appState.currentModels.length > 1;
+    // clang-format off
     return html`
-      ${!this.appState.compareExamplesEnabled ? html`<div class='offset-for-module-header'></div>` : null}
+      ${offsetForHeader? html`<div class='offset-for-module-header'></div>` : null}
       <div id="gold-group" class='outer-container'>
         ${
         renderTokenGroups(
@@ -199,10 +212,11 @@ export class SpanGraphGoldModule extends LitModule {
             (this.constructor as any).orientation)}
       </div>
     `;
+    // clang-format on
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
@@ -213,11 +227,11 @@ export class SpanGraphGoldModule extends LitModule {
 /** Model output module class. */
 @customElement('span-graph-module')
 export class SpanGraphModule extends LitModule {
-  static title = 'Structured Prediction (model preds)';
-  static duplicateForExampleComparison = true;
-  static duplicateAsRow = false;
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Structured Prediction (model preds)';
+  static override duplicateForExampleComparison = true;
+  static override duplicateAsRow = false;
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module>`;
   };
@@ -246,11 +260,11 @@ export class SpanGraphModule extends LitModule {
     }
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, moduleStyles];
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     this.reactImmediately(
         () => this.selectionService.primarySelectedInputData, input => {
           this.updatePredDisplayData(input);
@@ -258,7 +272,7 @@ export class SpanGraphModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  render() {
+  override render() {
     return html`
       <div id="pred-group" class='outer-container'>
         ${
@@ -270,7 +284,7 @@ export class SpanGraphModule extends LitModule {
   }
   // tslint:enable:no-any
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;
@@ -290,10 +304,10 @@ export class SpanGraphModule extends LitModule {
 /** Gold predictions module class. */
 @customElement('span-graph-gold-module-vertical')
 export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
-  static duplicateAsRow = true;
-  static orientation = 'vertical';
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override duplicateAsRow = true;
+  static override orientation = 'vertical';
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-gold-module-vertical selectionServiceIndex=${
         selectionServiceIndex}></span-graph-gold-module-vertical>`;
   };
@@ -302,9 +316,9 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
 /** Model output module class. */
 @customElement('span-graph-module-vertical')
 export class SpanGraphModuleVertical extends SpanGraphModule {
-  static duplicateAsRow = true;
-  static orientation = 'vertical';
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override duplicateAsRow = true;
+  static override orientation = 'vertical';
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<span-graph-module-vertical model=${
         model} selectionServiceIndex=${
         selectionServiceIndex}></span-graph-module-vertical>`;

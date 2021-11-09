@@ -16,11 +16,14 @@
 """Miscellaneous helper functions."""
 
 import copy
+import itertools
 import queue
 import threading
+import time
 
-from typing import Dict, List, TypeVar, Callable, Any
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
 
+T = TypeVar('T')
 K = TypeVar('K')
 V = TypeVar('V')
 
@@ -73,12 +76,55 @@ def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
   return {keymap.get(k, k): d[k] for k in d}
 
 
+def rate_limit(iterable, qps: Union[int, float]):
+  """Rate limit an iterator."""
+  for item in iterable:
+    yield item
+    time.sleep(1.0 / qps)
+
+
+def batch_iterator(items: Iterable[T],
+                   max_batch_size: int) -> Iterator[List[T]]:
+  """Create batches from an input stream.
+
+  Use this to create batches, e.g. to feed to a model.
+  The output can be easily flattened again using itertools.chain.from_iterable.
+
+  Args:
+    items: stream of items
+    max_batch_size: maximum size of resulting batches
+
+  Yields:
+    batches of size <= max_batch_size
+  """
+  minibatch = []
+  for item in items:
+    if len(minibatch) < max_batch_size:
+      minibatch.append(item)
+    if len(minibatch) >= max_batch_size:
+      yield minibatch
+      minibatch = []
+  if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
+    yield minibatch
+
+
+def batch_inputs(input_records: Sequence[Dict[K, V]]) -> Dict[K, List[V]]:
+  """Batch inputs from list-of-dicts to dict-of-lists."""
+  assert input_records, 'Must have non-empty batch!'
+  ret = {}
+  for k in input_records[0]:
+    ret[k] = [r[k] for r in input_records]
+  return ret
+
+
 def _extract_batch_length(preds):
   """Extracts batch length of predictions."""
   batch_length = None
   for key, value in preds.items():
-    batch_length = batch_length or value.shape[0]
-    if value.shape[0] != batch_length:
+    this_length = (
+        len(value) if isinstance(value, (list, tuple)) else value.shape[0])
+    batch_length = batch_length or this_length
+    if this_length != batch_length:
       raise ValueError('Batch length of predictions should be same. %s has '
                        'different batch length than others.' % key)
   return batch_length
@@ -100,6 +146,31 @@ def unbatch_preds(preds):
   else:
     for i in range(_extract_batch_length(preds)):
       yield {key: value[i] for key, value in preds.items()}
+
+
+def find_all_combinations(l: List[Any], min_element_count: int,
+                          max_element_count: int) -> List[List[Any]]:
+  """Finds all possible ways how elements of a list can be combined.
+
+  E.g., all combinations of list [1, 2, 3] are
+  [[1], [2], [3], [1, 2], [1, 3], [2, 3], [1, 2, 3]].
+
+  Args:
+    l: a list of arbitrary elements.
+    min_element_count: the minimum number of elements that every combination
+      should contain.
+    max_element_count: the maximum number of elements that every combination
+      should contain.
+
+  Returns:
+    The list of all possible combinations given the constraints.
+  """
+  result: List[List[Any]] = []
+  min_element_count = max(1, min_element_count)
+  max_element_count = min(max_element_count, len(l))
+  for element_count in range(min_element_count, max_element_count + 1):
+    result.extend(list(x) for x in itertools.combinations(l, element_count))
+  return result
 
 
 class TaskQueue(queue.Queue):

@@ -20,17 +20,19 @@
  */
 
 // tslint:disable:no-new-decorators
-import {css, customElement, html, svg} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import {css, html, svg} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getBrandColor} from '../lib/colors';
 
 type Tokens = string[];
 // <float>[num_heads, num_tokens, num_tokens]
@@ -41,15 +43,15 @@ type AttentionHeads = number[][][];
  */
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
-  static title = 'Attention';
-  static numCols = 6;
-  static duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Attention';
+  static override numCols = 3;
+  static override duplicateForExampleComparison = true;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<attention-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></attention-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     const styles = css`
         .head-selector-chip {
           margin: 0px 1px;
@@ -58,12 +60,17 @@ export class AttentionModule extends LitModule {
         }
 
         .head-selector-chip.selected {
-          color: #6403fa;
-          border-color: #6403fa;
+          color: var(--lit-cyea-600);
+          border-color: var(--lit-cyea-600);
         }
 
         .head-selector-chip:hover {
-          background: #f3e8fd;
+          background: var(--lit-cyea-100);
+          cursor: pointer;
+        }
+
+        .padded-container {
+          padding: 4px 8px;
         }
     `;
     return [sharedStyles, styles];
@@ -76,7 +83,7 @@ export class AttentionModule extends LitModule {
   @observable private selectedHeadIndex: number = 0;
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getSelectedInput, selectedInput => {
@@ -103,7 +110,7 @@ export class AttentionModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     if (!this.preds) return;
 
     // Scrolling inside this module is done inside the module-results-area div.
@@ -118,7 +125,7 @@ export class AttentionModule extends LitModule {
           ${this.renderLayerSelector()}
           ${this.renderHeadSelector()}
         </div>
-        <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
+        <div class='module-results-area padded-container ${SCROLL_SYNC_CSS_CLASS}'>
           ${this.renderAttnHead()}
         </div>
       </div>
@@ -257,7 +264,8 @@ export class AttentionModule extends LitModule {
                     y1=${y1}
                     x2=${xIn(j)}
                     y2=${y2}
-                    stroke="rgba(100,3,250,${attnVal})"
+                    stroke="${getBrandColor('cyea', '600').color}"
+                    stroke-opacity="${attnVal}"
                     stroke-width=2>
                   </line>`;
               }
@@ -313,7 +321,7 @@ export class AttentionModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
   }
 }

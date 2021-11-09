@@ -41,6 +41,8 @@ import transformers
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_string(
     "model_path", None,
     "Path to trained model, in standard transformers format, e.g. as "
@@ -172,7 +174,8 @@ class SimpleSentimentModel(lit_model.Model):
   def output_spec(self) -> lit_types.Spec:
     ret = {
         "tokens": lit_types.Tokens(),
-        "probas": lit_types.MulticlassPreds(parent="label", vocab=self.LABELS),
+        "probas": lit_types.MulticlassPreds(parent="label", vocab=self.LABELS,
+                                            null_idx=0),
         "cls_emb": lit_types.Embeddings()
     }
     # Gradients, if requested.

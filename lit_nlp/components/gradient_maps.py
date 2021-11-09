@@ -31,6 +31,10 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+CLASS_KEY = 'Class index to explain'
+NORMALIZATION_KEY = 'Normalize'
+INTERPOLATION_KEY = 'Interpolation steps'
+
 
 class GradientNorm(lit_components.Interpreter):
   """Salience map from gradient L2 norm."""
@@ -81,7 +85,7 @@ class GradientNorm(lit_components.Interpreter):
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
         scores = self._interpret(o[grad_field], tokens)
-        result[grad_field] = dtypes.SalienceMap(tokens, scores)
+        result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
 
     return all_results
@@ -91,7 +95,7 @@ class GradientNorm(lit_components.Interpreter):
     return len(compatible_fields)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=True, signed=False)}
+    return {'saliency': types.TokenSalience(autorun=True, signed=False)}
 
 
 class GradientDotInput(lit_components.Interpreter):
@@ -160,7 +164,7 @@ class GradientDotInput(lit_components.Interpreter):
 
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
-        result[grad_field] = dtypes.SalienceMap(tokens, scores)
+        result[grad_field] = dtypes.TokenSalience(tokens, scores)
       all_results.append(result)
 
     return all_results
@@ -171,7 +175,7 @@ class GradientDotInput(lit_components.Interpreter):
     return len(compatible_fields)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=True, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=True, signed=True)}
 
 
 class IntegratedGradients(lit_components.Interpreter):
@@ -201,10 +205,6 @@ class IntegratedGradients(lit_components.Interpreter):
         label for all integral steps, since the argmax prediction may change.
   """
 
-  def __init__(self, interpolation_steps=30):
-    # TODO(b/168042999): Make this parameter configurable in the UI.
-    self.interpolation_steps = interpolation_steps
-
   def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
     # Find TokenGradients fields
     grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
@@ -221,7 +221,7 @@ class IntegratedGradients(lit_components.Interpreter):
       assert isinstance(output_spec[tokens_field], types.Tokens)
 
       embeddings_field = output_spec[f].grad_for
-      grad_class_key = output_spec[f].grad_target
+      grad_class_key = output_spec[f].grad_target_field_key
       if embeddings_field is not None and grad_class_key is not None:
         assert embeddings_field in input_spec
         assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
@@ -275,7 +275,9 @@ class IntegratedGradients(lit_components.Interpreter):
     return baseline
 
   def get_salience_result(self, model_input: JsonDict, model: lit_model.Model,
-                          model_output: JsonDict, grad_fields: List[Text]):
+                          interpolation_steps: int, normalize: bool,
+                          class_to_explain: int, model_output: JsonDict,
+                          grad_fields: List[Text]):
     result = {}
 
     output_spec = model.output_spec()
@@ -287,11 +289,15 @@ class IntegratedGradients(lit_components.Interpreter):
 
     # The gradient class input is used to specify the target class of the
     # gradient calculation (if unspecified, this option defaults to the argmax,
-    # which could flip between interpolated inputs).
+    # which could flip between interpolated inputs). If class_to_explain is -1,
+    # then explain the argmax class.
     grad_class_key = cast(types.TokenGradients,
-                          output_spec[grad_fields[0]]).grad_target
-    # TODO(b/168042999): Add option to specify the class to explain in the UI.
-    grad_class = model_output[grad_class_key]
+                          output_spec[grad_fields[0]]).grad_target_field_key
+    if class_to_explain == -1:
+      grad_class = model_output[grad_class_key]
+    else:
+      grad_class = cast(types.CategoryLabel,
+                        output_spec[grad_class_key]).vocab[class_to_explain]
 
     interpolated_inputs = {}
     all_embeddings = []
@@ -308,11 +314,11 @@ class IntegratedGradients(lit_components.Interpreter):
       # Get interpolated inputs from baseline to original embedding.
       # <float32>[interpolation_steps, num_tokens, emb_size]
       interpolated_inputs[embed_field] = self.get_interpolated_inputs(
-          baseline, embeddings, self.interpolation_steps)
+          baseline, embeddings, interpolation_steps)
 
     # Create model inputs and populate embedding field(s).
     inputs_with_embeds = []
-    for i in range(self.interpolation_steps):
+    for i in range(interpolation_steps):
       input_copy = model_input.copy()
       # Interpolates embeddings for all inputs simultaneously.
       for embed_field in embeddings_fields:
@@ -349,9 +355,9 @@ class IntegratedGradients(lit_components.Interpreter):
     # <float32>[total_num_tokens]
     attributions = np.sum(integrated_gradients, axis=-1)
 
-    # TODO(b/168042999): Make normalization customizable in the UI.
     # <float32>[total_num_tokens]
-    scores = citrus_utils.normalize_scores(attributions)
+    scores = citrus_utils.normalize_scores(
+        attributions) if normalize else attributions
 
     for grad_field in grad_fields:
       # Format as salience map result.
@@ -365,7 +371,7 @@ class IntegratedGradients(lit_components.Interpreter):
       scores = scores[len(tokens):]  # <float32>[num_remaining_tokens]
 
       assert len(tokens) == len(sliced_scores)
-      result[grad_field] = dtypes.SalienceMap(tokens, sliced_scores)
+      result[grad_field] = dtypes.TokenSalience(tokens, sliced_scores)
     return result
 
   def run(self,
@@ -375,6 +381,13 @@ class IntegratedGradients(lit_components.Interpreter):
           model_outputs: Optional[List[JsonDict]] = None,
           config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
+    class_to_explain = int(config[CLASS_KEY] if config else
+                           self.config_spec()[CLASS_KEY].default)
+    interpolation_steps = int(config[INTERPOLATION_KEY] if config else
+                              self.config_spec()[INTERPOLATION_KEY].default)
+    normalization = (config[NORMALIZATION_KEY] if config
+                     else self.config_spec()[NORMALIZATION_KEY].default)
+
     # Find gradient fields to interpret
     input_spec = model.input_spec()
     output_spec = model.output_spec()
@@ -389,8 +402,9 @@ class IntegratedGradients(lit_components.Interpreter):
 
     all_results = []
     for model_output, model_input in zip(model_outputs, inputs):
-      result = self.get_salience_result(model_input, model, model_output,
-                                        grad_fields)
+      result = self.get_salience_result(model_input, model, interpolation_steps,
+                                        normalization, class_to_explain,
+                                        model_output, grad_fields)
       all_results.append(result)
     return all_results
 
@@ -399,5 +413,15 @@ class IntegratedGradients(lit_components.Interpreter):
         model.input_spec(), model.output_spec())
     return len(compatible_fields)
 
+  def config_spec(self) -> types.Spec:
+    return {
+        # TODO(lit-dev): Consider making class to predict strings using
+        # dropdowns on the front-end as opposed to class indicies.
+        CLASS_KEY: types.TextSegment(default='-1'),
+        NORMALIZATION_KEY: types.Boolean(default=True),
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=100, default=30, step=1)
+    }
+
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=False, signed=True)}

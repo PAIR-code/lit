@@ -4,6 +4,7 @@
   box-sizing: border-box;
   height: 100%;
   background: white;
+  --lit-widget-header-height: 24px;
 }
 
 .holder {
@@ -16,17 +17,15 @@
   box-sizing: border-box;
 }
 
-
 .container {
   position: relative;
   display: flex;
   flex: 1;
-  height: 0px; /** Height must be explicitly set **/
+  height: calc(100% - var(--lit-widget-header-height));
 }
 
 .content {
   overflow-y: auto;
-  padding: 4px;
   width: 100%;
 }
 
@@ -36,6 +35,8 @@
 }
 
 .header {
+  font-family: 'Google Sans', sans;
+  min-height: var(--lit-widget-header-height);
   color: rgb(32, 33, 36);
   line-height: 16pt;
   display: flex;
@@ -44,6 +45,7 @@
   justify-content: space-between;
   padding: 0pt 4pt;
   border-bottom: 1px solid rgb(218, 220, 224);
+  box-sizing: border-box;
 }
 
 .holder.highlight {

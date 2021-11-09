@@ -16,8 +16,10 @@
  */
 
 import {Checkbox} from '@material/mwc-checkbox';
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {classMap} from 'lit/directives/class-map';
 
 /**
  * A custom wrapper around the mwc-checkbox which is a) smaller and b) has a
@@ -31,7 +33,7 @@ export class LitCheckbox extends LitElement {
   @property({type: Boolean}) disabled = false;
   @property({type: String}) value = '';
 
-  static get styles() {
+  static override get styles() {
     return css`
       :host {
         outline: none;
@@ -56,7 +58,7 @@ export class LitCheckbox extends LitElement {
     `;
   }
 
-  render() {
+  override render() {
     const handleChange = (e: Event) => {
       this.checked = (e.target as HTMLInputElement).checked;
       const changeEvent = new Event('change');
@@ -88,6 +90,9 @@ export class LitCheckbox extends LitElement {
  * hover/focus logic.
  */
 class MwcCheckboxOverride extends Checkbox {
+  // TODO(b/204677206): remove this once we clean up property declarations.
+  __allowInstanceProperties = true;  // tslint:disable-line
+
   constructor() {
     super();
     Object.defineProperty(this, 'shouldRenderRipple', {

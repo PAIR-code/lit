@@ -15,53 +15,61 @@
  * limitations under the License.
  */
 
+import '../elements/checkbox';
+
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
-import {customElement, html} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
 import {styles} from './datapoint_editor_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.
-type InputConverterFn = (s: string) => string|number|string[];
+type InputConverterFn = (s: string) => string|number|string[]|boolean;
 
 /**
  * A LIT module that allows the user to view and edit a datapoint.
  */
 @customElement('datapoint-editor-module')
 export class DatapointEditorModule extends LitModule {
-  static title = 'Datapoint Editor';
-  static numCols = 2;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Datapoint Editor';
+  static override numCols = 2;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<datapoint-editor-module selectionServiceIndex=${
         selectionServiceIndex}></datapoint-editor-module>`;
   };
 
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
 
   private readonly groupService = app.getService(GroupService);
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
   private resizeObserver!: ResizeObserver;
   private isShiftPressed = false; /** Newline edits are shift + enter */
 
+  protected addButtonText = 'Add';
+  protected showAddAndCompare = true;
+
   @observable editedData: Input = {};
   @observable datapointEdited: boolean = false;
   @observable inputHeights: {[name: string]: string} = {};
+  @observable maximizedImageFields = new Set<string>();
 
   @computed
   get dataTextLengths(): {[key: string]: number} {
@@ -71,23 +79,35 @@ export class DatapointEditorModule extends LitModule {
     // to determine the default height of the input box.
     const percentileForDefault = 0.8;
 
-    // Get non-categorical keys.
-    const keys = this.appState.currentInputDataKeys.filter((key) => {
-      return !(
-          this.groupService.categoricalFeatureNames.includes(key) ||
-          this.groupService.numericalFeatureNames.includes(key));
-    });
-    // Get input string lengths for non-categorical keys.
-    for (const key of keys) {
-      const lengths = this.appState.currentInputData.map(
-          indexedInput => indexedInput.data[key]?.length);
+    const spec = this.appState.currentDatasetSpec;
+    for (const key of this.appState.currentInputDataKeys) {
+      // Skip numerical and categorical keys.
+      if (this.groupService.categoricalFeatureNames.includes(key)) continue;
+      if (this.groupService.numericalFeatureNames.includes(key)) continue;
+
+      // Correctly handle fields with value type string[]
+      const fieldSpec = spec[key];
+      const isListField = isLitSubtype(
+          fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
+      const lengths = this.appState.currentInputData.map(indexedInput => {
+        const value = indexedInput.data[key];
+        return isListField ? value?.join(fieldSpec.separator ?? ',').length :
+                             value?.length;
+      });
       defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
+      // Override if the distribution is short-tailed, we can expand a bit to
+      // avoid scrolling at all. This is useful if everything in a particular
+      // column is close to the same length.
+      const maxLength = Math.max(...lengths);
+      if (percentileForDefault * maxLength <= defaultLengths[key]) {
+        defaultLengths[key] = maxLength;
+      }
     }
     return defaultLengths;
   }
 
-  firstUpdated() {
-    const container = this.shadowRoot!.getElementById('edit-table')!;
+  override firstUpdated() {
+    const container = this.shadowRoot!.querySelector('.module-container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.resize();
     });
@@ -108,7 +128,7 @@ export class DatapointEditorModule extends LitModule {
     });
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
@@ -130,20 +150,18 @@ export class DatapointEditorModule extends LitModule {
     const keys = Array.from(Object.keys(this.dataTextLengths));
     for (const key of keys) {
       const defaultCharLength = this.dataTextLengths[key];
+      if (defaultCharLength === -Infinity) {
+        continue;
+      }
 
       // Heuristic for computing height.
-      const characterWidth = 13;  // estimate for character width in pixels
+      const characterWidth = 8.3;  // estimate for character width in pixels
       const numLines = Math.ceil(
           characterWidth * defaultCharLength / inputBoxElement.clientWidth);
       const pad = 1;
       // Set 2 ex per line.
       this.inputHeights[key] = `${2 * numLines + pad}ex`;
     }
-  }
-
-  private growToTextSize(e: KeyboardEvent) {
-    const elt = e.target as HTMLElement;
-    elt.style.height = `${elt.scrollHeight}px`;
   }
 
   private resetEditedData(selectedInputData: Input|null) {
@@ -162,7 +180,7 @@ export class DatapointEditorModule extends LitModule {
     this.editedData = data;
   }
 
-  render() {
+  override render() {
     // Scrolling inside this module is done inside a div with ID 'container'.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
@@ -170,11 +188,10 @@ export class DatapointEditorModule extends LitModule {
     // details.
     return html`
       <div class='module-container'>
-        <div id="container"
-             class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
+        <div class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
           ${this.renderEditText()}
         </div>
-        <div id="buttons">
+        <div class="module-footer">
           ${this.renderButtons()}
         </div>
       </div>
@@ -214,7 +231,7 @@ export class DatapointEditorModule extends LitModule {
           parentId: this.selectionService.primarySelectedId!
         },
       };
-      const data: IndexedInput[] = await this.appState.indexDatapoints([datum]);
+      const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
       this.appState.commitNewDatapoints(data);
       this.selectionService.selectIds(data.map(d => d.id));
     };
@@ -238,7 +255,7 @@ export class DatapointEditorModule extends LitModule {
     const analyzeButton = html`
       <button id="make" class='hairline-button'
         @click=${onClickNew} ?disabled="${!makeEnabled}">
-        Add
+        ${this.addButtonText}
       </button>
     `;
     const compareButton = html`
@@ -263,7 +280,7 @@ export class DatapointEditorModule extends LitModule {
     // clang-format off
     return html`
       ${analyzeButton}
-      ${compareButton}
+      ${this.showAddAndCompare ? compareButton : null}
       ${resetButton}
       ${clearButton}
     `;
@@ -315,9 +332,27 @@ export class DatapointEditorModule extends LitModule {
 
     // Render an image.
     const renderImage = () => {
+      const toggleImageSize = () => {
+        if (this.maximizedImageFields.has(key)) {
+          this.maximizedImageFields.delete(key);
+        } else {
+          this.maximizedImageFields.add(key);
+        }
+      };
+      const maximizeImage = this.maximizedImageFields.has(key);
+      const imageClasses = classMap({
+        'image-min': !maximizeImage,
+      });
       const imageSource = (value == null) ? '' : value.toString() as string;
       return html`
-      <img class='image' src=${imageSource}>`;
+        <div class="image-holder">
+          <img class=${imageClasses} src=${imageSource}>
+          <mwc-icon class="image-toggle" @click=${toggleImageSize}
+                    title="Toggle full size">
+            ${maximizeImage ? 'close_fullscreen' : 'open_in_full'}
+          </mwc-icon>
+        </div>
+      `;
     };
 
     const inputStyle = {'height': this.inputHeights[key]};
@@ -382,17 +417,36 @@ export class DatapointEditorModule extends LitModule {
     const renderSpanLabelsNonEditable = () => {
       const renderLabel = (d: SpanLabel) =>
           html`<div class="span-label">${formatSpanLabel(d)}</div>`;
-      return html`${value ? (value as SpanLabel[]).map(renderLabel) : null}`;
+      return html`<div>${
+          value ? (value as SpanLabel[]).map(renderLabel) : null}</div>`;
     };
     // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
         return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
       };
-      return html`${value ? (value as EdgeLabel[]).map(renderLabel) : null}`;
+      return html`<div>${
+          value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
+    };
+
+    // For boolean values, render a checkbox.
+    const renderBoolean = () => {
+      const handleCheckboxChange = (e: Event) => {
+        // Converter function ignores 'value' input string, uses checked status.
+        handleInputChange(e, () => !!(e.target as HTMLInputElement).checked);
+      };
+      return html`
+      <lit-checkbox
+        ?checked=${value}
+        @change=${handleCheckboxChange}
+      ></lit-checkbox>`;
     };
 
     let renderInput = renderFreeformInput;  // default: free text
+    const entryContentClasses = {
+      'entry-content': true,
+      'entry-content-long': false,
+    };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
     if (vocab != null) {
@@ -403,6 +457,7 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderNumericInput;
     } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
       renderInput = renderTokensInput;
+      entryContentClasses['entry-content-long'] = true;
     } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
@@ -410,8 +465,13 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput =
           renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
+      entryContentClasses['entry-content-long'] = true;
     } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
+    } else if (isLitSubtype(fieldSpec, 'Boolean')) {
+      renderInput = renderBoolean;
+    } else {
+      entryContentClasses['entry-content-long'] = true;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
@@ -445,7 +505,8 @@ export class DatapointEditorModule extends LitModule {
       const params = new URLSearchParams();
       params.set('q', value);
       headerContent = html`
-        <a href="https://www.google.com/search?${params.toString()}" target="_blank">
+        <a href="https://www.google.com/search?${
+          params.toString()}" target="_blank">
           ${headerContent}
           <mwc-icon class="icon-button">search</mwc-icon>
         </a>`;
@@ -456,15 +517,14 @@ export class DatapointEditorModule extends LitModule {
     // clang-format off
     return html`
       <div class="entry"
-        @input=${(e: KeyboardEvent) => {this.growToTextSize(e);}}
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
-          <div class='field-type'>(${fieldSpec.__name__})</div>
+          <div class='field-type'>${fieldSpec.__name__}</div>
         </div>
-        <div>
+        <div class=${classMap(entryContentClasses)}>
           ${renderInput()}
         </div>
       </div>
@@ -472,13 +532,27 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
+}
+
+/**
+ * Simplified version of the above; omits add-and-compare button.
+ */
+@customElement('simple-datapoint-editor-module')
+export class SimpleDatapointEditorModule extends DatapointEditorModule {
+  protected override addButtonText = 'Analyze';
+  protected override showAddAndCompare = false;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<simple-datapoint-editor-module selectionServiceIndex=${
+        selectionServiceIndex}></simple-datapoint-editor-module>`;
+  };
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'datapoint-editor-module': DatapointEditorModule;
+    'simple-datapoint-editor-module': SimpleDatapointEditorModule;
   }
 }

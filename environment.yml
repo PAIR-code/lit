@@ -23,15 +23,23 @@ dependencies:
     - gunicorn
     - pip
     - pip:
-        - tensorflow
+        - tensorflow==2.6.0
+        - keras==2.6.0
         - tfds-nightly
-        - tensorflow-text
+        - tensorflow-text==2.6.0
+        - tensorflow-estimator==2.6.0
         - rouge-score
         - sacrebleu
-        - umap-learn
+        - numba==0.53.1
+        - umap-learn==0.5.1
         - transformers==4.1.1
         - sentencepiece
         - google-cloud-translate
         - portpicker
         - annoy
         - ml-collections
+        - saliency
+        - matplotlib
+        - attrs
+        - Jinja2
+        - stanza

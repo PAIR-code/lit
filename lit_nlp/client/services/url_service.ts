@@ -17,7 +17,7 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, listFieldTypes, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, listFieldTypes, ServiceUser, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
@@ -26,15 +26,18 @@ import {LitService} from './lit_service';
  * Interface for reading/storing app configuration from/to the URL.
  */
 export class UrlConfiguration {
-  selectedTab?: string;
+  selectedTabUpper?: string;
+  selectedTabLower?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
   primarySelectedData?: string;
   /**
    * For datapoints that are not in the original dataset, the fields
    * and their values are added directly into the url.
+   * LIT can load multiple examples from the url, but can only share
+   * primary selected example.
    */
-  dataFields: Input = {};
+  dataFields: {[key: number]: Input} = {};
   selectedDataset?: string;
   hiddenModules: string[] = [];
   compareExamplesEnabled?: boolean;
@@ -55,7 +58,7 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
-  indexDatapoints: (data: IndexedInput[]) => Promise<IndexedInput[]>;
+  annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
 }
 
@@ -65,7 +68,8 @@ export interface StateObservedByUrlService {
 export interface ModulesObservedByUrlService {
   hiddenModuleKeys: Set<string>;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
-  selectedTab: string;
+  selectedTabUpper: string;
+  selectedTabLower: string;
 }
 
 /**
@@ -74,12 +78,13 @@ export interface ModulesObservedByUrlService {
 export interface SelectionObservedByUrlService {
   readonly primarySelectedId: string|null;
   readonly primarySelectedInputData: IndexedInput|null;
-  setPrimarySelection: (id: string) => void;
+  setPrimarySelection: (id: string, user: ServiceUser) => void;
   readonly selectedIds: string[];
-  selectIds: (ids: string[]) => void;
+  selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
-const SELECTED_TAB_KEY = 'tab';
+const SELECTED_TAB_UPPER_KEY = 'upper_tab';
+const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
 const SELECTED_DATASET_KEY = 'dataset';
@@ -94,8 +99,13 @@ const NEW_DATASET_PATH = 'new_dataset_path';
 const MAX_IDS_IN_URL_SELECTION = 100;
 
 const makeDataFieldKey = (key: string) => `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
-const parseDataFieldKey = (key: string) =>
-    key.replace(`${DATA_FIELDS_KEY_SUBSTRING}_`, '');
+const parseDataFieldKey = (key: string) => {
+  // Split string into two from the first underscore,
+  // data{index}_{feature}={val} -> [data{index}, {feature}={val}]
+  const pieces = key.split(/_([^]*)/, 2);
+  const indexStr = pieces[0].replace(DATA_FIELDS_KEY_SUBSTRING, '');
+  return {fieldKey: pieces[1], dataIndex: +(indexStr || '0')};
+};
 
 /**
  * Singleton service responsible for deserializing / serializing state to / from
@@ -104,6 +114,9 @@ const parseDataFieldKey = (key: string) =>
 export class UrlService extends LitService {
   /** Parse arrays in a url param, filtering out empty strings */
   private urlParseArray(encoded: string) {
+    if (encoded == null) {
+      return [];
+    }
     const array = encoded.split(',');
     return array.filter(str => str !== '');
   }
@@ -134,7 +147,7 @@ export class UrlService extends LitService {
     const urlConfiguration = new UrlConfiguration();
 
     const urlSearchParams = new URLSearchParams(window.location.search);
-    urlSearchParams.forEach((value: string, key: string) => {
+    for (const [key, value] of urlSearchParams) {
       if (key === SELECTED_MODELS_KEY) {
         urlConfiguration.selectedModels = this.urlParseArray(value);
       } else if (key === SELECTED_DATA_KEY) {
@@ -147,22 +160,33 @@ export class UrlService extends LitService {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
       } else if (key === COMPARE_EXAMPLES_ENABLED_KEY) {
         urlConfiguration.compareExamplesEnabled = this.urlParseBoolean(value);
-      } else if (key === SELECTED_TAB_KEY) {
-        urlConfiguration.selectedTab = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_UPPER_KEY) {
+        urlConfiguration.selectedTabUpper = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_LOWER_KEY) {
+        urlConfiguration.selectedTabLower = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
         urlConfiguration.newDatasetPath = this.urlParseString(value);
-      } else if (key.includes(DATA_FIELDS_KEY_SUBSTRING)) {
-        const fieldKey = parseDataFieldKey(key);
+      } else if (key.startsWith(DATA_FIELDS_KEY_SUBSTRING)) {
+        const {fieldKey, dataIndex}: {fieldKey: string, dataIndex: number} =
+            parseDataFieldKey(key);
         // TODO(b/179788207) Defer parsing of data keys here as we do not have
         // access to the input spec of the dataset at the time
         // this is called. We convert array fields to their proper forms in
         // syncSelectedDatapointToUrl.
-        urlConfiguration.dataFields[fieldKey] = value;
+        if (!(dataIndex in urlConfiguration.dataFields)) {
+          urlConfiguration.dataFields[dataIndex] = {};
+        }
+        // Warn if an example is overwritten, this only happens if url is
+        // malformed to contain the same index more than once.
+        if (fieldKey in urlConfiguration.dataFields[dataIndex]) {
+          console.log(
+              `Warning, data index ${dataIndex} is set more than once.`);
+        }
+        urlConfiguration.dataFields[dataIndex][fieldKey] = value;
       }
-    });
-
+    }
     return urlConfiguration;
   }
 
@@ -204,7 +228,7 @@ export class UrlService extends LitService {
     modulesService.setUrlConfiguration(urlConfiguration);
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
-    selectionService.selectIds(urlSelectedIds);
+    selectionService.selectIds(urlSelectedIds, this);
 
     // TODO(lit-dev) Add compared examples to URL parameters.
     // Only enable compare example mode if both selections and compare mode
@@ -241,7 +265,10 @@ export class UrlService extends LitService {
           urlParams, HIDDEN_MODULES_KEY, [...modulesService.hiddenModuleKeys]);
 
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
-      this.setUrlParam(urlParams, SELECTED_TAB_KEY, modulesService.selectedTab);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
 
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
@@ -263,14 +290,12 @@ export class UrlService extends LitService {
       selectionService: SelectionObservedByUrlService,
   ) {
     const urlConfiguration = appState.getUrlConfiguration();
-    const fields = urlConfiguration.dataFields;
-    // Create a new dict and do not modify the urlConfiguration. This makes sure
-    // that this call works even if initialize app is called multiple times.
-    const outputFields: Input = {};
-
-    // If there are data fields set in the url, make a new datapoint
-    // from them.
-    if (Object.keys(fields).length) {
+    const dataFields = urlConfiguration.dataFields;
+    const dataToAdd = Object.values(dataFields).map((fields: Input) => {
+      // Create a new dict and do not modify the urlConfiguration. This makes
+      // sure that this call works even if initialize app is called multiple
+      // times.
+      const outputFields: Input = {};
       const spec = appState.currentDatasetSpec;
       Object.keys(spec).forEach(key => {
         outputFields[key] = this.parseDataFieldValue(key, fields[key], spec);
@@ -280,16 +305,21 @@ export class UrlService extends LitService {
         id: '',  // will be overwritten
         meta: {source: 'url', added: true},
       };
-      const data = await appState.indexDatapoints([datum]);
+      return datum;
+    });
+    // If there are data fields set in the url, make new datapoints
+    // from them and select all passed data points.
+    // TODO(b/185155960) Allow specifying selection for passed examples in url.
+    if (dataToAdd.length > 0) {
+      const data = await appState.annotateNewData(dataToAdd);
       appState.commitNewDatapoints(data);
-      selectionService.setPrimarySelection(data[0].id);
+      selectionService.selectIds(data.map((d) => d.id), this);
     }
-
     // Otherwise, use the primary selected datapoint url param directly.
     else {
       const id = urlConfiguration.primarySelectedData;
       if (id !== undefined) {
-        selectionService.setPrimarySelection(id);
+        selectionService.setPrimarySelection(id, this);
       }
     }
   }

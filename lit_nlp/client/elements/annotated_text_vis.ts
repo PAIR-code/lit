@@ -3,16 +3,18 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, LitElement, property} from 'lit-element';
-import {TemplateResult} from 'lit-html';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, LitElement} from 'lit';
+import {TemplateResult} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
-import {VizColor} from '../lib/colors';
+import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatSpanLabel, SpanLabel} from '../lib/types';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 import {styles} from './annotated_text_vis.css';
 
@@ -68,11 +70,11 @@ class AnnotatedText extends LitElement {
   @property({type: Array}) spans: StyledSpan[] = [];  // aligned to this segment
   @property({type: Boolean}) isURL: boolean = false;  // if true, make a link
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  render() {
+  override render() {
     // Gather all endpoints, for chunking.
     const allEndpoints = new Set<number>();
     for (const span of this.spans) {
@@ -132,9 +134,11 @@ export class AnnotatedTextVis extends ReactiveElement {
     // Colors for each annotation group.
     // TODO(lit-dev): different colors for each cluster if non-exclusive?
     const groupColors: {[groupName: string]: string} = {};
-    Object.keys(this.annotationSpec).forEach((name, i) => {
-      groupColors[name] = VizColor.getColor('pastel', i).color;
-    });
+    const specKeys = Object.keys(this.annotationSpec);
+    for (let i = 0; i < specKeys.length; i++) {
+      const name = specKeys[i];
+      groupColors[name] = getVizColor('pastel', i).color;
+    }
     return groupColors;
   }
 
@@ -160,11 +164,11 @@ export class AnnotatedTextVis extends ReactiveElement {
     return activeAnnotations;
   }
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  connectedCallback() {
+  override connectedCallback() {
     super.connectedCallback();
     this.reactImmediately(() => this.annotations, annotations => {
       this.annotationVisibility = {};
@@ -247,7 +251,7 @@ export class AnnotatedTextVis extends ReactiveElement {
     // clang-format on
   }
 
-  render() {
+  override render() {
     const renderedSegments = Object.keys(this.segmentSpec)
         .map(name => this.renderTextSegment(name));
 

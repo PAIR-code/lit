@@ -1,10 +1,11 @@
 # 🔥 Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2020-08-04' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-13' } *-->
 
 The Language Interpretability Tool (LIT) is a visual, interactive
-model-understanding tool for NLP models. It can be run as a standalone server,
-or inside of notebook environments such as Colab and Jupyter.
+model-understanding tool for ML models, focusing on NLP use-cases. It can be run
+as a standalone server, or inside of notebook environments such as Colab,
+Jupyter, and Google Cloud Vertex AI notebooks.
 
 LIT is built to answer questions such as:
 
@@ -39,13 +40,12 @@ Stay up to date on LIT by joining the
 [lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](documentation/user_guide.md).
+[user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md).
 
 ## Documentation
 
-*   [User Guide](documentation/user_guide.md)
-*   [Developer Guide](documentation/development.md)
-*   [FAQ](documentation/faq.md)
+*   [Documentation index](https://github.com/PAIR-code/lit/wiki/)
+*   [FAQ](https://github.com/PAIR-code/lit/wiki/faq.md)
 *   [Release notes](./RELEASE.md)
 
 ## Download and Installation
@@ -94,8 +94,8 @@ Explore a collection of hosted demos on the
 [LIT website demos page](https://pair-code.github.io/lit/demos).
 
 Colab notebooks showing the use of LIT inside of notebooks can be found at
-google3/third_party/py/lit_nlp/example/notebooks. A simple example can be viewed
-[here](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+google3/third_party/py/lit_nlp/examples/notebooks. A simple example can be viewed
+[here](https://colab.research.google.com/github/pair-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 
 ### Quick-start: classification and regression
 
@@ -134,7 +134,7 @@ the notebook.
 
 ### Run LIT in a Docker container
 
-See [docker.md](documentation/docker.md) for instructions on running LIT as
+See [docker.md](https://github.com/PAIR-code/lit/wiki/docker.md) for instructions on running LIT as
 a containerized web app. This is the approach we take for our
 [website demos](https://pair-code.github.io/lit/demos/).
 
@@ -148,7 +148,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](documentation/user_guide.md), or
+To learn about LIT's features, check out the [user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md), or
 watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
@@ -158,20 +158,25 @@ launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The basic
 steps are:
 
 *   Write a data loader which follows the
-    [`Dataset` API](documentation/python_api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](documentation/python_api.md#models)
+    [`Dataset` API](https://github.com/PAIR-code/lit/wiki/api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](https://github.com/PAIR-code/lit/wiki/api.md#models)
 *   Pass models, datasets, and any additional
-    [components](documentation/python_api.md#interpretation-components) to the LIT server
+    [components](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components) to the LIT server
     class
 
 For a full walkthrough, see
-[adding models and data](documentation/python_api.md#adding-models-and-data).
+[adding models and data](https://github.com/PAIR-code/lit/wiki/api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
-more, both on the frontend or the backend. See the
-[developer guide](documentation/development.md) to get started.
+more, both on the frontend or the backend. See our
+[documentation](https://github.com/PAIR-code/lit/wiki/index.md) to get started.
+
+## Pull Request Process
+
+To make code changes to LIT, please work off of the `dev` branch and create
+pull requests against that branch. The `main` branch is for stable releases, and it is expected that the `dev` branch will always be ahead of `main` in terms of commits.
 
 ## Citing LIT
 

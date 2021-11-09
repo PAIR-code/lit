@@ -49,6 +49,8 @@ class Scrambler(lit_components.Generator):
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
     text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
+    if not text_keys:
+      return []
     new_example = copy.deepcopy(example)
     for text_key in text_keys:
       new_example[text_key] = self.scramble(example[text_key])

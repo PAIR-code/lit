@@ -17,10 +17,11 @@
 
 // tslint:disable:no-new-decorators
 
-import {customElement, html} from 'lit-element';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
@@ -28,7 +29,7 @@ import {GroupService} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 import {styles} from './metrics_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 // Each entry from the server.
 interface MetricsResponse {
@@ -82,14 +83,14 @@ interface TableHeaderAndData {
  */
 @customElement('metrics-module')
 export class MetricsModule extends LitModule {
-  static title = 'Metrics';
-  static numCols = 6;
-  static template = () => {
+  static override title = 'Metrics';
+  static override numCols = 6;
+  static override template = () => {
     return html`<metrics-module></metrics-module>`;
   };
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -104,7 +105,7 @@ export class MetricsModule extends LitModule {
   @observable private pendingCalls = 0;
 
 
-  firstUpdated() {
+  override firstUpdated() {
     this.react(() => this.appState.currentInputData, entireDataset => {
       this.metricsMap = {};
       this.addMetrics(this.appState.currentInputData, Source.DATASET);
@@ -191,9 +192,9 @@ export class MetricsModule extends LitModule {
             facetMap?: FacetMap) {
     let facetString = '';
     if (facetMap != null) {
-      Object.values(facetMap).forEach(facetVal => {
-        facetString += `${facetVal}-`;
-      });
+      for (const facetVal of Object.values(facetMap)) {
+        facetString += `${facetVal.displayVal}-`;
+      }
     }
     return `${model}-${datapointsId}-${predKey}-${facetString}`;
   }
@@ -266,7 +267,7 @@ export class MetricsModule extends LitModule {
   /** Convert the metricsMap information into table data for display. */
   @computed
   get tableData(): TableHeaderAndData {
-    const rows = [] as TableData[];
+    const tableRows = [] as TableData[];
     const allMetricNames = new Set<string>();
     Object.values(this.metricsMap).forEach(row => {
       Object.keys(row.headMetrics).forEach(metricsType => {
@@ -279,7 +280,7 @@ export class MetricsModule extends LitModule {
 
     const metricNames = [...allMetricNames];
 
-    Object.values(this.metricsMap).forEach(row => {
+    for (const row of Object.values(this.metricsMap)) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
         if (row.headMetrics[metricsType] == null) {
@@ -298,26 +299,27 @@ export class MetricsModule extends LitModule {
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {
         if (row.facets && row.facets[facet]) {
-          return row.facets[facet];
+          return row.facets[facet].displayVal;
         }
         return '-';
       });
 
       const tableRow = [
-        rows.length, row.model, row.selection, ...rowFacets, row.predKey,
-        row.exampleIds.length,  ...rowMetrics];
-      rows.push(tableRow);
-    });
+        row.model, row.selection, ...rowFacets, row.predKey,
+        row.exampleIds.length, ...rowMetrics
+      ];
+      tableRows.push(tableRow);
+    }
 
     return {
-      'header':
-          ["id", 'Model', 'From', ...this.selectedFacets, 'Field', 'N',
-           ...metricNames],
-      'data': rows
+      'header': [
+        'Model', 'From', ...this.selectedFacets, 'Field', 'N', ...metricNames
+      ],
+      'data': tableRows
     };
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class="module-container">
@@ -333,17 +335,11 @@ export class MetricsModule extends LitModule {
   }
 
   renderTable() {
-    const columnNames = this.tableData.header;
-    const columnVisibility = new Map<string, boolean>();
-    columnNames.forEach((name) => {
-      columnVisibility.set(name, name !== "id");
-    });
     // TODO(b/180903904): Add onSelect behavior to rows for selection.
     return html`
       <lit-data-table
-        .columnVisibility=${columnVisibility}
+        .columnNames=${this.tableData.header}
         .data=${this.tableData.data}
-        selectionDisabled
       ></lit-data-table>
     `;
   }
@@ -377,7 +373,7 @@ export class MetricsModule extends LitModule {
       </lit-checkbox>
       <label class="cb-label">Facet by</label>
        ${
-        this.groupService.categoricalAndNumericalFeatureNames.map(
+        this.groupService.denseFeatureNames.map(
             facetName => this.renderCheckbox(facetName, false,
                 (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}
@@ -409,8 +405,13 @@ export class MetricsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return true;
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('metrics') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

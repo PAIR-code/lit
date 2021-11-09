@@ -2,13 +2,65 @@
   margin-bottom: 8px;
 }
 
-.output-row {
+.output-table {
+  border-spacing: 0;
+  width: 100%;
+  --score-col-width: 80px;
+}
+
+.output-table thead {
+  position: sticky;
+  top: 0;
+
+  background: #f5fcfc;
+}
+
+.output-table tr {
   text-align: left;
   vertical-align: initial;
 }
 
-.output-row > * {
+.output-table tr > * {
   padding: 4px;
+}
+
+.output-table tbody th {
+  vertical-align: top;
+}
+
+.candidate-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--lit-gray-800);
+  font-family: 'Roboto', sans;
+
+  padding: 0 2px; /* align with content row hpad */
+}
+
+.candidate-row > * {
+  padding: 4px;
+}
+
+.field-name {
+  width: 100px;
+}
+
+.model-score {
+  margin-right: 8px;
+  width: var(--score-col-width);
+  min-width: var(--score-col-width);
+}
+
+.candidate-text {
+  flex-grow: 1;
+}
+
+.reference-score {
+  margin-right: 8px;
+  width: var(--score-col-width);
+  min-width: var(--score-col-width);
 }
 
 /* use this style instead of .token-chip-label.selected */
@@ -16,7 +68,12 @@
   border: 1px solid #80868b;
 }
 
-.highlighted {
-  color: #ffa500;
+.highlighted-diff {
+  color: #a93d00;
+  font-weight: bold;
+}
+
+.highlighted-match {
+  color: #129eaf;
   font-weight: bold;
 }

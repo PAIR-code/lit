@@ -17,6 +17,7 @@
 
 import abc
 import collections
+import numbers
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
@@ -59,9 +60,39 @@ def map_pred_keys(
   return ret
 
 
-def get_classifications(preds: Sequence[np.ndarray],
-                        pred_spec: types.LitType,
-                        margin_config: Optional[Text] = None) -> Sequence[int]:
+def get_margin_for_input(margin_config: Optional[JsonDict] = None,
+                         inp: Optional[JsonDict] = None):
+  """Get margin given a margin config and input example."""
+  if not margin_config:
+    return 0
+
+  for margin_entry in margin_config.values():
+    facet_info = (margin_entry['facetData']['facets']
+                  if 'facetData' in margin_entry else {})
+    match = True
+    if inp:
+      for feat, facet_info in facet_info.items():
+        value = facet_info['val']
+        if (isinstance(inp[feat], numbers.Number) and
+            not isinstance(inp[feat], bool)):
+          # If the facet is a numeric range string, extract the min and max
+          # and check the value against that range.
+          min_val = value[0]
+          max_val = value[1]
+          if not (inp[feat] >= min_val and inp[feat] < max_val):
+            match = False
+        # If the facet is a standard value, check the feature value for
+        # equality to it.
+        elif inp[feat] != value:
+          match = False
+    if match:
+      return margin_entry['margin']
+  return 0
+
+
+def get_classifications(
+    preds: Sequence[np.ndarray], pred_spec: types.MulticlassPreds,
+    margin_config: Optional[Sequence[float]] = None) -> Sequence[int]:
   """Get classified indices given prediction scores and configs."""
   # If there is a margin set for the prediction, take the log of the prediction
   # scores and add the margin to the null indexes value before taking argmax
@@ -69,9 +100,11 @@ def get_classifications(preds: Sequence[np.ndarray],
   if margin_config is not None:
     multiclass_pred_spec = cast(types.MulticlassPreds, pred_spec)
     null_idx = multiclass_pred_spec.null_idx
-    margin = float(margin_config)
-    logit_mask = margin * np.eye(len(multiclass_pred_spec.vocab))[null_idx]
-    pred_idxs = [np.argmax(np.log(p) + logit_mask) for p in preds]
+    pred_idxs = []
+    for p, margin in zip(preds, margin_config):
+      logit_mask = margin * np.eye(len(multiclass_pred_spec.vocab))[null_idx]
+      pred_idx = np.argmax(np.log(p) + logit_mask)
+      pred_idxs.append(pred_idx)
   else:
     pred_idxs = [np.argmax(p) for p in preds]
   return pred_idxs
@@ -108,12 +141,52 @@ class SimpleMetrics(lit_components.Interpreter):
     """As compute(), but has access to indices and metadata."""
     return self.compute(labels, preds, label_spec, pred_spec, config)
 
+  def run(self,
+          inputs: List[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[List[JsonDict]] = None,
+          config: Optional[JsonDict] = None):
+    if model_outputs is None:
+      model_outputs = list(model.predict(inputs))
+
+    spec = model.spec()
+    field_map = map_pred_keys(dataset.spec(), spec.output, self.is_compatible)
+    ret = []
+    for pred_key, label_key in field_map.items():
+      # Extract fields
+      labels = [ex[label_key] for ex in inputs]
+      preds = [mo[pred_key] for mo in model_outputs]
+      # Compute metrics, as dict(str -> float)
+      metrics = self.compute(
+          labels,
+          preds,
+          label_spec=dataset.spec()[label_key],
+          pred_spec=spec.output[pred_key],
+          config=config.get(pred_key) if config else None)
+      # NaN is not a valid JSON value, so replace with None which will be
+      # serialized as null.
+      # TODO(lit-team): move this logic into serialize.py somewhere instead?
+      metrics = {
+          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
+      }
+      # Format for frontend.
+      ret.append({
+          'pred_key': pred_key,
+          'label_key': label_key,
+          'metrics': metrics
+      })
+    return ret
+
   def run_with_metadata(self,
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
+    if model_outputs is None:
+      model_outputs = list(model.predict_with_metadata(indexed_inputs))
+
     # TODO(lit-team): pre-compute this mapping in constructor?
     # This would require passing a model name to this function so we can
     # reference a pre-computed list.
@@ -134,7 +207,7 @@ class SimpleMetrics(lit_components.Interpreter):
           pred_spec=spec.output[pred_key],
           indices=indices,
           metas=metas,
-          config=config.get(label_key) if config else None)
+          config=config.get(pred_key) if config else None)
       # NaN is not a valid JSON value, so replace with None which will be
       # serialized as null.
       # TODO(lit-team): move this logic into serialize.py somewhere instead?
@@ -148,6 +221,60 @@ class SimpleMetrics(lit_components.Interpreter):
           'metrics': metrics
       })
     return ret
+
+
+class ClassificationMetricsWrapper(lit_components.Interpreter):
+  """Wrapper for classification metrics interpreters.
+
+  Gets margin setting for each input based on raw scores and on provided
+  margins in the config, which can be faceted by input feature values. Then
+  passes the raw scores example-specific margins to the metrics interpreter that
+  this class wraps for calculation of metrics.
+  """
+
+  def __init__(self, metrics: SimpleMetrics):
+    self._metrics = metrics
+
+  def is_compatible(self, field_spec: types.LitType) -> bool:
+    """Return true if compatible with this field."""
+    return self._metrics.is_compatible(field_spec)
+
+  def run(self,
+          inputs: List[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[List[JsonDict]] = None,
+          config: Optional[JsonDict] = None):
+    # Get margin for each input for each pred key and add them to a config dict
+    # to pass to the wrapped metrics.
+    field_map = map_pred_keys(dataset.spec(),
+                              model.spec().output, self.is_compatible)
+    margin_config = {}
+    for pred_key in field_map:
+      field_config = config.get(pred_key) if config else None
+      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margin_config[pred_key] = margins
+    return self._metrics.run(inputs, model, dataset, model_outputs,
+                             margin_config)
+
+  def run_with_metadata(self,
+                        indexed_inputs: Sequence[IndexedInput],
+                        model: lit_model.Model,
+                        dataset: lit_dataset.IndexedDataset,
+                        model_outputs: Optional[List[JsonDict]] = None,
+                        config: Optional[JsonDict] = None) -> List[JsonDict]:
+    # Get margin for each input for each pred key and add them to a config dict
+    # to pass to the wrapped metrics.
+    field_map = map_pred_keys(
+        dataset.spec(), model.spec().output, self.is_compatible)
+    margin_config = {}
+    for pred_key in field_map:
+      inputs = [ex['data'] for ex in indexed_inputs]
+      field_config = config.get(pred_key) if config else None
+      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margin_config[pred_key] = margins
+    return self._metrics.run_with_metadata(
+        indexed_inputs, model, dataset, model_outputs, margin_config)
 
 
 class RegressionMetrics(SimpleMetrics):
@@ -178,7 +305,7 @@ class RegressionMetrics(SimpleMetrics):
     return {'mse': mse, 'pearsonr': pearsonr, 'spearmanr': spearmanr}
 
 
-class MulticlassMetrics(SimpleMetrics):
+class MulticlassMetricsImpl(SimpleMetrics):
   """Aggregate metrics for multi-class output."""
 
   def get_all_metrics(self,
@@ -242,7 +369,13 @@ class MulticlassMetrics(SimpleMetrics):
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
 
 
-class MulticlassPairedMetrics(SimpleMetrics):
+class MulticlassMetrics(ClassificationMetricsWrapper):
+
+  def __init__(self):
+    ClassificationMetricsWrapper.__init__(self, MulticlassMetricsImpl())
+
+
+class MulticlassPairedMetricsImpl(SimpleMetrics):
   """Paired analysis between generated datapoints and their parents.
 
   Currently, this computes the swap rate, which is a measure of how often the
@@ -275,7 +408,7 @@ class MulticlassPairedMetrics(SimpleMetrics):
       labels: Sequence[Any],
       preds: Sequence[Any],
       label_spec: types.LitType,
-      pred_spec: types.LitType,
+      pred_spec: types.MulticlassPreds,
       indices: Sequence[types.ExampleId],
       metas: Sequence[JsonDict],
       config: Optional[JsonDict] = None) -> Dict[Text, float]:
@@ -302,6 +435,12 @@ class MulticlassPairedMetrics(SimpleMetrics):
     ret['mean_jsd'] = np.mean(jsds)
 
     return ret
+
+
+class MulticlassPairedMetrics(ClassificationMetricsWrapper):
+
+  def __init__(self):
+    ClassificationMetricsWrapper.__init__(self, MulticlassPairedMetricsImpl())
 
 
 class CorpusBLEU(SimpleMetrics):
@@ -333,3 +472,64 @@ class CorpusBLEU(SimpleMetrics):
     bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
+
+
+class BinaryConfusionMetricsImpl(SimpleMetrics):
+  """Confusion matrix values for binary classification."""
+
+  def get_all_metrics(self,
+                      y_true: Sequence[int],
+                      y_pred: Sequence[int],
+                      vocab: Sequence[Text],
+                      null_idx: Optional[int] = None):
+    # Filter out unlabeled examples before calculating metrics.
+    labeled_example_indices = [
+        index for index, y in enumerate(y_true) if y != -1
+    ]
+    y_true = [y_true[i] for i in labeled_example_indices]
+    y_pred = [y_pred[i] for i in labeled_example_indices]
+
+    # Return binary confusion matrix entries.
+    ret = collections.OrderedDict()
+    matrix = sklearn_metrics.confusion_matrix(y_true, y_pred, labels=[0, 1])
+    ret['TN'] = matrix[0][0]
+    ret['FP'] = matrix[0][1]
+    ret['FN'] = matrix[1][0]
+    ret['TP'] = matrix[1][1]
+    return ret
+
+  def is_compatible(self, field_spec: types.LitType) -> bool:
+    """Return true if binary classification with ground truth."""
+    if not isinstance(field_spec, types.MulticlassPreds):
+      return False
+    class_spec = cast(types.MulticlassPreds, field_spec)
+    return len(class_spec.vocab) == 2 and class_spec.parent
+
+  def compute(self,
+              labels: Sequence[Text],
+              preds: Sequence[np.ndarray],
+              label_spec: types.CategoryLabel,
+              pred_spec: types.MulticlassPreds,
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del label_spec  # Unused; get vocab from pred_spec.
+
+    if not labels or not preds:
+      return {}
+
+    label_idxs = [
+        pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
+        for label in labels
+    ]
+    # Get classifications using possible margin value to control threshold
+    # of positive classification.
+    pred_idxs = get_classifications(preds, pred_spec, config)
+
+    return self.get_all_metrics(
+        label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
+
+
+class BinaryConfusionMetrics(ClassificationMetricsWrapper):
+
+  def __init__(self):
+    ClassificationMetricsWrapper.__init__(self, BinaryConfusionMetricsImpl())

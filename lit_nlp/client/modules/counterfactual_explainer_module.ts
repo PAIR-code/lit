@@ -23,9 +23,11 @@ import '../elements/checkbox';
 import '../elements/spinner';
 
 // tslint:disable:no-new-decorators
-import {css, customElement, html, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -33,7 +35,7 @@ import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
 
 import {styles as salienceMapStyles} from './salience_map_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 const COUNTERFACTUAL_INTERPRETER_NAME = 'counterfactual explainer';
 
@@ -96,20 +98,20 @@ export class SignedSalienceCmap extends SalienceCmap {
  */
 @customElement('counterfactual-explainer-module')
 export class CounterfactualExplainerModule extends LitModule {
-  static title = 'Counterfactual Explanation';
-  static numCols = 10;
-  static collapseByDefault = true;
-  static duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Counterfactual Explanation';
+  static override numCols = 10;
+  static override collapseByDefault = true;
+  static override duplicateForExampleComparison = true;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<counterfactual-explainer-module model=${
         model} selectionServiceIndex=${
         selectionServiceIndex}></counterfactual-explainer-module>`;
   };
 
-  @property({type: String}) model = '';
-  @property({type: Number}) selectionServiceIndex = 0;
+  @property({type: String}) override model = '';
+  @property({type: Number}) override selectionServiceIndex = 0;
 
-  static get styles() {
+  static override get styles() {
     return [
       sharedStyles,
       salienceMapStyles,
@@ -142,7 +144,7 @@ export class CounterfactualExplainerModule extends LitModule {
     cmap: new SignedSalienceCmap(/* gamma */ 4.0)
   };
 
-  firstUpdated() {
+  override firstUpdated() {
     // React to change in primary selection.
     const getPrimaryData = () => this.selectionService.primarySelectedInputData;
     this.react(getPrimaryData, data => {
@@ -227,7 +229,7 @@ export class CounterfactualExplainerModule extends LitModule {
     this.state.salience = salience[0];
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Imperative tooltip implementation
@@ -299,7 +301,7 @@ export class CounterfactualExplainerModule extends LitModule {
     `;
   }
 
-  render() {
+  override render() {
     const salience = this.state.salience;
     const cmap = this.state.cmap;
 
@@ -377,7 +379,7 @@ export class CounterfactualExplainerModule extends LitModule {
   }
 
   // tslint:disable-next-line:no-any
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const model of Object.keys(modelSpecs)) {
       const inputSpec = modelSpecs[model].spec.input;
       const outputSpec = modelSpecs[model].spec.output;

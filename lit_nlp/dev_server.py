@@ -112,7 +112,6 @@ class Server(object):
       app.save_cache()
       # Optionally, reload server for development.
       # Potentially brittle - don't use this for real deployments.
-      # TODO(b/158537323): disable or warn about this when using corplogin.
       prompt = input('[Enter] to restart server, Q to quit.')
       if len(prompt) > 0:  # pylint: disable=g-explicit-length-test
         return

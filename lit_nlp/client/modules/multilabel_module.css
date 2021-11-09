@@ -1,0 +1,10 @@
+.top-holder {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.table-holder {
+  flex: 1 1 0%;
+  overflow-y: auto;
+}

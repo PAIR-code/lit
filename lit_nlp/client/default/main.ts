@@ -23,9 +23,10 @@
 
 // Imports the main LIT App web component, which is declared here then attached
 // to the DOM as <lit-app>
-import '../app/app';
+import '../core/lit_app';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
+
 import {LAYOUTS} from './layout';
 
 // Initialize the app core logic, using the specified declared layout.

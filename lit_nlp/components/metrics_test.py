@@ -39,7 +39,7 @@ class RegressionMetricsTest(absltest.TestCase):
     result = regression_metrics.compute([1, 2, 3, 4], [1, 2, 3, 4],
                                         types.RegressionScore(),
                                         types.RegressionScore())
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 0,
         'pearsonr': 1.0,
         'spearmanr': 1.0
@@ -49,7 +49,7 @@ class RegressionMetricsTest(absltest.TestCase):
     result = regression_metrics.compute([1, 2, 3, 4], [1, 2, 5.5, 6.3],
                                         types.RegressionScore(),
                                         types.RegressionScore())
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 2.885,
         'pearsonr': 0.96566,
         'spearmanr': 1.0
@@ -59,16 +59,16 @@ class RegressionMetricsTest(absltest.TestCase):
     result = regression_metrics.compute([1, 2, 3, 4], [-5, -10, 5, 6],
                                         types.RegressionScore(),
                                         types.RegressionScore())
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 47.0,
         'pearsonr': 0.79559,
-        'spearmanr': 0.79999
+        'spearmanr': 0.799999
     })
 
     # Empty labels and predictions
     result = regression_metrics.compute([], [], types.RegressionScore(),
                                         types.RegressionScore())
-    testing_utils.assert_dicts_almost_equal(self, result, {})
+    testing_utils.assert_deep_almost_equal(self, result, {})
 
 
 class MulticlassMetricsTest(absltest.TestCase):
@@ -83,14 +83,14 @@ class MulticlassMetricsTest(absltest.TestCase):
     self.assertFalse(multiclass_metrics.is_compatible(types.GeneratedText()))
 
   def test_compute(self):
-    multiclass_metrics = metrics.MulticlassMetrics()
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
 
     # All correct predictions.
     result = multiclass_metrics.compute(
         ['1', '2', '0', '1'], [[0, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'accuracy': 1.0,
         'f1': 1.0,
         'precision': 1.0,
@@ -103,13 +103,12 @@ class MulticlassMetricsTest(absltest.TestCase):
         [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_dicts_almost_equal(
-        self, result, {
-            'accuracy': 0.5,
-            'f1': 0.57143,
-            'precision': 0.5,
-            'recall': 0.66666
-        })
+    testing_utils.assert_deep_almost_equal(self, result, {
+        'accuracy': 0.5,
+        'f1': 0.57143,
+        'precision': 0.5,
+        'recall': 0.66667
+    })
 
     # All incorrect predictions.
     result = multiclass_metrics.compute(
@@ -117,7 +116,7 @@ class MulticlassMetricsTest(absltest.TestCase):
         [[.1, .4, .5], [.2, .7, .1], [.1, 0, .9], [1, 0, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'accuracy': 0.0,
         'f1': 0.0,
         'precision': 0.0,
@@ -129,13 +128,13 @@ class MulticlassMetricsTest(absltest.TestCase):
         ['1', '2', '0', '1'],
         [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
         types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2']))
-    testing_utils.assert_dicts_almost_equal(self, result, {'accuracy': 0.5})
+    testing_utils.assert_deep_almost_equal(self, result, {'accuracy': 0.5})
 
     # Empty labels and predictions
     result = multiclass_metrics.compute([], [], types.CategoryLabel(),
                                         types.MulticlassPreds(
                                             vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_dicts_almost_equal(self, result, {})
+    testing_utils.assert_deep_almost_equal(self, result, {})
 
 
 class MulticlassPairedMetricsTest(absltest.TestCase):
@@ -153,7 +152,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
         multiclass_paired_metrics.is_compatible(types.GeneratedText()))
 
   def test_compute(self):
-    multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
+    multiclass_paired_metrics = metrics.MulticlassPairedMetricsImpl()
 
     indices = ['7f7f85', '345ac4', '3a3112', '88bcda']
     metas = [{'parentId': '345ac4'}, {}, {}, {'parentId': '3a3112'}]
@@ -163,7 +162,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
         ['1', '1', '0', '0'], [[0, 1], [0, 1], [1, 0], [1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1'], null_idx=0), indices, metas)
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.0,
         'num_pairs': 2,
         'swap_rate': 0.0
@@ -174,7 +173,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
         ['1', '1', '0', '0'], [[0, 1], [1, 0], [1, 0], [1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1'], null_idx=0), indices, metas)
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.34657,
         'num_pairs': 2,
         'swap_rate': 0.5
@@ -185,7 +184,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
         ['1', '1', '0', '0'], [[0, 1], [1, 0], [1, 0], [0, 1]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1'], null_idx=0), indices, metas)
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.69315,
         'num_pairs': 2,
         'swap_rate': 1.0
@@ -196,7 +195,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
         ['1', '1', '0', '0'], [[0, 1], [1, 0], [1, 0], [0, 1]],
         types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1']), indices,
         metas)
-    testing_utils.assert_dicts_almost_equal(self, result, {
+    testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.69315,
         'num_pairs': 2,
         'swap_rate': 1.0
@@ -206,7 +205,7 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
     result = multiclass_paired_metrics.compute_with_metadata(
         [], [], types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1'], null_idx=0), [], [])
-    testing_utils.assert_dicts_almost_equal(self, result, {})
+    testing_utils.assert_deep_almost_equal(self, result, {})
 
 
 class CorpusBLEUTest(absltest.TestCase):
@@ -228,28 +227,64 @@ class CorpusBLEUTest(absltest.TestCase):
         ['This is a test.', 'Test two', 'A third test example'],
         ['This is a test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
-    testing_utils.assert_dicts_almost_equal(self, result,
-                                            {'corpus_bleu': 100.00000})
+    testing_utils.assert_deep_almost_equal(self, result,
+                                           {'corpus_bleu': 100.00000})
 
     # Some incorrect predictions.
     result = corpusblue_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['This is a test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
-    testing_utils.assert_dicts_almost_equal(self, result,
-                                            {'corpus_bleu': 68.037493})
+    testing_utils.assert_deep_almost_equal(self, result,
+                                           {'corpus_bleu': 68.037493})
 
     result = corpusblue_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['these test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
-    testing_utils.assert_dicts_almost_equal(self, result,
-                                            {'corpus_bleu': 29.508062388758525})
+    testing_utils.assert_deep_almost_equal(self, result,
+                                           {'corpus_bleu': 29.508062388758525})
 
     # Empty labels and predictions
     result = corpusblue_metrics.compute([], [], types.GeneratedText(),
                                         types.GeneratedText())
-    testing_utils.assert_dicts_almost_equal(self, result, {})
+    testing_utils.assert_deep_almost_equal(self, result, {})
+
+
+class ClassifcationMarginTest(absltest.TestCase):
+
+  def setUp(self):
+    super(ClassifcationMarginTest, self).setUp()
+    self.inputs = [{'s': 'hi', 'n': 2}, {'s': 'bye', 'n': 1}]
+    self.preds = [[0.3, 0.7], [0.6, 0.4]]
+    self.pred_spec = types.MulticlassPreds(vocab=['0', '1'], null_idx=0)
+
+  def test_no_margins(self):
+    classes = metrics.get_classifications(
+        self.preds, self.pred_spec, None)
+    self.assertEqual([1, 0], classes)
+
+  def test_single_margin(self):
+    config = {'': {'margin': -4, 'facetData': {'facets': {}}}}
+    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
+    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
+    self.assertEqual([1, 1], classes)
+
+  def test_faceted_margins_text(self):
+    config = {
+        'hi': {'margin': 5, 'facetData': {'facets': {'s': {'val': 'hi'}}}},
+        'bye': {'margin': -4, 'facetData': {'facets': {'s': {'val': 'bye'}}}}}
+    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
+    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
+    self.assertEqual([0, 1], classes)
+
+  def test_faceted_margins_num(self):
+    config = {
+        'high': {'margin': 5, 'facetData': {'facets': {'n': {'val': [2, 3]}}}},
+        'low': {'margin': -4, 'facetData': {'facets': {'n': {'val': [0, 2]}}}}}
+    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
+    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
+    self.assertEqual([0, 1], classes)
 
 
 if __name__ == '__main__':

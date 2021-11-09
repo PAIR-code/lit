@@ -20,10 +20,11 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {D3Scale} from '../lib/types';
@@ -31,7 +32,7 @@ import {range} from '../lib/utils';
 import {ColorService} from '../services/services';
 
 import {styles} from './color_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**
@@ -39,22 +40,22 @@ import {styles as sharedStyles} from './shared_styles.css';
  */
 @customElement('color-module')
 export class ColorModule extends LitModule {
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  static title = 'Color';
-  static numCols = 1;
-  static collapseByDefault = true;
-  static duplicateForModelComparison = false;
+  static override title = 'Color';
+  static override numCols = 1;
+  static override collapseByDefault = true;
+  static override duplicateForModelComparison = false;
 
-  static template = () => {
+  static override template = () => {
     return html`<color-module></color-module>`;
   };
 
   private readonly colorService = app.getService(ColorService);
 
-  render() {
+  override render() {
     const options = this.colorService.colorableOptions;
     const htmlOptions = options.map((option, optionIndex) => {
       const selected =
@@ -150,7 +151,7 @@ export class ColorModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

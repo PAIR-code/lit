@@ -17,6 +17,7 @@
 
 // Import Modules
 import '../modules/span_graph_module';
+
 import {LitModuleType} from '../core/lit_module';
 import {LitComponentLayouts} from '../lib/types';
 import {AnnotatedTextGoldModule, AnnotatedTextModule} from '../modules/annotated_text_module';
@@ -25,30 +26,37 @@ import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
-import {DataTableModule} from '../modules/data_table_module';
-import {DatapointEditorModule} from '../modules/datapoint_editor_module';
+import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
+import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
+import {GeneratedImageModule} from '../modules/generated_image_module';
 import {GeneratedTextModule} from '../modules/generated_text_module';
 import {GeneratorModule} from '../modules/generator_module';
 import {LanguageModelPredictionModule} from '../modules/lm_prediction_module';
 import {MetricsModule} from '../modules/metrics_module';
+import {MultilabelModule} from '../modules/multilabel_module';
+import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
+import {SequenceSalienceModule} from '../modules/sequence_salience_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
+import {ThresholderModule} from '../modules/thresholder_module';
 
 // clang-format off
 const MODEL_PREDS_MODULES: LitModuleType[] = [
   SpanGraphGoldModuleVertical,
   SpanGraphModuleVertical,
   ClassificationModule,
+  MultilabelModule,
   RegressionModule,
   LanguageModelPredictionModule,
   GeneratedTextModule,
   AnnotatedTextGoldModule,
   AnnotatedTextModule,
+  GeneratedImageModule,
 ];
 
 const DEFAULT_MAIN_GROUP: LitModuleType[] = [
@@ -68,12 +76,13 @@ export const LAYOUTS: LitComponentLayouts = {
    * A "simple demo server" layout.
    */
   'simple':  {
-    components : {
-      'Main': [
-        DatapointEditorModule,
-      ],
+    upper: {
+      "Editor": [SimpleDatapointEditorModule],
+      "Examples": [SimpleDataTableModule],
+    },
+    lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
-      'Data': [DataTableModule],
+      'Salience': [SalienceMapModule, SequenceSalienceModule],
     },
     layoutSettings: {
       hideToolbar: true,
@@ -83,72 +92,33 @@ export const LAYOUTS: LitComponentLayouts = {
     description: 'A basic layout just containing a datapoint creator/editor, the predictions, and the data table. There are also some visual simplifications: the toolbar is hidden, and the modules are centered on the page rather than being full width.'
   },
   /**
-   * A layout for black-box models (no embs, grads, or attention).
-   */
-  'blackbox':  {
-    components : {
-      'Main': DEFAULT_MAIN_GROUP,
-      'Predictions': [
-        ScalarModule,
-        ...MODEL_PREDS_MODULES,
-      ],
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-      ],
-      'Counterfactuals': [GeneratorModule],
-    },
-    description: "A layout for exploring predictions on an eval set. Includes modules for aggregate and counterfactual analysis, but not model internals."
-  },
-  /**
    * A default layout for LIT Modules
    */
   'default':  {
     components : {
       'Main': [EmbeddingsModule, ...DEFAULT_MAIN_GROUP],
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-        TCAVModule,
-      ],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         ScalarModule,
+        PdpModule,
       ],
       'Explanations': [
         ...MODEL_PREDS_MODULES,
         SalienceMapModule,
+        SequenceSalienceModule,
         AttentionModule,
       ],
+      'Metrics': [
+        MetricsModule,
+        ConfusionMatrixModule,
+        ThresholderModule,
+      ],
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
+      'TCAV': [
+        TCAVModule,
+      ],
     },
     description: "The default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals."
-  },
-  /**
-   * A default layout for LIT Modules without EmbeddingsModule
-   * TODO(lit-dev): move to a custom frontend build,
-   * or remove this if b/159186274 is resolved to speed up page load.
-   */
-  'default_no_projector':  {
-    components : {
-      'Main': DEFAULT_MAIN_GROUP,
-      'Performance': [
-        MetricsModule,
-        ConfusionMatrixModule,
-        TCAVModule,
-      ],
-      'Predictions': [
-        ...MODEL_PREDS_MODULES,
-        ScalarModule,
-      ],
-      'Explanations': [
-        ...MODEL_PREDS_MODULES,
-        SalienceMapModule,
-        AttentionModule,
-      ],
-      'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
-    },
-    description: "A default LIT layout, which includes the data table and data point editor, the performance and metrics, predictions, explanations, and counterfactuals. Does not include the embedding projector."
   },
 };
 // clang-format on

@@ -1,0 +1,184 @@
+table.field-table {
+  width: 100%;
+  min-width: 100%;
+  border-spacing: 8px;
+}
+
+table.field-table th {
+  vertical-align: top;
+  text-align: start;
+}
+
+.subfield-title {
+  padding-top: 6px; /* align title with first row of content */
+}
+
+.token-holder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.salience-value {
+  font-size: 10px;
+}
+
+.salient-token {
+  /* color and background set individually vis styleMap */
+  font-family: 'Roboto';
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  width: fit-content;
+  position: relative;
+  text-align: center;
+}
+
+.token-holder > .salient-token {
+  padding: 2px 4px; /* wider horizontally */
+  margin: 3px;
+}
+
+.token-holder-dense > .salient-token {
+  padding: 2px 0; /* no spacing, so words flow */
+  margin: 0;
+}
+
+/**
+ * Styles for token chips when showValues is enabled.
+ * For visual consistency and to avoid jumping, these apply to all tokens
+ * regardless of whether the number is actually visible (see below).
+ */
+.token-holder > .salient-token-with-number {
+  /* These should override the regular and dense settings above. */
+  margin-top: 12px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.salient-token-with-number {
+  min-width: 30px;  /* enough space for number label */
+}
+
+/* Style for the actual value display, above the token text.
+ * If we want to do anything fancier we should probably make a separate element,
+ * but for now :before will do. (Note that :after is used below for a pin icon.)
+ */
+.salient-token-with-number:before {
+  font-size: 10px;
+  color: black !important;
+  position: absolute;
+  margin: auto;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  text-align: center;
+  content: attr(data-displayval);
+  visibility: hidden;
+}
+
+/* Always show numbers with data-shownumber set explicitly. */
+.salient-token-with-number[data-shownumber]:before {
+  visibility: visible;
+}
+
+/**
+ * Always show numbers on token hover, such as when a different token is pinned.
+ * This could be done in the template code in TypeScript, but doing this in CSS
+ * lets us use :hover directly and avoid manually tracking another ephemeral
+ * focus state.
+ */
+.salient-token-with-number:hover:before {
+  visibility: visible;
+}
+
+.target-token {
+  cursor: pointer;
+}
+
+.token-focused {
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.token-pinned {
+  border: 1px solid #dadce0;
+}
+
+.token-pinned:after {
+  position: absolute;
+  font-family: 'Material Icons';
+  content: 'push_pin';
+  /* upper right corner of token */
+  right: -6px;
+  bottom: 60%;
+  z-index: 1; /* draw over adjacent tokens in dense mode */
+}
+
+/**
+ * Module controls
+ */
+.module-toolbar {
+  border-bottom: 1px solid #dadce0;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.module-footer {
+  justify-content: space-between;
+}
+
+.controls-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.controls-group > * {
+  margin: 0 2px;
+}
+
+/* Allow dropdown area to grow, but not to cause line wrapping. */
+.controls-group-variable {
+  flex: 1;
+  overflow-x: clip;
+  margin-right: 8px;
+}
+
+.controls-group-variable .dropdown {
+  max-width: 100%;
+}
+
+.vertical-separator {
+  background: #dadce0;
+  width: 2px;
+  height: 1.2rem;
+  padding: 0;
+  margin: 0 8px;
+}
+
+.cmap-blocks-holder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.cmap-block {
+  width: 28px;
+  height: 20px;
+  border: 1px solid gray;
+  border-radius: 3px;
+  text-align: center;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+.cmap-block-wide {
+  width: 32px;
+}
+
+.gamma-value {
+  min-width: 32px;
+}

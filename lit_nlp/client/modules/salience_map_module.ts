@@ -23,32 +23,46 @@ import '../elements/checkbox';
 import '../elements/spinner';
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
+import {AppState} from '../services/services';
 
 import {styles} from './salience_map_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Results for calls to fetch salience.
  */
-interface SalienceResult {
+interface TokenSalienceResult {
   [key: string]: {tokens: string[], salience: number[]};
+}
+
+interface ImageSalienceResult {
+  [key: string]: string;
+}
+
+interface FeatureSalienceMap {
+  [feature: string]: number;
+}
+
+interface FeatureSalienceResult {
+  [key: string]: {salience: FeatureSalienceMap};
 }
 
 /**
  * UI status for each interpreter.
  */
 interface InterpreterState {
-  salience: SalienceResult;
+  salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult;
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
@@ -71,19 +85,26 @@ abstract class SalienceCmap {
  */
 export class UnsignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
     const hue = 270;  // purple
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${100 * intensity}%)`;
+    return `hsl(${hue}, 50%, ${100 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (d > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
@@ -92,23 +113,28 @@ export class UnsignedSalienceCmap extends SalienceCmap {
  */
 export class SignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.abs(d);
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
-    let hue = 188;  // teal from WHAM
-    if (d < 0.) {
-      hue = 354;    // red(ish) from WHAM
-      d = Math.abs(d);  // make positive for intensity
-    }
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${25 + 75 * intensity}%)`;
+    const hue =
+        (d >= 0) ? 188 /* teal from WHAM */ : 354 /* red(ish) from WHAM */;
+    return `hsl(${hue}, 50%, ${25 + 75 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (Math.abs(d) > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
@@ -118,17 +144,21 @@ export class SignedSalienceCmap extends SalienceCmap {
  */
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
-  static title = 'Salience Maps';
-  static numCols = 6;
-  static duplicateForExampleComparison = true;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Salience Maps';
+  static override numCols = 6;
+  static override duplicateForExampleComparison = true;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<salience-map-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></salience-map-module>`;
   };
 
   private readonly focusService = app.getService(FocusService);
 
-  static get styles() {
+  // Types that contain salience information to display.
+  private static readonly salienceTypes: LitName[] =
+      ['TokenSalience', 'ImageSalience', 'FeatureSalience'];
+
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -146,14 +176,14 @@ export class SalienceMapModule extends LitModule {
     return this.state[name].autorun;
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const interpreters = this.appState.metadata.interpreters;
     const validInterpreters =
         this.appState.metadata.models[this.model].interpreters;
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
-      const salienceKeys =
-          findSpecKeys(interpreters[key].metaSpec, 'SalienceMap');
+      const salienceKeys = findSpecKeys(
+          interpreters[key].metaSpec, SalienceMapModule.salienceTypes);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -246,7 +276,7 @@ export class SalienceMapModule extends LitModule {
     });
   }
 
-  updated() {
+  override updated() {
     super.updated();
 
     // Imperative tooltip implementation
@@ -292,11 +322,17 @@ export class SalienceMapModule extends LitModule {
     }
   }
 
+  renderImage(
+      salience: ImageSalienceResult, gradKey: string) {
+    const salienceImage = salience[gradKey];
+    return html`<img src='${salienceImage}'></img>`;
+  }
+
   // TODO(lit-dev): consider moving this to a standalone viz class.
-  renderGroup(salience: SalienceResult, gradKey: string, cmap: SalienceCmap) {
+  renderTokens(salience: TokenSalienceResult, gradKey: string,
+               cmap: SalienceCmap) {
     const tokens = salience[gradKey].tokens;
     const saliences = salience[gradKey].salience;
-
     const tokensDOM = tokens.map(
         (token: string, i: number) =>
             this.renderToken(token, saliences[i], cmap, gradKey));
@@ -315,6 +351,51 @@ export class SalienceMapModule extends LitModule {
       </div>
     `;
     // clang-format on
+  }
+
+  renderFeatureSalience(salience: FeatureSalienceResult, gradKey: string,
+                        cmap: SalienceCmap) {
+    const saliences = salience[gradKey].salience;
+    const features = Object.keys(saliences).sort(
+        (a, b) => saliences[b] - saliences[a]);
+    const tokensDOM = features.map(
+        (feat: string) => {
+          const val =
+              this.selectionService.primarySelectedInputData!.data[feat];
+          const str = `${feat}: ${val}`;
+          return this.renderToken(str, saliences[feat], cmap, gradKey);
+    });
+
+    // clang-format off
+    return html`
+      <div class="tokens-group">
+        <div class="tokens-group-title">
+          ${gradKey}
+        </div>
+        <div class="tokens-holder">
+          ${tokensDOM}
+        </div>
+        <div class="salience-tooltip">
+        </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  renderGroup(
+      salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult,
+      gradKey: string, cmap: SalienceCmap) {
+    const spec = this.appState.getModelSpec(this.model);
+    if (isLitSubtype(spec.output[gradKey], 'ImageGradients')) {
+      salience = salience as ImageSalienceResult;
+      return this.renderImage(salience, gradKey);
+    } else if (isLitSubtype(spec.output[gradKey], 'FeatureSalience')) {
+      salience = salience as FeatureSalienceResult;
+      return this.renderFeatureSalience(salience, gradKey, cmap);
+    } else {
+      salience = salience as TokenSalienceResult;
+      return this.renderTokens(salience, gradKey, cmap);
+    }
   }
 
   renderSpinner() {
@@ -358,7 +439,8 @@ export class SalienceMapModule extends LitModule {
       for (const fieldName of Object.keys(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName], 'FieldMatcher')) {
+        if (isLitSubtype(clonedSpec[fieldName],
+                         ['FieldMatcher', 'MultiFieldMatcher'])) {
           clonedSpec[fieldName].vocab =
               this.appState.getSpecKeysFromFieldMatcher(
                   clonedSpec[fieldName], this.model);
@@ -399,7 +481,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  render() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>
@@ -414,8 +496,26 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return true;
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // TODO(b/204779018): Add appState interpreters to method arguments.
+
+    // Ensure there are salience interpreters for loaded models.
+    const appState = app.getService(AppState);
+    for (const modelInfo of Object.values(modelSpecs)) {
+      for (let i = 0; i < modelInfo.interpreters.length; i++) {
+        const interpreterName = modelInfo.interpreters[i];
+        if (appState.metadata == null) {
+          return false;
+        }
+        const interpreter = appState.metadata.interpreters[interpreterName];
+        const salienceKeys = findSpecKeys(
+            interpreter.metaSpec, SalienceMapModule.salienceTypes);
+        if (salienceKeys.length !== 0) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 

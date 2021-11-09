@@ -13,6 +13,8 @@ color: "#fef0f7"
 
 <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
 
+For complete details on setting up and using LIT, see the GitHub [documentation](https://github.com/PAIR-code/lit/wiki).
+
 <a name="install"></a>
 
 # Install LIT
@@ -112,7 +114,7 @@ the notebook.
 # Use LIT on your own models and data
 
 This is a brief overview of how to run LIT with your own models and datasets.
-For more details, see the documentation in the [code repository](https://github.com/pair-code/lit).
+For more details, see the [documentation](https://github.com/PAIR-code/lit/wiki).
 
 To run LIT with your own models and data, you can create a custom `demo.py`
 script that passes these to the LIT server. For example:
@@ -151,7 +153,7 @@ For full examples, see
 *   [`simple_pytorch_demo.py`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py)
     for a self-contained PyTorch model for sentiment analysis.
   
-You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/blob/main/documentation/development.md#custom-client--modules) for more.
+You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/wiki/frontend_development.md#custom-client--modules) for more.
 
 <a name="datasets"></a>
 ## Datasets

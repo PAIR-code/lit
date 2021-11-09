@@ -18,15 +18,19 @@
 // tslint:disable:no-new-decorators
 import './checkbox';
 import '@material/mwc-icon';
-import {customElement, html, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {observable} from 'mobx';
-import {ReactiveElement} from '../lib/elements';
 
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {observable} from 'mobx';
+
+import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitType, Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
+
 import {styles} from './interpreter_controls.css';
-import {styles as sharedStyles} from '../modules/shared_styles.css';
 
 /**
  * Controls panel for an interpreter.
@@ -37,14 +41,14 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
   @observable @property({type: Boolean}) bordered = false;
-  @observable settings: {[name: string]: string|string[]} = {};
+  @observable settings: {[name: string]: string|number|boolean|string[]} = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  render() {
+  override render() {
     const apply = () => {
       // Event to be dispatched when an interpreter is applied.
       const event = new CustomEvent('interpreter-click', {
@@ -65,36 +69,40 @@ export class InterpreterControls extends ReactiveElement {
       }
       this.opened = !this.opened;
     };
+    const containerClasses = {
+      'bordered': this.bordered,
+    };
     const headerClasses = {
       'collapsible': true,
       'header': true,
-      'bordered-header': this.bordered
     };
     const contentClasses = {
       'content': true,
       'minimized': !this.opened,
-      'bordered-content': this.bordered
     };
+    // clang-format off
     return html`
-      ${expandable ? html`
-        <div class=${classMap(headerClasses)} @click=${onCollapseClick}>
-          <div class="title">${this.name}</div>
-          <mwc-icon class="icon-button min-button">
-            ${collapseIconName}
-          </mwc-icon>
-        </div>` : html`
-        <div class="header">
-          <div class="title">${this.name}</div>
-        </div>`
-      }
-      <div class=${classMap(contentClasses)}>
-        <div class="description">${this.description}</div>
-        ${this.renderControls()}
-        <div class="buttons-holder">
-          <button class="button" @click=${apply}>Apply</button>
+      <div class=${classMap(containerClasses)}>
+        ${expandable ? html`
+          <div class=${classMap(headerClasses)} @click=${onCollapseClick}>
+            <div class="title">${this.name}</div>
+            <mwc-icon class="icon-button min-button">
+              ${collapseIconName}
+            </mwc-icon>
+          </div>` : html`
+          <div class="header">
+            <div class="title">${this.name}</div>
+          </div>`}
+        <div class=${classMap(contentClasses)}>
+          <div class="description">${this.description}</div>
+          ${this.renderControls()}
+          <div class="buttons-holder">
+            <button class="button" @click=${apply}>Apply</button>
+          </div>
         </div>
       </div>
     `;
+    // clang-format on
   }
 
   renderControls() {
@@ -106,11 +114,18 @@ export class InterpreterControls extends ReactiveElement {
         if (isLitSubtype(spec[name], 'SparseMultilabel')) {
           this.settings[name] = spec[name].default as string[];
         }
+        // If select all is True, default value is all of vocab.
+        if (isLitSubtype(spec[name], 'MultiFieldMatcher')) {
+          this.settings[name] = spec[name].select_all!?
+              spec[name].vocab as string[] :
+              spec[name].default as string[];
+        }
         // FieldMatcher has its vocab set outside of this element.
         else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
-          this.settings[name] = spec[name].vocab![0];
-        }
-        else {
+          this.settings[name] =
+              spec[name].vocab != null && spec[name].vocab!.length > 0 ?
+              spec[name].vocab![0] : '';
+        } else {
           this.settings[name] = spec[name].default as string;
         }
       }
@@ -126,7 +141,7 @@ export class InterpreterControls extends ReactiveElement {
   }
 
   renderControl(name: string, controlType: LitType) {
-    if (isLitSubtype(controlType, 'SparseMultilabel')) {
+    if (isLitSubtype(controlType, ['SparseMultilabel', 'MultiFieldMatcher'])) {
       // Render checkboxes, with the first item selected.
       const renderCheckboxes =
           () => controlType.vocab!.map(option => {
@@ -139,7 +154,8 @@ export class InterpreterControls extends ReactiveElement {
                 item => item !== option);
           }
         };
-        const isSelected = this.settings[name].indexOf(option) !== -1;
+        const isSelected = (this.settings[name] as string[]).indexOf(
+            option) !== -1;
         return html`
           <lit-checkbox ?checked=${isSelected} @change=${change}
             label=${option} class='checkbox-control'>
@@ -147,8 +163,7 @@ export class InterpreterControls extends ReactiveElement {
         `;
       });
       return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
-     }
-     else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
+    } else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);
@@ -159,14 +174,15 @@ export class InterpreterControls extends ReactiveElement {
           <option value=${optionIndex}>${option}</option>
         `;
       });
-      const defaultValue = controlType.vocab![0];
+      const defaultValue =
+          controlType.vocab != null && controlType.vocab.length > 0 ?
+          controlType.vocab[0] : '';
       return html`<select class="dropdown control" @change=${updateDropdown}
-          .value=${defaultValue}>
+          .value=${defaultValue} ?disabled=${controlType.vocab!.length < 2}>
         ${options}
       </select>`;
-    }
-    else if (isLitSubtype(controlType, ['Scalar'])) {
-      // Render a dropdown, with the first item selected.
+    } else if (isLitSubtype(controlType, ['Scalar'])) {
+      // Render a slider.
       const updateSettings = (e: Event) => {
         const input = (e.target as HTMLInputElement);
         this.settings[name] = input.value;
@@ -177,25 +193,49 @@ export class InterpreterControls extends ReactiveElement {
       const maxVal = controlType.max_val!;
       const defaultValue = controlType.default! as string;
 
+      // clang-format off
       return html`
-      <div class='slider-holder'>
-        <div class='slider-label'>${minVal}</div>
-        <input
-          type="range"
-          min="${minVal}"
-          max="${maxVal}"
-          step="${step}"
-          .value=${defaultValue}
-          @input=${updateSettings}
-          >
+        <div class='slider-holder'>
+          <div class='slider-label slider-label-start'>${minVal}</div>
+          <input
+            type="range"
+            min="${minVal}"
+            max="${maxVal}"
+            step="${step}"
+            .value=${defaultValue}
+            @input=${updateSettings}
+            >
           <div class='slider-label'>${maxVal}</div>
+          <div class='slider-value'>${this.settings[name]}</div>
         </div>
-        <div>${this.settings[name]}</div>
-        `;
-    }
-    else {
+      `;
+      // clang-format on
+    } else if (isLitSubtype(controlType, ['Boolean'])) {
+      // Render a checkbox.
+      const toggleVal = () => {
+        const val = !!this.settings[name];
+        this.settings[name] = !val;
+      };
+      // clang-format off
+      return html`
+        <lit-checkbox
+         ?checked=${!!this.settings[name]}
+         @change=${toggleVal}>
+        </lit-checkbox>
+      `;
+      // clang-format on
+    } else if (isLitSubtype(controlType, ['Tokens'])) {
+      // Render a text input box and split on commas.
+      const value = this.settings[name] as string || '';
+      const updateText = (e: Event) => {
+        const input = e.target! as HTMLInputElement;
+        this.settings[name] = input.value.split(',').map(val => val.trim());
+      };
+      return html`<input class="control" type="text" @input=${updateText}
+          .value="${value}" />`;
+    } else {
       // Render a text input box.
-      const value = this.settings[name] || '';
+      const value = this.settings[name] as string || '';
       const updateText = (e: Event) => {
         const input = e.target! as HTMLInputElement;
         this.settings[name] = input.value;

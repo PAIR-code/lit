@@ -7,8 +7,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
 import {LitModule} from '../../client/core/lit_module';
 import {ModelInfoMap, Spec} from '../../client/lib/types';
@@ -16,13 +17,13 @@ import {ModelInfoMap, Spec} from '../../client/lib/types';
 /** Custom LIT module. Delicious baked, mashed, or fried. */
 @customElement('potato-module')
 export class PotatoModule extends LitModule {
-  static title = 'Potato';
-  static numCols = 4;
-  static template = () => {
+  static override title = 'Potato';
+  static override numCols = 4;
+  static override template = () => {
     return html`<potato-module></potato-module>`;
   };
 
-  render() {
+  override render() {
     const style = styleMap({'width': '100%', 'height': '100%'});
     // clang-format off
     return html`
@@ -32,7 +33,7 @@ export class PotatoModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

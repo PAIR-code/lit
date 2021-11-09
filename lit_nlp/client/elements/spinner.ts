@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-import {css, customElement, html, LitElement, property} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import {css, html, LitElement} from 'lit';
+import {styleMap} from 'lit/directives/style-map';
 
 const TRANSPARENT_COLOR = 'rgba(0,0,0,0)';
 const DEFAULT_COLOR = 'var(--app-primary-color)';
@@ -31,7 +33,7 @@ export class SpinnerComponent extends LitElement {
   @property({type: Number}) size = 16;
   @property({type: String}) color = '';
 
-  static get styles() {
+  static override get styles() {
     return [
       css`
         #spinner {
@@ -50,7 +52,7 @@ export class SpinnerComponent extends LitElement {
     ];
   }
 
-  render() {
+  override render() {
     const size = `${this.size}px`;
     const borderWidth = this.size / 8;
     const color = this.color === '' ? DEFAULT_COLOR : this.color;

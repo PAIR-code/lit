@@ -19,34 +19,37 @@ import 'jasmine';
 
 import {toJS} from 'mobx';
 
-import {LITApp} from '../core/lit_app';
+import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
+import {LitCanonicalLayout} from '../lib/types';
+import {ClassificationModule} from '../modules/classification_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
-import {SalienceMapModule} from '../modules/salience_map_module';
 
 import {ApiService} from './api_service';
 import {ModulesService} from './modules_service';
 import {AppState} from './state_service';
-import {LitComponentLayout} from '../lib/types';
 
-const MOCK_LAYOUT: LitComponentLayout = {
-  components: {
+const MOCK_LAYOUT: LitCanonicalLayout = {
+  upper: {
     'Main': [
       DatapointEditorModule,
     ],
+  },
+  lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      SalienceMapModule
+      ClassificationModule
     ],
   },
-  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true}
+  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
+  description: 'Mock layout for testing.'
 };
 
 describe('modules service test', async () => {
   let appState: AppState, modulesService: ModulesService;
   beforeEach(async () => {
     // Set up.
-    const app = new LITApp();
+    const app = new LitApp();
     // tslint:disable-next-line:no-any (to spyOn a private method)
     spyOn<any>(app.getService(ApiService), 'queryServer').and.returnValue(null);
     appState = app.getService(AppState);
@@ -75,63 +78,66 @@ describe('modules service test', async () => {
     expect(modulesService.declaredLayout).toEqual(MOCK_LAYOUT);
   });
 
-  it('tests computeRenderLayout (standard)', () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (standard)', () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = false;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the component groups are the same.
     const updatedLayout = modulesService.getRenderLayout();
-    expect(Object.keys(updatedLayout))
-        .toEqual(Object.keys(MOCK_LAYOUT.components));
+    expect(Object.keys(updatedLayout.upper))
+        .toEqual(Object.keys(MOCK_LAYOUT.upper));
+    expect(Object.keys(updatedLayout.lower))
+        .toEqual(Object.keys(MOCK_LAYOUT.lower));
 
     // Check that the two modules we added to the layout are reflected in
     // allModuleKeys.
     const keys =
-        new Set([`Main_${DatapointEditorModule.title}`, `internals_${SalienceMapModule.title}`]);
+        new Set([`Main_${DatapointEditorModule.title}`,
+                 `internals_${ClassificationModule.title}`]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 
-  it('tests computeRenderLayout (comparing examples)', () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing examples)', () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = true;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
     // that should be duplicated when comparing examples.
-    const configs = modulesService.getRenderLayout()['internals'];
+    const configs = modulesService.getRenderLayout().lower['internals'];
     expect(configs[0].length).toEqual(2);  // Two examples to compare.
   });
 
-  it('tests computeRenderLayout (comparing models)', async () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing models)', async () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = false;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
     // that should be duplicated when comparing models.
-    const configs = modulesService.getRenderLayout()['internals'];
+    const configs = modulesService.getRenderLayout().lower['internals'];
     expect(configs[0].length).toEqual(2);  // Two models to compare.
   });
 
-  it('tests computeRenderLayout (comparing models and examples)', async () => {
-    modulesService.setModuleLayout(MOCK_LAYOUT);
+  it('tests updateRenderLayout (comparing models and examples)', async () => {
+    modulesService.declaredLayout = MOCK_LAYOUT;
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = true;
-    modulesService.computeRenderLayout(
+    modulesService.updateRenderLayout(
         appState.currentModelSpecs, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
     // that should be duplicated when comparing models.
-    const configs = modulesService.getRenderLayout()['internals'];
+    const configs = modulesService.getRenderLayout().lower['internals'];
     expect(configs[0].length).toEqual(4);  // Two models x two examples = 4.
   });
 });

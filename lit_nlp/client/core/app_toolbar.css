@@ -1,0 +1,119 @@
+#at-top {
+  top: 0;
+  position: sticky;
+  z-index: 3;
+}
+
+#headline {
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2f8c9b;
+  font-family: 'Google Sans' !important;
+  color: white;
+  font-size: 18px;
+  line-height: 24px;
+  letter-spacing: +0.1;
+  height: 40px;
+}
+
+.headline-section {
+  display: flex;
+  align-items: center;
+}
+
+.headline-section > * {
+  padding: 4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#title-group {
+  font-family: 'Google Sans', sans;
+}
+
+mwc-icon.icon-button {
+  height: 24px;
+  width: 24px;
+  min-width: 24px;
+  --mdc-icon-size: 24px;
+  cursor: pointer;
+  margin: 0pt 2pt;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.icon-button:active {
+  opacity: .4;
+}
+
+.status-emoji {
+  width: 20px;
+  height: 20px;
+  padding-right: 4px;
+  display: block;
+}
+
+.vertical-separator {
+  background: #098591;
+  width: 2px;
+  height: 1.2rem;
+  padding: 0;
+  margin: 0 8px;
+}
+
+/* Custom button style to work with the dark background */
+button {
+  font-size: 16px;
+  color: white;
+}
+
+/* disabled, unselected, default, focus, hover, selected */
+
+.headline-button {
+  margin: 0 4px;
+  background: transparent;
+  border-radius: 4px;
+  border: 1px solid #098591;
+  font-family: Roboto;
+  color: #E4F7FB; /* Cyan/50 */
+}
+
+.headline-button.unbordered {
+  border: 1px solid transparent;
+}
+
+.headline-button.unselected {
+  color: #A1E4F2; /* Cyan/200 */
+}
+
+.headline-button.selected {
+  border: 1px solid #E4F7FB; /* Cyan/50 */
+}
+
+.headline-button:focus {
+  background: rgba(138, 180, 248, 0.12);
+  outline: none;
+}
+
+.headline-button:hover {
+  background: rgba(26, 115, 232, 0.04);
+  opacity: .7;
+  border: 1px solid #BDC1C6;
+}
+
+.headline-button:active {
+  background: #E8F0FE;
+  box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3),
+    0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+  opacity: .4;
+}
+
+.headline-button:disabled {
+  color: rgba(60, 64, 67, 0.38);
+}

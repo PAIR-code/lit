@@ -25,6 +25,8 @@ from lit_nlp.examples.models import glue_models
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_string(
     "encoder_name", "google/bert_uncased_L-2_H-128_A-2",
     "Encoder name to use for fine-tuning. See https://huggingface.co/models.")

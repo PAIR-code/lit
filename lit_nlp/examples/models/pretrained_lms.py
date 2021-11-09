@@ -12,52 +12,12 @@ from typing import Dict, List, Tuple
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.models import model_utils
 from lit_nlp.lib import utils
 
 import numpy as np
 import tensorflow as tf
 import transformers
-
-
-def batch_encode_pretokenized(
-    tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase,
-    tokenized_inputs: List[List[str]]
-) -> transformers.tokenization_utils_base.BatchEncoding:
-  """Batch encode pre-tokenized text, without further splitting.
-
-  This is necessary because tokenizer(..., is_split_into_words=True) doesn't
-  guarantee that tokens will stay intact - only that the final tokens will not
-  span the given boundaries. If the tokenizer is called directly, you'll get
-  things like: "foo" "##bar" -> "foo" "#" "#" "bar"
-
-  Based on the implementation of batch_encode_plus in
-  https://github.com/huggingface/transformers/blob/master/src/transformers/tokenization_utils_base.py#L2465
-  but simplified to only handle single-segment inputs.
-
-  Args:
-    tokenizer: Transformers tokenizer
-    tokenized_inputs: list of tokenized inputs
-
-  Returns:
-    BatchEncoding, suitable for model input
-  """
-  encoded_input = {}
-  for tokens in tokenized_inputs:
-    ids = tokenizer.convert_tokens_to_ids(tokens)
-    encoded = tokenizer.prepare_for_model(
-        ids,
-        add_special_tokens=True,
-        padding="do_not_pad",
-        truncation="longest_first",
-        return_attention_mask=False,
-        pad_to_multiple_of=False)
-    for k, v in encoded.items():
-      encoded_input.setdefault(k, []).append(v)
-
-  encoded_input = tokenizer.pad(
-      encoded_input, padding="longest", return_attention_mask=True)
-  return transformers.tokenization_utils_base.BatchEncoding(
-      encoded_input, tensor_type="tf")
 
 
 class BertMLM(lit_model.Model):
@@ -71,11 +31,15 @@ class BertMLM(lit_model.Model):
 
   def __init__(self, model_name="bert-base-uncased", top_k=10):
     super().__init__()
-    self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+        model_name, use_fast=False)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
-    self.model = transformers.TFBertForMaskedLM.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True)
+    self.model = model_utils.load_pretrained(
+        transformers.TFBertForMaskedLM,
+        model_name,
+        output_hidden_states=True,
+        output_attentions=True)
     self.top_k = top_k
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
@@ -111,7 +75,7 @@ class BertMLM(lit_model.Model):
     probas = output.pop("probas")
 
     # Predictions at every position, regardless of masking.
-    output["pred_tokens"] = self._get_topk_tokens(probas[slicer])
+    output["pred_tokens"] = self._get_topk_tokens(probas[slicer])  # pytype: disable=container-type-mismatch
 
     return output
 
@@ -128,7 +92,8 @@ class BertMLM(lit_model.Model):
     tokenized_texts = [
         ex.get("tokens") or self.tokenizer.tokenize(ex["text"]) for ex in inputs
     ]
-    encoded_input = batch_encode_pretokenized(self.tokenizer, tokenized_texts)
+    encoded_input = model_utils.batch_encode_pretokenized(
+        self.tokenizer, tokenized_texts)
 
     # out.logits is a single tensor
     #    <float32>[batch_size, num_tokens, vocab_size]
@@ -147,6 +112,10 @@ class BertMLM(lit_model.Model):
     unbatched_outputs = utils.unbatch_preds(batched_outputs)
     # Postprocess to remove padding and decode predictions.
     return map(self._postprocess, unbatched_outputs)
+
+  def load(self, model_name_or_path):
+    """Dynamically load a new BertMLM model given a model name."""
+    return BertMLM(model_name_or_path, self.top_k)
 
   def input_spec(self):
     return {
@@ -184,7 +153,7 @@ class GPT2LanguageModel(lit_model.Model):
     super().__init__()
     # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, pad_token="<pad>")
+        model_name, pad_token="<|endoftext|>", use_fast=False)
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
         model_name, output_hidden_states=True, output_attentions=True)
     self.top_k = top_k
@@ -237,7 +206,7 @@ class GPT2LanguageModel(lit_model.Model):
 
     # Convert representations for each layer from tuples to single Tensor.
     for i in range(len(out.attentions)):
-      batched_outputs[f"layer_{i:d}_attention"] = out.attentions[i]
+      batched_outputs[f"layer_{i+1:d}_attention"] = out.attentions[i]
     for i in range(len(out.hidden_states)):
       batched_outputs[f"layer_{i:d}_avg_embedding"] = tf.math.reduce_mean(
           out.hidden_states[i], axis=1)
@@ -290,7 +259,6 @@ class GPT2LanguageModel(lit_model.Model):
         texts,
         return_tensors="tf",
         add_special_tokens=True,
-        add_prefix_space=True,
         padding="longest",
         truncation="longest_first")
 
@@ -314,7 +282,7 @@ class GPT2LanguageModel(lit_model.Model):
     }
     # Add attention and embeddings from each layer.
     for i in range(self.num_layers):
-      spec[f"layer_{i:d}_attention"] = lit_types.AttentionHeads(
+      spec[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
           align_in="tokens", align_out="tokens")
       spec[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
     return spec

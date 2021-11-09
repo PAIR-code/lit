@@ -28,33 +28,18 @@
   opacity: .25;
 }
 
-#container{
-  margin: 5px 0;
-}
-
-.slider-row {
-  display: flex;
-  flex-wrap: wrap;
-  margin: 8px 5px;
-}
-
-.slider-row div {
-  padding-top: 9px;
-}
-
-.slider-label {
-  width: 30px;
+.plot-holder {
+  border-top: 1px solid rgb(232, 234, 237);
+  border-bottom: 1px solid rgb(232, 234, 237);
 }
 
 .collapse-bar {
   width: 100%;
   height: 30px;
   cursor: pointer;
-  padding: 3px 5px;
+  padding: 2px 8px;
   width: 100%;
-  border: 1px solid rgb(232, 234, 237);
   outline: none;
-  font-size: 13.33333px;
   display: flex;
   justify-content: space-between;
   box-sizing: border-box;
@@ -62,8 +47,30 @@
 
 .scatterplot-background {
   background: rgb(248, 249, 250);
-  border: 1px solid rgb(232, 234, 237);
   padding-bottom: 15px;
   padding-top: 5px;
 }
 
+.axis-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.selected-value {
+  padding-right: 8px;
+}
+
+/**
+ * d3.brush() sets up some questionable CSS styles, like pointer-events: all,
+ * which will cause this module to respond to clicks in surprising ways even
+ * when it is hidden. So, override this to 'visible' keep this from happening.
+ */
+g#brushGroup {
+  pointer-events: visible !important;
+}
+
+#brushGroup .overlay {
+  pointer-events: visible !important;
+}

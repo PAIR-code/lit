@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-import '@material/mwc-icon-button-toggle';
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {MatrixCell} from '../elements/data_matrix';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, objToDictKey} from '../lib/utils';
+import {doesOutputSpecContain, facetMapToDictKey, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {GetFeatureFunc, GroupService} from '../services/group_service';
 import {ClassificationService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**
@@ -45,28 +45,20 @@ interface CmatOption {
 }
 
 /**
- * Stores information for each confusion matrix cell.
- */
-interface CmatCell {
-  'examples': IndexedInput[];
-  'selected': boolean;
-}
-
-/**
  * A LIT module that renders confusion matrices for classification models.
  */
 @customElement('confusion-matrix-module')
 export class ConfusionMatrixModule extends LitModule {
-  static title = 'Confusion Matrix';
-  static template = (model = '') => {
+  static override title = 'Confusion Matrix';
+  static override template = (model = '') => {
     return html`
       <confusion-matrix-module model=${model}>
       </confusion-matrix-module>`;
   };
-  static numCols = 3;
-  static duplicateForModelComparison = false;
+  static override numCols = 3;
+  static override duplicateForModelComparison = false;
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -76,42 +68,65 @@ export class ConfusionMatrixModule extends LitModule {
 
   @observable verticalColumnLabels = false;
   @observable hideEmptyLabels = false;
-  // These are not observable, because we don't want to trigger a re-render
-  // until the matrix cells are updated asynchronously.
-  selectedRowOption = 0;
-  selectedColOption = 0;
+  @observable updateOnSelection = true;
+  @observable selectedRowOption = 0;
+  @observable selectedColOption = 0;
 
-  // Output state for rendering. Computed asynchronously.
-  @observable matrixCells: CmatCell[][] = [];
+  private lastSelectedRow = -1;
+  private lastSelectedCol = -1;
+
+  // Maximum allowed entries in a row or column feature that can be selected.
+  // TODO(lit-dev): Fix b/199503959 to remove this limitation.
+  private readonly MAX_ENTRIES = 50;
+
+  // Map of matrices for rendering. Computed asynchronously.
+  @observable matrices: {[id: string]: MatrixCell[][]} = {};
 
   constructor() {
     super();
     this.setInitialOptions();
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // Calculate the initial confusion matrix.
     const getCurrentInputData = () => this.appState.currentInputData;
     this.react(getCurrentInputData, currentInputData => {
-      this.calculateMatrix();
+      this.matrices = {};
+      this.calculateMatrix(this.selectedRowOption, this.selectedColOption);
     });
 
     const getMarginSettings = () =>
         this.classificationService.allMarginSettings;
     this.react(getMarginSettings, margins => {
-      this.calculateMatrix();
+      this.updateMatrices();
+    });
+    const getUpdateOnSelection = () => this.updateOnSelection;
+    this.react(getUpdateOnSelection, updateOnSelection => {
+      this.updateMatrices();
     });
 
     const getSelectedInputData = () => this.selectionService.selectedInputData;
-    this.react(getSelectedInputData, selectedInputData => {
-      // Don't reset if we just clicked a cell from this module.
-      if (this.selectionService.lastUser !== this) {
-        this.calculateMatrix();
+    this.react(getSelectedInputData, async selectedInputData => {
+      // If the selection is from another module and this is set to update
+      // on selection changes, then update the matrices.
+      if (this.selectionService.lastUser !== this && this.updateOnSelection) {
+        await this.updateMatrices();
+      }
+      // If the selection is from this module then update all matrices that
+      // weren't the cause of the selection, to reset their selection states
+      // and recalculate their cells if we are updating on selections.
+      if (this.selectionService.lastUser === this) {
+        for (const id of Object.keys(this.matrices)) {
+          const [row, col] = this.getOptionsFromMatrixId(id);
+          if (row !== this.lastSelectedRow || col !== this.lastSelectedCol) {
+            await this.calculateMatrix(row, col);
+          }
+        }
       }
     });
 
     // Update once on init, to avoid duplicate calls.
-    this.calculateMatrix();
+    this.calculateMatrix(this.selectedRowOption, this.selectedColOption);
   }
 
   private setInitialOptions() {
@@ -149,6 +164,9 @@ export class ConfusionMatrixModule extends LitModule {
     const categoricalFeatures = this.groupService.categoricalFeatures;
     for (const labelKey of Object.keys(categoricalFeatures)) {
       const labelList = categoricalFeatures[labelKey];
+      if (labelList.length > this.MAX_ENTRIES) {
+        continue;
+      }
       const getLabelsFn = (d: IndexedInput, i: number) =>
           this.groupService.getFeatureValForInput(d, i, labelKey);
       const labelsRunner = async (dataset: IndexedInput[]) =>
@@ -164,6 +182,9 @@ export class ConfusionMatrixModule extends LitModule {
         const labelKey = outputSpec[predKey].parent;
         // Note: vocab should always be present for MulticlassPreds.
         const labelList = outputSpec[predKey].vocab!;
+        if (labelList.length > this.MAX_ENTRIES) {
+          continue;
+        }
         // Preds for this key.
         const predsRunner = async (dataset: IndexedInput[]) => {
           const preds = await this.classificationService.getClassificationPreds(
@@ -189,12 +210,19 @@ export class ConfusionMatrixModule extends LitModule {
     return options;
   }
 
+  private async updateMatrices() {
+    for (const id of Object.keys(this.matrices)) {
+      const [row, col] = this.getOptionsFromMatrixId(id);
+      await this.calculateMatrix(row, col);
+    }
+  }
+
   /**
    * Set the matrix cell information based on the selected axes and examples.
    */
-  private async calculateMatrix() {
-    const rowOption = this.options[this.selectedRowOption];
-    const colOption = this.options[this.selectedColOption];
+  private async calculateMatrix(row: number, col: number) {
+    const rowOption = this.options[row];
+    const colOption = this.options[col];
 
     const rowLabels = rowOption.labelList;
     const colLabels = colOption.labelList;
@@ -202,7 +230,11 @@ export class ConfusionMatrixModule extends LitModule {
     const rowName = rowOption.name;
     const colName = colOption.name;
 
-    const data = this.selectionService.selectedOrAllInputData;
+    // When updating on selection, use the selected data if a selection exists.
+    // Otherwise use the whole dataset.
+    const data = this.updateOnSelection ?
+        this.selectionService.selectedOrAllInputData :
+        this.appState.currentInputData;
 
     // If there is no data loaded, then do not attempt to create a confusion
     // matrix.
@@ -228,26 +260,74 @@ export class ConfusionMatrixModule extends LitModule {
     const bins = this.groupService.groupExamplesByFeatures(
         data, [rowName, colName], getFeatFunc);
 
-    this.matrixCells = rowLabels.map(rowLabel => {
+    const id = this.getMatrixId(row, col);
+    const matrixCells = rowLabels.map(rowLabel => {
       return colLabels.map(colLabel => {
+        // If the rows and columns are the same feature but the cells are for
+        // different values of that feature, then by definition no examples can
+        // go into that cell. Handle this special case as the facetsDict below
+        // only handles a single value per feature.
+        if (colName === rowName && colLabel !== rowLabel) {
+          return {ids: [], selected: false};
+        }
         // Find the bin corresponding to this row/column value combination.
-        const facetsDict = {[colName]: colLabel, [rowName]: rowLabel};
-        const bin = bins[objToDictKey(facetsDict)];
-        const examples = bin ? bin.data : [];
-        return {examples, selected: false};
+        const facetsDict = {
+          [colName]: {val:colLabel, displayVal: colLabel},
+          [rowName]: {val:rowLabel, displayVal: rowLabel}};
+        const bin = bins[facetMapToDictKey(facetsDict)];
+        const ids = bin ? bin.data.map(example => example.id) : [];
+        return {ids, selected: false};
       });
     });
+    this.matrices[id] = matrixCells;
   }
 
-  render() {
+  private getMatrixId(row: number, col: number) {
+    return `${row}:${col}`;
+  }
+
+  private getOptionsFromMatrixId(id: string) {
+    return id.split(":").map(numStr => +numStr);
+  }
+
+  private canCreateMatrix(row: number, col: number) {
+    // Create create a matrix if the rows and columns are for different fields
+    // and this matrix isn't already created.
+    if (row === col) {
+      return false;
+    }
+    const id = this.getMatrixId(row, col);
+    return this.matrices[id] == null;
+  }
+
+  @computed
+  get matrixCreateTooltip() {
+    if (this.selectedRowOption === this.selectedColOption) {
+      return 'Must set different row and column options';
+    }
+    if (this.matrices[
+          this.getMatrixId(this.selectedRowOption, this.selectedColOption)] !=
+        null) {
+      return 'Matrix for current row and column options already exists';
+    }
+    return '';
+  }
+
+  override render() {
+    const renderMatrices = () => {
+      return Object.keys(this.matrices).map(id => {
+        const [row, col] = this.getOptionsFromMatrixId(id);
+        return this.renderMatrix(row, col, this.matrices[id]);
+      });
+    };
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar multiline-toolbar'>
+        <div class='module-toolbar'>
           ${this.renderControls()}
         </div>
-        <div class='module-results-area'>
-          ${this.renderMatrix()}
+        <div class='module-results-area matrices-holder'>
+          ${renderMatrices()}
         </div>
       </div>
     `;
@@ -257,40 +337,59 @@ export class ConfusionMatrixModule extends LitModule {
   private renderControls() {
     const rowChange = (e: Event) => {
       this.selectedRowOption = +((e.target as HTMLSelectElement).value);
-      this.calculateMatrix();
     };
     const colChange = (e: Event) => {
       this.selectedColOption = +((e.target as HTMLSelectElement).value);
-      this.calculateMatrix();
+    };
+    const toggleUpdateOnSelection = () => {
+      this.updateOnSelection = !this.updateOnSelection;
     };
     const toggleHideCheckbox = () => {
       this.hideEmptyLabels = !this.hideEmptyLabels;
-      this.calculateMatrix();
+    };
+    const onCreateMatrix = () => {
+      this.calculateMatrix(this.selectedRowOption, this.selectedColOption);
     };
     return html`
-      <div class="dropdown-holder">
-        <label class="dropdown-label">Rows</label>
-        <select class="dropdown" @change=${rowChange}>
-          ${this.options.map((option, i) => html`
-            <option ?selected=${this.selectedRowOption === i} value=${i}>
-              ${option.name}
-            </option>`)}
-        </select>
+      <div class="flex">
+        <lit-checkbox
+          label="Update on selection"
+          ?checked=${this.updateOnSelection}
+          @change=${toggleUpdateOnSelection}>
+        </lit-checkbox>
+        <lit-checkbox
+          label="Hide empty labels"
+          ?checked=${this.hideEmptyLabels}
+          @change=${toggleHideCheckbox}>
+        </lit-checkbox>
       </div>
-      <div class="dropdown-holder">
-        <label class="dropdown-label">Columns</label>
-        <select class="dropdown" @change=${colChange}>
-          ${this.options.map((option, i) => html`
-            <option ?selected=${this.selectedColOption === i} value=${i}>
-              ${option.name}
-             </option>`)}
-        </select>
+      <div class="flex">
+        <div>
+          <div class="dropdown-holder">
+            <label class="dropdown-label">Rows</label>
+            <select class="dropdown" @change=${rowChange}>
+              ${this.options.map((option, i) => html`
+                <option ?selected=${this.selectedRowOption === i} value=${i}>
+                  ${option.name}
+                </option>`)}
+            </select>
+          </div>
+          <div class="dropdown-holder">
+            <label class="dropdown-label">Columns</label>
+            <select class="dropdown" @change=${colChange}>
+              ${this.options.map((option, i) => html`
+                <option ?selected=${this.selectedColOption === i} value=${i}>
+                  ${option.name}
+                 </option>`)}
+            </select>
+          </div>
+        </div>
+        <button class='hairline-button' id='create-button' @click=${onCreateMatrix}
+          ?disabled="${!this.canCreateMatrix(this.selectedRowOption, this.selectedColOption)}"
+          title=${this.matrixCreateTooltip}>
+          Create matrix
+        </button>
       </div>
-      <lit-checkbox
-        label="Hide empty labels"
-        ?checked=${this.hideEmptyLabels}
-        @change=${toggleHideCheckbox}>
-      </lit-checkbox>
     `;
   }
 
@@ -312,144 +411,46 @@ export class ConfusionMatrixModule extends LitModule {
     // clang-format on
   }
 
-  private renderMatrix() {
-    const rowOption = this.options[this.selectedRowOption];
-    const colOption = this.options[this.selectedColOption];
+  private renderMatrix(row: number, col: number, cells: MatrixCell[][]) {
+    const rowOption = this.options[row];
+    const colOption = this.options[col];
     const rowLabels = rowOption.labelList;
     const colLabels = colOption.labelList;
+    const rowTitle = rowOption.name;
+    const colTitle = colOption.name;
 
-    if (this.matrixCells.length === 0) {
-      return null;
-    }
-
-    const rowsWithNonZeroCounts = new Set<string>();
-    const colsWithNonZeroCounts = new Set<string>();
-    this.matrixCells.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        if (cell.examples.length > 0) {
-          rowsWithNonZeroCounts.add(rowLabels[rowIndex]);
-          colsWithNonZeroCounts.add(colLabels[colIndex]);
-        }
-      });
-    });
-
-    // Render a clickable column header cell.
-    const renderColHeader = (label: string, colIndex: number) => {
-      const onColClick = () => {
-        const cells = this.matrixCells.map((cells) => cells[colIndex]);
-        const allSelected = cells.every((cell) => cell.selected);
-        cells.forEach((cell) => {
-          cell.selected = !allSelected;
-        });
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels && !colsWithNonZeroCounts.has(label)) {
-        return null;
-      }
-      const classes = classMap({
-        'header-cell': true,
-        'align-bottom': this.verticalColumnLabels,
-        'label-vertical': this.verticalColumnLabels
-      });
-      // clang-format off
-      return html`
-        <th class=${classes} @click=${onColClick}>
-          <div>${label}</div>
-        </th>
-      `;
-      // clang-format on
+    // Add event listener for selection events.
+    const onCellClick = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      const ids: string[] = (event as any).detail.ids;
+      this.lastSelectedRow = row;
+      this.lastSelectedCol = col;
+      this.selectionService.selectIds(ids, this);
     };
-
-    // Render a clickable confusion matrix cell.
-    const renderCell = (rowIndex: number, colIndex: number) => {
-      if (this.matrixCells[rowIndex]?.[colIndex] == null) {
-        return null;
-      }
-      const cellInfo = this.matrixCells[rowIndex][colIndex];
-      const cellClasses = classMap({
-        cell: true,
-        selected: cellInfo.selected,
-        diagonal: colIndex === rowIndex,
-      });
-      const onCellClick = () => {
-        cellInfo.selected = !cellInfo.selected;
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels &&
-          !colsWithNonZeroCounts.has(colLabels[colIndex])) {
-        return null;
-      }
-      return html`
-          <td class=${cellClasses} @click=${onCellClick}>
-            ${cellInfo.examples.length}
-          </td>`;
-    };
-
-    // Render a row of the confusion matrix, starting with the clickable
-    // row header.
-    const renderRow = (rowLabel: string, rowIndex: number) => {
-      const onRowClick = () => {
-        const cells = this.matrixCells[rowIndex];
-        const allSelected = cells.every((cell) => cell.selected);
-        cells.forEach((cell) => {
-          cell.selected = !allSelected;
-        });
-        this.updateSelection();
-      };
-      if (this.hideEmptyLabels && !rowsWithNonZeroCounts.has(rowLabel)) {
-        return null;
-      }
-      // clang-format off
-      return html`
-        <tr>
-          ${rowIndex === 0 ? html`
-              <td class='axis-title label-vertical' rowspan=${rowOption.labelList.length}>
-                <div>${rowOption.name}</div>
-              </td>`
-            : null}
-          <th class="header-cell align-right" @click=${onRowClick}>
-            ${rowLabel}
-          </th>
-          ${colLabels.map(
-              (colLabel, colIndex) => renderCell(rowIndex, colIndex))}
-        </tr>`;
-      // clang-format on
+    // Add event listener for delete events.
+    const onDelete = (event: Event) => {
+      delete this.matrices[this.getMatrixId(row, col)];
     };
 
     // clang-format off
     return html`
-      <table>
-        <tr>
-          <th>${this.renderColumnRotateButton()}</th><td></td>
-          <td class='axis-title' colspan=${colOption.labelList.length}>
-            ${colOption.name}
-          </td>
-        </tr>
-        <tr>
-          <td colspan=2></td>
-          ${colLabels.map(
-              (colLabel, colIndex) => renderColHeader(colLabel, colIndex))}
-        </tr>
-        ${rowLabels.map(
-            (rowLabel, rowIndex) => renderRow(rowLabel, rowIndex))}
-      </table>
-    `;
+        <data-matrix
+          class='matrix'
+          .matrixCells=${cells}
+          ?hideEmptyLabels=${this.hideEmptyLabels}
+          .rowTitle=${rowTitle}
+          .rowLabels=${rowLabels}
+          .colTitle=${colTitle}
+          .colLabels=${colLabels}
+          @matrix-selection=${onCellClick}
+          @delete-matrix=${onDelete}
+        >
+        </data-matrix>
+        `;
     // clang-format on
   }
 
-  private updateSelection() {
-    // Select the IDs of the examples in each selected cell.
-    const flat = this.matrixCells.flat();
-    let ids: string[] = [];
-    flat.forEach((cellInfo) => {
-      if (cellInfo.selected) {
-        ids = ids.concat(cellInfo.examples.map((input) => input.id));
-      }
-    });
-    this.selectionService.selectIds(ids, this);
-  }
-
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

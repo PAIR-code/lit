@@ -21,20 +21,28 @@ import '@material/mwc-icon-button-toggle';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement, html, LitElement, property} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
+import {property} from 'lit/decorators';
+import {customElement} from 'lit/decorators';
+import { html, LitElement} from 'lit';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 
-import {app} from '../core/lit_app';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
+import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
 
-const NUM_COLS = 12;
+/** Minimum width for a widget group. */
+export const MIN_GROUP_WIDTH_PX = 100;
+
+// Width changes below this delta aren't bubbled up, to avoid unnecssary width
+// recalculations.
+const MIN_GROUP_WIDTH_DELTA_PX = 10;
+
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
  * compareDatapoints is enabled) for a single component.
@@ -46,23 +54,23 @@ export class WidgetGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) minimized = false;
   @property({ type: Boolean, reflect: true }) maximized = false;
   @property({ type: Boolean, reflect: true }) dragging = false;
-  @property({ type: Number }) userSetNumCols = 0;
+  @property({ type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
   // Not set as @observable since re-renders were not occuring when changed.
   // Instead using requestUpdate to ensure re-renders on change.
   private syncScrolling = true;
 
-  static get styles() {
+  static override get styles() {
     return [widgetGroupStyles];
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
   }
 
-  render() {
+  override render() {
     return this.renderModules(this.configGroup);
   }
 
@@ -73,14 +81,12 @@ export class WidgetGroup extends LitElement {
     const title = configGroup[0].moduleType.title;
 
     // Maximization.
-    const maxIconName = this.maximized ? 'close_fullscreen' : 'open_in_full';
     const onMaxClick = () => {
       this.maximized = !this.maximized;
       this.setMinimized(false);
     };
 
     // Minimization.
-    const minIconName = this.minimized ? 'south_east' : 'south_west'; //Icons for arrows.
     const onMinClick = () => {
       this.setMinimized(!this.minimized);
       this.maximized = false;
@@ -118,10 +124,10 @@ export class WidgetGroup extends LitElement {
           renderScrollSyncControl()
         }
         <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${minIconName}
+          ${this.minimized ? 'maximize' : 'minimize'}
         </mwc-icon>
         <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
-          ${maxIconName}
+          ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
     // clang-format on
@@ -134,12 +140,14 @@ export class WidgetGroup extends LitElement {
     const modulesInGroup = configGroup.length > 1;
     const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
 
-    this.setWidthValues(configGroup, duplicateAsRow);
+    // Set width properties based on provided width.
+    const host = this.shadowRoot!.host as HTMLElement;
+    const width = `${this.width}px`;
+    host.style.setProperty('--width', width);
+    host.style.setProperty('--min-width', width);
 
     const wrapperClasses = classMap({
       'wrapper': true,
-      'minimized': this.minimized,
-      'maximized': this.maximized,
       'dragging': this.dragging,
     });
 
@@ -156,21 +164,39 @@ export class WidgetGroup extends LitElement {
     } else {
       widgetStyle['height'] = `${100 / configGroup.length}%`;
     }
+    // For clicks on the maximized-module darkened background, undo the
+    // module maximization.
+    const onBackgroundClick = () => {
+      this.maximized = false;
+    };
+    // A listener to stop clicks on a maximized module from causing the
+    // background click listener from firing.
+    const onWrapperClick = (e: Event) => {
+      e.stopPropagation();
+    };
+
+    // Omit subtitle if there's only one in the group.
+    const showSubtitle = configGroup.length > 1;
+
     // clang-format off
     return html`
-      <div class=${wrapperClasses} >
-        ${this.renderHeader(configGroup)}
-        <div class=${holderClasses}>
-          ${configGroup.map(config => this.renderModule(config, widgetStyle))}
-          ${this.renderExpander()}
+      <div class='outside' @click=${onBackgroundClick}>
+        <div class=${wrapperClasses} @click=${onWrapperClick} >
+          ${this.renderHeader(configGroup)}
+          <div class=${holderClasses}>
+            ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
+            ${this.renderExpander()}
+          </div>
         </div>
-      </div>
+       </div>
     `;
     // clang-format on
   }
 
 
-  renderModule(config: RenderConfig, styles: {[key: string]: string}) {
+  renderModule(
+      config: RenderConfig, styles: {[key: string]: string},
+      showSubtitle: boolean) {
     const moduleType = config.moduleType;
     const modelName = config.modelName;
     const selectionServiceIndex = config.selectionServiceIndex;
@@ -197,7 +223,7 @@ export class WidgetGroup extends LitElement {
     return html`
       <lit-widget
         displayTitle=${moduleType.title}
-        subtitle=${subtitle}
+        subtitle=${showSubtitle ? subtitle : ''}
         ?highlight=${selectionServiceIndex === 1}
         @widget-scroll="${widgetScrollCallback}"
         widgetScrollLeft=${this.widgetScrollLeft}
@@ -213,36 +239,22 @@ export class WidgetGroup extends LitElement {
   renderExpander() {
 
     const dragged = (e: DragEvent) => {
-      // The sizes of the divs is a bit complicated because we are both
-      // setting hardcoded widths, but also allowing flexbox to expand
-      // the modules to fill remaining space. So, to have drag-to-resize
-      // be consistent, we know what width the div should be (based on
-      // the user's mouse), then back-calculate what the actual set vw
-      // width set should be so that flexbox will expand the module to
-      // the desired width.
       const holder = this.shadowRoot!.querySelector('.holder')!;
-
-      // Actual div width and left positions (set by flexbox rendering).
       const left = holder.getBoundingClientRect().left;
-      const width = holder.getBoundingClientRect().width;
-      const fullWidth = window.innerWidth;
-
-      // Ratio of flex-set width to our calculated width.
-      const flexRatio = width/(this.userSetNumCols/NUM_COLS * fullWidth);
-
-      // Updated number of columns from the drag.
       const dragWidth = e.clientX - left;
-      if (dragWidth > 0) {
-        const numCols = dragWidth / fullWidth * NUM_COLS;
-        // For perf reasons, only update in incriments of .1 columns.
-        this.userSetNumCols = +Math.max(numCols/flexRatio, 1).toFixed(1);
+
+      if (dragWidth > MIN_GROUP_WIDTH_PX &&
+          Math.abs(dragWidth - this.width) > MIN_GROUP_WIDTH_DELTA_PX) {
+        const event = new CustomEvent('widget-group-drag', {
+          detail: {
+            dragWidth,
+          }
+        });
+        this.dispatchEvent(event);
       }
     };
 
     const dragStarted  = () => {
-      if (!this.userSetNumCols) {
-        this.userSetNumCols = this.configGroup[0].moduleType.numCols;
-      }
       this.dragging = true;
     };
 
@@ -259,30 +271,6 @@ export class WidgetGroup extends LitElement {
     } else {
       return html``;
     }
-
-  }
-
-  /** Returns styling with flex set based off of max columns of all configs. */
-  setWidthValues(configs: RenderConfig[], duplicateAsRow: boolean) {
-    const numColsList = configs.map(config => config.moduleType.numCols);
-    // In row duplication, the flex should be the sum of the child flexes, and
-    // in column duplication, it should be the maximum of the child flexes.
-    let maxFlex = duplicateAsRow ? numColsList.reduce((a, b) => a + b, 0) :
-      Math.max(...numColsList);
-
-    // If the user manually set the number of columns, just use that instead.
-    if (this.userSetNumCols) {
-      maxFlex = this.userSetNumCols;
-    }
-    const width = this.flexGrowToWidth(maxFlex);
-    const host = this.shadowRoot!.host as HTMLElement;
-    host.style.setProperty('--flex', maxFlex.toString());
-    host.style.setProperty('--width', width);
-    host.style.setProperty('--min-width', width);
-  }
-
-  private flexGrowToWidth(flexGrow: number) {
-    return (flexGrow / NUM_COLS * 100).toFixed(3).toString() + '%';
   }
 
   private initMinimized() {
@@ -294,6 +282,12 @@ export class WidgetGroup extends LitElement {
     const config = this.configGroup[0];
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
+    const event = new CustomEvent('widget-group-minimized-changed', {
+      detail: {
+        isMinimized
+      }
+    });
+    this.dispatchEvent(event);
   }
 }
 
@@ -312,11 +306,11 @@ export class LitWidget extends MobxLitElement {
   @property({ type: Number }) widgetScrollTop = 0;
   @property({ type: Number }) widgetScrollLeft = 0;
 
-  static get styles() {
+  static override get styles() {
     return widgetStyles;
   }
 
-  async updated() {
+  override async updated() {
     // Perform this after updateComplete so that the child module has completed
     // its updated() lifecycle method before this logic is executed.
     await this.updateComplete;
@@ -360,7 +354,7 @@ export class LitWidget extends MobxLitElement {
     }
   }
 
-  render() {
+  override render() {
     const contentClasses = classMap({
       content: true,
       loading: this.isLoading,

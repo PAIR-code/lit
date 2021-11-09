@@ -1,0 +1,27 @@
+.module-toolbar {
+  justify-content: space-between;
+}
+
+#toolbar-buttons{
+  display: flex;
+  flex-direction: row;
+}
+
+/* Column settings */
+.column-dropdown-hide {
+  display:none;
+}
+
+/* TODO(b/173445400): align this with rest of UI spec */
+.column-dropdown {
+  top: 32px;
+  right: 4px;
+  padding: 10px;
+  background: white;
+  border: 1px solid gray;
+  position: absolute;
+  visibility: visible;
+  z-index: 1000;
+  max-height: calc(100% - 48px);
+  overflow: auto;
+}

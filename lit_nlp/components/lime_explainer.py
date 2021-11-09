@@ -34,16 +34,12 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+TARGET_HEAD_KEY = 'Output field to explain'
 CLASS_KEY = 'Class index to explain'
 KERNEL_WIDTH_KEY = 'Kernel width'
 MASK_KEY = 'Mask'
 NUM_SAMPLES_KEY = 'Number of samples'
 SEED_KEY = 'Seed'
-CLASS_DEFAULT = 1
-KERNEL_WIDTH_DEFAULT = 256
-MASK_DEFAULT = '[MASK]'
-NUM_SAMPLES_DEFAULT = 256
-SEED_DEFAULT = None
 
 
 def new_example(original_example: JsonDict, field: str, new_value: Any):
@@ -84,14 +80,16 @@ class LIME(lit_components.Interpreter):
       config: Optional[JsonDict] = None,
   ) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
+    config_defaults = {k: v.default for k, v in self.config_spec().items()}
+    config = dict(config_defaults, **(config or {}))  # update and return
 
-    class_to_explain = int(config[CLASS_KEY]) if config else CLASS_DEFAULT
-    kernel_width = int(
-        config[KERNEL_WIDTH_KEY]) if config else KERNEL_WIDTH_DEFAULT
-    mask_string = config[MASK_KEY] if config else MASK_DEFAULT
-    num_samples = int(
-        config[NUM_SAMPLES_KEY]) if config else NUM_SAMPLES_DEFAULT
-    seed = config[SEED_KEY] if config else SEED_DEFAULT
+    class_to_explain = int(config[CLASS_KEY])
+    kernel_width = int(config[KERNEL_WIDTH_KEY])
+    num_samples = int(config[NUM_SAMPLES_KEY])
+    mask_string = (config[MASK_KEY])
+    # pylint: disable=g-explicit-bool-comparison
+    seed = int(config[SEED_KEY]) if config[SEED_KEY] != '' else None
+    # pylint: enable=g-explicit-bool-comparison
 
     # Find keys of input (text) segments to explain.
     # Search in the input spec, since it's only useful to look at ones that are
@@ -108,8 +106,8 @@ class LIME(lit_components.Interpreter):
     if not pred_keys:
       logging.warning('LIME did not find any supported output fields.')
       return None
+    pred_key = config[TARGET_HEAD_KEY] or pred_keys[0]
 
-    pred_key = pred_keys[0]  # TODO(lit-dev): configure which prob field to use.
     all_results = []
 
     # Explain each input.
@@ -118,6 +116,14 @@ class LIME(lit_components.Interpreter):
       result = {}
       predict_fn = functools.partial(
           _predict_fn, model=model, original_example=input_, pred_key=pred_key)
+
+      # If class_to_explain is -1, then explain the argmax class
+      if (isinstance(model.output_spec()[pred_key], types.MulticlassPreds) and
+          class_to_explain == -1):
+        pred = list(model.predict([input_]))[0]
+        class_to_explain_for_input = np.argmax(pred[pred_key])
+      else:
+        class_to_explain_for_input = class_to_explain
 
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
@@ -132,7 +138,7 @@ class LIME(lit_components.Interpreter):
             sentence=input_string,
             predict_fn=functools.partial(predict_fn, text_key=text_key),
             # `class_to_explain` is ignored when predict_fn output is a scalar.
-            class_to_explain=class_to_explain,  # Index of the class to explain.
+            class_to_explain=class_to_explain_for_input,
             num_samples=num_samples,
             tokenizer=str.split,
             mask_token=mask_string,
@@ -144,19 +150,21 @@ class LIME(lit_components.Interpreter):
         scores = explanation.feature_importance
         # TODO(lit-dev): Move score normalization to the UI.
         scores = citrus_util.normalize_scores(scores)
-        result[text_key] = dtypes.SalienceMap(input_string.split(), scores)
+        result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
 
       all_results.append(result)
 
     return all_results
 
   def config_spec(self) -> types.Spec:
+    matcher_types = ['MulticlassPreds', 'RegressionScore']
     return {
-        CLASS_KEY: types.TextSegment(default=str(CLASS_DEFAULT)),
-        KERNEL_WIDTH_KEY: types.TextSegment(default=str(KERNEL_WIDTH_DEFAULT)),
-        MASK_KEY: types.TextSegment(default=MASK_DEFAULT),
-        NUM_SAMPLES_KEY: types.TextSegment(default=str(NUM_SAMPLES_DEFAULT)),
-        SEED_KEY: types.TextSegment(default=SEED_DEFAULT),
+        TARGET_HEAD_KEY: types.FieldMatcher(spec='output', types=matcher_types),
+        CLASS_KEY: types.TextSegment(default='-1'),
+        MASK_KEY: types.TextSegment(default='[MASK]'),
+        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
+        NUM_SAMPLES_KEY: types.TextSegment(default='256'),
+        SEED_KEY: types.TextSegment(default=''),
     }
 
   def is_compatible(self, model: lit_model.Model):
@@ -166,4 +174,4 @@ class LIME(lit_components.Interpreter):
     return len(text_keys) and len(pred_keys)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.SalienceMap(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=False, signed=True)}

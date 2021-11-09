@@ -67,6 +67,8 @@ import transformers  # for path caching
 
 FLAGS = flags.FLAGS
 
+FLAGS.set_default("development_demo", True)
+
 flags.DEFINE_bool("do_train", False,
                   "If true, train a new model and save to FLAGS.model_path.")
 flags.DEFINE_bool(

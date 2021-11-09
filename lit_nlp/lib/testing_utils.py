@@ -24,6 +24,7 @@ from typing import Iterable, Iterator, List
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 import numpy as np
+import numpy.testing as npt
 
 JsonDict = lit_types.JsonDict
 
@@ -117,18 +118,22 @@ class TestModelClassification(lit_model.Model):
             'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])}
 
   def output_spec(self):
-    return {'probas': lit_types.MulticlassPreds(
-        parent='label',
-        vocab=['0', '1'],
-        null_idx=0),
-            'input_embs': lit_types.TokenEmbeddings(align='tokens'),
-            'input_embs_grad': lit_types.TokenGradients(align='tokens',
-                                                        grad_for='input_embs',
-                                                        grad_target='grad_class'
-                                                        ),
-            'tokens': lit_types.Tokens(),
-            'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])
-            }
+    return {
+        'probas':
+            lit_types.MulticlassPreds(
+                parent='label', vocab=['0', '1'], null_idx=0),
+        'input_embs':
+            lit_types.TokenEmbeddings(align='tokens'),
+        'input_embs_grad':
+            lit_types.TokenGradients(
+                align='tokens',
+                grad_for='input_embs',
+                grad_target_field_key='grad_class'),
+        'tokens':
+            lit_types.Tokens(),
+        'grad_class':
+            lit_types.CategoryLabel(vocab=['0', '1'])
+    }
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     output = {'probas': np.array([0.2, 0.8]),
@@ -177,9 +182,19 @@ def fake_projection_input(n, num_dims):
   return [{'x': rng.rand(num_dims)} for i in range(n)]
 
 
-def assert_dicts_almost_equal(testcase, result, actual, places=3):
-  """Checks if provided dicts are almost equal."""
-  if set(result.keys()) != set(actual.keys()):
-    testcase.fail('results and actual have different keys')
-  for key in result:
-    testcase.assertAlmostEqual(result[key], actual[key], places=places)
+def assert_deep_almost_equal(testcase, result, actual, places=4):
+  """Checks if provided inputs are almost equal, recurses on dicts values."""
+  if isinstance(result, (int, float)):
+    testcase.assertAlmostEqual(result, actual, places=places)
+  elif isinstance(result, (list)):
+    if all(isinstance(n, (int, float)) for n in result):
+      rtol = 10 ** (-1 * places)
+      npt.assert_allclose(result, actual, rtol=rtol)
+    elif all(isinstance(n, dict) for n in result):
+      for i in range(len(result)):
+        assert_deep_almost_equal(testcase, result[i], actual[i])
+  elif isinstance(result, dict):
+    if set(result.keys()) != set(actual.keys()):
+      testcase.fail('results and actual have different keys')
+    for key in result:
+      assert_deep_almost_equal(testcase, result[key], actual[key])

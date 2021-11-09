@@ -16,17 +16,19 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html} from 'lit-element';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {TableData} from '../elements/table';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {RegressionService} from '../services/services';
 
 import {styles} from './regression_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface RegressionResult {
   [key: string]: number;
@@ -37,15 +39,15 @@ interface RegressionResult {
  */
 @customElement('regression-module')
 export class RegressionModule extends LitModule {
-  static title = 'Regression Results';
-  static duplicateForExampleComparison = true;
-  static numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Regression Results';
+  static override duplicateForExampleComparison = true;
+  static override numCols = 3;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<regression-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></regression-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -53,7 +55,7 @@ export class RegressionModule extends LitModule {
 
   @observable private result: RegressionResult|null = null;
 
-  firstUpdated() {
+  override firstUpdated() {
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(
@@ -89,7 +91,7 @@ export class RegressionModule extends LitModule {
     this.result = results[0];
   }
 
-  render() {
+  override render() {
     if (this.result == null) {
       return null;
     }
@@ -101,7 +103,7 @@ export class RegressionModule extends LitModule {
     const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
 
 
-    const rows: string[][] = [];
+    const rows: TableData[] = [];
     let hasParent = false;
     // Per output, display score, and parent field and error if available.
     for (const scoreField of scoreFields) {
@@ -123,26 +125,28 @@ export class RegressionModule extends LitModule {
           errorScore = error.toFixed(4);
         }
       }
-      rows.push([scoreField, parentScore, score, errorScore]);
+      rows.push({
+        'Field': scoreField,
+        'Ground truth': parentScore,
+        'Score': score,
+        'Error': errorScore
+      });
     }
 
     // If no fields have ground truth scores to compare then don't display the
     // ground truth-related columns.
-    const columnNames = ["Field", "Ground truth", "Score", "Error"];
-    const columnVisibility = new Map<string, boolean>();
-    columnNames.forEach((name) => {
-      columnVisibility.set(
-          name, hasParent || (name !== 'Ground truth' && name !== 'Error'));
-    });
+    const columnNames = hasParent ?
+        ['Field', 'Ground truth', 'Score', 'Error'] :
+        ['Field', 'Score'];
 
     return html`
       <lit-data-table
-        .columnVisibility=${columnVisibility}
-        .data=${rows} selectionDisabled
+        .columnNames=${columnNames}
+        .data=${rows}
       ></lit-data-table>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'RegressionScore');
   }
 }

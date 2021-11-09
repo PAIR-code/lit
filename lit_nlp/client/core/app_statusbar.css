@@ -1,0 +1,163 @@
+:host {
+  height: 24px;
+}
+
+#at-bottom {
+  bottom: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.text-line {
+  display: flex;
+  justify-content: space-between;
+  height: 20px;
+  padding-top:2px
+}
+
+.toolbar {
+  border-top: 1px solid #78d9ec;
+  background-color: #e4f7fb;
+  width: 100vw;
+  color: #007b83;
+  font-size: 10pt;
+}
+
+.status-info {
+  display: flex;
+  padding-left: 10px;
+}
+
+.status-info > * {
+  margin: 0 2px;
+}
+
+.error {
+  color: red;
+  cursor: pointer;
+}
+
+.icon-button.error {
+  color: red;
+}
+
+mwc-icon.icon-button {
+  height: 18px;
+  width: 18px;
+  min-width: 18px;
+  --mdc-icon-size: 18px;
+  cursor: pointer;
+  color: #007b83;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+.emoji {
+  height: 10pt;
+  margin-bottom: -5px;
+  padding: 2pt 0;
+}
+
+.signature {
+  font-family: 'Google Sans', sans;
+  padding-right: 10px;
+  display: flex;
+}
+
+#feedback {
+  margin-left: 8px;
+}
+
+.no-progress-line {
+  height: 2px;
+  width: 100%;
+  margin: 0;
+  background-color: #e4f7fb;
+}
+
+.progress-line, .progress-line:before {
+  height: 2px;
+  width: 100%;
+  margin: 0;
+}
+
+.progress-line {
+  background-color: #2f8c9b;
+  display: -webkit-flex;
+  display: flex;
+}
+
+.progress-line:before {
+  background-color: #e4f7fb;
+  content: '';
+  -webkit-animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.modal-container {
+  width: 100%;
+  height: 100%;
+  top: 0;
+  z-index: 4;
+  position: fixed;
+}
+
+.modal {
+  position: absolute;
+  top: 12vh;
+  left: 10vw;
+  height: 80vh;
+  width: 80vw;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.model-overlay {
+  background: rgba(4, 29, 51, .47);
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  transition: opacity 250ms;
+}
+
+.close-button-holder {
+  display: flex;
+  justify-content: flex-end;
+  margin: 10px;
+}
+
+.error-message-header {
+  font-family: 'Google Sans', sans;
+  font-size: 1.5rem;
+  margin: 16px 8px;
+}
+
+.error-message-holder {
+  margin: 0 8px;
+  height: 100%;
+  overflow: auto;
+}
+
+.error-message {
+  font-family: monospace;
+  white-space: pre;
+}
+
+@-webkit-keyframes running-progress {
+  0% { margin-left: 0; margin-right: 100%; }
+  50% { margin-left: 25%; margin-right: 0%; }
+  100% { margin-left: 100%; margin-right: 0; }
+}
+
+@keyframes running-progress {
+  0% { margin-left: 0; margin-right: 100%; }
+  50% { margin-left: 25%; margin-right: 0%; }
+  100% { margin-left: 100%; margin-right: 0; }
+}

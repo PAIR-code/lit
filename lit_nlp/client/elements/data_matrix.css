@@ -1,0 +1,80 @@
+.cell {
+  font-family: 'Roboto Mono', monospace;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  border: 2px solid transparent;
+}
+
+.cell-container {
+  display: flex;
+  min-width: 90px;
+}
+
+.percentage {
+  width: 50%;
+  min-width: 50%;
+  max-width: 50%;
+  text-align: end;
+  padding-right: 6px;
+}
+
+.val {
+  width: 50%;
+  text-align: end;
+}
+
+.header-cell {
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.align-bottom {
+  vertical-align: bottom;
+}
+
+.align-right {
+  text-align: end;
+}
+
+.total-title-cell {
+  padding: 2px 4px;
+  color: #5f6368;
+}
+
+.total-cell {
+  padding: 2px 4px;
+  font-family: 'Roboto Mono', monospace;
+  color: #5f6368;
+}
+
+.axis-title {
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Need to style the div inside a th/td to set width and height correctly. */
+.label-vertical > div {
+  transform: rotate(180deg);
+  text-align: center;
+  writing-mode: vertical-lr;
+}
+
+.icon-button {
+  height: 24px;
+  width: 24px;
+  min-width: 24px;
+  --mdc-icon-size: 24px;
+  --mdc-icon-button-size: 24px;
+  color: rgb(95, 99, 104);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  opacity: .7;
+}
+
+.delete-cell {
+  display: flex;
+  justify-content: flex-end
+}

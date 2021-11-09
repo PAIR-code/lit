@@ -38,7 +38,9 @@ DEFAULT_NUM_SAMPLES = 3000
 DEFAULT_SOLVER = 'cholesky'
 
 
-def sample_masks(num_samples: int, num_features: int, seed: int = None):
+def sample_masks(num_samples: int,
+                 num_features: int,
+                 seed: Optional[int] = None):
   """Samples LIME masks with at least 1 position disabled per sampled mask.
 
   The number of disabled features is sampled from a uniform distribution.

@@ -16,19 +16,21 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement, html, TemplateResult} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import {html} from 'lit';
 import {observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {TableData} from '../elements/table';
+import '../elements/score_bar';
 import {formatBoolean, IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {ClassificationService} from '../services/services';
 
 import {styles} from './classification_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface DisplayInfo {
   label: string;
@@ -41,15 +43,15 @@ interface DisplayInfo {
 /** Model output module class. */
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
-  static title = 'Classification Results';
-  static duplicateForExampleComparison = true;
-  static numCols = 3;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Classification Results';
+  static override duplicateForExampleComparison = true;
+  static override numCols = 3;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<classification-module model=${model} selectionServiceIndex=${
         selectionServiceIndex}></classification-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
@@ -58,7 +60,7 @@ export class ClassificationModule extends LitModule {
 
   @observable private labeledPredictions: {[name: string]: DisplayInfo[]} = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getSelectedInput = () =>
         this.selectionService.primarySelectedInputData;
     this.react(getSelectedInput, selectedInput => {
@@ -128,64 +130,45 @@ export class ClassificationModule extends LitModule {
     return labeledPredictions;
   }
 
-  render() {
+  override render() {
     const keys = Object.keys(this.labeledPredictions);
     return html`
         ${keys.map((key) => this.renderRow(key, this.labeledPredictions[key]))}
     `;
   }
 
-  private renderBar(fieldName: string, pred: DisplayInfo): TemplateResult {
-    // TODO(b/181692911): Style through CSS when data table supports it.
-    const numLabels =
-        this.classificationService.getLabelNames(this.model, fieldName).length;
-    const pad = 0.75;
-    const margin = 0.35;
-    const barStyle: {[name: string]: string} = {};
-    const scale = 100 - 2 * (pad + margin) * numLabels;
-    barStyle['width'] = `${scale * pred['value']}%`;
-    barStyle['background-color'] = '#07a3ba';
-    barStyle['padding-left'] = `${pad}%`;
-    barStyle['padding-right'] = `${pad}%`;
-    barStyle['margin-left'] = `${margin}%`;
-    barStyle['margin-right'] = `${margin}%`;
-    const holderStyle: {[name: string]: string} = {};
-    holderStyle['width'] = '200px';
-    holderStyle['height'] = '20px';
-    holderStyle['display'] = 'flex';
-    holderStyle['position'] = 'relative';
-    return html`
-        <div style='${styleMap(holderStyle)}'>
-          <div style='${styleMap(barStyle)}'></div>
-        </div>`;
-  }
-
   private renderRow(fieldName: string, prediction: DisplayInfo[]) {
-    const rows: Array<Array<TemplateResult|string>> = prediction.map((pred) => {
+    const rows: TableData[] = prediction.map((pred) => {
       const row = [
-        pred['label'],
-        formatBoolean(pred['isGroundTruth']!),
-        formatBoolean(pred['isPredicted']),
-        pred['value'].toFixed(3),
-        this.renderBar(fieldName, pred)
+        pred.label,
+        formatBoolean(pred.isGroundTruth!),
+        formatBoolean(pred.isPredicted),
+        {
+          template: html`
+            <score-bar score=${pred.value} maxScore=${1}></score-bar>`,
+          value: pred.value
+        }
       ];
       return row;
     });
-    const columnNames = ["Class", "Label", "Predicted", "Score", "Score Bar"];
-    const columnVisibility = new Map<string, boolean>();
-    columnNames.forEach((name) => {columnVisibility.set(name, true);});
+    const columnNames = ["Class", "Label", "Predicted", "Score"];
+
+    const autosort = this.appState
+      .currentModelSpecs[this.model].spec.output['preds']?.autosort;
 
     return html`
         <div class='classification-row-holder'>
-          <div class='classification-row-title'>${fieldName}</div>
+          <div class='field-name row-title'>${fieldName}</div>
           <lit-data-table
-            .columnVisibility=${columnVisibility}
-            .data=${rows} selectionDisabled
+            .columnNames=${columnNames}
+            .data=${rows}
+            .sortName=${autosort ? 'Score' : undefined}
+            .sortAscending=${!autosort}
           ></lit-data-table>
         </div>`;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 }

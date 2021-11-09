@@ -34,9 +34,12 @@ type ReactionInputFn<T> = (r: IReactionPublic) => T;
  * TODO(lit-dev): set reactions to be activated in connectedCallback() ?
  */
 export abstract class ReactiveElement extends MobxLitElement {
+  // TODO(b/204677206): remove this once we clean up property declarations.
+  __allowInstanceProperties = true;  // tslint:disable-line
+
   private readonly reactionDisposers: IReactionDisposer[] = [];
 
-  disconnectedCallback() {
+  override disconnectedCallback() {
     super.disconnectedCallback();
     this.reactionDisposers.forEach(disposer => {
       disposer();

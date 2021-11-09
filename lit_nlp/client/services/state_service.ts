@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {IndexedInput, LitComponentLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -54,9 +54,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled: boolean = false;
   @observable layoutName!: string;
-  @observable layouts!: LitComponentLayouts;
+  @observable layouts: {[name: string]: LitCanonicalLayout} = {};
   @computed
-  get layout(): LitComponentLayout {
+  get layout(): LitCanonicalLayout {
     return this.layouts[this.layoutName];
   }
 
@@ -226,18 +226,18 @@ export class AppState extends LitService implements StateObservedByUrlService {
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.type!);
+    return findSpecKeys(spec, matcher.types!);
   }
 
   //=================================== Generation logic
   /**
-   * Index one or more bare datapoints.
+   * Annotate one or more bare datapoints.
    * @param data input examples; ids will be overwritten.
    */
-  async indexDatapoints(data: IndexedInput[]): Promise<IndexedInput[]> {
+  async annotateNewData(data: IndexedInput[]): Promise<IndexedInput[]> {
     // Legacy: this exists as a pass-through so lit_app.ts and url_service.ts
     // don't need to depend on the ApiService directly.
-    return this.apiService.getDatapointIds(data);
+    return this.apiService.annotateNewData(data, this.currentDataset);
   }
 
 
@@ -265,6 +265,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
 
   //=================================== Initialization logic
+  addLayouts(layouts: LitComponentLayouts) {
+    for (const name of Object.keys(layouts)) {
+      this.layouts[name] = canonicalizeLayout(layouts[name]);
+    }
+  }
+
   @action
   async initialize() {
     const {urlConfiguration} = this;
@@ -274,7 +280,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     console.log('[LIT - metadata]', toJS(info));
     this.metadata = info;
     // Add any custom layouts that were specified in Python.
-    Object.assign(this.layouts, this.metadata.layouts);
+    this.addLayouts(this.metadata.layouts);
     this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);

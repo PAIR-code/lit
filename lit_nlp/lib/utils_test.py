@@ -187,6 +187,37 @@ class UtilsTest(absltest.TestCase):
     }
     self.assertDictEqual(expected, utils.remap_dict(d, remap_dict))
 
+  def test_find_all_combinations(self):
+    l = [1, 2, 3, 4]
+    combinations = utils.find_all_combinations(
+        l, min_element_count=2, max_element_count=3)
+    expected = [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4], [1, 2, 3],
+                [1, 2, 4], [1, 3, 4], [2, 3, 4]]
+    self.assertListEqual(combinations, expected)
+
+  def test_find_all_combinations_max_is_greater_than_len(self):
+    l = [1, 2, 3, 4]
+    combinations = utils.find_all_combinations(
+        l, min_element_count=2, max_element_count=10)
+    expected = [[1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4], [1, 2, 3],
+                [1, 2, 4], [1, 3, 4], [2, 3, 4], [1, 2, 3, 4]]
+    self.assertListEqual(combinations, expected)
+
+  def test_find_all_combinations_min_is_greater_than_max(self):
+    l = [1, 2, 3, 4]
+    combinations = utils.find_all_combinations(
+        l, min_element_count=3, max_element_count=2)
+    expected = []
+    self.assertListEqual(combinations, expected)
+
+  def test_find_all_combinations_min_is_negative(self):
+    l = [1, 2, 3, 4]
+    combinations = utils.find_all_combinations(
+        l, min_element_count=-1, max_element_count=2)
+    expected = [[1], [2], [3], [4], [1, 2], [1, 3], [1, 4], [2, 3], [2, 4],
+                [3, 4]]
+    self.assertListEqual(combinations, expected)
+
 
 if __name__ == "__main__":
   absltest.main()

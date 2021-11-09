@@ -17,17 +17,16 @@
 
 import 'jasmine';
 
-import {LITApp} from '../core/lit_app';
+import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
 
-import {ModulesService} from './modules_service';
 import {SettingsService} from './settings_service';
 import {AppState} from './state_service';
 
 
 describe('isDatasetValid test', () => {
   // Set up.
-  const app = new LITApp();
+  const app = new LitApp();
   app.getService(AppState).metadata = mockMetadata;
   const settingsService = app.getService(SettingsService);
 
@@ -49,7 +48,7 @@ describe('isDatasetValid test', () => {
 describe('updateSettings test', () => {
   it('sets correct settings', async () => {
     // Set up services
-    const app = new LITApp();
+    const app = new LitApp();
     const appState = app.getService(AppState);
     // Use mock data.
     appState.metadata = mockMetadata;

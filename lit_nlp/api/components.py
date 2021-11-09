@@ -157,3 +157,38 @@ class Generator(Interpreter):
                config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Return a list of generated examples."""
     return
+
+
+class Annotator(metaclass=abc.ABCMeta):
+  """Base class for LIT annotator components.
+
+  Annotators are for adding extra fields to datapoints, using a model to
+  annotate datapoints given their feature values.
+  """
+
+  def __init__(self, name: str, annotator_model: lit_model.Model):
+    """Annotator constructor.
+
+    Args:
+      name: prinable name of the annotator, for use in new dataset fields.
+      annotator_model: model to use to create dataset annotations.
+    """
+    self._name = name
+    self._annotator_model = annotator_model
+
+  @abc.abstractmethod
+  def annotate(self, inputs: List[JsonDict],
+               dataset: lit_dataset.Dataset,
+               dataset_spec_to_annotate: Optional[types.Spec] = None):
+    """Annotate the provided inputs.
+
+    Args:
+      inputs: sequence of inputs, modified in-place.
+      dataset: dataset which the examples belong to.
+      dataset_spec_to_annotate: spec to add new annotated fields to, modified
+        in-place. If none provided, then no spec is updated.
+
+    Returns:
+      Updated spec for the dataset, given the new annotations.
+    """
+    pass

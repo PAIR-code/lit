@@ -1,37 +1,70 @@
-.generator-module-wrapper {
-  height: 100%;
+.generator-module-content {
   display: flex;
   flex-direction: row;
+  overflow: hidden;
 }
 
-#generators {
+.generators-panel {
+  flex-grow: 0;
+  flex-shrink: 0;
+  overflow-y: auto;
   width: 400px;
-  margin-right: 15px;
 }
 
-#generators .label {
+.results-holder {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  overflow-y: auto;
+  margin-left: 4px;
+}
+
+.interstitial {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'Google Sans', sans;
+}
+
+.interstitial > * {
+  flex-grow: 0;
+  flex-shrink: 0;
+  max-width: 300px;
+}
+
+.interstitial > img {
+  flex-shrink: 1;
+  max-height: 130px;
+}
+
+.interstitial p {
+  color: #5f6368;
+}
+
+.interstitial strong {
+  display: block;
+  font-size: 1.5em;
+  margin-bottom: 4px;
+}
+
+.generators-panel .label {
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 10px;
 }
 
-#generators.visible {
+.generators-panel.visible {
   display: block;
-}
-
-#generated-holder {
-  height: 100%;
-  flex: 2;
 }
 
 .generator-control {
   display: flex;
   flex-direction: row;
-}
-
-.entries {
-  max-height: calc(100% - 20px); /** Offset the height of the toolbar**/
-  overflow-y: scroll;
 }
 
 .input-label {
@@ -43,43 +76,38 @@
   width: 95%;
 }
 
-.row {
-  display: flex;
+.overall-controls {
   align-items: center;
-}
-
-.row:hover {
-    background: #f8f9fa;
-}
-
-.entry {
-  margin: 5px 10px;
-}
-
-.entry.text{
-  flex: 1;
-}
-
-.entry > div {
-  width: 100%;
-  max-height: 150px;
-  overflow: auto;
-}
-
-.add-button {
-  min-width: 65px;
-}
-
-.counterfactuals-count {
-  padding-bottom: 5px;
-}
-
-#header{
-  height: 35px;
   display: flex;
-  align-items: center;
-  text-align: center;
-  background: rgb(245, 252, 252);
-  border-bottom: 1px solid rgb(218, 220, 224);
+  flex-direction: row;
+  justify-content: flex-end;
 }
 
+.slice-name-input {
+  margin-left: 4px;
+  width: 250px;
+}
+
+.select-all {
+  color: #1a73e8;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* TODO(lit-dev): move to shared styles? */
+mwc-icon.icon-button {
+  height: 20px;
+  width: 20px;
+  min-width: 20px;
+  --mdc-icon-size: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.icon-button:active {
+  opacity: .4;
+}

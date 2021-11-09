@@ -100,7 +100,8 @@
 <h1>Run the included demos</h1>
 <p>LIT ships with a number of demos that can easily be run after installation.</p>
 <p>LIT can be started on the command line and then viewed in a web browser.</p>
-<p>Alternatively, it can be run directly in a Colaboratory or Jupyter notebook and viewed in an output cell of the notebook.</p>
+<p>Alternatively, it can be run directly in a Colaboratory or Jupyter notebook and
+viewed in an output cell of the notebook.</p>
 <h2>Quick-start: Classification and regression</h2>
 <p>To explore classification and regression models tasks from the popular <a href="https://gluebenchmark.com/">GLUE benchmark</a>:</p>
 <pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.glue_demo --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
@@ -118,12 +119,14 @@ Navigate to http://localhost:5432 for the UI.</p>
 <h2>More examples</h2>
 <p>The <a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples">examples</a> directory contains additional examples to explore, all of which can be run similarly to those above.</p>
 <h2>Notebook usage</h2>
-<p>A simple colab demo can be found <a href="https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb">here</a>. Just run all the cells to see LIT on an example classification model right in the notebook.</p>
+<p>A simple colab demo can be found <a href="https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb">here</a>.
+Just run all the cells to see LIT on an example classification model right in
+the notebook.</p>
 <div class="spacer" style="height:50px;"></div>
 <p><a name="custom"></a></p>
 <h1>Use LIT on your own models and data</h1>
 <p>This is a brief overview of how to run LIT with your own models and datasets.
-For more details, see the documentation in the <a href="https://github.com/pair-code/lit">code repository</a>.</p>
+For more details, see the <a href="https://github.com/PAIR-code/lit/wiki">documentation</a>.</p>
 <p>To run LIT with your own models and data, you can create a custom <code>demo.py</code>
 script that passes these to the LIT server. For example:</p>
 <pre class="language-py"><code class="language-py"><span class="token keyword">def</span> <span class="token function">main</span><span class="token punctuation">(</span>_<span class="token punctuation">)</span><span class="token punctuation">:</span><br>  <span class="token comment"># MulitiNLIData implements the Dataset API</span><br>  datasets <span class="token operator">=</span> <span class="token punctuation">{</span><br>      <span class="token string">'mnli_matched'</span><span class="token punctuation">:</span> MultiNLIData<span class="token punctuation">(</span><span class="token string">'/path/to/dev_matched.tsv'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'mnli_mismatched'</span><span class="token punctuation">:</span> MultiNLIData<span class="token punctuation">(</span><span class="token string">'/path/to/dev_mismatched.tsv'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>  <span class="token punctuation">}</span><br><br>  <span class="token comment"># NLIModel implements the Model API</span><br>  models <span class="token operator">=</span> <span class="token punctuation">{</span><br>      <span class="token string">'model_foo'</span><span class="token punctuation">:</span> NLIModel<span class="token punctuation">(</span><span class="token string">'/path/to/model/foo/files'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>      <span class="token string">'model_bar'</span><span class="token punctuation">:</span> NLIModel<span class="token punctuation">(</span><span class="token string">'/path/to/model/bar/files'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>  <span class="token punctuation">}</span><br><br>  lit_demo <span class="token operator">=</span> lit_nlp<span class="token punctuation">.</span>dev_server<span class="token punctuation">.</span>Server<span class="token punctuation">(</span>models<span class="token punctuation">,</span> datasets<span class="token punctuation">,</span> port<span class="token operator">=</span><span class="token number">4321</span><span class="token punctuation">)</span><br>  <span class="token keyword">return</span> lit_demo<span class="token punctuation">.</span>serve<span class="token punctuation">(</span><span class="token punctuation">)</span><br><br><span class="token keyword">if</span> __name__ <span class="token operator">==</span> <span class="token string">'__main__'</span><span class="token punctuation">:</span><br>  main<span class="token punctuation">(</span><span class="token punctuation">)</span></code></pre>
@@ -139,7 +142,7 @@ for a self-contained Keras/TF2 model for sentiment analysis.</li>
 <li><a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py"><code>simple_pytorch_demo.py</code></a>
 for a self-contained PyTorch model for sentiment analysis.</li>
 </ul>
-<p>You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on <a href="https://github.com/PAIR-code/lit/blob/main/documentation/development.md#custom-client--modules">custom clients</a> for more.</p>
+<p>You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on <a href="https://github.com/PAIR-code/lit/wiki/frontend_development.md#custom-client--modules">custom clients</a> for more.</p>
 <p><a name="datasets"></a></p>
 <h2>Datasets</h2>
 <p>Datasets (<a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py"><code>Dataset</code></a>) are

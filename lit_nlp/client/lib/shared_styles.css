@@ -1,0 +1,486 @@
+/**
+ * Shared styles for all modules.
+ */
+:host {
+  /* LIT Brand Palettes */
+  --lit-cyea-50:  #EDFFFA;
+  --lit-cyea-100: #CDF2FA;
+  --lit-cyea-200: #AFE6DE;
+  --lit-cyea-300: #7BCCCC;
+  --lit-cyea-400: #52A6B3;
+  --lit-cyea-500: #348199;
+  --lit-cyea-600: #1F6180;
+  --lit-cyea-700: #114566;
+  --lit-cyea-800: #092F4D;
+  --lit-cyea-900: #041D33;
+
+  --lit-mage-50:  #FFF5F7;
+  --lit-mage-100: #FEEAEF;
+  --lit-mage-200: #FED5E0;
+  --lit-mage-300: #F9A9C0;
+  --lit-mage-400: #EF7CA1;
+  --lit-mage-500: #E25287;
+  --lit-mage-600: #CE2F75;
+  --lit-mage-700: #B7166A;
+  --lit-mage-800: #800060;
+  --lit-mage-900: #470046;
+
+  --lit-bric-50:  #FDF8EA;
+  --lit-bric-100: #F9F1DC;
+  --lit-bric-200: #EFD9AB;
+  --lit-bric-300: #E4BC78;
+  --lit-bric-400: #D59441;
+  --lit-bric-500: #C26412;
+  --lit-bric-600: #A93D00;
+  --lit-bric-700: #8B2100;
+  --lit-bric-800: #6A0C00;
+  --lit-bric-900: #470000;
+
+  --lit-neutral-50:  #F8F9FA;
+  --lit-neutral-100: #F1F3F4;
+  --lit-neutral-200: #E8EAED;
+  --lit-neutral-300: #DADCE0;
+  --lit-neutral-400: #BDC1C6;
+  --lit-neutral-500: #9AA0A6;
+  --lit-neutral-600: #80868B;
+  --lit-neutral-700: #5F6368;
+  --lit-neutral-800: #3C4043;
+  --lit-neutral-900: #202124;
+
+  /* LIT Major Tonal Palettes */
+  --lit-majtonal-p-50:  #EEFBF8;
+  --lit-majtonal-p-100: #D8F2ED;
+  --lit-majtonal-p-200: #C0E7E3;
+  --lit-majtonal-p-300: #A1D2D4;
+  --lit-majtonal-p-400: #72AEB9;
+  --lit-majtonal-p-500: #48879C;
+  --lit-majtonal-p-600: #326882;
+  --lit-majtonal-p-700: #284E67;
+  --lit-majtonal-p-800: #1D3649;
+  --lit-majtonal-p-900: #142838;
+
+  --lit-majtonal-s-50:  #FFF5F7;
+  --lit-majtonal-s-100: #FAEDF0;
+  --lit-majtonal-s-200: #F7DBE4;
+  --lit-majtonal-s-300: #EDBDCD;
+  --lit-majtonal-s-400: #E091AC;
+  --lit-majtonal-s-500: #CC6990;
+  --lit-majtonal-s-600: #BE4079;
+  --lit-majtonal-s-700: #9D2D69;
+  --lit-majtonal-s-800: #651A54;
+  --lit-majtonal-s-900: #3B0A3C;
+
+  --lit-majtonal-t-50:  #FCF8EF;
+  --lit-majtonal-t-100: #F9F7ED;
+  --lit-majtonal-t-200: #EDDEBF;
+  --lit-majtonal-t-300: #E0C9A2;
+  --lit-majtonal-t-400: #CEA269;
+  --lit-majtonal-t-500: #B6763E;
+  --lit-majtonal-t-600: #A14C1C;
+  --lit-majtonal-t-700: #7E351F;
+  --lit-majtonal-t-800: #58211B;
+  --lit-majtonal-t-900: #3B0A0B;
+
+  --lit-majtonal-nv-50:  #F0F7F7;
+  --lit-majtonal-nv-100: #EBF3F2;
+  --lit-majtonal-nv-200: #E3ECED;
+  --lit-majtonal-nv-300: #CCD9DD;
+  --lit-majtonal-nv-400: #B5C6CA;
+  --lit-majtonal-nv-500: #9CAFB4;
+  --lit-majtonal-nv-600: #72868F;
+  --lit-majtonal-nv-700: #596C75;
+  --lit-majtonal-nv-800: #3F5259;
+  --lit-majtonal-nv-900: #222C35;
+
+  /* LIT Minor Tonal Palettes */
+  --lit-mintonal-p-1: #F5F9FA;
+  --lit-mintonal-p-2: #EFF5F7;
+  --lit-mintonal-p-3: #E9F1F4;
+  --lit-mintonal-p-4: #E7F0F3;
+  --lit-mintonal-p-5: #E3EDF1;
+
+  --lit-mintonal-s-1: #F9F2F7;
+  --lit-mintonal-s-2: #F5EBF2;
+  --lit-mintonal-s-3: #F1E3EE;
+  --lit-mintonal-s-4: #F0E0EC;
+  --lit-mintonal-s-5: #EDDBE9;
+
+  --lit-mintonal-t-1: #FAF4F3;
+  --lit-mintonal-t-2: #F6EDEB;
+  --lit-mintonal-t-3: #F2E7E3;
+  --lit-mintonal-t-4: #F3E4E1;
+  --lit-mintonal-t-5: #EFE0DB;
+
+  /* Google Red, Exclusively for Errors */
+  --google-red-50: #FCE8E6;
+  --google-red-500: #EA4335;
+  --google-red-600: #D93025;
+  --google-red-700: #C5221F;
+
+  /* Viz Colors */
+  --viz-color-orange-1: #FFD8C3;
+  --viz-color-orange-2: #F0BD80;
+  --viz-color-orange-3: #FF9230;
+  --viz-color-orange-4: #BA4A0D;
+
+  --viz-color-blue-1: #87CDF9;
+  --viz-color-blue-2: #61AFF7;
+  --viz-color-blue-3: #3C7DBF;
+  --viz-color-blue-4: #184889;
+
+  --viz-color-yellow-1: #FAF49F;
+  --viz-color-yellow-2: #FFE839;
+  --viz-color-yellow-3: #FFC700;
+  --viz-color-yellow-4: #848014;
+
+  --viz-color-purple-1: #CDC5FF;
+  --viz-color-purple-2: #9B86EF;
+  --viz-color-purple-3: #7647EA;
+  --viz-color-purple-4: #270085;
+
+  --viz-color-coral-1: #F6AEA9;
+  --viz-color-coral-2: #FF777B;
+  --viz-color-coral-3: #FC4F61;
+  --viz-color-coral-4: #B12D33;
+
+  --viz-color-teal-1: #BDF4E7;
+  --viz-color-teal-2: #7DDAD3;
+  --viz-color-teal-3: #1F978A;
+  --viz-color-teal-4: #006067;
+
+  --viz-color-magenta-1: #EDC4E6;
+  --viz-color-magenta-2: #EF96CD;
+  --viz-color-magenta-3: #B22A72;
+  --viz-color-magenta-4: #632440;
+
+  --viz-color-grey-1: #DADCE0;
+  --viz-color-grey-2: #B5BCC3;
+  --viz-color-grey-3: #879695;
+  --viz-color-grey-4: #515050;
+
+  /* Compatibility Aliases */
+  --lit-gray-700: var(--lit-neutral-700);
+  --lit-gray-800: var(--lit-neutral-700);
+  /* For field names, etc. like preds (MulticlassPreds) */
+  --lit-bold-label-color: var(--lit-majtonal-nv-800);
+  --lit-light-label-color: var(--lit-majtonal-nv-600);
+}
+
+button {
+  width: fit-content;
+  max-height: 100%;
+  background: white;
+  pointer-events: auto;
+  cursor: pointer;
+  border: 1px solid darkgrey;
+  margin: 5px;
+  text-align: center;
+  padding: 5px 10px;
+  font-size: 10pt;
+  border-radius: 3px;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+button.accent {
+  background: rgb(47, 140, 155);
+  border: none;
+  color: white;
+}
+
+button.accent:hover {
+  background: rgb(33, 98, 108);
+}
+
+
+button:hover {
+  background: #faf49f;
+}
+
+button:disabled {
+  background: darkgrey;
+  color: lightgrey;
+  pointer-events: none;
+  cursor: auto;
+}
+
+.dropdown-label {
+  font-weight: regular;
+  font-size: 9pt;
+  letter-spacing: +0.3pt;
+  line-height: 12pt;
+  margin-left: 4pt;
+  margin-right: 4pt;
+  color: #3c4043;
+}
+
+.dropdown {
+  border: none;
+  outline: none;
+  border-bottom: 1px solid lightgrey;
+  border-radius: 0;
+  padding: 4pt;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 8pt;
+  margin-right: 8pt;
+  max-width: 80%;
+  background-color: transparent;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-size: .65em auto, 100%;
+  background-position: right 50%;
+  background-repeat: no-repeat;
+}
+
+.monospace {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* Field name headings, for use in module content. */
+.field-title {
+  font-size: 14px;
+}
+
+/* Smaller field name headings, as in the data table. */
+.field-name {
+  font-weight: bold;
+  color: var(--lit-bold-label-color);
+}
+
+mwc-textfield {
+  --mdc-theme-primary: #2f8c9b;
+}
+
+.lit-img{
+  height: 15pt;
+  width: 15pt;
+  padding: 2pt;
+}
+
+/* For in-line icons in a <span> */
+.material-icon {
+  font-family: 'Material Icons';
+  vertical-align: middle;
+  margin: 0;
+}
+
+.material-icon-outlined {
+  font-family: 'Material Icons Outlined';
+  vertical-align: middle;
+  margin: 0;
+}
+
+/* 'Text' Button Style */
+.text-button {
+  margin: 0 4px;
+  background: transparent;
+  border-radius: 4px;
+  border: none;
+  color: #1A73E8;
+  font-family: Roboto;
+}
+
+.text-button:hover {
+  background: rgba(26, 115, 232, 0.04);
+}
+
+.text-button:focus {
+  background: rgba(138, 180, 248, 0.12);
+  border: none;
+  outline: none;
+}
+
+.text-button:active {
+  background: #E8F0FE;
+  box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3),
+    0px 1px 3px 1px rgba(60, 64, 67, 0.15);
+  border: none;
+}
+
+.text-button:disabled {
+  color: rgba(60, 64, 67, 0.38);
+  background: transparent;
+}
+
+/* Token chips */
+.token-chip-function {
+  color: #5f6368;
+  font-family: 'Roboto';
+  background: #f8f9fa;
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-function.selected {
+  border: 1px solid #80868b;
+}
+
+.token-chip-function:hover {
+  background: #e8eaed;
+}
+
+.token-chip-label {
+  color: #3c4043;
+  font-family: 'Roboto Mono', monospace;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-label.selected {
+  color: #098591;
+  border-color: #098591;
+}
+
+.token-chip-label:hover {
+  background: #e4f7fb;
+}
+
+.token-chip-generated {
+  color: #8430ce;
+  font-family: 'Roboto';
+  background: #f3e8fd;
+  border: 1px solid transparent; /* for spacing */
+  border-radius: 2px;
+  padding: 2px;
+  width: fit-content;
+}
+
+.token-chip-generated.selected {
+  border-color: #a142f4;
+}
+
+.token-chip-generated:hover {
+  background: #e9d2fd;
+}
+
+/* 'Hairline' Button Style */
+.hairline-button {
+  margin: 0 4px;
+  background: transparent;
+  border-radius: 4px;
+  border: 1px solid #BDC1C6;
+  color: #1A73E8;
+  font-family: Roboto;
+}
+
+.hairline-button:hover {
+  background: linear-gradient(0deg, rgba(26, 115, 232, 0.04),
+    rgba(26, 115, 232, 0.04)), #FFFFFF;
+  border: 1px solid #DADCE0;
+}
+
+.hairline-button:focus {
+  background: transparent;
+  border: 1px solid #1967D2;
+  outline: none;
+}
+
+.hairline-button:disabled {
+  color: rgba(60, 64, 67, 0.38);
+  background: transparent;
+  border: 1px solid #E7E8E8;
+}
+
+.hairline-button:active {
+  background: rgba(26, 115, 232, 0.1);
+  border: 1px solid #DADCE0;
+}
+
+/**
+ * Main container to use inside modules.
+ * If this contains a .module-toolbar and a .module-results-area,
+ * the results area will scroll while the toolbar remains at the top.
+ */
+.module-container {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Toolbar container for module controls. */
+.module-toolbar {
+  align-items: center;
+  display: flex;
+  flex-flow: row wrap;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 0 4px;
+}
+
+.module-toolbar > * {
+  margin: 0px 4px;
+}
+
+.module-results-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.module-content {
+  box-sizing: border-box;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.module-footer {
+  align-items: center;
+  border-top: 1px solid #dadce0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  flex-grow: 0;
+  flex-shrink: 0;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 0 4px;
+}
+
+/** Status text in a module footer. **/
+.module-status {
+  color: #3c4043;
+  font-style: italic;
+  font-weight: normal;
+  margin: 0 0.5em;
+}
+
+/**
+ * Spacer div: insert this before content if you want a module without a
+ * subtitle to align horizontally to one that does have one.
+ * Used in span graph and annotated text modules, where the gold preds don't
+ * have a subtitle for the model name.
+ */
+.offset-for-module-header {
+  height: 0;
+  margin-top: 24px; /* match .header height from widget.css */
+}
+
+
+/* Disable Material ripple */
+.switch-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  min-height: 32px; /* make the actual switch visible */
+  overflow-y: clip; /* keep mwc-switch overdraw from messing up layout */
+}
+
+.switch-container > mwc-switch {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+mwc-switch {
+  --mdc-ripple-hover-opacity: 0;
+  --mdc-ripple-press-opacity: 0;
+  --mdc-ripple-focus-opacity: 0;
+}
+
+mwc-icon.outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}

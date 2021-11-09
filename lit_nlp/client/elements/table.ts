@@ -25,20 +25,42 @@
 import '@material/mwc-icon';
 
 import {ascending, descending} from 'd3';  // array helpers.
-import {customElement, html, property, TemplateResult} from 'lit-element';
-import {classMap} from 'lit-html/directives/class-map';
-import {styleMap} from 'lit-html/directives/style-map';
-import {computed, observable} from 'mobx';
+import {html, TemplateResult} from 'lit';
+import {customElement, property} from 'lit/decorators';
+import {isTemplateResult} from 'lit/directive-helpers';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
+import {action, computed, observable} from 'mobx';
+
 import {ReactiveElement} from '../lib/elements';
-import {chunkWords} from '../lib/utils';
+import {formatForDisplay} from '../lib/types';
+import {isNumber, randInt} from '../lib/utils';
 
 import {styles} from './table.css';
 
-/** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number|TemplateResult;
 type SortableTableEntry = string|number;
+/** Wrapper type for sortable custom data table entries */
+export interface SortableTemplateResult {
+  template: TemplateResult;
+  value: SortableTableEntry;
+}
 /** Wrapper types for the data supplied to the data table */
-export type TableData = TableEntry[];
+export type TableEntry = string|number|TemplateResult|SortableTemplateResult;
+/** Wrapper types for the data supplied to the data table */
+export type TableData = TableEntry[]|{[key: string]: TableEntry};
+
+/** Wrapper type for column header with optional custom template. */
+export interface ColumnHeader {
+  name: string;
+  html?: TemplateResult;
+  rightAlign?: boolean;
+}
+
+/** Internal data, including metadata */
+interface TableRowInternal {
+  inputIndex: number; /* index in original this.data */
+  rowData: TableEntry[];
+}
 
 /** Callback for selection */
 export type OnSelectCallback = (selectedIndices: number[]) => void;
@@ -54,22 +76,38 @@ enum SpanAnchor {
 
 const IMAGE_PREFIX = 'data:image';
 
+const CONTAINER_HEIGHT_CHANGE_DELTA = 20;
 
 /**
  * A generic data table component
  */
 @customElement('lit-data-table')
 export class DataTable extends ReactiveElement {
-  @observable @property({type: Array}) data: TableData[] = [];
-  @observable @property({type: Array}) selectedIndices: number[] = [];
+  // observable.struct is necessary to avoid spurious updates
+  // if this object identity changes. This can happen if plain JS data is
+  // passed to this property, as it will subsequently be proxied by mobx.
+  // The structural comparison ensures that this proxying will not trigger
+  // updates if the underlying data does not change.
+  // TODO(lit-dev): investigate any performance implications of this deep
+  // comparison, as this may run more frequently than we'd like.
+  // TODO(lit-dev): consider observable.ref or observable.shallow;
+  // see https://mobx.js.org/observable-state.html#available-annotations.
+  // This could save performance, since calling code can always do [...data]
+  // to generate a new reference and force a refresh if needed.
+  @observable.struct @property({type: Array}) data: TableData[] = [];
+  @observable.struct @property({type: Array})
+  columnNames: Array<string|ColumnHeader> = [];
+  @observable.struct @property({type: Array}) selectedIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
+  // TODO(lit-dev): consider a custom reaction to make this more responsive,
+  // instead of triggering a full re-render.
   @observable @property({type: Number}) focusedIndex: number = -1;
-  @observable @property({type: Boolean}) selectionDisabled: boolean = false;
-  @observable @property({type: Boolean}) controlsEnabled: boolean = false;
-  @observable
-  @property({type: Object})
-  columnVisibility = new Map<string, boolean>();
+
+  // Mode controls
+  @observable @property({type: Boolean}) selectionEnabled: boolean = false;
+  @observable @property({type: Boolean}) searchEnabled: boolean = false;
+  @observable @property({type: Boolean}) paginationEnabled: boolean = false;
 
   // Callbacks
   @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
@@ -77,51 +115,70 @@ export class DataTable extends ReactiveElement {
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
-  static get styles() {
+  static override get styles() {
     return [styles];
   }
 
-  // If sortName is undefined, we use the order of the input data.
-  @observable private sortName?: string;
-  @observable private sortAscending = true;
+  // Sort order precedence: 1) sortName, 2) input order
+  @observable @property({type: String}) sortName?: string;
+  @observable @property({type: Boolean}) sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
-  @observable private filterSelected = false;
-  @observable columnDropdownVisible = false;
-  @observable private headerWidths: number[] = [];
+  @observable private pageNum = 0;
+  @observable private entriesPerPage = 10;
 
-  // Sorted data. We manage updates with a reaction to enable "sticky" behavior.
-  private stickySortedData?: TableData[]|null = null;
+  // Sorted data. We manage updates with a reaction to enable "sticky" behavior,
+  // where subsequent sorts are based on the last sort rather than the original
+  // inputs (i.e. this.data). This way, you can do useful compound sorts like in
+  // a typical spreadsheet program.
+  @observable private stickySortedData?: TableRowInternal[]|null = null;
 
   private resizeObserver!: ResizeObserver;
+  private needsEntriesPerPageRecompute = true;
+  private lastContainerHeight = 0;
 
   private selectedIndicesSetForRender = new Set<number>();
-  private rowIndexToDataIndex = new Map<number, number>();
 
   private shiftSelectionStartIndex = 0;
   private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
   private hoveredIndex: number|null = null;
 
-  firstUpdated() {
-    const container = this.shadowRoot!.getElementById('rows')!;
+  override firstUpdated() {
+    const container = this.shadowRoot!.querySelector('.holder')!;
     this.resizeObserver = new ResizeObserver(() => {
-      this.computeHeaderWidths();
+      this.adjustEntriesIfHeightChanged();
     });
     this.resizeObserver.observe(container);
 
-    // Clear "sticky" sorted data if the inputs change.
-    this.reactImmediately(() => this.rowFilteredData, filteredData => {
+    // If inputs changed, re-sort data based on the new inputs.
+    this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
       this.stickySortedData = null;
+      this.needsEntriesPerPageRecompute = true;
+      this.pageNum = 0;
+      this.requestUpdate();
     });
-    this.reactImmediately(() => this.columnVisibility, columnVisibility => {
-      this.computeHeaderWidths();
+
+    // If sort settings are changed, re-sort data optionally using result of
+    // previous sort.
+    const triggerSort = () => [this.sortName, this.sortAscending];
+    this.reactImmediately(triggerSort, () => {
+      this.stickySortedData = this.getSortedData(this.rowFilteredData);
+      this.pageNum = 0;
+      this.requestUpdate();
+    });
+    // Reset page number if invalid on change in total pages.
+    const triggerPageChange = () => this.totalPages;
+    this.reactImmediately(triggerPageChange, () => {
+      if (this.pageNum >= this.totalPages) {
+        this.pageNum = 0;
+      }
     });
   }
 
   // tslint:disable-next-line:no-any
-  shouldUpdate(changedProperties: any) {
+  override shouldUpdate(changedProperties: any) {
     if (changedProperties.get('data')) {
       // Let's just punt on the issue of maintaining shift selection behavior
       // when the data changes (via filtering, for example)
@@ -131,55 +188,172 @@ export class DataTable extends ReactiveElement {
     return true;
   }
 
-  private computeHeaderWidths() {
-    // Compute the table header sizes based on the table layout
-    // tslint:disable-next-line:no-any (can't iterate over HTMLCollection...)
-    const row: any = this.shadowRoot!.querySelector('tr');
-    if (row) {
-      this.headerWidths = [...row.children].map((child: HTMLElement) => {
-        return child.getBoundingClientRect().width;
-      });
+  override updated() {
+    if (this.needsEntriesPerPageRecompute) {
+      this.computeEntriesPerPage();
     }
   }
 
-  private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
-    // TODO(b/172596710) Allow passing a sortable type with TemplateResults.
-    // Passthrough values if TableEntry is number or string. If it is
-    // TemplateResult return 0 for sorting purposes.
-    return colEntry instanceof TemplateResult ? 0 : colEntry;
+  private getContainerHeight() {
+    const container: HTMLElement =
+        // tslint:disable-next-line:no-unnecessary-type-assertion
+        this.shadowRoot!.querySelector('.holder')! as HTMLElement;
+    return container.getBoundingClientRect().height;
   }
 
-  @computed
-  get columnNames(): string[] {
-    return Array.from(this.columnVisibility.keys());
+  // If the row container's height has changed significantly, then recompute
+  // entries per row.
+  private adjustEntriesIfHeightChanged() {
+    const containerHeight = this.getContainerHeight();
+    if (Math.abs(containerHeight - this.lastContainerHeight) >
+        CONTAINER_HEIGHT_CHANGE_DELTA) {
+      this.lastContainerHeight = containerHeight;
+      this.computeEntriesPerPage();
+    }
+  }
+
+  private computeEntriesPerPage() {
+    this.needsEntriesPerPageRecompute = false;
+
+    // If pagination is disabled, then ensure all entires can fit on a single
+    // page.
+    if (!this.paginationEnabled) {
+      this.entriesPerPage = this.rowFilteredData.length + 1;
+      return;
+    }
+
+    const containerHeight = this.getContainerHeight();
+    // Account for the height of the header and footer.
+    const headerHeight =
+        this.shadowRoot!.querySelector('thead')!.getBoundingClientRect().height;
+    const footerHeight =
+        this.shadowRoot!.querySelector('tfoot')!.getBoundingClientRect().height;
+    const availableHeight =
+        Math.max(0, containerHeight - headerHeight - footerHeight);
+    const rows: NodeListOf<HTMLElement> =
+        this.shadowRoot!.querySelectorAll('tbody > tr');
+    let height = 0;
+    let i = 0;
+
+    // Iterate over rows, adding up their height until they fill the container,
+    // to get the number of rows to display per page.
+    for (i = 0; i < rows.length; i++) {
+      height += rows[i].getBoundingClientRect().height;
+      if (height > availableHeight) {
+        this.entriesPerPage = i + 1;
+        break;
+      }
+    }
+    if (height === 0) {
+      this.entriesPerPage = 10;
+    } else if (height <= availableHeight) {
+      // If there aren't enough entries to take up the entire container,
+      // calculate how many will fill the container based on the heights so far.
+      const heightPerEntry = height / i;
+      this.entriesPerPage = Math.ceil(availableHeight / heightPerEntry);
+    }
+    // Round up to the nearest 10.
+    this.entriesPerPage = Math.ceil(this.entriesPerPage / 10) * 10;
+  }
+
+  private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
+    // Passthrough values if TableEntry is number or string. If it is
+    // TemplateResult return 0 for sorting purposes. If it is a sortable
+    // tempate result then sort by the underlying sortable value.
+    if (typeof colEntry === 'string' || isNumber(colEntry)) {
+      return colEntry as SortableTableEntry;
+    }
+    if (isTemplateResult(colEntry)) {
+      return 0;
+    }
+    return (colEntry as SortableTemplateResult).value;
   }
 
   @computed
   get sortIndex(): number|undefined {
-    return (this.sortName == null) ? undefined :
-                                     this.columnNames.indexOf(this.sortName);
+    return this.sortName != null ? this.columnStrings.indexOf(this.sortName) :
+                                   undefined;
+  }
+
+  private shouldRightAlignColumn(index: number) {
+    const values = this.pageData.map(row => row.rowData[index]);
+    const numericValues = values.filter(d => isNumber(d));
+    if (numericValues.length / values.length > 0.5) {
+      return true;
+    }
+    return false;
+  }
+
+
+  /**
+   * Column names. To avoid cyclical dependencies, this needs to be independent
+   * of columnHeaders, since the names are used to select the table data,
+   * which is in turn used to compute some formatting defaults.
+   */
+  @computed
+  get columnStrings(): string[] {
+    return this.columnNames.map(
+        colInfo => (typeof colInfo === 'string') ? colInfo : colInfo.name);
+  }
+
+  @computed
+  get columnHeaders(): ColumnHeader[] {
+    return this.columnNames.map((colInfo, index) => {
+      const header: ColumnHeader = (typeof colInfo === 'string') ?
+          {name: colInfo} :
+          {...colInfo};
+      header.html =
+          header.html ?? html`<div class="header-text">${header.name}</div>`;
+      header.rightAlign =
+          header.rightAlign ?? this.shouldRightAlignColumn(index);
+      return header;
+    });
   }
 
   /**
-   * This computed returns the data filtered by row (filtering by column
-   * happens in render()).
+   * First pass processing input data to canonical form.
+   * The data goes through several stages before rendering:
+   * - this.data is the input data (bound via element property)
+   * - indexedData converts to parallel-list form and adds input indices
+   *   for later reference
+   * - rowFilteredData filters to a subset of rows, based on search criteria
+   * - getSortedData() is used to sort the data if 1) the user has enabled sort-
+   *   by-column by clicking a column header, or 2) a DataTable consumer wants
+   *   to impose a context-specific sort behavior (e.g., ClassificationModule
+   *   defining sort based on the Score associated with that class). The result
+   *   is stored in this.stickySortedData so that future sorts can be "stable"
+   *   rather than re-sorting from the input.
+   * - displayData is stickySortedData, or rowFilteredData if that is unset.
+   *   This is used to actually render the table.
    */
   @computed
-  get rowFilteredData(): TableData[] {
-    const data = this.data.slice();
-    const selectedIndices = new Set<number>(this.selectedIndices);
+  get indexedData(): TableRowInternal[] {
+    // Convert any objects to simple arrays by selecting fields.
+    const convertedData: TableEntry[][] = this.data.map((d: TableData) => {
+      if (d instanceof Array) return d;
+      return this.columnStrings.map(k => d[k]);
+    });
+    return convertedData.map((rowData: TableEntry[], inputIndex: number) => {
+      return {inputIndex, rowData};
+    });
+  }
 
-    const rowFilteredData = data.filter((item) => {
+  /**
+   * This computed returns the data filtered by row.
+   */
+  @computed
+  get rowFilteredData(): TableRowInternal[] {
+    return this.indexedData.filter((item) => {
       let isShownByTextFilter = true;
       // Apply column search filters
       for (const [key, value] of this.columnSearchQueries) {
-        const index = this.columnNames.indexOf(key);
+        const index = this.columnStrings.indexOf(key);
         if (index === -1) return;
 
-        const col = item[index];
+        const col = item.rowData[index];
         if (typeof col === 'string') {
-          // TODO(b/158299036) Change this to regexp search.
-          isShownByTextFilter = isShownByTextFilter && col.includes(value);
+          isShownByTextFilter =
+              isShownByTextFilter && col.search(new RegExp(value)) !== -1;
         } else if (typeof col === 'number') {
           // TODO(b/158299036) Support syntax like 1-3,6 for numbers.
           isShownByTextFilter = isShownByTextFilter && value === '' ?
@@ -187,35 +361,47 @@ export class DataTable extends ReactiveElement {
               col.toString() === value;
         }
       }
-
-      let isShownBySelectedFilter = true;
-      if (this.filterSelected) {
-        const areSomeSelected = this.selectedIndices.length > 0;
-        isShownBySelectedFilter =
-            areSomeSelected ? selectedIndices.has(+item[0]) : true;
-      }
-      return isShownByTextFilter && isShownBySelectedFilter;
+      return isShownByTextFilter;
     });
-    return rowFilteredData;
   }
 
-  getSortedData(): TableData[] {
-    const source = this.stickySortedData ?? this.rowFilteredData;
-    let sortedData = source.slice();
+  getSortedData(source: TableRowInternal[]): TableRowInternal[] {
     if (this.sortName != null) {
-      sortedData = sortedData.sort(
-          (a, b) => (this.sortAscending ? ascending : descending)(
-              this.getSortableEntry(a[this.sortIndex!]),
-              this.getSortableEntry(b[this.sortIndex!])));
+      const sorter = this.sortAscending ? ascending : descending;
+
+      return source.slice().sort((a, b) => sorter(
+        this.getSortableEntry(a.rowData[this.sortIndex!]),
+        this.getSortableEntry(b.rowData[this.sortIndex!])));
     }
 
-    // Store a mapping from the row to data indices.
-    // TODO(lit-dev): remove hard-coded dependence on first column as index.
-    this.rowIndexToDataIndex =
-        new Map(sortedData.map((d, index) => [index, +d[0]]));
+    return source;
+  }
 
-    this.stickySortedData = sortedData;
-    return sortedData;
+  @computed
+  get displayData(): TableRowInternal[] {
+    if (this.stickySortedData != null) {
+      return this.stickySortedData;
+    } else {
+      return this.getSortedData(this.rowFilteredData);
+    }
+  }
+
+  @computed
+  get totalPages(): number {
+    return Math.ceil(this.displayData.length / this.entriesPerPage);
+  }
+
+  // The entries that fit on the current page in the table.
+  @computed
+  get pageData(): TableRowInternal[] {
+    const begin = this.pageNum * this.entriesPerPage;
+    const end = begin + this.entriesPerPage;
+    return this.displayData.slice(begin, end);
+  }
+
+  @computed
+  get hasFooter(): boolean {
+    return this.displayData.length > this.entriesPerPage;
   }
 
   private setShiftSelectionSpan(startIndex: number, endIndex: number) {
@@ -228,10 +414,14 @@ export class DataTable extends ReactiveElement {
         index <= this.shiftSelectionEndIndex;
   }
 
+  private getInputIndexFromRowIndex(rowIndex: number) {
+    return this.displayData[rowIndex].inputIndex;
+  }
+
   private selectFromRange(
       selectedIndices: Set<number>, start: number, end: number, select = true) {
     for (let rowIndex = start; rowIndex <= end; rowIndex++) {
-      const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+      const dataIndex = this.getInputIndexFromRowIndex(rowIndex);
       if (dataIndex == null) return;
 
       if (select) {
@@ -248,12 +438,10 @@ export class DataTable extends ReactiveElement {
   }
 
   /** Logic for handling row / multirow selection */
-  private handleRowClick(e: MouseEvent, rowIndex: number) {
+  @action
+  private handleRowClick(e: MouseEvent, dataIndex: number, rowIndex: number) {
     let selectedIndices = new Set<number>(this.selectedIndices);
     let doChangeSelectedSet = true;
-
-    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
-    if (dataIndex == null) return;
 
     if (this.onClick != null) {
       this.onClick(dataIndex);
@@ -330,19 +518,14 @@ export class DataTable extends ReactiveElement {
   }
 
   /** Logic for handling row hover */
-  private handleRowMouseEnter(e: MouseEvent, rowIndex: number) {
-    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
-    if (dataIndex == null) return;
+  private handleRowMouseEnter(e: MouseEvent, dataIndex: number) {
     this.hoveredIndex = dataIndex;
-
     if (this.onHover != null) {
       this.onHover(this.hoveredIndex);
       return;
     }
   }
-  private handleRowMouseLeave(e: MouseEvent, rowIndex: number) {
-    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
-    if (dataIndex == null) return;
+  private handleRowMouseLeave(e: MouseEvent, dataIndex: number) {
     if (dataIndex === this.hoveredIndex) {
       this.hoveredIndex = null;
     }
@@ -353,10 +536,11 @@ export class DataTable extends ReactiveElement {
     }
   }
 
+  @action
   private setPrimarySelectedIndex(rowIndex: number) {
     let primaryIndex = -1;
     if (rowIndex !== -1) {
-      const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
+      const dataIndex = this.getInputIndexFromRowIndex(rowIndex);
       if (dataIndex == null) return;
 
       primaryIndex = dataIndex;
@@ -365,120 +549,151 @@ export class DataTable extends ReactiveElement {
     this.onPrimarySelect(primaryIndex);
   }
 
-  render() {
+  /**
+   * Imperative controls, intended to be used by a containing module
+   * such as data_table_module.ts
+   */
+  @computed
+  get isDefaultView() {
+    return this.sortName === undefined && this.columnSearchQueries.size === 0;
+  }
+
+  resetView() {
+    this.columnSearchQueries.clear();
+    this.sortName = undefined;    // reset to input ordering
+    this.showColumnMenu = false;  // hide search bar
+    // Reset sticky sort and re-render from input data.
+    this.stickySortedData = null;
+    this.requestUpdate();
+  }
+
+  getVisibleDataIdxs(): number[] {
+    return this.displayData.map(d => d.inputIndex);
+  }
+
+  override render() {
     // Make a private, temporary set of selectedIndices to simplify lookup
     // in the row render method
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
-    const data = this.getSortedData();
-    const columns = Array.from(this.columnVisibility.keys());
-
-    // Only show columns that are set as visible in the column dropdown.
-    const columnFilteredData = data.map((row) => {
-      return row.filter((entry, i) => {
-        return this.columnVisibility.get(columns[i]);
-      });
-    });
-
-    // Synchronizes the horizontal scrolling of the header with the rows.
-    const onScroll = (e: Event) => {
-      const header = this.shadowRoot!.getElementById('header-container');
-      const body = e.target as HTMLElement;
-      if (header != null && body != null) {
-        header.scrollLeft = body.scrollLeft;
-      }
-    };
-
-    const onClickSelectAll = () => {
-      this.selectedIndices = columnFilteredData.map((d, index) => +d[0]);
-      this.onSelect([...this.selectedIndices]);
-    };
-
-    const isDefaultView = this.sortName === undefined &&
-        this.columnSearchQueries.size === 0 && !this.filterSelected;
-    const onClickResetView = () => {
-      this.columnSearchQueries.clear();
-      this.sortName = undefined;  // reset to input ordering
-      this.filterSelected = false;
-    };
-
-    const toggleFilterSelected = () => {
-      this.filterSelected = !this.filterSelected;
-    };
-
-    const onToggleShowColumn = () => {
-      this.columnDropdownVisible = !this.columnDropdownVisible;
-    };
-
-    const visibleColumns =
-        this.columnNames.filter((key) => this.columnVisibility.get(key));
-
     // clang-format off
     return html`
-      <div id="holder">
-        ${this.controlsEnabled ? html`
-        <div class="toolbar">
-          <lit-checkbox
-            label="Only show selected"
-            ?checked=${this.filterSelected}
-            @change=${toggleFilterSelected}
-          ></lit-checkbox>
-          <div id="toolbar-buttons">
-            <button id="default-view" @click=${onClickResetView}
-              ?disabled="${isDefaultView}">
-              Reset view
-            </button>
-            <button id="select-all" @click=${onClickSelectAll}>
-              Select all
-            </button>
-            <button id="column-button" @click=${onToggleShowColumn}>
-              Columns
-              <span data-icon=${this.columnDropdownVisible ? "expand_less" :
-              "expand_more"}></span>
-            </button>
-          </div>
-          ${this.renderColumnDropdown()}
-        </div>` : null}
-        <div class="table-container">
-          <div id="header-container">
-            <div id="header">
-              ${visibleColumns.map((c, i) => this.renderColumnHeader(c, i))}
-            </div>
-          </div>
-          <div id="rows-container" @scroll=${onScroll}>
-            <table id="rows">
-              <tbody>
-                ${columnFilteredData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div class="holder">
+        <table>
+          <thead>
+            ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
+          </thead>
+          <tbody>
+            ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
+          </tbody>
+          <tfoot>
+            ${this.renderFooter()}
+          </tfoot>
+        </table>
       </div>
     `;
     // clang-format on
   }
 
-  renderColumnHeader(title: string, index: number) {
-    // this.headerWidths sometimes hasn't been updated when this method is
-    // called since it's set in this.computeHeaderWidths() which uses the
-    // table cells' clientWidth to set this.headerWidths.
-    // Return if the index is out of bounds.
-    if (index >= this.headerWidths.length) return;
-    const headerWidth = this.headerWidths[index];
-    const width = headerWidth ? `${headerWidth}px` : '';
-    let searchText = this.columnSearchQueries.get(title);
-    if (searchText === undefined) {
-      searchText = '';
+  renderFooter() {
+    if (!this.hasFooter) {
+      return null;
     }
+    const pageDisplayNum = this.pageNum + 1;
+    // Use this modulo function so that if pageNum is negative (when
+    // decrementing pages), the modulo returns the expected positive value.
+    const modPageNumber = (pageNum: number) => {
+      return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
+    };
+    const nextPage = () => {
+      const newPageNum = modPageNumber(this.pageNum + 1);
+      this.pageNum = newPageNum;
+    };
+    const prevPage = () => {
+      const newPageNum = modPageNumber(this.pageNum - 1);
+      this.pageNum = newPageNum;
+    };
+    const firstPage = () => {
+      this.pageNum = 0;
+    };
+    const firstPageButtonClasses = {
+      'icon-button': true,
+      'disabled': this.pageNum === 0
+    };
+    const lastPage = () => {
+      this.pageNum = this.totalPages - 1;
+    };
+    const lastPageButtonClasses = {
+      'icon-button': true,
+      'disabled': this.pageNum === this.totalPages - 1
+    };
+    const randomPage = () => {
+      const newPageNum = randInt(0, this.totalPages);
+      this.pageNum = newPageNum;
+    };
+    // clang-format off
+    return html`
+      <tr>
+        <td colspan=${this.columnNames.length}>
+          <div class="footer">
+            <mwc-icon class=${classMap(firstPageButtonClasses)}
+              @click=${firstPage}>
+              first_page
+            </mwc-icon>
+            <mwc-icon class='icon-button'
+              @click=${prevPage}>
+              chevron_left
+            </mwc-icon>
+            <div>
+             Page
+             <span class="current-page-num">${pageDisplayNum}</span>
+             of ${this.totalPages}
+            </div>
+            <mwc-icon class='icon-button'
+               @click=${nextPage}>
+              chevron_right
+            </mwc-icon>
+            <mwc-icon class=${classMap(lastPageButtonClasses)}
+              @click=${lastPage}>
+              last_page
+            </mwc-icon>
+            <mwc-icon class='icon-button mdi-outlined button-extra-margin'
+              @click=${randomPage}>
+              casino
+            </mwc-icon>
+          </div>
+        </td>
+      </tr>`;
+    // clang-format on
+  }
 
-    const handleClick = () => {
-      if (this.sortName === title) {
-        this.sortAscending = !this.sortAscending;
-      } else {
+  renderColumnHeader(header: ColumnHeader) {
+    const title = header.name;
+
+    const handleBackgroundClick = (e: Event) => {
+      this.resetView();
+    };
+
+    const toggleSort = (e: Event) => {
+      e.stopPropagation();
+
+      // Table supports three sort states/transitions after a click:
+      if (this.sortName !== title) {
+        //   1. If title !== sortName, sort by that title in ascending order
         this.sortName = title;
         this.sortAscending = true;
+      } else {
+        if (this.sortAscending) {
+          // 2. If title === sortName && ascending, switch to descending
+          this.sortAscending = false;
+        } else {
+          // 3. If title === sortName && descending, turn off sort
+          this.sortName = undefined;
+        }
       }
     };
+
+    const searchText = this.columnSearchQueries.get(title) ?? '';
 
     const isSearchActive = () => {
       const searchString = this.columnSearchQueries.get(title);
@@ -490,7 +705,6 @@ export class DataTable extends ReactiveElement {
     };
 
     const searchMenuStyle = styleMap({
-      width,
       'visibility':
           (this.showColumnMenu && this.columnMenuName === title ? 'visible' :
                                                                   'hidden'),
@@ -499,12 +713,20 @@ export class DataTable extends ReactiveElement {
     const menuButtonStyle =
         styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
 
-    const handleMenuButton = () => {
+    const handleMenuButton = (e: Event) => {
+      e.stopPropagation();
       if (this.columnMenuName === title) {
         this.showColumnMenu = !this.showColumnMenu;
       } else {
         this.columnMenuName = title;
         this.showColumnMenu = true;
+      }
+      // Focus cursor on newly-shown input box.
+      if (this.showColumnMenu) {
+        window.requestAnimationFrame(() => {
+          const inputElem = this.shadowRoot!.querySelector(`th#${title} .togglable-menu-holder input`) as HTMLElement;
+          inputElem.focus();
+        });
       }
     };
 
@@ -530,37 +752,40 @@ export class DataTable extends ReactiveElement {
       active: isDownActive,
       inactive: isDownInactive,
     });
+    const headerClasses =
+        classMap({'column-header': true, 'right-align': header.rightAlign!});
 
-    const style = styleMap({width});
     // clang-format off
     return html`
-        <div>
-          <div class="column-header" title=${title} style=${style}>
-            <div class="header-text">${title}</div>
-            ${this.controlsEnabled ? html`
-            <div class="menu-button-container">
-              <mwc-icon class="menu-button" style=${menuButtonStyle} @click=${handleMenuButton}>search</mwc-icon>
-            </div>` : null}
-            <div class="arrow-container" @click=${handleClick}>
-              <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
-              <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+        <th id=${title} @click=${handleBackgroundClick}>
+          <div class=${headerClasses} title=${title}>
+            <div class="header-holder">
+              <div @click=${toggleSort}>${header.html!}</div>
+              ${this.searchEnabled ? html`
+                <div class="menu-button-container">
+                  <mwc-icon class="menu-button" style=${menuButtonStyle}
+                   @click=${handleMenuButton}>search</mwc-icon>
+                </div>` : null}
+              <div class="arrow-container" @click=${toggleSort}>
+                <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
+                <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+              </div>
             </div>
           </div>
-          ${this.controlsEnabled ? html`
-          <div class='togglable-menu-holder' style=${searchMenuStyle}>
-              <input type="search" id='search-menu-container'
-              .value=${searchText}
-              placeholder="Search" @input=${handleSearchChange}/>
-          </div>` : null}
-        </div>
+          ${this.searchEnabled ? html`
+            <div class='togglable-menu-holder' style=${searchMenuStyle}>
+                <input type="search" class='search-input'
+                .value=${searchText}
+                placeholder="Search" @input=${handleSearchChange}/>
+            </div>` : null}
+        </th>
       `;
     // clang-format on
   }
 
-
-  renderRow(data: TableData, rowIndex: number) {
-    const dataIndex = this.rowIndexToDataIndex.get(rowIndex);
-    if (dataIndex == null) return;
+  renderRow(data: TableRowInternal, rowIndex: number) {
+    const dataIndex = data.inputIndex;
+    const displayDataIndex = rowIndex + this.pageNum * this.entriesPerPage;
 
     const isSelected = this.selectedIndicesSetForRender.has(dataIndex);
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
@@ -573,64 +798,46 @@ export class DataTable extends ReactiveElement {
       'focused': isFocused
     });
     const mouseDown = (e: MouseEvent) => {
-      if (this.selectionDisabled) return;
-      this.handleRowClick(e, rowIndex);
+      if (!this.selectionEnabled) return;
+      this.handleRowClick(e, dataIndex, displayDataIndex);
     };
     const mouseEnter = (e: MouseEvent) => {
-      this.handleRowMouseEnter(e, rowIndex);
+      this.handleRowMouseEnter(e, dataIndex);
     };
     const mouseLeave = (e: MouseEvent) => {
-      this.handleRowMouseLeave(e, rowIndex);
+      this.handleRowMouseLeave(e, dataIndex);
     };
 
+    const formatCellContents = (d: TableEntry) => {
+      if (d == null) return null;
+
+      if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
+        return html`<img class='table-img' src=${d.toString()}>`;
+      }
+      if (isTemplateResult(d) || d.constructor === Object) {
+        const templateResult =
+            isTemplateResult(d) ? d : (d as SortableTemplateResult).template;
+        return html`${templateResult}`;
+      }
+
+      // Text formatting uses pre-wrap, so be sure that this template doesn't
+      // add any extra whitespace inside the div.
+      // clang-format off
+      return html`
+          <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
+      // clang-format on
+    };
+
+    const cellClasses = this.columnHeaders.map(
+        h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
     // clang-format off
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
-        ${data.map((d => {
-          if (typeof d === "string" && d.startsWith(IMAGE_PREFIX)) {
-            return html`<td><img class='table-img' src=${d.toString()}></td>`;
-          } else {
-            return (d instanceof TemplateResult) ? d :
-                html`<td><div>${chunkWords(d.toString())}</div></td>`;
-          }
-        }))}
+        ${data.rowData.map((d, i) => html`<td><div class=${cellClasses[i]}>${formatCellContents(d)}</div></td>`)}
       </tr>
     `;
     // clang-format on
-  }
-
-  renderColumnDropdown() {
-    // clang-format off
-    return html`
-        <div class='${this.columnDropdownVisible ? 'column-dropdown' :
-          'column-dropdown-hide'}'>
-          ${this.columnNames.filter((column) => column !== 'index')
-            .map(key => this.renderDropdownItem(key))}
-        </div>
-    `;
-    // clang-format on
-  }
-
-  renderDropdownItem(key: string) {
-    const checked = this.columnVisibility.get(key);
-    if (checked == null) return;
-
-    const toggleChecked = () => {
-      this.columnVisibility.set(key, !checked);
-      this.computeHeaderWidths();
-    };
-
-    return html`
-        <div>
-          <lit-checkbox
-              label=${key}
-              ?checked=${checked}
-              @change=${toggleChecked}
-            >
-          </lit-checkbox>
-        </div>
-        `;
   }
 }
 

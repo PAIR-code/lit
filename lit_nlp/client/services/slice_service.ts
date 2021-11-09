@@ -71,7 +71,7 @@ export class SliceService extends LitService {
   }
 
   @action
-  selectNamedSlice(name: string|null, user: ServiceUser = null) {
+  selectNamedSlice(name: string|null, user?: ServiceUser) {
     if (name === null) {
       this.setSelectedSliceName(name);
       this.selectionService.selectIds([], user);
@@ -101,6 +101,15 @@ export class SliceService extends LitService {
     ids.forEach((id) => {
       sliceIds.add(id);
     });
+  }
+
+  @action
+  addOrAppendToSlice(name: SliceName, ids: string[]) {
+    if (!this.namedSlices.has(name)) {
+      this.addNamedSlice(name, ids);
+    } else {
+      this.addIdsToSlice(name, ids);
+    }
   }
 
   @action

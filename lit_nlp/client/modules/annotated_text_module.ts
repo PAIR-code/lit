@@ -14,7 +14,8 @@
 // tslint:disable:no-new-decorators
 import '../elements/annotated_text_vis';
 
-import {customElement, html} from 'lit-element';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -22,27 +23,27 @@ import {AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
 
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** LIT module for model output. */
 @customElement('annotated-text-gold-module')
 export class AnnotatedTextGoldModule extends LitModule {
-  static title = 'Annotated Text (gold)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = false;
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Annotated Text (gold)';
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = false;
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-gold-module
         selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-gold-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return sharedStyles;
   }
 
-  render() {
+  override render() {
     const input = this.selectionService.primarySelectedInputData;
     if (!input) return null;
 
@@ -59,10 +60,16 @@ export class AnnotatedTextGoldModule extends LitModule {
         filterToKeys(input.data, annotationNames);
     const annotationSpec = filterToKeys(dataSpec, annotationNames);
 
+    // If more than one model is selected, AnnotatedTextModule will be offset
+    // vertically due to the model name header, while this one won't be.
+    // So, add an offset so that the content still aligns when there is a
+    // AnnotatedTextGoldModule and a AnnotatedTextModule side-by-side.
+    const offsetForHeader = !this.appState.compareExamplesEnabled &&
+        this.appState.currentModels.length > 1;
+
     // clang-format off
     return html`
-      ${!this.appState.compareExamplesEnabled ?
-        html`<div class='offset-for-module-header'></div>` : null}
+      ${offsetForHeader? html`<div class='offset-for-module-header'></div>` : null}
       <annotated-text-vis .segments=${segments}
                           .segmentSpec=${segmentSpec}
                           .annotations=${annotations}
@@ -71,7 +78,7 @@ export class AnnotatedTextGoldModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return findSpecKeys(datasetSpec, 'MultiSegmentAnnotations').length > 0;
   }
 }
@@ -79,25 +86,25 @@ export class AnnotatedTextGoldModule extends LitModule {
 /** LIT module for model output. */
 @customElement('annotated-text-module')
 export class AnnotatedTextModule extends LitModule {
-  static title = 'Annotated Text (predicted)';
-  static duplicateForExampleComparison = true;
-  static duplicateForModelComparison = true;
-  static numCols = 4;
-  static template = (model = '', selectionServiceIndex = 0) => {
+  static override title = 'Annotated Text (predicted)';
+  static override duplicateForExampleComparison = true;
+  static override duplicateForModelComparison = true;
+  static override numCols = 4;
+  static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <annotated-text-module model=${model}
        selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return sharedStyles;
   }
 
   @observable private currentData?: IndexedInput;
   @observable private currentPreds: AnnotationGroups = {};
 
-  firstUpdated() {
+  override firstUpdated() {
     const getPrimarySelectedInputData = () =>
         this.selectionService.primarySelectedInputData;
     this.reactImmediately(getPrimarySelectedInputData, data => {
@@ -126,7 +133,7 @@ export class AnnotatedTextModule extends LitModule {
     this.currentPreds = results[0] as AnnotationGroups;
   }
 
-  render() {
+  override render() {
     if (!this.currentData) return null;
 
     const segmentNames =
@@ -149,7 +156,7 @@ export class AnnotatedTextModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, 'MultiSegmentAnnotations');
   }
 }

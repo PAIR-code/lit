@@ -19,11 +19,12 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
-import {customElement, html} from 'lit-element';
-import {TemplateResult} from 'lit-html';
+import {customElement} from 'lit/decorators';
+import { html} from 'lit';
+import {TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
@@ -31,7 +32,7 @@ import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService, FocusService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface ProjectorOptions {
   displayName: string;
@@ -43,29 +44,37 @@ interface ProjectionBackendResult {
   z: Point3D;
 }
 
+interface NearestNeighborsResult {
+  'id': string;
+}
+
+const NN_INTERPRETER_NAME = 'nearest neighbors';
+// TODO(lit-dev): Make the number of nearest neighbors configurable in the UI.
+const DEFAULT_NUM_NEAREST = 10;
+
 /**
  * A LIT module showing a Scatter-GL rendering of the projected embeddings
  * for the input data.
  */
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
-  static title = 'Embeddings';
-  static template = () => {
+  static override title = 'Embeddings';
+  static override template = () => {
     return html`<embeddings-module></embeddings-module>`;
   };
 
-  static get styles() {
+  static override get styles() {
     return [sharedStyles, styles];
   }
 
-  static duplicateForModelComparison = false;
+  static override duplicateForModelComparison = false;
 
   static projectorChoices: {[key: string]: ProjectorOptions} = {
     'pca': {displayName: 'PCA', interpreterName: 'pca'},
     'umap': {displayName: 'UMAP', interpreterName: 'umap'},
   };
 
-  static numCols = 3;
+  static override numCols = 3;
 
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
@@ -164,6 +173,34 @@ export class EmbeddingsModule extends LitModule {
     return this.embeddingCache.get(key)!;
   }
 
+  private async getNearestNeighbors(
+      example: IndexedInput, numNeighbors: number = DEFAULT_NUM_NEAREST) {
+    const {modelName, fieldName} =
+        this.embeddingOptions[this.selectedEmbeddingsIndex];
+    const datasetName = this.appState.currentDataset;
+    const config: CallConfig = {
+      'dataset_name': datasetName,
+      'embedding_name': fieldName,
+      'num_neighbors': numNeighbors,
+    };
+
+    // All indexed inputs in the dataset are passed in, with the main example
+    // id (to get nearest neighbors for) specified in the config.
+    // TODO(b/178210779): Enable caching in the component's predict call.
+    const result = await this.apiService.getInterpretations(
+        [example], modelName, this.appState.currentDataset, NN_INTERPRETER_NAME,
+        config, `Running ${NN_INTERPRETER_NAME}`);
+
+    if (result === null) return;
+
+    const nearestIds = result[0]['nearest_neighbors'].map(
+        (neighbor: NearestNeighborsResult) => {
+          return neighbor['id'];
+        });
+
+    this.selectionService.selectIds(nearestIds);
+  }
+
   constructor() {
     super();
     // Default to PCA on large datasets.
@@ -172,7 +209,7 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const scatterContainer =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
@@ -346,13 +383,27 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
+    const onSelectNearest = () => {
+      if (this.selectionService.primarySelectedInputData != null) {
+        this.getNearestNeighbors(
+            this.selectionService.primarySelectedInputData);
+      }
+    };
+    const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
       <div class="container">
         <div class="toolbar-container flex-row">
           ${this.renderProjectorSelect()}
           ${this.renderEmbeddingsSelect()}
           ${this.renderLabelBySelect()}
+        </div>
+        <div class="toolbar-container flex-row" id="select-button-container">
+          <button class="hairline-button selected-nearest-button" ?disabled=${
+        disabled}
+        @click=${onSelectNearest} title=${
+        disabled ? 'Select a single point to use this feature' : ''}
+        >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
         </div>
         <div id="scatter-gl-container"></div>
       </div>
@@ -434,8 +485,19 @@ export class EmbeddingsModule extends LitModule {
     `;
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'Embeddings');
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Ensure there are embeddings to use and that projection interpreters
+    // are loaded.
+    if (!doesOutputSpecContain(modelSpecs, 'Embeddings')) {
+      return false;
+    }
+    for (const modelInfo of Object.values(modelSpecs)) {
+      if (modelInfo.interpreters.indexOf('umap') !== -1 ||
+          modelInfo.interpreters.indexOf('pca') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

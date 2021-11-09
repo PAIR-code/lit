@@ -19,6 +19,7 @@ export {ApiService} from './api_service';
 export {ClassificationService} from './classification_service';
 export {ColorService} from './color_service';
 export {FocusService} from './focus_service';
+export {GroupService} from './group_service';
 export {ModulesService} from './modules_service';
 export {RegressionService} from './regression_service';
 export {SelectionService} from './selection_service';

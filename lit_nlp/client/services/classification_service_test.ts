@@ -17,9 +17,9 @@
 
 import 'jasmine';
 
-import {NumericSetting, Spec} from '../lib/types';
+import {IndexedInput, Spec} from '../lib/types';
 
-import {getPredictionClass} from './classification_service';
+import {getPredictionClass, MarginsPerField} from './classification_service';
 
 
 describe('getPredictionClass test', () => {
@@ -31,77 +31,90 @@ describe('getPredictionClass test', () => {
     __mro__: ['TextSegment', 'LitType', 'object'],
     null_idx: 0
   };
+  const mockInput: IndexedInput = {
+      id: 'xxxxxxx',
+      data: {'testFeat0': 1, 'testNumFeat0': 0},
+      meta: {}
+    };
 
   it('gets prediction class index given 2 classes and 0 margin', () => {
-    const margins: NumericSetting = {};
-    margins[predKey] = 0;
+    const margins: MarginsPerField = {};
+    margins[predKey] = {"": {margin: 0}};
 
     let scores = [1, 0];
-    let predictionClass =
-        getPredictionClass(scores, predKey, outputSpec, margins);
+    let predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [0, 1];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(1);
 
     // Tests near decision boundary.
     scores = [.5, .5];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.5 + 1e-4, .5 - 1e-4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.5 - 1e-4, .5 + 1e-4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(1);
   });
 
   it('gets prediction class index given 2 classes with non-zero margin', () => {
-    const margins: NumericSetting = {};
+    const margins: MarginsPerField = {};
 
     // The margin can be calculated from the binary threshold using:
     // -ln(1/threshold - 1).
     const marginFromThreshold = (t: number) => -1 * Math.log(1 / t - 1);
-    margins[predKey] = marginFromThreshold(.6);
+    margins[predKey] = {"": {margin: marginFromThreshold(.6)}};
 
     // Tests near decision boundary.
     let scores = [.4, .6];
-    let predictionClass =
-        getPredictionClass(scores, predKey, outputSpec, margins);
+    let predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.4 + 1e-4, .6 - 1e-4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.4 - 1e-1, .6 + 1e-1];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(1);
   });
 
   it('gets prediction class index given 3 classes and 0 margin', () => {
-    const margins: NumericSetting = {};
-    margins[predKey] = 0;
+    const margins: MarginsPerField = {};
+    margins[predKey] = {"": {margin: 0}};
 
     let scores = [.1, .3, .6];
-    let predictionClass =
-        getPredictionClass(scores, predKey, outputSpec, margins);
+    let predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(2);
 
     scores = [.2, .4, .4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(1);
 
     scores = [.3333, .3333, .3333];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
   });
 
   it('gets prediction class index given 3 classes and non-zero margin', () => {
-    const margins: NumericSetting = {};
+    const margins: MarginsPerField = {};
 
     // Margin at which null class score is equal to the max class score:
     // ln(max class score) - ln(null class score)
@@ -111,30 +124,34 @@ describe('getPredictionClass test', () => {
 
     // Tests near decision boundary.
     let scores = [.1, .3, .6];
-    margins[predKey] = maxScoreMargin(scores);
+    margins[predKey] = {"": {margin: maxScoreMargin(scores)}};
 
-    let predictionClass =
-        getPredictionClass(scores, predKey, outputSpec, margins);
+    let predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.1 + 1e-4, .3, .6 - 1e-4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.1 - 1e-4, .3, .6 + 1e-4];
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(2);
 
 
     // Testing extreme margin values.
     scores = [.01, .98, .01];
-    margins[predKey] = 5;
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    margins[predKey] = {"": {margin: 5}};
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(0);
 
     scores = [.98, .005, .015];
-    margins[predKey] = -5;
-    predictionClass = getPredictionClass(scores, predKey, outputSpec, margins);
+    margins[predKey] = {"": {margin: -5}};
+    predictionClass = getPredictionClass(
+        scores, predKey, outputSpec, mockInput, undefined, margins);
     expect(predictionClass).toBe(2);
   });
 });

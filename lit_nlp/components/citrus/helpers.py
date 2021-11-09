@@ -79,7 +79,7 @@ class TextRationale:
     self.top_k_ids = list(reversed(self.top_k_ids))
     self.top_k_ids_set = set(self.top_k_ids)
 
-  def get_rationale_text(self, mask_token: Text = None) -> str:
+  def get_rationale_text(self, mask_token: Optional[Text] = None) -> str:
     """Returns the text covering only the rationale.
 
     Args:
@@ -95,7 +95,7 @@ class TextRationale:
         result.append(mask_token)
     return ' '.join(result)
 
-  def get_text_wo_rationale(self, mask_token: Text = None) -> str:
+  def get_text_wo_rationale(self, mask_token: Optional[Text] = None) -> str:
     """Returns the text without the rationale.
 
     Args:

@@ -18,21 +18,21 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
-import {customElement, html, svg} from 'lit-element';
-import {styleMap} from 'lit-html/directives/style-map';
+import {customElement} from 'lit/decorators';
+import { html, svg} from 'lit';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
 
-import {app} from '../core/lit_app';
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {D3Selection, IndexedInput, ModelInfoMap, NumericSetting, Preds, Spec} from '../lib/types';
+import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, FocusService, RegressionService} from '../services/services';
+import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
-import {styles as sharedStyles} from './shared_styles.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * The maximum number of scatterplots to render on page load.
@@ -54,9 +54,9 @@ interface BrushObject {
  */
 @customElement('scalar-module')
 export class ScalarModule extends LitModule {
-  static title = 'Scalars';
-  static numCols = 4;
-  static template = (model = '') => {
+  static override title = 'Scalars';
+  static override numCols = 4;
+  static override template = (model = '') => {
     return html`
       <scalar-module model=${model}>
       </scalar-module>`;
@@ -72,7 +72,7 @@ export class ScalarModule extends LitModule {
   static yLabelOffsetY = -25;
   static zeroLineColor = '#cccccc';
 
-  static get styles() {
+  static override get styles() {
     return [
       sharedStyles,
       styles,
@@ -82,6 +82,7 @@ export class ScalarModule extends LitModule {
   private readonly colorService = app.getService(ColorService);
   private readonly classificationService =
       app.getService(ClassificationService);
+  private readonly groupService = app.getService(GroupService);
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
 
@@ -99,6 +100,11 @@ export class ScalarModule extends LitModule {
   @observable private plotHeight = ScalarModule.minPlotHeight;
 
   @computed
+  private get inputKeys() {
+    return this.groupService.numericalFeatureNames;
+  }
+
+  @computed
   private get scalarKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     return findSpecKeys(outputSpec, 'Scalar');
@@ -110,7 +116,7 @@ export class ScalarModule extends LitModule {
     return findSpecKeys(outputSpec, 'MulticlassPreds');
   }
 
-  firstUpdated() {
+  override firstUpdated() {
     const modelSpec = this.appState.getModelSpec(this.model);
     this.classificationKeys.forEach((predKey) => {
       const predSpec = modelSpec.output[predKey];
@@ -341,6 +347,9 @@ export class ScalarModule extends LitModule {
       const pred = Object.assign(
           {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
           {id: currId});
+      for (const inputKey of this.inputKeys) {
+        pred[inputKey] = currentInputData[i].data[inputKey];
+      }
       preds.push(pred);
     }
 
@@ -374,10 +383,18 @@ export class ScalarModule extends LitModule {
     if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
       const scalarValues = this.preds.map((pred) => pred[key]);
       scoreRange = [Math.min(...scalarValues), Math.max(...scalarValues)];
+      // If the range is 0 (all values are identical, then artificially increase
+      // the range so that an X-axis is properly displayed.
+      if (scoreRange[0] === scoreRange[1]) {
+        scoreRange[0] = scoreRange[0] - .1;
+        scoreRange[1] = scoreRange[1] + .1;
+      }
+    } else if (this.inputKeys.indexOf(key) !== -1) {
+      scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
-      0, this.plotWidth - ScalarModule.plotLeftMargin
+      0, this.plotWidth - ScalarModule.plotLeftMargin * 2
     ]);
   }
 
@@ -402,6 +419,17 @@ export class ScalarModule extends LitModule {
     ]);
   }
 
+  private getValue(preds: Preds, spec: ModelSpec, key: string, label: string) {
+    // If for a multiclass prediction, return the top label score.
+    if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
+      const predictionLabels = spec.output[key].vocab!;
+      const index = predictionLabels.indexOf(label);
+      return preds[key][index];
+    }
+    // Otherwise, return the raw value.
+    return preds[key];
+  }
+
   /**
    * Re-renders threshold bar at the new threshold value and updates datapoint
    * colors.
@@ -416,7 +444,7 @@ export class ScalarModule extends LitModule {
       const scatterplot = item as SVGGElement;
       const key = (item as HTMLElement).dataset['key'];
 
-      if (key == null) {
+      if (key == null || this.inputKeys.indexOf(key) !== -1) {
         return;
       }
 
@@ -428,10 +456,12 @@ export class ScalarModule extends LitModule {
         continue;
       }
 
-      if (margins[key] == null) {
+      // If there is no margin set for the entire dataset (empty string) facet
+      // name, then do not draw a threshold on the plot.
+      if (margins[key] == null || margins[key][''] == null) {
         continue;
       }
-      const threshold = getThresholdFromMargin(+margins[key]);
+      const threshold = getThresholdFromMargin(margins[key][""].margin);
 
       const thresholdSelection = d3.select(scatterplot).select('#threshold');
       thresholdSelection.selectAll('line').remove();
@@ -715,15 +745,7 @@ export class ScalarModule extends LitModule {
       circles
           .attr(
               'cx',
-              (d) => {
-                if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
-                  const predictionLabels = spec.output[key].vocab!;
-                  const index = predictionLabels.indexOf(label);
-                  return xScale(d[key][index]);
-                }
-                // Otherwise, return the regression score.
-                return xScale(d[key]);
-              })
+              (d) => xScale(this.getValue(d, spec, key, label)))
           .attr(
               'cy',
               (d) => {
@@ -784,7 +806,7 @@ export class ScalarModule extends LitModule {
     }
   }
 
-  render() {
+  override render() {
     this.numPlotsRendered = 0;
     // clang-format off
     return html`
@@ -792,6 +814,7 @@ export class ScalarModule extends LitModule {
         ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
+        ${this.inputKeys.map(key => this.renderPlot(key, ''))}
       </div>
     `;
     // clang-format on
@@ -800,21 +823,19 @@ export class ScalarModule extends LitModule {
   renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
     const predictionLabels = spec.output[key].vocab!;
-    const margins = this.classificationService.marginSettings[this.model] || {};
 
     // In the binary classification case, only render one plot that
     // displays the positive class.
     const nullIdx = spec.output[key].null_idx;
     if (predictionLabels.length === 2 && nullIdx != null) {
-      return html`<div>${this.renderThresholdSlider(margins, key)}</div>
-          ${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
+      return html`${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
     }
 
     // Otherwise, return one plot per label in the multiclass case.
     // clang-format off
     return html`
         ${(predictionLabels != null && nullIdx != null) ?
-          this.renderMarginSlider(margins, key) : null}
+          this.renderMarginSlider(key) : null}
         ${predictionLabels.map(label => this.renderPlot(key, label))}`;
     // clang-format on
   }
@@ -824,6 +845,18 @@ export class ScalarModule extends LitModule {
     this.numPlotsRendered++;
 
     const axisTitle = label ? `${key}:${label}` : key;
+    let selectedValue = '';
+    if (this.selectionService.primarySelectedId != null) {
+      const selectedIndex = this.appState.getIndexById(
+          this.selectionService.primarySelectedId);
+      if (selectedIndex != null && selectedIndex < this.preds.length &&
+          this.preds[selectedIndex] != null) {
+        const spec = this.appState.getModelSpec(this.model);
+        const displayVal = formatForDisplay(
+            this.getValue(this.preds[selectedIndex], spec, key, label));
+        selectedValue = `Value: ${displayVal}`;
+      }
+    }
     // clang-format off
     const toggleCollapse = () => {
       const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
@@ -835,84 +868,42 @@ export class ScalarModule extends LitModule {
     // collapseByDefault setting if isPlotHidden hasn't been set yet.
     const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
         collapseByDefault: this.isPlotHidden.get(axisTitle);
-    const scatterplotStyle = styleMap(
-        {'display': `${isHidden ? 'none': 'block'}`});
     return html`
         <div class='plot-holder'>
-          <div class='collapse-bar' @click=${toggleCollapse}>${axisTitle}
+          <div class='collapse-bar' @click=${toggleCollapse}>
+            <div class="axis-title">
+              <div>${axisTitle}</div>
+              <div class="selected-value">${selectedValue}</div>
+            </div>
             <mwc-icon class="icon-button min-button">
               ${isHidden ? 'expand_more': 'expand_less'}
             </mwc-icon>
           </div>
-          <div class='scatterplot-background' style=${scatterplotStyle}>
-            ${svg`<svg class='scatterplot' data-key='${key}'
-                data-label='${label}'>
-            </svg>`}
-          </div>
+          ${isHidden ? null : html`
+            <div class='scatterplot-background'>
+              ${svg`<svg class='scatterplot' data-key='${key}'
+                  data-label='${label}'>
+                </svg>`}
+            </div>`}
         </div>
       `;
     // clang-format on
   }
 
-  renderThresholdSlider(margins: NumericSetting, key: string) {
-    // Convert between margin and classification threshold when displaying
-    // margin as a threshold, as is done for binary classifiers.
-    // Threshold is between 0 and 1 and represents the minimum score of the
-    // positive (non-null) class before a datapoint is classified as positive.
-    // A margin of 0 is the same as a threshold of .5 - meaning we take the
-    // argmax class. A negative margin is a threshold below .5. Margin ranges
-    // from -5 to 5, and can be converted the threshold through the equation
-    // margin = ln(threshold / (1 - threshold)).
-    const onChange = (e: Event) => {
-      const newThresh = +(e.target as HTMLInputElement).value;
-      const newMargin = newThresh !== 1 ?
-          (newThresh !== 0 ? Math.log(newThresh / (1 - newThresh)) : -5) :
-          5;
-      margins[key] = newMargin;
+  renderMarginSlider(key: string) {
+    const margin = this.classificationService.getMargin(this.model, key);
+    const callback = (e: Event) => {
+      this.classificationService.setMargin(
+          // tslint:disable-next-line:no-any
+          this.model, key, (e as any).detail.margin);
     };
-    const marginToVal = (margin: number) => {
-      const val = getThresholdFromMargin(+margin);
-      return Math.round(100 * val) / 100;
-    };
-    return this.renderSlider(
-        margins, key, 0, 1, 0.01, onChange, marginToVal, 'threshold');
+    return html`<threshold-slider .margin=${margin} label=${key}
+                  ?isThreshold=${false} ?showControls=${true}
+                  @threshold-changed=${callback}>
+                </threshold-slider>`;
   }
 
-  renderMarginSlider(margins: NumericSetting, key: string) {
-    const onChange = (e: Event) => {
-      const newMargin = (e.target as HTMLInputElement).value;
-      margins[key] = +newMargin;
-    };
-    const marginToVal = (margin: number) => margin;
-    return this.renderSlider(
-        margins, key, -5, 5, 0.05, onChange, marginToVal, 'margin');
-  }
-
-  renderSlider(
-      margins: NumericSetting, key: string, min: number, max: number,
-      step: number, onChange: (e: Event) => void,
-      marginToVal: (margin: number) => number, title: string) {
-    const margin = margins[key];
-    if (margin == null) {
-      return;
-    }
-    const val = marginToVal(margins[key]);
-    const isDefaultValue = margins[key] === 0;
-    const reset = (e: Event) => {
-      margins[key] = 0;
-    };
-    return html`
-        <div class="slider-row">
-          <div>${key} ${title}:</div>
-          <input type="range" min="${min}" max="${max}" step="${step}"
-                 .value="${val.toString()}" class="slider"
-                 @change=${onChange}>
-          <div class="slider-label">${val}</div>
-          <button @click=${reset} ?disabled="${isDefaultValue}">Reset</button>
-        </div>`;
-  }
-
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
   }
 }

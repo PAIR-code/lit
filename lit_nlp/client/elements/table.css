@@ -1,72 +1,59 @@
 :host {
   --table-header-height: 40px;
-  --toolbar-height: 43px;
+  --table-footer-height: 26px;
+  --table-cell-padding: 4px 8px;
 }
 
-.toolbar{
-  font-family: 'Google Sans', sans-serif !important;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  height: var(--toolbar-height);
-}
-
-#toolbar-buttons{
-  margin-bottom: 6px;
-}
-
-#holder{
-  display: flex;
-  flex-direction: column;
+.holder {
   height: 100%;
+  padding: 0px 1px; /* avoid spurious horizontal scrollbar */
 }
 
-.table-container {
-  flex: 1;
-  overflow: visible;
-  height: 100%
-}
-
-.toolbar + .table-container {
-  height: calc(100% - var(--toolbar-height));
-}
-
-#rows-container{
+.holder table {
   width: 100%;
-  height: calc(100% - var(--table-header-height));
-  overflow-y: auto;
-}
-
-#rows {
-  width: 100%;
-}
-
-#header-container {
-  width: 100%;
-  overflow-x:hidden;
-}
-
-#header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   min-width: 100%;
+  border-spacing: 0;
+  color: var(--lit-gray-800);
+  position: relative;
+  z-index: 0;
+}
+
+/**
+ * Header styles
+ */
+.holder table > thead {
+  position: sticky;
+  top: 0;
+  height: var(--table-header-height);
+  z-index: 1;
+  background: #f5fcfc;
+}
+
+.holder table > thead > th {
+  font-weight: 400;
+  color: #04394b;
+  border-bottom: solid 1px #dadce0;
 }
 
 .column-header {
-  background: #f5fcfc;
-  font-weight: 400;
-  font-size: 10pt;
-  line-height: 12pt;
-  color: #04394b;
-  border-bottom: solid 1px #dadce0;
-  padding: 5px 2px;
   cursor: pointer;
   display: flex;
+  flex-grow: 1;
+  flex-direction: row;
   align-items: center;
   position: relative;
   box-sizing: border-box;
-  height: var(--table-header-height);
+}
+
+.column-header.right-align {
+  justify-content: flex-end;
+}
+
+.header-holder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--table-cell-padding);
 }
 
 .header-text {
@@ -78,9 +65,9 @@
 }
 
 .arrow-container {
-  width: 20px;
+  width: 16px;
   height: 20px;
-  right: 2px;
+  right: 8px;
   position: relative;
   user-select: none;
 }
@@ -92,11 +79,11 @@
 }
 
 .arrow.up {
-  top: -5px;
+  top: -6px;
 }
 
 .arrow.down {
-  top: 3px;
+  top: 2px;
 }
 
 .arrow.active {
@@ -111,6 +98,7 @@
   width: 20px;
   height: 20px;
   user-select: none;
+  padding-left: 4px;
 }
 
 .menu-button {
@@ -129,63 +117,44 @@
   position: absolute;
 }
 
-#search-menu-container {
+.search-input {
   width:100%;
 }
 
-table {
-  min-width: 100%;
-  border-spacing: 0;
-  font-family: 'Google Sans', sans-serif;
-  font-size: 10pt;
-  line-height: 130%;
-  padding: 1px; /* don't clip outline if there's a reference selection */
-}
-
-thead {
-  display: table-header-group;
-  vertical-align: middle;
-  border-color: inherit;
-}
-
-tr {
-  display: table-row;
-  vertical-align: inherit;
-  border-color: inherit;
-}
-
-tr:hover {
+/**
+ * Body styles
+ */
+tbody tr:hover {
   background: #f8f9fa;
 }
 
-tr.selected {
+tbody tr.selected {
   background: #c5e4e8;
-  color: #04394b;
+  color: var(--lit-gray-800);
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
-tr.primary-selected {
+tbody tr.primary-selected {
   background: #9bb7ba;
-  color: #04394b;
+  color: #142838;
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
-tr.focused {
+tbody tr.focused {
   background: rgba(255, 0, 0, 0.2);
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
-tr.reference-selected {
+tbody tr.reference-selected {
   outline: 1px solid #2f8c9b;
 }
 
-td {
-  vertical-align: middle;
+tbody td {
+  vertical-align: top;
   min-width: 80px;
-  padding: 5px 10px;
   box-sizing: border-box;
 }
 
@@ -193,48 +162,91 @@ td {
   margin-left: 20px;
 }
 
-td div {
+.cell-holder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: var(--table-cell-padding);
+}
+
+.cell-holder.right-align {
+  justify-content: flex-end;
+}
+
+.text-cell {
   max-height: 150px;
   overflow: auto;
-}
-
-/* For in-line icons in a <span> */
-[data-icon] {
-  margin: 0;
-}
-
-[data-icon]:before {
-  font-family: 'Material Icons';
-  content: attr(data-icon);
-  vertical-align: middle;
-}
-
-/* Column settings */
-.column-button {
-  position: absolute;
-  right: 15px;
-  top: 5px;
-  width: 100px;
-}
-
-.column-dropdown-hide {
-  display:none;
-}
-
-.column-dropdown {
-  top: 50px;
-  right: 15px;
-  padding: 10px;
-  background: white;
-  border: 1px solid gray;
-  position: absolute;
-  visibility: visible;
-  z-index: 1000;
-  max-height: calc(100% - 80px);
-  overflow: auto;
+  white-space: pre-wrap;
 }
 
 /* TODO(lit-dev): Make the table image width configurable. */
-.table-img{
+.table-img {
   width: 100px;
+}
+
+
+/**
+ * Footer styles
+ */
+.holder table > tfoot {
+  position: sticky;
+  bottom: 0;
+  height: var(--table-footer-height);
+
+  background: #f5fcfc;
+}
+
+.footer {
+  color: #04394b;
+  font-weight: 400;
+  font-size: 10pt;
+  line-height: 12pt;
+  padding: 3px;
+
+  display: flex;
+  flex-direction: row;
+}
+
+.current-page-num {
+  display: inline-block;
+  text-align: center;
+  min-width: 16px;
+}
+
+/* TODO(lit-dev): Move this to shared_styles and ensure elements can use shared
+ * styles
+ */
+/**
+ * For standalone MWC icons as buttons.
+ * We don't use mwc-icon-button because this adds
+ * a large backdrop and extra whitespace.
+ */
+mwc-icon.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+mwc-icon.icon-button:hover {
+  opacity: .7;
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}
+
+mwc-icon.disabled {
+  cursor: default;
+  color: rgba(60, 64, 67, 0.38);
+}
+
+mwc-icon.disabled:hover {
+  opacity: 1;
+}
+
+mwc-icon.button-extra-margin {
+  margin-left: 4px;
 }
