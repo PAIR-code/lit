@@ -151,7 +151,7 @@ export class LineChart extends ReactiveElement {
         .attr("width", this.width)
         .attr("height", this.height)
         .attr("fill", "none")
-        .attr("pointer-events", "all")
+        .attr("pointer-events", "visible")
         .on("mouseover", () => { focus.style("display", null); })
         .on("mouseout", () => {
           focus.style("display", "none");

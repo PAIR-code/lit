@@ -107,7 +107,7 @@ export class DatapointEditorModule extends LitModule {
   }
 
   override firstUpdated() {
-    const container = this.shadowRoot!.getElementById('edit-table')!;
+    const container = this.shadowRoot!.querySelector('.module-container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.resize();
     });
@@ -150,6 +150,9 @@ export class DatapointEditorModule extends LitModule {
     const keys = Array.from(Object.keys(this.dataTextLengths));
     for (const key of keys) {
       const defaultCharLength = this.dataTextLengths[key];
+      if (defaultCharLength === -Infinity) {
+        continue;
+      }
 
       // Heuristic for computing height.
       const characterWidth = 8.3;  // estimate for character width in pixels
@@ -159,11 +162,6 @@ export class DatapointEditorModule extends LitModule {
       // Set 2 ex per line.
       this.inputHeights[key] = `${2 * numLines + pad}ex`;
     }
-  }
-
-  private growToTextSize(e: KeyboardEvent) {
-    const elt = e.target as HTMLElement;
-    elt.style.height = `${elt.scrollHeight}px`;
   }
 
   private resetEditedData(selectedInputData: Input|null) {
@@ -519,13 +517,12 @@ export class DatapointEditorModule extends LitModule {
     // clang-format off
     return html`
       <div class="entry"
-        @input=${(e: KeyboardEvent) => {this.growToTextSize(e);}}
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
-          <div class='field-type'>(${fieldSpec.__name__})</div>
+          <div class='field-type'>${fieldSpec.__name__}</div>
         </div>
         <div class=${classMap(entryContentClasses)}>
           ${renderInput()}

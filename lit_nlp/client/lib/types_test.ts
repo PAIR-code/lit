@@ -17,7 +17,10 @@
 
 import 'jasmine';
 
-import {formatForDisplay} from './types';
+import {ClassificationModule} from '../modules/classification_module';
+import {DatapointEditorModule} from '../modules/datapoint_editor_module';
+
+import {canonicalizeLayout, formatForDisplay, LitCanonicalLayout, LitComponentLayout} from './types';
 
 describe('formatForDisplay test', () => {
 
@@ -52,5 +55,47 @@ describe('formatForDisplay test', () => {
     // string array
     formatted = formatForDisplay(['a', 'b', 'cd']);
     expect(formatted).toBe('a, b, cd');
+  });
+});
+
+const MOCK_LAYOUT: LitComponentLayout = {
+  components: {
+    'Main': [
+      DatapointEditorModule,
+    ],
+    'internals': [
+      // Duplicated per model and in compareDatapoints mode.
+      ClassificationModule
+    ],
+  },
+  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
+  description: 'Mock layout for testing.'
+};
+
+const CANONICAL_MOCK_LAYOUT: LitCanonicalLayout = {
+  upper: {
+    'Main': [
+      DatapointEditorModule,
+    ],
+  },
+  lower: {
+    'internals': [
+      // Duplicated per model and in compareDatapoints mode.
+      ClassificationModule
+    ],
+  },
+  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
+  description: 'Mock layout for testing.'
+};
+
+describe('canonicalizeLayout test', () => {
+  it('correctly converts a legacy layout', () => {
+    const converted = canonicalizeLayout(MOCK_LAYOUT);
+    expect(converted).toEqual(CANONICAL_MOCK_LAYOUT);
+  });
+
+  it('does not modify an already canonical layout', () => {
+    const converted = canonicalizeLayout(CANONICAL_MOCK_LAYOUT);
+    expect(converted).toEqual(CANONICAL_MOCK_LAYOUT);
   });
 });

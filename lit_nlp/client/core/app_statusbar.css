@@ -61,6 +61,7 @@ mwc-icon.icon-button:hover {
 }
 
 .signature {
+  font-family: 'Google Sans', sans;
   padding-right: 10px;
   display: flex;
 }
@@ -133,12 +134,13 @@ mwc-icon.icon-button:hover {
 }
 
 .error-message-header {
+  font-family: 'Google Sans', sans;
   font-size: 1.5rem;
-  margin: 10px;
+  margin: 16px 8px;
 }
 
 .error-message-holder {
-  margin: 10px;
+  margin: 0 8px;
   height: 100%;
   overflow: auto;
 }

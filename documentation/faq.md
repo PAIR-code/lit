@@ -107,9 +107,6 @@ The supported format(s) depend on the dataset class; in most cases, the user
 should implement the `load()` method on their dataset class to handle the
 appropriate format.
 
-Note: please contact [lit-dev@](mailto:lit-dev@google.com) if you plan to use
-this feature, as the API may change in the future.
-
 ### Using components outside the LIT UI
 
 Python components such as models, datasets, and generators are designed to

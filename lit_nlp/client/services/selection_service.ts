@@ -46,7 +46,7 @@ export class SelectionService extends LitService implements
 
   // Track the last user, so components can avoid resetting on selections they
   // triggered.
-  @observable private lastUserInternal: ServiceUser = null;
+  @observable private lastUserInternal?: ServiceUser;
 
   @computed
   get lastUser() {
@@ -82,13 +82,13 @@ export class SelectionService extends LitService implements
   }
 
   @action
-  setLastUser(user: ServiceUser) {
+  setLastUser(user?: ServiceUser) {
     this.lastUserInternal = user;
   }
 
   @action
-  setPrimarySelection(id: string|null, user: ServiceUser = null) {
-    if (id === null || this.selectedIdsSet.has(id)) {
+  setPrimarySelection(id: string|null, user?: ServiceUser) {
+    if (id == null || this.selectedIdsSet.has(id)) {
       // Primary id is within the selected set, or we're clearing selection.
       this.primarySelectedIdInternal = id;
       this.setLastUser(user);
@@ -99,7 +99,7 @@ export class SelectionService extends LitService implements
   }
 
   @action
-  selectIds(ids: string[], user: ServiceUser = null) {
+  selectIds(ids: string[], user?: ServiceUser) {
     this.selectedIdsSet.clear();
     ids.forEach(id => {
       this.selectedIdsSet.add(id);
@@ -118,7 +118,7 @@ export class SelectionService extends LitService implements
   }
 
   @action
-  selectAll(user: ServiceUser = null) {
+  selectAll(user?: ServiceUser) {
     const ids = this.appState.currentInputData.map(d => d.id);
     this.selectIds(ids, user);
   }

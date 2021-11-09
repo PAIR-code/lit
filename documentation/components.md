@@ -31,9 +31,6 @@ on every invocation.) Generally, you'll need to:
 *   In your `predict()` or `predict_minibatch()` function, build a feed dict and
     call `session.run` directly.
 
-For an example implementation using BERT, see
-[`text_similarity_demo.py`](http://google3/learning/vis/lit/examples/estimator/text_similarity_demo.py).
-
 Alternatively, you can export to a SavedModel and load this in an eager mode
 runtime. This leads to much simpler code (see
 [this example](../lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
@@ -60,7 +57,7 @@ the server, while the LIT `Model` implementation simply manages the RPC stub and
 handles format conversion and any additional pre- or post-processing.
 
 *   For a general-purpose interface to connect to another LIT server over HTTP,
-    see google3/third_party/py/lit_nlp/components/remote_model.py.
+    see [lit_nlp/components/remote_model.py](../lit_nlp/components/remote_model.py).
 
 ### Static predictions
 
@@ -109,7 +106,7 @@ confusion matricies, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
 *   For a basic example on a binary sentiment task, see
-    google3/third_party/py/lit_nlp/examples/simple_tf2_demo.py.
+    [lit_nlp/examples/simple_tf2_demo.py](../lit_nlp/examples/simple_tf2_demo.py).
 *   Models should define a `MulticlassPreds` field in their output spec with the
     `vocab=` attribute as the set of class labels, and for each example should
     return a vector of probabilities for each class.
@@ -127,7 +124,7 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
     are more than two classes, a "margin" can be set which acts as a bias (in
     log space) for the negative class.
 
-![Classification Results Module](images/components/classification-results.png){style="max-width:600px"}
+![Classification Results Module](images/components/classification-results.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
 
 ### Regression / Scoring
 
@@ -147,7 +144,7 @@ LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
-*   For a basic example on an image labeling task, see google3/third_party/py/lit_nlp/examples/image_demo.py.
+*   For a basic example on an image labeling task, see [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -179,9 +176,9 @@ or decoder.
     as `List[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
 *   For modeling examples, see
-    google3/third_party/py/lit_nlp/examples/models/t5.py
+    [lit_nlp/examples/models/t5.py](../lit_nlp/examples/models/t5.py)
 
-![Generated Text Module](images/components/generation-results.png){style="max-width:600px"}
+![Generated Text Module](images/components/generation-results.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
 
 ### Span Labeling and Structured Prediction
 
@@ -201,7 +198,7 @@ interactive visualizations.
 *   Experimentally, byte-based annotations are supported via the
     `MultiSegmentAnnotations` type.
 
-![Structured Predictions Module](images/components/structured-preds.png){style="max-width:400px"}
+![Structured Predictions Module](images/components/structured-preds.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 ### Multiple input segments
 
@@ -214,7 +211,7 @@ and otherwise to different parts of the input.
     [Dataset class documentation](./api.md#datasets) and the corresponding
     [Model](./api.md#models).
 *   For a more involved code example including per-token gradients, see
-    google3/third_party/py/lit_nlp/examples/glue_demo.py.
+    [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py).
 
 ### Tabular data
 
@@ -224,7 +221,7 @@ types. LIT can be used as a replacement for the [What-If Tool](https://whatif-to
 containing a similar feature set but with more extensibility.
 
 *   For a demo using a penguin stats dataset/binary classification task, see
-    google3/third_party/py/lit_nlp/examples/penguin_demo.py.
+    [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py).
 
 ### Images
 
@@ -237,10 +234,10 @@ NOTE: We may transition images away from encded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See google3/third_party/py/lit_nlp/examples/datasets/open_images.py for a dataset
+*   See [lit_nlp/examples/datasets/open_images.py](../lit_nlp/examples/datasets/open_images.py) for a dataset
     containing images, including converting images to base64 encoded strings.
 *   For a demo of an image classifier, see
-    google3/third_party/py/lit_nlp/examples/image_demo.py.
+    [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
 
 ## Token-based Salience
 
@@ -249,7 +246,7 @@ gradient-based methods as well as black-box techniques like LIME that don't
 require any access to model internals. Output is rendered in the Salience Maps
 module in the LIT UI, which allows for comparison of multiple methods at once:
 
-![Salience Map Module](./images/components/salience-map.png){style="max-width:600px"}
+![Salience Map Module](./images/components/salience-map.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
 
 For a demo with a BERT-based classifier, see https://pair-code.github.io/lit/demos/glue.html and navigate to the
 "Explanations" tab.
@@ -378,7 +375,7 @@ slow as it requires many evaluations of the model. Additionally, LIME can be
 noisy on longer inputs, as there are more tokens to ablate. To compensate, you
 can increase the number of samples:
 
-![LIME configuration options](./images/components/lime-options.png){style="max-width:600px"}
+![LIME configuration options](./images/components/lime-options.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
 
 LIME works out-of-the-box with any classification (`MulticlassPreds`) or
 regression/scoring (`RegressionScore`) model.
@@ -424,7 +421,7 @@ through the `ImageSalience` type.
 LIT can display a visualization of attention heads from transformers and other
 models:
 
-![Attention Visualization](./images/components/attention.png){style="max-width:400px"}
+![Attention Visualization](./images/components/attention.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 To enable this, your model should return one or more fields of the type
 `AttentionHeads`, with values as arrays of shape `<float>[num_heads, num_tokens,
@@ -457,7 +454,7 @@ visualize the latent space of your model, in order to find clusters or patterns
 in the data. [UMAP](https://umap-learn.readthedocs.io/en/latest/) and PCA are
 both supported as projection techniques.
 
-![Embedding Projector](./images/components/embeddings.png){style="max-width:500px"}
+![Embedding Projector](./images/components/embeddings.png)<!-- DO NOT REMOVE {style="max-width:500px"} -->
 
 The plot can be panned, zoomed, and rotated, and you can click a point to select
 an example, or shift-click to select a group. You can also use LIT's global
@@ -517,7 +514,7 @@ between different categorical features. You can click cells or row/column
 headers to select a subset of examples, which is useful for intersectional
 analysis.
 
-![Confusion Matrix](./images/components/confusion-matrix.png){style="max-width:600px"}
+![Confusion Matrix](./images/components/confusion-matrix.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
 
 To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
 
@@ -603,7 +600,7 @@ effect of that feature on model output, given the datapoints chosen.
 If no datapoints are selected, then the calculations are done across all
 datapoints, giving a global view of feature effects.
 
-![Partial Dependence Plots Module](./images/components/lit-pdps.png){style="max-width:400px"}
+![Partial Dependence Plots Module](./images/components/lit-pdps.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 ## TCAV
 
@@ -637,11 +634,11 @@ needed
 For this example, we select all examples containing the word 'humor' in the data
 table.
 
-![Data table - select examples](./images/components/tcav-search-examples.png){style="max-width:400px"}
+![Data table - select examples](./images/components/tcav-search-examples.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 2.) Next, name the slice and click 'Create slice'.
 
-![Slice](./images/components/tcav-create-slice.png){style="max-width:280px"}
+![Slice](./images/components/tcav-create-slice.png)<!-- DO NOT REMOVE {style="max-width:280px"} -->
 
 3.) Finally, navigate to the TCAV tab, select the newly created slice, and click
 'Run TCAV'.
@@ -651,7 +648,7 @@ random splits of examples in the rest of the dataset. Alternatively, selecting a
 second 'negative' slice would initiate relative TCAV, which compares the
 selected slice's examples against those in the negative slice.
 
-![TCAV1](./images/components/tcav-select-slice.png){style="max-width:800px"}
+![TCAV1](./images/components/tcav-select-slice.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
 
 When the run is complete (usually after a few seconds), the results are
 displayed in the table. In this example, the TCAV score is ~0.8, which is higher
@@ -660,7 +657,7 @@ represents 'null hypothesis', calculated with random concepts.) From this, we
 gather that the humor concept positively influences the prediction class 1, or
 positive sentiment.
 
-![TCAV2](./images/components/tcav-results-table.png){style="max-width:800px"}
+![TCAV2](./images/components/tcav-results-table.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
 
 ### Statistical Significance
 
@@ -711,7 +708,7 @@ components.
 
 Examples can be edited manually in the Datapoint Editor module:
 
-![Manual Edit in the Datapoint Editor](./images/components/manual-edit.png){style="max-width:400px"}
+![Manual Edit in the Datapoint Editor](./images/components/manual-edit.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 The "Add and Compare" button can be used to enter comparison mode, which will
 automatically "pin" the original example as a reference selection. Many LIT
@@ -724,7 +721,7 @@ You can also use the toolbar controls to enter comparison mode. LIT also keeps
 track of the relationship between examples, and you can use the pair selection
 controls to cycle through the available (original, edited) examples:
 
-![Pair Selection Controls](./images/components/pair-selection.png){style="max-width:700px"}
+![Pair Selection Controls](./images/components/pair-selection.png)<!-- DO NOT REMOVE {style="max-width:700px"} -->
 
 ### Generators
 

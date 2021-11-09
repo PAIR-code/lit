@@ -80,7 +80,9 @@ class MobileNet(model.Model):
   def output_spec(self):
     return {
         'preds':
-            lit_types.MulticlassPreds(vocab=self.labels),
+            lit_types.MulticlassPreds(
+                vocab=self.labels,
+                autosort=True),
         'grads':
             lit_types.ImageGradients(
                 align='image', grad_target_field_key='grad_target'),

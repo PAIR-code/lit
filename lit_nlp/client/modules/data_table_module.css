@@ -1,22 +1,10 @@
 .module-toolbar {
   justify-content: space-between;
-  height: 32px; /* for buttons */
 }
 
 #toolbar-buttons{
   display: flex;
   flex-direction: row;
-}
-
-/* For in-line icons in a <span> */
-[data-icon] {
-  margin: 0;
-}
-
-[data-icon]:before {
-  font-family: 'Material Icons';
-  content: attr(data-icon);
-  vertical-align: middle;
 }
 
 /* Column settings */
@@ -36,15 +24,4 @@
   z-index: 1000;
   max-height: calc(100% - 48px);
   overflow: auto;
-}
-
-.switch-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
 }

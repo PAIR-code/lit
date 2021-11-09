@@ -25,7 +25,7 @@ import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 
-import {VizColor} from '../lib/colors';
+import {getVizColor} from '../lib/colors';
 import {EdgeLabel} from '../lib/types';
 
 import {styles} from './span_graph_vis.css';
@@ -186,7 +186,7 @@ export class SpanGraphVis extends LitElement {
   }
 
   renderLayer(layer: AnnotationLayer, i: number) {
-    const rowColor = VizColor.getColor('deep', i).color;
+    const rowColor = getVizColor('deep', i).color;
     // Positioning relative to the group transform, which will be applied later.
     const rowLabelX = -10;
     const rowLabelY = -(this.bracketHeight + 0.5 * this.lineHeight);
@@ -288,7 +288,7 @@ export class SpanGraphVis extends LitElement {
   /* Set mouseovers, using d3. */
   private setMouseovers(group: SVGGElement, edges: EdgeLabel[]) {
     const rowColor = group.dataset['color'] as string;
-    const grayColor = VizColor.getColor('deep', null).color;
+    const grayColor = getVizColor('deep', 'other').color;
 
     const spanGroups = d3.select(group).selectAll('g.edge-group').data(edges);
     const tokenSpans = d3.select(this.getTokenGroup()).selectAll('tspan');

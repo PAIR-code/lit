@@ -227,8 +227,7 @@ accordingly.
 Note: there are a few additional methods in the model API - see
 [`Model`](../lit_nlp/api/model.py) for details.
 
-If your model is served over RPC, consider using the
-[`BatchedRemoteModel`](https://source.corp.google.com/piper///depot/google3/third_party/py/lit_nlp/api/model.py?q=symbol:BatchedRemoteModel)
+If your model is on a remote server, consider using the `BatchedRemoteModel`
 base class, which implements parallel batched requests using a thread pool.
 
 ### Adding more outputs
@@ -517,7 +516,7 @@ For example, the following spec:
 
 will give this form to configure backtranslation:
 
-![Backtranslation Config Form](./images/api/backtranslation-form-example.png){style="max-width:400px"}
+![Backtranslation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 Currently `config_spec()` is supported only for generators and salience methods,
 though any component can support the `config` argument to its `run()` method,

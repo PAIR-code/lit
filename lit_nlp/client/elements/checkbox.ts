@@ -90,6 +90,9 @@ export class LitCheckbox extends LitElement {
  * hover/focus logic.
  */
 class MwcCheckboxOverride extends Checkbox {
+  // TODO(b/204677206): remove this once we clean up property declarations.
+  __allowInstanceProperties = true;  // tslint:disable-line
+
   constructor() {
     super();
     Object.defineProperty(this, 'shouldRenderRipple', {

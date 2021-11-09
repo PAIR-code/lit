@@ -29,14 +29,13 @@ import '@material/mwc-textfield';
 import '../elements/checkbox';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html, TemplateResult} from 'lit';
+import {html, TemplateResult} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {datasetDisplayName, NONE_DS_DICT_KEY} from '../lib/types';
+import {datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY} from '../lib/types';
 import {linkifyUrls} from '../lib/utils';
 import {getModuleConstructor} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
@@ -562,6 +561,24 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   renderLayoutConfig() {
     const layouts = Object.keys(this.appState.layouts);
+
+    const renderLayoutAreaInfo = (groupLayout: LitTabGroupLayout) => {
+      return Object.keys(groupLayout).map((tabName: string) => {
+        // clang-format off
+        return html`
+          <div class='info-group'>
+            <div class='info-group-subtitle'>
+              ${tabName}
+            </div>
+            ${groupLayout[tabName].map(module => html`
+              <div class='indent-line'>
+                ${getModuleConstructor(module).title}
+              </div>`)}
+          </div>`;
+        // clang-format on
+      });
+    };
+
     const renderLayoutOption =
         (name: string) => {
           const checked = this.selectedLayout === name;
@@ -585,23 +602,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const disabled = false;
 
           // The expanded info contains info about the components.
-          const groups = this.appState.layouts[name].components;
+          const layout = this.appState.layouts[name];
           // clang-format off
           const expandedInfoHtml = html`
-          <div class='info-group-title'>
-            Modules
-          </div>
-          ${
-            Object.keys(groups).map((groupName: string) => 
-              html`
-              <div class='info-group'> 
-                <div class='info-group-subtitle'>
-                  ${groupName}
-                </div>
-                ${groups[groupName].map(module => 
-                  html`<div class='indent-line'>${getModuleConstructor(module).title}</div>`)}
-              </div>`
-          )}`;
+            <div class='info-group-title'>Upper</div>
+            ${renderLayoutAreaInfo(layout.upper)}
+            <div class='info-group-title'>Lower</div>
+            ${renderLayoutAreaInfo(layout.lower)}
+          `;
           // clang-format on
           const description = this.appState.layouts[name].description || '';
           return this.renderLine(

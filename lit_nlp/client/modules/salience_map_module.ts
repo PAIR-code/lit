@@ -34,6 +34,7 @@ import {LitModule} from '../core/lit_module';
 import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
+import {AppState} from '../services/services';
 
 import {styles} from './salience_map_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -84,19 +85,26 @@ abstract class SalienceCmap {
  */
 export class UnsignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
     const hue = 270;  // purple
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${100 * intensity}%)`;
+    return `hsl(${hue}, 50%, ${100 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (d > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
@@ -105,23 +113,28 @@ export class UnsignedSalienceCmap extends SalienceCmap {
  */
 export class SignedSalienceCmap extends SalienceCmap {
   /**
+   * Color lightness on a [0,1] scale.
+   */
+  lightness(d: number) {
+    d = Math.abs(d);
+    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
+    return (1 - d) ** this.gamma;
+  }
+
+  /**
    * Color mapper. Higher salience values get darker colors.
    */
   bgCmap(d: number) {
-    let hue = 188;  // teal from WHAM
-    if (d < 0.) {
-      hue = 354;    // red(ish) from WHAM
-      d = Math.abs(d);  // make positive for intensity
-    }
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${25 + 75 * intensity}%)`;
+    const hue =
+        (d >= 0) ? 188 /* teal from WHAM */ : 354 /* red(ish) from WHAM */;
+    return `hsl(${hue}, 50%, ${25 + 75 * this.lightness(d)}%)`;
   }
 
   /**
    * Make sure tokens are legible when colormap is dark.
    */
   textCmap(d: number) {
-    return (Math.abs(d) > 0.1) ? 'white' : 'black';
+    return (this.lightness(d) < 0.66) ? 'white' : 'black';
   }
 }
 
@@ -142,7 +155,7 @@ export class SalienceMapModule extends LitModule {
   private readonly focusService = app.getService(FocusService);
 
   // Types that contain salience information to display.
-  private readonly salienceTypes: LitName[] =
+  private static readonly salienceTypes: LitName[] =
       ['TokenSalience', 'ImageSalience', 'FeatureSalience'];
 
   static override get styles() {
@@ -170,7 +183,7 @@ export class SalienceMapModule extends LitModule {
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
       const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, this.salienceTypes);
+          interpreters[key].metaSpec, SalienceMapModule.salienceTypes);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -484,9 +497,25 @@ export class SalienceMapModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    // TODO(b/177963928): determine visibility based on component list
-    // and model compatibility?
-    return true;
+    // TODO(b/204779018): Add appState interpreters to method arguments.
+
+    // Ensure there are salience interpreters for loaded models.
+    const appState = app.getService(AppState);
+    for (const modelInfo of Object.values(modelSpecs)) {
+      for (let i = 0; i < modelInfo.interpreters.length; i++) {
+        const interpreterName = modelInfo.interpreters[i];
+        if (appState.metadata == null) {
+          return false;
+        }
+        const interpreter = appState.metadata.interpreters[interpreterName];
+        const salienceKeys = findSpecKeys(
+            interpreter.metaSpec, SalienceMapModule.salienceTypes);
+        if (salienceKeys.length !== 0) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 

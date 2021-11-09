@@ -23,9 +23,10 @@ dependencies:
     - gunicorn
     - pip
     - pip:
-        - tensorflow
+        - tensorflow==2.6.0
+        - keras==2.6.0
         - tfds-nightly
-        - tensorflow-text
+        - tensorflow-text==2.6.0
         - rouge-score
         - sacrebleu
         - umap-learn
@@ -38,3 +39,5 @@ dependencies:
         - saliency
         - matplotlib
         - attrs
+        - Jinja2
+        - stanza

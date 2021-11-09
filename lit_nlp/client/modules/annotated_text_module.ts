@@ -60,10 +60,16 @@ export class AnnotatedTextGoldModule extends LitModule {
         filterToKeys(input.data, annotationNames);
     const annotationSpec = filterToKeys(dataSpec, annotationNames);
 
+    // If more than one model is selected, AnnotatedTextModule will be offset
+    // vertically due to the model name header, while this one won't be.
+    // So, add an offset so that the content still aligns when there is a
+    // AnnotatedTextGoldModule and a AnnotatedTextModule side-by-side.
+    const offsetForHeader = !this.appState.compareExamplesEnabled &&
+        this.appState.currentModels.length > 1;
+
     // clang-format off
     return html`
-      ${!this.appState.compareExamplesEnabled ?
-        html`<div class='offset-for-module-header'></div>` : null}
+      ${offsetForHeader? html`<div class='offset-for-module-header'></div>` : null}
       <annotated-text-vis .segments=${segments}
                           .segmentSpec=${segmentSpec}
                           .annotations=${annotations}

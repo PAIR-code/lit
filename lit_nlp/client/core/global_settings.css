@@ -43,6 +43,7 @@
 }
 
 #title-bar {
+  font-family: 'Google Sans', sans;
   border-bottom: 1px solid #dadce0;
   font-size: 18pt;
   line-height: 24pt;
@@ -58,6 +59,7 @@
 }
 
 #links {
+  font-family: 'Google Sans', sans;
   display: flex;
   justify-content: center;
   color: grey;
@@ -85,6 +87,7 @@ a:hover {
 }
 
 .tab{
+  font-family: 'Google Sans', sans;
   padding: 12pt;
   height: 12pt;
   border-top-right-radius: 24pt;
@@ -266,8 +269,10 @@ a:hover {
 }
 
 .config-title {
+  font-family: 'Google Sans', sans;
   font-size: 1.5rem;
   padding: 12pt 12pt 0 12pt;
+  margin-bottom: 4px;
 }
 
 .description {

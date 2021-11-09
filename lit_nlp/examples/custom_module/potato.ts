@@ -17,9 +17,9 @@ import {ModelInfoMap, Spec} from '../../client/lib/types';
 /** Custom LIT module. Delicious baked, mashed, or fried. */
 @customElement('potato-module')
 export class PotatoModule extends LitModule {
-  static title = 'Potato';
+  static override title = 'Potato';
   static override numCols = 4;
-  static template = () => {
+  static override template = () => {
     return html`<potato-module></potato-module>`;
   };
 
@@ -33,7 +33,7 @@ export class PotatoModule extends LitModule {
     // clang-format on
   }
 
-  static shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

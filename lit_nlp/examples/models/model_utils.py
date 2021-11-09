@@ -16,12 +16,12 @@ def load_pretrained(cls, *args, **kw):
     return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
-def batch_encode_pretokenized(
-    tokenizer: transformers.tokenization_utils_base.PreTrainedTokenizerBase,
-    tokenized_inputs: List[List[str]],
-    tokenized_pair_inputs: Optional[List[List[str]]] = None,
-    tensor_type="tf",
-    **kw) -> transformers.tokenization_utils_base.BatchEncoding:
+def batch_encode_pretokenized(tokenizer: transformers.PreTrainedTokenizerBase,
+                              tokenized_inputs: List[List[str]],
+                              tokenized_pair_inputs: Optional[List[
+                                  List[str]]] = None,
+                              tensor_type="tf",
+                              **kw) -> transformers.BatchEncoding:
   """Batch encode pre-tokenized text, without further splitting.
 
   This is necessary because tokenizer(..., is_split_into_words=True) doesn't
@@ -64,5 +64,4 @@ def batch_encode_pretokenized(
 
   encoded_input = tokenizer.pad(
       encoded_input, padding="longest", return_attention_mask=True)
-  return transformers.tokenization_utils_base.BatchEncoding(
-      encoded_input, tensor_type=tensor_type)
+  return transformers.BatchEncoding(encoded_input, tensor_type=tensor_type)

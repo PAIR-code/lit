@@ -21,15 +21,14 @@
 // tslint:disable:no-new-decorators
 import '@material/mwc-icon';
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {LitRenderConfig, RenderConfig} from '../services/modules_service';
+import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
 import {app} from './app';
@@ -37,16 +36,15 @@ import {LitModule} from './lit_module';
 import {styles} from './modules.css';
 import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
 
-// Number of columns in the full width of the layout.
-const NUM_COLS = 12;
-
 // Width of a minimized widget group. From widget_group.css.
-const MINIMIZED_WIDTH_PX = 36 + 2 + 8; /* width + border + padding */
+const MINIMIZED_WIDTH_PX = 38 + 4; /* width + padding */
+
+const COMPONENT_AREA_HPAD = 4; /* padding pixels */
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
 interface LayoutWidths {
-  [layoutSection: string]: number[];
+  [tabName: string]: number[];
 }
 
 /**
@@ -59,7 +57,8 @@ export class LitModules extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
   @property({type: Number})
   mainSectionHeight = this.modulesService.getSetting('mainHeight') || 45;
-  @observable layoutWidths: LayoutWidths = {};
+  @observable upperLayoutWidths: LayoutWidths = {};
+  @observable lowerLayoutWidths: LayoutWidths = {};
   private resizeObserver!: ResizeObserver;
 
   static override get styles() {
@@ -79,7 +78,8 @@ export class LitModules extends ReactiveElement {
         this.shadowRoot!.querySelector('.outer-container')!;
 
     this.resizeObserver = new ResizeObserver(() => {
-      this.calculateWidths(this.modulesService.getRenderLayout());
+      const renderLayout = this.modulesService.getRenderLayout();
+      this.calculateAllWidths(renderLayout);
       // Set offset for maximized modules. This module doesn't know which
       // toolbars are present, but we can just find the bounding area
       // explicitly.
@@ -91,8 +91,8 @@ export class LitModules extends ReactiveElement {
 
     this.reactImmediately(
         () => this.modulesService.getRenderLayout(), renderLayout => {
-      this.calculateWidths(renderLayout);
-    });
+          this.calculateAllWidths(renderLayout);
+        });
 
     // Escape key to exit full-screen modules.
     document.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -105,17 +105,25 @@ export class LitModules extends ReactiveElement {
     });
   }
 
-  // Calculate widths of all module groups in all panels.
-  calculateWidths(renderLayout: LitRenderConfig) {
-    const panelNames = Object.keys(renderLayout);
-    for (const panelName of panelNames) {
-      this.layoutWidths[panelName] = [];
-      this.calculatePanelWidths(panelName, renderLayout[panelName]);
+  calculateAllWidths(renderLayout: LitRenderConfig) {
+    this.calculateWidths(renderLayout.upper, this.upperLayoutWidths);
+    this.calculateWidths(renderLayout.lower, this.lowerLayoutWidths);
+  }
+
+  // Calculate widths of all modules in all tabs of a group.
+  calculateWidths(groupLayout: LitTabGroupConfig, layoutWidths: LayoutWidths) {
+    for (const panelName of Object.keys(groupLayout)) {
+      layoutWidths[panelName] = [];
+      // TODO: make this function just return values?
+      this.calculatePanelWidths(
+          panelName, groupLayout[panelName], layoutWidths);
     }
   }
 
   // Calculate widths of all module groups in a single panel.
-  calculatePanelWidths(panelName: string, panelConfig:  RenderConfig[][]) {
+  calculatePanelWidths(
+      panelName: string, panelConfig: RenderConfig[][],
+      layoutWidths: LayoutWidths) {
     // Get the number of minimized widget groups to calculate the total width
     // available for non-minimized widgets.
     let numMinimized = 0;
@@ -127,7 +135,8 @@ export class LitModules extends ReactiveElement {
     const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
                                .getBoundingClientRect()
                                .width;
-    const widthAvailable = containerWidth - MINIMIZED_WIDTH_PX * numMinimized;
+    const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
+        MINIMIZED_WIDTH_PX * numMinimized;
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
@@ -139,17 +148,14 @@ export class LitModules extends ReactiveElement {
       const numColsList = configGroup.map(config => config.moduleType.numCols);
       totalCols += Math.max(...numColsList);
     }
-    // Ensure that when a panel requests less than the full width of columns
-    // that the widget groups still use up the entire width available.
-    const totalColsToUse = Math.min(totalCols, NUM_COLS);
 
     // Set the width for each widget group based on the maximum number of
     // columns it's widgets have specified and the width available.
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
-      const width = Math.max(...numColsList) / totalColsToUse * widthAvailable;
-      this.layoutWidths[panelName][i] = width;
+      const width = Math.max(...numColsList) / totalCols * widthAvailable;
+      layoutWidths[panelName][i] = width;
     }
   }
 
@@ -181,8 +187,8 @@ export class LitModules extends ReactiveElement {
 
   override render() {
     const layout = this.modulesService.getRenderLayout();
-    const mainPanelConfig = layout['Main'];
-    const compGroupNames = Object.keys(layout).filter(k => k !== 'Main');
+    const upperGroupNames = Object.keys(layout.upper);
+    const lowerGroupNames = Object.keys(layout.lower);
 
     const containerClasses = classMap({
       'outer-container': true,
@@ -191,26 +197,63 @@ export class LitModules extends ReactiveElement {
     });
 
     // By default, set the selected tab to the first tab.
-    if (this.modulesService.selectedTab === '') {
-      this.modulesService.selectedTab = compGroupNames[0];
+    if (this.modulesService.selectedTabUpper === '') {
+      this.modulesService.selectedTabUpper = upperGroupNames[0];
+    }
+    if (this.modulesService.selectedTabLower === '') {
+      this.modulesService.selectedTabLower = lowerGroupNames[0];
     }
 
     // If the selected tab doesn't exist, then default to the first tab.
-    const indexOfTab = compGroupNames.indexOf(this.modulesService.selectedTab);
-    const tabToSelect = indexOfTab === -1 ? compGroupNames[0] :
-        compGroupNames[indexOfTab];
+    const indexOfUpperTab =
+        upperGroupNames.indexOf(this.modulesService.selectedTabUpper);
+    const upperTabToSelect = indexOfUpperTab === -1 ?
+        upperGroupNames[0] :
+        upperGroupNames[indexOfUpperTab];
+    const indexOfLowerTab =
+        lowerGroupNames.indexOf(this.modulesService.selectedTabLower);
+    const lowerTabToSelect = indexOfLowerTab === -1 ?
+        lowerGroupNames[0] :
+        lowerGroupNames[indexOfLowerTab];
 
-    const styles = styleMap({'height': `${this.mainSectionHeight}vh`});
+    const setUpperTab = (name: string) => {
+      this.modulesService.selectedTabUpper = name;
+    };
+
+    const setLowerTab = (name: string) => {
+      this.modulesService.selectedTabLower = name;
+    };
+
+    const upperTabsVisible = Object.keys(layout.upper).length > 1;
+    const renderUpperTabBar = () => {
+      // clang-format on
+      return html`
+        <div class='tab-bar'>
+          <div class='tabs-container'>
+            ${this.renderTabs(upperGroupNames, upperTabToSelect, setUpperTab)}
+          </div>
+          </div>
+        </div>
+      `;
+      // clang-format off
+    };
+
+    const styles = styleMap({
+      '--upper-height': `${this.mainSectionHeight}vh`,
+      '--num-tab-bars': `${upperTabsVisible ? 2 : 1}`,
+    });
 
     // clang-format off
     return html`
-      <div id='outer-container' class=${containerClasses}>
-        <div id='main-panel' style=${styles}>
-          ${this.renderWidgetGroups(mainPanelConfig, 'Main')}
+      <div id='outer-container' class=${containerClasses} style=${styles}>
+        ${upperTabsVisible ? renderUpperTabBar() : null}
+        <div id='upper-group-area'>
+          ${this.renderComponentGroups(layout.upper, upperTabToSelect,
+                                       this.upperLayoutWidths)}
         </div>
-        <div id='center-bar'>
-          <div id='tabs'>
-            ${this.renderTabs(compGroupNames, tabToSelect)}
+        <div class='tab-bar' id='center-bar'>
+          <div class='tabs-container'>
+            ${this.renderTabs(lowerGroupNames, lowerTabToSelect, setLowerTab)}
           </div>
           <div id='drag-container'>
             <mwc-icon class="drag-icon">drag_handle</mwc-icon>
@@ -219,8 +262,9 @@ export class LitModules extends ReactiveElement {
             </div>
           </div>
         </div>
-        <div id='component-groups'>
-          ${this.renderComponentGroups(layout, compGroupNames, tabToSelect)}
+        <div id='lower-group-area'>
+          ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
+                                       this.lowerLayoutWidths)}
         </div>
       </div>
     `;
@@ -230,27 +274,39 @@ export class LitModules extends ReactiveElement {
   private onBarDragged(e: DragEvent) {
     // TODO(lit-dev): compute this relative to the container, rather than using
     // vh?
-    const main = this.shadowRoot!.getElementById('main-panel')!;
+    const main = this.shadowRoot!.getElementById('upper-group-area')!;
     const mainTopPos = main.getBoundingClientRect().top;
-    this.mainSectionHeight =
-        Math.floor((e.clientY - mainTopPos - 10) / window.innerHeight * 100);
+    // Sometimes Chrome will fire bad drag events, either at (0,0)
+    // or jumping around a few hundred pixels off from the drag handler.
+    // Detect and ignore these so the UI doesn't get messed up.
+    const handlerBCR =
+        this.shadowRoot!.getElementById(
+                            'drag-handler')!.getBoundingClientRect();
+    const yOffset = -10;
+    if (e.clientY + yOffset < mainTopPos || e.clientY <= handlerBCR.top - 30 ||
+        e.clientY >= handlerBCR.bottom + 30) {
+      console.log('Anomalous drag event; skipping resize', e);
+      return;
+    }
+    this.mainSectionHeight = Math.floor(
+        (e.clientY + yOffset - mainTopPos) / window.innerHeight * 100);
   }
 
   /**
    * Render the tabbed groups of components.
    * @param layout Layout to render
-   * @param compGroupNames Names of the components to render
    * @param tabToSelect Tab to show as selected
    */
-  renderComponentGroups(layout: LitRenderConfig, compGroupNames: string[],
-                        tabToSelect: string) {
-    return compGroupNames.map((compGroupName) => {
-      const configs = layout[compGroupName];
-      const selected = tabToSelect === compGroupName;
+  renderComponentGroups(
+      layout: LitTabGroupConfig, tabToSelect: string,
+      layoutWidths: LayoutWidths) {
+    return Object.keys(layout).map(tabName => {
+      const configs: RenderConfig[][] = layout[tabName];
+      const selected = tabToSelect === tabName;
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
         <div class=${classes}>
-          ${this.renderWidgetGroups(configs, compGroupName)}
+          ${this.renderWidgetGroups(configs, tabName, layoutWidths)}
         </div>`;
     });
   }
@@ -258,31 +314,32 @@ export class LitModules extends ReactiveElement {
 
   /**
    * Render the tabs of the selection groups at the bottom of the layout.
-   * @param compGroupNames Names of the tabs to render
+   * @param tabNames Names of the tabs to render
    * @param tabToSelect Tab to show as selected
    */
-  renderTabs(compGroupNames: string[], tabToSelect: string) {
-    return compGroupNames.map((compGroupName) => {
-      const name = compGroupName;
+  renderTabs(
+      tabNames: string[], tabToSelect: string,
+      setTabFn: (name: string) => void) {
+    return tabNames.map((tabName) => {
       const onclick = (e: Event) => {
-        this.modulesService.selectedTab = name;
+        setTabFn(tabName);
         e.preventDefault();
         // Need to trigger a manual update, since this class does not
         // respond automatically to mobx observables.
         this.requestUpdate();
       };
-      const selected = tabToSelect === compGroupName;
+      const selected = tabToSelect === tabName;
       const classes = classMap({selected, tab: true});
-      return html`<div class=${classes} @click=${onclick}>${
-          compGroupName}</div>`;
+      return html`<div class=${classes} @click=${onclick}>${tabName}</div>`;
     });
   }
 
-  renderWidgetGroups(configs: RenderConfig[][], section: string) {
+  renderWidgetGroups(
+      configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths) {
     // Calllback for widget isMinimized state changes.
     const onMin = (event: Event) => {
       // Recalculate the widget group widths in this section.
-      this.calculatePanelWidths(section, configs);
+      this.calculatePanelWidths(section, configs, layoutWidths);
     };
 
     return configs.map((configGroup, i) => {
@@ -298,23 +355,20 @@ export class LitModules extends ReactiveElement {
         if (i < configs.length - 1) {
           const adjacentConfig = configs[i + 1];
           if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
-            const widthChange = dragWidth -
-                this.layoutWidths[section][i];
-            const oldAdjacentWidth =
-                this.layoutWidths[section][i + 1];
-            this.layoutWidths[section][i + 1] =
+            const widthChange = dragWidth - layoutWidths[section][i];
+            const oldAdjacentWidth = layoutWidths[section][i + 1];
+            layoutWidths[section][i + 1] =
                 Math.max(MIN_GROUP_WIDTH_PX, oldAdjacentWidth - widthChange);
           }
         }
 
         // Set the width of the dragged widget group.
-        this.layoutWidths[section][i] = dragWidth;
+        layoutWidths[section][i] = dragWidth;
 
         this.requestUpdate();
       };
 
-      const width = this.layoutWidths[section] ?
-          this.layoutWidths[section][i] : 0;
+      const width = layoutWidths[section] ? layoutWidths[section][i] : 0;
       return html`<lit-widget-group .configGroup=${configGroup}
           @widget-group-minimized-changed=${onMin} @widget-group-drag=${onDrag}
           .width=${width}></lit-widget-group>`;

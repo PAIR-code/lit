@@ -2,6 +2,8 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: #f5f9fa;
+  --tab-bar-height: 30px;
 }
 
 .outer-container {
@@ -22,41 +24,56 @@
   max-width: 1000px;
 }
 
-#main-panel {
-  display: flex;
-  border-bottom: 1px solid #dadce0;
-  overflow-x: auto;
+#upper-group-area {
+  position: relative;
+  height: var(--upper-height);
 }
 
-#component-groups{
+#lower-group-area {
   position: relative;
   flex: 1;
+  max-height: calc(100% - var(--upper-height) - var(--num-tab-bars) * var(--tab-bar-height));
 }
 
 .components-group-holder {
   position: absolute;
-  background: #f1f3f4;
   overflow: auto;
   display: flex;
   visibility: hidden;
   height: 100%;
   width: 100%;
+  padding: 2px;
+  box-sizing: border-box;
 }
 
 .components-group-holder.selected {
   visibility: visible;
-  z-index: 1;
 }
 
-#center-bar {
+lit-widget-group {
+  padding: 0 2px; /* gives 4px between adjacent groups */
+  box-sizing: border-box;
+}
+
+lit-widget-group[maximized] {
+  padding: 0;
+}
+
+.tab-bar {
   padding: 0 40px;
   color: #5f6368;
   background: white;
   display: flex;
   align-items: center;
-  height: 36px;
+  height: var(--tab-bar-height);
 }
 
+/* If in centered mode, tab bars should align to modules */
+.outer-container-centered .tab-bar {
+  margin: 0 4px;
+  border: 1px solid rgb(218, 220, 224);
+  box-sizing: border-box;
+}
 
 #drag-container{
   position:relative;
@@ -74,10 +91,10 @@
   opacity: 0;
 }
 
-#tabs {
+.tabs-container {
   align-items: end; /* bottom */
   display: flex;
-  font-size: 14px;
+  font-size: 12px;
   height: 100%;
   margin-right: 38px;
   max-width: 100%;
@@ -85,9 +102,10 @@
 }
 
 .tab {
+  font-family: 'Google Sans', sans;
   border-bottom: 2px solid #dadce0;
   box-sizing: border-box;
-  padding: 8px 4px 8px 8px;
+  padding: 4px;
   text-align: center;
   white-space: nowrap;
   width: 150px;

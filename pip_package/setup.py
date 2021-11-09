@@ -39,7 +39,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="lit-nlp",
-    version="0.3",
+    version="0.4",
     description="Language Interpretability Tool.",
     long_description=long_description,
     long_description_content_type="text/markdown",

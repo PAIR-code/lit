@@ -48,14 +48,6 @@ export class GeneratedImageModule extends LitModule {
       .field-group {
         padding: 4px;
       }
-
-      .field-title {
-        font-family: 'Google Sans';
-        font-size: 14px;
-        line-height: 20px;
-        letter-spacing: 0.25px;
-        color: #5f6368; /* Grey/700 */
-      }
     `;
     return [sharedStyles, styles];
   }

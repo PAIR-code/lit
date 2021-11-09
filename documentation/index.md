@@ -59,8 +59,7 @@ at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examp
 ## Run an existing example <!-- DO NOT REMOVE {#running-lit} -->
 
 The [demos page](./demos.md) lists some of the pre-built demos available for a
-variety of model types. The code for these is under
-google3/third_party/py/lit_nlp/examples
+variety of model types. The code for these is under [lit_nlp/examples](../lit_nlp/examples)
 ;
 each is a small script that loads one or more models and starts a LIT server.
 
@@ -74,10 +73,10 @@ python -m lit_nlp.examples.glue_demo \
 
 Then navigate to https://localhost:4321 to access the UI.
 
-Note:
-
-You can also pass `--warm_start=1.0`, and LIT will run inference and cache the
-results before server start.
+For most models we recommend using a GPU, though the `--quickstart` flag above
+loads a set of smaller models that run well on CPU. You can also pass
+`--warm_start=1.0`, and LIT will run inference and cache the results before
+server start.
 
 For an overview of supported model types and frameworks, see the
 [components guide](./components.md).

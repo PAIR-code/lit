@@ -63,6 +63,7 @@ export interface LitType {
   signed?: boolean;
   mask_token?: string;
   select_all?: boolean;
+  autosort?: boolean;
 }
 
 export interface Spec {
@@ -137,11 +138,11 @@ export interface IndexedInput {
  * Examples faceted by a given set of features.
  */
 export interface FacetedData {
-  'data': IndexedInput[];
+  data: IndexedInput[];
   /** Name to display */
-  'displayName'?: string;
+  displayName?: string;
   /** What values were used as filters to get this data */
-  'facets'?: FacetMap;
+  facets?: FacetMap;
 }
 
 /**
@@ -168,10 +169,10 @@ export interface TopKResult {
 }
 
 export interface SpanLabel {
-  'start': number;  // inclusive
-  'end': number;    // exclusive
-  'label': string;
-  'align'?: string;
+  start: number;  // inclusive
+  end: number;    // exclusive
+  label: string;
+  align?: string;
 }
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
@@ -192,9 +193,9 @@ export function formatSpanLabel(s: SpanLabel): string {
  * See https://arxiv.org/abs/1905.06316 for more on this formalism.
  */
 export interface EdgeLabel {
-  'span1': [number, number];   // inclusive, exclusive
-  'span2'?: [number, number];  // inclusive, exclusive
-  'label': string|number;
+  span1: [number, number];   // inclusive, exclusive
+  span2?: [number, number];  // inclusive, exclusive
+  label: string|number;
 }
 export function formatEdgeLabel(e: EdgeLabel): string {
   const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
@@ -265,7 +266,7 @@ export interface FacetMap {
  * Usually, set to 'this' from the calling module, so it can distinguish
  * selection updates from itself vs another module.
  */
-export type ServiceUser = object|null;
+export type ServiceUser = object;
 
 /**
  * We can't define abstract static properties/methods in typescript, so we
@@ -314,7 +315,7 @@ export function defaultValueByField(key: string, spec: Spec) {
  * Dictionary of lit layouts. See LitComponentLayout
  */
 export declare interface LitComponentLayouts {
-  [key: string] : LitComponentLayout;
+  [key: string]: LitComponentLayout|LitCanonicalLayout;
 }
 
 /**
@@ -326,17 +327,40 @@ export type LitComponentSpecifier =
     LitModuleClass|(keyof HTMLElementTagNameMap);
 
 // LINT.IfChange
+export declare interface LitTabGroupLayout {
+  [tabName: string]: LitComponentSpecifier[];
+}
+
 /**
- * A layout is defined by a set of main components that are always visible,
- * (designated in the object by the "main" key)
- * and a set of tabs that each contain a group other components.
+ * A layout is defined by a set of modules arranged into tabs and groups.
  *
- * LitComponentLayout is a mapping of tab names to module types.
+ * This is a legacy layout format, where components contains several keys
+ * including 'Main', and values are lists of module classes.
+ * - The 'Main' group will appear in the upper half of the UI
+ * - The remaining groups will appear in the lower half of the UI,
+ *   with a tab bar to select the active group.
+ *
+ * See layout.ts for examples.
  */
 export declare interface LitComponentLayout {
-  components: {[name: string]: LitComponentSpecifier[];};
+  components: LitTabGroupLayout;
   layoutSettings?: LayoutSettings;
-  description ?: string;
+  description?: string;
+}
+
+/**
+ * UI layout in canonical form.
+ *
+ * This has explicit tab groups for the upper and lower UI areas.
+ * Recommended for new layouts.
+ *
+ * See layout.ts for examples.
+ */
+export declare interface LitCanonicalLayout {
+  upper: LitTabGroupLayout;
+  lower: LitTabGroupLayout;
+  layoutSettings: LayoutSettings;
+  description: string;
 }
 
 /**
@@ -348,6 +372,38 @@ export declare interface LayoutSettings {
   mainHeight?: number;
   centerPage?: boolean;
 }
+
+/**
+ * Convert a layout to canonical form.
+ * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
+ */
+export function canonicalizeLayout(layout: LitComponentLayout|
+                                   LitCanonicalLayout): LitCanonicalLayout {
+  if (!layout.hasOwnProperty('components')) {
+    return layout as LitCanonicalLayout;
+  }
+  // Legacy layout to convert.
+  layout = layout as LitComponentLayout;
+
+  const canonicalLayout: LitCanonicalLayout = {
+    upper: {},
+    lower: {},
+    layoutSettings: layout.layoutSettings ?? {},
+    description: layout.description ?? '',
+  };
+
+  // Handle upper layout.
+  canonicalLayout.upper['Main'] = layout.components['Main'];
+
+  // Handle lower layout.
+  for (const tabName of Object.keys(layout.components)) {
+    if (tabName === 'Main') continue;
+    canonicalLayout.lower[tabName] = layout.components[tabName];
+  }
+
+  return canonicalLayout;
+}
+
 // LINT.ThenChange(../../api/dtypes.py)
 
 /** Display name for the "no dataset" dataset in settings. */

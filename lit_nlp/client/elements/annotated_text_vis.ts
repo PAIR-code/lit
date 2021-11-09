@@ -11,7 +11,7 @@ import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
-import {VizColor} from '../lib/colors';
+import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatSpanLabel, SpanLabel} from '../lib/types';
@@ -134,9 +134,11 @@ export class AnnotatedTextVis extends ReactiveElement {
     // Colors for each annotation group.
     // TODO(lit-dev): different colors for each cluster if non-exclusive?
     const groupColors: {[groupName: string]: string} = {};
-    Object.keys(this.annotationSpec).forEach((name, i) => {
-      groupColors[name] = VizColor.getColor('pastel', i).color;
-    });
+    const specKeys = Object.keys(this.annotationSpec);
+    for (let i = 0; i < specKeys.length; i++) {
+      const name = specKeys[i];
+      groupColors[name] = getVizColor('pastel', i).color;
+    }
     return groupColors;
   }
 

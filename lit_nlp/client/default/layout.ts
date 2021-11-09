@@ -26,7 +26,7 @@ import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
-import {DataTableModule} from '../modules/data_table_module';
+import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
 import {GeneratedImageModule} from '../modules/generated_image_module';
@@ -39,6 +39,7 @@ import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
+import {SequenceSalienceModule} from '../modules/sequence_salience_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
@@ -75,12 +76,13 @@ export const LAYOUTS: LitComponentLayouts = {
    * A "simple demo server" layout.
    */
   'simple':  {
-    components : {
-      'Main': [
-        SimpleDatapointEditorModule,
-      ],
+    upper: {
+      "Editor": [SimpleDatapointEditorModule],
+      "Examples": [SimpleDataTableModule],
+    },
+    lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
-      'History': [DataTableModule],
+      'Salience': [SalienceMapModule, SequenceSalienceModule],
     },
     layoutSettings: {
       hideToolbar: true,
@@ -103,6 +105,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Explanations': [
         ...MODEL_PREDS_MODULES,
         SalienceMapModule,
+        SequenceSalienceModule,
         AttentionModule,
       ],
       'Metrics': [

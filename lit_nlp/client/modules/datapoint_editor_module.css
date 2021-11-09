@@ -11,15 +11,11 @@
 }
 
 .field-header {
-  align-items: baseline;
+  align-items: center;
   display: flex;
   flex-flow: row wrap;
   gap: .5em;
   justify-content: space-between;
-}
-
-.field-name {
-  font-weight: bold;
 }
 
 .field-name a {
@@ -29,7 +25,7 @@
 }
 
 .field-type {
-  color: gray;
+  color: var(--lit-light-label-color);
   font-size: 8pt;
 }
 
@@ -79,9 +75,17 @@ select.dropdown {
   flex-basis: 100%;
 }
 
+input {
+  font-family: 'Roboto', sans;
+  color: var(--lit-gray-800);
+}
+
 textarea {
   resize: vertical;
   height: 100px;
+  font-family: 'Roboto', sans;
+  line-height: 18px;
+  color: var(--lit-gray-800);
 }
 
 .span-label {

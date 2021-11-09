@@ -71,7 +71,7 @@ export class SliceService extends LitService {
   }
 
   @action
-  selectNamedSlice(name: string|null, user: ServiceUser = null) {
+  selectNamedSlice(name: string|null, user?: ServiceUser) {
     if (name === null) {
       this.setSelectedSliceName(name);
       this.selectionService.selectIds([], user);

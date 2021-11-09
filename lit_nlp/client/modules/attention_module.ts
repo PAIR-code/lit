@@ -32,6 +32,7 @@ import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArr
 import {FocusService} from '../services/services';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getBrandColor} from '../lib/colors';
 
 type Tokens = string[];
 // <float>[num_heads, num_tokens, num_tokens]
@@ -43,7 +44,7 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
-  static override numCols = 6;
+  static override numCols = 3;
   static override duplicateForExampleComparison = true;
   static override template = (model = '', selectionServiceIndex = 0) => {
     return html`<attention-module model=${model} selectionServiceIndex=${
@@ -59,16 +60,17 @@ export class AttentionModule extends LitModule {
         }
 
         .head-selector-chip.selected {
-          color: #6403fa;
-          border-color: #6403fa;
+          color: var(--lit-cyea-600);
+          border-color: var(--lit-cyea-600);
         }
 
         .head-selector-chip:hover {
-          background: #f3e8fd;
+          background: var(--lit-cyea-100);
+          cursor: pointer;
         }
 
         .padded-container {
-          padding: 4px;
+          padding: 4px 8px;
         }
     `;
     return [sharedStyles, styles];
@@ -262,7 +264,8 @@ export class AttentionModule extends LitModule {
                     y1=${y1}
                     x2=${xIn(j)}
                     y2=${y2}
-                    stroke="rgba(100,3,250,${attnVal})"
+                    stroke="${getBrandColor('cyea', '600').color}"
+                    stroke-opacity="${attnVal}"
                     stroke-width=2>
                   </line>`;
               }

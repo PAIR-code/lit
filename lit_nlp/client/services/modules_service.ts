@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, observable} from 'mobx';
 
-import {LayoutSettings, LitComponentLayout, LitComponentSpecifier, LitModuleClass, ModelInfoMap, Spec} from '../lib/types';
+import {LayoutSettings, LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitTabGroupLayout, ModelInfoMap, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
@@ -34,7 +34,16 @@ import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
  * components that will be rendered.
  */
 export interface LitRenderConfig {
-  [name: string]: RenderConfig[][];
+  upper: LitTabGroupConfig;
+  lower: LitTabGroupConfig;
+}
+
+/**
+ * Layout for a single group of tabs, each containing multiple modules,
+ * optionally replicated.
+ */
+export interface LitTabGroupConfig {
+  [tabName: string]: RenderConfig[][];
 }
 
 /**
@@ -73,10 +82,15 @@ export function getModuleConstructor(moduleType: LitComponentSpecifier):
 export class ModulesService extends LitService implements
     ModulesObservedByUrlService {
   @observable
-  declaredLayout: LitComponentLayout = {'components': {}, 'layoutSettings': {}};
-  @observable selectedTab: string = '';
-  private renderLayout: LitRenderConfig = {};
+  declaredLayout: LitCanonicalLayout =
+      {upper: {}, lower: {}, layoutSettings: {}, description: ''};
+  @observable selectedTabUpper: string = '';
+  @observable selectedTabLower: string = '';
+  @observable private renderLayout: LitRenderConfig = {upper: {}, lower: {}};
   private renderModulesCallback: RenderModulesCallback = () => {};
+
+  // TODO(b/168201937): Remove imperative logic and use observables/reactions
+  // for all module logic.
 
   /**
    * We need to make the rendering of modules an explicit, callback-driven
@@ -101,10 +115,9 @@ export class ModulesService extends LitService implements
    * visible render layout based on the app config
    */
   initializeLayout(
-      layout: LitComponentLayout, currentModelSpecs: ModelInfoMap,
+      layout: LitCanonicalLayout, currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
     this.declaredLayout = layout;
-    this.declaredLayout.layoutSettings = layout.layoutSettings || {};
     this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
   }
   @observable hiddenModuleKeys = new Set<string>();
@@ -138,7 +151,8 @@ export class ModulesService extends LitService implements
 
   setUrlConfiguration(urlConfiguration: UrlConfiguration) {
     this.setHiddenModules(urlConfiguration.hiddenModules);
-    this.selectedTab = urlConfiguration.selectedTab ?? '';
+    this.selectedTabUpper = urlConfiguration.selectedTabUpper ?? '';
+    this.selectedTabLower = urlConfiguration.selectedTabLower ?? '';
   }
 
   isModuleGroupHidden(config: RenderConfig) {
@@ -153,7 +167,7 @@ export class ModulesService extends LitService implements
     }
   }
 
-  getRenderLayout() {
+  getRenderLayout(): LitRenderConfig {
     return this.renderLayout;
   }
 
@@ -166,45 +180,66 @@ export class ModulesService extends LitService implements
    * is visible for the selected models and user settings, and whether to render
    * copies of a module per model based on the module behavior.
    */
-  updateRenderLayout(
-      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
-      compareExamples: boolean) {
-    const renderLayout: LitRenderConfig = {};
-    const allModuleKeys = new Set<string>();
-
-    const componentGroupNames = Object.keys(this.declaredLayout.components);
-    for (const groupName of componentGroupNames) {
-      const components = this.declaredLayout.components[groupName];
+  computeTabGroupLayout(
+      groupContents: LitTabGroupLayout, currentModelSpecs: ModelInfoMap,
+      datasetSpec: Spec, compareExamples: boolean) {
+    const tabGroupConfig: LitTabGroupConfig = {};
+    for (const tabName of Object.keys(groupContents)) {
+      const components = groupContents[tabName];
       // Look up classes for this group, if anything is given as a string.
       const componentClasses = components.map(getModuleConstructor);
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
+      // TODO: use a globally unique path instead of just the tab name.
       const configs = this.getRenderConfigs(
           componentClasses, currentModelSpecs, datasetSpec, compareExamples,
-          groupName);
-      for (const configGroup of configs) {
-        for (const config of configGroup) {
-          allModuleKeys.add(config.key);
+          tabName);
+      if (configs.length !== 0) {
+        tabGroupConfig[tabName] = configs;
+      }
+    }
+    return tabGroupConfig;
+  }
 
-          if (config.moduleType.collapseByDefault) {
-            this.hiddenModuleKeys.add(config.key);
+  updateRenderLayout(
+      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
+      compareExamples: boolean) {
+    const upper = this.computeTabGroupLayout(
+        this.declaredLayout.upper, currentModelSpecs, datasetSpec,
+        compareExamples);
+    const lower = this.computeTabGroupLayout(
+        this.declaredLayout.lower, currentModelSpecs, datasetSpec,
+        compareExamples);
+
+    const renderLayout: LitRenderConfig = {upper, lower};
+
+    this.updateModuleKeys(renderLayout);
+    this.renderLayout = renderLayout;
+  }
+
+  private updateModuleKeys(renderLayout: LitRenderConfig) {
+    const allModuleKeys = new Set<string>();
+    for (const tabGroup of [renderLayout.upper, renderLayout.lower]) {
+      for (const tabName of Object.keys(tabGroup)) {
+        for (const configGroup of tabGroup[tabName]) {
+          for (const config of configGroup) {
+            allModuleKeys.add(config.key);
+            if (config.moduleType.collapseByDefault) {
+              this.hiddenModuleKeys.add(config.key);
+            }
           }
         }
       }
-      if (configs.length !== 0) {
-        renderLayout[groupName] = configs;
-      }
     }
-    this.allModuleKeys = allModuleKeys;
-
     // Clean up any extraneous hidden module keys that are not part of the
     // allModuleKeys set
     for (const key of [...this.hiddenModuleKeys]) {
-      if (!this.allModuleKeys.has(key)) {
+      if (!allModuleKeys.has(key)) {
         this.hiddenModuleKeys.delete(key);
       }
     }
-    this.renderLayout = renderLayout;
+
+    this.allModuleKeys = allModuleKeys;
   }
 
   /**
@@ -216,7 +251,7 @@ export class ModulesService extends LitService implements
   private getRenderConfigs(
       modules: LitModuleClass[], currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean,
-      tab: string): RenderConfig[][] {
+      tabName: string): RenderConfig[][] {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
     // modules that display one per model.
@@ -230,7 +265,7 @@ export class ModulesService extends LitService implements
       // Is compare examples mode on and does this module require duplication?
       const compare =
           compareExamples && moduleType.duplicateForExampleComparison;
-      const key = `${tab}_${moduleType.title}`;
+      const key = `${tabName}_${moduleType.title}`;
 
       // model = undefined means the resulting module(s) will not be keyed to
       // a specific model; they can access the list of active models via

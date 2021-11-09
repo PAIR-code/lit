@@ -26,7 +26,8 @@ import {LitService} from './lit_service';
  * Interface for reading/storing app configuration from/to the URL.
  */
 export class UrlConfiguration {
-  selectedTab?: string;
+  selectedTabUpper?: string;
+  selectedTabLower?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
   primarySelectedData?: string;
@@ -67,7 +68,8 @@ export interface StateObservedByUrlService {
 export interface ModulesObservedByUrlService {
   hiddenModuleKeys: Set<string>;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
-  selectedTab: string;
+  selectedTabUpper: string;
+  selectedTabLower: string;
 }
 
 /**
@@ -81,7 +83,8 @@ export interface SelectionObservedByUrlService {
   selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
-const SELECTED_TAB_KEY = 'tab';
+const SELECTED_TAB_UPPER_KEY = 'upper_tab';
+const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
 const SELECTED_DATASET_KEY = 'dataset';
@@ -157,8 +160,10 @@ export class UrlService extends LitService {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
       } else if (key === COMPARE_EXAMPLES_ENABLED_KEY) {
         urlConfiguration.compareExamplesEnabled = this.urlParseBoolean(value);
-      } else if (key === SELECTED_TAB_KEY) {
-        urlConfiguration.selectedTab = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_UPPER_KEY) {
+        urlConfiguration.selectedTabUpper = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_LOWER_KEY) {
+        urlConfiguration.selectedTabLower = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
@@ -260,7 +265,10 @@ export class UrlService extends LitService {
           urlParams, HIDDEN_MODULES_KEY, [...modulesService.hiddenModuleKeys]);
 
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
-      this.setUrlParam(urlParams, SELECTED_TAB_KEY, modulesService.selectedTab);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
 
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;

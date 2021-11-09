@@ -107,7 +107,7 @@ class GlueModel(lit_model.Model):
           self.config.labels.index(ex[self.config.label_name]) for ex in inputs
       ],
                            dtype=tf.int64)
-    # encoded_input is actually a transformers.tokenization_utils.BatchEncoding
+    # encoded_input is actually a transformers.BatchEncoding
     # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
     return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
 
