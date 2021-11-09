@@ -153,7 +153,7 @@ class GPT2LanguageModel(lit_model.Model):
     super().__init__()
     # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, pad_token="<pad>", use_fast=False)
+        model_name, pad_token="<|endoftext|>", use_fast=False)
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
         model_name, output_hidden_states=True, output_attentions=True)
     self.top_k = top_k
