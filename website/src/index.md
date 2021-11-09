@@ -29,9 +29,9 @@ Use LIT to ask and answer questions like:
 
 LIT contains many built-in capabilities but is also customizable, with the ability to add custom interpretability techniques, metrics calculations, counterfactual generators, visualizations, and more.
 
-For a similar tool to explore general-purpose machine learning models, check out the [What-If Tool](https://whatif-tool.dev).
+In addition to language, LIT also includes preliminary support for models operating on tabular and image data. For a similar tool built to explore general-purpose machine learning models, check out the [What-If Tool](https://whatif-tool.dev).
 
-LIT can be run as a standalone server, or inside of python notebook environments such as Colab and Jupyter.
+LIT can be run as a standalone server, or inside of python notebook environments such as Colab, Jupyter, and Google Cloud Vertex AI Notebooks.
 </div>
 
 {% include partials/spacer height:50 %}
@@ -54,6 +54,8 @@ Model and datapoint comparison
 
 Embedding visualization
 
+TCAV
+
 And more...
 
 " %}
@@ -70,6 +72,8 @@ Masked language models
 Span labeling
 
 Multi-headed models
+
+Image and tabular data
 
 And more...
 
@@ -99,13 +103,13 @@ And more...
 ## What’s the latest
 
 <div class="mdl-grid no-padding">
-  {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'CODE', 
-  title: 'Contribute to LIT', desc: 'LIT is open to anyone who wants to help develop and improve it!', 
-  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/blob/main/documentation/index.md', external:"true" %}
-  
   {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES', 
-  title: 'Latest updates', desc: 'New features, updates, and improvements to LIT.', 
+  title: 'Version 0.4', desc: 'New features, updates, and improvements to LIT.', 
   cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
+
+  {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'DOCS', 
+  title: 'Documentation', desc: 'LIT is open-source and easily extensible to new models, tasks, and more.', 
+  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/wiki', external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH', 
   title: 'Demo Paper at EMNLP ‘20', desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.', 

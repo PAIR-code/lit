@@ -68,6 +68,6 @@ LIT makes it easy to interact within and across modules. Many modules in LIT hav
 Finally, you can easily expand and collapse individual modules using the icons on the top-right of each module. 
 
 {% include partials/info-box title: 'Visualizations that scale', 
-  text: "Visualizations and results within modules can scale depending on if you're looking at one data point, multiple data points, one or multiple models. For instance, turning on the “compare datapoints” toggle allows you to compare a selected datapoint (known as the reference datapoint) to others by presenting individual results side-by-side within relevant modules."S %}
+  text: "Visualizations and results within modules can scale depending on if you're looking at one data point, multiple data points, one or multiple models. For instance, turning on the “compare datapoints” toggle allows you to compare a selected datapoint (known as the reference datapoint) to others by presenting individual results side-by-side within relevant modules." %}
 
 Now that you’re familiar with LIT’s interface, take LIT for a spin in our [demos](../../demos) or explore different [case studies](../).
