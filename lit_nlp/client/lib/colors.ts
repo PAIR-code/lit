@@ -36,14 +36,13 @@ type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
 type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
 type ColorValue =
   '50'|'100'|'200'|'300'|'400'|'500'|'600'|'700'|'800'|'900';
+type MinorColorValue = '1'|'2'|'3'|'4'|'5';
 
 const FULL_COLOR_VALUES: ColorValue[] = [
   '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
 ];
 
-const SMALL_COLOR_VALUES: ColorValue[] = [
-  '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
-];
+const MINOR_COLOR_VALUES: MinorColorValue[] = [ '1', '2', '3', '4', '5' ];
 
 const ERROR_COLOR_VALUES: ColorValue[] = [
   '50', '500', '600', '700'
@@ -235,9 +234,9 @@ export const MINOR_TONAL_COLORS:
  * Gets the ColorEntry for a color in LIT's Minor Tonal family
  */
 export function getMinorTonalColor (version:LitTonalPaletteKey,
-                                    id:number|ColorValue): ColorEntry {
+                                    id:number|MinorColorValue): ColorEntry {
   const palette = MINOR_TONAL_COLORS[version];
-  const index = typeof id === 'number' ? id : SMALL_COLOR_VALUES.indexOf(id);
+  const index = typeof id === 'number' ? id : MINOR_COLOR_VALUES.indexOf(id);
   return at(palette, index);
 }
 
