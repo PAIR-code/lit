@@ -44,13 +44,14 @@ export class ScoreBar extends LitElement {
           padding-right: .75%;
           margin-left: .35%;
           margin-right: .35%;
-          background-color: #07a3ba;
+          background-color: var(--lit-cyea-300);
         }
 
         .text {
           position: absolute;
           padding-left: 4px;
           padding-right: 2px;
+          color: var(--lit-neutral-800);
         }
     `;
   }
