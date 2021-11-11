@@ -18,15 +18,14 @@
 from absl import logging
 from lit_nlp.components import projection
 import numpy as np
-from sklearn import decomposition
 
 
 class PCAModel(projection.ProjectorModel):
   """LIT model API implementation for PCA."""
 
   def __init__(self, **pca_kw):
-    self._pca = decomposition.PCA(**pca_kw)
     self._fitted = False
+    self._num_components = pca_kw["n_components"]
 
   ##
   # Training methods
@@ -36,8 +35,22 @@ class PCAModel(projection.ProjectorModel):
       return []
     x_train = np.stack(x_input)
     logging.info("PCA input x_train: %s", str(x_train.shape))
-    zs = self._pca.fit_transform(x_train)
+
+    # Center columns around mean.
+    self._mean = np.mean(x_train, 0)
+    x_train = x_train - self._mean
+
+    # Find PCA projection.
+    cov = np.dot(x_train.T, x_train) / x_train.shape[0]
+    evals, evecs = np.linalg.eig(cov)
+
+    # Sort by strongest eigenvalues
+    key = np.argsort(evals)[::-1][:self._num_components]
+    self._evecs = evecs[:, key]
     self._fitted = True
+
+    # Apply PCA projection
+    zs = np.dot(x_train, self._evecs)
     return ({"z": z} for z in zs)
 
   ##
@@ -46,5 +59,6 @@ class PCAModel(projection.ProjectorModel):
     if not self._fitted:
       return ({"z": [0, 0, 0]} for i in inputs)
     x = np.stack([i["x"] for i in inputs])
-    zs = self._pca.transform(x)
+    x = x - self._mean
+    zs = np.dot(x, self._evecs)
     return ({"z": z} for z in zs)
