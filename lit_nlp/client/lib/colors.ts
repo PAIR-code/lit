@@ -23,6 +23,8 @@
  * style names.
  */
 
+import * as d3 from 'd3';
+
 interface ColorEntry {
   color: string;
   textColor: string;
@@ -44,9 +46,7 @@ const FULL_COLOR_VALUES: ColorValue[] = [
 
 const MINOR_COLOR_VALUES: MinorColorValue[] = [ '1', '2', '3', '4', '5' ];
 
-const ERROR_COLOR_VALUES: ColorValue[] = [
-  '50', '500', '600', '700'
-];
+const ERROR_COLOR_VALUES: ColorValue[] = [ '50', '500', '600', '700' ];
 
 const VIZ_COLOR_VALUES: VizColorKey[] = [
   'orange', 'blue', 'yellow', 'purple', 'coral', 'teal', 'magenta', 'other'
@@ -70,6 +70,14 @@ function at (palette:ColorEntry[], index:number): ColorEntry {
   index = index % palette.length;
   if (index < 0) { index = index + palette.length; }
   return palette[index];
+}
+
+/**
+ * Creates a D3-compatible color ramp function from a list of hex color values
+ * using D3's interpolateRgbBasis() function.
+ */
+function ramp (range:string[]): (t:number) => string {
+  return d3.interpolateRgbBasis(range);
 }
 
 /**
@@ -335,3 +343,74 @@ export function getVizColor (version: VizPaletteKey,
     return at(palette, index);
   }
 }
+
+/**
+ * Standard Colors and Palettes for LIT
+ *
+ * See https://www.figma.com/file/N5eAa1XWXDEmL4GWN1DGkr/%5B%F0%9F%94%A5LIT%5D-Design-Spec?node-id=866%3A9294
+ */
+
+/** Default normal color for valid values (Brand Cyea-400) */
+export const DEFAULT: string = BRAND_COLORS.cyea[4].color;
+
+/** Default other color for invalid values (VizColor Grey-Deep) */
+export const OTHER: string = VIZ_COLORS.deep[VIZ_COLORS.deep.length - 1].color;
+
+/** Default other color for invalid values (Brand Neutral-500) */
+export const HOVER: string = BRAND_COLORS.mage[4].color;
+
+/** Default other color for invalid values (Brand Neutral-500) */
+export const LOADING: string = BRAND_COLORS.neutral[5].color;
+
+/** Categorical Colors -- Orange, Blue, Yellow, Purple, Coral, Teal, Magenta */
+export const CATEGORICAL_NORMAL: string[] =
+  VIZ_COLORS.deep.slice(0,-1).map(ce => ce.color);
+
+/** Sequetial: Discrete, Cyea, 3 classes (Cyea-200/400/600) */
+export const CYEA_DISCRETE: string[] = [
+  BRAND_COLORS.cyea[2].color,
+  BRAND_COLORS.cyea[4].color,
+  BRAND_COLORS.cyea[6].color
+];
+
+/** Sequetial: Continuous, Cyea */
+export const CYEA_CONTINUOUS =
+  ramp(BRAND_COLORS.cyea.slice(2,7).map(ce => ce.color));
+
+/** Sequetial: Discrete, Mage, 3 classes (Mage-200/400/600) */
+export const MAGE_DISCRETE: string[] = [
+  BRAND_COLORS.mage[2].color,
+  BRAND_COLORS.mage[4].color,
+  BRAND_COLORS.mage[6].color
+];
+
+/** Sequetial: Continuous, Mage */
+export const MAGE_CONTINUOUS =
+  ramp(BRAND_COLORS.mage.slice(2,7).map(ce => ce.color));
+
+/** Diverging: 4 classes (Bric-500/300/Cyea-300/500) */
+export const DIVERGING_4: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];
+
+/** Diverging: 5 classes (Bric-500/300/Neutral-200/Cyea-300/500) */
+export const DIVERGING_5: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.neutral[2].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];
+
+/** Diverging: 6 classes (Bric-500/300/100/Cyea-100/300/500) */
+export const DIVERGING_6: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.bric[1].color,
+  BRAND_COLORS.cyea[1].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];
