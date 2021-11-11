@@ -399,11 +399,11 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
         </div>
         <div class="toolbar-container flex-row" id="select-button-container">
-          <button class="hairline-button selected-nearest-button" ?disabled=${
-        disabled}
-        @click=${onSelectNearest} title=${
-        disabled ? 'Select a single point to use this feature' : ''}
-        >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
+          <button class="hairline-button selected-nearest-button"
+            ?disabled=${disabled}
+            @click=${onSelectNearest}
+            title=${disabled ? 'Select a single point to use this feature' : ''}
+          >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
         </div>
         <div id="scatter-gl-container"></div>
       </div>

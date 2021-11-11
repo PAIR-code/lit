@@ -260,7 +260,7 @@ export class LitMainToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-      <button id='select-random-button' class='hairline-button'
+      <button id='select-random-button' class='hairline-button xl'
         @click=${selectRandom}>
         <span id='select-random-text'>Select random</span>
       </button>
@@ -472,11 +472,10 @@ export class LitMainToolbar extends MobxLitElement {
     <div class='toolbar main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
-        <div class='compare-container' @click=${compareDisabled ? null:
-          toggleExampleComparison}
-          @mouseover=${compareDisabled ?
-            disableClicked: null}
-          @mouseout=${compareDisabled ? disableMouseout: null}>
+        <div class='compare-container'
+          @click=${compareDisabled ? null : toggleExampleComparison}
+          @mouseover=${compareDisabled ? disableClicked : null}
+          @mouseout=${compareDisabled ? disableMouseout : null}>
           <div class=${compareTextClass}>
             Compare datapoints
           </div>
@@ -498,7 +497,8 @@ export class LitMainToolbar extends MobxLitElement {
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
         ${this.renderStarButton(numSelected)}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
-        <button id="clear-selection" class="text-button" @click=${clearSelection}
+        <button id="clear-selection" class="hairline-button xl"
+          @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
         </button>

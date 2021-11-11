@@ -34,6 +34,6 @@
 }
 
 #select-button-container {
-  top: calc(100% - 50px);
-  left: calc(100% - 200px);
+  bottom: 4px;
+  right: 4px;
 }
