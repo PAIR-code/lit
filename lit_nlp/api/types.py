@@ -105,6 +105,7 @@ def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
 
 ##
 # Concrete type clases
+# LINT.IfChange
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -434,3 +435,5 @@ class SequenceSalience(LitType):
 class Boolean(LitType):
   """Boolean value."""
   default: bool = False
+
+# LINT.ThenChange(../client/lib/types.ts)

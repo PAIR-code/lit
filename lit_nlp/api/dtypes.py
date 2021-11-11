@@ -30,7 +30,7 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Dict, List, Optional, Sequence, Text, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Text, Tuple, Union
 
 import attr
 
@@ -128,7 +128,7 @@ class LayoutSettings(DataTuple):
 
 @attr.s(auto_attribs=True)
 class LitComponentLayout(DataTuple):
-  """Frontend UI layout; should match client/lib/types.ts."""
+  """Frontend UI layout (legacy); should match client/lib/types.ts."""
   # Keys are names of tabs; one must be called "Main".
   # Values are names of LitModule HTML elements,
   # e.g. data-table-module for the DataTableModule class.
@@ -141,6 +141,25 @@ class LitComponentLayout(DataTuple):
     # Not invertible, but these only go from server -> frontend anyway.
     return attr.asdict(self, recurse=True)
 
+
+@attr.s(auto_attribs=True)
+class LitCanonicalLayout(DataTuple):
+  """Frontend UI layout; should match client/lib/types.ts."""
+  # Keys are names of tabs, and values are names of LitModule HTML elements,
+  # e.g. data-table-module for the DataTableModule class.
+  upper: Dict[str, List[str]]
+  lower: Dict[str, List[str]] = attr.ib(factory=dict)
+  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
+  description: Optional[str] = None
+
+  def to_json(self) -> JsonDict:
+    """Override serialization to properly convert nested objects."""
+    # Not invertible, but these only go from server -> frontend anyway.
+    return attr.asdict(self, recurse=True)
+
+
+LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
+                                         LitCanonicalLayout]]
 
 # pylint: enable=invalid-name
 # LINT.ThenChange(../client/lib/types.ts)

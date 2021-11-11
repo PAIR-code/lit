@@ -12,11 +12,12 @@ import json
 import os
 import pathlib
 import random
-import typing
+from typing import cast, Optional
 # pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import dtypes
 from lit_nlp.lib import wsgi_serving
 
 try:
@@ -25,21 +26,53 @@ try:
 except ImportError:
   is_colab = False
 
+MODEL_PREDS_MODULES = [
+    'span-graph-gold-module-vertical',
+    'span-graph-module-vertical',
+    'classification-module',
+    'multilabel-module',
+    'regression-module',
+    'lm-prediction-module',
+    'generated-text-module',
+    'annotated-text-gold-module',
+    'annotated-text-module',
+    'generated-image-module',
+]
+
+LIT_NOTEBOOK_LAYOUT = dtypes.LitCanonicalLayout(
+    upper={
+        'Predictions': ['simple-data-table-module'] + MODEL_PREDS_MODULES,
+        'Explanations': ['simple-datapoint-editor-module'] +
+                        MODEL_PREDS_MODULES + [
+                            'salience-map-module', 'sequence-salience-module',
+                            'attention-module'
+                        ],
+        'Analysis':
+            ['metrics-module', 'confusion-matrix-module', 'scalar-module'],
+    })
+
 
 class LitWidget(object):
   """Class for using LIT inside notebooks."""
 
-  def __init__(self, *args, height=1000, render=False,
-               proxy_url=None, **kw):
+  def __init__(self,
+               *args,
+               height=1000,
+               render=False,
+               proxy_url=None,
+               layouts: Optional[dtypes.LitComponentLayouts] = None,
+               **kw):
     """Start LIT server and optionally render the UI immediately.
 
     Args:
       *args: Positional arguments for the LitApp.
       height: Height to display the LIT UI in pixels. Defaults to 1000.
-      render: Whether to render the UI when this object is constructed.
-          Defaults to False.
+      render: Whether to render the UI when this object is constructed. Defaults
+        to False.
       proxy_url: Optional proxy URL, if using in a notebook with a server proxy.
-          Defaults to None.
+        Defaults to None.
+      layouts: Optional custom UI layouts. TODO(lit-dev): support simple module
+        lists here as well.
       **kw: Keyword arguments for the LitApp.
     """
     app_flags = server_flags.get_flags()
@@ -47,12 +80,15 @@ class LitWidget(object):
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
     app_flags['warm_start'] = 1
+    layouts = dict(layouts or {})
+    if 'notebook' not in layouts:
+      layouts['notebook'] = LIT_NOTEBOOK_LAYOUT
+    # This will be 'notebook' unless custom layouts are also given in Python.
+    app_flags['default_layout'] = list(layouts.keys())[0]
     app_flags.update(kw)
 
-    lit_demo = dev_server.Server(
-        *args, **app_flags)
-    self._server = typing.cast(
-        wsgi_serving.NotebookWsgiServer, lit_demo.serve())
+    lit_demo = dev_server.Server(*args, layouts=layouts, **app_flags)
+    self._server = cast(wsgi_serving.NotebookWsgiServer, lit_demo.serve())
     self._height = height
     self._proxy_url = proxy_url
 
