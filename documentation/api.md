@@ -803,7 +803,9 @@ passing in a dict of models and a dict of datasets, similar to the
 parameter that specifies the height in pixels to render the LIT UI.
 
 Then, in its own output cell, call the `render` method on the widget object to
-render the LIT UI. The LIT UI can be rendered in multiple cells if desired.
+render the LIT UI. The LIT UI can be rendered in multiple cells if desired. The
+LIT UI can also be rendered in its own browser tab, outside of the notebook, by
+passing the parameter `open_in_new_tab=True` to the `render` method.
 
 The widget has a `stop` method which shuts down the widget's server. This can be
 important for freeing up resources if you plan to create multiple LIT widget

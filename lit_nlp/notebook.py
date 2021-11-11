@@ -63,30 +63,49 @@ class LitWidget(object):
     """Stop the LIT server."""
     self._server.stop()
 
-  def render(self, height=None):
+  def render(self, height=None, open_in_new_tab=False):
     """Render the LIT UI in the output cell.
 
     Args:
       height: Optional height to display the LIT UI in pixels. If not specified,
           then the height specified in the constructor is used.
+      open_in_new_tab: Whether to show the UI in a new tab instead of in the
+        output cell. Defaults to false.
     """
     if not height:
       height = self._height
     if is_colab:
-      _display_colab(self._server.port, height)
+      _display_colab(self._server.port, height, open_in_new_tab)
     else:
-      _display_jupyter(self._server.port, height, self._proxy_url)
+      _display_jupyter(self._server.port, height, self._proxy_url,
+                       open_in_new_tab)
 
 
-def _display_colab(port, height):
+def _display_colab(port, height, open_in_new_tab):
   """Display the LIT UI in colab.
 
   Args:
     port: The port the LIT server is running on.
     height: The height of the LIT UI in pixels.
+    open_in_new_tab: Whether to show the UI in a new tab instead of in the
+      output cell.
   """
 
-  shell = """
+  if open_in_new_tab:
+    shell = """
+      (async () => {
+          const url = new URL(
+            await google.colab.kernel.proxyPort(%PORT%, {'cache': true}));
+          const a = document.createElement('a');
+          a.href = "javascript:void(0);"
+          a.onclick = (e) => window.open(url, "_blank");
+          a.innerHTML = url;
+          document.body.appendChild(a);
+          window.open(url, "_blank");
+      })();
+    """
+  else:
+    shell = """
       (async () => {
           const url = new URL(
             await google.colab.kernel.proxyPort(%PORT%, {'cache': true}));
@@ -97,7 +116,8 @@ def _display_colab(port, height):
           iframe.setAttribute('frameborder', 0);
           document.body.appendChild(iframe);
       })();
-  """
+    """
+
   replacements = [
       ('%PORT%', '%d' % port),
       ('%HEIGHT%', '%d' % height),
@@ -109,8 +129,8 @@ def _display_colab(port, height):
   display.display(script)
 
 
-def _display_jupyter(port, height, proxy_url):
-  """Display the LIT UI in colab.
+def _display_jupyter(port, height, proxy_url, open_in_new_tab):
+  """Display the LIT UI in jupyter.
 
   Args:
     port: The port the LIT server is running on.
@@ -118,28 +138,48 @@ def _display_jupyter(port, height, proxy_url):
     proxy_url: Optional proxy URL, if using in a notebook with a server proxy.
         If not provided, LIT also checks to see if the environment variable
         LIT_PROXY_URL is set, and if so, it uses that value as the proxy URL.
+    open_in_new_tab: Whether to show the UI in a new tab instead of in the
+      output cell.
   """
 
   # Add height to jupyter output_scroll div to fully contain LIT UI.
   output_scroll_height = height + 10
 
   frame_id = 'lit-frame-{:08x}'.format(random.getrandbits(64))
-  shell = """
-    <style>div.output_scroll { height: %SCROLL_HEIGHT%px; }</style>
-    <iframe id='%HTML_ID%' width='100%' height='%HEIGHT%' frameborder='0'>
-    </iframe>
-    <script>
-      (function() {
-        const frame = document.getElementById(%JSON_ID%);
-        const url = new URL(%URL%, window.location);
-        const port = %PORT%;
-        if (port) {
-          url.port = port;
-        }
-        frame.src = url;
-      })();
-    </script>
-  """
+  if open_in_new_tab:
+    shell = """
+      <a href="javascript:void(0);" id="%HTML_ID%"></a>
+      <script>
+        (function() {
+          const url = new URL(%URL%, window.location);
+          const port = %PORT%;
+          if (port) {
+            url.port = port;
+          }
+          const a = document.getElementById(%JSON_ID%);
+          a.innerHTML = url;
+          a.onclick = (e) => window.open(url, "_blank");
+          window.open(url, "_blank");
+        })();
+      </script>
+    """
+  else:
+    shell = """
+      <style>div.output_scroll { height: %SCROLL_HEIGHT%px; }</style>
+      <iframe id='%HTML_ID%' width='100%' height='%HEIGHT%' frameborder='0'>
+      </iframe>
+      <script>
+        (function() {
+          const frame = document.getElementById(%JSON_ID%);
+          const url = new URL(%URL%, window.location);
+          const port = %PORT%;
+          if (port) {
+            url.port = port;
+          }
+          frame.src = url;
+        })();
+      </script>
+    """
 
   if proxy_url is None:
     proxy_url = os.environ.get('LIT_PROXY_URL')
