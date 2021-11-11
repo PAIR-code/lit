@@ -25,20 +25,34 @@
 
 import * as d3 from 'd3';
 
-interface ColorEntry {
+/** Color informaiton for LIT */
+export interface ColorEntry {
   color: string;
   textColor: string;
 }
 
-type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
-type VizColorKey =
+/** Names of palettes in the VisColor family */
+export type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
+
+/** Names of colors in a VisColor palette */
+export type VizColorKey =
   'orange'|'blue'|'yellow'|'purple'|'coral'|'teal'|'magenta'|'other';
-type LitBrandPaletteKey = 'cyea'|'mage'|'bric'|'neutral';
-type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
-type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
-type ColorValue =
+
+/** Names of palettes in the Brand family */
+export type LitBrandPaletteKey = 'cyea'|'mage'|'bric'|'neutral';
+
+/** Names of palettes in the Major Tonal family */
+export type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
+
+/** Names of palettes in the Minor Tonal family */
+export type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
+
+/** Names of colors in a Brand or Major Tonal palette */
+export type ColorValue =
   '50'|'100'|'200'|'300'|'400'|'500'|'600'|'700'|'800'|'900';
-type MinorColorValue = '1'|'2'|'3'|'4'|'5';
+
+/** Names of colors in a Minor Tonal palette */
+export type MinorColorValue = '1'|'2'|'3'|'4'|'5';
 
 const FULL_COLOR_VALUES: ColorValue[] = [
   '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
@@ -325,12 +339,12 @@ export const VIZ_COLORS: {[key in VizPaletteKey]: ColorEntry[]} = {
  *   2. Otherwise, we find the value for that id according to its order in the
  *      VisColor palette array. When the value of id is a VisColorKey, i.e., the
  *      name of that color in the palette, this funciton returns the specified
- *      color. However, if the value of id is a neagtive number, then the number
- *      will not be a vlaid name and indexOf() will return -1, which ensures
- *      that all negative numbers return the "other" color for that palette when
- *      the color is sccessed with at(). This special behavior is a convenient
- *      way to semanically distinguish between "normal" and "other" values in
- *      data visualization applications.
+ *      color. However, if the value of id is any other value (e.g., a negative
+ *      number, some errant string), then the number will not be a vlaid name
+ *      and indexOf() will return -1, which ensures that all negative numbers
+ *      return the "other" color for that palette when the color is accessed
+ *      with at(). This special behavior is a convenient way to semanically
+ *      distinguish between "normal" and "other" values in data visualizations.
  */
 export function getVizColor (version: VizPaletteKey,
                              id: number|VizColorKey): ColorEntry {
@@ -356,7 +370,7 @@ export const DEFAULT: string = BRAND_COLORS.cyea[4].color;
 /** Default other color for invalid values (VizColor Grey-Deep) */
 export const OTHER: string = VIZ_COLORS.deep[VIZ_COLORS.deep.length - 1].color;
 
-/** Default other color for invalid values (Brand Neutral-500) */
+/** Default other color for invalid values (Brand Mage-400) */
 export const HOVER: string = BRAND_COLORS.mage[4].color;
 
 /** Default other color for invalid values (Brand Neutral-500) */
