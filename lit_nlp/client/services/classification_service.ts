@@ -21,6 +21,7 @@ import {action, computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, FacetedData, GroupedExamples, IndexedInput, Preds, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
+import {BINARY_POS_NEG, CATEGORICAL_NORMAL} from '../lib/colors';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState, GroupService} from './services';
@@ -425,20 +426,17 @@ export class ClassificationService extends LitService {
               this.labelNames[`${model}:${predKey}`]
                              [this.classificationInfo[input.id][model][predKey]
                                   .predictedClassIdx],
-          scale: d3.scaleOrdinal(d3.schemeCategory10)
-                     .domain(this.labelNames[`${model}:${predKey}`]) as D3Scale
+          scale: d3.scaleOrdinal(CATEGORICAL_NORMAL)
+                   .domain(this.labelNames[`${model}:${predKey}`]) as D3Scale
         });
         if (info[model][predKey].predictionCorrect != null) {
           options.push({
             name: `${model}:${predKey} correct`,
             getValue: (input: IndexedInput) =>
                 this.classificationInfo[input.id][model][predKey]
-                    .predictionCorrect ?
-                'correct' :
-                'incorrect',
-            scale: d3.scaleOrdinal(d3.schemeSet1).domain([
-              'incorrect', 'correct'
-            ]) as D3Scale
+                    .predictionCorrect ? 'correct' : 'incorrect',
+            scale: d3.scaleOrdinal(BINARY_POS_NEG)
+                     .domain(['correct', 'incorrect']) as D3Scale
           });
         }
       }

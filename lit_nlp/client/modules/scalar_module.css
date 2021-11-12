@@ -3,14 +3,14 @@
 }
 
 .primary-selected-point {
-  r: 4px;
+  r: 6px;
   opacity: 1.0;
   stroke-width: 1px;
   stroke: #000;
 }
 
 .hovered-point {
-  r: 4px;
+  r: 6px;
   opacity: 1.0;
   stroke-width: 2px;
   stroke: red;
@@ -46,7 +46,6 @@
 }
 
 .scatterplot-background {
-  background: rgb(248, 249, 250);
   padding-bottom: 15px;
   padding-top: 5px;
 }

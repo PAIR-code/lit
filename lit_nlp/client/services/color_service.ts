@@ -20,6 +20,7 @@ import * as d3 from 'd3';
 import {computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
+import {DEFAULT, CATEGORICAL_NORMAL, MULTIHUE_CONTINUOUS} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
 import {GroupService} from './group_service';
@@ -42,7 +43,7 @@ export class ColorService extends LitService {
     });
   }
 
-  private readonly defaultColor = d3.schemeCategory10[0];
+  private readonly defaultColor = DEFAULT;
 
   private readonly defaultOption: ColorOption = {
     name: 'None',
@@ -68,24 +69,22 @@ export class ColorService extends LitService {
   get colorableOptions() {
     const catInputFeatureOptions =
         this.groupService.categoricalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.categoricalFeatures[feature];
+          const range = domain.length > 1 ? CATEGORICAL_NORMAL : [ DEFAULT ];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale:
-                d3.scaleOrdinal(d3.schemeCategory10)
-                    .domain(this.groupService.categoricalFeatures[feature]) as
-                D3Scale
+            scale: d3.scaleOrdinal(range).domain(domain) as D3Scale
           };
         });
     const numInputFeatureOptions =
         this.groupService.numericalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.numericalFeatureRanges[feature];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale: d3.scaleSequential(d3.interpolateViridis)
-                       .domain(
-                           this.groupService.numericalFeatureRanges[feature]) as
-                D3Scale
+            scale: d3.scaleSequential(MULTIHUE_CONTINUOUS)
+                     .domain(domain) as D3Scale
           };
         });
     return [
@@ -101,11 +100,7 @@ export class ColorService extends LitService {
       return this.defaultColor;
     }
     const val = this.selectedColorOption.getValue(input);
-    const color = this.selectedColorOption.scale(val);
-    if (color == null) {
-      return this.defaultColor;
-    }
-    return color;
+    return this.selectedColorOption.scale(val) || this.defaultColor;
   }
 
   /**

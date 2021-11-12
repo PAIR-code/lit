@@ -357,11 +357,14 @@ export class EmbeddingsModule extends LitModule {
     // Add some transparency if not selected or hovered.
     const colorObject = d3.color(color)!;
 
-    if (!isSelected && !isHovered) {
-      colorObject.opacity =
-          this.selectionService.selectedInputData.length === 0 ? 0.7 : 0.1;
+    if (isHovered || isPrimarySelected) {
+      colorObject.opacity = 1.0;
     } else if (isSelected && !isPrimarySelected) {
-      colorObject.opacity = .5;
+      colorObject.opacity = 0.8;
+    } else if (this.selectionService.selectedInputData.length) {
+      colorObject.opacity = 0.25;
+    } else {
+      colorObject.opacity = 0.8;
     }
 
     return colorObject.toString();

@@ -380,6 +380,30 @@ export const LOADING: string = BRAND_COLORS.neutral[5].color;
 export const CATEGORICAL_NORMAL: string[] =
   VIZ_COLORS.deep.slice(0,-1).map(ce => ce.color);
 
+/** Binary Classification for Positive/Negative Semantics -- Blue, Coral */
+export const BINARY_POS_NEG: string[] = [
+  VIZ_COLORS.deep[1].color, VIZ_COLORS.deep[4].color
+];
+
+/** Sequential ramp for signed data: Continuous, Coral, Neutral, Teal */
+export const CONTINUOUS_SIGNED = ramp([
+  VIZ_COLORS.dark[4].color,
+  VIZ_COLORS.deep[4].color,
+  VIZ_COLORS.bright[4].color,
+  VIZ_COLORS.pastel[7].color,
+  VIZ_COLORS.bright[5].color,
+  VIZ_COLORS.deep[5].color,
+  VIZ_COLORS.dark[5].color
+]);
+
+/** Sequential ramp for unsigned data: Continuous, Purple */
+export const CONTINUOUS_UNSIGNED = ramp([
+  VIZ_COLORS.pastel[3].color,
+  VIZ_COLORS.bright[3].color,
+  VIZ_COLORS.deep[3].color,
+  VIZ_COLORS.dark[3].color
+]);
+
 /** Sequetial: Discrete, Cyea, 3 classes (Cyea-200/400/600) */
 export const CYEA_DISCRETE: string[] = [
   BRAND_COLORS.cyea[2].color,
@@ -389,7 +413,7 @@ export const CYEA_DISCRETE: string[] = [
 
 /** Sequetial: Continuous, Cyea */
 export const CYEA_CONTINUOUS =
-  ramp(BRAND_COLORS.cyea.slice(2,7).map(ce => ce.color));
+  ramp(BRAND_COLORS.cyea.slice(2,9).map(ce => ce.color));
 
 /** Sequetial: Discrete, Mage, 3 classes (Mage-200/400/600) */
 export const MAGE_DISCRETE: string[] = [
@@ -400,7 +424,7 @@ export const MAGE_DISCRETE: string[] = [
 
 /** Sequetial: Continuous, Mage */
 export const MAGE_CONTINUOUS =
-  ramp(BRAND_COLORS.mage.slice(2,7).map(ce => ce.color));
+  ramp(BRAND_COLORS.mage.slice(2,9).map(ce => ce.color));
 
 /** Diverging: 4 classes (Bric-500/300/Cyea-300/500) */
 export const DIVERGING_4: string[] = [
@@ -409,6 +433,14 @@ export const DIVERGING_4: string[] = [
   BRAND_COLORS.cyea[3].color,
   BRAND_COLORS.cyea[5].color
 ];
+
+/** Sequential: Continuous 4-hue color ramp */
+export const MULTIHUE_CONTINUOUS = ramp([
+  VIZ_COLORS.deep[3].color,
+  VIZ_COLORS.deep[1].color,
+  VIZ_COLORS.deep[5].color,
+  VIZ_COLORS.deep[2].color
+]);
 
 /** Diverging: 5 classes (Bric-500/300/Neutral-200/Cyea-300/500) */
 export const DIVERGING_5: string[] = [
