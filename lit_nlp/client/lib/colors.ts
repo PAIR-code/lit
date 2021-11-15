@@ -34,10 +34,6 @@ export interface ColorEntry {
 /** Names of palettes in the VisColor family */
 export type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
 
-/** Names of colors in a VisColor palette */
-export type VizColorKey =
-  'orange'|'blue'|'yellow'|'purple'|'coral'|'teal'|'magenta'|'other';
-
 /** Names of palettes in the Brand family */
 export type LitBrandPaletteKey = 'cyea'|'mage'|'bric'|'neutral';
 
@@ -47,24 +43,24 @@ export type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
 /** Names of palettes in the Minor Tonal family */
 export type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
 
-/** Names of colors in a Brand or Major Tonal palette */
-export type ColorValue =
-  '50'|'100'|'200'|'300'|'400'|'500'|'600'|'700'|'800'|'900';
-
-/** Names of colors in a Minor Tonal palette */
-export type MinorColorValue = '1'|'2'|'3'|'4'|'5';
-
-const FULL_COLOR_VALUES: ColorValue[] = [
+const FULL_COLOR_VALUES = [
   '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
-];
+] as const;
+/** Names of colors in a Brand or Major Tonal palette */
+export type ColorValue = typeof FULL_COLOR_VALUES[number];
 
-const MINOR_COLOR_VALUES: MinorColorValue[] = [ '1', '2', '3', '4', '5' ];
+
+const MINOR_COLOR_VALUES = [ '1', '2', '3', '4', '5' ] as const;
+/** Names of colors in a Minor Tonal palette */
+export type MinorColorValue = typeof MINOR_COLOR_VALUES[number];
 
 const ERROR_COLOR_VALUES: ColorValue[] = [ '50', '500', '600', '700' ];
 
-const VIZ_COLOR_VALUES: VizColorKey[] = [
+const VIZ_COLOR_VALUES = [
   'orange', 'blue', 'yellow', 'purple', 'coral', 'teal', 'magenta', 'other'
-];
+] as const;
+/** Names of colors in a VisColor palette */
+export type VizColorKey = typeof VIZ_COLOR_VALUES[number];
 
 /**
  * Returns a ColorEntry at the index in th given palette.
