@@ -228,10 +228,10 @@ class MulticlassPreds(LitType):
   """Multiclass predicted probabilities, as <float>[num_labels]."""
   # Vocabulary is required here for decoding model output.
   # Usually this will match the vocabulary in the corresponding label field.
-  vocab: Sequence[Text]                 # label names
-  null_idx: Optional[int] = None        # vocab index of negative (null) label
-  parent: Optional[Text] = None         # CategoryLabel field in input
-  autosort: Optional[bool] = False      # Enable automatic sorting
+  vocab: Sequence[Text]  # label names
+  null_idx: Optional[int] = None  # vocab index of negative (null) label
+  parent: Optional[Text] = None  # CategoryLabel field in input
+  autosort: Optional[bool] = False  # Enable automatic sorting
 
   @property
   def num_labels(self):
@@ -435,5 +435,6 @@ class SequenceSalience(LitType):
 class Boolean(LitType):
   """Boolean value."""
   default: bool = False
+
 
 # LINT.ThenChange(../client/lib/types.ts)
