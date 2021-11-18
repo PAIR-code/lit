@@ -125,19 +125,19 @@
  * Body styles
  */
 tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--lit-mage-200);
 }
 
 tbody tr.selected {
-  background: #c5e4e8;
+  background: var(--lit-cyea-100);
   color: var(--lit-gray-800);
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
 tbody tr.primary-selected {
-  background: #9bb7ba;
-  color: #142838;
+  background: var(--lit-cyea-300);
+  color: black;
   transition-duration: 0.2s;
   transition-property: background-color;
 }

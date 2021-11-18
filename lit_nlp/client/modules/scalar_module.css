@@ -12,8 +12,11 @@
 .hovered-point {
   r: 6px;
   opacity: 1.0;
+  /* !important required to override explicit element.fill attr set by D3 */
+  fill: var(--lit-mage-300) !important;
   stroke-width: 2px;
-  stroke: red;
+  stroke: var(--lit-mage-300);
+  cursor: pointer;
 }
 
 .selected-point {
