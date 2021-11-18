@@ -455,19 +455,15 @@ export class ScalarModule extends LitModule {
       const thresholdSelection = d3.select(scatterplot).select('#threshold');
       thresholdSelection.selectAll('line').remove();
 
-      const xScale = this.getXScale(key);
-      const yScale = this.getYScale(key);
+      const x = this.getXScale(key)(threshold);
+      const [minY, maxY] = this.getYScale(key).range();
 
       // Create threshold marker.
       thresholdSelection.append('line')
-          .attr('x1', xScale(threshold))
-          .attr('y1', yScale(ScalarModule.plotTopMargin))
-          .attr('x2', xScale(threshold))
-          .attr(
-              'y2',
-              yScale(
-                  this.plotHeight - ScalarModule.plotBottomMargin -
-                  ScalarModule.plotTopMargin))
+          .attr('x1', x)
+          .attr('y1', minY)
+          .attr('x2', x)
+          .attr('y2', maxY)
           .style('stroke', 'black');
     }
   }
