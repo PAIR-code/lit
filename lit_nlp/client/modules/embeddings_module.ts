@@ -27,6 +27,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {BatchRequestCache} from '../lib/caching';
+import {getBrandColor} from '../lib/colors';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService, FocusService} from '../services/services';
@@ -51,6 +52,9 @@ interface NearestNeighborsResult {
 const NN_INTERPRETER_NAME = 'nearest neighbors';
 // TODO(lit-dev): Make the number of nearest neighbors configurable in the UI.
 const DEFAULT_NUM_NEAREST = 10;
+
+// Pixel width and height of thumbnails for datapoints with image features.
+const SPRITE_THUMBNAIL_SIZE = 48;
 
 /**
  * A LIT module showing a Scatter-GL rendering of the projected embeddings
@@ -86,6 +90,8 @@ export class EmbeddingsModule extends LitModule {
   // Actual projected points.
   @observable private projectedPoints: Point3D[] = [];
 
+  @observable private spriteImage?: HTMLImageElement|string;
+
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
   private resizeObserver!: ResizeObserver;
@@ -105,6 +111,7 @@ export class EmbeddingsModule extends LitModule {
 
   @observable private selectedEmbeddingsIndex = 0;
   @observable private selectedLabelIndex = 0;
+  @observable private selectedSpriteIndex = 0;
 
   @computed
   get currentInputIndicesById(): Map<string, number> {
@@ -135,9 +142,13 @@ export class EmbeddingsModule extends LitModule {
 
   @computed
   private get displayLabels() {
+    const labelByFields = this.getLabelByFields();
     return this.appState.currentInputData.map((d: IndexedInput) => {
-      const labelKey = Object.keys(d.data)[this.selectedLabelIndex];
-      const label = d.data[labelKey];
+      let label = '';
+      if (this.selectedLabelIndex < labelByFields.length) {
+        const labelKey = labelByFields[this.selectedLabelIndex];
+        label = d.data[labelKey];
+      }
       const added = d.meta['added'] ? 1 : 0;
       return {label, added};
     });
@@ -149,7 +160,16 @@ export class EmbeddingsModule extends LitModule {
       return null;
     }
     const labels = this.displayLabels.slice(0, this.projectedPoints.length);
-    return new Dataset(this.projectedPoints, labels);
+    const dataset = new Dataset(this.projectedPoints, labels);
+
+    // If a sprite image has been created, add it to the scatter GL dataset.
+    if (this.spriteImage) {
+      dataset.setSpriteMetadata({
+        spriteImage: this.spriteImage,
+        singleSpriteSize: [SPRITE_THUMBNAIL_SIZE, SPRITE_THUMBNAIL_SIZE],
+      });
+    }
+    return dataset;
   }
 
   /**
@@ -259,6 +279,9 @@ export class EmbeddingsModule extends LitModule {
     this.react(() => this.selectionService.primarySelectedId, primaryId => {
       this.updateScatterGL();
     });
+    this.react(() => this.selectedSpriteIndex, focusData => {
+      this.computeSpriteMap();
+    });
 
     // Compute or update embeddings.
     // Since this is potentially expensive, set a small delay so mobx can batch
@@ -286,11 +309,12 @@ export class EmbeddingsModule extends LitModule {
 
   private updateScatterGL() {
     if (this.scatterGLDataset) {
-      // Hack solution for a bug where scattergl doesn't render until it is
-      // either interacted with or rotated. TODO(lit-team): update this once
-      // b/160165921 is fixed.
       this.scatterGL.render(this.scatterGLDataset);
-      this.scatterGL.render(this.scatterGLDataset);
+      if (this.spriteImage) {
+        this.scatterGL.setSpriteRenderMode();
+      } else {
+        this.scatterGL.setPointRenderMode();
+      }
     }
   }
 
@@ -330,12 +354,75 @@ export class EmbeddingsModule extends LitModule {
     const results =
         await this.loadLatest(`proj-${JSON.stringify(projConfig)}`, promise);
     if (results === null) return;
+
+    // Compute sprite map if image data.
+    if (this.appState.datasetHasImages) {
+       this.computeSpriteMap();
+    } else {
+      this.spriteImage = undefined;
+    }
+
     this.projectedPoints = results.map((d: {'z': Point3D}) => d['z']);
   }
 
+  private getLabelByFields() {
+    const inputData = this.appState.currentInputData;
+    const noData = inputData === null || inputData.length === 0;
+    let options: string[] = noData ? [] : Object.keys(inputData[0].data);
+    options = options.filter((key) => !this.getImageFields().includes(key));
+    return options;
+  }
+
+  private getImageFields() {
+    return findSpecKeys(this.appState.currentDatasetSpec, 'ImageBytes');
+  }
+
+  private computeSpriteMap() {
+    // This condition corresponds to the selection of "none" from the dropdown
+    // to select which image field to create thumbnails from.
+    if (this.selectedSpriteIndex >= this.getImageFields().length) {
+      this.spriteImage = undefined;
+      return;
+    }
+
+    // Draw thumbnails of selected image into a canvas in a grid, for use by
+    // scatter-gl library for sprite mapping.
+    const imageKey = this.getImageFields()[this.selectedSpriteIndex];
+    const canvas = document.createElement("canvas");
+
+    // Calculate how many images to fit on a side to create a square image grid.
+    const imgPerSide = Math.ceil(
+        Math.sqrt(this.appState.currentInputData.length));
+
+    const imgSize = SPRITE_THUMBNAIL_SIZE;
+    canvas.width = imgPerSide * imgSize;
+    canvas.height = imgPerSide * imgSize;
+    const ctx = canvas.getContext('2d')!;
+    for (let i = 0; i < this.appState.currentInputData.length; i++) {
+      const datapoint = this.appState.currentInputData[i];
+      const x = i % imgPerSide;
+      const y = Math.floor(i / imgPerSide);
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, x * imgSize, y * imgSize, imgSize, imgSize);
+
+        // Once last datapoint is drawn to the canvas, create an image element
+        // from it for use by scatter-gl.
+        if (i === this.appState.currentInputData.length - 1) {
+          const image = document.createElement("img");
+          image.src = canvas.toDataURL("image/jpeg");
+          this.spriteImage = image;
+        }
+      };
+      const imageStr = datapoint.data[imageKey];
+      if (imageStr != null) {
+        img.src = imageStr;
+      }
+    }
+  }
+
   /**
-   * Color a point (different colors for user-added points vs points that were
-   * part of the original dataset)
+   * Color a point
    * @param i index of the point to be colored.
    */
   private pointColorer(
@@ -352,8 +439,14 @@ export class EmbeddingsModule extends LitModule {
         this.focusService.focusData.io == null;
 
     if (isHovered) {
-      color = 'red';
+      color = getBrandColor('mage', '300').color;
     }
+
+    // Do not add color to rendered images unless they are hovered or selected.
+    if (this.spriteImage && !isHovered && !isSelected) {
+      return '';
+    }
+
     // Add some transparency if not selected or hovered.
     const colorObject = d3.color(color)!;
 
@@ -400,6 +493,7 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderProjectorSelect()}
           ${this.renderEmbeddingsSelect()}
           ${this.renderLabelBySelect()}
+          ${this.renderSpriteBySelect()}
         </div>
         <div class="toolbar-container flex-row" id="select-button-container">
           <button class="hairline-button selected-nearest-button"
@@ -458,10 +552,7 @@ export class EmbeddingsModule extends LitModule {
   }
 
   renderLabelBySelect() {
-    const inputData = this.appState.currentInputData;
-    const noData = inputData === null || inputData.length === 0;
-    const options: string[] = noData ? [] : Object.keys(inputData[0].data);
-
+    const options = this.getLabelByFields();
     const htmlOptions = options.map((option, optionIndex) => {
       return html`<option value=${optionIndex}>${option}</option>`;
     });
@@ -473,6 +564,30 @@ export class EmbeddingsModule extends LitModule {
 
     return this.renderSelect(
         'Label by', htmlOptions, handleChange, options[0] ?? '');
+  }
+
+  renderSpriteBySelect() {
+    // Do not show sprite selection dropdown if there are less than two options,
+    // which includes when there are no images in the dataset.
+    const options = this.getImageFields();
+    if (options.length === 0) {
+      return null;
+    }
+
+    // Add an option for not using a sprite.
+    options.push('none');
+
+    const htmlOptions = options.map((option, optionIndex) => {
+      return html`<option value=${optionIndex}>${option}</option>`;
+    });
+
+    const handleChange = (e: Event) => {
+      const select = (e.target as HTMLSelectElement);
+      this.selectedSpriteIndex = select?.selectedIndex || 0;
+    };
+
+    return this.renderSelect(
+        'Thumbnail by', htmlOptions, handleChange, options[0] ?? '');
   }
 
   renderSelect(
