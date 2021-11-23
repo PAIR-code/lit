@@ -29,6 +29,10 @@ from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
 
+IGNORE_CASING_KEY = 'ignore_casing'
+SUBSTITUTIONS_KEY = 'Substitutions'
+FIELDS_TO_REPLACE_KEY = 'Fields to replace'
+
 
 class WordReplacer(lit_components.Generator):
   """Generate new examples by replacing words in examples.
@@ -136,11 +140,30 @@ class WordReplacer(lit_components.Generator):
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
                config: Optional[JsonDict] = None) -> List[JsonDict]:
-    """Replace words based on replacement list."""
+    """Replace words based on replacement list.
+
+    Note: If multiple fields are selected for replacement, this method will
+    generate an example per field. For example, if there are two fields on which
+    to perform replacement, the method will perform replacement first on one
+    field to produce an example (other fields left intact), and then perform
+    replacement on the second field (again copying all other fields from the
+    original datum).
+
+    Args:
+      example: the example used for basis of generated examples.
+      model: the model.
+      dataset: the dataset.
+      config: user-provided config properties.
+
+    Returns:
+      examples: a list of generated examples.
+    """
     del model  # Unused.
 
-    ignore_casing = config.get('ignore_casing', True) if config else True
-    subs_string = config.get('Substitutions') if config else None
+    config = config or {}
+
+    ignore_casing = config.get(IGNORE_CASING_KEY, True)
+    subs_string = config.get(SUBSTITUTIONS_KEY, None)
     if subs_string:
       replacements = self.parse_subs_string(
           subs_string, ignore_casing=ignore_casing)
@@ -154,10 +177,20 @@ class WordReplacer(lit_components.Generator):
     replacement_regex = self._get_replacement_pattern(
         replacements, ignore_casing=ignore_casing)
 
-    new_examples = []
+    # If config key is missing, generate no examples.
+    fields_to_replace = list(config.get(FIELDS_TO_REPLACE_KEY, []))
+    if not fields_to_replace:
+      return []
+
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
     text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
+    if not text_keys:
+      return []
+
+    text_keys = [key for key in text_keys if key in fields_to_replace]
+
+    new_examples = []
     for text_key in text_keys:
       text_data = example[text_key]
       for new_val in self.generate_counterfactuals(
@@ -172,5 +205,10 @@ class WordReplacer(lit_components.Generator):
   def config_spec(self) -> types.Spec:
     return {
         # Requires a substitution string. Include a default.
-        'Substitutions': types.TextSegment(default='great -> terrible')
+        SUBSTITUTIONS_KEY: types.TextSegment(default='great -> terrible'),
+        FIELDS_TO_REPLACE_KEY:
+            types.MultiFieldMatcher(
+                spec='input',
+                types=['TextSegment'],
+                select_all=True),
     }

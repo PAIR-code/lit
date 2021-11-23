@@ -64,6 +64,10 @@ class Backtranslator(lit_components.Generator):
                    config: Optional[JsonDict] = None) -> List[List[JsonDict]]:
     """Run generation on a set of inputs.
 
+    If more than one field is to be backtranslated, each field is independently
+    backtranslated per example. For example, if there are two fields to be
+    backtranslated, this method will generate two examples per pivot language.
+
     Use this batch API by default, so we can make parallel requests.
     Args:
       inputs: sequence of inputs, following dataset.spec()

@@ -106,6 +106,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
 
   def test_hotflip_num_ex(self):
     ex = {'sentence': 'this long movie is terrible.'}
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 0
     self.assertEmpty(
         self.hotflip.generate(ex, self.classification_model, None,
@@ -125,6 +128,10 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 2
     thresh = 2
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence1',
+        'tokens_sentence2',
+    ]
     self.assertLen(
         self.hotflip.generate(ex, self.regression_model, None,
                               self.regression_config), 2)
@@ -133,6 +140,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
     ex = {'sentence': 'this long movie is terrible.'}
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 10
     self.classification_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['terrible']
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     cfs = self.hotflip.generate(
         ex, self.classification_model, None, self.classification_config)
     for cf in cfs:
@@ -143,6 +153,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 10
     self.classification_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['long',
                                                                 'terrible']
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     cfs = self.hotflip.generate(
         ex, self.classification_model, None, self.classification_config)
     for cf in cfs:
@@ -157,6 +170,10 @@ class ModelBasedHotflipTest(absltest.TestCase):
     thresh = 2
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
     self.regression_config[hotflip.TOKENS_TO_IGNORE_KEY] = ['long', 'terrible']
+    self.regression_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence1',
+        'tokens_sentence2',
+    ]
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
     for cf in cfs:
@@ -173,6 +190,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
 
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
     self.classification_config[hotflip.MAX_FLIPS_KEY] = 1
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     cfs = self.hotflip.generate(
         ex, self.classification_model, None, self.classification_config)
     cf_tokens = list(cfs)[0]['tokens_sentence']
@@ -182,6 +202,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
     ex = {'sentence': 'this long movie is terrible and horrible.'}
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
     self.classification_config[hotflip.MAX_FLIPS_KEY] = 1
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     cfs = self.hotflip.generate(
         ex, self.classification_model, None, self.classification_config)
     self.assertEmpty(cfs)
@@ -197,6 +220,10 @@ class ModelBasedHotflipTest(absltest.TestCase):
     thresh = 2
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
     self.regression_config[hotflip.MAX_FLIPS_KEY] = 1
+    self.regression_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence1',
+        'tokens_sentence2',
+    ]
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
     for cf in cfs:
@@ -214,6 +241,10 @@ class ModelBasedHotflipTest(absltest.TestCase):
     self.regression_config[hotflip.NUM_EXAMPLES_KEY] = 10
     thresh = 2
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence1',
+        'tokens_sentence2',
+    ]
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
     for cf in cfs:
@@ -226,6 +257,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
     ex_output = list(self.classification_model.predict([ex]))[0]
     pred_class = str(np.argmax(ex_output['probas']))
     self.assertEqual('0', pred_class)
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     cfs = self.hotflip.generate(ex, self.classification_model, None,
                                 self.classification_config)
     cf_outputs = self.classification_model.predict(cfs)
@@ -240,6 +274,10 @@ class ModelBasedHotflipTest(absltest.TestCase):
     ex_output = list(self.regression_model.predict([ex]))[0]
     thresh = 2
     self.regression_config[hotflip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence1',
+        'tokens_sentence2',
+    ]
     cfs = self.hotflip.generate(ex, self.regression_model, None,
                                 self.regression_config)
     cf_outputs = self.regression_model.predict(cfs)
@@ -250,6 +288,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
   def test_hotflip_fails_without_embeddings(self):
     ex = {'sentence': 'this long movie is terrible.'}
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     with self.assertRaises(NotImplementedError):
       self.hotflip.generate(ex, self.classification_model_without_embeddings,
                             None, self.classification_config)
@@ -257,6 +298,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
   def test_hotflip_fails_without_tokens(self):
     ex = {'sentence': 'this long movie is terrible.'}
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     with self.assertRaises(AssertionError):
       self.hotflip.generate(ex, self.classification_model_without_tokens,
                             None, self.classification_config)
@@ -264,6 +308,9 @@ class ModelBasedHotflipTest(absltest.TestCase):
   def test_hotflip_fails_without_gradients(self):
     ex = {'sentence': 'this long movie is terrible.'}
     self.classification_config[hotflip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[hotflip.FIELDS_TO_HOTFLIP_KEY] = [
+        'tokens_sentence',
+    ]
     with self.assertRaises(AssertionError):
       self.hotflip.generate(ex, self.classification_model_without_gradients,
                             None, self.classification_config)

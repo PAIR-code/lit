@@ -60,6 +60,7 @@ TOKENS_TO_IGNORE_DEFAULT = []
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 0.0
 MAX_FLIPPABLE_TOKENS = 10
+FIELDS_TO_HOTFLIP_KEY = "Fields to hotflip"
 
 
 class HotFlip(lit_components.Generator):
@@ -97,11 +98,15 @@ class HotFlip(lit_components.Generator):
   def _get_tokens_and_gradients(self,
                                 input_spec: JsonDict,
                                 output_spec: JsonDict,
-                                output: JsonDict):
+                                output: JsonDict,
+                                selected_fields: List[str]):
     """Returns a dictionary mapping token fields to tokens and gradients."""
-    # Find token fields
-    token_fields = [key
-                    for key in utils.find_spec_keys(input_spec, types.Tokens)
+    # Find selected token fields.
+    input_spec_keys = set(utils.find_spec_keys(input_spec, types.Tokens))
+    logging.info("input_spec_keys: %r", input_spec_keys)
+    selected_input_spec_keys = list(input_spec_keys & set(selected_fields))
+    logging.info("selected_input_spec_keys: %r", selected_input_spec_keys)
+    token_fields = [key for key in selected_input_spec_keys
                     if input_spec[key].is_compatible(output_spec.get(key))]
 
     if len(token_fields) == 0:  # pylint: disable=g-explicit-length-test
@@ -132,6 +137,11 @@ class HotFlip(lit_components.Generator):
                                                   "RegressionScore"]),
         REGRESSION_THRESH_KEY: types.TextSegment(
             default=str(REGRESSION_THRESH_DEFAULT)),
+        FIELDS_TO_HOTFLIP_KEY:
+            types.MultiFieldMatcher(
+                spec="input",
+                types=["Tokens"],
+                select_all=True),
     }
 
   def _subset_exists(self, cand_set, sets):
@@ -252,10 +262,15 @@ class HotFlip(lit_components.Generator):
     # Get model outputs.
     orig_output = list(model.predict([example]))[0]
 
+    # Check config for selected fields.
+    selected_fields = list(config.get(FIELDS_TO_HOTFLIP_KEY, []))
+    if not selected_fields:
+      return []
+
     # Get tokens (corresponding to each text input field) and corresponding
     # gradients.
     tokens_and_gradients = self._get_tokens_and_gradients(
-        input_spec, output_spec, orig_output)
+        input_spec, output_spec, orig_output, selected_fields)
     assert tokens_and_gradients, (
         "No token fields found. Cannot use HotFlip. :-(")
 
