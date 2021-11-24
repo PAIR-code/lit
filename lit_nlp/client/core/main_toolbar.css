@@ -72,37 +72,6 @@
   margin-right: 4pt;
 }
 
-/**
- * For standalone MWC icons as buttons.
- * We don't use mwc-icon-button because this adds
- * a large backdrop and extra whitespace.
- */
-mwc-icon.icon-button {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  cursor: pointer;
-  user-select: none;
-}
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.mdi-outlined {
-  --mdc-icon-font: "Material Icons Outlined";
-}
-
-mwc-icon.disabled {
-  cursor: default;
-  color: rgba(60, 64, 67, 0.38);
-}
-
-mwc-icon.disabled:hover {
-  opacity: 1;
-}
-
 /* For in-line icons in a <span> */
 [data-icon] {
   margin: 0;

@@ -25,6 +25,7 @@ import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 import {styles} from './data_matrix.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**
@@ -41,7 +42,7 @@ export interface MatrixCell {
 @customElement('data-matrix')
 export class DataMatrix extends LitElement {
   static override get styles() {
-    return [styles];
+    return [sharedStyles, styles];
   }
 
   @observable verticalColumnLabels = false;

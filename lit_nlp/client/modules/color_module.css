@@ -57,28 +57,6 @@
   margin-left: 4pt;
 }
 
-/**
- * For standalone MWC icons as buttons.
- * We don't use mwc-icon-button because this adds
- * a large backdrop and extra whitespace.
- */
-mwc-icon.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-  cursor: pointer;
-  user-select: none;
-}
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.mdi-outlined {
-  --mdc-icon-font: "Material Icons Outlined";
-}
-
 /* For in-line icons in a <span> */
 [data-icon] {
   margin: 0;

@@ -50,12 +50,6 @@
   width: 24px;
   min-width: 24px;
   --mdc-icon-size: 24px;
-  color: rgb(95, 99, 104);
-  cursor: pointer;
-}
-
-.icon-button:hover {
-  opacity: .7;
 }
 
 .holder {

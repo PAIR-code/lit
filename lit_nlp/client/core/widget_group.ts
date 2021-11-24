@@ -35,6 +35,7 @@ import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** Minimum width for a widget group. */
 export const MIN_GROUP_WIDTH_PX = 100;
@@ -62,7 +63,7 @@ export class WidgetGroup extends LitElement {
   private syncScrolling = true;
 
   static override get styles() {
-    return [widgetGroupStyles];
+    return [sharedStyles, widgetGroupStyles];
   }
 
   override firstUpdated() {
@@ -307,7 +308,7 @@ export class LitWidget extends MobxLitElement {
   @property({ type: Number }) widgetScrollLeft = 0;
 
   static override get styles() {
-    return widgetStyles;
+    return [sharedStyles, widgetStyles];
   }
 
   override async updated() {

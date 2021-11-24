@@ -93,21 +93,3 @@
   text-decoration: underline;
   cursor: pointer;
 }
-
-/* TODO(lit-dev): move to shared styles? */
-mwc-icon.icon-button {
-  height: 20px;
-  width: 20px;
-  min-width: 20px;
-  --mdc-icon-size: 20px;
-  cursor: pointer;
-  user-select: none;
-}
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.icon-button:active {
-  opacity: .4;
-}

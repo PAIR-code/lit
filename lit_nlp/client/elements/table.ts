@@ -36,6 +36,7 @@ import {ReactiveElement} from '../lib/elements';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, randInt} from '../lib/utils';
 
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './table.css';
 
 type SortableTableEntry = string|number;
@@ -116,7 +117,7 @@ export class DataTable extends ReactiveElement {
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
   static override get styles() {
-    return [styles];
+    return [sharedStyles, styles];
   }
 
   // Sort order precedence: 1) sortName, 2) input order

@@ -371,6 +371,38 @@ mwc-textfield {
 }
 
 /**
+ * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
+ * adds a large backdrop and extra whitespace.
+ */
+.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--lit-neutral-700);
+}
+
+.icon-button:hover {
+  color: var(--lit-neutral-500);
+}
+
+.icon-button:disabled,
+mwc-icon.disabled{
+  cursor: default;
+  color: var(--lit-neutral-300);
+}
+
+.icon-button:active {
+  color: var(--lit-neutral-900);
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
+}
+
+/**
  * Main container to use inside modules.
  * If this contains a .module-toolbar and a .module-results-area,
  * the results area will scroll while the toolbar remains at the top.

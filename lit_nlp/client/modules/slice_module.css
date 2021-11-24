@@ -99,25 +99,3 @@
 .hidden {
   visibility: hidden;
 }
-
-/**
- * For standalone MWC icons as buttons.
- * We don't use mwc-icon-button because this adds
- * a large backdrop and extra whitespace.
- */
-mwc-icon.icon-button {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  cursor: pointer;
-  user-select: none;
-}
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.mdi-outlined {
-  --mdc-icon-font: "Material Icons Outlined";
-}
