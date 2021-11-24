@@ -65,11 +65,11 @@ For our use-case, we click on our “acting” slice as the concept to test, and
 
 #### Interpreting TCAV scores
 
-Once we run TCAV, we see an entry in the table in the TCAV module for each concept tested. Each concept gets a CAV (“Concept Activation Vector”) score between 0 and 1 describing the concept’s effect on the prediction of the class in question. What you want to look at is where the blue bar (CAV score) is relative to the black line (reference point). The reference point indicates the effect that slices made of randomly-chosen datapoints outside of the concept being tested has on prediction of the class. For a well-calibrated classifier, the reference point will usually be near 0.5 (i.e. no effect).
+Once we run TCAV, we see an entry in the table in the TCAV module for each concept tested. Each concept gets a CAV (“Concept Activation Vector”) score between 0 and 1 describing the concept’s effect on the prediction of the class in question. What matters is where the blue bar (CAV score) is relative to the black line (reference point). The reference point indicates the effect that slices made of randomly-chosen datapoints outside of the concept being tested has on prediction of the class. For a well-calibrated classifier, the reference point will usually be near 0.5 (i.e. no effect).
 
-A blue bar extending beyond or falling short of the black line means the concept is influencing the prediction. If the blue bar extends beyond the black line, the concept is positively influencing the prediction; if it falls short, it is negatively influencing.
+A blue bar extending right or left of the black line means the concept is influencing the prediction. If the blue bar extends to the right of the black line, the concept is positively influencing the prediction. Conversely, if the bar extended to the left, it is negatively influencing. In either case, the larger the bar, the greater the influence.
 
-In our example, the CAV score of ~.85 indicates that our “acting” concept has a strong positive effect on the prediction of this class. So we have found that this concept has a positive effect on predicting positive sentiment for our classifier.
+In our example, the CAV score of ~0.91 indicates that our “acting” concept has a strong positive effect on the prediction of this class. So we have found that this concept has a positive effect on predicting positive sentiment for our classifier.
 
 {% include partials/inset-image image: '/assets/images/tcav_result.png', 
   caption: 'TCAV results for our “acting” concept'%}

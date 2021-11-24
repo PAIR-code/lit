@@ -631,12 +631,12 @@ Every dataset/model is different, but for images, as low as 15 data points are
 shown to be sufficient. Start by adding at least 3 data points and add more as
 needed
 
-For this example, we select all examples containing the word 'humor' in the data
-table.
+For this example, we select all examples related to acting in the data table
+using the selector `acting|actor|actress`.
 
 ![Data table - select examples](./images/components/tcav-search-examples.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
-2.) Next, name the slice and click 'Create slice'.
+2.) Next, name the slice `acting` and click 'Create slice'.
 
 ![Slice](./images/components/tcav-create-slice.png)<!-- DO NOT REMOVE {style="max-width:280px"} -->
 
@@ -651,11 +651,11 @@ selected slice's examples against those in the negative slice.
 ![TCAV1](./images/components/tcav-select-slice.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
 
 When the run is complete (usually after a few seconds), the results are
-displayed in the table. In this example, the TCAV score is ~0.8, which is higher
-than the baseline indicated by the black bar. (Technically, the baseline
-represents 'null hypothesis', calculated with random concepts.) From this, we
-gather that the humor concept positively influences the prediction class 1, or
-positive sentiment.
+displayed in the table. In this example, the TCAV score is ~0.9 (shown by the
+blue bar in the score bar), which is higher than the baseline (shown as the
+black bar in the score bar ), indicating that the acting concept positively
+influences the prediction class 1, or positive sentiment. (Technically, the
+baseline represents 'null hypothesis', calculated with random concepts.)
 
 ![TCAV2](./images/components/tcav-results-table.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
 
