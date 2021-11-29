@@ -86,7 +86,7 @@ export class ColorModule extends LitModule {
     return html`
       <div class="top-holder">
         <div class="dropdown-container">
-          <label class="dropdown-label">Color by</label>
+          <label class="dropdown-label">Color by:</label>
           <select class="dropdown color-dropdown" @change=${handleChange}>
             ${htmlOptions}
           </select>

@@ -366,7 +366,7 @@ export class ConfusionMatrixModule extends LitModule {
       <div class="flex">
         <div>
           <div class="dropdown-holder">
-            <label class="dropdown-label">Rows</label>
+            <label class="dropdown-label">Rows:</label>
             <select class="dropdown" @change=${rowChange}>
               ${this.options.map((option, i) => html`
                 <option ?selected=${this.selectedRowOption === i} value=${i}>
@@ -375,7 +375,7 @@ export class ConfusionMatrixModule extends LitModule {
             </select>
           </div>
           <div class="dropdown-holder">
-            <label class="dropdown-label">Columns</label>
+            <label class="dropdown-label">Columns:</label>
             <select class="dropdown" @change=${colChange}>
               ${this.options.map((option, i) => html`
                 <option ?selected=${this.selectedColOption === i} value=${i}>

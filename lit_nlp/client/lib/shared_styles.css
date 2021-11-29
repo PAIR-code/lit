@@ -206,31 +206,64 @@ button:disabled {
 }
 
 .dropdown-label {
-  font-weight: regular;
-  font-size: 9pt;
-  letter-spacing: +0.3pt;
-  line-height: 12pt;
-  margin-left: 4pt;
-  margin-right: 4pt;
-  color: #3c4043;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.3px;
+  color: var(--lit-neutral-800);
 }
 
 .dropdown {
-  border: none;
   outline: none;
-  border-bottom: 1px solid lightgrey;
-  border-radius: 0;
-  padding: 4pt;
+  border: none;
+  border-bottom: 1px solid var(--lit-neutral-400);
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 8pt;
-  margin-right: 8pt;
+  padding: 4px 18px 3px 4px;
+  margin:  2px  8px 2px 0;
   max-width: 80%;
+  color: var(--lit-neutral-800);
   background-color: transparent;
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  /* SVG background-image sets fill: var(--lit-neutral-800) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233C4043%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
   background-size: .65em auto, 100%;
-  background-position: right 50%;
+  background-position: top 50% right 5.5px;
   background-repeat: no-repeat;
+}
+
+.dropdown:hover {
+  background-color: var(--lit-mintonal-p-3);
+  cursor: pointer;
+}
+
+.dropdown:active {
+  color: var(--lit-cyea-600);
+  /* SVG background-image sets fill: var(--lit-cyea-600) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231F6180%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-color: var(--lit-mintonal-p-1);
+}
+
+.dropdown:disabled {
+  color: var(--lit-neutral-400);
+  /* SVG background-image sets fill: var(--lit-neutral-200) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23E8EAED%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+}
+
+.dropdown.borderless { /* Not currently in use but available */
+  border: none;
+}
+
+.dropdown.hairline { /* Not currently in use but likely will be in AppToolbar */
+  border: 1px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  padding: 3pt 12pt 3pt 4pt;
+}
+
+.dropdown.hairline:disabled {
+  border: 1px solid var(--lit-neutral-200);
+  border-radius: 4px;
 }
 
 .monospace {

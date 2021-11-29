@@ -595,7 +595,7 @@ export class EmbeddingsModule extends LitModule {
       defaultValue: string) {
     return html`
       <div class="dropdown-container">
-        <label class="dropdown-label">${label}</label>
+        <label class="dropdown-label">${label}:</label>
         <select class="dropdown" @change=${onChange} .value=${defaultValue}>
           ${options}
         </select>
