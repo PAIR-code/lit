@@ -39,7 +39,8 @@ export class ThresholdSlider extends LitElement {
         .slider-row {
           display: flex;
           flex-wrap: wrap;
-          margin: 8px 5px;
+          align-items: start;
+          justify-content: center;
         }
 
         .text-with-controls {
@@ -51,6 +52,9 @@ export class ThresholdSlider extends LitElement {
         }
 
         .slider-val {
+          color: var(--lit-neutral-600);
+          margin-top: -3px; /*Accounts for custom thumb offset in lit-slider*/
+          margin-left: 2px;
           width: 30px;
         }
 
@@ -58,7 +62,6 @@ export class ThresholdSlider extends LitElement {
           margin: 5px;
           padding: 5px 10px;
         }
-
     `];
   }
 
@@ -112,6 +115,7 @@ export class ThresholdSlider extends LitElement {
       marginToVal: (margin: number) => number, title: string) {
     const val = marginToVal(margin);
     const isDefaultValue = margin === 0;
+
     const reset = () => {
       const event = new CustomEvent('threshold-changed', {
         detail: {
@@ -130,6 +134,7 @@ export class ThresholdSlider extends LitElement {
       'text-no-controls': !this.showControls,
       'slider-val': true
     };
+
     const renderLabel = () => {
       if (this.showControls) {
         return html`
@@ -138,12 +143,12 @@ export class ThresholdSlider extends LitElement {
         return null;
       }
     };
+
     return html`
         <div class="slider-row">
           ${renderLabel()}
-          <input type="range" min="${min}" max="${max}" step="${step}"
-                 .value="${val.toString()}" class="slider"
-                 @change=${onChange}>
+          <lit-slider min="${min}" max="${max}" step="${step}" val="${val}"
+                      .onChange=${onChange}></lit-slider>
           <div class=${classMap(valClasses)}>${val}</div>
           ${this.showControls ?
               html`<button class='hairline-button reset-button' @click=${reset}
