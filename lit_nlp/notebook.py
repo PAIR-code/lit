@@ -12,7 +12,9 @@ import json
 import os
 import pathlib
 import random
-from typing import cast, Optional
+from typing import cast, List, Optional
+import urllib.parse
+import attr
 # pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
@@ -50,6 +52,26 @@ LIT_NOTEBOOK_LAYOUT = dtypes.LitCanonicalLayout(
         'Analysis':
             ['metrics-module', 'confusion-matrix-module', 'scalar-module'],
     })
+
+
+@attr.s(auto_attribs=True, kw_only=True)
+class RenderConfig(object):
+  """Config options for widget rendering."""
+  tab: Optional[str] = None
+  upper_tab: Optional[str] = None
+  layout: Optional[str] = None
+  dataset: Optional[str] = None
+  models: Optional[List[str]] = None
+
+  def get_query_str(self):
+    """Convert config object to query string for LIT URL."""
+    def _encode(v):
+      if isinstance(v, (list, tuple)):
+        return ','.join(v)
+      return v
+
+    string_params = {k: _encode(v) for k, v in attr.asdict(self).items()}
+    return '?' + urllib.parse.urlencode(string_params)
 
 
 class LitWidget(object):
@@ -99,7 +121,8 @@ class LitWidget(object):
     """Stop the LIT server."""
     self._server.stop()
 
-  def render(self, height=None, open_in_new_tab=False):
+  def render(self, height=None, open_in_new_tab=False,
+             ui_params: Optional[RenderConfig] = None):
     """Render the LIT UI in the output cell.
 
     Args:
@@ -107,17 +130,20 @@ class LitWidget(object):
           then the height specified in the constructor is used.
       open_in_new_tab: Whether to show the UI in a new tab instead of in the
         output cell. Defaults to false.
+      ui_params: Optional configuration options for the LIT UI's state.
     """
     if not height:
       height = self._height
+    if not ui_params:
+      ui_params = RenderConfig()
     if is_colab:
-      _display_colab(self._server.port, height, open_in_new_tab)
+      _display_colab(self._server.port, height, open_in_new_tab, ui_params)
     else:
       _display_jupyter(self._server.port, height, self._proxy_url,
-                       open_in_new_tab)
+                       open_in_new_tab, ui_params)
 
 
-def _display_colab(port, height, open_in_new_tab):
+def _display_colab(port, height, open_in_new_tab, ui_params: RenderConfig):
   """Display the LIT UI in colab.
 
   Args:
@@ -125,13 +151,17 @@ def _display_colab(port, height, open_in_new_tab):
     height: The height of the LIT UI in pixels.
     open_in_new_tab: Whether to show the UI in a new tab instead of in the
       output cell.
+    ui_params: RenderConfig of options for the LIT UI.
   """
+
+  params = ui_params.get_query_str()
 
   if open_in_new_tab:
     shell = """
       (async () => {
-          const url = new URL(
-            await google.colab.kernel.proxyPort(%PORT%, {'cache': true}));
+          const proxyPort = await google.colab.kernel.proxyPort(
+            %PORT%, {'cache': true})
+          const url = new URL(proxyPort + '%PARAMS%')
           const a = document.createElement('a');
           a.href = "javascript:void(0);"
           a.onclick = (e) => window.open(url, "_blank");
@@ -143,8 +173,9 @@ def _display_colab(port, height, open_in_new_tab):
   else:
     shell = """
       (async () => {
-          const url = new URL(
-            await google.colab.kernel.proxyPort(%PORT%, {'cache': true}));
+          const proxyPort = await google.colab.kernel.proxyPort(
+            %PORT%, {'cache': true})
+          const url = new URL(proxyPort + '%PARAMS%')
           const iframe = document.createElement('iframe');
           iframe.src = url;
           iframe.setAttribute('width', '100%');
@@ -157,6 +188,7 @@ def _display_colab(port, height, open_in_new_tab):
   replacements = [
       ('%PORT%', '%d' % port),
       ('%HEIGHT%', '%d' % height),
+      ('%PARAMS%', '%s' % params),
   ]
   for (k, v) in replacements:
     shell = shell.replace(k, v)
@@ -165,7 +197,8 @@ def _display_colab(port, height, open_in_new_tab):
   display.display(script)
 
 
-def _display_jupyter(port, height, proxy_url, open_in_new_tab):
+def _display_jupyter(port, height, proxy_url, open_in_new_tab,
+                     ui_params: RenderConfig):
   """Display the LIT UI in jupyter.
 
   Args:
@@ -176,10 +209,13 @@ def _display_jupyter(port, height, proxy_url, open_in_new_tab):
         LIT_PROXY_URL is set, and if so, it uses that value as the proxy URL.
     open_in_new_tab: Whether to show the UI in a new tab instead of in the
       output cell.
+    ui_params: RenderConfig of options for the LIT UI.
   """
 
   # Add height to jupyter output_scroll div to fully contain LIT UI.
   output_scroll_height = height + 10
+
+  params = ui_params.get_query_str()
 
   frame_id = 'lit-frame-{:08x}'.format(random.getrandbits(64))
   if open_in_new_tab:
@@ -187,7 +223,8 @@ def _display_jupyter(port, height, proxy_url, open_in_new_tab):
       <a href="javascript:void(0);" id="%HTML_ID%"></a>
       <script>
         (function() {
-          const url = new URL(%URL%, window.location);
+          const urlStr = %URL% + '%PARAMS%'
+          const url = new URL(urlStr, window.location);
           const port = %PORT%;
           if (port) {
             url.port = port;
@@ -207,7 +244,8 @@ def _display_jupyter(port, height, proxy_url, open_in_new_tab):
       <script>
         (function() {
           const frame = document.getElementById(%JSON_ID%);
-          const url = new URL(%URL%, window.location);
+          const urlStr = %URL% + '%PARAMS%'
+          const url = new URL(urlStr, window.location);
           const port = %PORT%;
           if (port) {
             url.port = port;
@@ -230,6 +268,7 @@ def _display_jupyter(port, height, proxy_url, open_in_new_tab):
         ('%SCROLL_HEIGHT%', '%d' % output_scroll_height),
         ('%PORT%', '0'),
         ('%URL%', json.dumps(proxy_url)),
+        ('%PARAMS%', '%s' % params),
     ]
   else:
     replacements = [
@@ -239,6 +278,7 @@ def _display_jupyter(port, height, proxy_url, open_in_new_tab):
         ('%SCROLL_HEIGHT%', '%d' % output_scroll_height),
         ('%PORT%', '%d' % port),
         ('%URL%', json.dumps('/')),
+        ('%PARAMS%', '%s' % params),
     ]
 
   for (k, v) in replacements:
