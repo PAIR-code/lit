@@ -70,7 +70,8 @@ class RenderConfig(object):
         return ','.join(v)
       return v
 
-    string_params = {k: _encode(v) for k, v in attr.asdict(self).items()}
+    string_params = {
+        k: _encode(v) for k, v in attr.asdict(self).items() if v is not None}
     return '?' + urllib.parse.urlencode(string_params)
 
 
