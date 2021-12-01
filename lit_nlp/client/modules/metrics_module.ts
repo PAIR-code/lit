@@ -25,7 +25,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {GroupService} from '../services/group_service';
+import {GroupService, FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 import {styles} from './metrics_module.css';
@@ -33,9 +33,12 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 // Each entry from the server.
 interface MetricsResponse {
-  'pred_key': string;
-  'label_key': string;
-  'metrics': MetricsValues;
+  // Using case to achieve parity with the property names in Python code
+  // tslint:disable-next-line:enforce-name-casing
+  pred_key: string;
+  // tslint:disable-next-line:enforce-name-casing
+  label_key: string;
+  metrics: MetricsValues;
 }
 
 // A dict of metrics type to the MetricsValues for one metric generator.
@@ -57,13 +60,13 @@ enum Source {
 
 // Data for rendering a row in the table.
 interface MetricsRow {
-  'model': string;
-  'selection': string;
-  'predKey': string;
-  'exampleIds': string[];
-  'headMetrics': ModelHeadMetrics;
-  'source': Source;
-  'facets'?: FacetMap;
+  model: string;
+  selection: string;
+  predKey: string;
+  exampleIds: string[];
+  headMetrics: ModelHeadMetrics;
+  source: Source;
+  facets?: FacetMap;
 }
 
 // A dict of row keys to metrics row information, to store all metric info
@@ -74,8 +77,8 @@ interface MetricsMap {
 
 // Data to render the metrics table, created from the MetricsMap.
 interface TableHeaderAndData {
-  'header': string[];
-  'data': TableData[];
+  header: string[];
+  data: TableData[];
 }
 
 /**
@@ -98,6 +101,8 @@ export class MetricsModule extends LitModule {
   private readonly groupService = app.getService(GroupService);
   private readonly classificationService =
       app.getService(ClassificationService);
+
+  @observable private selectedFacetBins: NumericFeatureBins = {};
 
   @observable private metricsMap: MetricsMap = {};
   @observable private facetBySlice: boolean = false;
@@ -203,9 +208,10 @@ export class MetricsModule extends LitModule {
                                isSelection: boolean ) {
     // Get the intersectional feature bins.
     if (this.selectedFacets.length > 0) {
-      const groupedExamples =
-          this.groupService.groupExamplesByFeatures(datapoints,
-                                                    this.selectedFacets);
+      const groupedExamples = this.groupService.groupExamplesByFeatures(
+          this.selectedFacetBins,
+          datapoints,
+          this.selectedFacets);
 
       const source =  isSelection ? Source.SELECTION : Source.DATASET;
       // Manually set all of their display names.
@@ -353,6 +359,14 @@ export class MetricsModule extends LitModule {
         const index = this.selectedFacets.indexOf(key);
         this.selectedFacets.splice(index, 1);
       }
+
+      const configs: FacetingConfig[] = this.selectedFacets.map(feature => ({
+          featureName: feature,
+          method: this.groupService.numericalFeatureNames.includes(feature) ?
+                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
+      }));
+
+      this.selectedFacetBins = this.groupService.numericalFeatureBins(configs);
       this.updateAllFacetedMetrics();
     };
 

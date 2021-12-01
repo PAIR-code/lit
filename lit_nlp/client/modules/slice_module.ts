@@ -25,7 +25,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
-import {GroupService} from '../services/group_service';
+import {GroupService, FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
 import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
@@ -53,6 +53,7 @@ export class SliceModule extends LitModule {
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
+  private sliceByBins: NumericFeatureBins = {};
 
   @observable private sliceByFeatures: string[] = [];
 
@@ -73,7 +74,7 @@ export class SliceModule extends LitModule {
 
   @computed
   private get anyCheckboxChecked() {
-    return this.sliceByFeatures.length;
+    return this.sliceByFeatures.length > 0;
   }
 
 
@@ -103,8 +104,8 @@ export class SliceModule extends LitModule {
    */
   private makeSlicesFromAllLabelCombos() {
     const data = this.selectionService.selectedOrAllInputData;
-    const namedSlices =
-        this.groupService.groupExamplesByFeatures(data, this.sliceByFeatures);
+    const namedSlices = this.groupService.groupExamplesByFeatures(
+                        this.sliceByBins, data, this.sliceByFeatures);
 
     // Make a slice per combination.
     const sliceNamePrefix = (this.sliceName == null) ? '' : this.sliceName + ' ';
@@ -239,6 +240,14 @@ export class SliceModule extends LitModule {
         const index = this.sliceByFeatures.indexOf(key);
         this.sliceByFeatures.splice(index, 1);
       }
+
+      const configs: FacetingConfig[] = this.sliceByFeatures.map(feature => ({
+          featureName: feature,
+          method: this.groupService.numericalFeatureNames.includes(feature) ?
+                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
+      }));
+
+      this.sliceByBins = this.groupService.numericalFeatureBins(configs);
     };
 
     const renderFeatureCheckbox = (key: string) => {
@@ -265,8 +274,8 @@ export class SliceModule extends LitModule {
     if (this.anyCheckboxChecked) {
       return html`
         <div class="dropdown-label">
-          (${
-          this.groupService.numIntersectionsLabel(this.sliceByFeatures)} slices)
+          (${this.groupService.numIntersectionsLabel(
+                this.sliceByBins, this.sliceByFeatures)} slices)
         </div>
       `;
     }

@@ -237,6 +237,65 @@ export const mockMetadata: LitMetadata = {
           'vocab': ['0', '1']
         }
       }
+    },
+    'penguin_dev': {
+      'spec': {
+        'body_mass_g': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'step': 1,
+          'required': true
+        },
+        'culmen_depth_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'step': 1,
+          'required': true
+        },
+        'culmen_length_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'step': 1,
+          'required': true
+        },
+        'flipper_length_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'step': 1,
+          'required': true
+        },
+        'island': {
+          '__class__': 'LitType',
+          '__name__': 'CategoryLabel',
+          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          'required': true,
+          'vocab': ['Biscoe', 'Dream', 'Torgersen']
+        },
+        'sex': {
+          '__class__': 'LitType',
+          '__name__': 'Boolean',
+          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          'required': true,
+          'vocab': ['female', 'male']
+        },
+        'species': {
+          '__class__': 'LitType',
+          '__name__': 'CategoryLabel',
+          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          'required': true,
+          'vocab': ['Adelie', 'Chinstrap', 'Gentoo']
+        },
+        'isAlive': {
+          '__class__': 'LitType',
+          '__name__': 'Boolean',
+          '__mro__': ['Boolean', 'LitType', 'object'],
+          'required': false
+        }
+      }
     }
   },
   'generators': {

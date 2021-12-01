@@ -26,7 +26,7 @@ import {MatrixCell} from '../elements/data_matrix';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, facetMapToDictKey, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
-import {GetFeatureFunc, GroupService} from '../services/group_service';
+import {GetFeatureFunc, GroupService, FacetingMethod} from '../services/group_service';
 import {ClassificationService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
@@ -167,8 +167,12 @@ export class ConfusionMatrixModule extends LitModule {
       if (labelList.length > this.MAX_ENTRIES) {
         continue;
       }
+      const bins = this.groupService.numericalFeatureBins([{
+        featureName: labelKey,
+        method: FacetingMethod.DISCRETE
+      }]);
       const getLabelsFn = (d: IndexedInput, i: number) =>
-          this.groupService.getFeatureValForInput(d, i, labelKey);
+          this.groupService.getFeatureValForInput(bins, d, labelKey);
       const labelsRunner = async (dataset: IndexedInput[]) =>
           dataset.map(getLabelsFn);
       options.push({name: labelKey, labelList, runner: labelsRunner});
@@ -256,9 +260,13 @@ export class ConfusionMatrixModule extends LitModule {
     // Since groupService.groupExamplesByFeatures only uses indexedInput data
     // properties by default, provide a custom function that also supports the
     // calculated predicted properties.
-    const getFeatFunc: GetFeatureFunc = (d, i, key) => resultsDict[key][i];
-    const bins = this.groupService.groupExamplesByFeatures(
-        data, [rowName, colName], getFeatFunc);
+    const getFeatFunc: GetFeatureFunc = (b, d, i, feat) => resultsDict[feat][i];
+    const bins = this.groupService.numericalFeatureBins([
+      {featureName: rowName, method: FacetingMethod.DISCRETE},
+      {featureName: colName, method: FacetingMethod.DISCRETE}
+    ]);
+    const groups = this.groupService.groupExamplesByFeatures(
+        bins, data, [rowName, colName], getFeatFunc);
 
     const id = this.getMatrixId(row, col);
     const matrixCells = rowLabels.map(rowLabel => {
@@ -274,7 +282,7 @@ export class ConfusionMatrixModule extends LitModule {
         const facetsDict = {
           [colName]: {val:colLabel, displayVal: colLabel},
           [rowName]: {val:rowLabel, displayVal: rowLabel}};
-        const bin = bins[facetMapToDictKey(facetsDict)];
+        const bin = groups[facetMapToDictKey(facetsDict)];
         const ids = bin ? bin.data.map(example => example.id) : [];
         return {ids, selected: false};
       });

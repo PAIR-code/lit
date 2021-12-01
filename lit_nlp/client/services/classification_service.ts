@@ -25,6 +25,7 @@ import {BINARY_POS_NEG, CATEGORICAL_NORMAL} from '../lib/colors';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState, GroupService} from './services';
+import {FacetingConfig, FacetingMethod} from './group_service';
 
 interface AllClassificationInfo {
   [id: string]: PerExampleClassificationInfo;
@@ -108,10 +109,15 @@ function getMarginSettingForExample(
     for (const field of Object.keys(group.facetData!.facets!)) {
       if (groupService != null &&
           groupService.numericalFeatureNames.includes(field)) {
-        const facet = groupService.getNumericalBinForExample(
-            input, field)!;
+        const facetConfig: FacetingConfig = {
+          featureName: field,
+          method: FacetingMethod.EQUAL_INTERVAL,
+          numBins: 0
+        };
+        const bins = groupService.numericalFeatureBins([facetConfig]);
+        const bin = groupService.getNumericalBinForExample(bins, input, field)!;
         const groupRange = group.facetData!.facets![field].val as number[];
-        if (facet[0] !== groupRange[0] || facet[1] !== groupRange[1]) {
+        if (bin[0] !== groupRange[0] || bin[1] !== groupRange[1]) {
           matches = false;
           break;
         }
