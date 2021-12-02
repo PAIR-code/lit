@@ -97,7 +97,7 @@ export class InterpreterControls extends ReactiveElement {
           <div class="description">${this.description}</div>
           ${this.renderControls()}
           <div class="buttons-holder">
-            <button class="button" @click=${apply}>Apply</button>
+            <button class="filled-button" @click=${apply}>Apply</button>
           </div>
         </div>
       </div>

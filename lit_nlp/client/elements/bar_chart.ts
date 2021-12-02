@@ -27,6 +27,7 @@ import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 
 import {styles} from './bar_chart.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**
@@ -41,7 +42,7 @@ export class BarChart extends ReactiveElement {
   @property({type: Array}) yScale: number[] = [];
 
   static override get styles() {
-    return [styles];
+    return [sharedStyles, styles];
   }
 
   override firstUpdated() {
@@ -131,7 +132,7 @@ export class BarChart extends ReactiveElement {
         .enter()
         .append('rect')
         .attr('width', x.bandwidth())
-        .style('fill', '#07a3ba')
+        .style('fill', 'var(--lit-cyea-400)')
         // clang-format off
         .attr('height', (d) => {
           // The y-axis displays the score.

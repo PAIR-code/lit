@@ -27,6 +27,7 @@ import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 
 import {styles} from './line_chart.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Line chart visualization component.
@@ -40,7 +41,7 @@ export class LineChart extends ReactiveElement {
   @property({type: Array}) yScale: number[] = [];
 
   static override get styles() {
-    return [styles];
+    return [sharedStyles, styles];
   }
 
   override firstUpdated() {
@@ -109,7 +110,7 @@ export class LineChart extends ReactiveElement {
     chart.append('path')
       .datum(data)
       .attr("fill", "none")
-      .attr("stroke", "#07a3ba")
+      .attr("stroke", 'var(--lit-cyea-400)')
       .attr("stroke-width", 1.5)
       .attr("d", d3.line()
         .x((d) => x(d[0]))
@@ -121,8 +122,8 @@ export class LineChart extends ReactiveElement {
 
     focus.append("circle")
         .attr("r", 4)
-        .attr("fill", "#07a3ba")
-        .attr("stroke", "#07a3ba");
+        .attr("fill", 'var(--lit-cyea-400)')
+        .attr("stroke", 'var(--lit-cyea-400)');
 
     const mousemove = () => {
       console.log(d3.mouse(this));

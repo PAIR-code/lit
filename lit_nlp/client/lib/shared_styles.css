@@ -359,13 +359,8 @@ mwc-textfield {
   background: #e9d2fd;
 }
 
-/* 'Hairline' Button Style */
+.filled-button,
 .hairline-button {
-  margin: 0 4px;
-  background: transparent;
-  border-radius: 4px;
-  border: 1px solid var(--lit-neutral-400);
-  color: var(--lit-cyea-600);
   font-family: Roboto;
   font-style: normal;
   font-weight: normal;
@@ -373,6 +368,49 @@ mwc-textfield {
   line-height: 20px;
   letter-spacing: 0.3px;
   padding: 0 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+
+.filled-button.xl,
+.hairline-button.xl {
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/**
+ * Design Spec Deviation -- No button:focus states
+ *
+ * A decision was made to remove the :focus style from LIT buttons until a
+ * complete accessibility audit is completed.
+ */
+
+.filled-button {
+  background: var(--lit-majtonal-p-500);
+  border: 1px solid var(--lit-majtonal-p-500);
+  color: white;
+}
+
+.filled-button:active {
+  background: var(--lit-majtonal-p-700);
+  border: 1px solid var(--lit-majtonal-p-700);
+}
+
+.filled-button:hover {
+  background: var(--lit-majtonal-p-600);
+  border: 1px solid var(--lit-majtonal-p-600);
+}
+
+.filled-button:disabled {
+  background: var(--lit-neutral-100);
+  border: 1px solid var(--lit-neutral-100);
+  color: var(--lit-neutral-400);
+}
+
+.hairline-button {
+  background: transparent;
+  border: 1px solid var(--lit-neutral-400);
+  color: var(--lit-cyea-600);
 }
 
 .hairline-button:hover {
@@ -380,11 +418,6 @@ mwc-textfield {
   border: 1px solid var(--lit-neutral-400);
   color: var(--lit-cyea-600);
 }
-
-/**
- * A decision was made to remove the :focus style until a complete accessibility
- * audit is done on LIT.
- */
 
 .hairline-button:disabled {
   color: var(--lit-neutral-400);
@@ -396,11 +429,6 @@ mwc-textfield {
   background-color: var(--lit-mintonal-p-4);
   border: 1px solid var(--lit-cyea-500);
   color: var(--lit-cyea-500);
-}
-
-.hairline-button.xl {
-  font-size: 14px;
-  line-height: 24px;
 }
 
 /**
