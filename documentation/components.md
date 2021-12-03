@@ -509,7 +509,7 @@ Custom metrics can be easily defined in Python; see the
 ### Confusion Matrix
 
 LIT includes a powerful and flexible confusion matrix, which can be used to
-compar predictions to gold labels as well as to compare between two models or
+compare predictions to gold labels as well as to compare between two models or
 between different categorical features. You can click cells or row/column
 headers to select a subset of examples, which is useful for intersectional
 analysis.
