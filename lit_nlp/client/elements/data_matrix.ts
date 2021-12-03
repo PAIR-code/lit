@@ -26,14 +26,22 @@ import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 import {styles} from './data_matrix.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
 
+
+// Custom color ramp for the Data Matrix
+const LOW = 0, HIGH = 8;  // 0: -50, 1: -100, 2: -200, etc., HIGH gets excluded
+// Text color flips (black => white) above -600, calc the % where that happens
+const COLOR_FLIP_PCT = Math.floor((6 - LOW) / (HIGH - 1 - LOW) * 100);
+const COLOR_RAMP = ramp([...MAJOR_TONAL_COLORS.primary.slice(LOW, HIGH)
+                                                      .map(c => c.color)]);
 
 /**
  * Stores information for each confusion matrix cell.
  */
 export interface MatrixCell {
-  'ids': string[];
-  'selected': boolean;
+  ids: string[];
+  selected: boolean;
 }
 
 /**
@@ -67,10 +75,11 @@ export class DataMatrix extends LitElement {
 
   @computed
   get colorScale() {
-    return d3.scaleLinear()
-    .domain([0, this.totalIds])
-    // Need to cast to numbers due to d3 typing.
-    .range(["#F5F5F5" as unknown as number, "#006064" as unknown as number]);
+    // Returns a D3 sequential scale with a domain from 0 (i.e., no selected
+    // datapoints are in this cell) to totalIds (i.e., all selected datapoints
+    // are in this cell).
+    // See https://github.com/d3/d3-scale#sequential-scales
+    return d3.scaleSequential(COLOR_RAMP).domain([0, this.totalIds]);
   }
 
   private updateSelection() {
@@ -134,7 +143,7 @@ export class DataMatrix extends LitElement {
     }
     const backgroundColor = this.colorScale(cellInfo.ids.length);
     const percentage = cellInfo.ids.length / this.totalIds * 100;
-    const textColor = percentage > 50 ? 'white' : 'black';
+    const textColor = percentage > COLOR_FLIP_PCT ? 'white' : 'black';
     const border = cellInfo.selected ?
         '2px solid #12B5CB' : '2px solid transparent';
     const cellStyle = styleMap({
@@ -175,12 +184,6 @@ export class DataMatrix extends LitElement {
     // clang-format off
     return html`
       <tr>
-        ${rowIndex === 0 ? html`
-            <td class='axis-title label-vertical'
-                rowspan=${this.rowLabels.length + 1}>
-              <div>${this.rowTitle}</div>
-            </td>`
-          : null}
         <th class="header-cell align-right" @click=${onRowClick}>
           ${rowLabel}
         </th>
@@ -286,27 +289,36 @@ export class DataMatrix extends LitElement {
         'align-bottom': this.verticalColumnLabels
       });
 
+    const colsLabelSpan = this.hideEmptyLabels ? colsWithNonZeroCounts.size :
+                                                 this.colLabels.length;
+    // Add 2 to the appropriate row count to account for the header rows
+    // above and below the data rows in the matrix.
+    const rowsLabelSpan = (this.hideEmptyLabels ? rowsWithNonZeroCounts.size :
+                                                  this.rowLabels.length) + 2;
+
     // clang-format off
     return html`
       <table>
         <tr>
-          <th>${this.renderColumnRotateButton()}</th><td></td>
-          <td class='axis-title' colspan=${this.colLabels.length}>
+          <th>${this.renderColumnRotateButton()}</th>
+          <td></td>
+          <td class='axis-title' colspan=${colsLabelSpan}>
             ${this.colTitle}
           </td>
           <th class="delete-cell">${this.renderDeleteButton()}</th>
         </tr>
         <tr>
-          <td colspan=2></td>
+          <td class='axis-title label-vertical' rowspan=${rowsLabelSpan}>
+            <div>${this.rowTitle}</div>
+          </td>
+          <td></td>
           ${this.colLabels.map(
               (colLabel, colIndex) => this.renderColHeader(
                   colLabel, colIndex, colsWithNonZeroCounts))}
           <th class=${totalColumnClasses}><div>Total</div></th>
         </tr>
-        ${this.rowLabels.map(
-            (rowLabel, rowIndex) => this.renderRow(
-                rowLabel, rowIndex, rowsWithNonZeroCounts,
-                colsWithNonZeroCounts))}
+        ${this.rowLabels.map((rowLabel, rowIndex) => this.renderRow(
+            rowLabel, rowIndex, rowsWithNonZeroCounts, colsWithNonZeroCounts))}
         ${this.renderTotalRow(colsWithNonZeroCounts)}
       </table>
     `;

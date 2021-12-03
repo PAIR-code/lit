@@ -66,7 +66,7 @@ export type VizColorKey = typeof VIZ_COLOR_VALUES[number];
  * Returns a ColorEntry at the index in th given palette.
  *
  * This function is a riff on the proposed Array.prototype.at() method. It
- * provides the bsame basic functionality in that it accepts positive and
+ * provides the same basic functionality in that it accepts positive and
  * negative numbers as an index (which it truncates prior to accessing to ensure
  * an integer value is used), but differs in that it takes the remainder of the
  * index after division with palette.length prior to accessing the value in the
@@ -86,7 +86,7 @@ function at (palette:ColorEntry[], index:number): ColorEntry {
  * Creates a D3-compatible color ramp function from a list of hex color values
  * using D3's interpolateRgbBasis() function.
  */
-function ramp (range:string[]): (t:number) => string {
+export function ramp (range:string[]): (t:number) => string {
   return d3.interpolateRgbBasis(range);
 }
 
