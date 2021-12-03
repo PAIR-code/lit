@@ -27,6 +27,7 @@ import {computed} from 'mobx';
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
 import {facetMapToDictKey, findSpecKeys, roundToDecimalPlaces} from '../lib/utils';
 
+import {DataForInput, DataService} from './data_service';
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
 
@@ -115,7 +116,8 @@ export interface FacetingConfig {
  * A singleton class that handles grouping.
  */
 export class GroupService extends LitService {
-  constructor(private readonly appState: AppState) {
+  constructor(private readonly appState: AppState,
+              private readonly dataService: DataService) {
     super();
   }
 
@@ -130,9 +132,7 @@ export class GroupService extends LitService {
   /** Get the names of the numerical features. */
   @computed
   get numericalFeatureNames(): string[] {
-    const dataSpec = this.appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'Scalar');
-    return names;
+    return this.dataService.scalarCols;
   }
 
   /** Get the names of the boolean features. */
@@ -163,8 +163,8 @@ export class GroupService extends LitService {
         categoricalFeatures[name] = [...vocab];
       } else {
         // Otherwise, find unique values from the data.
-        const uniqueValues = new Set(this.appState.currentInputData.map(
-            (d: IndexedInput) => d.data[name]));
+        const uniqueValues = new Set(this.dataService.data.map(
+            (d: DataForInput) => d.get(name)!.value));
         categoricalFeatures[name] = [...uniqueValues];
       }
     }
@@ -177,14 +177,14 @@ export class GroupService extends LitService {
   @computed
   get numericalFeatureRanges(): NumericFeatures {
     const numericFeatures: NumericFeatures = {};
-    this.numericalFeatureNames.forEach(feat => {
-      const values = this.appState.currentInputData.map((d: IndexedInput) => {
-        return d.data[feat];
+    for (const feat of this.numericalFeatureNames) {
+      const values = this.dataService.data.map((d: DataForInput) => {
+        return d.get(feat)!.value;
       });
       const min = Math.min(...values);
       const max = Math.max(...values);
       numericFeatures[feat] = [min, max];
-    });
+    }
     return numericFeatures;
   }
 
@@ -199,8 +199,9 @@ export class GroupService extends LitService {
   private freedmanDiaconisBins(feat: string): NumericBins {
     const min = this.numericalFeatureRanges[feat][0];
     const max = this.numericalFeatureRanges[feat][1];
-    const values = this.appState.currentInputData
-      .map(d => d.data[feat] as number);
+    const values = this.dataService.data.map((d: DataForInput) => {
+        return d.get(feat)!.value;
+      });
     // The number of bins that the domain is divided into is specified by the
     // FreedmanDiaconis algorithm. The first bin.x0 is always equal to the
     // minimum domain value, and the last bin.x1 is always equal to the
@@ -269,9 +270,8 @@ export class GroupService extends LitService {
 
   private quantileBins(feat: string, numBins: number): NumericBins {
     const bins: NumericBins = {};
-    const values = this.appState.currentInputData
-      .map(d => d.data[feat] as number)
-      .sort();
+    const values = this.dataService.data.map(
+        (d: DataForInput) => d.get(feat)!.value).sort();
     numBins = Math.min(numBins, values.length);
     const step = values.length / numBins;
 

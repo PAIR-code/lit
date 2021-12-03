@@ -117,6 +117,7 @@ export interface LitMetadata {
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;
+  littypes: Spec;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;

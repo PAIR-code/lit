@@ -29,7 +29,7 @@ import {LitModule} from '../core/lit_module';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
+import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -84,6 +84,7 @@ export class ScalarModule extends LitModule {
   private readonly groupService = app.getService(GroupService);
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
+  private readonly dataService = app.getService(DataService);
 
   private readonly inputIDToIndex = new Map();
   private resizeObserver!: ResizeObserver;
@@ -101,12 +102,12 @@ export class ScalarModule extends LitModule {
       `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
   @computed
-  private get inputKeys() {
-    return this.groupService.numericalFeatureNames;
+  private get scalarKeys() {
+    return this.dataService.scalarCols;
   }
 
   @computed
-  private get scalarKeys() {
+  private get scalarOutputKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     return findSpecKeys(outputSpec, 'Scalar');
   }
@@ -128,8 +129,9 @@ export class ScalarModule extends LitModule {
 
     this.makePlot();
 
-    const getCurrentInputData = () => this.appState.currentInputData;
-    this.reactImmediately(getCurrentInputData, currentInputData => {
+    const getCurrentData = () => this.dataService.data;
+    this.reactImmediately(getCurrentData, data => {
+      const currentInputData = this.appState.currentInputData;
       if (currentInputData != null) {
         // Get predictions from the backend for all input data and
         // display them by prediction score in the plot.
@@ -336,8 +338,8 @@ export class ScalarModule extends LitModule {
       const pred = Object.assign(
           {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
           {id: currId});
-      for (const inputKey of this.inputKeys) {
-        pred[inputKey] = currentInputData[i].data[inputKey];
+      for (const scalarKey of this.scalarKeys) {
+        pred[scalarKey] = this.dataService.data[i].get(scalarKey)!.value;
       }
       preds.push(pred);
     }
@@ -378,7 +380,7 @@ export class ScalarModule extends LitModule {
         scoreRange[0] = scoreRange[0] - .1;
         scoreRange[1] = scoreRange[1] + .1;
       }
-    } else if (this.inputKeys.indexOf(key) !== -1) {
+    } else if (this.scalarKeys.indexOf(key) !== -1) {
       scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
@@ -433,7 +435,7 @@ export class ScalarModule extends LitModule {
       const scatterplot = item as SVGGElement;
       const key = (item as HTMLElement).dataset['key'];
 
-      if (key == null || this.inputKeys.indexOf(key) !== -1) {
+      if (key == null || this.scalarKeys.indexOf(key) !== -1) {
         return;
       }
 
@@ -762,10 +764,10 @@ export class ScalarModule extends LitModule {
     // clang-format off
     return html`
       <div id='container'>
-        ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
+        ${this.scalarOutputKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
-        ${this.inputKeys.map(key => this.renderPlot(key, ''))}
+        ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
       </div>
     `;
     // clang-format on

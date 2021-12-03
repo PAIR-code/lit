@@ -94,6 +94,14 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
   }
 
+  createLitType(typeName: string): LitType {
+    const litType = this.metadata.littypes[typeName];
+    if (litType == null) {
+      throw new Error(`LitType ${litType} not defined`);
+    }
+    return {...litType};
+  }
+
   @observable
   private readonly inputData = new Map<DatasetName, IndexedInputMap>();
 

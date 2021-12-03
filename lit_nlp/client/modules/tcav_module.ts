@@ -32,7 +32,7 @@ import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {SliceService} from '../services/services';
+import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -63,6 +63,7 @@ interface TcavResults {
   p_val: number;
   // tslint:disable-next-line:enforce-name-casing
   random_mean: number;
+  cosSim: number[];
 }
 
 /**
@@ -83,6 +84,7 @@ export class TCAVModule extends LitModule {
       </tcav-module>`;
   };
   private readonly sliceService = app.getService(SliceService);
+  private readonly dataService = app.getService(DataService);
 
   @observable private readonly selectedSlices = new Set<string>();
   @observable private readonly selectedLayers = new Set<string>();
@@ -377,8 +379,20 @@ export class TCAVModule extends LitModule {
       'config': config,
       'score': result[0]['result']['score'],
       'p_val': result[0]['p_val'],
+      'cosSim': result[0]['result']['cos_sim'],
       'random_mean': result[0]['random_mean']
     };
+  }
+
+  private getTcavRunName(config: CallConfig, positiveSlice: string,
+                         negativeSlice:  string) {
+    let name = positiveSlice;
+    if (negativeSlice !== '-') {
+      name += `-${negativeSlice}`;
+    }
+    name += `-${this.cavCounter}-${config['grad_layer']}-${
+        config['class_to_explain']}`;
+    return name;
   }
 
   private async runTCAV() {
@@ -416,23 +430,35 @@ export class TCAVModule extends LitModule {
 
     for (const res of results) {
       if (res == null) continue;
-      if (res['config'] == null || res['score'] == null) continue;
+      if (res.config == null || res.score == null) continue;
 
       // clang-format off
       let scoreBar: TemplateResult|string = html`<tcav-score-bar
-             score=${res['score']}
-             meanVal=${res['random_mean']}
+             score=${res.score}
+             meanVal=${res.random_mean}
              clampVal=${1}>
            </tcav-score-bar>`;
       // clang-format on
       let displayScore = res.score.toFixed(3);
 
-      if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
+      if (res.p_val != null && res.p_val > MAX_P_VAL) {
         displayScore = '-';
         scoreBar = HIGH_P_VAL_WARNING;
       }
-      if (res['p_val'] == null) {
+      else if (res.p_val == null) {
         scoreBar = NO_T_TESTING_WARNING;
+      }
+      else {
+        // Add TCAV run's cosine similarity to datapoints and update the
+        // spec to include this new field.
+        const tcavRunName = this.getTcavRunName(
+            res.config, res.positiveSlice, res.negativeSlice);
+        const featName = `TCAV cosine similarity: ${tcavRunName}`;
+
+        const nums = res.cosSim.map(score => Number(score).toFixed(4));
+        const dataType = this.appState.createLitType('Scalar');
+        this.dataService.addColumn(nums, featName, dataType, 'Interpreter');
+
       }
 
 

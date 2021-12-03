@@ -238,6 +238,36 @@ export const mockMetadata: LitMetadata = {
         }
       }
     },
+    'color_test': {
+      'spec': {
+        'testNumFeat0': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'required': true
+        },
+        'testNumFeat1': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          '__mro__': ['Scalar', 'LitType', 'object'],
+          'required': true
+        },
+        'testFeat0': {
+          '__class__': 'LitType',
+          '__name__': 'CategoryLabel',
+          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          'required': true,
+          'vocab': ['0', '1']
+        },
+        'testFeat1': {
+          '__class__': 'LitType',
+          '__name__': 'CategoryLabel',
+          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          'required': true,
+          'vocab': ['a', 'b', 'c']
+        }
+      }
+    },
     'penguin_dev': {
       'spec': {
         'body_mass_g': {
@@ -324,6 +354,7 @@ export const mockMetadata: LitMetadata = {
     'umap': emptySpec(),
   },
   'layouts': {},
+  'littypes': {},
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': undefined

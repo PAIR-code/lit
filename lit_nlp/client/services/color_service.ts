@@ -23,6 +23,7 @@ import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
 import {DEFAULT, CATEGORICAL_NORMAL, CONTINUOUS_UNSIGNED_LAB, CONTINUOUS_SIGNED_LAB, MULTIHUE_CONTINUOUS} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
+import {DataService} from './data_service';
 import {GroupService} from './group_service';
 import {LitService} from './lit_service';
 import {RegressionService} from './regression_service';
@@ -101,7 +102,8 @@ export class ColorService extends LitService {
       private readonly appState: AppState,
       private readonly groupService: GroupService,
       private readonly classificationService: ClassificationService,
-      private readonly regressionService: RegressionService) {
+      private readonly regressionService: RegressionService,
+      private readonly dataService: DataService) {
     super();
     reaction(() => this.appState.currentModels, currentModels => {
       this.reset();
@@ -147,7 +149,10 @@ export class ColorService extends LitService {
           const domain = this.groupService.numericalFeatureRanges[feature];
           return {
             name: feature,
-            getValue: (input: IndexedInput) => input.data[feature],
+            getValue: (input: IndexedInput) => {
+              const idx = this.appState.getIndexById(input.id);
+              return this.dataService.data[idx].get(feature)!.value;
+            },
             scale: d3.scaleSequential(MULTIHUE_CONTINUOUS)
                      .domain(domain) as D3Scale
           };
