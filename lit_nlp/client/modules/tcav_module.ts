@@ -235,8 +235,9 @@ export class TCAVModule extends LitModule {
           html`<div class='require-text label-2'>
                   This module requires at least one ${columnName.toLowerCase()}.
                </div>` :
-          html`<lit-data-table .data=${data} .columnNames=${columns}>
-               </lit-data-table>`}
+          html`<lit-data-table .verticalAlignMiddle=${true}
+                               .columnNames=${columns}
+                               .data=${data}></lit-data-table>`}
       </div>
     `;
     // clang-format on
@@ -334,10 +335,9 @@ export class TCAVModule extends LitModule {
           </div>
           <div id='vis-container' class=${classMap({'loading': this.isLoading})}>
             ${this.isLoading ? this.renderSpinner(): ''}
-            <lit-data-table
-                .columnNames=${COLUMN_NAMES}
-                .data=${[...this.resultsTableData]}
-            ></lit-data-table>
+            <lit-data-table .columnNames=${COLUMN_NAMES}
+                            .data=${[...this.resultsTableData]}
+                            .verticalAlignMiddle=${true}></lit-data-table>
           </div>
         </div>
         <div class="module-footer">
