@@ -269,11 +269,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
     return html`
       <div id="buttons-container">
         <div id="buttons">
-          <button @click=${cancel}>Cancel</button>
-          <button
-            class='accent'
-            ?disabled=${submitDisabled}
-            @click=${submit}>Submit
+          <button class="hairline-button" @click=${cancel}>Cancel</button>
+          <button class="filled-button"
+                  ?disabled=${submitDisabled}
+                  @click=${submit}>
+            Submit
           </button>
         </div>
       </div>
@@ -398,10 +398,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
                    value=${this.pathForModel}
                    @input=${updatePath}>
           </div>
-          <button
-            ?disabled=${this.loadModelButtonDisabled}
-            @click=${loadNewModel}
-          >Create new model from path
+          <button class="filled-button"
+                  ?disabled=${this.loadModelButtonDisabled}
+                  @click=${loadNewModel}>
+            Create new model from path
           </button>
           <div class='datapoints-label-holder'>
             <div>${this.modelStatus}</div>
@@ -470,7 +470,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         return html`
         <div class=${classes}>
           <mwc-icon>${icon}</mwc-icon>
-          ${modelName} 
+          ${modelName}
         </div>`;
         })}
       `;
@@ -534,24 +534,22 @@ export class GlobalSettingsComponent extends MobxLitElement {
                    value=${this.pathForDatapoints}
                    @input=${updatePath}>
           </div>
-          <button
-            ?disabled=${this.saveDatapointButtonDisabled}
-            @click=${save}
-          >Save new datapoints
+          <button class="filled-button"
+                  ?disabled=${this.saveDatapointButtonDisabled}
+                  @click=${save}>
+            Save new datapoints
           </button>
-          <button
-            ?disabled=${this.loadDatapointButtonsDisabled}
-            @click=${load}
-          >Load additional datapoints
+          <button class="filled-button"
+                  ?disabled=${this.loadDatapointButtonsDisabled}
+                  @click=${load}>
+            Load additional datapoints
           </button>
-          <button
-            ?disabled=${this.loadDatapointButtonsDisabled}
-            @click=${loadNewDataset}
-          >Create new dataset from path
+          <button class="filled-button"
+                  ?disabled=${this.loadDatapointButtonsDisabled}
+                  @click=${loadNewDataset}>
+            Create new dataset from path
           </button>
-          <div class='datapoints-label-holder'>
-            <div>${this.datapointsStatus}</div>
-          </div>
+          <div class='datapoints-label-holder'>${this.datapointsStatus}</div>
         </div>`;
 
     return this.renderConfigPage(
@@ -637,7 +635,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const statusClasses = classMap({status: true, selected, error: disabled});
     // clang-format off
     return html`
-    <div class=${statusClasses}> 
+    <div class=${statusClasses}>
       <mwc-icon>
         ${statusIcon}
       </mwc-icon>
@@ -709,7 +707,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   private nextPrevButton(tab: TabName, next = true) {
     const icon = next ? 'east' : 'west';  // Arrow direction.
-    const classes = classMap({'next': next, 'prev': !next});
+    const classes = classMap({
+      'hairline-button': true,
+      [next ? 'next' : 'prev']: true
+    });
     const onClick = () => this.selectedTab = tab;
     // clang-format off
     return html`
