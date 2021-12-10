@@ -46,7 +46,7 @@ interface ProjectionBackendResult {
 }
 
 interface NearestNeighborsResult {
-  'id': string;
+  id: string;
 }
 
 const NN_INTERPRETER_NAME = 'nearest neighbors';
@@ -238,6 +238,11 @@ export class EmbeddingsModule extends LitModule {
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
       onHover: this.onHover.bind(this),
+      // Applies fog to points that are further than 4x the distance between
+      // the closest and furthest points from the camera along its view-plane
+      // normal. This can induce odd behavior depending on view transform and
+      // the shape of the dataset, but generally ensures points are visible
+      styles: {fog: {threshold: 4}},
       rotateOnStart: false
     });
 
@@ -362,7 +367,7 @@ export class EmbeddingsModule extends LitModule {
       this.spriteImage = undefined;
     }
 
-    this.projectedPoints = results.map((d: {'z': Point3D}) => d['z']);
+    this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
   }
 
   private getLabelByFields() {
