@@ -30,7 +30,8 @@ import {
   DEFAULT, OTHER, LOADING, HOVER,
   CATEGORICAL_NORMAL,
   CYEA_DISCRETE, MAGE_DISCRETE, CYEA_CONTINUOUS, MAGE_CONTINUOUS,
-  DIVERGING_4, DIVERGING_5, DIVERGING_6
+  DIVERGING_4, DIVERGING_5, DIVERGING_6,
+  labBrandColors, labVizColors
 } from './colors';
 
 const STANDARD_COLOR_VALUE_NAMES: ColorValue[] = [ '50', '500', '600', '700' ];
@@ -291,5 +292,31 @@ describe('Pre-baked Colors, Palettes, and Ramps Test', () => {
   it('provides 2 sequential color ramps', () => {
     expect(CYEA_CONTINUOUS).toBeDefined();
     expect(MAGE_CONTINUOUS).toBeDefined();
+  });
+
+  it('can generate linear color lists through the LAB space', () => {
+    const purpleLAB = labVizColors('purple');
+    expect(purpleLAB).toBeInstanceOf(Array);
+    expect(purpleLAB.length).toEqual(256);
+    expect(purpleLAB[0]).toEqual('rgb(255, 255, 255)');
+    expect(purpleLAB[purpleLAB.length - 1]).toEqual('rgb(40, 1, 135)');
+
+    const coralTealLAB = labVizColors('teal', 'coral');
+    expect(coralTealLAB).toBeInstanceOf(Array);
+    expect(coralTealLAB.length).toEqual(256);
+    expect(coralTealLAB[0]).toEqual('rgb(177, 45, 51)');
+    expect(coralTealLAB[coralTealLAB.length - 1]).toEqual('rgb(1, 98, 104)');
+
+    const bricLAB = labBrandColors('bric');
+    expect(bricLAB).toBeInstanceOf(Array);
+    expect(bricLAB.length).toEqual(256);
+    expect(bricLAB[0]).toEqual('rgb(255, 255, 255)');
+    expect(bricLAB[bricLAB.length - 1]).toEqual('rgb(72, 0, 0)');
+
+    const mageCyeaLAB = labBrandColors('cyea', 'mage');
+    expect(mageCyeaLAB).toBeInstanceOf(Array);
+    expect(mageCyeaLAB.length).toEqual(256);
+    expect(mageCyeaLAB[0]).toEqual('rgb(71, 0, 70)');
+    expect(mageCyeaLAB[mageCyeaLAB.length - 1]).toEqual('rgb(4, 30, 53)');
   });
 });

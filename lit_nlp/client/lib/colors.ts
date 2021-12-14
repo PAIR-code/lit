@@ -381,7 +381,7 @@ export const BINARY_POS_NEG: string[] = [
   VIZ_COLORS.deep[1].color, VIZ_COLORS.deep[4].color
 ];
 
-/** Sequential ramp for signed data: Continuous, Coral, Neutral, Teal */
+/** Continuous ramp for signed data: Coral, Neutral, Teal */
 export const CONTINUOUS_SIGNED = ramp([
   VIZ_COLORS.dark[4].color,
   VIZ_COLORS.deep[4].color,
@@ -392,7 +392,82 @@ export const CONTINUOUS_SIGNED = ramp([
   VIZ_COLORS.dark[5].color
 ]);
 
-/** Sequential ramp for unsigned data: Continuous, Purple */
+/**
+ * Creates a D3 scale that linearly interpolates between a list of RGB color
+ * strings.
+ */
+function labLinear (inputs: string[]) {
+  return d3.scaleLinear()
+      .domain(inputs.map((d, i) => i/(inputs.length - 1)))
+      .range(inputs as unknown[] as number[])
+      .interpolate((a, b) => d3.interpolateLab(a.toString(), b.toString()));
+}
+
+/**
+ * Generates a list of 256 RGB color strings interpolated along the lightness
+ * dimension of the LAB color space from white to the specified color family.
+ *
+ * If a single palette key is provided (i.e., to generate colors for unsigned
+ * data) then the colors will be ordered from white to -100 trhough -900 of that
+ * color key in the specified Brand palette.
+ *
+ * If two palette keys are provided (i.e., to generate colors for signed data),
+ * the first key is treated as the positive anchor and the second is treated
+ * as the negative anchor. The resulting color list is ordered from the highest
+ * color value (-900) in the negative Brand palette through white and onto the
+ * highest color value (-900) in the positive Brand palette.
+ */
+export function labBrandColors(positive: LitBrandPaletteKey,
+                               negative?: LitBrandPaletteKey): string[] {
+  const positiveColors = BRAND_COLORS[positive].slice(1).map(ce => ce.color);
+  const inputs = ['#ffffff', ...positiveColors];
+
+  if (negative) {
+    const negativeColors = BRAND_COLORS[negative].slice(1).map(ce => ce.color);
+    inputs.unshift(...negativeColors.reverse());
+  }
+
+  const scale = labLinear(inputs);
+  return d3.range(256).map(i => scale(i/256));
+}
+
+/**
+ * Generates a list of 256 RGB color strings interpolated along the lightness
+ * dimension of the LAB color space from white to the specified color family.
+ *
+ * If a single color key is provided (i.e., to generate colors for unsigned
+ * data) then the colors will be ordered from white to that color key in
+ * VizColor Dark.
+ *
+ * If two color keys are provided (i.e., to generate colors for signed data),
+ * the first color is treated as the positive anchor and the second is treated
+ * as the negative anchor. The resulting color list is ordered from the negative
+ * color key in VizColor Dark through white and onto the positive color key in
+ * VizColor Dark.
+ */
+export function labVizColors(positive: VizColorKey, negative?: VizColorKey):
+                          string[] {
+  const pIndex = VIZ_COLOR_VALUES.indexOf(positive);
+  const positiveColors = Object.values(VIZ_COLORS).map(p => p[pIndex].color);
+  const inputs = ['#ffffff', ...positiveColors];
+
+  if (negative) {
+    const nIndex = VIZ_COLOR_VALUES.indexOf(negative);
+    const negativeColors = Object.values(VIZ_COLORS).map(p => p[nIndex].color);
+    inputs.unshift(...negativeColors.reverse());
+  }
+
+  const scale = labLinear(inputs);
+  return d3.range(256).map(i => scale(i/256));
+}
+
+/** Continuous ramp for signed data through LAB space: Mage -> White -> Cyea */
+export const CONTINUOUS_SIGNED_LAB = ramp(labBrandColors('cyea', 'mage'));
+
+/** Continuous ramp for unsigned data through LAB space: White -> Purple */
+export const CONTINUOUS_UNSIGNED_LAB = ramp(labVizColors('purple'));
+
+/** Continuous ramp for unsigned data: Purple */
 export const CONTINUOUS_UNSIGNED = ramp([
   VIZ_COLORS.pastel[3].color,
   VIZ_COLORS.bright[3].color,

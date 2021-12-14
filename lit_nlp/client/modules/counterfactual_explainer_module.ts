@@ -33,6 +33,7 @@ import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
+import {SalienceCmap, SignedSalienceCmap} from '../services/color_service';
 
 import {styles as salienceMapStyles} from './salience_map_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -54,42 +55,6 @@ interface InterpreterState {
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
-}
-
-abstract class SalienceCmap {
-  // Exponent for computing luminance values from salience scores.
-  // A higher value gives higher contrast for small (close to 0) salience
-  // scores.
-  // See https://en.wikipedia.org/wiki/Gamma_correction
-  constructor(protected gamma: number = 1.0) {}
-
-  abstract bgCmap(d: number): string;
-  abstract textCmap(d: number): string;
-}
-
-/**
- * Color map for signed salience maps.
- */
-export class SignedSalienceCmap extends SalienceCmap {
-  /**
-   * Color mapper. Higher salience values get darker colors.
-   */
-  bgCmap(d: number) {
-    let hue = 188;  // teal from WHAM
-    if (d < 0.) {
-      hue = 354;    // red(ish) from WHAM
-      d = Math.abs(d);  // make positive for intensity
-    }
-    const intensity = (1 - d) ** this.gamma;
-    return `hsl(${hue}, 50%, ${25 + 75 * intensity}%)`;
-  }
-
-  /**
-   * Make sure tokens are legible when colormap is dark.
-   */
-  textCmap(d: number) {
-    return (Math.abs(d) > 0.1) ? 'white' : 'black';
-  }
 }
 
 /**

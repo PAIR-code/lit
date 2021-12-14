@@ -14,9 +14,8 @@ import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype, sumArray} from '../lib/utils';
-
+import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {GeneratedTextResult, GENERATION_TYPES} from './generated_text_module';
-import {SignedSalienceCmap, UnsignedSalienceCmap} from './salience_map_module';
 import {styles} from './sequence_salience_module.css';
 
 interface SequenceSalienceMap {

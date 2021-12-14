@@ -26,7 +26,7 @@ import {IndexedInput} from '../lib/types';
 import {DEFAULT, CATEGORICAL_NORMAL} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
-import {ColorService} from './color_service';
+import {ColorService, SignedSalienceCmap, UnsignedSalienceCmap} from './color_service';
 import {GroupService} from './group_service';
 import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
@@ -103,5 +103,32 @@ describe('Color service test', () => {
     colorService.reset();
     color = colorService.getDatapointColor(mockInput);
     expect(color).toEqual(DEFAULT);
+  });
+
+  it('provides color map classes for salience viz', () => {
+    const signedCmap = new SignedSalienceCmap();
+    const unsignedCmap = new UnsignedSalienceCmap();
+
+    expect(signedCmap.lightness(0)).toEqual(0);
+    expect(signedCmap.lightness(0.5)).toEqual(0.5);
+    expect(signedCmap.lightness(1)).toEqual(1);
+
+    expect(unsignedCmap.lightness(0)).toEqual(0);
+    expect(unsignedCmap.lightness(0.5)).toEqual(0.5);
+    expect(unsignedCmap.lightness(1)).toEqual(1);
+
+    expect(signedCmap.bgCmap(-1)).toEqual('rgb(71, 0, 70)');
+    expect(signedCmap.bgCmap(0)).toEqual('rgb(255, 254, 254)');
+    expect(signedCmap.bgCmap(1)).toEqual('rgb(4, 30, 53)');
+
+    expect(unsignedCmap.bgCmap(0)).toEqual('rgb(255, 255, 255)');
+    expect(unsignedCmap.bgCmap(1)).toEqual('rgb(40, 1, 135)');
+
+    expect(signedCmap.textCmap(-1)).toEqual('white');
+    expect(signedCmap.textCmap(0)).toEqual('black');
+    expect(signedCmap.textCmap(1)).toEqual('white');
+
+    expect(unsignedCmap.textCmap(0)).toEqual('black');
+    expect(unsignedCmap.textCmap(1)).toEqual('white');
   });
 });
