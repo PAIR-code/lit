@@ -1,6 +1,6 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
 
 This is a user guide for the Language Interpretability Tool (LIT) UI.
 
@@ -23,7 +23,7 @@ In general, the module layout consists of two sections, a top section and a
 bottom section, separated by a draggable divider to control the height of each
 section. The top section contains a single set of modules, always shown in the
 tool. This section is generally used for the main modules that are critical to
-tool nagivation, such as the data table and datapoint editor. The bottom section
+tool navigation, such as the data table and datapoint editor. The bottom section
 is comprised of tabs that contain any number of individual modules. The tabs in
 this section are generally grouped into task-specific sets of modules.
 
@@ -78,7 +78,7 @@ comparison). Once a model or models is selected, you can then select from any
 dataset compatible with those models.
 
 The settings dialog also contains controls switching the layout of the tool.
-This can help de-clutter the UI when analysis doesn't require all of the
+This can help declutter the UI when analysis doesn't require all of the
 compatible modules that LIT contains.
 
 ![LIT global settings](./images/lit-settings.png "LIT global settings")<!-- DO NOT REMOVE {width="600"} -->
@@ -117,7 +117,7 @@ with a favorite button to mark this datapoint as a favorite. Favorited
 datapoints are stored in the automatically-created **"Favorites"** slice,
 accessible in the slice controls. If only a single datapoint is selected, then
 the left and right arrow buttons in this toolbar allow cycling of the selected
-datapoint through the loaded datatset. If the current selection is a set of
+datapoint through the loaded dataset. If the current selection is a set of
 datapoints, then the left and right arrow buttons control which of those
 datapoints is the primary selected datapoint, cycling through the datapoints in
 the current selection. A **"random"** button between the arrows allows selection
@@ -195,7 +195,7 @@ passing the `--canonical_url=<url base>` flag to the server.
 
 ## Module Details
 
-This section contains details on using and interactiving with individual modules
+This section contains details on using and interacting with individual modules
 that are built into LIT. Note that this list may not be complete and additional
 modules can be created and used in LIT by clients.
 
@@ -206,14 +206,14 @@ full-screen button in the top-right of each module.
 
 When using LIT with a model that returns embeddings (or activations), in
 addition to predictions, the embedding projector will show all datapoints by
-their embeddings projected down to 3 dimentions. This is useful for exploring
+their embeddings projected down to 3 dimensions. This is useful for exploring
 and understanding clusters of datapoints.
 
 ![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")<!-- DO NOT REMOVE {width="500"} -->
 
 The specific embedding used to generate the projection can be selected in a
 dropdown, along with the method of projection (either UMAP or PCA). An
-additional dropdown allows changing of the datapoint feature used for the label
+additional drop-down allows changing of the datapoint feature used for the label
 of each datapoint. The labels are shown on datapoint hover or click.
 
 The visualization can be rotated through click-and-drag interaction, and panned
@@ -228,7 +228,7 @@ selection toolbar.
 
 The data table shows all datapoints in a simple table. Datapoints can be
 selected or unselected through a click. Shift+click allows selecting a set of
-consecutive datapoints, and control+click allows selecting a set of individidual
+consecutive datapoints, and control+click allows selecting a set of individual
 datapoints one at a time. Currently selected datapoints are highlighted with a
 light blue background. The primary selected datapoint is highlighted with a
 darker blue background. If a set of datapoints is currently selected, clicking
@@ -252,7 +252,7 @@ datapoints that are currently selected.
 The **"reset view"** button returns the data table to its standard, default
 view.
 
-A **"columns"** dropdown allows showing/hiding of specific columns to customize
+A **"columns"** drop-down allows showing/hiding of specific columns to customize
 what the data table shows. Model predictions can be added as columns through
 this dropdown, but they are not shown in the data table by default, in order to
 keep the table decluttered.
@@ -285,12 +285,12 @@ selected) through a set of counterfactual datapoint generators. These generators
 are provided by the backend and all available generators will show up as buttons
 in the module. Clicking one of these buttons causes the creation of new
 datapoints that are displayed in a table inside the module and can be added to
-the dataset either individually, or altogther, through the add buttons.
+the dataset either individually, or altogether, through the add buttons.
 
 Generators built into LIT include:
 
 *   **Scrambler**: Scrambles the words in a text feature randomly.
-*   **Backtranslation**: Translates a text feature into other languages and then
+*   **Back-translation**: Translates a text feature into other languages and then
     back to the source language to create paraphrases of the initial text
     feature.
 *   **Hotflip**: When analyzing a classification task and the model provides
@@ -386,11 +386,7 @@ class before a datapoint is classified as that class as opposed to the default
 class. The margin value defaults to 0, meaning the class with the highest score
 is the class the datapoint is inferred to be.
 
-The below screenshot shows this module for a binary classification task where
-the positive classification threshold has been changed and the datapoints near
-the decision boundary have been selected for further analysis.
-
-![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")<!-- DO NOT REMOVE {width="500"} -->
+![LIT prediction scores](./images/lit-pred-score.png "LIT prediction scores")
 
 ### Model Output
 
@@ -428,33 +424,6 @@ performed on every datapoint selection, but only when explicitly asked for.
 
 ![LIT saliency maps](./images/lit-salience.png "LIT saliency maps")
 
-### Counterfactual Explanation
-
-The counterfactual explanation module, like the salience maps module, shows the
-influence of different parts of input features on a model's prediction on the
-primary selection. The main difference is that in this module, the influence is
-calculated by looking at the model results on this datapoint of interest,
-compared to the results on the rest of the selected datapoints, taking into
-account where and how those other datapoints different from the primary
-selection.
-
-In this way, the main use-case of this module is to take a single datapoint and
-create a large set of counterfactual datapoints from it (through manual changes
-and/or the datapoint generator module). Then, select all those counterfactuals
-in addition to the primary selection of the datapoint of interest, and run
-analysis in this module. Through dropdowns, you can select which model task and,
-for classification tasks, which class to explain.
-
-The end result is a map showing the different influence values for each text
-piece in the primary selected datapoint, displayed in the same manner as the
-other salience maps.
-
-The screenshot below shows a selection of datapoint of interest along with a set
-of counterfactuals created from it in the data table, along with the
-counterfactual explanation results generated from this selection.
-
-![LIT counterfactual explanation](./images/lit-counterfactual-explanation.png "LIT counterfactual explanation")
-
 ### Attention
 
 For models that return attention head information along with predictions, the
@@ -487,7 +456,7 @@ depression-era gangster movie.”, while replacing “ultimate” to get “It�
 worst depression-era gangster movie.” elicits a mildly positive score from our
 model.
 
-![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")<!-- DO NOT REMOVE {width="500"} -->
+![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")
 
 ### Gender Bias in Coreference
 
@@ -495,14 +464,14 @@ Does a system encode gendered associations, which might lead to incorrect
 predictions? We load a coreference model trained on OntoNotes, and load the
 Winogender dataset into LIT for evaluation. Each Winogender example has a
 pronoun and two candidate referents, one a occupation term like (“technician”)
-and one an “other participant” (like “customer”). Our model predicts coreference
-probabilities for each candidate. We can explore the model’s sensitivity to
-pronouns by comparing two examples side-by-side (see screenshot section (a).) We
-can see how commonly the model makes similar errors by paging through the
-dataset, or by selecting specific slices of interest. For example, we can use
-the *Scalars* module (screenshot section (b)) to select datapoints
-where the occupation term is associated with a high proportion of (fe)male
-workers, according to the U.S. Bureau of Labor Statistics.
+and one is an “other participant” (like “customer”). Our model predicts 
+coreference probabilities for each candidate. We can explore the model’s
+sensitivity to pronouns by comparing two examples side-by-side (see structured
+predictions in screenshot). We can see how commonly the model makes similar
+errors by paging through the dataset, or by selecting specific slices of
+interest.
+
+![Winogender analysis](./images/lit-winogender.png "Winogender analysis")
 
 In the *Metrics* table, we can slice this selection by pronoun type and by the
 true referent. On the set of male-dominated occupations (< 25% female by BLS),
@@ -511,16 +480,19 @@ stereotype - e.g. when the answer is the occupation term, male pronouns are
 correctly resolved 83% of the time, compared to female pronouns only 37.5% of
 the time (screenshot section (c)).
 
-![Winogender analysis](./images/lit-winogender.png "Winogender analysis")<!-- DO NOT REMOVE {width="500"} -->
+![Winogender analysis](./images/lit-winogender-metrics.png "Winogender analysis")
 
 ### Debugging Text Generation
 
+<!-- TODO(lit-dev): T5 no longer makes the mistake documented below. Find a
+     example that fits better with the text generation debugging story -->
+
 Does the training data explain a particular error in text generation? We analyze
-a T5 model on the CNN-DM summarization task. LIT’s *Scalars* module
+an older T5 model on the CNN-DM summarization task. LIT’s *Scalars* module
 allows us to look at per-example ROUGE scores, and quickly select an example
 with middling performance (screenshot section (a)). We find the generated text
 (screenshot section (b)) contains an erroneous constituent: “alastair cook was
-replaces as captain by former captain ...”. We can dig deeper, using LIT’s
+replaced as captain by former captain ...”. We can dig deeper, using LIT’s
 language modeling module (screenshot section (c)) to see that the token “by” is
 predicted with high probability (28.7%).
 

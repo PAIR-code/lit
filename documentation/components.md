@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-26' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -23,7 +23,7 @@ out-of-the-box support for a few modeling frameworks, described below.
 
 LIT supports Estimator and other TF1.x models, but the model wrappers can be
 more involved due to the need to explicitly manage the graph and sessions. (In
-particular: `Estimator.predict()` cannot be used because it re-loads the model
+particular: `Estimator.predict()` cannot be used because it reloads the model
 on every invocation.) Generally, you'll need to:
 
 *   In your model's `__init__()`, build the graph, create a persistent TF
@@ -31,10 +31,10 @@ on every invocation.) Generally, you'll need to:
 *   In your `predict()` or `predict_minibatch()` function, build a feed dict and
     call `session.run` directly.
 
-Alternatively, you can export to a SavedModel and load this in an eager mode
+Alternatively, you can export to a `SavedModel` and load this in an eager mode
 runtime. This leads to much simpler code (see
 [this example](../lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
-but may require changes to your SavedModel exporter in order to access model
+but may require changes to your `SavedModel` exporter in order to access model
 internals like embeddings, gradients, or attention.
 
 ### HuggingFace Transformers
@@ -102,7 +102,7 @@ functionality, and counterfactual generation - are available for any model.
 ### Classification
 
 LIT supports many features for classification tasks, including common metrics,
-confusion matricies, and custom thresholding via the UI. Classification is
+confusion matrices, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
 *   For a basic example on a binary sentiment task, see
@@ -171,7 +171,7 @@ or decoder.
     `TextSegment` field (for a single reference) or a `ReferenceTexts` field
     (for multiple references), and the model's output field should set `parent=`
     accordingly.
-*   To use a model in scoring mode over one or more pre-defined target
+*   To use a model in scoring mode over one or more predefined target
     sequences, the model can also output a `ReferenceScores` field (with values
     as `List[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
@@ -230,14 +230,15 @@ images as model output. The LIT type `ImageBytes` can be used as a feature in
 datasets and as part of an input spec or output spec for a model. That feature's
 value must be a base64 encoded string for an image.
 
-NOTE: We may transition images away from encded strings, moving to individual
+NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See [lit_nlp/examples/datasets/open_images.py](../lit_nlp/examples/datasets/open_images.py) for a dataset
-    containing images, including converting images to base64 encoded strings.
+*   See `google3/third_party/py/lit_nlp/examples/datasets/open_images.py` for a
+    dataset containing images, including converting images to base64 encoded
+    strings.
 *   For a demo of an image classifier, see
-    [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
+    `google3/third_party/py/lit_nlp/examples/image_demo.py`.
 
 ## Token-based Salience
 
@@ -390,7 +391,7 @@ To enable pixel-based salience methods for models that take images as inputs,
 your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
 
-*   Return a `ImageGradients` field with the `align` attriute pointing to the
+*   Return a `ImageGradients` field with the `align` attribute pointing to the
     name of the `ImageBytes` field and, optionally, the `grad_target_field_key`
     attribute pointing to the `CategoryLabel` field in input spec that specifies
     the target class for which to take gradients, if the model can process that
@@ -572,7 +573,7 @@ on different fairness constraints that may be of interest to the user.
 One such constraint is demographic parity, which attempts to have an equal
 percentage of positive classifications for each subset. Another is equal
 accuracy, which attempts to have an equal accuracy score for each subset. There
-is also equal opporitunity, which attempts to equalize for each subset the
+is also equal opportunity, which attempts to equalize for each subset the
 percentage of positive predictions among those datapoints with a positive ground
 truth label.
 

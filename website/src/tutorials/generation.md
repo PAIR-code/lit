@@ -35,4 +35,4 @@ To investigate how T5 arrived at this prediction, we utilize the “similarity s
 from the T5 decoder. With one click, we retrieve the 25 nearest neighbors to our datapoint of interest from the training set and add them to the LIT UI for inspection. We can see through the search capability in the data table that the words “captain” and “former” appear 34 and 16 times in these examples–along with 3 occurrences of “replaced by” and two occurrences of “by former”. This suggests a strong prior toward our erroneous phrase from the training data most related to our datapoint of interest.
 
 {% include partials/inset-image image: '/assets/images/lit-datatable-search.png', 
-  caption: 'Above: An example of the existance of "by former" in a similar datapoint from the training set.'%}
+  caption: 'Above: An example of the existence of "by former" in a similar datapoint from the training set.'%}

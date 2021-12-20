@@ -1,6 +1,6 @@
 # Running LIT in a Docker container
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-03-31' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
 
 Users might want to deploy LIT onto servers for public-facing, long-running
 instances. This is how we host the LIT demos found on
@@ -29,3 +29,11 @@ found in
 
 Then, our container is built and deployed following the basics of the
 [GKE tutorial](https://cloud.google.com/kubernetes-engine/docs/tutorials/hello-app).
+
+You can launch any of the built-in demos from the same Docker image. First,
+build the image with `docker build -t lit:latest .`. Running a container from
+this image, as with `docker run --rm -p 5432:5432 lit:latest`, will start
+the GLUE demo and mount it on port 5432.You cna change the demo by setting the
+`$DEMO_NAME` environment variable to one of the valid demo names, and you can
+change the port by setting the `$DEMO_PORT` environment variable. Remember to
+change the `-p` option to forward the container's port to the host.
