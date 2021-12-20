@@ -242,7 +242,8 @@ export class ApiService extends LitService {
       // When a call finishes, clear any previous error of the same call.
       this.statusService.removeError(url);
       return json;
-    } catch (err) {
+      // tslint:disable-next-line:no-any
+    } catch (err: any) {
       finished();
       // Extract error text if returned from tsserver.
       const found = err.message.match('^.*?(?=\n\nDetails:)');
