@@ -23,41 +23,50 @@
  * style names.
  */
 
-interface ColorEntry {
+import * as d3 from 'd3';
+
+/** Color informaiton for LIT */
+export interface ColorEntry {
   color: string;
   textColor: string;
 }
 
-type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
-type VizColorKey =
-  'orange'|'blue'|'yellow'|'purple'|'coral'|'teal'|'magenta'|'other';
-type LitBrandPaletteKey = 'cyea'|'mage'|'bric'|'neutral';
-type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
-type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
-type ColorValue =
-  '50'|'100'|'200'|'300'|'400'|'500'|'600'|'700'|'800'|'900';
+/** Names of palettes in the VisColor family */
+export type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
 
-const FULL_COLOR_VALUES: ColorValue[] = [
+/** Names of palettes in the Brand family */
+export type LitBrandPaletteKey = 'cyea'|'mage'|'bric'|'neutral';
+
+/** Names of palettes in the Major Tonal family */
+export type LitTonalPaletteKey = 'primary'|'secondary'|'tertiary';
+
+/** Names of palettes in the Minor Tonal family */
+export type LitMajorTonalPaletteKey = LitTonalPaletteKey|'neutral-variant';
+
+const FULL_COLOR_VALUES = [
   '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
-];
+] as const;
+/** Names of colors in a Brand or Major Tonal palette */
+export type ColorValue = typeof FULL_COLOR_VALUES[number];
 
-const SMALL_COLOR_VALUES: ColorValue[] = [
-  '50', '100', '200', '300', '400', '500', '600', '700', '800', '900'
-];
 
-const ERROR_COLOR_VALUES: ColorValue[] = [
-  '50', '500', '600', '700'
-];
+const MINOR_COLOR_VALUES = [ '1', '2', '3', '4', '5' ] as const;
+/** Names of colors in a Minor Tonal palette */
+export type MinorColorValue = typeof MINOR_COLOR_VALUES[number];
 
-const VIZ_COLOR_VALUES: VizColorKey[] = [
+const ERROR_COLOR_VALUES: ColorValue[] = [ '50', '500', '600', '700' ];
+
+const VIZ_COLOR_VALUES = [
   'orange', 'blue', 'yellow', 'purple', 'coral', 'teal', 'magenta', 'other'
-];
+] as const;
+/** Names of colors in a VisColor palette */
+export type VizColorKey = typeof VIZ_COLOR_VALUES[number];
 
 /**
  * Returns a ColorEntry at the index in th given palette.
  *
  * This function is a riff on the proposed Array.prototype.at() method. It
- * provides the bsame basic functionality in that it accepts positive and
+ * provides the same basic functionality in that it accepts positive and
  * negative numbers as an index (which it truncates prior to accessing to ensure
  * an integer value is used), but differs in that it takes the remainder of the
  * index after division with palette.length prior to accessing the value in the
@@ -71,6 +80,14 @@ function at (palette:ColorEntry[], index:number): ColorEntry {
   index = index % palette.length;
   if (index < 0) { index = index + palette.length; }
   return palette[index];
+}
+
+/**
+ * Creates a D3-compatible color ramp function from a list of hex color values
+ * using D3's interpolateRgbBasis() function.
+ */
+export function ramp (range:string[]): (t:number) => string {
+  return d3.interpolateRgbBasis(range);
 }
 
 /**
@@ -235,9 +252,9 @@ export const MINOR_TONAL_COLORS:
  * Gets the ColorEntry for a color in LIT's Minor Tonal family
  */
 export function getMinorTonalColor (version:LitTonalPaletteKey,
-                                    id:number|ColorValue): ColorEntry {
+                                    id:number|MinorColorValue): ColorEntry {
   const palette = MINOR_TONAL_COLORS[version];
-  const index = typeof id === 'number' ? id : SMALL_COLOR_VALUES.indexOf(id);
+  const index = typeof id === 'number' ? id : MINOR_COLOR_VALUES.indexOf(id);
   return at(palette, index);
 }
 
@@ -318,12 +335,12 @@ export const VIZ_COLORS: {[key in VizPaletteKey]: ColorEntry[]} = {
  *   2. Otherwise, we find the value for that id according to its order in the
  *      VisColor palette array. When the value of id is a VisColorKey, i.e., the
  *      name of that color in the palette, this funciton returns the specified
- *      color. However, if the value of id is a neagtive number, then the number
- *      will not be a vlaid name and indexOf() will return -1, which ensures
- *      that all negative numbers return the "other" color for that palette when
- *      the color is sccessed with at(). This special behavior is a convenient
- *      way to semanically distinguish between "normal" and "other" values in
- *      data visualization applications.
+ *      color. However, if the value of id is any other value (e.g., a negative
+ *      number, some errant string), then the number will not be a vlaid name
+ *      and indexOf() will return -1, which ensures that all negative numbers
+ *      return the "other" color for that palette when the color is accessed
+ *      with at(). This special behavior is a convenient way to semanically
+ *      distinguish between "normal" and "other" values in data visualizations.
  */
 export function getVizColor (version: VizPaletteKey,
                              id: number|VizColorKey): ColorEntry {
@@ -336,3 +353,181 @@ export function getVizColor (version: VizPaletteKey,
     return at(palette, index);
   }
 }
+
+/**
+ * Standard Colors and Palettes for LIT
+ *
+ * See https://www.figma.com/file/N5eAa1XWXDEmL4GWN1DGkr/%5B%F0%9F%94%A5LIT%5D-Design-Spec?node-id=866%3A9294
+ */
+
+/** Default normal color for valid values (Brand Cyea-400) */
+export const DEFAULT: string = BRAND_COLORS.cyea[4].color;
+
+/** Default other color for invalid values (VizColor Grey-Deep) */
+export const OTHER: string = VIZ_COLORS.deep[VIZ_COLORS.deep.length - 1].color;
+
+/** Default other color for invalid values (Brand Mage-400) */
+export const HOVER: string = BRAND_COLORS.mage[4].color;
+
+/** Default other color for invalid values (Brand Neutral-500) */
+export const LOADING: string = BRAND_COLORS.neutral[5].color;
+
+/** Categorical Colors -- Orange, Blue, Yellow, Purple, Coral, Teal, Magenta */
+export const CATEGORICAL_NORMAL: string[] =
+  VIZ_COLORS.deep.slice(0,-1).map(ce => ce.color);
+
+/** Binary Classification for Positive/Negative Semantics -- Blue, Coral */
+export const BINARY_POS_NEG: string[] = [
+  VIZ_COLORS.deep[1].color, VIZ_COLORS.deep[4].color
+];
+
+/** Continuous ramp for signed data: Coral, Neutral, Teal */
+export const CONTINUOUS_SIGNED = ramp([
+  VIZ_COLORS.dark[4].color,
+  VIZ_COLORS.deep[4].color,
+  VIZ_COLORS.bright[4].color,
+  VIZ_COLORS.pastel[7].color,
+  VIZ_COLORS.bright[5].color,
+  VIZ_COLORS.deep[5].color,
+  VIZ_COLORS.dark[5].color
+]);
+
+/**
+ * Creates a D3 scale that linearly interpolates between a list of RGB color
+ * strings.
+ */
+function labLinear (inputs: string[]) {
+  return d3.scaleLinear()
+      .domain(inputs.map((d, i) => i/(inputs.length - 1)))
+      .range(inputs as unknown[] as number[])
+      .interpolate((a, b) => d3.interpolateLab(a.toString(), b.toString()));
+}
+
+/**
+ * Generates a list of 256 RGB color strings interpolated along the lightness
+ * dimension of the LAB color space from white to the specified color family.
+ *
+ * If a single palette key is provided (i.e., to generate colors for unsigned
+ * data) then the colors will be ordered from white to -100 trhough -900 of that
+ * color key in the specified Brand palette.
+ *
+ * If two palette keys are provided (i.e., to generate colors for signed data),
+ * the first key is treated as the positive anchor and the second is treated
+ * as the negative anchor. The resulting color list is ordered from the highest
+ * color value (-900) in the negative Brand palette through white and onto the
+ * highest color value (-900) in the positive Brand palette.
+ */
+export function labBrandColors(positive: LitBrandPaletteKey,
+                               negative?: LitBrandPaletteKey): string[] {
+  const positiveColors = BRAND_COLORS[positive].slice(1).map(ce => ce.color);
+  const inputs = ['#ffffff', ...positiveColors];
+
+  if (negative) {
+    const negativeColors = BRAND_COLORS[negative].slice(1).map(ce => ce.color);
+    inputs.unshift(...negativeColors.reverse());
+  }
+
+  const scale = labLinear(inputs);
+  return d3.range(256).map(i => scale(i/256));
+}
+
+/**
+ * Generates a list of 256 RGB color strings interpolated along the lightness
+ * dimension of the LAB color space from white to the specified color family.
+ *
+ * If a single color key is provided (i.e., to generate colors for unsigned
+ * data) then the colors will be ordered from white to that color key in
+ * VizColor Dark.
+ *
+ * If two color keys are provided (i.e., to generate colors for signed data),
+ * the first color is treated as the positive anchor and the second is treated
+ * as the negative anchor. The resulting color list is ordered from the negative
+ * color key in VizColor Dark through white and onto the positive color key in
+ * VizColor Dark.
+ */
+export function labVizColors(positive: VizColorKey, negative?: VizColorKey):
+                          string[] {
+  const pIndex = VIZ_COLOR_VALUES.indexOf(positive);
+  const positiveColors = Object.values(VIZ_COLORS).map(p => p[pIndex].color);
+  const inputs = ['#ffffff', ...positiveColors];
+
+  if (negative) {
+    const nIndex = VIZ_COLOR_VALUES.indexOf(negative);
+    const negativeColors = Object.values(VIZ_COLORS).map(p => p[nIndex].color);
+    inputs.unshift(...negativeColors.reverse());
+  }
+
+  const scale = labLinear(inputs);
+  return d3.range(256).map(i => scale(i/256));
+}
+
+/** Continuous ramp for signed data through LAB space: Mage -> White -> Cyea */
+export const CONTINUOUS_SIGNED_LAB = ramp(labBrandColors('cyea', 'mage'));
+
+/** Continuous ramp for unsigned data through LAB space: White -> Purple */
+export const CONTINUOUS_UNSIGNED_LAB = ramp(labVizColors('purple'));
+
+/** Continuous ramp for unsigned data: Purple */
+export const CONTINUOUS_UNSIGNED = ramp([
+  VIZ_COLORS.pastel[3].color,
+  VIZ_COLORS.bright[3].color,
+  VIZ_COLORS.deep[3].color,
+  VIZ_COLORS.dark[3].color
+]);
+
+/** Sequetial: Discrete, Cyea, 3 classes (Cyea-200/400/600) */
+export const CYEA_DISCRETE: string[] = [
+  BRAND_COLORS.cyea[2].color,
+  BRAND_COLORS.cyea[4].color,
+  BRAND_COLORS.cyea[6].color
+];
+
+/** Sequetial: Continuous, Cyea */
+export const CYEA_CONTINUOUS =
+  ramp(BRAND_COLORS.cyea.slice(2,9).map(ce => ce.color));
+
+/** Sequetial: Discrete, Mage, 3 classes (Mage-200/400/600) */
+export const MAGE_DISCRETE: string[] = [
+  BRAND_COLORS.mage[2].color,
+  BRAND_COLORS.mage[4].color,
+  BRAND_COLORS.mage[6].color
+];
+
+/** Sequetial: Continuous, Mage */
+export const MAGE_CONTINUOUS =
+  ramp(BRAND_COLORS.mage.slice(2,9).map(ce => ce.color));
+
+/** Diverging: 4 classes (Bric-500/300/Cyea-300/500) */
+export const DIVERGING_4: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];
+
+/** Sequential: Continuous 4-hue color ramp */
+export const MULTIHUE_CONTINUOUS = ramp([
+  VIZ_COLORS.deep[3].color,
+  VIZ_COLORS.deep[1].color,
+  VIZ_COLORS.deep[5].color,
+  VIZ_COLORS.deep[2].color
+]);
+
+/** Diverging: 5 classes (Bric-500/300/Neutral-200/Cyea-300/500) */
+export const DIVERGING_5: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.neutral[2].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];
+
+/** Diverging: 6 classes (Bric-500/300/100/Cyea-100/300/500) */
+export const DIVERGING_6: string[] = [
+  BRAND_COLORS.bric[5].color,
+  BRAND_COLORS.bric[3].color,
+  BRAND_COLORS.bric[1].color,
+  BRAND_COLORS.cyea[1].color,
+  BRAND_COLORS.cyea[3].color,
+  BRAND_COLORS.cyea[5].color
+];

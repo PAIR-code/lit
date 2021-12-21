@@ -27,6 +27,7 @@ import {ColumnHeader, TableEntry} from '../elements/table';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
+import {FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
@@ -74,6 +75,8 @@ export class ThresholderModule extends LitModule {
   // Cost ratio of false positives to false negatives to use in calculating
   // optimal thresholds.
   private costRatio = 1;
+
+  private selectedFacetBins: NumericFeatureBins = {};
 
   // Selected features to create faceted thresholds from.
   @observable private readonly selectedFacets: string[] = [];
@@ -149,7 +152,9 @@ export class ThresholderModule extends LitModule {
   private get groupedExamples() {
     // Get the intersectional feature bins.
     const groupedExamples = this.groupService.groupExamplesByFeatures(
-        this.appState.currentInputData, this.selectedFacets);
+        this.selectedFacetBins,
+        this.appState.currentInputData,
+        this.selectedFacets);
     return groupedExamples;
   }
 
@@ -247,6 +252,14 @@ export class ThresholderModule extends LitModule {
         const index = this.selectedFacets.indexOf(key);
         this.selectedFacets.splice(index, 1);
       }
+
+      const configs: FacetingConfig[] = this.selectedFacets.map(feature => ({
+          featureName: feature,
+          method: this.groupService.numericalFeatureNames.includes(feature) ?
+                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
+      }));
+
+      this.selectedFacetBins = this.groupService.numericalFeatureBins(configs);
     };
 
     const costRatioTooltip = "The cost of false positives relative to false " +

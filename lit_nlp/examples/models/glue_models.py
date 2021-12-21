@@ -3,6 +3,7 @@
 
 import os
 import re
+import threading
 from typing import Optional, Dict, List, Iterable
 
 import attr
@@ -58,6 +59,7 @@ class GlueModel(lit_model.Model):
                **config_kw):
     self.config = GlueModelConfig(**config_kw)
     self._load_model(model_name_or_path)
+    self._lock = threading.Lock()
 
   def _load_model(self, model_name_or_path):
     """Load model. Can be overridden for testing."""
@@ -76,8 +78,9 @@ class GlueModel(lit_model.Model):
         config=model_config)
 
   def _get_tokens(self, ex: JsonDict, field_name: str) -> List[str]:
-    return (ex.get("tokens_" + field_name) or
-            self.tokenizer.tokenize(ex[field_name]))
+    with self._lock:
+      return (ex.get("tokens_" + field_name) or
+              self.tokenizer.tokenize(ex[field_name]))
 
   def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
     # Use pretokenized input if available.

@@ -31,7 +31,7 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
-CLASS_KEY = 'Class index to explain'
+CLASS_KEY = 'Class to explain'
 NORMALIZATION_KEY = 'Normalize'
 INTERPOLATION_KEY = 'Interpolation steps'
 
@@ -276,7 +276,7 @@ class IntegratedGradients(lit_components.Interpreter):
 
   def get_salience_result(self, model_input: JsonDict, model: lit_model.Model,
                           interpolation_steps: int, normalize: bool,
-                          class_to_explain: int, model_output: JsonDict,
+                          class_to_explain: str, model_output: JsonDict,
                           grad_fields: List[Text]):
     result = {}
 
@@ -289,15 +289,14 @@ class IntegratedGradients(lit_components.Interpreter):
 
     # The gradient class input is used to specify the target class of the
     # gradient calculation (if unspecified, this option defaults to the argmax,
-    # which could flip between interpolated inputs). If class_to_explain is -1,
-    # then explain the argmax class.
+    # which could flip between interpolated inputs).
+    # If class_to_explain is emptystring, then explain the argmax class.
     grad_class_key = cast(types.TokenGradients,
                           output_spec[grad_fields[0]]).grad_target_field_key
-    if class_to_explain == -1:
+    if class_to_explain == '':  # pylint: disable=g-explicit-bool-comparison
       grad_class = model_output[grad_class_key]
     else:
-      grad_class = cast(types.CategoryLabel,
-                        output_spec[grad_class_key]).vocab[class_to_explain]
+      grad_class = class_to_explain
 
     interpolated_inputs = {}
     all_embeddings = []
@@ -381,12 +380,14 @@ class IntegratedGradients(lit_components.Interpreter):
           model_outputs: Optional[List[JsonDict]] = None,
           config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
-    class_to_explain = int(config[CLASS_KEY] if config else
-                           self.config_spec()[CLASS_KEY].default)
-    interpolation_steps = int(config[INTERPOLATION_KEY] if config else
-                              self.config_spec()[INTERPOLATION_KEY].default)
-    normalization = (config[NORMALIZATION_KEY] if config
-                     else self.config_spec()[NORMALIZATION_KEY].default)
+    config = config or {}
+    class_to_explain = config.get(CLASS_KEY,
+                                  self.config_spec()[CLASS_KEY].default)
+    interpolation_steps = int(
+        config.get(INTERPOLATION_KEY,
+                   self.config_spec()[INTERPOLATION_KEY].default))
+    normalization = config.get(NORMALIZATION_KEY,
+                               self.config_spec()[NORMALIZATION_KEY].default)
 
     # Find gradient fields to interpret
     input_spec = model.input_spec()
@@ -415,12 +416,12 @@ class IntegratedGradients(lit_components.Interpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        # TODO(lit-dev): Consider making class to predict strings using
-        # dropdowns on the front-end as opposed to class indicies.
-        CLASS_KEY: types.TextSegment(default='-1'),
-        NORMALIZATION_KEY: types.Boolean(default=True),
-        INTERPOLATION_KEY: types.Scalar(
-            min_val=5, max_val=100, default=30, step=1)
+        CLASS_KEY:
+            types.TextSegment(default=''),
+        NORMALIZATION_KEY:
+            types.Boolean(default=True),
+        INTERPOLATION_KEY:
+            types.Scalar(min_val=5, max_val=100, default=30, step=1)
     }
 
   def meta_spec(self) -> types.Spec:

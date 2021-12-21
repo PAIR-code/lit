@@ -27,6 +27,8 @@ from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
 
+FIELDS_TO_SCRAMBLE_KEY = 'Fields to scramble'
+
 
 class Scrambler(lit_components.Generator):
   """Scramble all words in an example to generate a new example."""
@@ -37,20 +39,52 @@ class Scrambler(lit_components.Generator):
     random.shuffle(words)
     return ' '.join(words)
 
+  def config_spec(self) -> types.Spec:
+    return {
+        FIELDS_TO_SCRAMBLE_KEY:
+            types.MultiFieldMatcher(
+                spec='input',
+                types=['TextSegment'],
+                select_all=True),
+    }
+
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
                config: Optional[JsonDict] = None) -> List[JsonDict]:
-    """Naively scramble all words in an example."""
+    """Naively scramble all words in an example.
+
+    Note: Even if more than one field is to be scrambled, only a single example
+    will be produced, unlike other generators which will produce multiple
+    examples, one per field.
+
+    Args:
+      example: the example used for basis of generated examples.
+      model: the model.
+      dataset: the dataset.
+      config: user-provided config properties.
+
+    Returns:
+      examples: a list of generated examples.
+    """
     del model  # Unused.
-    del config  # Unused.
+
+    config = config or {}
+
+    # If config key is missing, generate no examples.
+    fields_to_scramble = list(config.get(FIELDS_TO_SCRAMBLE_KEY, []))
+    if not fields_to_scramble:
+      return []
 
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
     text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
     if not text_keys:
       return []
+
+    text_keys = [key for key in text_keys if key in fields_to_scramble]
+
     new_example = copy.deepcopy(example)
     for text_key in text_keys:
       new_example[text_key] = self.scramble(example[text_key])

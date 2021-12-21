@@ -10,7 +10,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background-color: #2f8c9b;
+  background-color: var(--lit-cyea-500);
   font-family: 'Google Sans' !important;
   color: white;
   font-size: 18px;
@@ -35,21 +35,18 @@
   font-family: 'Google Sans', sans;
 }
 
-mwc-icon.icon-button {
+.icon-button {
   height: 24px;
   width: 24px;
   min-width: 24px;
   --mdc-icon-size: 24px;
   cursor: pointer;
   margin: 0pt 2pt;
+  color: var(--lit-neutral-100);
 }
 
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.icon-button:active {
-  opacity: .4;
+.icon-button:hover {
+  color: var(--lit-neutral-400);
 }
 
 .status-emoji {
@@ -104,7 +101,7 @@ button {
 .headline-button:hover {
   background: rgba(26, 115, 232, 0.04);
   opacity: .7;
-  border: 1px solid #BDC1C6;
+  border: 1px solid var(--lit-neutral-400);
 }
 
 .headline-button:active {

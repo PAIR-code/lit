@@ -21,6 +21,9 @@ import {computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, IndexedInput, Preds} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
+import {
+  CONTINUOUS_SIGNED, CONTINUOUS_UNSIGNED, MULTIHUE_CONTINUOUS
+} from '../lib/colors';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState} from './services';
@@ -238,25 +241,28 @@ export class RegressionService extends LitService {
           name: `${model}:${predKey} prediction`,
           getValue: (input: IndexedInput) =>
               this.regressionInfo[input.id][model][predKey].prediction,
-          scale: d3.scaleSequential(d3.interpolateViridis).domain(predDomain) as
-              D3Scale
+          scale: d3.scaleSequential(MULTIHUE_CONTINUOUS)
+                   .domain(predDomain) as D3Scale
         });
-        const errDomain = this.ranges[`${model}:${predKey}`].error;
+        const errAbsMax:number = Math.max(
+          ...this.ranges[`${model}:${predKey}`].error.map(v => Math.abs(v)));
+        const errDomain: [number, number] = [-errAbsMax, errAbsMax];
         options.push({
           name: `${model}:${predKey} error`,
           getValue: (input: IndexedInput) =>
               this.regressionInfo[input.id][model][predKey].error,
-          scale: d3.scaleSequential(d3.interpolateViridis).domain(errDomain) as
-              D3Scale
+          scale: d3.scaleSequential(CONTINUOUS_SIGNED)
+                   .domain(errDomain) as D3Scale
         });
-        const sqErrDomain = this.ranges[`${model}:${predKey}`].squaredError;
+        const sqErrMax =
+          Math.max(...this.ranges[`${model}:${predKey}`].squaredError);
+        const sqErrDomain: [number, number] = [0, sqErrMax];
         options.push({
           name: `${model}:${predKey} squared error`,
           getValue: (input: IndexedInput) =>
               this.regressionInfo[input.id][model][predKey].squaredError,
-          scale:
-              d3.scaleSequential(d3.interpolateViridis).domain(sqErrDomain) as
-              D3Scale
+          scale: d3.scaleSequential(CONTINUOUS_UNSIGNED)
+                   .domain(sqErrDomain) as D3Scale
         });
       }
     }

@@ -238,8 +238,11 @@ export class LitModules extends ReactiveElement {
       // clang-format off
     };
 
+    const lowerSectionVisible = Object.keys(layout.lower).length > 0;
+    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}vh` : "100%";
+
     const styles = styleMap({
-      '--upper-height': `${this.mainSectionHeight}vh`,
+      '--upper-height': upperHeight,
       '--num-tab-bars': `${upperTabsVisible ? 2 : 1}`,
     });
 
@@ -251,21 +254,23 @@ export class LitModules extends ReactiveElement {
           ${this.renderComponentGroups(layout.upper, upperTabToSelect,
                                        this.upperLayoutWidths)}
         </div>
-        <div class='tab-bar' id='center-bar'>
-          <div class='tabs-container'>
-            ${this.renderTabs(lowerGroupNames, lowerTabToSelect, setLowerTab)}
-          </div>
-          <div id='drag-container'>
-            <mwc-icon class="drag-icon">drag_handle</mwc-icon>
-            <div id='drag-handler' draggable='true'
-                @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
+        ${lowerSectionVisible ? html`
+          <div class='tab-bar' id='center-bar'>
+            <div class='tabs-container'>
+              ${this.renderTabs(lowerGroupNames, lowerTabToSelect, setLowerTab)}
+            </div>
+            <div id='drag-container'>
+              <mwc-icon class="drag-icon">drag_handle</mwc-icon>
+              <div id='drag-handler' draggable='true'
+                  @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
+              </div>
             </div>
           </div>
-        </div>
-        <div id='lower-group-area'>
-          ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
-                                       this.lowerLayoutWidths)}
-        </div>
+          <div id='lower-group-area'>
+            ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
+                                         this.lowerLayoutWidths)}
+          </div>
+        ` : null}
       </div>
     `;
     // clang-format on

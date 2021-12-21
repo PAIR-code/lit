@@ -31,6 +31,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
@@ -67,75 +68,6 @@ interface InterpreterState {
   isLoading: boolean;
   cmap: SalienceCmap;
   config?: CallConfig;
-}
-
-abstract class SalienceCmap {
-  // Exponent for computing luminance values from salience scores.
-  // A higher value gives higher contrast for small (close to 0) salience
-  // scores.
-  // See https://en.wikipedia.org/wiki/Gamma_correction
-  constructor(protected gamma: number = 1.0) {}
-
-  abstract bgCmap(d: number): string;
-  abstract textCmap(d: number): string;
-}
-
-/**
- * Color map for unsigned (positive) salience maps.
- */
-export class UnsignedSalienceCmap extends SalienceCmap {
-  /**
-   * Color lightness on a [0,1] scale.
-   */
-  lightness(d: number) {
-    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
-    return (1 - d) ** this.gamma;
-  }
-
-  /**
-   * Color mapper. Higher salience values get darker colors.
-   */
-  bgCmap(d: number) {
-    const hue = 270;  // purple
-    return `hsl(${hue}, 50%, ${100 * this.lightness(d)}%)`;
-  }
-
-  /**
-   * Make sure tokens are legible when colormap is dark.
-   */
-  textCmap(d: number) {
-    return (this.lightness(d) < 0.66) ? 'white' : 'black';
-  }
-}
-
-/**
- * Color map for signed salience maps.
- */
-export class SignedSalienceCmap extends SalienceCmap {
-  /**
-   * Color lightness on a [0,1] scale.
-   */
-  lightness(d: number) {
-    d = Math.abs(d);
-    d = Math.max(0, Math.min(d, 1));  // clip to [0,1]
-    return (1 - d) ** this.gamma;
-  }
-
-  /**
-   * Color mapper. Higher salience values get darker colors.
-   */
-  bgCmap(d: number) {
-    const hue =
-        (d >= 0) ? 188 /* teal from WHAM */ : 354 /* red(ish) from WHAM */;
-    return `hsl(${hue}, 50%, ${25 + 75 * this.lightness(d)}%)`;
-  }
-
-  /**
-   * Make sure tokens are legible when colormap is dark.
-   */
-  textCmap(d: number) {
-    return (this.lightness(d) < 0.66) ? 'white' : 'black';
-  }
 }
 
 /**

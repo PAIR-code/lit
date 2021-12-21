@@ -125,19 +125,19 @@
  * Body styles
  */
 tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--lit-mage-200);
 }
 
 tbody tr.selected {
-  background: #c5e4e8;
+  background: var(--lit-cyea-100);
   color: var(--lit-gray-800);
   transition-duration: 0.2s;
   transition-property: background-color;
 }
 
 tbody tr.primary-selected {
-  background: #9bb7ba;
-  color: #142838;
+  background: var(--lit-cyea-300);
+  color: black;
   transition-duration: 0.2s;
   transition-property: background-color;
 }
@@ -213,40 +213,13 @@ tbody td {
   min-width: 16px;
 }
 
-/* TODO(lit-dev): Move this to shared_styles and ensure elements can use shared
- * styles
- */
 /**
- * For standalone MWC icons as buttons.
- * We don't use mwc-icon-button because this adds
- * a large backdrop and extra whitespace.
+ * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
+ * adds a large backdrop and extra whitespace.
  */
-mwc-icon.icon-button {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  cursor: pointer;
-  user-select: none;
+.icon-button:hover {
+  color: var(--lit-neutral-900);
 }
-
-mwc-icon.icon-button:hover {
-  opacity: .7;
-}
-
-mwc-icon.mdi-outlined {
-  --mdc-icon-font: "Material Icons Outlined";
-}
-
-mwc-icon.disabled {
-  cursor: default;
-  color: rgba(60, 64, 67, 0.38);
-}
-
-mwc-icon.disabled:hover {
-  opacity: 1;
-}
-
-mwc-icon.button-extra-margin {
+.button-extra-margin {
   margin-left: 4px;
 }

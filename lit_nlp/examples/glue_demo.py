@@ -69,12 +69,6 @@ def get_wsgi_app():
   """Return WSGI app for container-hosted demos."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
-  FLAGS.set_default("models", [
-      "sst2-tiny:sst2:./bert-tiny/sst2_tiny",
-      "sst2-small:sst2:./bert-tiny/sst2_small",
-      "stsb:stsb:./bert-tiny/stsb_tiny",
-      "mnli:mnli:./bert-tiny/mnli_small",
-  ])
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)

@@ -86,6 +86,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
   def test_ablation_flip_num_ex(self):
     ex = {'sentence': 'this long movie was terrible'}
     self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 0
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     self.assertEmpty(
         self.ablation_flip.generate(ex, self.classification_model, None,
                                     self.classification_config))
@@ -104,6 +107,10 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 2
     thresh = 2
     self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence1',
+        'sentence2',
+    ]
     self.assertLen(
         self.ablation_flip.generate(ex, self.regression_model, None,
                                     self.regression_config), 2)
@@ -117,6 +124,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex = {'sentence': sentence}
     self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 100
     self.classification_config[ablation_flip.MAX_ABLATIONS_KEY] = 100
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     model = self.classification_model_with_predict_counter
     cfs = self.ablation_flip.generate(
         ex, model, None, self.classification_config)
@@ -159,6 +169,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex_tokens = self.ablation_flip.tokenize(ex['sentence'])
     self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 1
     self.classification_config[ablation_flip.MAX_ABLATIONS_KEY] = 1
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     cfs = self.ablation_flip.generate(
         ex, self.classification_model, None, self.classification_config)
     cf_tokens = self.ablation_flip.tokenize(list(cfs)[0]['sentence'])
@@ -167,6 +180,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex = {'sentence': 'this long movie is terrible and horrible.'}
     self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 1
     self.classification_config[ablation_flip.MAX_ABLATIONS_KEY] = 1
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     cfs = self.ablation_flip.generate(
         ex, self.classification_model, None, self.classification_config)
     self.assertEmpty(cfs)
@@ -181,6 +197,10 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = 2
     max_ablations = 1
     self.regression_config[ablation_flip.MAX_ABLATIONS_KEY] = max_ablations
+    self.regression_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence1',
+        'sentence2',
+    ]
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
                                       self.regression_config)
     for cf in cfs:
@@ -200,6 +220,10 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.regression_config[ablation_flip.NUM_EXAMPLES_KEY] = 20
     self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = 2
     self.regression_config[ablation_flip.MAX_ABLATIONS_KEY] = 5
+    self.regression_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence1',
+        'sentence2',
+    ]
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
                                       self.regression_config)
 
@@ -220,6 +244,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex_output = list(self.classification_model.predict([ex]))[0]
     pred_class = str(np.argmax(ex_output['probas']))
     self.assertEqual('0', pred_class)
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     cfs = self.ablation_flip.generate(ex, self.classification_model, None,
                                       self.classification_config)
     cf_outputs = self.classification_model.predict(cfs)
@@ -234,6 +261,10 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     ex_output = list(self.regression_model.predict([ex]))[0]
     thresh = 2
     self.regression_config[ablation_flip.REGRESSION_THRESH_KEY] = thresh
+    self.regression_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence1',
+        'sentence2',
+    ]
     cfs = self.ablation_flip.generate(ex, self.regression_model, None,
                                       self.regression_config)
     cf_outputs = self.regression_model.predict(cfs)
@@ -249,6 +280,9 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
   def test_ablation_flip_required_field(self):
     ex = {'sentence': 'terrible'}
     self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
     self.assertEmpty(
         self.ablation_flip.generate(
             ex, self.classification_model, None, self.classification_config))

@@ -212,21 +212,27 @@ a:hover {
 }
 
 .datapoints-line {
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .datapoints-label-holder {
+  flex: 1;
   display: flex;
-  margin-top: 8px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   margin-left: 16px;
 }
 
 .datapoints-file-input {
+  flex: 1;
   height: 22px;
-  margin-top: -3px;
-  margin-left: 4px;
-  width: 300px;
+  margin-left: 8px;
+  margin-right: 4px;
 }
 
 .expanded-info.open {
@@ -298,8 +304,7 @@ a:hover {
 }
 
 .prev-next-buttons {
-  margin: 5pt;
-  margin-top: 0;
+  margin: 16px 12px; /* 12px acounts for .hairline-button margin */
 }
 
 button mwc-icon {

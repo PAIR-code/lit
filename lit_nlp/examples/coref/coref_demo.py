@@ -122,7 +122,6 @@ FLAGS.set_default("default_layout", "winogender")
 def get_wsgi_app():
   # Set defaults for container-hosted demo.
   FLAGS.set_default("server_type", "external")
-  FLAGS.set_default("model_path", "./coref_base")
   FLAGS.set_default("do_train", False)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.

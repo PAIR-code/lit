@@ -20,6 +20,7 @@ To run the demo:
     python -m lit_nlp.examples.stanza_demo --port=5432
 Then navigate to localhost:5432 to access the demo UI.
 """
+import sys
 from absl import app
 from absl import flags
 from lit_nlp import dev_server
@@ -61,6 +62,16 @@ flags.DEFINE_integer(
 )
 
 
+def get_wsgi_app():
+  """Returns a LitApp instance for consumption by gunicorn."""
+  FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
+
+
 def main(_):
   # Set Tasks as a dictionary with task groups as
   # keys and values as lists of strings of Stanza task names
@@ -95,7 +106,7 @@ def main(_):
   lit_demo = dev_server.Server(
       models, datasets, generators, **server_flags.get_flags()
   )
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 if __name__ == "__main__":

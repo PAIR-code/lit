@@ -8,6 +8,7 @@ Once you see the ASCII-art LIT logo, navigate to localhost:5432 to access the
 demo UI.
 """
 
+import sys
 from absl import app
 from absl import flags
 from absl import logging
@@ -34,6 +35,16 @@ flags.DEFINE_integer(
     "max_examples", 1000, "Maximum number of examples to load into LIT. ")
 
 
+def get_wsgi_app():
+  """Returns a LitApp instance for consumption by gunicorn."""
+  FLAGS.set_default("server_type", "external")
+  FLAGS.set_default("demo_mode", True)
+  # Parse flags without calling app.run(main), to avoid conflict with
+  # gunicorn command line flags.
+  unused = flags.FLAGS(sys.argv, known_only=True)
+  return main(unused)
+
+
 def main(_):
   model_path = FLAGS.model_path
   logging.info("Working directory: %s", model_path)
@@ -50,7 +61,7 @@ def main(_):
 
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
-  lit_demo.serve()
+  return lit_demo.serve()
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@
     "lit-element": "^2.5.1",
     "lit-html": "^1.4.1",
     "mobx": "^5.15.4",
-    "scatter-gl": "^0.0.5",
+    "scatter-gl": "^0.0.12",
     "seedrandom": "^3.0.5",
     "umap-js": "^1.3.2"
   },

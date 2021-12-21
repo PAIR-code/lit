@@ -206,31 +206,64 @@ button:disabled {
 }
 
 .dropdown-label {
-  font-weight: regular;
-  font-size: 9pt;
-  letter-spacing: +0.3pt;
-  line-height: 12pt;
-  margin-left: 4pt;
-  margin-right: 4pt;
-  color: #3c4043;
+  font-family: Roboto;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.3px;
+  color: var(--lit-neutral-800);
 }
 
 .dropdown {
-  border: none;
   outline: none;
-  border-bottom: 1px solid lightgrey;
-  border-radius: 0;
-  padding: 4pt;
+  border: none;
+  border-bottom: 1px solid var(--lit-neutral-400);
   appearance: none;
   -webkit-appearance: none;
-  padding-right: 8pt;
-  margin-right: 8pt;
+  padding: 4px 18px 3px 4px;
+  margin:  2px  8px 2px 0;
   max-width: 80%;
+  color: var(--lit-neutral-800);
   background-color: transparent;
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  /* SVG background-image sets fill: var(--lit-neutral-800) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233C4043%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
   background-size: .65em auto, 100%;
-  background-position: right 50%;
+  background-position: top 50% right 5.5px;
   background-repeat: no-repeat;
+}
+
+.dropdown:hover {
+  background-color: var(--lit-mintonal-p-3);
+  cursor: pointer;
+}
+
+.dropdown:active {
+  color: var(--lit-cyea-600);
+  /* SVG background-image sets fill: var(--lit-cyea-600) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%231F6180%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-color: var(--lit-mintonal-p-1);
+}
+
+.dropdown:disabled {
+  color: var(--lit-neutral-400);
+  /* SVG background-image sets fill: var(--lit-neutral-200) as HEX value */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23E8EAED%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+}
+
+.dropdown.borderless { /* Not currently in use but available */
+  border: none;
+}
+
+.dropdown.hairline { /* Not currently in use but likely will be in AppToolbar */
+  border: 1px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  padding: 3pt 12pt 3pt 4pt;
+}
+
+.dropdown.hairline:disabled {
+  border: 1px solid var(--lit-neutral-200);
+  border-radius: 4px;
 }
 
 .monospace {
@@ -269,38 +302,6 @@ mwc-textfield {
   font-family: 'Material Icons Outlined';
   vertical-align: middle;
   margin: 0;
-}
-
-/* 'Text' Button Style */
-.text-button {
-  margin: 0 4px;
-  background: transparent;
-  border-radius: 4px;
-  border: none;
-  color: #1A73E8;
-  font-family: Roboto;
-}
-
-.text-button:hover {
-  background: rgba(26, 115, 232, 0.04);
-}
-
-.text-button:focus {
-  background: rgba(138, 180, 248, 0.12);
-  border: none;
-  outline: none;
-}
-
-.text-button:active {
-  background: #E8F0FE;
-  box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3),
-    0px 1px 3px 1px rgba(60, 64, 67, 0.15);
-  border: none;
-}
-
-.text-button:disabled {
-  color: rgba(60, 64, 67, 0.38);
-  background: transparent;
 }
 
 /* Token chips */
@@ -358,37 +359,108 @@ mwc-textfield {
   background: #e9d2fd;
 }
 
-/* 'Hairline' Button Style */
+.filled-button,
 .hairline-button {
-  margin: 0 4px;
-  background: transparent;
-  border-radius: 4px;
-  border: 1px solid #BDC1C6;
-  color: #1A73E8;
   font-family: Roboto;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0.3px;
+  padding: 0 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+
+.filled-button.xl,
+.hairline-button.xl {
+  font-size: 14px;
+  line-height: 24px;
+}
+
+/**
+ * Design Spec Deviation -- No button:focus states
+ *
+ * A decision was made to remove the :focus style from LIT buttons until a
+ * complete accessibility audit is completed.
+ */
+
+.filled-button {
+  background: var(--lit-majtonal-p-500);
+  border: 1px solid var(--lit-majtonal-p-500);
+  color: white;
+}
+
+.filled-button:active {
+  background: var(--lit-majtonal-p-700);
+  border: 1px solid var(--lit-majtonal-p-700);
+}
+
+.filled-button:hover {
+  background: var(--lit-majtonal-p-600);
+  border: 1px solid var(--lit-majtonal-p-600);
+}
+
+.filled-button:disabled {
+  background: var(--lit-neutral-100);
+  border: 1px solid var(--lit-neutral-100);
+  color: var(--lit-neutral-400);
+}
+
+.hairline-button {
+  background: transparent;
+  border: 1px solid var(--lit-neutral-400);
+  color: var(--lit-cyea-600);
 }
 
 .hairline-button:hover {
-  background: linear-gradient(0deg, rgba(26, 115, 232, 0.04),
-    rgba(26, 115, 232, 0.04)), #FFFFFF;
-  border: 1px solid #DADCE0;
-}
-
-.hairline-button:focus {
-  background: transparent;
-  border: 1px solid #1967D2;
-  outline: none;
+  background-color: var(--lit-mintonal-p-3);
+  border: 1px solid var(--lit-neutral-400);
+  color: var(--lit-cyea-600);
 }
 
 .hairline-button:disabled {
-  color: rgba(60, 64, 67, 0.38);
-  background: transparent;
-  border: 1px solid #E7E8E8;
+  color: var(--lit-neutral-400);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--lit-neutral-200);
 }
 
 .hairline-button:active {
-  background: rgba(26, 115, 232, 0.1);
-  border: 1px solid #DADCE0;
+  background-color: var(--lit-mintonal-p-4);
+  border: 1px solid var(--lit-cyea-500);
+  color: var(--lit-cyea-500);
+}
+
+/**
+ * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
+ * adds a large backdrop and extra whitespace.
+ */
+.icon-button {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--lit-neutral-700);
+}
+
+.icon-button:hover {
+  color: var(--lit-neutral-500);
+}
+
+.icon-button:disabled,
+mwc-icon.disabled{
+  cursor: default;
+  color: var(--lit-neutral-300);
+}
+
+.icon-button:active {
+  color: var(--lit-neutral-900);
+}
+
+mwc-icon.mdi-outlined {
+  --mdc-icon-font: "Material Icons Outlined";
 }
 
 /**

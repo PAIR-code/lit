@@ -395,7 +395,7 @@ class LitApp(object):
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       annotators: Optional[List[lit_components.Annotator]] = None,
-      layouts: Optional[Mapping[Text, dtypes.LitComponentLayout]] = None,
+      layouts: Optional[dtypes.LitComponentLayouts] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,

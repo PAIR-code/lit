@@ -36,6 +36,7 @@ import {ReactiveElement} from '../lib/elements';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, randInt} from '../lib/utils';
 
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './table.css';
 
 type SortableTableEntry = string|number;
@@ -109,6 +110,9 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) searchEnabled: boolean = false;
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
 
+  // Style overrides
+  @property({type: Boolean}) verticalAlignMiddle: boolean = false;
+
   // Callbacks
   @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
   @property({type: Object}) onHover: OnHoverCallback|undefined;
@@ -116,7 +120,7 @@ export class DataTable extends ReactiveElement {
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
   static override get styles() {
-    return [styles];
+    return [sharedStyles, styles];
   }
 
   // Sort order precedence: 1) sortName, 2) input order
@@ -830,11 +834,17 @@ export class DataTable extends ReactiveElement {
 
     const cellClasses = this.columnHeaders.map(
         h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
+    const cellStyles = styleMap({
+      verticalAlign: this.verticalAlignMiddle ? 'middle' : 'top'
+    });
     // clang-format off
     return html`
       <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
-        ${data.rowData.map((d, i) => html`<td><div class=${cellClasses[i]}>${formatCellContents(d)}</div></td>`)}
+        ${data.rowData.map((d, i) =>
+            html`<td style=${cellStyles}><div class=${cellClasses[i]}>${
+              formatCellContents(d)
+            }</div></td>`)}
       </tr>
     `;
     // clang-format on

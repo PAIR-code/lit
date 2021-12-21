@@ -49,9 +49,9 @@ NUM_EXAMPLES_KEY = "Number of examples"
 NUM_EXAMPLES_DEFAULT = 10
 MAX_ABLATIONS_KEY = "Maximum number of token ablations"
 MAX_ABLATIONS_DEFAULT = 5
-FIELDS_TO_ABLATE_KEY = "Fields to ablate"
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 1.0
+FIELDS_TO_ABLATE_KEY = "Fields to ablate"
 MAX_ABLATABLE_TOKENS = 10
 ABLATED_TOKENS_KEY = "ablated_tokens"
 
@@ -200,13 +200,13 @@ class AblationFlip(lit_components.Generator):
         PREDICTION_KEY:
             types.FieldMatcher(
                 spec="output", types=["MulticlassPreds", "RegressionScore"]),
+        REGRESSION_THRESH_KEY:
+            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
         FIELDS_TO_ABLATE_KEY:
             types.MultiFieldMatcher(
                 spec="input",
                 types=["TextSegment", "SparseMultilabel"],
                 select_all=True),
-        REGRESSION_THRESH_KEY:
-            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
     }
 
   def generate(self,
@@ -223,9 +223,6 @@ class AblationFlip(lit_components.Generator):
     assert model is not None, "Please provide a model for this generator."
 
     input_spec = model.input_spec()
-    # If config key is missing, ablate all fields.
-    fields_to_ablate = list(
-        config.get(FIELDS_TO_ABLATE_KEY, input_spec.keys()))
     pred_key = config.get(PREDICTION_KEY, "")
     regression_thresh = float(config.get(REGRESSION_THRESH_KEY,
                                          REGRESSION_THRESH_DEFAULT))
@@ -240,6 +237,11 @@ class AblationFlip(lit_components.Generator):
           "Only classification or regression models are supported")
     logging.info(r"W3lc0m3 t0 Ablatl0nFl1p \o/")
     logging.info("Original example: %r", example)
+
+    # Check for fields to ablate.
+    fields_to_ablate = list(config.get(FIELDS_TO_ABLATE_KEY, []))
+    if not fields_to_ablate:
+      return []
 
     # Get model outputs.
     orig_output = list(model.predict([example]))[0]

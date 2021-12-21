@@ -21,9 +21,11 @@ import {action, computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, FacetedData, GroupedExamples, IndexedInput, Preds, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
+import {BINARY_POS_NEG, CATEGORICAL_NORMAL} from '../lib/colors';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState, GroupService} from './services';
+import {FacetingConfig, FacetingMethod} from './group_service';
 
 interface AllClassificationInfo {
   [id: string]: PerExampleClassificationInfo;
@@ -107,10 +109,15 @@ function getMarginSettingForExample(
     for (const field of Object.keys(group.facetData!.facets!)) {
       if (groupService != null &&
           groupService.numericalFeatureNames.includes(field)) {
-        const facet = groupService.getNumericalBinForExample(
-            input, field)!;
+        const facetConfig: FacetingConfig = {
+          featureName: field,
+          method: FacetingMethod.EQUAL_INTERVAL,
+          numBins: 0
+        };
+        const bins = groupService.numericalFeatureBins([facetConfig]);
+        const bin = groupService.getNumericalBinForExample(bins, input, field)!;
         const groupRange = group.facetData!.facets![field].val as number[];
-        if (facet[0] !== groupRange[0] || facet[1] !== groupRange[1]) {
+        if (bin[0] !== groupRange[0] || bin[1] !== groupRange[1]) {
           matches = false;
           break;
         }
@@ -425,20 +432,17 @@ export class ClassificationService extends LitService {
               this.labelNames[`${model}:${predKey}`]
                              [this.classificationInfo[input.id][model][predKey]
                                   .predictedClassIdx],
-          scale: d3.scaleOrdinal(d3.schemeCategory10)
-                     .domain(this.labelNames[`${model}:${predKey}`]) as D3Scale
+          scale: d3.scaleOrdinal(CATEGORICAL_NORMAL)
+                   .domain(this.labelNames[`${model}:${predKey}`]) as D3Scale
         });
         if (info[model][predKey].predictionCorrect != null) {
           options.push({
             name: `${model}:${predKey} correct`,
             getValue: (input: IndexedInput) =>
                 this.classificationInfo[input.id][model][predKey]
-                    .predictionCorrect ?
-                'correct' :
-                'incorrect',
-            scale: d3.scaleOrdinal(d3.schemeSet1).domain([
-              'incorrect', 'correct'
-            ]) as D3Scale
+                    .predictionCorrect ? 'correct' : 'incorrect',
+            scale: d3.scaleOrdinal(BINARY_POS_NEG)
+                     .domain(['correct', 'incorrect']) as D3Scale
           });
         }
       }

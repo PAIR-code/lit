@@ -16,10 +16,10 @@
 }
 
 .toolbar {
-  border-top: 1px solid #78d9ec;
-  background-color: #e4f7fb;
+  border-top: 1px solid var(--lit-cyea-300);
+  background-color: var(--lit-majtonal-p-50);
   width: 100vw;
-  color: #007b83;
+  color: var(--lit-cyea-700);
   font-size: 10pt;
 }
 
@@ -47,11 +47,11 @@ mwc-icon.icon-button {
   min-width: 18px;
   --mdc-icon-size: 18px;
   cursor: pointer;
-  color: #007b83;
+  color: var(--lit-cyea-800);
 }
 
 mwc-icon.icon-button:hover {
-  opacity: .7;
+  color: var(--lit-cyea-600);
 }
 
 .emoji {

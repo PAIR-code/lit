@@ -301,6 +301,11 @@ export function defaultValueByField(key: string, spec: Spec) {
   if (isLitSubtype(fieldSpec, listFieldTypes)) {
     return [];
   }
+
+  if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+    return '';
+  }
+
   const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
   if (isLitSubtype(fieldSpec, stringFieldTypes)) {
     return '';

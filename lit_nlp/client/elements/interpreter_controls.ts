@@ -97,7 +97,7 @@ export class InterpreterControls extends ReactiveElement {
           <div class="description">${this.description}</div>
           ${this.renderControls()}
           <div class="buttons-holder">
-            <button class="button" @click=${apply}>Apply</button>
+            <button class="filled-button" @click=${apply}>Apply</button>
           </div>
         </div>
       </div>
@@ -183,28 +183,23 @@ export class InterpreterControls extends ReactiveElement {
       </select>`;
     } else if (isLitSubtype(controlType, ['Scalar'])) {
       // Render a slider.
+      const step = controlType.step!;
+      const minVal = controlType.min_val!;
+      const maxVal = controlType.max_val!;
+
       const updateSettings = (e: Event) => {
         const input = (e.target as HTMLInputElement);
         this.settings[name] = input.value;
       };
 
-      const step = controlType.step!;
-      const minVal = controlType.min_val!;
-      const maxVal = controlType.max_val!;
-      const defaultValue = controlType.default! as string;
-
       // clang-format off
       return html`
         <div class='slider-holder'>
           <div class='slider-label slider-label-start'>${minVal}</div>
-          <input
-            type="range"
-            min="${minVal}"
-            max="${maxVal}"
-            step="${step}"
-            .value=${defaultValue}
-            @input=${updateSettings}
-            >
+          <lit-slider class="slider"
+                      min="${minVal}" max="${maxVal}" step="${step}"
+                      val="${+this.settings[name]}"
+                      .onInput=${updateSettings}></lit-slider>
           <div class='slider-label'>${maxVal}</div>
           <div class='slider-value'>${this.settings[name]}</div>
         </div>

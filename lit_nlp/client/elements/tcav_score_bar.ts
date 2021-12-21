@@ -37,6 +37,8 @@ export class TcavScoreBar extends LitElement {
           position: relative;
           display: flex;
           min-width: 100px;
+          min-height: 20px;
+          background-color: var(--lit-neutral-200);
         }
 
         .separator {
@@ -47,39 +49,32 @@ export class TcavScoreBar extends LitElement {
         }
 
         .pos-bar {
-          background-color: #4ECDE6;
           min-height: 20px;
-        }
-
-        .pos-blank {
-          background-color: #E8EAED;
-          min-height: 20px;
+          position: absolute;
+          background-color: var(--lit-cyea-300);
         }
     `;
   }
 
   override render() {
-    const score = this.score;
-    const clampVal = this.clampVal;
-    const meanVal = this.meanVal;
+    const {score, clampVal, meanVal} = this;
+    const normalizedScore = Math.min(Math.max(score, 0), clampVal) / clampVal;
+    const normalizedMean = Math.min(Math.max(meanVal, 0), clampVal) / clampVal;
 
-    const stylePosBlank: {[name: string]: string} = {};
-    stylePosBlank['width'] =
-        `${(1 - Math.min(Math.max(score, 0), clampVal) / clampVal) * 100}%`;
+    const stylePosBar: {[name: string]: string} = {
+      'width': `${Math.abs(normalizedScore - normalizedMean) * 100}%`,
+      'left': normalizedScore > normalizedMean ? `${normalizedMean * 100}%` :
+                                                 `${normalizedScore * 100}%`
+    };
 
-    const stylePosBar: {[name: string]: string} = {};
-    stylePosBar['width'] =
-        `${Math.min(Math.max(score, 0), clampVal) / clampVal * 100}%`;
-
-    const styleSep: {[name: string]: string} = {};
-    styleSep['left'] =
-        `${Math.min(Math.max(meanVal, 0), clampVal) / clampVal * 100}%`;
+    const styleSep: {[name: string]: string} = {
+      'left': `${normalizedMean * 100}%`
+    };
 
     return html`<td><div class='cell'>
-        <div class='separator' style='${styleMap(styleSep)}'></div>
         <div class='pos-bar' style='${styleMap(stylePosBar)}'></div>
-        <div class='pos-blank' style='${styleMap(stylePosBlank)}'></div>
-        </div></td>`;
+        <div class='separator' style='${styleMap(styleSep)}'></div>
+      </div></td>`;
   }
 }
 

@@ -83,8 +83,8 @@ class Server(object):
       WSGI app if the server type is 'external', server if the server type
       is 'notebook', otherwise None when serving is complete.
     """
-    while True:
 
+    while True:
       logging.info(get_lit_logo())
       logging.info('Starting LIT server...')
       app = lit_app.LitApp(*self._app_args, **self._app_kw)

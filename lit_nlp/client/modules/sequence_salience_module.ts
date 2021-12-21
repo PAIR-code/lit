@@ -2,6 +2,7 @@
  * @fileoverview Visualization for seq2seq salience maps.
  */
 
+import '../elements/slider';
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
@@ -13,9 +14,8 @@ import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype, sumArray} from '../lib/utils';
-
+import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {GeneratedTextResult, GENERATION_TYPES} from './generated_text_module';
-import {SignedSalienceCmap, UnsignedSalienceCmap} from './salience_map_module';
 import {styles} from './sequence_salience_module.css';
 
 interface SequenceSalienceMap {
@@ -467,9 +467,8 @@ export class SequenceSalienceModule extends LitModule {
         <label>Colormap:</label>
         ${this.renderColorBlocks()}
         <label for="gamma-slider">Gamma:</label>
-        <input type="range" min=0.25 max=6 step=0.25
-          .value=${this.cmapGamma.toString()} class="slider" id="gamma-slider"
-           @input=${onChangeGamma}>
+        <lit-slider min="0.25" max="6" step="0.25" val="${this.cmapGamma}"
+                    .onInput=${onChangeGamma}></lit-slider>
         <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>
       </div>`;
     // clang-format on

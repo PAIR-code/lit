@@ -66,9 +66,8 @@ export class ScalarModule extends LitModule {
   static maxPlotHeight = 220;  // too sparse if taller than this
   static plotTopMargin = 6;
   static plotBottomMargin = 20;
-  static plotLeftMargin = 15;
+  static plotLeftMargin = 32;
   static xLabelOffsetY = 30;
-  static yLabelOffsetX = -32;
   static yLabelOffsetY = -25;
   static zeroLineColor = '#cccccc';
 
@@ -98,6 +97,8 @@ export class ScalarModule extends LitModule {
   @observable private preds: Preds[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
+  private readonly plotTranslation: string =
+      `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
   @computed
   private get inputKeys() {
@@ -278,22 +279,10 @@ export class ScalarModule extends LitModule {
                                  .enter()
                                  .append('circle');
       overlayCircles
-          .attr(
-              'cx',
-              (d) => {
-                return +d[0];
-              })
-          .attr(
-              'cy',
-              (d) => {
-                return +d[1];
-              })
+          .attr('cx', d => +d[0])
+          .attr('cy', d => +d[1])
           .classed(styleClass, true)
-          .style(
-              'fill',
-              (d) => {
-                return d[2];
-              });
+          .style('fill', d => d[2]);
 
       // Add the appropriate event listeners.
       if (detectHover) {
@@ -394,7 +383,7 @@ export class ScalarModule extends LitModule {
     }
 
     return d3.scaleLinear().domain(scoreRange).range([
-      0, this.plotWidth - ScalarModule.plotLeftMargin * 2
+      0, this.plotWidth - ScalarModule.plotLeftMargin * 1.5
     ]);
   }
 
@@ -466,19 +455,15 @@ export class ScalarModule extends LitModule {
       const thresholdSelection = d3.select(scatterplot).select('#threshold');
       thresholdSelection.selectAll('line').remove();
 
-      const xScale = this.getXScale(key);
-      const yScale = this.getYScale(key);
+      const x = this.getXScale(key)(threshold);
+      const [minY, maxY] = this.getYScale(key).range();
 
       // Create threshold marker.
       thresholdSelection.append('line')
-          .attr('x1', xScale(threshold))
-          .attr('y1', yScale(ScalarModule.plotTopMargin))
-          .attr('x2', xScale(threshold))
-          .attr(
-              'y2',
-              yScale(
-                  this.plotHeight - ScalarModule.plotBottomMargin -
-                  ScalarModule.plotTopMargin))
+          .attr('x1', x)
+          .attr('y1', minY)
+          .attr('x2', x)
+          .attr('y2', maxY)
           .style('stroke', 'black');
     }
   }
@@ -490,6 +475,7 @@ export class ScalarModule extends LitModule {
   private updateAllScatterplotColors(scatterplot: SVGGElement) {
     this.updateScatterplotColors(scatterplot, '#dataPoints');
     this.updateScatterplotColors(scatterplot, '#overlay');
+    this.updateScatterplotColors(scatterplot, '#primaryOverlay');
   }
 
   /**
@@ -500,7 +486,10 @@ export class ScalarModule extends LitModule {
     const dataPoints = d3.select(scatterplot).select(groupID);
     // Update point colors.
     dataPoints.selectAll('circle').style('fill', (d, i, e) => {
-      const id = d3.select(e[i]).attr('data-id');
+      // The #overlay and #primaryOverlay groups use a string[4] where the last
+      // element is the id, everything else stores the id in the data-id
+      const id = Array.isArray(d) ? d[d.length - 1] :
+                                    d3.select(e[i]).attr('data-id');
       const indexedInput = this.appState.getCurrentInputDataById(id);
       return this.colorService.getDatapointColor(indexedInput);
     });
@@ -521,7 +510,7 @@ export class ScalarModule extends LitModule {
       return;
     }
     this.plotWidth =
-        container.offsetWidth - ScalarModule.plotLeftMargin * 2;
+        container.offsetWidth - ScalarModule.plotLeftMargin * 1.5;
 
     this.plotHeight = 100;
 
@@ -541,46 +530,32 @@ export class ScalarModule extends LitModule {
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'threshold')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')');
+          .attr('transform', this.plotTranslation);
       this.updateThreshold();
 
       // Add group for data points.
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'dataPoints')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')');
+          .attr('transform', this.plotTranslation);
 
       // Add group for overlaying selected points.
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'overlay')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')');
+          .attr('transform', this.plotTranslation);
 
       // Add group for overlaying primary selected points.
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'primaryOverlay')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')');
+          .attr('transform', this.plotTranslation);
+
       // Add group for overlaying hovered points.
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'hoverOverlay')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')');
+          .attr('transform', this.plotTranslation);
 
       this.updateAllScatterplotColors(scatterplot);
     }
@@ -618,15 +593,15 @@ export class ScalarModule extends LitModule {
       const xScale = this.getXScale(key);
       const yScale = this.getYScale(key);
 
+      const yAxisHeight = this.plotHeight - ScalarModule.plotBottomMargin;
+      const xAxisTranslation =
+          `translate(${ScalarModule.plotLeftMargin},${yAxisHeight})`;
+
       // Create axes.
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'xAxis')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  (this.plotHeight - ScalarModule.plotBottomMargin).toString() +
-                  ')')
+          .attr('transform', xAxisTranslation)
           .call(d3.axisBottom(xScale));
 
       const axisGenerator = d3.axisLeft(yScale);
@@ -640,29 +615,21 @@ export class ScalarModule extends LitModule {
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'yAxis')
-          .attr(
-              'transform',
-              'translate(' + ScalarModule.plotLeftMargin.toString() + ',' +
-                  ScalarModule.plotTopMargin.toString() + ')')
+          .attr('transform', this.plotTranslation)
           .call(axisGenerator);
 
       // Create y axis label for regression models, where error is on the y
       // axis.
       if (isScalarKey && hasRegressionGroundTruth) {
+        const errorTextY = ScalarModule.plotTopMargin +
+                           this.plotHeight / 2 +
+                           ScalarModule.yLabelOffsetY;
+
         d3.select(scatterplot)
-            .append('text')
-            .attr(
-                'transform',
-                'translate(' +
-                    (ScalarModule.plotLeftMargin + ScalarModule.yLabelOffsetX)
-                        .toString() +
-                    ', ' +
-                    (ScalarModule.plotTopMargin + this.plotHeight / 2 +
-                     ScalarModule.yLabelOffsetY)
-                        .toString() +
-                    ') rotate(270)')
-            .style('text-anchor', 'middle')
-            .text('error');
+          .append('text')
+          .attr('transform', `translate(0,${errorTextY}) rotate(270)`)
+          .style('text-anchor', 'middle')
+          .text('error');
       }
 
       // Create zero line if this is a regression plot centered around zero.
@@ -670,18 +637,15 @@ export class ScalarModule extends LitModule {
         const ranges = this.regressionService.ranges[`${this.model}:${key}`];
         const yRange = ranges.error;
         if (yRange[0] < 0 && yRange[1] > 0) {
+          const halfHeight =
+                (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
+                ScalarModule.plotTopMargin;
           d3.select(scatterplot)
               .append('line')
               .attr('x1', ScalarModule.plotLeftMargin)
-              .attr(
-                  'y1',
-                  (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
-                      ScalarModule.plotTopMargin)
-              .attr('x2', this.plotWidth + ScalarModule.plotLeftMargin)
-              .attr(
-                  'y2',
-                  (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
-                      ScalarModule.plotTopMargin)
+              .attr('y1', halfHeight)
+              .attr('x2', xScale.range()[1] + ScalarModule.plotLeftMargin)
+              .attr('y2', halfHeight)
               .style('stroke', ScalarModule.zeroLineColor);
         }
       }
@@ -705,17 +669,11 @@ export class ScalarModule extends LitModule {
             this.selectBrushedPoints(scatterplot);
           });
 
-      const brushGroup =
-          selected.append('g')
-              .attr('id', 'brushGroup')
-              .attr(
-                  'transform',
-                  'translate(' +
-                      ScalarModule.plotLeftMargin.toString() + ',0)')
-              .on('mouseenter', (d, i, e) => {
-                this.focusService.clearFocus();
-              })
-              .call(newBrush);
+      const brushGroup = selected.append('g')
+          .attr('id', 'brushGroup')
+          .attr('transform', `translate(${ScalarModule.plotLeftMargin},0)`)
+          .on('mouseenter', () => { this.focusService.clearFocus(); })
+          .call(newBrush);
 
       // Store brush and selection group to be used for clearing the brush.
       this.brushObjects.push({
@@ -743,28 +701,21 @@ export class ScalarModule extends LitModule {
       const rng = seedrandom(rngSeed);
 
       circles
-          .attr(
-              'cx',
-              (d) => xScale(this.getValue(d, spec, key, label)))
-          .attr(
-              'cy',
-              (d) => {
-                if (isLitSubtype(spec.output[key], 'Scalar') &&
-                    hasRegressionGroundTruth) {
-                  return yScale(d[this.regressionService.getErrorKey(key)]);
-                }
-                // Otherwise, return a random value.
-                return yScale(rng());
-              })
-          .style(
-              'fill',
-              (d) => {
-                const indexedInput =
-                    this.appState.getCurrentInputDataById(d['id']);
-                return this.colorService.getDatapointColor(indexedInput);
-              })
+          .attr('cx', d => xScale(this.getValue(d, spec, key, label)))
+          .attr('cy', d => {
+            if (isLitSubtype(spec.output[key], 'Scalar') &&
+                hasRegressionGroundTruth) {
+              return yScale(d[this.regressionService.getErrorKey(key)]);
+            }
+            // Otherwise, return a random value.
+            return yScale(rng());
+          })
+          .style('fill', d => {
+            const indexedInput = this.appState.getCurrentInputDataById(d['id']);
+            return this.colorService.getDatapointColor(indexedInput);
+          })
           .classed('point', true)
-          .on('mouseenter', (d, i, e) => {
+          .on('mouseenter', d => {
             this.focusService.setFocusedDatapoint(d['id']);
           })
           .each((d, i, e) => {

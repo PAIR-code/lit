@@ -78,13 +78,13 @@
   width: 50%;
 }
 
-input[type="range"] {
+.slider {
   min-width: 60px;
   flex: 1;
 }
 
 .slider-label {
-  color: gray;
+  color: var(--lit-neutral-600);
   font-size: 8pt;
   min-width: 3em;
 }

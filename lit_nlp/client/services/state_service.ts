@@ -89,6 +89,11 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return this.metadata.datasets[this.currentDataset].spec;
   }
 
+  @computed
+  get datasetHasImages(): boolean {
+    return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
+  }
+
   @observable
   private readonly inputData = new Map<DatasetName, IndexedInputMap>();
 

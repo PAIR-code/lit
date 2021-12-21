@@ -20,12 +20,78 @@ import * as d3 from 'd3';
 import {computed, observable, reaction} from 'mobx';
 
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
+import {DEFAULT, CATEGORICAL_NORMAL, CONTINUOUS_UNSIGNED_LAB, CONTINUOUS_SIGNED_LAB, MULTIHUE_CONTINUOUS} from '../lib/colors';
 
 import {ClassificationService} from './classification_service';
 import {GroupService} from './group_service';
 import {LitService} from './lit_service';
 import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
+
+/** Color map for salience maps. */
+export abstract class SalienceCmap {
+  /**
+   * An RGB interpolated color scale for one of the continuous LAB ramps from
+   * VizColor, which have been linearized.
+   */
+  protected colorScale: d3.ScaleSequential<string>;
+
+  // Exponent for computing luminance values from salience scores.
+  // A higher value gives higher contrast for small (close to 0) salience
+  // scores.
+  // See https://en.wikipedia.org/wiki/Gamma_correction
+  constructor(protected gamma: number = 1.0,
+              protected domain: [number, number] = [0, 1]) {
+    this.colorScale = d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
+  }
+
+  /**
+   * Determine the correct text color -- black or white -- given the lightness
+   * for this datum
+   */
+  textCmap(d: number): string {
+    return (this.lightness(d) < 0.5) ? 'black' : 'white';
+  }
+
+  /** Clamps the value of d to the color scale's domain */
+  clamp(d: number): number {
+    const [min, max] = this.colorScale.domain();
+    return Math.max(min, Math.min(max, d));
+  }
+
+  /** Gamma corrected lightness in the range [0, 1]. */
+  lightness(d: number): number {
+    d = Math.abs(this.clamp(d));
+    // Gamma correction to increase visibility of low salience datapoints
+    d = (1 - d) ** this.gamma;
+    // Invert direction because HSL and our color scales place white on opposite
+    // ends of the [0, 1] range
+    return 1 - d;
+  }
+
+  /** Color mapper. More extreme salience values get darker colors. */
+  abstract bgCmap(d: number): string;
+}
+
+/** Color map for unsigned (positive) salience maps. */
+export class UnsignedSalienceCmap extends SalienceCmap {
+  bgCmap(d: number): string {
+    return this.colorScale(this.lightness(d));
+  }
+}
+
+/** Color map for signed salience maps. */
+export class SignedSalienceCmap extends SalienceCmap {
+  constructor(gamma: number = 1.0, domain: [number, number] = [-1, 1]) {
+    super(gamma, domain);
+    this.colorScale = d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
+  }
+
+  bgCmap(d: number): string {
+    const direction = d < 0 ? -1 : 1;
+    return this.colorScale(this.lightness(d) * direction);
+  }
+}
 
 /**
  * A singleton class that handles all coloring options.
@@ -37,12 +103,12 @@ export class ColorService extends LitService {
       private readonly classificationService: ClassificationService,
       private readonly regressionService: RegressionService) {
     super();
-    reaction(() => appState.currentModels, currentModels => {
+    reaction(() => this.appState.currentModels, currentModels => {
       this.reset();
     });
   }
 
-  private readonly defaultColor = d3.schemeCategory10[0];
+  private readonly defaultColor = DEFAULT;
 
   private readonly defaultOption: ColorOption = {
     name: 'None',
@@ -68,24 +134,22 @@ export class ColorService extends LitService {
   get colorableOptions() {
     const catInputFeatureOptions =
         this.groupService.categoricalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.categoricalFeatures[feature];
+          const range = domain.length > 1 ? CATEGORICAL_NORMAL : [ DEFAULT ];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale:
-                d3.scaleOrdinal(d3.schemeCategory10)
-                    .domain(this.groupService.categoricalFeatures[feature]) as
-                D3Scale
+            scale: d3.scaleOrdinal(range).domain(domain) as D3Scale
           };
         });
     const numInputFeatureOptions =
         this.groupService.numericalFeatureNames.map((feature: string) => {
+          const domain = this.groupService.numericalFeatureRanges[feature];
           return {
             name: feature,
             getValue: (input: IndexedInput) => input.data[feature],
-            scale: d3.scaleSequential(d3.interpolateViridis)
-                       .domain(
-                           this.groupService.numericalFeatureRanges[feature]) as
-                D3Scale
+            scale: d3.scaleSequential(MULTIHUE_CONTINUOUS)
+                     .domain(domain) as D3Scale
           };
         });
     return [
@@ -101,11 +165,7 @@ export class ColorService extends LitService {
       return this.defaultColor;
     }
     const val = this.selectedColorOption.getValue(input);
-    const color = this.selectedColorOption.scale(val);
-    if (color == null) {
-      return this.defaultColor;
-    }
-    return color;
+    return this.selectedColorOption.scale(val) || this.defaultColor;
   }
 
   /**

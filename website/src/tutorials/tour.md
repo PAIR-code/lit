@@ -29,7 +29,7 @@ The Language Interpretability Tool (LIT)  is a modular and extensible tool to in
 
 **Modules, groups, and workspaces** form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.
 
-{% include partials/inset-image image: '/assets/images/lit-workspaces.jpg', 
+{% include partials/inset-image image: '/assets/images/lit-workspaces.png', 
   caption: 'Above: Building blocks of the Language Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.'%}
 
 LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.
@@ -53,7 +53,7 @@ You can organize modules into groups and define your own layout when you [set up
 At the very top, you’ll see the LIT toolbar. Here, you can quickly check which models have been loaded, configure LIT, or share a URL to your session. Below that is a toolbar which makes it easier to perform actions applied across all of LIT. Here you can:
 - Select data points by relationship, or by slice.
 - Choose a feature to color data points, across all modules.
-- Track the datapoint you’re looking at, navigate to the next, mark a datapoint as a favorite, or clear your selection.
+- Track the datapoint you are looking at, navigate to the next, mark a datapoint as a favorite, or clear your selection.
 - Select the active models and dataset, including multiple models to compare.
 
 {% include partials/inset-image image: '/assets/images/lit-toolbars.gif', 
@@ -70,4 +70,4 @@ Finally, you can easily expand and collapse individual modules using the icons o
 {% include partials/info-box title: 'Visualizations that scale', 
   text: "Visualizations and results within modules can scale depending on if you're looking at one data point, multiple data points, one or multiple models. For instance, turning on the “compare datapoints” toggle allows you to compare a selected datapoint (known as the reference datapoint) to others by presenting individual results side-by-side within relevant modules." %}
 
-Now that you’re familiar with LIT’s interface, take LIT for a spin in our [demos](../../demos) or explore different [case studies](../).
+Now that you are familiar with LIT’s interface, take LIT for a spin in our [demos](../../demos) or explore different [case studies](../).
