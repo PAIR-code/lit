@@ -45,7 +45,7 @@ const MOCK_LAYOUT: LitCanonicalLayout = {
   description: 'Mock layout for testing.'
 };
 
-describe('modules service test', async () => {
+describe('modules service test', () => {
   let appState: AppState, modulesService: ModulesService;
   beforeEach(async () => {
     // Set up.
