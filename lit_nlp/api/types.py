@@ -179,6 +179,7 @@ class Tokens(LitType):
   # TODO(b/167617375): should we use 'align' here?
   parent: Optional[Text] = None
   mask_token: Optional[Text] = None  # optional mask token for input
+  token_prefix: Optional[Text] = "##"  # optional prefix used in tokens
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

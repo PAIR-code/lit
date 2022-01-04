@@ -390,3 +390,22 @@ export function hashCode(str: string) {
   return hash;
 }
 
+/** Find all matching indices of the val in the provided arr. */
+export function findMatchingIndices(arr: unknown[], val: unknown){
+  const indices = [];
+  for(let i = 0; i < arr.length; i++) {
+    if (arr[i] === val) {
+        indices.push(i);
+    }
+  }
+  return indices;
+}
+
+/** Return new string with the Nth instance of orig replaced. */
+export function replaceNth(str: string, orig: string, replacement: string,
+                           n: number) {
+  const escapedOrig = orig.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  return str.replace(
+      RegExp("^(?:.*?" + escapedOrig + "){" + n.toString() + "}"),
+      x => x.replace(RegExp(escapedOrig + "$"), replacement));
+}

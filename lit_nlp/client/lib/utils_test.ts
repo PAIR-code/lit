@@ -398,3 +398,47 @@ describe('roundToDecimalPlaces test', () => {
     expect(utils.roundToDecimalPlaces(4.22, -1)).toEqual(4.22);
   });
 });
+
+describe('findMatchingIndices test', () => {
+  it('returns empty list when appropriate', () => {
+    expect(utils.findMatchingIndices([1, 2, 3], 4)).toEqual([]);
+    expect(utils.findMatchingIndices(['a', 'b', 'c'], 'aa')).toEqual([]);
+  });
+
+  it('returns one match correctly', () => {
+    expect(utils.findMatchingIndices([1, 2, 3], 1)).toEqual([0]);
+    expect(utils.findMatchingIndices(['a', 'b', 'c'], 'b')).toEqual([1]);
+  });
+
+  it('returns multiple matches correctly', () => {
+    expect(utils.findMatchingIndices([1, 2, 3, 1, 1], 1)).toEqual([0, 3, 4]);
+  });
+});
+
+describe('replaceNth test', () => {
+  it('returns same string when no match', () => {
+    expect(utils.replaceNth('hello world', 'no', 'yes', 1)).toEqual(
+        'hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 2)).toEqual(
+        'hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 0)).toEqual(
+        'hello world');
+  });
+
+  it('returns correct string on single match', () => {
+    expect(utils.replaceNth('hello world', 'world', 'yes', 1)).toEqual(
+        'hello yes');
+  });
+
+  it('can handle strings with special regex chars', () => {
+    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1)).toEqual(
+        'hello yes');
+  });
+
+  it('returns correct string with multiple matches', () => {
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 1)).toEqual(
+        'hello yes world');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 2)).toEqual(
+        'hello world yes');
+  });
+});

@@ -62,6 +62,7 @@ export interface LitType {
   autorun?: boolean;
   signed?: boolean;
   mask_token?: string;
+  token_prefix?: string;
   select_all?: boolean;
   autosort?: boolean;
 }
