@@ -391,8 +391,8 @@ export function hashCode(str: string) {
 }
 
 /** Find all matching indices of the val in the provided arr. */
-export function findMatchingIndices(arr: unknown[], val: unknown){
-  const indices = [];
+export function findMatchingIndices(arr: unknown[], val: unknown): number[] {
+  const indices: number[] = [];
   for(let i = 0; i < arr.length; i++) {
     if (arr[i] === val) {
         indices.push(i);
