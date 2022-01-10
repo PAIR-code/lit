@@ -1,0 +1,47 @@
+:host {
+  flex-grow: 1;
+}
+
+.faceting-info {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.faceting-info .hairline-button {
+  margin-left: 0;
+}
+
+.active-facets {
+  flex: 1;
+  line-height: 22px;
+}
+
+.config-panel {
+  position: absolute;
+  top: 26px;
+
+  min-width: 250px;
+  max-height: 150px;
+  overflow-y: scroll;
+
+  z-index: 9000;
+}
+
+.panel-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.panel-label {
+  color: var(--lit-cyea-600);
+  font-size: 14px;
+  font-weight: bold;
+  margin-right: 12px;
+  flex-grow: 1;
+}

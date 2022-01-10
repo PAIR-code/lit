@@ -25,9 +25,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
-import {GroupService, FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
+import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
+import {FacetsChange} from '../core/faceting_control';
 
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -228,69 +229,20 @@ export class SliceModule extends LitModule {
     // clang-format on
   }
 
-  /**
-   * Create checkboxes for each value of each categorical feature.
-   */
-  renderFilters() {
-    // Update the filterdict to match the checkboxes.
-    const onChange = (e: Event, key: string) => {
-      if ((e.target as HTMLInputElement).checked) {
-        this.sliceByFeatures.push(key);
-      } else {
-        const index = this.sliceByFeatures.indexOf(key);
-        this.sliceByFeatures.splice(index, 1);
-      }
-
-      const configs: FacetingConfig[] = this.sliceByFeatures.map(feature => ({
-          featureName: feature,
-          method: this.groupService.numericalFeatureNames.includes(feature) ?
-                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
-      }));
-
-      this.sliceByBins = this.groupService.numericalFeatureBins(configs);
-    };
-
-    const renderFeatureCheckbox = (key: string) => {
-      // clang-format off
-      return html`
-        <div>
-          <div class='checkbox-holder'>
-            <lit-checkbox
-              ?checked=${this.sliceByFeatures.includes(key)}
-              @change='${(e: Event) => {onChange(e, key);}}'
-              label=${key}>
-            </lit-checkbox>
-          </div>
-        </div>
-      `;
-      // clang-format on
-    };
-    return html`${
-        this.groupService.denseFeatureNames.map(
-            key => renderFeatureCheckbox(key))}`;
-  }
-
-  private renderNumSlices() {
-    if (this.anyCheckboxChecked) {
-      return html`
-        <div class="dropdown-label">
-          (${this.groupService.numIntersectionsLabel(
-                this.sliceByBins, this.sliceByFeatures)} slices)
-        </div>
-      `;
-    }
-    return '';
-  }
-
   override render() {
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.sliceByFeatures = event.detail.features;
+      this.sliceByBins = event.detail.bins;
+    };
+
     // clang-format off
     return html`
       <div class='module-container'>
         ${this.renderCreate()}
         <div class="row-container" >
-          <label>Slice by feature</label>
-          ${this.renderFilters()}
-          ${this.renderNumSlices()}
+          <faceting-control @facets-change=${facetsChange}
+                            contextName=${SliceModule.title}>
+          </faceting-control>
         </div>
         ${this.renderSliceSelector()}
       </div>

@@ -400,7 +400,7 @@ export class DataTableModule extends LitModule {
         this.columnDropdownVisible ? 'column-dropdown' : 'column-dropdown-hide';
     // clang-format off
     return html`
-      <div class='${classes}'>
+      <div class='${classes} popup-container'>
         ${names.map(key => this.renderDropdownItem(key))}
       </div>
     `;

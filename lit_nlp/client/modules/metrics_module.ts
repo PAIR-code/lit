@@ -21,11 +21,12 @@ import {customElement} from 'lit/decorators';
 import { html} from 'lit';
 import {computed, observable} from 'mobx';
 
+import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {GroupService, FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
+import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 import {styles} from './metrics_module.css';
@@ -351,25 +352,6 @@ export class MetricsModule extends LitModule {
   }
 
   renderFacetSelector() {
-    // Update the filterdict to match the checkboxes.
-    const onFeatureCheckboxChange = (e: Event, key: string) => {
-      if ((e.target as HTMLInputElement).checked) {
-        this.selectedFacets.push(key);
-      } else {
-        const index = this.selectedFacets.indexOf(key);
-        this.selectedFacets.splice(index, 1);
-      }
-
-      const configs: FacetingConfig[] = this.selectedFacets.map(feature => ({
-          featureName: feature,
-          method: this.groupService.numericalFeatureNames.includes(feature) ?
-                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
-      }));
-
-      this.selectedFacetBins = this.groupService.numericalFeatureBins(configs);
-      this.updateAllFacetedMetrics();
-    };
-
     // Disable the "slices" on the dropdown if all the slices are empty.
     const slicesDisabled = this.sliceService.areAllSlicesEmpty();
 
@@ -377,6 +359,13 @@ export class MetricsModule extends LitModule {
       this.facetBySlice = !this.facetBySlice;
       this.updateSliceMetrics();
     };
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets = event.detail.features;
+      this.selectedFacetBins = event.detail.bins;
+      this.updateAllFacetedMetrics();
+    };
+
     // clang-format off
     return html`
       <label class="cb-label">Show slices</label>
@@ -385,29 +374,10 @@ export class MetricsModule extends LitModule {
         @change=${onSlicesCheckboxChecked}
         ?disabled=${slicesDisabled}>
       </lit-checkbox>
-      <label class="cb-label">Facet by</label>
-       ${
-        this.groupService.denseFeatureNames.map(
-            facetName => this.renderCheckbox(facetName, false,
-                (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
+      <faceting-control @facets-change=${facetsChange}
+                        contextName=${MetricsModule.title}>
+      </faceting-control>
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}
-    `;
-    // clang-format on
-  }
-
-  private renderCheckbox(
-      key: string, checked: boolean, onChange: (e: Event, key: string) => void,
-      disabled: boolean) {
-    // clang-format off
-    return html`
-        <div class='checkbox-holder'>
-          <lit-checkbox
-            ?checked=${checked}
-            ?disabled=${disabled}
-            @change='${(e: Event) => {onChange(e, key);}}'
-            label=${key}>
-          </lit-checkbox>
-        </div>
     `;
     // clang-format on
   }

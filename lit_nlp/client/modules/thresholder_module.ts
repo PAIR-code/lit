@@ -21,13 +21,14 @@ import {customElement} from 'lit/decorators';
 import {css, html} from 'lit';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
+import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
-import {FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
+import {NumericFeatureBins} from '../services/group_service';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
@@ -222,44 +223,15 @@ export class ThresholderModule extends LitModule {
     `;
   }
 
-  private renderCheckbox(
-      key: string, checked: boolean, onChange: (e: Event, key: string) => void,
-      disabled: boolean) {
-    // clang-format off
-    return html`
-        <div class='checkbox-holder'>
-          <lit-checkbox
-            ?checked=${checked}
-            ?disabled=${disabled}
-            @change='${(e: Event) => {onChange(e, key);}}'
-            label=${key}>
-          </lit-checkbox>
-        </div>
-    `;
-    // clang-format on
-  }
-
   renderControls() {
-    const handleCostRatioInput = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.costRatio = +((e as any).target.value);
+    const handleCostRatioInput = (e: InputEvent) => {
+      this.costRatio = +((e.target as HTMLInputElement).value);
     };
-    // Update the selected facets to match the checkboxes.
-    const onFeatureCheckboxChange = (e: Event, key: string) => {
-      if ((e.target as HTMLInputElement).checked) {
-        this.selectedFacets.push(key);
-      } else {
-        const index = this.selectedFacets.indexOf(key);
-        this.selectedFacets.splice(index, 1);
-      }
 
-      const configs: FacetingConfig[] = this.selectedFacets.map(feature => ({
-          featureName: feature,
-          method: this.groupService.numericalFeatureNames.includes(feature) ?
-                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
-      }));
-
-      this.selectedFacetBins = this.groupService.numericalFeatureBins(configs);
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets.length = 0;
+      this.selectedFacets.push(...event.detail.features);
+      this.selectedFacetBins = event.detail.bins;
     };
 
     const costRatioTooltip = "The cost of false positives relative to false " +
@@ -267,15 +239,13 @@ export class ThresholderModule extends LitModule {
     const calculateTooltip = "Calculate optimal threholds for each facet " +
         "using the cost ratio and a number of different techniques";
     return html`
-        <label class="cb-label">Facet by</label>
-       ${
-        this.groupService.denseFeatureNames.map(
-            (facetName: string) => this.renderCheckbox(facetName, false,
-                (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
+        <faceting-control @facets-change=${facetsChange}
+                          contextName=${ThresholderModule.title}>
+        </faceting-control>
         <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
-        <input type=number step="0.1" min=0 max=20
-           .value=${this.costRatio.toString()} class="cost-ratio-input"
-            @input=${handleCostRatioInput}>
+        <input type=number class="cost-ratio-input" step="0.1" min=0 max=20
+               .value=${this.costRatio.toString()}
+               @input=${handleCostRatioInput}>
         <button class='hairline-button' title=${calculateTooltip}
            @click=${this.calculateThresholds}>
           Get optimal thresholds
@@ -285,6 +255,7 @@ export class ThresholderModule extends LitModule {
   override render() {
     const tables =
         this.binaryClassificationKeys.map(key => this.renderTable(key));
+
     return html`
         <div class='module-container'>
           <div class='module-toolbar'>
