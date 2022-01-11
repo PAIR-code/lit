@@ -101,7 +101,7 @@ class GradientNorm(lit_components.Interpreter):
 class GradientDotInput(lit_components.Interpreter):
   """Salience map using the values of gradient * input as attribution."""
 
-  def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
+  def find_fields(self, output_spec: Spec) -> List[Text]:
     # Find TokenGradients fields
     grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
 
@@ -114,8 +114,6 @@ class GradientDotInput(lit_components.Interpreter):
 
       embeddings_field = output_spec[f].grad_for
       if embeddings_field is not None:
-        assert embeddings_field in input_spec
-        assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
         assert embeddings_field in output_spec
         assert isinstance(output_spec[embeddings_field], types.TokenEmbeddings)
 
@@ -141,9 +139,8 @@ class GradientDotInput(lit_components.Interpreter):
           config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
     # Find gradient fields to interpret
-    input_spec = model.input_spec()
     output_spec = model.output_spec()
-    grad_fields = self.find_fields(input_spec, output_spec)
+    grad_fields = self.find_fields(output_spec)
     logging.info('Found fields for gradient attribution: %s', str(grad_fields))
     if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
       return None
@@ -170,8 +167,7 @@ class GradientDotInput(lit_components.Interpreter):
     return all_results
 
   def is_compatible(self, model: lit_model.Model):
-    compatible_fields = self.find_fields(
-        model.input_spec(), model.output_spec())
+    compatible_fields = self.find_fields(model.output_spec())
     return len(compatible_fields)
 
   def meta_spec(self) -> types.Spec:
