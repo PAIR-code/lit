@@ -1,10 +1,10 @@
 # 🔥 Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-13' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-12' } *-->
 
-The Language Interpretability Tool (LIT) is a visual, interactive
-model-understanding tool for ML models, focusing on NLP use-cases. It can be run
-as a standalone server, or inside of notebook environments such as Colab,
+The Language Interpretability Tool (LIT) is a visual, interactive ML
+model-understanding tool that supports text, image, and tabular data. It can be
+run as a standalone server, or inside of notebook environments such as Colab,
 Jupyter, and Google Cloud Vertex AI notebooks.
 
 LIT is built to answer questions such as:
@@ -50,12 +50,12 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 
 ## Download and Installation
 
-LIT can be installed via pip, or can be built from source. Building from source
-is necessary if you wish to update any of the front-end or core back-end code.
+LIT can be installed via `pip` or built from source. Building from source is
+necessary if you update any of the front-end or core back-end code.
 
 ### Install from source
 
-Download the repo and set up a Python environment:
+Clone the repo and set up a Python environment:
 
 ```sh
 git clone https://github.com/PAIR-code/lit.git ~/lit
@@ -72,7 +72,7 @@ pushd lit_nlp; yarn && yarn build; popd
 ```
 
 Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
-running yarn on Ubuntu/Debian, be sure you have the
+running `yarn` on Ubuntu/Debian, be sure you have the
 [correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
 
 ### pip installation
@@ -81,25 +81,22 @@ running yarn on Ubuntu/Debian, be sure you have the
 pip install lit-nlp
 ```
 
-The pip installation will install all necessary prerequisite packages for use
-of the core LIT package. It also installs the code to run our demo examples.
-It does not install the prerequisites for those demos, so you need to install
-those yourself if you wish to run the demos. See
-[environment.yml](./environment.yml) for the list of all packages needed for
-running the demos.
+The `pip` installation will install all necessary prerequisite packages for use
+of the core LIT package.
+
+It **does not** install the prerequisites for the provided demos, so you need to
+install those yourself. See [environment.yml](./environment.yml) for the list of
+packages required to run the demos.
 
 ## Running LIT
 
 Explore a collection of hosted demos on the
 [LIT website demos page](https://pair-code.github.io/lit/demos).
 
-Colab notebooks showing the use of LIT inside of notebooks can be found at [lit_nlp/examples/notebooks](./lit_nlp/examples/notebooks).
-A simple example can be viewed
-[here](https://colab.research.google.com/github/pair-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
-
 ### Quick-start: classification and regression
 
-To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
+To explore classification and regression models tasks from the popular
+[GLUE benchmark](https://gluebenchmark.com/):
 
 ```sh
 python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
@@ -111,32 +108,34 @@ Your default view will be a
 [small BERT-based model](https://arxiv.org/abs/1908.08962) fine-tuned on the
 [Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
 but you can switch to 
-[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the gear icon in 
-the upper right.
+[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
+[MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
+gear icon in the upper right.
 
+### Quick-start: language modeling
 
-### Quick start: language modeling
-
-To explore predictions from a pretrained language model (BERT or GPT-2), run:
+To explore predictions from a pre-trained language model (BERT or GPT-2), run:
 
 ```sh
-python -m lit_nlp.examples.lm_demo --models=bert-base-uncased \
-  --port=5432
+python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
 ```
 
 And navigate to http://localhost:5432 for the UI.
 
 ### Notebook usage
 
-A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
-Just run all the cells to see LIT on an example classification model right in
-the notebook.
+Colab notebooks showing the use of LIT inside of notebooks can be found at 
+google3/third_party/py/lit_nlp/examples/notebooks.
+
+We provide a simple
+[Colab demo](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
+Run all the cells to see LIT on an example classification model in the notebook.
 
 ### Run LIT in a Docker container
 
-See [docker.md](https://github.com/PAIR-code/lit/wiki/docker.md) for instructions on running LIT as
-a containerized web app. This is the approach we take for our
-[website demos](https://pair-code.github.io/lit/demos/).
+See [docker.md](https://github.com/PAIR-code/lit/wiki/docker.md) for instructions on running LIT as a
+containerized web app. This is how we run our 
+[hosted demos](https://pair-code.github.io/lit/demos/).
 
 ### More Examples
 
@@ -154,15 +153,13 @@ watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 ## Adding your own models or data
 
 You can easily run LIT with your own model by creating a custom `demo.py`
-launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The basic
-steps are:
+launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The
+basic steps are:
 
-*   Write a data loader which follows the
-    [`Dataset` API](https://github.com/PAIR-code/lit/wiki/api.md#datasets)
+*   Write a data loader which follows the [`Dataset` API](https://github.com/PAIR-code/lit/wiki/api.md#datasets)
 *   Write a model wrapper which follows the [`Model` API](https://github.com/PAIR-code/lit/wiki/api.md#models)
 *   Pass models, datasets, and any additional
-    [components](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components) to the LIT server
-    class
+    [components](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components) to the LIT server class
 
 For a full walkthrough, see
 [adding models and data](https://github.com/PAIR-code/lit/wiki/api.md#adding-models-and-data).
@@ -170,17 +167,20 @@ For a full walkthrough, see
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
-more, both on the frontend or the backend. See our
-[documentation](https://github.com/PAIR-code/lit/wiki) to get started.
+more, both on the frontend or the backend. See our [documentation](https://github.com/PAIR-code/lit/wiki) to get
+started.
 
 ## Pull Request Process
 
 To make code changes to LIT, please work off of the `dev` branch and create
-pull requests against that branch. The `main` branch is for stable releases, and it is expected that the `dev` branch will always be ahead of `main` in terms of commits.
+pull requests against that branch. The `main` branch is for stable releases, and
+it is expected that the `dev` branch will always be ahead of `main` in terms of
+commits.
 
 ## Citing LIT
 
-If you use LIT as part of your work, please cite [our EMNLP paper](https://arxiv.org/abs/2008.05122):
+If you use LIT as part of your work, please cite
+[our EMNLP paper](https://arxiv.org/abs/2008.05122):
 
 ```
 @misc{tenney2020language,
@@ -198,8 +198,8 @@ If you use LIT as part of your work, please cite [our EMNLP paper](https://arxiv
 
 This is not an official Google product.
 
-LIT is a research project, and under active development by a small team.
-There will be some bugs and rough edges, but we're releasing at an early stage
-because we think it's pretty useful already. We want LIT to be an open platform,
-not a walled garden, and we'd love your suggestions and feedback - drop us a
-line in the [issues](https://github.com/pair-code/lit/issues).
+LIT is a research project and under active development by a small team. There
+will be some bugs and rough edges, but we're releasing at an early stage because
+we think it's pretty useful already. We want LIT to be an open platform, not a
+walled garden, and we would love your suggestions and feedback - drop us a line
+in the [issues](https://github.com/pair-code/lit/issues).
