@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-14' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-12' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -21,7 +21,7 @@ couple caveats:
     [ScatterGL](https://github.com/PAIR-code/scatter-gl)), and so may be slow on
     older machines if you have more than a few thousand points.
 
-We're hoping to scale the UI to support 50-100k points soon. In the mean time,
+We're hoping to scale the UI to support 50-100k points soon. In the meantime,
 you can use `Dataset.sample` or `Dataset.slice` to select a smaller number of
 examples to load. You can also pass individual examples to LIT through URL
 params, or load custom data files at runtime using the settings (⚙️) menu.
@@ -29,7 +29,7 @@ params, or load custom data files at runtime using the settings (⚙️) menu.
 ### Large Models
 
 LIT can work with large or slow models, as long as you can wrap them into the
-model API. If you have more than a few pre-loaded datapoints, however, you'll
+model API. If you have more than a few preloaded datapoints, however, you'll
 probably want to use `warm_start=1.0` (or pass `--warm_start=1.0` as a flag) to
 pre-compute predictions when the server loads, so you don't have to wait when
 you first visit the UI.
@@ -41,7 +41,7 @@ favorite serving framework and interface with it using a custom
 [`Model`](python_api.md#models) class.
 
 We also have experimental support for using LIT as a lightweight model server;
-this can be useful e.g. for comparing an experimental model on your workstation
+this can be useful, e.g., for comparing an experimental model running locally
 against a production model already running in an existing LIT demo. See
 [`remote_model.py`](../lit_nlp/components/remote_model.py)
 for more details.
@@ -54,13 +54,17 @@ however, model predictions and any newly-generated examples (including as
 manually entered in the web UI) are stored in server memory, and if `--data_dir`
 is specified, may be cached to disk.
 
-LIT contains the ability to create or edit datapoints in the UI and then save
-them to disk. If you do not want the tool to to be able to write edited
-datapoints to disk, then pass the `--demo_mode` runtime flag to the LIT server.
+LIT has the ability to create or edit datapoints in the UI and then save them to
+disk. If you do not want the tool to to be able to write edited datapoints to
+disk, then pass the `--demo_mode` runtime flag to the LIT server.
 
 ### Managing Access
 
-The default LIT development server does not implement any explicit access controls. However, this is just a thin convenience wrapper, and the underlying WSGI App can be easily exported and used with additional middleware layers or external serving frameworks. See [Running LIT in a Docker container](./docker.md) for an example of this usage.
+The default LIT development server does not implement any explicit access
+controls. However, this is just a thin convenience wrapper, and the underlying
+WSGI App can be easily exported and used with additional middleware layers or
+external serving frameworks. See
+[Running LIT in a Docker container](./docker.md) for an example of this usage.
 
 ## Languages
 
@@ -126,12 +130,12 @@ then be re-used in other environments.
 
 ### Training models with LIT
 
-LIT is primarily an evaluation/infererence-time tool, so we don't provide any
+LIT is primarily an evaluation/inference-time tool, so we don't provide any
 official training APIs. However, to facilitate code reuse you can easily add
 training methods to your model class. In fact, several of our demos do exactly
 this, using LIT's `Dataset` objects to manage training data along with standard
 training APIs (such as Keras' `model.fit()`). See
 [`quickstart_sst_demo.py`](../lit_nlp/examples/quickstart_sst_demo.py)
-and
+and/or
 [`glue_models.py`](../lit_nlp/examples/models/glue_models.py)
-for an example.
+for examples.
