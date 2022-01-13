@@ -411,7 +411,7 @@ model's prediction on the primary selection. This module can contain multiple
 methodologies for calculating this salience, depending on the capabilities of
 the model being analyzed (e.x. if the model provides gradients, then
 gradient-based token-wise salience can be calculated and displayed -- see
-[adding models and data](python_api.md#adding-models-and-data) for more). The
+[adding models and data](api.md#adding-models-and-data) for more). The
 background of each text piece is colored by the salience of that piece on the
 prediction, and hovering on any piece will display the exact value calculated
 for that piece.
