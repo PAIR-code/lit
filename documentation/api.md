@@ -1,17 +1,17 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-19' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## Design Overview
 
-LIT is a modular system, consisting of a collection of backend components
-(written in Python) and frontend modules (written in TypeScript). Most users
-will develop against the Python API, which is documented below and allows LIT to
-be extended with custom models, datasets, metrics, counterfactual generators,
-and more. The LIT server and components are provided as a library which users
-can use through their own demo binaries or via Colab.
+LIT is a modular system, comprising a collection of backend components (written
+in Python) and frontend modules (written in TypeScript). Most users will develop
+against the Python API, which is documented below and allows LIT to be extended
+with custom models, datasets, metrics, counterfactual generators, and more. The
+LIT server and components are provided as a library which users can use through
+their own demo binaries or via Colab.
 
 The components can also be used as regular Python classes without starting a
 server; see [below](#using-components-outside-lit) for details.
@@ -26,15 +26,15 @@ simplifies component design and allows interactive use of large models like BERT
 or T5.
 
 The frontend is a stateful single-page app, built using
-[lit-element](https://lit-element.polymer-project.org/)[^1] for modularity and
-[MobX](https://mobx.js.org/) for state management. It consists of a core UI
-framework, a set of shared "services" which manage persistent state, and a set
-of independent modules which render visualizations and support user interaction.
-For more details, see the [UI guide](./ui_guide.md) and the
+[Lit](https://lit.dev/)[^1] for modularity and [MobX](https://mobx.js.org/) for
+state management. It consists of a core UI framework, a set of shared "services"
+which manage persistent state, and a set of independent modules which render
+visualizations and support user interaction. For more details, see the
+[UI guide](./ui_guide.md) and the 
 [frontend developer guide](./frontend_development.md).
 
 [^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
-    not related to the lit-html or lit-element projects.
+      not related to the Lit projects.
 
 ## Adding Models and Data
 
@@ -282,7 +282,7 @@ You can also implement multi-headed models this way: simply add additional
 output fields for each prediction (such as another `MulticlassPreds`), and
 they'll be automatically detected.
 
-See the [type system documentation](#type-system) for more details on avaible
+See the [type system documentation](#type-system) for more details on available
 types and their semantics.
 
 ### Optional inputs
@@ -441,8 +441,8 @@ on the unpacked values.
 ### Generators
 
 Conceptually, a generator is just an interpreter that returns new input
-examples. These may depend on the input only, as for techniques such as
-backtranslation, or can involve feedback from the model, such as for adversarial
+examples. These may depend on the input only, as for techniques such as back-
+translation, or can involve feedback from the model, such as for adversarial
 attacks.
 
 The core generator API is:
@@ -472,7 +472,7 @@ class Generator(Interpreter):
 Where the output is a list of lists: a set of generated examples for each input.
 For convenience, there is also a `generate()` method which takes a single
 example and returns a single list; we provide the more general `generate_all()`
-API to support model-based generators (such as backtranslation) which benefit
+API to support model-based generators (such as back-translation) which benefit
 from batched requests.
 
 As with other interpreter components, a generator can take custom arguments
@@ -496,7 +496,7 @@ backtranlator generator if you pass it as a generator in the Server constructor.
 
 Interpreter components support an optional `config` option to specify run-time
 options, such as the number of samples for LIME or the pivot languages for
-backtranslation. LIT provides a simple DSL to define these options, which will
+back-translation. LIT provides a simple DSL to define these options, which will
 auto-generate a form on the frontend. The DSL uses the same
 [type system](#type-system) as used to define data and model outputs, and the
 `config` argument will be passed a dict with the form values.
@@ -514,9 +514,9 @@ For example, the following spec:
     }
 ```
 
-will give this form to configure backtranslation:
+will give this form to configure back-translation:
 
-![Backtranslation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Back-translation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 Currently `config_spec()` is supported only for generators and salience methods,
 though any component can support the `config` argument to its `run()` method,
@@ -596,8 +596,9 @@ For a full working example in Colab, see https://colab.research.google.com/githu
 Input examples and model outputs in LIT are flat records (i.e. Python `dict` and
 JavaScript `object`). Field names (keys) are user-specified strings, and we use
 a system of "specs" to describe the types of the values. This spec system is
-semantic: in addition to defining the datatype (string, float, etc.), spec types
-define how a field should be interpreted by LIT components and frontend modules.
+semantic: in addition to defining the data type (string, float, etc.), spec 
+types define how a field should be interpreted by LIT components and frontend
+modules.
 
 For example, the [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) dataset
 might define the following spec:
