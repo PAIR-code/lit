@@ -188,8 +188,10 @@ export class GroupService extends LitService {
     return numericFeatures;
   }
 
-  private numericBinKey(start: number, end: number, isLast: boolean) {
-    return `[${start}, ${end}${isLast ? ']' : ')'}`;
+  private numericBinKey(start: number, end: number, isLast: boolean,
+                        isThreshold = false) {
+    return  isThreshold ? isLast ? `≥ ${start}` : `< ${end}` :
+                          `[${start}, ${end}${isLast ? ']' : ')'}`;
   }
 
   private numericBinRange(start: number, end: number, isLast: boolean) {
@@ -252,8 +254,7 @@ export class GroupService extends LitService {
 
   private equalIntervalBins(feat: string, numBins: number): NumericBins {
     const bins: NumericBins = {};
-    const min = this.numericalFeatureRanges[feat][0];
-    const max = this.numericalFeatureRanges[feat][1];
+    const [min, max] = this.numericalFeatureRanges[feat];
     const step = (max - min) / numBins;
 
     for (let i = 0; i < numBins; i++) {
@@ -273,7 +274,7 @@ export class GroupService extends LitService {
       .map(d => d.data[feat] as number)
       .sort();
     numBins = Math.min(numBins, values.length);
-    const step = values.length / numBins;
+    const step = Math.ceil(values.length / numBins);
 
     for (let i = 0; i < numBins; i++) {
       const isLast = i === (numBins - 1);
@@ -290,12 +291,12 @@ export class GroupService extends LitService {
   }
 
   private thresholdBins(feat: string, threshold: number): NumericBins {
-    const [min, max] = this.numericalFeatureRanges[feat];
-    const [rMin, rMax] = [min, max].map(v => roundToDecimalPlaces(v, 3));
     const rThresh = roundToDecimalPlaces(threshold, 3);
+    const lowKey = this.numericBinKey(0, rThresh, false, true);
+    const highKey = this.numericBinKey(rThresh, 0, true, true);
     return {
-      [this.numericBinKey(rMin, rThresh, false)]: [min, threshold - 1e-6],
-      [this.numericBinKey(rThresh, rMax, true)]: [threshold, max + 1e-6]
+      [lowKey]: [Number.NEGATIVE_INFINITY, threshold],
+      [highKey]: [threshold, Number.POSITIVE_INFINITY]
     };
   }
 

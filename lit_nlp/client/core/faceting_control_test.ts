@@ -1,36 +1,41 @@
 import 'jasmine';
 import {LitElement} from 'lit';
-import {FacetingControl} from './faceting_control';
+import {FacetingControl, FacetsChange} from './faceting_control';
 
+import {Checkbox} from '@material/mwc-checkbox';
 import {LitApp} from '../core/app';
-import {GroupService} from '../services/group_service';
-import {AppState} from '../services/state_service';
+import {LitCheckbox} from '../elements/checkbox';
 import {mockMetadata} from '../lib/testing_utils';
+import {AppState, GroupService} from '../services/services';
 
 
 describe('faceting control test', () => {
-  let appState: AppState;
-  let groupService: GroupService;
   let facetCtrl: FacetingControl;
   let facetButton: HTMLButtonElement;
   let configPanel: HTMLDivElement;
   let closeButton: HTMLElement;
 
+  const facetChangeHandler = (event: Event) => {
+    const customEvent = event as CustomEvent<FacetsChange>;
+    expect(customEvent.detail.features.length).toBe(1);
+    expect(customEvent.detail.features[0]).toBe('label');
+    expect(customEvent.detail.bins).toBeTruthy();
+  };
+
   beforeEach(async () => {
     // Set up.
     const app = new LitApp();
-    appState = app.getService(AppState);
+    const appState = app.getService(AppState);
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness).
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
     appState.setCurrentDataset('sst_dev');
 
-    groupService = app.getService(GroupService);
-    facetCtrl = new FacetingControl();
-    // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
-    (facetCtrl as any).groupService = groupService;
+    const groupService = new GroupService(appState);
+    facetCtrl = new FacetingControl(groupService);
     document.body.appendChild(facetCtrl);
+    document.body.addEventListener('facets-change', facetChangeHandler);
     await facetCtrl.updateComplete;
 
     facetButton =
@@ -42,6 +47,7 @@ describe('faceting control test', () => {
   });
 
   afterEach(() => {
+    document.body.removeEventListener('facets-change', facetChangeHandler);
     document.body.removeChild(facetCtrl);
   });
 
@@ -70,7 +76,7 @@ describe('faceting control test', () => {
   it('shows configPanel after facet button click', async () => {
     facetButton.click();
     await facetCtrl.updateComplete;
-    expect(configPanel.style.display).toEqual('block');
+    expect(configPanel.style.display).toEqual('flex');
     expect(configPanel.style.visibility).toEqual('visible');
   });
 
@@ -99,5 +105,19 @@ describe('faceting control test', () => {
     await facetCtrl.updateComplete;
     expect(configPanel.style.display).toEqual('none');
     expect(configPanel.style.visibility).toEqual('hidden');
+  });
+
+  it('emits a custom facets-change event after checkbox click', async () => {
+    facetButton.click();
+    await facetCtrl.updateComplete;
+
+    const featureRow = configPanel.querySelector('div.feature-options-row') as HTMLDivElement;
+    const litCheckbox = featureRow.querySelector('lit-checkbox') as LitCheckbox;
+    const mwcCheckbox = litCheckbox.renderRoot.querySelector('lit-mwc-checkbox-internal') as Checkbox;
+    const input = mwcCheckbox.renderRoot.querySelector("input[type='checkbox']") as HTMLInputElement;
+    expect(input.checked).toBeFalse();
+    input.click();
+    await facetCtrl.updateComplete;
+    expect(input.checked).toBeTrue();
   });
 });
