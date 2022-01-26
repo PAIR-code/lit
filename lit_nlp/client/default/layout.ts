@@ -37,6 +37,7 @@ import {MetricsModule} from '../modules/metrics_module';
 import {MultilabelModule} from '../modules/multilabel_module';
 import {PdpModule} from '../modules/pdp_module';
 import {RegressionModule} from '../modules/regression_module';
+import {SalienceClusteringModule} from '../modules/salience_clustering_module';
 import {SalienceMapModule} from '../modules/salience_map_module';
 import {ScalarModule} from '../modules/scalar_module';
 import {SequenceSalienceModule} from '../modules/sequence_salience_module';
@@ -108,6 +109,7 @@ export const LAYOUTS: LitComponentLayouts = {
         SequenceSalienceModule,
         AttentionModule,
       ],
+      'Clustering': [SalienceClusteringModule],
       'Metrics': [
         MetricsModule,
         ConfusionMatrixModule,

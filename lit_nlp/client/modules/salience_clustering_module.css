@@ -1,0 +1,22 @@
+.clustering-salience-mapper {
+  padding: 8px;
+}
+
+.grad-key-label {
+  padding: 4px;
+  text-align: start;
+  vertical-align: baseline;
+  width: 150px;
+}
+
+.grad-key-row {
+  border-top: 1px solid #e8eaed;
+  border-bottom: 1px solid #e8eaed;
+  padding: 8px;
+}
+
+.selection-warning {
+  padding: 4px;
+  position: relative; /* to allow overlay div */
+  vertical-align: top;
+}

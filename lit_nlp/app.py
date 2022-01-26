@@ -40,6 +40,7 @@ from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import pdp
 from lit_nlp.components import projection
+from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
 from lit_nlp.components import tcav
 from lit_nlp.components import thresholder
@@ -458,11 +459,14 @@ class LitApp(object):
           'paired': metrics.MulticlassPairedMetrics(),
           'bleu': metrics.CorpusBLEU(),
       })
-      self._interpreters = {
+      gradient_map_interpreters = {
           'Grad L2 Norm': gradient_maps.GradientNorm(),
           'Grad ⋅ Input': gradient_maps.GradientDotInput(),
           'Integrated Gradients': gradient_maps.IntegratedGradients(),
           'LIME': lime_explainer.LIME(),
+      }
+      # pyformat: disable
+      self._interpreters = {
           'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
@@ -470,11 +474,15 @@ class LitApp(object):
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
           'pdp': pdp.PdpInterpreter(),
+          'salience clustering': salience_clustering.SalienceClustering(
+              gradient_map_interpreters),
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
           'pca': projection.ProjectionManager(pca.PCAModel),
           'umap': projection.ProjectionManager(umap.UmapModel),
       }
+      # pyformat: enable
+      self._interpreters.update(gradient_map_interpreters)
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()

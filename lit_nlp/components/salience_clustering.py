@@ -173,10 +173,13 @@ class SalienceClustering(lit_components.Interpreter):
           the dataset that were used in the clustering.
     """
     config = config or {}
+    # If no specific inputs provided, use the entire dataset.
+    inputs_to_use = indexed_inputs or dataset.examples
+
     # Find gradient fields to interpret
     grad_fields = self.find_fields(model.output_spec())
     token_saliencies = self.salience_mappers[
-        config['salience_mapper']].run_with_metadata(indexed_inputs, model,
+        config['salience_mapper']].run_with_metadata(inputs_to_use, model,
                                                      dataset, model_outputs,
                                                      config)
 
