@@ -132,12 +132,6 @@ export class DataTable extends ReactiveElement {
   @observable private pageNum = 0;
   @observable private entriesPerPage = 10;
 
-  // Sorted data. We manage updates with a reaction to enable "sticky" behavior,
-  // where subsequent sorts are based on the last sort rather than the original
-  // inputs (i.e. this.data). This way, you can do useful compound sorts like in
-  // a typical spreadsheet program.
-  @observable private stickySortedData?: TableRowInternal[]|null = null;
-
   private resizeObserver!: ResizeObserver;
   private needsEntriesPerPageRecompute = true;
   private lastContainerHeight = 0;
@@ -158,20 +152,11 @@ export class DataTable extends ReactiveElement {
 
     // If inputs changed, re-sort data based on the new inputs.
     this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
-      this.stickySortedData = null;
       this.needsEntriesPerPageRecompute = true;
       this.pageNum = 0;
       this.requestUpdate();
     });
 
-    // If sort settings are changed, re-sort data optionally using result of
-    // previous sort.
-    const triggerSort = () => [this.sortName, this.sortAscending];
-    this.reactImmediately(triggerSort, () => {
-      this.stickySortedData = this.getSortedData(this.rowFilteredData);
-      this.pageNum = 0;
-      this.requestUpdate();
-    });
     // Reset page number if invalid on change in total pages.
     const triggerPageChange = () => this.totalPages;
     this.reactImmediately(triggerPageChange, () => {
@@ -324,10 +309,8 @@ export class DataTable extends ReactiveElement {
    * - getSortedData() is used to sort the data if 1) the user has enabled sort-
    *   by-column by clicking a column header, or 2) a DataTable consumer wants
    *   to impose a context-specific sort behavior (e.g., ClassificationModule
-   *   defining sort based on the Score associated with that class). The result
-   *   is stored in this.stickySortedData so that future sorts can be "stable"
-   *   rather than re-sorting from the input.
-   * - displayData is stickySortedData, or rowFilteredData if that is unset.
+   *   defining sort based on the Score associated with that class).
+   * - displayData is uses sorted rowFilteredData.
    *   This is used to actually render the table.
    */
   @computed
@@ -383,11 +366,7 @@ export class DataTable extends ReactiveElement {
 
   @computed
   get displayData(): TableRowInternal[] {
-    if (this.stickySortedData != null) {
-      return this.stickySortedData;
-    } else {
-      return this.getSortedData(this.rowFilteredData);
-    }
+    return this.getSortedData(this.rowFilteredData);
   }
 
   @computed
@@ -566,8 +545,6 @@ export class DataTable extends ReactiveElement {
     this.columnSearchQueries.clear();
     this.sortName = undefined;    // reset to input ordering
     this.showColumnMenu = false;  // hide search bar
-    // Reset sticky sort and re-render from input data.
-    this.stickySortedData = null;
     this.requestUpdate();
   }
 

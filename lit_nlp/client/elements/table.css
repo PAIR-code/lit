@@ -67,15 +67,16 @@
 .arrow-container {
   width: 16px;
   height: 20px;
-  right: 8px;
   position: relative;
   user-select: none;
+  overflow: hidden;
 }
 
 .arrow {
   position: absolute;
   --mdc-icon-size: 24px;
   color: rgba(0,0,0,0.1);
+  left: -4px;
 }
 
 .arrow.up {
