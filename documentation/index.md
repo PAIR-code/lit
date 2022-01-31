@@ -1,6 +1,6 @@
 # Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-08-03' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-31' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
