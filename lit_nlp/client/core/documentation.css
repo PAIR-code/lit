@@ -1,0 +1,51 @@
+#doc-holder {
+  width: 0;
+  height: 0;
+  z-index: 4;
+  position: fixed;
+}
+
+#overlay {
+  background: rgba(4, 29, 51, .47);
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  transition: opacity 250ms;
+}
+
+#overlay.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#doc {
+  position: absolute;
+  top: 12vh;
+  left: 10vw;
+  height: 80vh;
+  width: 80vw;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+#doc.hide {
+  display: none;
+}
+
+#holder {
+  padding: 12px;
+  height: calc(100% - 48pt);
+}
+
+#title-bar {
+  font-family: 'Google Sans', sans;
+  border-bottom: 1px solid #dadce0;
+  font-size: 18pt;
+  line-height: 24pt;
+  padding: 12pt;
+}

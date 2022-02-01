@@ -21,6 +21,7 @@
 
 // tslint:disable:no-new-decorators
 import '@material/mwc-icon';
+import './documentation';
 import './global_settings';
 import './main_toolbar';
 
@@ -37,6 +38,7 @@ import {AppState, ModulesService, SettingsService, StatusService} from '../servi
 
 import {app} from './app';
 import {styles} from './app_toolbar.css';
+import {DocumentationComponent} from './documentation';
 import {GlobalSettingsComponent, TabName} from './global_settings';
 
 /**
@@ -44,6 +46,7 @@ import {GlobalSettingsComponent, TabName} from './global_settings';
  */
 @customElement('lit-app-toolbar')
 export class ToolbarComponent extends MobxLitElement {
+  @query('lit-documentation') docElement!: DocumentationComponent;
   @query('lit-global-settings') globalSettingsElement!: GlobalSettingsComponent;
 
   static override get styles() {
@@ -61,6 +64,15 @@ export class ToolbarComponent extends MobxLitElement {
       this.globalSettingsElement.close();
     } else {
       this.globalSettingsElement.open();
+    }
+  }
+
+  toggleDocumentation() {
+    if (this.docElement === undefined) return;
+    if (this.docElement.isOpen) {
+      this.docElement.close();
+    } else {
+      this.docElement.open();
     }
   }
 
@@ -246,7 +258,15 @@ export class ToolbarComponent extends MobxLitElement {
 
   renderRightCorner() {
     // clang-format off
+    const docButton = this.appState.metadata?.inlineDoc != null ?
+        html`
+          <mwc-icon class="icon-button"
+            title="Documentation"
+            @click=${this.toggleDocumentation}>
+            help_outline
+          </mwc-icon>` : null;
     return html`
+      ${docButton}
       <button class='headline-button unbordered' title="Copy link to this page"
         @click=${this.onClickCopyLink}>
         <span class='material-icon'>link</span>
@@ -265,7 +285,10 @@ export class ToolbarComponent extends MobxLitElement {
     // clang-format off
     return html`
       ${this.appState.initialized ?
-        html`<lit-global-settings></lit-global-settings>` : null}
+        html`
+            <lit-global-settings></lit-global-settings>
+            <lit-documentation title="documentation"></lit-documentation>` :
+        null}
       <div id="at-top">
         <div id="headline">
           <div class="headline-section">

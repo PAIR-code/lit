@@ -123,7 +123,9 @@ def main(_):
     logging.info("  truncated to %d examples", len(datasets[name]))
 
   # Start the LIT server. See server_flags.py for server options.
-  lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+  doc = "# Hello\nThis is client-specific documentation"
+  lit_demo = dev_server.Server(models, datasets, inline_doc=doc,
+                               **server_flags.get_flags())
   return lit_demo.serve()
 
 
