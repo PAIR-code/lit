@@ -31,7 +31,7 @@ import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
 import {RegressionInfo} from '../services/regression_service';
-import {ClassificationService, FocusService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, DataService, FocusService, RegressionService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
 
@@ -58,6 +58,7 @@ export class DataTableModule extends LitModule {
       app.getService(ClassificationService);
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
+  private readonly dataService = app.getService(DataService);
 
   @observable columnVisibility = new Map<string, boolean>();
   @observable
@@ -81,8 +82,10 @@ export class DataTableModule extends LitModule {
   get keys(): string[] {
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
-    const keys = this.appState.currentInputDataKeys.filter(d => d !== 'meta');
-    return keys;
+    const keys = this.appState.currentInputDataKeys;
+    const dataKeys = this.dataService.cols.filter(
+        col => col.dataType.show_in_data_table).map(col => col.name);
+    return keys.concat(dataKeys);
   }
 
   @computed
@@ -192,7 +195,8 @@ export class DataTableModule extends LitModule {
 
       const dataEntries =
           this.keys.filter(k => this.columnVisibility.get(k))
-              .map(k => formatForDisplay(d.data[k], this.dataSpec[k]));
+              .map(k => formatForDisplay(this.dataService.getVal(d.id, k),
+                                         this.dataSpec[k]));
 
       const ret: TableData = [index];
       if (this.columnVisibility.get('id')) {

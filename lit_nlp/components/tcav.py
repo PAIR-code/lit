@@ -51,6 +51,8 @@ class TCAVConfig(object):
   test_size: Optional[float] = 0.33
   random_state: Optional[int] = 42
   negative_set_ids: List[str] = []
+  # Optional pre-computed CAV to use by interpreter.
+  cav: Optional[Any] = None
 
 
 class TCAV(lit_components.Interpreter):
@@ -128,14 +130,22 @@ class TCAV(lit_components.Interpreter):
     grad_class_key = cast(types.Gradients,
                           output_spec[grad_layer]).grad_target_field_key
 
-    ids_set = set(config.concept_set_ids)
-    concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
-    non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
-
     # Get outputs using model.predict().
     dataset_outputs = list(
         model.predict_with_metadata(
             dataset_examples, dataset_name=config.dataset_name))
+
+    # If CAV is provided in config, then only calculate CAV similarity for
+    # provided datapoints.
+    if config.cav is not None:
+      return [{
+          'cos_sim': self._get_cos_sim(
+              np.array(config.cav), dataset_outputs, emb_layer)
+      }]
+
+    ids_set = set(config.concept_set_ids)
+    concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
+    non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
 
     if config.negative_set_ids:
       negative_ids_set = set(config.negative_set_ids)
@@ -324,6 +334,13 @@ class TCAV(lit_components.Interpreter):
          np.ones(len(concept_outputs))])
     return x, y
 
+  def _get_cos_sim(self,
+                   cav,
+                   datapoints_output: List[JsonDict],
+                   emb_layer: Text):
+    cos_sim, _ = self.compute_local_scores(cav, datapoints_output, emb_layer)
+    return cos_sim
+
   def _run_tcav(self,
                 concept_outputs: List[JsonDict],
                 comparison_outputs: List[JsonDict],
@@ -355,7 +372,8 @@ class TCAV(lit_components.Interpreter):
         'score': tcav_score,
         'cos_sim': cos_sim,
         'dot_prods': dot_prods,
-        'accuracy': accuracy
+        'accuracy': accuracy,
+        'cav': cav
     }
 
   def get_trained_cav(self, x, y, test_size, random_state=None):

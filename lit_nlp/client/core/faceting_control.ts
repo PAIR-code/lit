@@ -27,6 +27,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {ReactiveElement} from '../lib/elements';
+import {getStepSizeGivenRange} from '../lib/utils';
 import {FacetingConfig, FacetingMethod, GroupService, NumericFeatureBins} from '../services/group_service';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -282,7 +283,7 @@ export class FacetingControl extends ReactiveElement {
       /** This method creates two bins given a threshold set by the user. */
       const [min, max] = this.groupService.numericalFeatureRanges[feature];
       const delta = max - min;
-      const step = delta > 100 ? 10: delta > 10 ? 1 : delta > 1 ? 0.1 : 0.01;
+      const step = getStepSizeGivenRange(delta);
       const value = (config.threshold || (delta/2 + min)).toString();
       // clang-format off
       inputField = html`
@@ -295,7 +296,7 @@ export class FacetingControl extends ReactiveElement {
        * This method infers the number of bins to create from the spec, and
        * therefore does not take user input, so we use this div for alignment.
        */
-      inputField = html`<div class="no-input">}</div>`;
+      inputField = html`<div class="no-input"></div>`;
     }
 
     const rowClass = classMap({

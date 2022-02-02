@@ -116,6 +116,7 @@ class LitApp(object):
         'generators': generator_info,
         'interpreters': interpreter_info,
         'layouts': self._layouts,
+        'littypes': types.all_littypes(),
         # Global configuration
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,

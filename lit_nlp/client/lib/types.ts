@@ -25,7 +25,7 @@ import {chunkWords, isLitSubtype} from './utils';
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName = 'LitType'|'String'|'TextSegment'|'GeneratedText'|
+export type LitName = 'type'|'LitType'|'String'|'TextSegment'|'GeneratedText'|
     'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|'SearchQuery'|'Tokens'|
     'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
     'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
@@ -39,7 +39,7 @@ export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
 
 export interface LitType {
-  __class__: LitClass;
+  __class__: LitClass|'type';
   __name__: LitName;
   __mro__: string[];
   parent?: string;
@@ -65,6 +65,7 @@ export interface LitType {
   token_prefix?: string;
   select_all?: boolean;
   autosort?: boolean;
+  show_in_data_table?: boolean;
 }
 
 export interface Spec {
@@ -118,6 +119,7 @@ export interface LitMetadata {
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;
+  littypes: Spec;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;

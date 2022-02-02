@@ -24,6 +24,7 @@ import {Constructor, LitComponentLayouts} from '../lib/types';
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
+import {DataService} from '../services/data_service';
 import {FocusService} from '../services/focus_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
@@ -130,11 +131,13 @@ export class LitApp {
     const regressionService = new RegressionService(apiService, appState);
     const settingsService =
         new SettingsService(appState, modulesService, selectionService0);
-    const groupService = new GroupService(appState);
+    const dataService = new DataService(appState);
+    const groupService = new GroupService(appState, dataService);
     const classificationService =
         new ClassificationService(apiService, appState, groupService);
     const colorService = new ColorService(
-        appState, groupService, classificationService, regressionService);
+        appState, groupService, classificationService, regressionService,
+        dataService);
     const focusService = new FocusService(selectionService0);
 
     // Initialize url syncing of state
@@ -145,6 +148,7 @@ export class LitApp {
     this.services.set(AppState, appState);
     this.services.set(ClassificationService, classificationService);
     this.services.set(ColorService, colorService);
+    this.services.set(DataService, dataService);
     this.services.set(FocusService, focusService);
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);

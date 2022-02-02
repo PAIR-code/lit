@@ -24,9 +24,11 @@ import 'jasmine';
 import {LitApp} from '../core/app';
 import {IndexedInput} from '../lib/types';
 import {DEFAULT, CATEGORICAL_NORMAL} from '../lib/colors';
+import {mockMetadata} from '../lib/testing_utils';
 
 import {ClassificationService} from './classification_service';
 import {ColorService, SignedSalienceCmap, UnsignedSalienceCmap} from './color_service';
+import {DataService} from './data_service';
 import {GroupService} from './group_service';
 import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
@@ -55,7 +57,8 @@ describe('Color service test', () => {
   const app = new LitApp();
   const colorService = new ColorService(
       app.getService(AppState), mockGroupService,
-      app.getService(ClassificationService), app.getService(RegressionService));
+      app.getService(ClassificationService), app.getService(RegressionService),
+      app.getService(DataService));
 
   it('Tests colorableOption', () => {
     const opts = colorService.colorableOptions;
@@ -78,11 +81,25 @@ describe('Color service test', () => {
   });
 
   it('Tests getDatapointColor(), selectedColorOption, and reset()', () => {
+    const dataMap = new Map<string, IndexedInput>();
     const mockInput: IndexedInput = {
       id: 'xxxxxxx',
       data: {'testFeat0': 1, 'testNumFeat0': 0},
       meta: {}
     };
+    dataMap.set('xxxxxxx', mockInput);
+
+    const inputData = new Map<string, Map<string, IndexedInput>>();
+    inputData.set('color_test', dataMap);
+
+    const appState = app.getService(AppState);
+    // Stop appState from trying to make the call to the back end
+    // to load the data (causes test flakiness.)
+    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
+    // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
+    spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    appState.metadata = mockMetadata;
+    appState.setCurrentDataset('color_test');
 
     // With no change in settings, the color should be the default color.
     let color = colorService.getDatapointColor(mockInput);

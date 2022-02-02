@@ -31,6 +31,8 @@ type Id = string;
 type DatasetName = string;
 type IndexedInputMap = Map<Id, IndexedInput>;
 
+/** Function type to get callbacks for newly added datapoints. **/
+export type NewDatapointsFn = (datapoints: IndexedInput[]) => void;
 
 /**
  * App state singleton, responsible for coordinating shared state between
@@ -55,6 +57,8 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @observable compareExamplesEnabled: boolean = false;
   @observable layoutName!: string;
   @observable layouts: {[name: string]: LitCanonicalLayout} = {};
+  private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
+
   @computed
   get layout(): LitCanonicalLayout {
     return this.layouts[this.layoutName];
@@ -92,6 +96,17 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @computed
   get datasetHasImages(): boolean {
     return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
+  }
+
+  createLitType(typeName: string, showInDataTable = true): LitType {
+    const litType = this.metadata.littypes[typeName];
+    if (litType == null) {
+      throw new Error(`LitType ${typeName} not defined`);
+    }
+    const newType = {...litType};
+    newType['__class__'] = 'LitType';
+    newType['show_in_data_table'] = showInDataTable;
+    return {...litType};
   }
 
   @observable
@@ -245,6 +260,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return this.apiService.annotateNewData(data, this.currentDataset);
   }
 
+  addNewDatapointsCallback(callback: NewDatapointsFn) {
+    this.newDatapointsCallbacks.push(callback);
+  }
 
   /**
    * Atomically commit new datapoints to the active dataset.
@@ -254,7 +272,8 @@ export class AppState extends LitService implements StateObservedByUrlService {
    */
   @action
   commitNewDatapoints(datapoints: IndexedInput[]) {
-    datapoints.forEach(entry => {
+    const committedDatapoints: IndexedInput[] = [];
+    for (const entry of datapoints) {
       // If the new datapoint already exists in the input data, do not overwrite
       // it with this new copy, as that will cause issues with datapoint parent
       // tracking (an infinite loop of parent pointers).
@@ -264,8 +283,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
             entry);
       } else {
         this.currentInputDataById.set(entry.id, entry);
+        committedDatapoints.push(entry);
       }
-    });
+    }
+    for (const callback of this.newDatapointsCallbacks) {
+      callback(datapoints);
+    }
   }
 
 

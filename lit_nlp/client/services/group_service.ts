@@ -25,8 +25,9 @@ import * as d3 from 'd3';  // Used for creating bins, not visualization.
 import {computed} from 'mobx';
 
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
-import {facetMapToDictKey, findSpecKeys, roundToDecimalPlaces} from '../lib/utils';
+import {facetMapToDictKey, findSpecKeys, getStepSizeGivenRange, roundToDecimalPlaces} from '../lib/utils';
 
+import {DataService} from './data_service';
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
 
@@ -115,7 +116,8 @@ export interface FacetingConfig {
  * A singleton class that handles grouping.
  */
 export class GroupService extends LitService {
-  constructor(private readonly appState: AppState) {
+  constructor(private readonly appState: AppState,
+              private readonly dataService: DataService) {
     super();
   }
 
@@ -124,7 +126,7 @@ export class GroupService extends LitService {
   get categoricalFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const names = findSpecKeys(dataSpec, 'CategoryLabel');
-    return names;
+    return names.concat(this.dataService.getColNamesOfType('CategoryLabel'));
   }
 
   /** Get the names of the numerical features. */
@@ -132,7 +134,7 @@ export class GroupService extends LitService {
   get numericalFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const names = findSpecKeys(dataSpec, 'Scalar');
-    return names;
+    return names.concat(this.dataService.getColNamesOfType('Scalar'));
   }
 
   /** Get the names of the boolean features. */
@@ -140,7 +142,7 @@ export class GroupService extends LitService {
   get booleanFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const names = findSpecKeys(dataSpec, 'Boolean');
-    return names;
+    return names.concat(this.dataService.getColNamesOfType('Boolean'));
   }
 
   /** Get the names of all dense features (boolean, categorical, and numeric) */
@@ -163,8 +165,7 @@ export class GroupService extends LitService {
         categoricalFeatures[name] = [...vocab];
       } else {
         // Otherwise, find unique values from the data.
-        const uniqueValues = new Set(this.appState.currentInputData.map(
-            (d: IndexedInput) => d.data[name]));
+        const uniqueValues = new Set(this.dataService.getColumn(name));
         categoricalFeatures[name] = [...uniqueValues];
       }
     }
@@ -177,14 +178,12 @@ export class GroupService extends LitService {
   @computed
   get numericalFeatureRanges(): NumericFeatures {
     const numericFeatures: NumericFeatures = {};
-    this.numericalFeatureNames.forEach(feat => {
-      const values = this.appState.currentInputData.map((d: IndexedInput) => {
-        return d.data[feat];
-      });
+    for (const feat of this.numericalFeatureNames) {
+      const values = this.dataService.getColumn(feat);
       const min = Math.min(...values);
       const max = Math.max(...values);
       numericFeatures[feat] = [min, max];
-    });
+    }
     return numericFeatures;
   }
 
@@ -198,11 +197,11 @@ export class GroupService extends LitService {
     return [start, end + (isLast ? 1e-6 : 0)];
   }
 
-  private freedmanDiaconisBins(feat: string): NumericBins {
+  private freedmanDiaconisBins(feat: string) {
     const min = this.numericalFeatureRanges[feat][0];
     const max = this.numericalFeatureRanges[feat][1];
-    const values = this.appState.currentInputData
-      .map(d => d.data[feat] as number);
+    const values = this.dataService.getColumn(feat);
+
     // The number of bins that the domain is divided into is specified by the
     // FreedmanDiaconis algorithm. The first bin.x0 is always equal to the
     // minimum domain value, and the last bin.x1 is always equal to the
@@ -236,7 +235,8 @@ export class GroupService extends LitService {
   private discreteBins(feat:string): NumericBins {
     const bins: NumericBins = {};
     const [min, max] = this.numericalFeatureRanges[feat];
-    const {step} = this.appState.currentDatasetSpec[feat];
+    const step = this.appState.currentDatasetSpec[feat]?.step
+        ?? getStepSizeGivenRange(max - min);
 
     if (typeof step !== 'number') {
       throw (new Error(
@@ -268,11 +268,9 @@ export class GroupService extends LitService {
     return bins;
   }
 
-  private quantileBins(feat: string, numBins: number): NumericBins {
+  private quantileBins(feat: string, numBins: number) {
     const bins: NumericBins = {};
-    const values = this.appState.currentInputData
-      .map(d => d.data[feat] as number)
-      .sort();
+    const values = this.dataService.getColumn(feat).sort((a, b) => a - b);
     numBins = Math.min(numBins, values.length);
     const step = Math.ceil(values.length / numBins);
 
@@ -381,7 +379,7 @@ export class GroupService extends LitService {
    */
   getNumericalBinForExample(
     bins: NumericFeatureBins, input: IndexedInput, feature: string): number[] | null {
-    const value = input.data[feature];
+    const value = this.dataService.getVal(input.id, feature);
     for (const bin of Object.values(bins[feature])) {
       const [start, end] = bin;
       if (start <= value && value < end) { return bin; }
@@ -471,11 +469,8 @@ export class GroupService extends LitService {
    */
   getFeatureValForInput(
     bins: NumericFeatureBins, d: IndexedInput, feature: string): string | null {
-    if (feature in d.data) {
-      const isNumerical = this.numericalFeatureNames.includes(feature);
-      return isNumerical ? this.getNumericalBinForExample(bins, d, feature) :
-                           d.data[feature];
-    }
-    return null;
+    const isNumerical = this.numericalFeatureNames.includes(feature);
+    return isNumerical ? this.getNumericalBinForExample(bins, d, feature) :
+                          this.dataService.getVal(d.id, feature);
   }
 }

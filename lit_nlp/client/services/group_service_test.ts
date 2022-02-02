@@ -20,6 +20,7 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
+import {DataService} from './data_service';
 import {GroupService, FacetingConfig, FacetingMethod} from './group_service';
 import {AppState} from './state_service';
 import {mockMetadata} from '../lib/testing_utils';
@@ -136,7 +137,7 @@ describe('GroupService test', () => {
       flipper_length_mm: 231,
       isAlive: true}});
 
-  let appState: AppState, groupService: GroupService;
+  let appState: AppState, groupService: GroupService, dataService: DataService;
 
   beforeEach(async () => {
     // Set up.
@@ -145,6 +146,7 @@ describe('GroupService test', () => {
     inputData.set('penguin_dev', penguinData);
 
     appState = app.getService(AppState);
+    dataService = app.getService(DataService);
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness.)
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
@@ -153,7 +155,7 @@ describe('GroupService test', () => {
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
 
-    groupService = new GroupService(appState);
+    groupService = new GroupService(appState, dataService);
   });
 
   it('validates FacetingConfig', () => {

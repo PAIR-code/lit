@@ -29,7 +29,7 @@ import {LitModule} from '../core/lit_module';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, GroupService, FocusService, RegressionService} from '../services/services';
+import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -84,6 +84,7 @@ export class ScalarModule extends LitModule {
   private readonly groupService = app.getService(GroupService);
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
+  private readonly dataService = app.getService(DataService);
 
   private readonly inputIDToIndex = new Map();
   private resizeObserver!: ResizeObserver;
@@ -101,12 +102,12 @@ export class ScalarModule extends LitModule {
       `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
   @computed
-  private get inputKeys() {
+  private get scalarKeys() {
     return this.groupService.numericalFeatureNames;
   }
 
   @computed
-  private get scalarKeys() {
+  private get scalarModelOutputKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
     return findSpecKeys(outputSpec, 'Scalar');
   }
@@ -135,6 +136,18 @@ export class ScalarModule extends LitModule {
         // display them by prediction score in the plot.
         this.updatePredictions(currentInputData);
       }
+    });
+
+    // Update predictions when new scalar columns exist to plot.
+    const getScalarKeys = () => this.scalarKeys;
+    this.reactImmediately(getScalarKeys, scalarKeys => {
+      this.updatePredictions(this.appState.currentInputData);
+    });
+
+    // Update predictions when new data values are set.
+    const getDataVals = () => this.dataService.dataVals;
+    this.reactImmediately(getDataVals, dataVals => {
+      this.updatePredictions(this.appState.currentInputData);
     });
 
     const getSelectedInputData = () => this.selectionService.selectedInputData;
@@ -336,8 +349,8 @@ export class ScalarModule extends LitModule {
       const pred = Object.assign(
           {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
           {id: currId});
-      for (const inputKey of this.inputKeys) {
-        pred[inputKey] = currentInputData[i].data[inputKey];
+      for (const scalarKey of this.scalarKeys) {
+        pred[scalarKey] = this.dataService.getVal(currId, scalarKey);
       }
       preds.push(pred);
     }
@@ -378,7 +391,7 @@ export class ScalarModule extends LitModule {
         scoreRange[0] = scoreRange[0] - .1;
         scoreRange[1] = scoreRange[1] + .1;
       }
-    } else if (this.inputKeys.indexOf(key) !== -1) {
+    } else if (this.scalarKeys.indexOf(key) !== -1) {
       scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
@@ -433,7 +446,7 @@ export class ScalarModule extends LitModule {
       const scatterplot = item as SVGGElement;
       const key = (item as HTMLElement).dataset['key'];
 
-      if (key == null || this.inputKeys.indexOf(key) !== -1) {
+      if (key == null || this.scalarKeys.indexOf(key) !== -1) {
         return;
       }
 
@@ -762,10 +775,10 @@ export class ScalarModule extends LitModule {
     // clang-format off
     return html`
       <div id='container'>
-        ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
+        ${this.scalarModelOutputKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
-        ${this.inputKeys.map(key => this.renderPlot(key, ''))}
+        ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
       </div>
     `;
     // clang-format on

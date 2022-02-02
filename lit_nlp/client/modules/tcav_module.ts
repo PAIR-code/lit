@@ -30,9 +30,10 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {CallConfig, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {SliceService} from '../services/services';
+import {ColumnData} from '../services/data_service';
+import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -63,7 +64,10 @@ interface TcavResults {
   p_val: number;
   // tslint:disable-next-line:enforce-name-casing
   random_mean: number;
+  cosSim: number[];
+  cav: number[];
 }
+
 
 /**
  * The TCAV module.
@@ -83,6 +87,7 @@ export class TCAVModule extends LitModule {
       </tcav-module>`;
   };
   private readonly sliceService = app.getService(SliceService);
+  private readonly dataService = app.getService(DataService);
 
   @observable private readonly selectedSlices = new Set<string>();
   @observable private readonly selectedLayers = new Set<string>();
@@ -370,15 +375,43 @@ export class TCAVModule extends LitModule {
     if (result === null) {
       return;
     }
-    // TODO(lit-dev): Show local TCAV scores in the scalar chart.
     return {
       'positiveSlice': positiveSlice,
       'negativeSlice': negativeSlice,
       'config': config,
       'score': result[0]['result']['score'],
       'p_val': result[0]['p_val'],
-      'random_mean': result[0]['random_mean']
+      'cosSim': result[0]['result']['cos_sim'],
+      'random_mean': result[0]['random_mean'],
+      'cav': result[0]['result']['cav']
     };
+  }
+
+  /** Get CAV score for a single new datapoint. **/
+  private async runCAVSimilarity(
+      config: CallConfig, datapoint: IndexedInput):
+      Promise<number[]|undefined> {
+    const result = await this.apiService.getInterpretations(
+        [datapoint], this.model,
+        this.appState.currentDataset, TCAV_INTERPRETER_NAME, config,
+        `Running ${TCAV_INTERPRETER_NAME}`);
+
+    if (result == null) {
+      return;
+    }
+    return result[0]['cos_sim'][0];
+  }
+
+  /** Create a human-readable unique name for a TCAV run. **/
+  private getTcavRunName(config: CallConfig, positiveSlice: string,
+                         negativeSlice:  string) {
+    let name = positiveSlice;
+    if (negativeSlice !== '-') {
+      name += `-${negativeSlice}`;
+    }
+    name += `-${this.cavCounter}-${config['grad_layer']}-${
+        config['class_to_explain']}`;
+    return name;
   }
 
   private async runTCAV() {
@@ -416,32 +449,58 @@ export class TCAVModule extends LitModule {
 
     for (const res of results) {
       if (res == null) continue;
-      if (res['config'] == null || res['score'] == null) continue;
+      if (res.config == null || res.score == null) continue;
 
       // clang-format off
       let scoreBar: TemplateResult|string = html`<tcav-score-bar
-             score=${res['score']}
-             meanVal=${res['random_mean']}
+             score=${res.score}
+             meanVal=${res.random_mean}
              clampVal=${1}>
            </tcav-score-bar>`;
       // clang-format on
       let displayScore = res.score.toFixed(3);
 
-      if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
+      if (res.p_val != null && res.p_val > MAX_P_VAL) {
         displayScore = '-';
         scoreBar = HIGH_P_VAL_WARNING;
       }
-      if (res['p_val'] == null) {
+      else if (res.p_val == null) {
         scoreBar = NO_T_TESTING_WARNING;
       }
+      else {
+        // Add TCAV run's cosine similarity to datapoints through the data
+        // service.
+        const tcavRunName = this.getTcavRunName(
+            res.config, res.positiveSlice, res.negativeSlice);
+        const featName = `TCAV cosine similarity: ${tcavRunName}`;
 
+        const dataType = this.appState.createLitType('Scalar');
+
+        // Function to get value for this new data column when new datapoints
+        // are added.
+        const getValueFn = async (input: IndexedInput) => {
+          // Use the returned CAV to get CAV similarity score for the new
+          // datapoint.
+          res.config['cav'] = res.cav;
+          const cosSim = await this.runCAVSimilarity(res.config, input);
+          return cosSim;
+        };
+
+        const dataMap: ColumnData = new Map();
+        for (let i = 0; i < this.appState.currentInputData.length; i++) {
+          const input = this.appState.currentInputData[i];
+          dataMap.set(input.id, res.cosSim[i]);
+        }
+        this.dataService.addColumn(dataMap, featName, dataType, 'Interpreter',
+                                   getValueFn, true);
+      }
 
       this.resultsTableData.push({
-        'Positive Slice': res['positiveSlice'],
-        'Negative Slice': res['negativeSlice'],
+        'Positive Slice': res.positiveSlice,
+        'Negative Slice': res.negativeSlice,
         'Run': this.cavCounter,
-        'Embedding': res['config']['grad_layer'],
-        'Class': res['config']['class_to_explain'],
+        'Embedding': res.config['grad_layer'],
+        'Class': res.config['class_to_explain'],
         'CAV Score': displayScore,
         'Score Bar': scoreBar
       });

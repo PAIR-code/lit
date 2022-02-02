@@ -6,7 +6,7 @@ import {Checkbox} from '@material/mwc-checkbox';
 import {LitApp} from '../core/app';
 import {LitCheckbox} from '../elements/checkbox';
 import {mockMetadata} from '../lib/testing_utils';
-import {AppState, GroupService} from '../services/services';
+import {AppState, DataService, GroupService} from '../services/services';
 
 
 describe('faceting control test', () => {
@@ -26,13 +26,14 @@ describe('faceting control test', () => {
     // Set up.
     const app = new LitApp();
     const appState = app.getService(AppState);
+    const dataService = app.getService(DataService);
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness).
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
     appState.setCurrentDataset('sst_dev');
 
-    const groupService = new GroupService(appState);
+    const groupService = new GroupService(appState, dataService);
     facetCtrl = new FacetingControl(groupService);
     document.body.appendChild(facetCtrl);
     document.body.addEventListener('facets-change', facetChangeHandler);

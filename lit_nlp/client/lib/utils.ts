@@ -409,3 +409,8 @@ export function replaceNth(str: string, orig: string, replacement: string,
       RegExp("^(?:.*?" + escapedOrig + "){" + n.toString() + "}"),
       x => x.replace(RegExp(escapedOrig + "$"), replacement));
 }
+
+/** Return a good step size given a range of values. */
+export function getStepSizeGivenRange(range: number) {
+  return range > 100 ? 10: range > 10 ? 1 : range > 1 ? 0.1 : 0.01;
+}
