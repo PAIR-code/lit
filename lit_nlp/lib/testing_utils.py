@@ -114,7 +114,7 @@ class TestModelClassification(lit_model.Model):
   def input_spec(self):
     return {'input_embs': lit_types.TokenEmbeddings(align='tokens',
                                                     required=False),
-            'segment': lit_types.TextSegment,
+            'segment': lit_types.TextSegment(),
             'grad_class': lit_types.CategoryLabel(vocab=['0', '1'])}
 
   def output_spec(self):
