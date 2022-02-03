@@ -24,6 +24,28 @@ import * as d3 from 'd3';  // Used for array helpers.
 import {html, TemplateResult} from 'lit';
 import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
+/** Calculates the mean for a list of numbers */
+export function mean(values: number[]): number {
+  return values.reduce((a, b) => a + b) / values.length;
+}
+
+/** Calculates the median for a list of numbers. */
+export function median(values: number[]): number {
+  const sorted = [...values].sort();
+  const medIdx = Math.floor(sorted.length / 2);
+  let median: number;
+
+  if (sorted.length % 2 === 0) {
+    const upper = sorted[medIdx];
+    const lower = sorted[medIdx - 1];
+    median = (upper + lower) / 2;
+  } else {
+    median = sorted[medIdx];
+  }
+
+  return median;
+}
+
 /**
  * Random integer in range [min, max), where min and max are integers
  * (behavior on floats is undefined).

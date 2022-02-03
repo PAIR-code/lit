@@ -59,11 +59,14 @@ interface FeatureSalienceResult {
   [key: string]: {salience: FeatureSalienceMap};
 }
 
+type SalienceResult = TokenSalienceResult | ImageSalienceResult |
+                      FeatureSalienceResult;
+
 /**
  * UI status for each interpreter.
  */
 interface InterpreterState {
-  salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult;
+  salience: SalienceResult;
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
@@ -280,8 +283,7 @@ export class SalienceMapModule extends LitModule {
         </div>
         <div class="salience-tooltip">
         </div>
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
@@ -309,19 +311,16 @@ export class SalienceMapModule extends LitModule {
         </div>
         <div class="salience-tooltip">
         </div>
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
-  renderGroup(
-      salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult,
-      gradKey: string, cmap: SalienceCmap) {
-    const spec = this.appState.getModelSpec(this.model);
-    if (isLitSubtype(spec.output[gradKey], 'ImageGradients')) {
+  renderGroup(salience: SalienceResult, spec: Spec, gradKey: string,
+              cmap: SalienceCmap) {
+    if (isLitSubtype(spec[gradKey], 'ImageGradients')) {
       salience = salience as ImageSalienceResult;
       return this.renderImage(salience, gradKey);
-    } else if (isLitSubtype(spec.output[gradKey], 'FeatureSalience')) {
+    } else if (isLitSubtype(spec[gradKey], 'FeatureSalience')) {
       salience = salience as FeatureSalienceResult;
       return this.renderFeatureSalience(salience, gradKey, cmap);
     } else {
@@ -345,12 +344,9 @@ export class SalienceMapModule extends LitModule {
         this.state[name].autorun = !this.state[name].autorun;
       };
       // clang-format off
-      return html`
-        <lit-checkbox label=${name}
-         ?checked=${this.state[name].autorun}
-         @change=${toggleAutorun}>
-        </lit-checkbox>
-      `;
+      return html`<lit-checkbox label=${name} @change=${toggleAutorun}
+                                ?checked=${this.state[name].autorun}>
+                  </lit-checkbox>`;
       // clang-format on
     });
   }
@@ -379,21 +375,25 @@ export class SalienceMapModule extends LitModule {
         }
       }
       return html`
-          <lit-interpreter-controls
-            .spec=${clonedSpec}
-            .name=${name}
-            @interpreter-click=${controlsApplyCallback}>
+          <lit-interpreter-controls .spec=${clonedSpec} .name=${name}
+                                    @interpreter-click=${controlsApplyCallback}>
           </lit-interpreter-controls>`;
     };
+
     return html`
       <table>
         ${Object.keys(this.state).map(name => {
           if (!this.state[name].autorun) {
             return null;
           }
+          // TODO(b/217724273): figure out a more elegant way to handle
+          // variable-named output fields with metaSpec.
+          const {output} = this.appState.getModelSpec(this.model);
+          const {metaSpec} = this.appState.metadata.interpreters[name];
+          const spec = {...metaSpec, ...output};
           const salience = this.state[name].salience;
           const description =
-              this.appState.metadata.interpreters[name].description || name;
+              this.appState.metadata.interpreters[name].description ?? name;
           return html`
             <tr class='method-row'>
               <th class='group-label' title=${description}>
@@ -402,7 +402,8 @@ export class SalienceMapModule extends LitModule {
               <td class=${classMap({'group-container': true,
                                     'loading': this.state[name].isLoading})}>
                 ${Object.keys(salience).map(gradKey =>
-                  this.renderGroup(salience, gradKey, this.state[name].cmap))}
+                    this.renderGroup(salience, spec, gradKey,
+                                     this.state[name].cmap))}
                 ${this.state[name].isLoading ? this.renderSpinner() : null}
               </td>
             </tr>
@@ -433,21 +434,15 @@ export class SalienceMapModule extends LitModule {
 
     // Ensure there are salience interpreters for loaded models.
     const appState = app.getService(AppState);
-    for (const modelInfo of Object.values(modelSpecs)) {
-      for (let i = 0; i < modelInfo.interpreters.length; i++) {
-        const interpreterName = modelInfo.interpreters[i];
-        if (appState.metadata == null) {
-          return false;
-        }
-        const interpreter = appState.metadata.interpreters[interpreterName];
-        const salienceKeys = findSpecKeys(
-            interpreter.metaSpec, SalienceMapModule.salienceTypes);
-        if (salienceKeys.length !== 0) {
-          return true;
-        }
-      }
-    }
-    return false;
+    if (appState.metadata == null) return false;
+
+    return Object.values(modelSpecs).some(modelInfo =>
+        modelInfo.interpreters.some(name => {
+          const interpreter = appState.metadata.interpreters[name];
+          const salienceKeys = findSpecKeys(interpreter.metaSpec,
+                                            SalienceMapModule.salienceTypes);
+          return salienceKeys.length > 0;
+        }));
   }
 }
 

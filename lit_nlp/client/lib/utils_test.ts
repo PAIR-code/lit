@@ -23,6 +23,25 @@ import 'jasmine';
 import {Spec} from '../lib/types';
 import * as utils from './utils';
 
+describe('mean test', () => {
+  it('computes a mean', () => {
+    const values = [1,3,2,5,4];
+    expect(utils.mean(values)).toEqual(3);
+  });
+});
+
+describe('median test', () => {
+  it('computes a median for a list of integers with odd length', () => {
+    const values = [1,3,2,5,4];
+    expect(utils.median(values)).toEqual(3);
+  });
+
+  it('computes a median for a list of integers with even length', () => {
+    const values = [1,3,2,5,4,6];
+    expect(utils.median(values)).toEqual(3.5);
+  });
+});
+
 describe('randInt test', () => {
   it('generates random integers in a given range', async () => {
     let start = 1;

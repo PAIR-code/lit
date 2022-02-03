@@ -29,6 +29,7 @@ import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer
 import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
+import {FeatureAttributionModule} from '../modules/feature_attribution_module';
 import {GeneratedImageModule} from '../modules/generated_image_module';
 import {GeneratedTextModule} from '../modules/generated_text_module';
 import {GeneratorModule} from '../modules/generator_module';
@@ -47,7 +48,7 @@ import {TCAVModule} from '../modules/tcav_module';
 import {ThresholderModule} from '../modules/thresholder_module';
 
 // clang-format off
-const MODEL_PREDS_MODULES: LitModuleType[] = [
+const MODEL_PREDS_MODULES: readonly LitModuleType[] = [
   SpanGraphGoldModuleVertical,
   SpanGraphModuleVertical,
   ClassificationModule,
@@ -60,7 +61,7 @@ const MODEL_PREDS_MODULES: LitModuleType[] = [
   GeneratedImageModule,
 ];
 
-const DEFAULT_MAIN_GROUP: LitModuleType[] = [
+const DEFAULT_MAIN_GROUP: readonly LitModuleType[] = [
   DataTableModule,
   DatapointEditorModule,
   SliceModule,
@@ -108,6 +109,7 @@ export const LAYOUTS: LitComponentLayouts = {
         SalienceMapModule,
         SequenceSalienceModule,
         AttentionModule,
+        FeatureAttributionModule,
       ],
       'Clustering': [SalienceClusteringModule],
       'Metrics': [
