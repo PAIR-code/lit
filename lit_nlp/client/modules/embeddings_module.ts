@@ -403,7 +403,9 @@ export class EmbeddingsModule extends LitModule {
     canvas.width = imgPerSide * imgSize;
     canvas.height = imgPerSide * imgSize;
     const ctx = canvas.getContext('2d')!;
-    for (let i = 0; i < this.appState.currentInputData.length; i++) {
+    let numLoaded = 0;
+    const numToLoad = this.appState.currentInputData.length;
+    for (let i = 0; i < numToLoad; i++) {
       const datapoint = this.appState.currentInputData[i];
       const x = i % imgPerSide;
       const y = Math.floor(i / imgPerSide);
@@ -413,7 +415,8 @@ export class EmbeddingsModule extends LitModule {
 
         // Once last datapoint is drawn to the canvas, create an image element
         // from it for use by scatter-gl.
-        if (i === this.appState.currentInputData.length - 1) {
+        numLoaded++;
+        if (numLoaded === numToLoad) {
           const image = document.createElement("img");
           image.src = canvas.toDataURL("image/jpeg");
           this.spriteImage = image;
