@@ -76,10 +76,10 @@ lit-widget-group[maximized] {
 }
 
 #drag-container{
-  position:relative;
+  position: relative;
   width: 50%;
   height: 100%;
-  margin-left:auto;
+  margin-left: auto;
   display: flex;
   align-items: center;
 }
@@ -105,19 +105,23 @@ lit-widget-group[maximized] {
   font-family: 'Google Sans', sans;
   border-bottom: 2px solid #dadce0;
   box-sizing: border-box;
+  cursor: pointer;
   padding: 4px;
   text-align: center;
   white-space: nowrap;
   width: 150px;
 }
+
 .tab:hover{
   background: #eee;
 }
+
 .tab.selected {
   font-weight: bold;
   border-bottom: 2px solid rgb(47, 140, 155);
   color: rgb(47, 140, 155);
 }
+
 .drag-icon {
   pointer-events: none;
   position: absolute;
