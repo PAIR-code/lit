@@ -209,8 +209,9 @@ class SalienceClustering(lit_components.Interpreter):
     for grad_field in grad_fields:
       weight_matrix = np.vstack(
           representation[grad_field] for representation in representations)
-      n_clusters = config.get(N_CLUSTERS_KEY,
-                              self.config_spec()[N_CLUSTERS_KEY].default)
+      n_clusters = int(
+          config.get(N_CLUSTERS_KEY,
+                     self.config_spec()[N_CLUSTERS_KEY].default))
       self.kmeans[grad_field] = cluster.KMeans(n_clusters=n_clusters)
       cluster_ids[grad_field] = self.kmeans[grad_field].fit_predict(
           weight_matrix).tolist()
@@ -222,9 +223,9 @@ class SalienceClustering(lit_components.Interpreter):
         mean_weight_matrix = weight_matrix[np.asarray(cluster_ids[grad_field])
                                            == cluster_id].mean(axis=0)
         top_indices = (
-            mean_weight_matrix.argsort()[::-1]
-            [:config.get(N_TOP_TOKENS_KEY,
-                         self.config_spec()[N_TOP_TOKENS_KEY].default)])
+            mean_weight_matrix.argsort()[::-1][:int(
+                config.get(N_TOP_TOKENS_KEY,
+                           self.config_spec()[N_TOP_TOKENS_KEY].default))])
         top_tokens = [(vocab[i], mean_weight_matrix[i]) for i in top_indices]
         grad_field_to_top_tokens[grad_field].append(top_tokens)
 
@@ -244,9 +245,9 @@ class SalienceClustering(lit_components.Interpreter):
             types.CategoryLabel(
                 required=True, vocab=list(self.salience_mappers.keys())),
         N_CLUSTERS_KEY:
-            types.Scalar(min_val=2, max_val=100, default=2, step=1),
+            types.Scalar(min_val=2, max_val=25, default=2, step=1),
         N_TOP_TOKENS_KEY:
-            types.Scalar(min_val=1, max_val=1000, default=10, step=1),
+            types.Scalar(min_val=1, max_val=100, default=10, step=1),
     }
 
   def meta_spec(self) -> types.Spec:

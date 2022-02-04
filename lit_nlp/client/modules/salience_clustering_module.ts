@@ -27,18 +27,23 @@ import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, Input, ModelInfoMap, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './salience_clustering_module.css';
 
-interface SalienceMapperToClusteringState {
-  [salienceMapper: string]: ClusteringState;
+const SALIENCE_MAPPER_KEY = 'Salience Mapper';
+const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'salience clustering';
+
+interface ModuleState {
+  dataColumns: string[];
+  clusteringConfig: CallConfig;
+  salienceConfigs: {[salienceMapper: string]: CallConfig};
+  clusteringState: ClusteringState;
 }
 
 interface ClusteringState {
-  dataColumns: string[];
-  clusterInfos: {[name: string]: ClusterInfo[]};
+  clusterInfos: {[gradKey: string]: ClusterInfo[]};
   isLoading: boolean;
-  config?: CallConfig;
 }
 
 // Clustering result for a single piece of text.
@@ -54,9 +59,6 @@ interface ClusterInfo {
 export class SalienceClusteringModule extends LitModule {
   static override title = 'Salience Clustering Results';
   static override numCols = 1;
-  // TODO(b/215497716): Get the salience mappers from the interpreter component
-  // and let the user select the wanted one.
-  private readonly salienceMapper = 'Grad L2 Norm';
   static override template = (model = '', selectionServiceIndex = 0) => {
     // clang-format off
     return html`
@@ -66,44 +68,56 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   };
 
+
   static override get styles() {
     return [sharedStyles, styles];
   }
 
   // Mapping from salience mapper to clustering results.
-  @observable private state: SalienceMapperToClusteringState = {};
+  @observable private state: ModuleState = {
+      dataColumns: [],
+      clusteringConfig: {},
+      salienceConfigs: {},
+      clusteringState: {
+        clusterInfos: {},
+        isLoading: false,
+      },
+    };
 
   override firstUpdated() {
-    const state: SalienceMapperToClusteringState = {};
-    state[this.salienceMapper] = {
+    const state: ModuleState = {
       dataColumns: [],
-      clusterInfos: {},
-      isLoading: false,
-      // TODO(b/216772288): Load config key from interpreter.
-      config: {'Salience Mapper': this.salienceMapper},
+      clusteringConfig: {},
+      salienceConfigs: {},
+      clusteringState: {
+        clusterInfos: {},
+        isLoading: false,
+      },
     };
+
     this.state = state;
   }
 
-  private runInterpreterDefault() {
-    return this.runInterpreter(this.salienceMapper);
-  }
-
-  private async runInterpreter(salienceMapper: string) {
-    this.state[salienceMapper].clusterInfos = {};
+  private async runInterpreter() {
+    const salienceMapper = this.state.clusteringConfig[SALIENCE_MAPPER_KEY];
+    this.state.clusteringState.clusterInfos = {};
     const input = this.selectionService.selectedOrAllInputData;
     if (!this.canRunClustering) {
       return;
     }
-
-    this.state[salienceMapper].isLoading = true;
+    this.state.clusteringState.isLoading = true;
     const promise = this.apiService.getInterpretations(
-        input, this.model, this.appState.currentDataset, 'salience clustering',
-        this.state[salienceMapper].config, `Running ${salienceMapper}`);
+        input,
+        this.model,
+        this.appState.currentDataset,
+        SALIENCE_CLUSTERING_INTERPRETER_NAME,
+        {...this.state.clusteringConfig,
+            ...this.state.salienceConfigs[salienceMapper]},
+        `Running ${salienceMapper}`);
     const clusteringResult =
         await this.loadLatest(`interpretations-${salienceMapper}`, promise);
-    this.state[salienceMapper].isLoading = false;
-    this.state[salienceMapper].dataColumns = Object.keys(input[0].data);
+    this.state.clusteringState.isLoading = false;
+    this.state.dataColumns = Object.keys(input[0].data);
 
     for (const gradKey of Object.keys(clusteringResult['cluster_ids'])) {
       const clusterInfos: ClusterInfo[] = [];
@@ -114,7 +128,7 @@ export class SalienceClusteringModule extends LitModule {
             example: input[i].data, clusterId: clusterIds[i]};
         clusterInfos.push(clusterInfo);
       }
-      this.state[salienceMapper].clusterInfos[gradKey] = clusterInfos;
+      this.state.clusteringState.clusterInfos[gradKey] = clusterInfos;
     }
   }
 
@@ -128,12 +142,12 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   }
 
-  renderClusteringState(salienceMapper: string) {
+  renderClusteringState() {
     const renderSingleGradKeyClusterInfos =
         (gradKey: string, clusterInfos: ClusterInfo[]) => {
           const rows: TableData[] = clusterInfos.map((clusterInfo) => {
             const row: string[] = [];
-            for (const dataColumn of this.state[salienceMapper].dataColumns) {
+            for (const dataColumn of this.state.dataColumns) {
               row.push(clusterInfo.example[dataColumn]);
             }
             row.push(clusterInfo.clusterId.toString());
@@ -146,7 +160,7 @@ export class SalienceClusteringModule extends LitModule {
               <div class="grad-key-label">${gradKey}</div>
               <lit-data-table
                 .columnNames=${
-                    [...this.state[salienceMapper].dataColumns, 'cluster ID']}
+                    [...this.state.dataColumns, 'cluster ID']}
                 .data=${rows}
                 searchEnabled
                 selectionEnabled
@@ -166,24 +180,90 @@ export class SalienceClusteringModule extends LitModule {
                   gradKey => renderSingleGradKeyClusterInfos(
                       gradKey, gradKeyClusterInfos[gradKey]))}
               ${
-              this.state[salienceMapper].isLoading ? this.renderSpinner() :
+              this.state.clusteringState.isLoading ? this.renderSpinner() :
                                                      null}`;
           // clang format on
         };
 
-    return renderClusterInfos(this.state[salienceMapper].clusterInfos);
+    return renderClusterInfos(this.state.clusteringState.clusterInfos);
   }
 
-  renderTable() {
-    if (this.state[this.salienceMapper] == null ||
-        this.state[this.salienceMapper].clusterInfos == null) {
+  private getSalienceInterpreterNames() {
+    const names: string[] = [];
+    const {interpreters} = this.appState.metadata;
+    const validInterpreters =
+        this.appState.metadata.models[this.model].interpreters;
+    for (const key of validInterpreters) {
+      const salienceKeys = findSpecKeys(
+          interpreters[key].metaSpec, ['TokenSalience']);
+      if (salienceKeys.length !== 0) {
+        names.push(key);
+      }
+    }
+    return names;
+  }
+
+  renderControlsAndResults() {
+    if (this.state.clusteringState == null ||
+        this.state.clusteringState.clusterInfos == null) {
       return html`<div>Nothing to show.</div>`;
     }
+
+    const moduleControlsApplyCallback = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      this.state.clusteringConfig = (event as any).detail.settings;
+      this.runInterpreter();
+    };
+
+    const methodControlsApplyCallback = (event: Event) => {
+      // tslint:disable-next-line:no-any
+      const name =  (event as any).detail.name;
+      // tslint:disable-next-line:no-any
+      this.state.salienceConfigs[name] = (event as any).detail.settings;
+    };
+
     // clang-format off
+    const renderInterpreterControls = (name: string) => {
+      const spec = this.appState.metadata.interpreters[name].configSpec;
+      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      for (const fieldName of Object.keys(clonedSpec)) {
+        // If the generator uses a field matcher, then get the matching
+        // field names from the specified spec and use them as the vocab.
+        if (isLitSubtype(clonedSpec[fieldName],
+                         ['FieldMatcher', 'MultiFieldMatcher'])) {
+          clonedSpec[fieldName].vocab =
+              this.appState.getSpecKeysFromFieldMatcher(
+                  clonedSpec[fieldName], this.model);
+        }
+      }
+      if (Object.keys(clonedSpec).length === 0) {
+        return;
+      }
+      return html`
+        <lit-interpreter-controls
+          bordered
+          .spec=${clonedSpec}
+          .name=${name}
+          .opened=${name === SALIENCE_CLUSTERING_INTERPRETER_NAME}
+          @interpreter-click=${
+              name === SALIENCE_CLUSTERING_INTERPRETER_NAME ?
+                  moduleControlsApplyCallback :
+                  methodControlsApplyCallback}>
+        </lit-interpreter-controls>`;
+    };
+    // Always show the clustering config first.
+    const interpreters: string[] = [SALIENCE_CLUSTERING_INTERPRETER_NAME,
+                                    ...this.getSalienceInterpreterNames()];
     return html`
-      <div class="clustering-salience-mapper">${this.salienceMapper}</div>
-        ${this.renderClusteringState(this.salienceMapper)}`;
-    // clang format on
+      <div class="controls-and-results-container">
+        <div class="clustering-controls-container">
+          ${interpreters.map(renderInterpreterControls)}
+        </div>
+        <div class="clustering-results-container">
+          ${this.renderClusteringState()}
+        </div>
+      </div>`;
+    // clang-format on
   }
 
   private get canRunClustering() {
@@ -205,27 +285,15 @@ export class SalienceClusteringModule extends LitModule {
     }
   }
 
-  renderControls() {
-    // clang-format off
-    return html`
-      <button class='hairline-button'
-        ?disabled="${!this.canRunClustering}"
-        @click=${this.runInterpreterDefault}>
-        Compute clusters
-      </button>
-      ${this.renderSelectionWarning()}`;
-    // clang format on
-  }
-
   override render() {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class="module-toolbar">
-          ${this.renderControls()}
-        </div>
         <div class='module-results-area'>
-          ${this.renderTable()}
+          ${this.renderControlsAndResults()}
+        </div>
+        <div class="module-toolbar">
+          ${this.renderSelectionWarning()}
         </div>
       </div>`;
     // clang format on
@@ -234,7 +302,7 @@ export class SalienceClusteringModule extends LitModule {
   static override shouldDisplayModule(modelSpecs: ModelInfoMap,
                                       datasetSpec: Spec) {
     for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('salience clustering') !== -1) {
+      if (modelInfo.interpreters.indexOf(SALIENCE_CLUSTERING_INTERPRETER_NAME) !== -1) {
         return true;
       }
     }
