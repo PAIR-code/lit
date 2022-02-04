@@ -15,13 +15,12 @@
 # Lint as: python3
 """kmeans clustering of salience weights."""
 
-from typing import Dict, List, Optional, Sequence, Text, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
-from lit_nlp.lib import utils
 import numpy as np
 from sklearn import cluster
 
@@ -45,17 +44,6 @@ class SalienceClustering(lit_components.Interpreter):
     self.salience_mappers = salience_mappers
     self.kmeans = {}
 
-  def find_fields(self, output_spec: Spec) -> List[Text]:
-    # Find TokenGradients fields
-    grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
-
-    # Check that these are aligned to Tokens fields
-    for f in grad_fields:
-      tokens_field = output_spec[f].align  # pytype: disable=attribute-error
-      assert tokens_field in output_spec
-      assert isinstance(output_spec[tokens_field], types.Tokens)
-    return grad_fields
-
   def _build_vocab(
       self,
       token_saliencies: List[JsonDict]) -> Tuple[Dict[str, int], List[str]]:
@@ -66,7 +54,7 @@ class SalienceClustering(lit_components.Interpreter):
     depends on the order of the tokens in the input.
 
     Args:
-      token_saliencies: List of mappings from gradient field to TokenSaliency
+      token_saliencies: List of mappings from salience field to TokenSaliency
         objects. This is the result of a post-hoc explanation method, such as
         gradient l2.
 
@@ -119,20 +107,20 @@ class SalienceClustering(lit_components.Interpreter):
     absolute value is largest.
 
     Args:
-      token_saliencies: List of mappings from gradient field to TokenSaliency
+      token_saliencies: List of mappings from salience field to TokenSaliency
         objects. This is the result of a post-hoc explanation method, such as
         gradient l2.
       vocab_lookup: Mapping from word type to its index in the vocabulary.
 
     Returns:
-      List of one mapping per example. Every element maps a gradient field to
+      List of one mapping per example. Every element maps a salience field to
       its fixed-length representation.
     """
     representations = []
     for instance in token_saliencies:
       per_field_results = {}
 
-      for grad_field, token_salience in instance.items():
+      for salience_field, token_salience in instance.items():
         token_weights = {}
 
         for token, score in zip(token_salience.tokens, token_salience.salience):
@@ -144,7 +132,7 @@ class SalienceClustering(lit_components.Interpreter):
         # Normalize to unit length.
         representation = np.asarray(representation) / np.linalg.norm(
             representation)
-        per_field_results[grad_field] = representation
+        per_field_results[salience_field] = representation
       representations.append(per_field_results)
     return representations
 
@@ -187,9 +175,6 @@ class SalienceClustering(lit_components.Interpreter):
     config = config or {}
     # If no specific inputs provided, use the entire dataset.
     inputs_to_use = indexed_inputs or dataset.examples
-
-    # Find gradient fields to interpret
-    grad_fields = self.find_fields(model.output_spec())
     token_saliencies = self.salience_mappers[
         config[SALIENCE_MAPPER_KEY]].run_with_metadata(inputs_to_use, model,
                                                        dataset, model_outputs,
@@ -198,46 +183,43 @@ class SalienceClustering(lit_components.Interpreter):
     if not token_saliencies:
       return None
 
+    salience_fields = list(token_saliencies[0].keys())
     vocab_lookup, vocab = self._build_vocab(token_saliencies)
     representations = self._compute_fixed_length_representation(
         token_saliencies, vocab_lookup)
 
     cluster_ids = {}
-    grad_field_to_representations = {}
-    grad_field_to_top_tokens = {}
+    salience_field_to_representations = {}
+    salience_field_to_top_tokens = {}
 
-    for grad_field in grad_fields:
+    for salience_field in salience_fields:
       weight_matrix = np.vstack(
-          representation[grad_field] for representation in representations)
+          representation[salience_field] for representation in representations)
       n_clusters = int(
           config.get(N_CLUSTERS_KEY,
                      self.config_spec()[N_CLUSTERS_KEY].default))
-      self.kmeans[grad_field] = cluster.KMeans(n_clusters=n_clusters)
-      cluster_ids[grad_field] = self.kmeans[grad_field].fit_predict(
+      self.kmeans[salience_field] = cluster.KMeans(n_clusters=n_clusters)
+      cluster_ids[salience_field] = self.kmeans[salience_field].fit_predict(
           weight_matrix).tolist()
-      grad_field_to_representations[grad_field] = weight_matrix
-      grad_field_to_top_tokens[grad_field] = []
+      salience_field_to_representations[salience_field] = weight_matrix
+      salience_field_to_top_tokens[salience_field] = []
 
       for cluster_id in range(n_clusters):
         # <float32>[vocab size]
-        mean_weight_matrix = weight_matrix[np.asarray(cluster_ids[grad_field])
-                                           == cluster_id].mean(axis=0)
+        mean_weight_matrix = weight_matrix[np.asarray(
+            cluster_ids[salience_field]) == cluster_id].mean(axis=0)
         top_indices = (
             mean_weight_matrix.argsort()[::-1][:int(
                 config.get(N_TOP_TOKENS_KEY,
                            self.config_spec()[N_TOP_TOKENS_KEY].default))])
         top_tokens = [(vocab[i], mean_weight_matrix[i]) for i in top_indices]
-        grad_field_to_top_tokens[grad_field].append(top_tokens)
+        salience_field_to_top_tokens[salience_field].append(top_tokens)
 
     return {
         CLUSTER_ID_KEY: cluster_ids,
-        REPRESENTATION_KEY: grad_field_to_representations,
-        TOP_TOKEN_KEY: grad_field_to_top_tokens,
+        REPRESENTATION_KEY: salience_field_to_representations,
+        TOP_TOKEN_KEY: salience_field_to_top_tokens,
     }
-
-  def is_compatible(self, model: lit_model.Model):
-    compatible_fields = self.find_fields(model.output_spec())
-    return len(compatible_fields)
 
   def config_spec(self) -> types.Spec:
     return {

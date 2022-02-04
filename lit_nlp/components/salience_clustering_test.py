@@ -16,22 +16,94 @@
 """Tests for lit_nlp.components.gradient_maps."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes
 from lit_nlp.components import gradient_maps
+from lit_nlp.components import lime_explainer
 from lit_nlp.components import salience_clustering
 from lit_nlp.lib import testing_utils
 import numpy as np
 
 
-class SalienceClusteringTest(absltest.TestCase):
+class SalienceClusteringTest(parameterized.TestCase):
 
   def setUp(self):
     super(SalienceClusteringTest, self).setUp()
     self.salience_mappers = {
         'Grad L2 Norm': gradient_maps.GradientNorm(),
-        'Grad ⋅ Input': gradient_maps.GradientDotInput()
+        'Grad ⋅ Input': gradient_maps.GradientDotInput(),
+        'LIME': lime_explainer.LIME()
     }
+
+  def _call_classification_model_on_standard_input(self, config, grad_key):
+    inputs = [
+        {
+            'data': {
+                'segment': 'a b c d'
+            }
+        },
+        {
+            'data': {
+                'segment': 'a b c d'
+            }
+        },
+        {
+            'data': {
+                'segment': 'e f e f'
+            }
+        },
+        {
+            'data': {
+                'segment': 'e f e f'
+            }
+        },
+        {
+            'data': {
+                'segment': 'e f e f'
+            }
+        },
+    ]
+    model = testing_utils.TestModelClassification()
+    dataset = lit_dataset.Dataset(None, None)
+
+    model_outputs = [{
+        grad_key:
+            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
+        'tokens': ['a', 'b', 'c', 'd'],
+        'grad_class':
+            '1'
+    }, {
+        grad_key:
+            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
+        'tokens': ['a', 'b', 'c', 'd'],
+        'grad_class':
+            '1'
+    }, {
+        grad_key:
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
+        'grad_class':
+            '1'
+    }, {
+        grad_key:
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
+        'grad_class':
+            '1'
+    }, {
+        grad_key:
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
+        'grad_class':
+            '1'
+    }]
+
+    clustering_component = salience_clustering.SalienceClustering(
+        self.salience_mappers)
+    result = clustering_component.run_with_metadata(inputs, model, dataset,
+                                                    model_outputs, config)
+    return result, clustering_component
 
   def test_build_vocab(self):
     token_saliencies = [
@@ -96,101 +168,51 @@ class SalienceClusteringTest(absltest.TestCase):
     ]
     np.testing.assert_equal(expected, representations)
 
-  def test_clustering(self):
-    inputs = [
-        {
-            'data': {
-                'segment': 'a b c d'
-            }
-        },
-        {
-            'data': {
-                'segment': 'a b c d'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
-    ]
-    model = testing_utils.TestModelClassification()
-    dataset = lit_dataset.Dataset(None, None)
+  @parameterized.named_parameters(
+      ('lit_internal_salience', 'Grad L2 Norm', 'input_embs_grad'),
+      ('lime', 'LIME', 'segment'),
+  )
+  def test_clustering(self, salience_mapper, grad_key):
+    """Tests clustering on LIT-internal gradient methods."""
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: salience_mapper,
+        salience_clustering.N_CLUSTERS_KEY: 2,
+        salience_clustering.N_TOP_TOKENS_KEY: 2
+    }
+    result, clustering_component = (
+        self._call_classification_model_on_standard_input(config, grad_key))
+    # Cluster id assignment is random, so in one run the first 2 examples may
+    # be cluster 0, in the next run they may be in cluster 1.
+    cluster_id_of_first = result[
+        salience_clustering.CLUSTER_ID_KEY][grad_key][0]
+    cluster_id_of_last = result[
+        salience_clustering.CLUSTER_ID_KEY][grad_key][-1]
+    np.testing.assert_equal(
+        result[salience_clustering.CLUSTER_ID_KEY][grad_key], [
+            cluster_id_of_first, cluster_id_of_first, cluster_id_of_last,
+            cluster_id_of_last, cluster_id_of_last
+        ])
+    np.testing.assert_allclose(
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][0],
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][1])
+    np.testing.assert_allclose(
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][2],
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][3])
+    np.testing.assert_allclose(
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][2],
+        result[salience_clustering.REPRESENTATION_KEY][grad_key][4])
+    self.assertIn(grad_key, clustering_component.kmeans)
+    self.assertIsNotNone(clustering_component.kmeans[grad_key])
+
+  def test_top_tokens(self):
+    """Tests top token results (doesn't apply for LIME with a test model)."""
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
         salience_clustering.N_CLUSTERS_KEY: 2,
         salience_clustering.N_TOP_TOKENS_KEY: 2
     }
-
-    model_outputs = [{
-        'input_embs_grad':
-            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
-        'tokens': ['a', 'b', 'c', 'd'],
-        'grad_class':
-            '1'
-    }, {
-        'input_embs_grad':
-            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
-        'tokens': ['a', 'b', 'c', 'd'],
-        'grad_class':
-            '1'
-    }, {
-        'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'g'],
-        'grad_class':
-            '1'
-    }, {
-        'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'g'],
-        'grad_class':
-            '1'
-    }, {
-        'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'g'],
-        'grad_class':
-            '1'
-    }]
-
-    clustering_component = salience_clustering.SalienceClustering(
-        self.salience_mappers)
-    result = clustering_component.run_with_metadata(inputs, model, dataset,
-                                                    model_outputs, config)
-    # Cluster id assignment is random, so in one run the first 2 examples may
-    # be cluster 0, in the next run they may be in cluster 1.
-    cluster_id_of_first = result[
-        salience_clustering.CLUSTER_ID_KEY]['input_embs_grad'][0]
-    cluster_id_of_last = result[
-        salience_clustering.CLUSTER_ID_KEY]['input_embs_grad'][-1]
-    np.testing.assert_equal(
-        result[salience_clustering.CLUSTER_ID_KEY]['input_embs_grad'], [
-            cluster_id_of_first, cluster_id_of_first, cluster_id_of_last,
-            cluster_id_of_last, cluster_id_of_last
-        ])
-    np.testing.assert_allclose(
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][0],
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][1])
-    np.testing.assert_allclose(
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][2],
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][3])
-    np.testing.assert_allclose(
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][2],
-        result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][4])
-    self.assertIn('input_embs_grad', clustering_component.kmeans)
-    self.assertIsNotNone(clustering_component.kmeans['input_embs_grad'])
-
+    result, _ = self._call_classification_model_on_standard_input(
+        config, 'input_embs_grad')
     # Clustering isn't deterministic so we don't know if examples 1 and 2 are
     # in cluster 0 or 1.
     for cluster_id in range(config[salience_clustering.N_CLUSTERS_KEY]):
@@ -203,6 +225,17 @@ class SalienceClusteringTest(absltest.TestCase):
       top_tokens_are_set_cd = subset_cd == top_tokens
       top_tokens_are_set_ef = subset_ef == top_tokens
       self.assertTrue(top_tokens_are_set_cd or top_tokens_are_set_ef)
+
+  def test_string_config_item(self):
+    """Tests clustering when config contains a string value."""
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
+        salience_clustering.N_CLUSTERS_KEY: '2',
+        salience_clustering.N_TOP_TOKENS_KEY: 2
+    }
+    result, _ = self._call_classification_model_on_standard_input(
+        config, 'input_embs_grad')
+    self.assertIsNotNone(result)
 
 
 if __name__ == '__main__':
