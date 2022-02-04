@@ -79,7 +79,8 @@ export class SalienceClusteringModule extends LitModule {
       dataColumns: [],
       clusterInfos: {},
       isLoading: false,
-      config: {'salience_mapper': this.salienceMapper},
+      // TODO(b/216772288): Load config key from interpreter.
+      config: {'Salience Mapper': this.salienceMapper},
     };
     this.state = state;
   }

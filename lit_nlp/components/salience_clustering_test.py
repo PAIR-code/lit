@@ -29,8 +29,8 @@ class SalienceClusteringTest(absltest.TestCase):
   def setUp(self):
     super(SalienceClusteringTest, self).setUp()
     self.salience_mappers = {
-        'grad-l2': gradient_maps.GradientNorm(),
-        'grad-input': gradient_maps.GradientDotInput()
+        'Grad L2 Norm': gradient_maps.GradientNorm(),
+        'Grad ⋅ Input': gradient_maps.GradientDotInput()
     }
 
   def test_build_vocab(self):
@@ -53,9 +53,11 @@ class SalienceClusteringTest(absltest.TestCase):
 
     clustering_component = salience_clustering.SalienceClustering(
         self.salience_mappers)
-    vocab = clustering_component._build_vocab(token_saliencies)
-    expected = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
-    self.assertEqual(expected, vocab)
+    vocab_lookup, vocab = clustering_component._build_vocab(token_saliencies)
+    expected_vocab_lookup = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
+    expected_vocab = ['a', 'b', 'c', 'd', 'e', 'f']
+    self.assertEqual(expected_vocab_lookup, vocab_lookup)
+    self.assertEqual(expected_vocab, vocab)
 
   def test_convert_to_bow_vector(self):
     token_saliencies = [
@@ -79,9 +81,9 @@ class SalienceClusteringTest(absltest.TestCase):
 
     clustering_component = salience_clustering.SalienceClustering(
         self.salience_mappers)
-    vocab = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
+    vocab_lookup = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
     representations = clustering_component._compute_fixed_length_representation(
-        token_saliencies, vocab)
+        token_saliencies, vocab_lookup)
     expected = [
         {
             'token_grad_sentence':
@@ -124,36 +126,40 @@ class SalienceClusteringTest(absltest.TestCase):
     ]
     model = testing_utils.TestModelClassification()
     dataset = lit_dataset.Dataset(None, None)
-    config = {'salience_mapper': 'grad-l2', 'n_clusters': 2}
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
+        salience_clustering.N_CLUSTERS_KEY: 2,
+        salience_clustering.N_TOP_TOKENS_KEY: 2
+    }
 
     model_outputs = [{
         'input_embs_grad':
-            np.array([[1, 1, 1, 1], [0, 1, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
+            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
         'tokens': ['a', 'b', 'c', 'd'],
         'grad_class':
             '1'
     }, {
         'input_embs_grad':
-            np.array([[1, 1, 1, 1], [0, 1, 0, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
+            np.array([[0, 0, 1, 1], [0, 1, 0, 0], [1, 1, 1, 1], [1, 0, 1, 1]]),
         'tokens': ['a', 'b', 'c', 'd'],
         'grad_class':
             '1'
     }, {
         'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'f'],
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
         'grad_class':
             '1'
     }, {
         'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'f'],
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
         'grad_class':
             '1'
     }, {
         'input_embs_grad':
-            np.array([[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]),
-        'tokens': ['e', 'f', 'e', 'f'],
+            np.array([[1, 1, 1, 1], [1, 0, 1, 1], [1, 1, 1, 1], [0, 0, 1, 1]]),
+        'tokens': ['e', 'f', 'e', 'g'],
         'grad_class':
             '1'
     }]
@@ -184,6 +190,19 @@ class SalienceClusteringTest(absltest.TestCase):
         result[salience_clustering.REPRESENTATION_KEY]['input_embs_grad'][4])
     self.assertIn('input_embs_grad', clustering_component.kmeans)
     self.assertIsNotNone(clustering_component.kmeans['input_embs_grad'])
+
+    # Clustering isn't deterministic so we don't know if examples 1 and 2 are
+    # in cluster 0 or 1.
+    for cluster_id in range(config[salience_clustering.N_CLUSTERS_KEY]):
+      top_tokens = [
+          token_with_weight[0] for token_with_weight in result[
+              salience_clustering.TOP_TOKEN_KEY]['input_embs_grad'][cluster_id]
+      ]
+      subset_cd = ['c', 'd']
+      subset_ef = ['e', 'f']
+      top_tokens_are_set_cd = subset_cd == top_tokens
+      top_tokens_are_set_ef = subset_ef == top_tokens
+      self.assertTrue(top_tokens_are_set_cd or top_tokens_are_set_ef)
 
 
 if __name__ == '__main__':
