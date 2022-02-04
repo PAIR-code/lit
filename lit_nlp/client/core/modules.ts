@@ -348,23 +348,22 @@ export class LitModules extends ReactiveElement {
     };
 
     return configs.map((configGroup, i) => {
-
-      // Callback from widget width drag events.
       const onDrag = (event: Event) => {
         // tslint:disable-next-line:no-any
-        const dragWidth =  (event as any).detail.dragWidth;
+        const dragWidth = (event as any).detail.dragWidth;
 
-        // If the dragged group isn't the right-most group, then balance the
-        // delta in width with the widget directly to it's left (so if a widget
-        // is expanded, then its adjacent widget is shrunk by the same amount).
-        if (i < configs.length - 1) {
-          const adjacentConfig = configs[i + 1];
-          if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
-            const widthChange = dragWidth - layoutWidths[section][i];
-            const oldAdjacentWidth = layoutWidths[section][i + 1];
-            layoutWidths[section][i + 1] =
-                Math.max(MIN_GROUP_WIDTH_PX, oldAdjacentWidth - widthChange);
-          }
+        // If this is the rightmost group, do nothing.
+        if (i >= configs.length - 1) return;
+
+        // Balance the delta in width with the widget directly to it's left,
+        // so if a widget is expanded, then its adjacent widget is shrunk by
+        // the same amount.
+        const adjacentConfig = configs[i + 1];
+        if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
+          const widthChange = dragWidth - layoutWidths[section][i];
+          const oldAdjacentWidth = layoutWidths[section][i + 1];
+          layoutWidths[section][i + 1] =
+              Math.max(MIN_GROUP_WIDTH_PX, oldAdjacentWidth - widthChange);
         }
 
         // Set the width of the dragged widget group.
@@ -374,9 +373,13 @@ export class LitModules extends ReactiveElement {
       };
 
       const width = layoutWidths[section] ? layoutWidths[section][i] : 0;
-      return html`<lit-widget-group .configGroup=${configGroup}
-          @widget-group-minimized-changed=${onMin} @widget-group-drag=${onDrag}
-          .width=${width}></lit-widget-group>`;
+      // clang-format off
+      return html`
+        <lit-widget-group .configGroup=${configGroup} .width=${width}
+          @widget-group-minimized-changed=${onMin}
+          @widget-group-drag=${onDrag} ?dragEnabled=${i < configs.length - 1}>
+        </lit-widget-group>`;
+      // clang-format on
     });
   }
 }
