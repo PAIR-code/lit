@@ -69,6 +69,7 @@ export class WidgetGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) minimized = false;
   @property({ type: Boolean, reflect: true }) maximized = false;
   @property({ type: Boolean, reflect: true }) dragging = false;
+  @property({type: Boolean, reflect: true}) dragEnabled = false;
   @property({ type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
@@ -200,7 +201,7 @@ export class WidgetGroup extends LitElement {
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
             ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
-            ${this.renderExpander()}
+            ${this.dragEnabled ? this.renderExpander() : null}
           </div>
         </div>
        </div>
