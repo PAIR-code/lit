@@ -79,6 +79,7 @@ export interface ComponentInfo {
 }
 
 export interface DatasetInfo {
+  size: number;
   spec: Spec;
   description?: string;
 }

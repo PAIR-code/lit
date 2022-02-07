@@ -222,6 +222,7 @@ export const mockMetadata: LitMetadata = {
   },
   'datasets': {
     'sst_dev': {
+      'size': 872,
       'spec': {
         'passage': {
           '__class__': 'LitType',
@@ -239,6 +240,7 @@ export const mockMetadata: LitMetadata = {
       }
     },
     'color_test': {
+      'size': 2,
       'spec': {
         'testNumFeat0': {
           '__class__': 'LitType',
@@ -269,6 +271,7 @@ export const mockMetadata: LitMetadata = {
       }
     },
     'penguin_dev': {
+      'size': 10,
       'spec': {
         'body_mass_g': {
           '__class__': 'LitType',

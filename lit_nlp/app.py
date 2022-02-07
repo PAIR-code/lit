@@ -91,6 +91,7 @@ class LitApp(object):
       dataset_info[name] = {
           'spec': ds.spec(),
           'description': ds.description(),
+          'size': len(ds),
       }
 
     generator_info = {}

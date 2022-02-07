@@ -445,17 +445,20 @@ export class GlobalSettingsComponent extends MobxLitElement {
         `;
 
       // Expanded info contains available datasets.
-      const spec = this.appState.metadata.datasets[name].spec;
+      const datasetInfo = this.appState.metadata.datasets[name];
       const allModels = [...this.modelCheckboxValues.keys()];
       // clang-format off
       const expandedInfoHtml = html`
         <div class='info-group-title'>
+          ${datasetInfo.size} datapoint${datasetInfo.size !== 1 ? "s" : ""}
+        </div>
+        <div class='info-group-title'>
           Features
         </div>
-        ${Object.keys(spec).map((fieldName: string) => {
+        ${Object.keys(datasetInfo.spec).map((fieldName: string) => {
           return html`
             <div class='info-line'>
-              ${fieldName} (${spec[fieldName].__name__})
+              ${fieldName} (${datasetInfo.spec[fieldName].__name__})
             </div>`;
         })}
         <div class='info-group-title'>
