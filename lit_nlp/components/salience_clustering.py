@@ -35,6 +35,7 @@ TOP_TOKEN_KEY = 'top_tokens'
 N_CLUSTERS_KEY = 'Number of Clusters'
 N_TOP_TOKENS_KEY = 'Number of Top Tokens'
 SALIENCE_MAPPER_KEY = 'Salience Mapper'
+SEED_KEY = 'Clustering Seed'
 
 
 class SalienceClustering(lit_components.Interpreter):
@@ -198,7 +199,11 @@ class SalienceClustering(lit_components.Interpreter):
       n_clusters = int(
           config.get(N_CLUSTERS_KEY,
                      self.config_spec()[N_CLUSTERS_KEY].default))
-      self.kmeans[salience_field] = cluster.KMeans(n_clusters=n_clusters)
+      seed = int(
+          config.get(SEED_KEY,
+                     self.config_spec()[SEED_KEY].default))
+      self.kmeans[salience_field] = cluster.KMeans(n_clusters=n_clusters,
+                                                   random_state=seed)
       cluster_ids[salience_field] = self.kmeans[salience_field].fit_predict(
           weight_matrix).tolist()
       salience_field_to_representations[salience_field] = weight_matrix
@@ -230,6 +235,8 @@ class SalienceClustering(lit_components.Interpreter):
             types.Scalar(min_val=2, max_val=25, default=2, step=1),
         N_TOP_TOKENS_KEY:
             types.Scalar(min_val=1, max_val=100, default=10, step=1),
+        SEED_KEY:
+            types.TextSegment(default='0'),
     }
 
   def meta_spec(self) -> types.Spec:
