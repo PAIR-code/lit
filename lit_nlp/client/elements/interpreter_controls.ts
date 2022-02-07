@@ -32,6 +32,16 @@ import {isLitSubtype} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';
 
+interface Settings {
+  [name: string]: boolean | number | string | string[];
+}
+
+/** Custom click event for interpreter controls */
+export interface InterpreterClick {
+  name: string;
+  settings: Settings;
+}
+
 /**
  * Controls panel for an interpreter.
  */
@@ -41,7 +51,7 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
   @observable @property({type: Boolean}) bordered = false;
-  @observable settings: {[name: string]: string|number|boolean|string[]} = {};
+  @observable settings: Settings = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static override get styles() {
@@ -51,7 +61,7 @@ export class InterpreterControls extends ReactiveElement {
   override render() {
     const apply = () => {
       // Event to be dispatched when an interpreter is applied.
-      const event = new CustomEvent('interpreter-click', {
+      const event = new CustomEvent<InterpreterClick>('interpreter-click', {
         detail: {
           name: this.name,
           settings: this.settings

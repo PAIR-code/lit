@@ -25,6 +25,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
+import {ThresholdChange} from '../elements/threshold_slider';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
@@ -202,10 +203,9 @@ export class ThresholderModule extends LitModule {
       }
       const margin = this.classificationService.getMargin(
           this.model, predKey, this.groupedExamples[facetKey]);
-      const callback = (e: Event) => {
+      const callback = (e: CustomEvent<ThresholdChange>) => {
         this.classificationService.setMargin(
-            // tslint:disable-next-line:no-any
-            this.model, predKey, (e as any).detail.margin,
+            this.model, predKey, e.detail.margin,
             this.groupedExamples[facetKey]);
       };
       row.push(html`<threshold-slider .margin=${margin} label=${facetKey}

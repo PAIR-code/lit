@@ -23,6 +23,12 @@ import {classMap} from 'lit/directives/class-map';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';
 
+/** Custom change event for ThresholdSlider. */
+export interface ThresholdChange {
+  label: string;
+  margin: number;
+}
+
 /** A slider for setting classifcation thresholds/margins. */
 @customElement('threshold-slider')
 export class ThresholdSlider extends LitElement {
@@ -77,7 +83,7 @@ export class ThresholdSlider extends LitElement {
     const onChange = (e: Event) => {
       const newThresh = +(e.target as HTMLInputElement).value;
       const newMargin = getMarginFromThreshold(newThresh);
-      const event = new CustomEvent('threshold-changed', {
+      const event = new CustomEvent<ThresholdChange>('threshold-changed', {
         detail: {
           label,
           margin: newMargin
@@ -96,10 +102,10 @@ export class ThresholdSlider extends LitElement {
   renderMarginSlider(margin: number, label: string) {
     const onChange = (e: Event) => {
       const newMargin = (e.target as HTMLInputElement).value;
-      const event = new CustomEvent('threshold-changed', {
+      const event = new CustomEvent<ThresholdChange>('threshold-changed', {
         detail: {
           label,
-          margin: newMargin
+          margin: Number(newMargin)
         }
       });
       this.dispatchEvent(event);
@@ -117,7 +123,7 @@ export class ThresholdSlider extends LitElement {
     const isDefaultValue = margin === 0;
 
     const reset = () => {
-      const event = new CustomEvent('threshold-changed', {
+      const event = new CustomEvent<ThresholdChange>('threshold-changed', {
         detail: {
           label,
           margin: 0

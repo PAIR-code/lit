@@ -26,6 +26,7 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {ThresholdChange} from '../elements/threshold_slider';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
@@ -856,10 +857,9 @@ export class ScalarModule extends LitModule {
 
   renderMarginSlider(key: string) {
     const margin = this.classificationService.getMargin(this.model, key);
-    const callback = (e: Event) => {
+    const callback = (e: CustomEvent<ThresholdChange>) => {
       this.classificationService.setMargin(
-          // tslint:disable-next-line:no-any
-          this.model, key, (e as any).detail.margin);
+          this.model, key, e.detail.margin);
     };
     return html`<threshold-slider .margin=${margin} label=${key}
                   ?isThreshold=${false} ?showControls=${true}

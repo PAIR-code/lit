@@ -44,6 +44,20 @@ export const MIN_GROUP_WIDTH_PX = 100;
 // recalculations.
 const MIN_GROUP_WIDTH_DELTA_PX = 10;
 
+/** Type for custom widget drag event  */
+export interface WidgetDrag {
+  dragWidth: number;
+}
+/** Type for custom widget drag event  */
+export interface WidgetMinimizedChange {
+  isMinimized: boolean;
+}
+/** Type for custom widget drag event  */
+export interface WidgetScroll {
+  scrollTop: number;
+  scrollLeft: number;
+}
+
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
  * compareDatapoints is enabled) for a single component.
@@ -213,10 +227,10 @@ export class WidgetGroup extends LitElement {
         selectionServiceIndex ? 'Reference' : 'Main'}`);
     }
     // Track scolling changes to the widget and request a rerender.
-    const widgetScrollCallback = (e: CustomEvent) => {
+    const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
       if (this.syncScrolling) {
-        this.widgetScrollLeft = e.detail['scrollLeft'];
-        this.widgetScrollTop = e.detail['scrollTop'];
+        this.widgetScrollLeft = event.detail.scrollLeft;
+        this.widgetScrollTop = event.detail.scrollTop;
         this.requestUpdate();
       }
     };
@@ -246,10 +260,8 @@ export class WidgetGroup extends LitElement {
 
       if (dragWidth > MIN_GROUP_WIDTH_PX &&
           Math.abs(dragWidth - this.width) > MIN_GROUP_WIDTH_DELTA_PX) {
-        const event = new CustomEvent('widget-group-drag', {
-          detail: {
-            dragWidth,
-          }
+        const event = new CustomEvent<WidgetDrag>('widget-group-drag', {
+          detail: {dragWidth}
         });
         this.dispatchEvent(event);
       }
@@ -283,11 +295,9 @@ export class WidgetGroup extends LitElement {
     const config = this.configGroup[0];
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
-    const event = new CustomEvent('widget-group-minimized-changed', {
-      detail: {
-        isMinimized
-      }
-    });
+    const event = new CustomEvent<WidgetMinimizedChange>(
+        'widget-group-minimized-changed',
+        {detail: {isMinimized}});
     this.dispatchEvent(event);
   }
 }
@@ -323,25 +333,22 @@ export class LitWidget extends MobxLitElement {
     const scrollElems = module.shadowRoot!.querySelectorAll(
         `.${SCROLL_SYNC_CSS_CLASS}`);
     if (scrollElems.length > 0) {
-      scrollElems.forEach(elem => {
-        const scrollElement = elem as HTMLElement;
+      for (const scrollElement of scrollElems as NodeListOf<HTMLElement>) {
         scrollElement.scrollTop = this.widgetScrollTop;
         scrollElement.scrollLeft = this.widgetScrollLeft;
 
         // Track content scrolling and pass the scrolling information back to
         // the widget group for sync'ing between duplicated widgets.
         const scrollCallback = () => {
-          const event = new CustomEvent('widget-scroll', {
-            detail: {
-              scrollTop: scrollElement.scrollTop,
-              scrollLeft: scrollElement.scrollLeft,
-            }
+          const {scrollLeft, scrollTop} = scrollElement;
+          const event = new CustomEvent<WidgetScroll>('widget-scroll', {
+            detail: {scrollTop, scrollLeft}
           });
           this.dispatchEvent(event);
         };
         module.onSyncScroll = scrollCallback;
         module.requestUpdate();
-      });
+      }
     } else {
       // If a module doesn't have its own scroll element set, then scroll it
       // appropriately through the content div that contains the module.
@@ -370,7 +377,7 @@ export class LitWidget extends MobxLitElement {
     // mechanimsm tagged with the SCROLL_SYNC_CSS_CLASS.
     const scrollCallback = () => {
       const content = this.shadowRoot!.querySelector('.content')!;
-      const event = new CustomEvent('widget-scroll', {
+      const event = new CustomEvent<WidgetScroll>('widget-scroll', {
         detail: {
           scrollTop: content.scrollTop,
           scrollLeft: content.scrollLeft,

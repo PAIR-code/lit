@@ -208,7 +208,7 @@ export class GeneratorModule extends LitModule {
       this.generated = generated;
       this.isGenerating = false;
       this.sliceName = this.makeAutoSliceName(generator, config);
-    } catch (err) {
+    } catch {
       this.isGenerating = false;
     }
   }

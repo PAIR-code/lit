@@ -28,6 +28,7 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {WidgetDrag, WidgetMinimizedChange} from '../core/widget_group';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
@@ -342,7 +343,7 @@ export class LitModules extends ReactiveElement {
   renderWidgetGroups(
       configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths) {
     // Calllback for widget isMinimized state changes.
-    const onMin = (event: Event) => {
+    const onMin = (event: CustomEvent<WidgetMinimizedChange>) => {
       // Recalculate the widget group widths in this section.
       this.calculatePanelWidths(section, configs, layoutWidths);
     };
@@ -350,9 +351,8 @@ export class LitModules extends ReactiveElement {
     return configs.map((configGroup, i) => {
 
       // Callback from widget width drag events.
-      const onDrag = (event: Event) => {
-        // tslint:disable-next-line:no-any
-        const dragWidth =  (event as any).detail.dragWidth;
+      const onDrag = (event: CustomEvent<WidgetDrag>) => {
+        const {dragWidth} = event.detail;
 
         // If the dragged group isn't the right-most group, then balance the
         // delta in width with the widget directly to it's left (so if a widget

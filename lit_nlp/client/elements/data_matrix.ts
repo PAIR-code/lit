@@ -20,7 +20,7 @@ import '@material/mwc-icon-button-toggle';
 // tslint:disable:no-new-decorators
 import {property} from 'lit/decorators';
 import {customElement} from 'lit/decorators';
-import { html, LitElement} from 'lit';
+import {html, LitElement} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -42,6 +42,11 @@ const COLOR_RAMP = ramp([...MAJOR_TONAL_COLORS.primary.slice(LOW, HIGH)
 export interface MatrixCell {
   ids: string[];
   selected: boolean;
+}
+
+/** Custom selection event interface for DataMatrix */
+export interface MatrixSelection {
+  ids: string[];
 }
 
 /**
@@ -89,7 +94,7 @@ export class DataMatrix extends LitElement {
         ids = ids.concat(cellInfo.ids);
       }
     }
-    const event = new CustomEvent('matrix-selection', {
+    const event = new CustomEvent<MatrixSelection>('matrix-selection', {
       detail: {
         ids,
       }

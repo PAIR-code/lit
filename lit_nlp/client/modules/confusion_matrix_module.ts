@@ -17,12 +17,12 @@
 
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {MatrixCell} from '../elements/data_matrix';
+import {MatrixCell, MatrixSelection} from '../elements/data_matrix';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, facetMapToDictKey, findSpecKeys} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
@@ -428,15 +428,14 @@ export class ConfusionMatrixModule extends LitModule {
     const colTitle = colOption.name;
 
     // Add event listener for selection events.
-    const onCellClick = (event: Event) => {
-      // tslint:disable-next-line:no-any
-      const ids: string[] = (event as any).detail.ids;
+    const onCellClick = (event: CustomEvent<MatrixSelection>) => {
+      const {ids} = event.detail;
       this.lastSelectedRow = row;
       this.lastSelectedCol = col;
       this.selectionService.selectIds(ids, this);
     };
     // Add event listener for delete events.
-    const onDelete = (event: Event) => {
+    const onDelete = () => {
       delete this.matrices[this.getMatrixId(row, col)];
     };
 

@@ -24,6 +24,7 @@ import {customElement} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {InterpreterClick} from '../elements/interpreter_controls';
 import {TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, Input, ModelInfoMap, Spec} from '../lib/types';
@@ -209,18 +210,17 @@ export class SalienceClusteringModule extends LitModule {
       return html`<div>Nothing to show.</div>`;
     }
 
-    const moduleControlsApplyCallback = (event: Event) => {
-      // tslint:disable-next-line:no-any
-      this.state.clusteringConfig = (event as any).detail.settings;
-      this.runInterpreter();
-    };
+    const moduleControlsApplyCallback =
+        (event: CustomEvent<InterpreterClick>) => {
+          this.state.clusteringConfig = event.detail.settings;
+          this.runInterpreter();
+        };
 
-    const methodControlsApplyCallback = (event: Event) => {
-      // tslint:disable-next-line:no-any
-      const name =  (event as any).detail.name;
-      // tslint:disable-next-line:no-any
-      this.state.salienceConfigs[name] = (event as any).detail.settings;
-    };
+    const methodControlsApplyCallback =
+        (event: CustomEvent<InterpreterClick>) => {
+          const {name, settings} =  event.detail;
+          this.state.salienceConfigs[name] = settings;
+        };
 
     // clang-format off
     const renderInterpreterControls = (name: string) => {
