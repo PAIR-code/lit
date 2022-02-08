@@ -1,25 +1,3 @@
 .module-toolbar {
   border-bottom: 1px solid var(--lit-neutral-300);
 }
-
-.attribution-container {
-  border-bottom: 1px solid var(--lit-neutral-300);
-}
-
-.expansion-header {
-  width: calc(100% - 16px);
-  height: 30px;
-  padding: 2px 8px;
-  display: flex;
-  flex-direction: row;
-  cursor: pointer;
-  align-items: center;
-  justify-content: space-between;
-  background-color: var(--lit-neutral-100);
-  color: var(--lit-majtonal-nv-800);
-  font-weight: bold;
-}
-
-.expansion-header:not(:only-child) {
-  border-bottom: 1px solid var(--lit-neutral-200);
-}

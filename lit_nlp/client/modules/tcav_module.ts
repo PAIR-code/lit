@@ -24,7 +24,6 @@ import {customElement} from 'lit/decorators';
 import { html} from 'lit';
 import {TemplateResult} from 'lit';
 import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -94,9 +93,6 @@ export class TCAVModule extends LitModule {
   @observable private readonly selectedClasses = new Set<string>();
   @observable private readonly negativeSlices = new Set<string>();
   @observable private isLoading: boolean = false;
-  @observable private isSliceHidden: boolean = false;
-  @observable private isClassHidden: boolean = true;
-  @observable private isEmbeddingHidden: boolean = true;
 
   private resultsTableData: TableData[] = [];
   private cavCounter = 0;
@@ -178,8 +174,8 @@ export class TCAVModule extends LitModule {
   }
 
   renderCollapseBar(
-      title: string, barToggled: () => void, isHidden: boolean, items: string[],
-      columnName: string, selectSet: Set<string>, secondSelectName: string = '',
+      title: string, items: string[], columnName: string,
+      selectSet: Set<string>, secondSelectName: string = '',
       secondSelectSet: Set<string>|null = null) {
     const checkboxChanged = (e: Event, item: string) => {
       const checkbox = e.target as HTMLInputElement;
@@ -226,25 +222,19 @@ export class TCAVModule extends LitModule {
 
     // clang-format off
     return html`
-      <div class='collapse-bar' @click=${barToggled}>
-        <div class="axis-title">
-          <div>${title}</div>
-        </div>
-        <mwc-icon class="icon-button min-button">
-          ${isHidden ? 'expand_more' : 'expand_less'}
-        </mwc-icon>
-      </div>
-      <div class='collapse-content'
-        style=${styleMap({'display': `${isHidden ? 'none' : 'block'}`})}>
-        ${data.length === 0 ?
-          html`<div class='require-text label-2'>
+      <expansion-panel .label=${title} ?expanded=${title === 'Select Slices'}>
+        <div class='collapse-content'>
+          ${data.length === 0 ?
+              html`
+                <div class='require-text label-2'>
                   This module requires at least one ${columnName.toLowerCase()}.
-               </div>` :
-          html`<lit-data-table .verticalAlignMiddle=${true}
-                               .columnNames=${columns}
-                               .data=${data}></lit-data-table>`}
-      </div>
-    `;
+                </div>` :
+              html`
+                <lit-data-table .verticalAlignMiddle=${true}
+                                .columnNames=${columns}
+                                .data=${data}></lit-data-table>`}
+        </div>
+      </expansion-panel>`;
     // clang-format on
   }
 
@@ -276,16 +266,6 @@ export class TCAVModule extends LitModule {
       this.requestUpdate();
     };
 
-    const toggleSliceCollapse = () => {
-      this.isSliceHidden = !this.isSliceHidden;
-    };
-    const toggleClassCollapse = () => {
-      this.isClassHidden = !this.isClassHidden;
-    };
-    const toggleEmbeddingCollapse = () => {
-      this.isEmbeddingHidden = !this.isEmbeddingHidden;
-    };
-
     const cavCount = this.selectedClasses.size * this.selectedSlices.size *
         this.selectedLayers.size;
 
@@ -302,21 +282,15 @@ export class TCAVModule extends LitModule {
           <div class="left-container">
             <div class="controls-holder">
               ${this.renderCollapseBar('Select Slices',
-                                       toggleSliceCollapse,
-                                       this.isSliceHidden,
                                        this.TCAVSliceNames,
                                        'Positive slice',
                                        this.selectedSlices,
                                        'Negative slice', this.negativeSlices)}
               ${this.renderCollapseBar('Explainable Classes',
-                                       toggleClassCollapse,
-                                       this.isClassHidden,
                                        this.predClasses,
                                        'Class',
                                        this.selectedClasses)}
               ${this.renderCollapseBar('Embeddings',
-                                       toggleEmbeddingCollapse,
-                                       this.isEmbeddingHidden,
                                        this.gradKeys,
                                        'Embedding',
                                        this.selectedLayers)}

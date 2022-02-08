@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '../elements/expansion_panel';
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
@@ -95,7 +96,6 @@ export class ScalarModule extends LitModule {
   // there are multiple pred keys).
   private readonly brushObjects: BrushObject[] = [];
 
-  @observable private readonly isPlotHidden = new Map();
   @observable private preds: Preds[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
@@ -822,36 +822,22 @@ export class ScalarModule extends LitModule {
         selectedValue = `Value: ${displayVal}`;
       }
     }
+
+    const plotLabel =
+        `${axisTitle}${selectedValue ? ` - ${selectedValue}` : ''}`;
+
     // clang-format off
-    const toggleCollapse = () => {
-      const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
-          collapseByDefault: this.isPlotHidden.get(axisTitle);
-      this.isPlotHidden.set(axisTitle, !isHidden);
-    };
-    // This plot's value in isPlotHidden gets set in toggleCollapse and is null
-    // before the user opens/closes it for the first time. This uses the
-    // collapseByDefault setting if isPlotHidden hasn't been set yet.
-    const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
-        collapseByDefault: this.isPlotHidden.get(axisTitle);
     return html`
         <div class='plot-holder'>
-          <div class='collapse-bar' @click=${toggleCollapse}>
-            <div class="axis-title">
-              <div>${axisTitle}</div>
-              <div class="selected-value">${selectedValue}</div>
-            </div>
-            <mwc-icon class="icon-button min-button">
-              ${isHidden ? 'expand_more': 'expand_less'}
-            </mwc-icon>
-          </div>
-          ${isHidden ? null : html`
+          <expansion-panel .label=${plotLabel} ?expanded=${!collapseByDefault}
+                            padLeft padRight>
             <div class='scatterplot-background'>
               ${svg`<svg class='scatterplot' data-key='${key}'
-                  data-label='${label}'>
-                </svg>`}
-            </div>`}
-        </div>
-      `;
+                      data-label='${label}'>
+                    </svg>`}
+            </div>
+          </expansion-panel>
+        </div>`;
     // clang-format on
   }
 

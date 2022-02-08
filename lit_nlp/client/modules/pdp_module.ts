@@ -19,10 +19,11 @@ import '../elements/line_chart';
 import '../elements/bar_chart';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
 import {until} from 'lit/directives/until';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
+import {ExpansionToggle} from '../elements/expansion_panel';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
 
@@ -51,8 +52,9 @@ export class PdpModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override numCols = 4;
   static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<pdp-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></pdp-module>`;
+    return html`<pdp-module model=${model}
+                            selectionServiceIndex=${selectionServiceIndex}>
+                </pdp-module>`;
   };
 
   static override get styles() {
@@ -68,10 +70,9 @@ export class PdpModule extends LitModule {
 
   override firstUpdated() {
     const getInputSpec = () => this.appState.getModelSpec(this.model).input;
-    this.reactImmediately(
-        getInputSpec, inputSpec => {
-          this.resetPlots(inputSpec);
-        });
+    this.reactImmediately(getInputSpec, inputSpec => {
+      this.resetPlots(inputSpec);
+    });
 
     // When selected data changes, clear the cached plots and set all plots
     // back to hidden.
@@ -111,10 +112,7 @@ export class PdpModule extends LitModule {
   }
 
   renderPlot(feat: string) {
-    // Nothing to render if plot is hidden.
-    if (!this.plotVisibility.get(feat)) {
-      return null;
-    }
+    if (!this.plotVisibility.get(feat)) return html``;
 
     const spec = this.appState.getModelSpec(this.model);
     const isNumeric = isLitSubtype(spec.input[feat], 'Scalar');
@@ -186,7 +184,7 @@ export class PdpModule extends LitModule {
               const label = vocab != null && vocab.length > i ? vocab[i] : '';
               if (nullIdx == null || nullIdx !== i) {
                 return html`
-                    <div>
+                    <div class="chart">
                       <div class="chart-label">${label}</div>
                       ${renderChart(chartData)}
                     </div>`;
@@ -196,6 +194,7 @@ export class PdpModule extends LitModule {
             })}
           </div>`;
     };
+
     const renderPlotInfo = (plotInfo: AllPdpInfo) => {
       return html`
           <div class='pdp-background'>
@@ -212,24 +211,19 @@ export class PdpModule extends LitModule {
   }
 
   renderPlotHolder(feat: string) {
-    const toggleCollapse = () => {
-      const isVisible = this.plotVisibility.get(feat);
-      this.plotVisibility.set(feat, !isVisible);
+    const expansionHandler = (event: CustomEvent<ExpansionToggle>) => {
+      const {isExpanded} = event.detail;
+      this.plotVisibility.set(feat, isExpanded);
+      this.requestUpdate();
     };
-    const isVisible = this.plotVisibility.get(feat);
 
     // clang-format off
     return html`
         <div class='plot-holder'>
-          <div class='collapse-bar' @click=${toggleCollapse}>
-            <div class="pdp-title">
-              <div>${feat}</div>
-            </div>
-            <mwc-icon class="icon-button min-button">
-              ${isVisible ? 'expand_less': 'expand_more'}
-            </mwc-icon>
-          </div>
-          ${this.renderPlot(feat)}
+          <expansion-panel .label=${feat}
+                           @expansion-toggle=${expansionHandler}>
+            ${this.renderPlot(feat)}
+          </expansion-panel>
         </div>
       `;
     // clang-format on

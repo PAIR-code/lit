@@ -22,7 +22,6 @@ import '@material/mwc-icon';
 import {property} from 'lit/decorators';
 import {customElement} from 'lit/decorators';
 import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
@@ -50,7 +49,6 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
-  @observable @property({type: Boolean}) bordered = false;
   @observable settings: Settings = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
@@ -70,48 +68,27 @@ export class InterpreterControls extends ReactiveElement {
       this.dispatchEvent(event);
     };
 
-    const expandable = Object.keys(this.spec).length > 0 ||
-        this.description.length > 0;
-    const collapseIconName = this.opened ? 'expand_less' : 'expand_more';
-    const onCollapseClick = () => {
-      if (!expandable) {
-        return;
-      }
-      this.opened = !this.opened;
-    };
-    const containerClasses = {
-      'bordered': this.bordered,
-    };
-    const headerClasses = {
-      'collapsible': true,
-      'header': true,
-    };
-    const contentClasses = {
-      'content': true,
-      'minimized': !this.opened,
-    };
+    const expandable =
+        Object.keys(this.spec).length > 0 || this.description.length > 0;
+
     // clang-format off
-    return html`
-      <div class=${classMap(containerClasses)}>
-        ${expandable ? html`
-          <div class=${classMap(headerClasses)} @click=${onCollapseClick}>
-            <div class="title">${this.name}</div>
-            <mwc-icon class="icon-button min-button">
-              ${collapseIconName}
-            </mwc-icon>
-          </div>` : html`
-          <div class="header">
-            <div class="title">${this.name}</div>
-          </div>`}
-        <div class=${classMap(contentClasses)}>
+    const content = html`
+        <div class="content">
           <div class="description">${this.description}</div>
           ${this.renderControls()}
           <div class="buttons-holder">
             <button class="filled-button" @click=${apply}>Apply</button>
           </div>
-        </div>
-      </div>
-    `;
+        </div>`;
+
+    return expandable ?
+        html`<expansion-panel .label=${this.name} ?startOpen=${this.opened}>
+                ${content}
+              </expansion-panel>` :
+        html`<div class="header">
+                <div class="title">${this.name}</div>
+              </div>
+              ${this.opened ? content : null}`;
     // clang-format on
   }
 

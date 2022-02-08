@@ -110,7 +110,7 @@ export class FacetingControl extends ReactiveElement {
   }
 
   private updateBins() {
-    const configs: FacetingConfig[] = this.features.sort()
+    const configs: FacetingConfig[] = this.features
         .filter(f => this.groupService.numericalFeatureNames.includes(f))
         .map(f => this.featureConfigs.get(f) as FacetingConfig);
 
@@ -330,7 +330,7 @@ export class FacetingControl extends ReactiveElement {
   }
 
   private renderFeatureOptions() {
-    return this.groupService.denseFeatureNames.sort().map(
+    return this.groupService.denseFeatureNames.map(
         feature => this.renderFeatureOption(feature));
   }
 

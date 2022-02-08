@@ -483,8 +483,7 @@ export class GeneratorModule extends LitModule {
                   .spec=${clonedSpec}
                   .name=${genName}
                   .description=${description||''}
-                  @interpreter-click=${onGenClick}
-                  ?bordered=${true}>
+                  @interpreter-click=${onGenClick}>
                 </lit-interpreter-controls>`;
           })}
         </div>

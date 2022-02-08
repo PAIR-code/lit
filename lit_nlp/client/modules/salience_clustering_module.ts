@@ -271,18 +271,14 @@ export class SalienceClusteringModule extends LitModule {
     return (input != null && input.length >= 2);
   }
 
-  renderSelectionWarning() {
-    if (this.canRunClustering) {
-      return html``;
-    } else {
-      // clang-format off
-      return html`
-        <div class="selection-warning">
-          Please select no datapoint (for entire dataset) or >= 2 datapoints to
-          compute clusters.
-        </div>`;
-      // clang format on
-    }
+  private renderSelectionWarning() {
+    // clang-format off
+    return html`
+      <div class="selection-warning">
+        Please select no datapoint (for entire dataset) or >= 2 datapoints to
+        compute clusters.
+      </div>`;
+    // clang format on
   }
 
   override render() {
@@ -292,21 +288,17 @@ export class SalienceClusteringModule extends LitModule {
         <div class='module-results-area'>
           ${this.renderControlsAndResults()}
         </div>
-        <div class="module-toolbar">
-          ${this.renderSelectionWarning()}
-        </div>
+        ${this.canRunClustering ? html`` : html`
+            <div class="module-toolbar footer">
+              ${this.renderSelectionWarning()}
+            </div>`}
       </div>`;
     // clang format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap,
-                                      datasetSpec: Spec) {
-    for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf(SALIENCE_CLUSTERING_INTERPRETER_NAME) !== -1) {
-        return true;
-      }
-    }
-    return false;
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
+    return Object.values(modelSpecs).some(modelInfo => modelInfo.interpreters
+        .indexOf(SALIENCE_CLUSTERING_INTERPRETER_NAME) !== -1);
   }
 }
 

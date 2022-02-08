@@ -5,6 +5,8 @@
 }
 
 .generators-panel {
+  border-right: 1px solid var(--lit-neutral-300);
+  box-sizing: border-box;
   flex-grow: 0;
   flex-shrink: 0;
   overflow-y: auto;

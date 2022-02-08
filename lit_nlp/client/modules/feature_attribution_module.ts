@@ -106,7 +106,7 @@ export class FeatureAttributionModule extends LitModule {
 
   private readonly groupService = app.getService(GroupService);
 
-  @observable private readonly expanded: VisToggles = {[ALL_DATA]: true};
+  @observable private startsOpen?: string;
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
   @observable private summaries: SummariesMap = {};
@@ -135,7 +135,7 @@ export class FeatureAttributionModule extends LitModule {
     return Object.entries(app.getService(AppState).metadata.interpreters)
                  .filter(([name, i]) =>
                     interpreters.includes(name) &&
-                    findSpecKeys(i.metaSpec,'FeatureSalience'))
+                    findSpecKeys(i.metaSpec,'FeatureSalience').length > 0)
                  .map(([name]) => name);
   }
 
@@ -163,8 +163,13 @@ export class FeatureAttributionModule extends LitModule {
       const summaryName = `Feature: ${key} | Facet: ${facet}`;
       const values = results.map(res => res[key]) as FeatureSalience[];
       const summary = this.summarize(values);
-      if (summary) this.summaries[summaryName] = summary;
-      this.expanded[summaryName] = Object.keys(this.summaries).length === 1;
+      if (summary) {
+        this.summaries[summaryName] = summary;
+
+        if (Object.keys(this.summaries).length === 1) {
+          this.startsOpen = summaryName;
+        }
+      }
     }
   }
 
@@ -212,7 +217,9 @@ export class FeatureAttributionModule extends LitModule {
         const summaryName =
             `Interpreter: ${name} | Key: ${key} | Facet: ${facet}`;
         this.summaries[summaryName] = this.summarize(salience);
-        this.expanded[summaryName] = Object.keys(this.summaries).length === 1;
+        if (Object.keys(this.summaries).length === 1) {
+          this.startsOpen = summaryName;
+        }
       }
     }
   }
@@ -323,21 +330,13 @@ export class FeatureAttributionModule extends LitModule {
         <div class='module-results-area'>
           ${Object.entries(this.summaries)
             .sort()
-            .map(([facet, summary]) => {
-              const toggle = () => {
-                this.expanded[facet] = !this.expanded[facet];
-              };
-              return html`
-                <div class="attribution-container">
-                  <div class="expansion-header" @click=${toggle}>
-                    <div class="attribution-title">${facet}</div>
-                    <mwc-icon class="icon-button min-button">
-                      ${this.expanded[facet] ? 'expand_less' : 'expand_more'}
-                    </mwc-icon>
-                  </div>
-                  ${this.expanded[facet] ? this.renderTable(summary) : ''}
-                </div>`;
-            })}
+            .map(([facet, summary]) => html`
+              <div class="attribution-container">
+                <expansion-panel .label=${facet}
+                                 ?expanded=${facet === this.startsOpen}>
+                  ${this.renderTable(summary)}
+                </expansion-panel>
+              </div>`)}
         </div>
       </div>`;
     // clang-format on
