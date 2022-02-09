@@ -28,7 +28,6 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {WidgetDrag} from '../core/widget_group';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
@@ -36,12 +35,20 @@ import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
+import {LitWidget} from './widget_group';
 
 // Width of a minimized widget group. From widget_group.css.
-const MINIMIZED_WIDTH_PX = 38 + 4; /* width + padding */
+const MINIMIZED_WIDTH_PX = 36;
 
-const COMPONENT_AREA_HPAD = 8; /* padding pixels */
+// Minimum width for a widget group
+const MIN_GROUP_WIDTH_PX = 100;
+
+// Width changes below this delta aren't bubbled up, to avoid unnecssary width
+// recalculations.
+const MIN_GROUP_WIDTH_DELTA_PX = 10;
+
+const COMPONENT_AREA_HPAD = 16; /* padding pixels */
+const EXPANDER_WIDTH = 8;
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -130,11 +137,9 @@ export class LitModules extends ReactiveElement {
     const numMinimized = panelConfig.reduce((agg, group) => {
       return agg + (this.modulesService.isModuleGroupHidden(group[0]) ? 1 : 0);
     }, 0);
-    const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
-                               .getBoundingClientRect()
-                               .width;
-    const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
-                           MINIMIZED_WIDTH_PX * numMinimized;
+    const widthAvailable = window.innerWidth - COMPONENT_AREA_HPAD -
+                           MINIMIZED_WIDTH_PX * numMinimized -
+                           EXPANDER_WIDTH * (panelConfig.length - 1);
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
@@ -149,8 +154,8 @@ export class LitModules extends ReactiveElement {
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
-      const width = Math.max(...numColsList) / totalCols * widthAvailable;
-      layoutWidths[panelName][i] = width;
+      const widthPct = Math.max(...numColsList) / totalCols;
+      layoutWidths[panelName][i] = Math.round(widthPct * widthAvailable);
     }
   }
 
@@ -234,7 +239,8 @@ export class LitModules extends ReactiveElement {
     };
 
     const lowerSectionVisible = Object.keys(layout.lower).length > 0;
-    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}vh` : "100%";
+    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}vh` :
+                                              "100%";
 
     const styles = styleMap({
       '--upper-height': upperHeight,
@@ -247,7 +253,8 @@ export class LitModules extends ReactiveElement {
         ${upperTabsVisible ? renderUpperTabBar() : null}
         <div id='upper-group-area'>
           ${this.renderComponentGroups(layout.upper, upperTabToSelect,
-                                       this.upperLayoutWidths)}
+                                       this.upperLayoutWidths,
+                                       'widget-group-upper')}
         </div>
         ${lowerSectionVisible ? html`
           <div class='tab-bar' id='center-bar'>
@@ -263,7 +270,8 @@ export class LitModules extends ReactiveElement {
           </div>
           <div id='lower-group-area'>
             ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
-                                         this.lowerLayoutWidths)}
+                                         this.lowerLayoutWidths,
+                                         'widget-group-lower')}
           </div>
         ` : null}
       </div>
@@ -299,14 +307,15 @@ export class LitModules extends ReactiveElement {
    */
   renderComponentGroups(
       layout: LitTabGroupConfig, tabToSelect: string,
-      layoutWidths: LayoutWidths) {
-    return Object.keys(layout).map(tabName => {
+      layoutWidths: LayoutWidths, idPrefix: string) {
+    return Object.keys(layout).map((tabName, i) => {
       const configs: RenderConfig[][] = layout[tabName];
       const selected = tabToSelect === tabName;
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
         <div class=${classes}>
-          ${this.renderWidgetGroups(configs, tabName, layoutWidths)}
+          ${this.renderWidgetGroups(configs, tabName, layoutWidths,
+                                    `${idPrefix}-${i}`)}
         </div>`;
     });
   }
@@ -335,42 +344,79 @@ export class LitModules extends ReactiveElement {
   }
 
   renderWidgetGroups(configs: RenderConfig[][], section: string,
-                     layoutWidths: LayoutWidths) {
+                     layoutWidths: LayoutWidths, idPrefix: string) {
     // Recalculate the widget group widths when isMinimized state changes.
     const onMin = () => {
       this.calculatePanelWidths(section, configs, layoutWidths);
     };
 
     return configs.map((configGroup, i) => {
-      const onDrag = (event: CustomEvent<WidgetDrag>) => {
-        // If this is the rightmost group, do nothing.
-        if (i >= configs.length - 1) return;
+      const width = layoutWidths[section]? layoutWidths[section][i] : 0;
+      const isLastGroup = i === configs.length - 1;
+      const id = `${idPrefix}-${i}`;
 
-        const {dragWidth} = event.detail;
+      let nextShownGroupIndex = -1;
 
-        // Balance the delta in width with the widget directly to its right,
-        // so if a widget is expanded, then the adjacent widget to its right is
-        // shrunk by the same amount.
-        const adjacentConfig = configs[i + 1];
-        if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
-          const widthChange = dragWidth - layoutWidths[section][i];
-          const oldAdjacentWidth = layoutWidths[section][i + 1];
-          layoutWidths[section][i + 1] =
-              Math.max(MIN_GROUP_WIDTH_PX, oldAdjacentWidth - widthChange);
+      // Try to find an open widget group to the right of this one
+      for (let adj = i + 1; adj < configs.length; adj++) {
+        if (!this.modulesService.isModuleGroupHidden(configs[adj][0])) {
+          nextShownGroupIndex = adj;
+          break;
         }
+      }
 
-        // Set the width of the dragged widget group.
-        layoutWidths[section][i] = dragWidth;
+      const isDraggable =
+          nextShownGroupIndex > i &&
+          !this.modulesService.isModuleGroupHidden(configGroup[0]);
+
+      const expanderStyles = styleMap({
+        'cursor': isDraggable ? 'ew-resize' : 'default'
+      });
+
+      const dragged = (e: DragEvent) => {
+        // If this is the rightmost group, or this isn't draggable, or this is
+        // minimized, do nothing.
+        if (isLastGroup || !isDraggable ||
+            this.modulesService.isModuleGroupHidden(configGroup[0])) return;
+
+        const widgetGroup = this.shadowRoot!.querySelector(`#${id}`);
+        const left = widgetGroup!.getBoundingClientRect().left;
+        const dragWidth = Math.round(e.clientX - left - EXPANDER_WIDTH);
+        const dragLength = dragWidth - width;
+
+        // Groups have a minimum width, so the user can't drag any further to
+        // the left than that
+        const atMinimum = dragWidth <= MIN_GROUP_WIDTH_PX;
+        // We enforce a minimum drag distance before requesting an update,
+        // effectively a distance-based throttle for render performance
+        const isSufficient = Math.abs(dragLength) > MIN_GROUP_WIDTH_DELTA_PX;
+        if (atMinimum || !isSufficient) return;
+
+        // Balance the delta in width with the next open widget to its right, so
+        // if a widget is expanded, then the next open widget to its right is
+        // shrunk by the same amount and vice versa.
+        const oldAdjacentWidth = layoutWidths[section][nextShownGroupIndex];
+        const newWidth = Math.round(oldAdjacentWidth - dragLength);
+        const newAdjacentWidth = Math.max(MIN_GROUP_WIDTH_PX, newWidth);
+        const deltaFromDrag = newAdjacentWidth - newWidth;
+        layoutWidths[section][nextShownGroupIndex] = newAdjacentWidth;
+        layoutWidths[section][i] =
+            dragWidth - (newAdjacentWidth > newWidth ? deltaFromDrag : 0);
+
         this.requestUpdate();
       };
 
-      const width = layoutWidths[section] ? layoutWidths[section][i] : 0;
       // clang-format off
       return html`
-        <lit-widget-group .configGroup=${configGroup} .width=${width}
-          @widget-group-minimized-changed=${onMin}
-          @widget-group-drag=${onDrag} ?dragEnabled=${i < configs.length - 1}>
-        </lit-widget-group>`;
+        <lit-widget-group id=${id} .configGroup=${configGroup} .width=${width}
+                          @widget-group-minimized-changed=${onMin}>
+        </lit-widget-group>
+        ${isLastGroup ? html`` : html`
+            <div class="expander" style=${expanderStyles}>
+              <div class="expander-drag-target" draggable=${isDraggable}
+                   @drag=${(e: DragEvent) => { dragged(e); }}>
+              </div>
+            </div>`}`;
       // clang-format on
     });
   }

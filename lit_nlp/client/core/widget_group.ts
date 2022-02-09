@@ -37,22 +37,11 @@ import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
-/** Minimum width for a widget group. */
-export const MIN_GROUP_WIDTH_PX = 100;
-
-// Width changes below this delta aren't bubbled up, to avoid unnecssary width
-// recalculations.
-const MIN_GROUP_WIDTH_DELTA_PX = 10;
-
-/** Type for custom widget drag event  */
-export interface WidgetDrag {
-  dragWidth: number;
-}
-/** Type for custom widget drag event  */
+/** Type for custom widget minimize event. */
 export interface WidgetMinimizedChange {
   isMinimized: boolean;
 }
-/** Type for custom widget drag event  */
+/** Type for custom widget scroll event. */
 export interface WidgetScroll {
   scrollTop: number;
   scrollLeft: number;
@@ -69,7 +58,6 @@ export class WidgetGroup extends LitElement {
   @property({ type: Boolean, reflect: true }) minimized = false;
   @property({ type: Boolean, reflect: true }) maximized = false;
   @property({ type: Boolean, reflect: true }) dragging = false;
-  @property({type: Boolean, reflect: true}) dragEnabled = false;
   @property({ type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
@@ -203,7 +191,6 @@ export class WidgetGroup extends LitElement {
             ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
           </div>
         </div>
-        ${this.dragEnabled ? this.renderExpander() : null}
        </div>
     `;
     // clang-format on
@@ -250,41 +237,6 @@ export class WidgetGroup extends LitElement {
       </lit-widget>
     `;
     // clang-format on
-  }
-
-  renderExpander() {
-
-    const dragged = (e: DragEvent) => {
-      const holder = this.shadowRoot!.querySelector('.holder')!;
-      const left = holder.getBoundingClientRect().left;
-      const dragWidth = e.clientX - left;
-
-      if (dragWidth > MIN_GROUP_WIDTH_PX &&
-          Math.abs(dragWidth - this.width) > MIN_GROUP_WIDTH_DELTA_PX) {
-        const event = new CustomEvent<WidgetDrag>('widget-group-drag', {
-          detail: {dragWidth}
-        });
-        this.dispatchEvent(event);
-      }
-    };
-
-    const dragStarted  = () => {
-      this.dragging = true;
-    };
-
-    if (!this.maximized && !this.minimized) {
-      return html`
-        <div class="expander">
-          <div class="expander-drag-target" draggable='true'
-            @drag=${(e: DragEvent) => { dragged(e); }}
-            @dragstart=${() => { dragStarted(); }}
-            @dragend=${() => { this.dragging = false; }}>
-          </div>
-        </div>
-      `;
-    } else {
-      return html``;
-    }
   }
 
   private initMinimized() {

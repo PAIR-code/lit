@@ -76,22 +76,6 @@ lit-widget {
   min-height: 128px;
 }
 
-.expander {
-  position: absolute;
-  top: 0;
-  right: -8px;
-  height: 100%;
-  width: 10px;
-  cursor: ew-resize;
-}
-
-.expander-drag-target{
-  position: absolute;
-  width: 100%;
-  height:100%;
-  opacity: 0;
-}
-
 /**
  * Maximized state
  */
@@ -124,17 +108,13 @@ lit-widget {
 /**
  * Minimized state
  */
-:host([minimized]) {
-  min-width: calc(var(--lit-group-header-height) + 10px);
-  width: calc(var(--lit-group-header-height) + 10px);
-}
-
-:host([minimized]) .outside {
-  width: calc(var(--lit-group-header-height) + 2px);
-}
-
+:host([minimized]),
+:host([minimized]) .header,
+:host([minimized]) .outside,
 :host([minimized]) .wrapper {
-  width: calc(var(--lit-group-header-height) + 2px);
+  min-width: var(--lit-group-header-height);
+  width: var(--lit-group-header-height);
+  max-width: var(--lit-group-header-height);
 }
 
 :host([minimized]) .header {
@@ -143,7 +123,6 @@ lit-widget {
   padding-left: 0;
   padding-right: 0;
   height: 100%;
-  width: calc(var(--lit-group-header-height) + 2px);
   writing-mode: vertical-lr;
   transform: rotate(180deg);
 }
