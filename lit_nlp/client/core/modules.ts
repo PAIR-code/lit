@@ -37,7 +37,8 @@ import {styles} from './modules.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitWidget} from './widget_group';
 
-// Width of a minimized widget group. From widget_group.css.
+// Width of a minimized widget group. Set to the value of
+// --lit-group-header-height when :host([minimized]) in widget_group.css.
 const MINIMIZED_WIDTH_PX = 36;
 
 // Minimum width for a widget group
@@ -47,8 +48,9 @@ const MIN_GROUP_WIDTH_PX = 100;
 // recalculations.
 const MIN_GROUP_WIDTH_DELTA_PX = 10;
 
-const COMPONENT_AREA_HPAD = 16; /* padding pixels */
-const EXPANDER_WIDTH = 8;
+// The following values are derived from
+const COMPONENT_AREA_HPAD = 16;   // 2x components-group-holder.padding
+const EXPANDER_WIDTH = 8;         //
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -64,8 +66,8 @@ interface LayoutWidths {
 @customElement('lit-modules')
 export class LitModules extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({type: Number})
-  mainSectionHeight = this.modulesService.getSetting('mainHeight') || 45;
+  @property({type: Number}) mainSectionHeight =
+      this.modulesService.getSetting('mainHeight') || 45;
   @observable upperLayoutWidths: LayoutWidths = {};
   @observable lowerLayoutWidths: LayoutWidths = {};
   private resizeObserver!: ResizeObserver;
@@ -239,7 +241,7 @@ export class LitModules extends ReactiveElement {
     };
 
     const lowerSectionVisible = Object.keys(layout.lower).length > 0;
-    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}vh` :
+    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}%` :
                                               "100%";
 
     const styles = styleMap({
@@ -280,24 +282,25 @@ export class LitModules extends ReactiveElement {
   }
 
   private onBarDragged(e: DragEvent) {
-    // TODO(lit-dev): compute this relative to the container, rather than using
-    // vh?
-    const main = this.shadowRoot!.getElementById('upper-group-area')!;
-    const mainTopPos = main.getBoundingClientRect().top;
+    const {top, bottom} = this.shadowRoot!.getElementById('outer-container')!
+                                          .getBoundingClientRect();
     // Sometimes Chrome will fire bad drag events, either at (0,0)
     // or jumping around a few hundred pixels off from the drag handler.
     // Detect and ignore these so the UI doesn't get messed up.
-    const handlerBCR =
-        this.shadowRoot!.getElementById(
-                            'drag-handler')!.getBoundingClientRect();
+    const handlerBCR = this.shadowRoot!.getElementById('drag-handler')!
+                                       .getBoundingClientRect();
     const yOffset = -10;
-    if (e.clientY + yOffset < mainTopPos || e.clientY <= handlerBCR.top - 30 ||
-        e.clientY >= handlerBCR.bottom + 30) {
+
+    if (e.clientY + yOffset < top ||              // Drag over the top
+        e.clientY <= handlerBCR.top - 30 ||       // Different drag over the top
+        e.clientY >= handlerBCR.bottom + 30) {    // Drag below the bottom
       console.log('Anomalous drag event; skipping resize', e);
       return;
     }
-    this.mainSectionHeight = Math.floor(
-        (e.clientY + yOffset - mainTopPos) / window.innerHeight * 100);
+
+    this.mainSectionHeight =
+        Math.floor((e.clientY + yOffset - top) / Math.abs(bottom - top) * 100);
+    this.requestUpdate();
   }
 
   /**

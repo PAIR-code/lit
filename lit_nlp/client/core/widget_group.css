@@ -16,6 +16,8 @@
   box-sizing: border-box;
   background-color: white;
   background-clip: content-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -33,9 +35,9 @@
   font-size: 14px;
   font-family: 'Google Sans', sans;
   white-space: nowrap;
+  text-overflow: ellipsis;
   overflow: hidden;
-  flex: 1;
-  display: flex;
+  flex: 1 1 auto;
 }
 
 .min-button {
