@@ -82,7 +82,7 @@ export class InterpreterControls extends ReactiveElement {
         </div>`;
 
     return expandable ?
-        html`<expansion-panel .label=${this.name} ?startOpen=${this.opened}>
+        html`<expansion-panel .label=${this.name} ?expanded=${this.opened}>
                 ${content}
               </expansion-panel>` :
         html`<div class="header">
