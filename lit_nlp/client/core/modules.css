@@ -27,12 +27,14 @@
 #upper-group-area {
   position: relative;
   height: var(--upper-height);
+  background-color: var(--lit-mintonal-p-1);
 }
 
 #lower-group-area {
   position: relative;
   flex: 1;
   max-height: calc(100% - var(--upper-height) - var(--num-tab-bars) * var(--tab-bar-height));
+  background-color: var(--lit-mintonal-p-3);
 }
 
 .components-group-holder {
@@ -42,7 +44,7 @@
   visibility: hidden;
   height: 100%;
   width: 100%;
-  padding: 2px;
+  padding: 8px 4px;
   box-sizing: border-box;
 }
 
@@ -51,7 +53,7 @@
 }
 
 lit-widget-group {
-  padding: 0 2px; /* gives 4px between adjacent groups */
+  padding: 0 4px; /* gives 4px between adjacent groups */
   box-sizing: border-box;
 }
 
@@ -66,6 +68,8 @@ lit-widget-group[maximized] {
   display: flex;
   align-items: center;
   height: var(--tab-bar-height);
+  border-bottom: 1px solid var(--lit-neutral-300);
+  border-top: 1px solid var(--lit-neutral-300);
 }
 
 /* If in centered mode, tab bars should align to modules */

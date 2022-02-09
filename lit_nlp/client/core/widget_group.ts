@@ -23,7 +23,7 @@ import '@material/mwc-icon';
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {property} from 'lit/decorators';
 import {customElement} from 'lit/decorators';
-import { html, LitElement} from 'lit';
+import {html, LitElement} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 
@@ -201,9 +201,9 @@ export class WidgetGroup extends LitElement {
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
             ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
-            ${this.dragEnabled ? this.renderExpander() : null}
           </div>
         </div>
+        ${this.dragEnabled ? this.renderExpander() : null}
        </div>
     `;
     // clang-format on

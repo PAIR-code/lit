@@ -6,6 +6,7 @@
 }
 
 .outside {
+  position: relative;   /* Necessary so that the expander positions correctly */
   width: 100%;
   height: 100%;
 }
@@ -77,9 +78,9 @@ lit-widget {
 
 .expander {
   position: absolute;
-  bottom: 0px;
-  right: 0px;
-  height: 90%;
+  top: 0;
+  right: -8px;
+  height: 100%;
   width: 10px;
   cursor: ew-resize;
 }
@@ -124,8 +125,8 @@ lit-widget {
  * Minimized state
  */
 :host([minimized]) {
-  min-width: calc(var(--lit-group-header-height) + 6px);
-  width: calc(var(--lit-group-header-height) + 6px);
+  min-width: calc(var(--lit-group-header-height) + 10px);
+  width: calc(var(--lit-group-header-height) + 10px);
 }
 
 :host([minimized]) .outside {

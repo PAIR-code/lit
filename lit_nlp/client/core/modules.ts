@@ -28,19 +28,20 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {WidgetDrag, WidgetMinimizedChange} from '../core/widget_group';
+import {WidgetDrag} from '../core/widget_group';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
 
 // Width of a minimized widget group. From widget_group.css.
 const MINIMIZED_WIDTH_PX = 38 + 4; /* width + padding */
 
-const COMPONENT_AREA_HPAD = 4; /* padding pixels */
+const COMPONENT_AREA_HPAD = 8; /* padding pixels */
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -63,7 +64,7 @@ export class LitModules extends ReactiveElement {
   private resizeObserver!: ResizeObserver;
 
   static override get styles() {
-    return styles;
+    return [sharedStyles, styles];
   }
 
   override firstUpdated() {
@@ -122,36 +123,29 @@ export class LitModules extends ReactiveElement {
   }
 
   // Calculate widths of all module groups in a single panel.
-  calculatePanelWidths(
-      panelName: string, panelConfig: RenderConfig[][],
-      layoutWidths: LayoutWidths) {
+  calculatePanelWidths(panelName: string, panelConfig: RenderConfig[][],
+                       layoutWidths: LayoutWidths) {
     // Get the number of minimized widget groups to calculate the total width
     // available for non-minimized widgets.
-    let numMinimized = 0;
-    for (const configGroup of panelConfig) {
-      if (this.modulesService.isModuleGroupHidden(configGroup[0])) {
-        numMinimized +=1;
-      }
-    }
+    const numMinimized = panelConfig.reduce((agg, group) => {
+      return agg + (this.modulesService.isModuleGroupHidden(group[0]) ? 1 : 0);
+    }, 0);
     const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
                                .getBoundingClientRect()
                                .width;
     const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
-        MINIMIZED_WIDTH_PX * numMinimized;
+                           MINIMIZED_WIDTH_PX * numMinimized;
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
-    let totalCols = 0;
-    for (const configGroup of panelConfig) {
-      if (this.modulesService.isModuleGroupHidden(configGroup[0])) {
-        continue;
-      }
-      const numColsList = configGroup.map(config => config.moduleType.numCols);
-      totalCols += Math.max(...numColsList);
-    }
+    const totalCols = panelConfig.reduce((agg, group) => {
+      if (this.modulesService.isModuleGroupHidden(group[0])) return agg;
+      const numColsList = group.map(config => config.moduleType.numCols);
+      return agg + Math.max(...numColsList);
+    }, 0);
 
     // Set the width for each widget group based on the maximum number of
-    // columns it's widgets have specified and the width available.
+    // columns its widgets have specified and the width available.
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
@@ -340,11 +334,10 @@ export class LitModules extends ReactiveElement {
     });
   }
 
-  renderWidgetGroups(
-      configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths) {
-    // Calllback for widget isMinimized state changes.
-    const onMin = (event: CustomEvent<WidgetMinimizedChange>) => {
-      // Recalculate the widget group widths in this section.
+  renderWidgetGroups(configs: RenderConfig[][], section: string,
+                     layoutWidths: LayoutWidths) {
+    // Recalculate the widget group widths when isMinimized state changes.
+    const onMin = () => {
       this.calculatePanelWidths(section, configs, layoutWidths);
     };
 
@@ -355,9 +348,9 @@ export class LitModules extends ReactiveElement {
 
         const {dragWidth} = event.detail;
 
-        // Balance the delta in width with the widget directly to it's left,
-        // so if a widget is expanded, then its adjacent widget is shrunk by
-        // the same amount.
+        // Balance the delta in width with the widget directly to its right,
+        // so if a widget is expanded, then the adjacent widget to its right is
+        // shrunk by the same amount.
         const adjacentConfig = configs[i + 1];
         if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
           const widthChange = dragWidth - layoutWidths[section][i];
@@ -368,7 +361,6 @@ export class LitModules extends ReactiveElement {
 
         // Set the width of the dragged widget group.
         layoutWidths[section][i] = dragWidth;
-
         this.requestUpdate();
       };
 
