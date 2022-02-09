@@ -38,7 +38,7 @@ Also, beware of memory usage: since LIT keeps the models in memory to support
 new queries, only so many can fit on a single node or GPU. If you want to load
 more models than can fit in local memory, you can host your model with your
 favorite serving framework and interface with it using a custom
-[`Model`](python_api.md#models) class.
+[`Model`](api.md#models) class.
 
 We also have experimental support for using LIT as a lightweight model server;
 this can be useful, e.g., for comparing an experimental model running locally
@@ -77,6 +77,21 @@ scripts should work without any modifications. For examples, see:
     model.
 *   [T5 demo](../lit_nlp/examples/t5_demo.py) -
     includes WMT data for machine translation
+
+## Data Types
+
+In addition to text, LIT has good support for different input and output
+modalities, including images and tabular data. For examples, see:
+
+*   [Image demo](../lit_nlp/examples/image_demo.py) -
+    image classification, using a Mobilenet model.
+*   [Tabular demo](../lit_nlp/examples/penguin_demo.py) -
+    mult-class classification on tabular (numeric and categorical string) data,
+    using the
+    [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
+    dataset.
+
+For more details, see [the features guide to input and output types](api.md#input-and-output-types).
 
 ## Workflow and Integrations
 
