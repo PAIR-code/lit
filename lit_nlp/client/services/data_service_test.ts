@@ -130,8 +130,7 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, 1);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test',
-                               getValueFn, false);
+    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.cols.length).toBe(1);
     expect(dataService.cols[0].name).toBe('newFeat');
@@ -147,8 +146,7 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test',
-                          getValueFn, false);
+    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('a', 'newFeat')).toBe(0);
     expect(dataService.getVal('b', 'newFeat')).toBe(1);
@@ -166,8 +164,7 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test',
-                          getValueFn, false);
+    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('newDatapoint', 'newFeat')).toBeNull();
     const newDatapoint = {

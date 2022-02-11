@@ -40,7 +40,6 @@ export interface DataColumnHeader {
   name: string;
   source: Source;
   getValueFn: ValueFn;
-  addToDataTable: boolean;
 }
 
 /** Map of datapoint ID to values for a column of data. */
@@ -105,10 +104,10 @@ export class DataService extends LitService {
    * Add new column to data service, including values for existing datapoints.
    */
   @action
-  addColumn(columnVals: ColumnData, name: string, dataType: LitType,
-            source: Source, getValueFn: ValueFn, addToDataTable: boolean) {
-    this.columnHeaders.set(name, {
-      dataType, source, name, getValueFn, addToDataTable});
+  addColumn(
+      columnVals: ColumnData, name: string, dataType: LitType, source: Source,
+      getValueFn: ValueFn) {
+    this.columnHeaders.set(name, {dataType, source, name, getValueFn});
     this.columnData.set(name, columnVals);
   }
 
