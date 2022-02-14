@@ -1,6 +1,6 @@
 # Frontend Developer Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-08-17' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-02-14' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -87,9 +87,9 @@ const layout: LitComponentLayout = {
 ```
 
 The full layouts are defined in
-[`layout.ts`](../lit_nlp/client/default/layout.ts). To
-use a specific layout for a given LIT instance, pass the key (e.g., "simple" or
-"mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
+[`layout.ts`](../lit_nlp/client/default/layout.ts).
+To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
+or "mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
 layout can be set on-the-fly a URL param (the url param overrides the server
 flag).
 
@@ -109,7 +109,7 @@ starting the initial load of data from the server. This process consists of:
 1.  Parsing the URL query params to get the url configuration
 1.  Fetching the app metadata, which includes what models/datasets are available
     to use.
-1.  Determining which models/datasets to load and then loding them.
+1.  Determining which models/datasets to load and then loading them.
 
 ## Modules (LitModule)
 
@@ -232,13 +232,13 @@ we do this all in a reactive way.
 
 First, since the `LitModule` base class derives from `MobxLitElement`, any
 observable data that we use in the `render` method automatically triggers a
-rerener when updated. This is excellent for simple use cases, but what about
+re-render when updated. This is excellent for simple use cases, but what about
 when we want to trigger more complex behavior, such as the asynchronous request
 outlined above?
 
 The pattern that we leverage across the app is as follows: The `render` method
 (10) accesses a private observable `pigLatin` property (6) that, when updated,
-will rerender the template and show the results of the translation
+will re-render the template and show the results of the translation
 automatically. In order to update the `pigLatin` observable, we need to set up a
 bit of machinery. In the lit-element lifecycle method `firstUpdated`, we use a
 helper method `reactImmediately` (7) to set up an explicit reaction to the user
@@ -249,7 +249,7 @@ something whenever the selection changes. Note, another helper method `react` is
 used in the same way as `reactImmediately`, in instances where you don't want to
 immediately invoke the reaction.
 
-We pass the selction to the `getTranslation` method to fetch the data from our
+We pass the selection to the `getTranslation` method to fetch the data from our
 API service. However rather than awaiting our API request directly, we pass the
 request promise (8) to another helper method `loadLatest` (9). This ensures that
 we won't have any race conditions if, for instance, the user selects different
@@ -260,7 +260,7 @@ template is automatically rerendered, displaying our data.
 
 This may seem like a bit of work for a simple module, but the pattern of using
 purely observable data to declaratively specify what gets rendered is very
-powerful for simpligying the logic around building larger, more complex
+powerful for simplifying the logic around building larger, more complex
 components.
 
 ### Escape Hatches
@@ -358,15 +358,16 @@ source from the build output.
 
 If you're modifying the Python backend, there is experimental support for
 hot-reloading the LIT application logic (`app.py`) and some dependencies without
-needing to re-load models or datasets. See
-[`dev_server.py`](../lit_nlp/dev_server.py) for details.
+needing to reload models or datasets. See
+[`dev_server.py`](../lit_nlp/dev_server.py) for
+details.
 
 You can use the `--data_dir` flag (see
-[`server_flags.py`](../lit_nlp/server_flags.py) to save the predictions cache to
-disk, and automatically re-load it on a subsequent run. In conjunction with
-`--warm_start`, you can use this to avoid re-running inference during
-development - though if you modify the model at all, you should be sure to
-remove any stale cache files.
+[`server_flags.py`](../lit_nlp/server_flags.py) to
+save the predictions cache to disk, and automatically reload it on a subsequent
+run. In conjunction with `--warm_start`, you can use this to avoid re-running
+inference during development - though if you modify the model at all, you should
+be sure to remove any stale cache files.
 
 ## Custom Client / Modules
 
