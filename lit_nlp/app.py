@@ -256,8 +256,13 @@ class LitApp(object):
 
     assert model_name is not None, 'No model specified.'
     assert model_path is not None, 'No model path specified.'
-    # Load using the underlying model class, then wrap explicitly in a cache.
-    new_model = self._models[model_name].wrapped.load(model_path)
+    # Load using the underlying model class.
+    model = self._models[model_name]
+    if isinstance(model, caching.CachingModelWrapper):
+      # Wrap explicitly in a cache.
+      new_model = model.wrapped.load(model_path)
+    else:
+      new_model = model.load(model_path)
     if new_model is not None:
       new_model_name = model_name + ':' + os.path.basename(model_path)
       self._models[new_model_name] = caching.CachingModelWrapper(
@@ -409,6 +414,7 @@ class LitApp(object):
       canonical_url: Optional[str] = None,
       page_title: Optional[str] = None,
       development_demo: bool = False,
+      use_caching: bool = True,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -423,10 +429,14 @@ class LitApp(object):
       os.mkdir(data_dir)
 
     # Wrap models in caching wrapper
-    self._models = {
-        name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
-        for name, model in models.items()
-    }
+    self.use_caching = use_caching
+    if self.use_caching:
+      self._models = {
+          name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
+          for name, model in models.items()
+      }
+    else:
+      self._models = {name: model for name, model in models.items()}
 
     self._datasets = dict(datasets)
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
