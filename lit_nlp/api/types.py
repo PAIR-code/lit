@@ -472,4 +472,14 @@ class Boolean(LitType):
   default: bool = False
 
 
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class CurveDataPoints(LitType):
+  """Represents data points of a curve.
+
+  A list of tuples where the first and second elements of the tuple are the
+  x and y coordinates of the corresponding curve point respectively.
+  """
+  pass
+
+
 # LINT.ThenChange(../client/lib/types.ts)
