@@ -123,6 +123,9 @@ class LitApp(object):
         'defaultLayout': self._default_layout,
         'canonicalURL': self._canonical_url,
         'pageTitle': self._page_title,
+        'inlineDoc': self._inline_doc,
+        'onboardStartDoc': self._onboard_start_doc,
+        'onboardEndDoc': self._onboard_end_doc,
     }
 
   def _get_model_spec(self, name: Text):
@@ -409,6 +412,9 @@ class LitApp(object):
       canonical_url: Optional[str] = None,
       page_title: Optional[str] = None,
       development_demo: bool = False,
+      inline_doc: Optional[str] = None,
+      onboard_start_doc: Optional[str] = None,
+      onboard_end_doc: Optional[str] = None,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -417,6 +423,9 @@ class LitApp(object):
     self._default_layout = default_layout
     self._canonical_url = canonical_url
     self._page_title = page_title
+    self._inline_doc = inline_doc
+    self._onboard_start_doc = onboard_start_doc
+    self._onboard_end_doc = onboard_end_doc
     self._data_dir = data_dir
     self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):

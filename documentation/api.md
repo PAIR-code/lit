@@ -769,6 +769,12 @@ to `dev_server.Server()`. These include:
     the section below for available layouts.
 *   `demo_mode`: demo / kiosk mode, which disables some functionality (such as
     save/load datapoints) which you may not want to expose to untrusted users.
+*   `inline_doc`: a markdown string that will be rendered in a documentation
+    module in the main LIT panel.
+*   `onboard_start_doc`: a markdown string that will be rendered as the first
+    panel of the LIT onboarding splash-screen.
+*   `onboard_end_doc`: a markdown string that will be rendered as the last
+    panel of the LIT onboarding splash-screen.
 
 For detailed documentation, see
 [server_flags.py](../lit_nlp/server_flags.py).

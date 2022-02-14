@@ -28,6 +28,7 @@ import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
 import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
+import {DocumentationModule} from '../modules/documentation_module';
 import {EmbeddingsModule} from '../modules/embeddings_module';
 import {FeatureAttributionModule} from '../modules/feature_attribution_module';
 import {GeneratedImageModule} from '../modules/generated_image_module';
@@ -79,7 +80,7 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'simple':  {
     upper: {
-      "Editor": [SimpleDatapointEditorModule],
+      "Editor": [DocumentationModule, SimpleDatapointEditorModule],
       "Examples": [SimpleDataTableModule],
     },
     lower: {
@@ -98,7 +99,7 @@ export const LAYOUTS: LitComponentLayouts = {
    */
   'default':  {
     components : {
-      'Main': [EmbeddingsModule, ...DEFAULT_MAIN_GROUP],
+      'Main': [DocumentationModule, EmbeddingsModule, ...DEFAULT_MAIN_GROUP],
       'Predictions': [
         ...MODEL_PREDS_MODULES,
         ScalarModule,

@@ -52,6 +52,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @observable initialized = false;
 
+  @observable documentationOpen = false;
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled: boolean = false;

@@ -44,6 +44,7 @@ export class UrlConfiguration {
   layoutName?: string;
   /** Path to load a new dataset from, on pageload. */
   newDatasetPath?: string;
+  documentationOpen?: boolean;
 }
 
 /**
@@ -60,6 +61,7 @@ export interface StateObservedByUrlService {
   getCurrentInputDataById: (id: string) => IndexedInput | null;
   annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
+  documentationOpen: boolean;
 }
 
 /**
@@ -91,6 +93,7 @@ const SELECTED_DATASET_KEY = 'dataset';
 const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
 const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
+const DOC_OPEN_KEY = 'doc_open';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
 /** Path to load a new dataset from, on pageload. */
@@ -160,6 +163,8 @@ export class UrlService extends LitService {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
       } else if (key === COMPARE_EXAMPLES_ENABLED_KEY) {
         urlConfiguration.compareExamplesEnabled = this.urlParseBoolean(value);
+      } else if (key === DOC_OPEN_KEY) {
+        urlConfiguration.documentationOpen = this.urlParseBoolean(value);
       } else if (key === SELECTED_TAB_UPPER_KEY) {
         urlConfiguration.selectedTabUpper = this.urlParseString(value);
       } else if (key === SELECTED_TAB_LOWER_KEY) {
@@ -238,6 +243,13 @@ export class UrlService extends LitService {
       appState.compareExamplesEnabled = true;
     }
 
+    if (selectionService.selectedIds.length > 0 &&
+        urlConfiguration.compareExamplesEnabled) {
+      appState.compareExamplesEnabled = true;
+    }
+
+    appState.documentationOpen = urlConfiguration.documentationOpen || false;
+
     autorun(() => {
       const urlParams = new URLSearchParams();
 
@@ -255,6 +267,10 @@ export class UrlService extends LitService {
       }
       this.setUrlParam(
           urlParams, SELECTED_DATASET_KEY, appState.currentDataset);
+
+      if (appState.documentationOpen) {
+        this.setUrlParam(urlParams, DOC_OPEN_KEY, 'true');
+      }
 
       this.setUrlParam(
           urlParams, COMPARE_EXAMPLES_ENABLED_KEY,

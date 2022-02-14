@@ -125,6 +125,9 @@ export interface LitMetadata {
   defaultLayout: string;
   canonicalURL?: string;
   pageTitle?: string;
+  inlineDoc?: string;
+  onboardStartDoc?: string;
+  onboardEndDoc?: string;
 }
 
 export interface Input {

@@ -22,6 +22,9 @@
 import * as d3 from 'd3';  // Used for array helpers.
 
 import {html, TemplateResult} from 'lit';
+import {unsafeHTML} from 'lit/directives/unsafe-html.js';
+
+import {marked} from 'marked';
 import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
@@ -435,4 +438,10 @@ export function replaceNth(str: string, orig: string, replacement: string,
 /** Return a good step size given a range of values. */
 export function getStepSizeGivenRange(range: number) {
   return range > 100 ? 10: range > 10 ? 1 : range > 1 ? 0.1 : 0.01;
+}
+
+/** Convert a markdown string into an HTML template for rendering. */
+export function getTemplateStringFromMarkdown(markdown: string) {
+  const htmlStr = marked(markdown);
+  return unsafeHTML(htmlStr);
 }

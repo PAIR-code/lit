@@ -1,0 +1,103 @@
+#doc-holder {
+  width: 0;
+  height: 0;
+  z-index: 4;
+  position: fixed;
+}
+
+#overlay {
+  background: rgba(4, 29, 51, .47);
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  transition: opacity 250ms;
+}
+
+#overlay.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+
+#doc {
+  font-family: 'Google Sans';
+  position: absolute;
+  top: 30vh;
+  left: 27vw;
+  height: 40vh;
+  width: 46vw;
+  padding: 16px 8px 8px 8px;
+  box-sizing: border-box;
+  background-color: white;
+  box-shadow: var(--lit-box-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+#doc.hide {
+  display: none;
+}
+
+a {
+  text-decoration: none;
+  color: var(--lit-neutral-700);
+  padding: 0 5pt;
+}
+
+#holder {
+  padding: 12pt;
+  height: calc(100% - 48pt);
+}
+
+.page-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prev-next-container {
+  display: flex;
+}
+
+.dot {
+  height: 12px;
+  width: 12px;
+  margin: 6px;
+  background-color: var(--lit-neutral-500);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.filled {
+  background-color: var(--lit-cyea-500);
+}
+
+.nav-button {
+  width: 94px;
+}
+
+.dots-line {
+  margin: auto;
+}
+
+.dots-holder {
+  display: flex;
+}
+
+.checkbox {
+  color: var(--lit-neutral-700);
+}
+
+.doc-open-icon {
+  --mdc-icon-size: 14px;
+  vertical-align: middle;
+}
+
+.nav-icon {
+  margin: 0 4px;
+}
