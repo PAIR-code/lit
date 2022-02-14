@@ -476,7 +476,7 @@ class LitApp(object):
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
           'pdp': pdp.PdpInterpreter(),
-          'salience clustering': salience_clustering.SalienceClustering(
+          'Salience Clustering': salience_clustering.SalienceClustering(
               gradient_map_interpreters),
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.

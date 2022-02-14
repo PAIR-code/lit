@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-import '../elements/line_chart';
-import '../elements/bar_chart';
+import '../elements/expansion_panel';
 
 import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
+import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
-import {TableData} from '../elements/table';
+import {SortableTemplateResult, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, Input, ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -33,7 +33,9 @@ import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {styles} from './salience_clustering_module.css';
 
 const SALIENCE_MAPPER_KEY = 'Salience Mapper';
-const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'salience clustering';
+const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'Salience Clustering';
+const RESULT_DATA_TABLE = 'Data Table';
+const RESULT_TOP_TOKENS = 'Top Tokens';
 
 interface ModuleState {
   dataColumns: string[];
@@ -42,8 +44,10 @@ interface ModuleState {
   clusteringState: ClusteringState;
 }
 
+// Aggregated result of the clustering interpreter.
 interface ClusteringState {
   clusterInfos: {[gradKey: string]: ClusterInfo[]};
+  topTokenInfosByClusters: {[gradKey: string]: TopTokenInfosByCluster[]};
   isLoading: boolean;
 }
 
@@ -51,6 +55,22 @@ interface ClusteringState {
 interface ClusterInfo {
   example: Input;
   clusterId: number;
+}
+
+// Top token information per cluster, sorted by the ascending by cluster IDs.
+interface TopTokenInfosByCluster {
+  topTokenInfos: TopTokenInfo[];
+}
+
+// Data for 1 top token instance.
+interface TopTokenInfo {
+  token: string;
+  weight: number;
+}
+
+// Indicators which expandable areas are open or closed.
+interface VisToggles {
+  [name: string]: boolean;
 }
 
 /**
@@ -81,9 +101,15 @@ export class SalienceClusteringModule extends LitModule {
       salienceConfigs: {},
       clusteringState: {
         clusterInfos: {},
+        topTokenInfosByClusters: {},
         isLoading: false,
       },
     };
+
+  @observable private readonly expanded: VisToggles = {
+    [RESULT_DATA_TABLE]: false,
+    [RESULT_TOP_TOKENS]: false,
+  };
 
   override firstUpdated() {
     const state: ModuleState = {
@@ -92,6 +118,7 @@ export class SalienceClusteringModule extends LitModule {
       salienceConfigs: {},
       clusteringState: {
         clusterInfos: {},
+        topTokenInfosByClusters: {},
         isLoading: false,
       },
     };
@@ -121,6 +148,7 @@ export class SalienceClusteringModule extends LitModule {
     this.state.dataColumns = Object.keys(input[0].data);
 
     for (const gradKey of Object.keys(clusteringResult['cluster_ids'])) {
+      // Store per-example cluster IDs.
       const clusterInfos: ClusterInfo[] = [];
       const clusterIds = clusteringResult['cluster_ids'][gradKey];
 
@@ -130,6 +158,23 @@ export class SalienceClusteringModule extends LitModule {
         clusterInfos.push(clusterInfo);
       }
       this.state.clusteringState.clusterInfos[gradKey] = clusterInfos;
+
+      // Store top tokens.
+      this.state.clusteringState.topTokenInfosByClusters[gradKey] = [];
+      const topTokenInfosByClusters = clusteringResult['top_tokens'][gradKey];
+      const clusterCount = topTokenInfosByClusters.length;
+
+      for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
+        const topTokenInfosByCluster: TopTokenInfosByCluster = {
+            topTokenInfos: []};
+
+        for (const topTokenTuple of topTokenInfosByClusters[clusterId]) {
+          topTokenInfosByCluster.topTokenInfos.push(
+              {token: topTokenTuple[0], weight: topTokenTuple[1]});
+        }
+        this.state.clusteringState.topTokenInfosByClusters[gradKey].push(
+            topTokenInfosByCluster);
+      }
     }
   }
 
@@ -143,7 +188,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   }
 
-  renderClusteringState() {
+  renderDataTable() {
     const renderSingleGradKeyClusterInfos =
         (gradKey: string, clusterInfos: ClusterInfo[]) => {
           const rows: TableData[] = clusterInfos.map((clusterInfo) => {
@@ -187,6 +232,80 @@ export class SalienceClusteringModule extends LitModule {
         };
 
     return renderClusterInfos(this.state.clusteringState.clusterInfos);
+  }
+
+  // Render a table that contains all top tokens and their weights per cluster.
+  private renderSingleGradKeyTopTokenInfos(gradKey: string,
+      topTokenInfosByClusters: TopTokenInfosByCluster[]) {
+    const clusterCount = topTokenInfosByClusters.length;
+    const maxTopTokenCount = Math.max(...topTokenInfosByClusters.map(
+        topTokenInfosByCluster => topTokenInfosByCluster.topTokenInfos.length
+    ));
+
+    const columnNames: string[] = [];
+
+    for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
+      columnNames.push(`Cluster ${clusterId}`);
+    }
+
+    const rows: TableData[] = [];
+    const tokenWeightStyle = styleMap({
+      'display': 'flex',
+      'flex-direction': 'row',
+      'justify-content': 'space-between',
+      'width': '100%',
+    });
+
+    for (let exampleIdx = 0; exampleIdx < maxTopTokenCount;
+          exampleIdx++) {
+      const row: SortableTemplateResult[] = [];
+
+      for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
+        const topTokenInfos = topTokenInfosByClusters[clusterId];
+        if (topTokenInfos.topTokenInfos.length < maxTopTokenCount) {
+          row.push({template: html``, value: 0});
+        } else {
+          const {token, weight} = topTokenInfos.topTokenInfos[exampleIdx];
+          row.push({
+            template: html`
+              <div style=${tokenWeightStyle}>
+                <span>${token}</span>
+                <span>(${weight.toFixed(2)})</span>
+              </div>
+            `,
+            value: weight
+          });
+        }
+      }
+      rows.push(row);
+    }
+
+    // clang-format off
+    return html`
+      <div class="grad-key-row">
+        <div class="grad-key-label">${gradKey}</div>
+        <lit-data-table
+          .columnNames=${columnNames}
+          .data=${rows}
+          searchEnabled
+          selectionEnabled
+          paginationEnabled
+        ></lit-data-table>
+      </div>`;
+    // clang format on
+  }
+
+  renderTopTokens() {
+    const gradKeyTopTokenInfos =
+        this.state.clusteringState.topTokenInfosByClusters;
+    const gradKeys = Object.keys(gradKeyTopTokenInfos);
+    // clang-format off
+    return html`
+      ${gradKeys.map(
+          gradKey => this.renderSingleGradKeyTopTokenInfos(
+              gradKey, gradKeyTopTokenInfos[gradKey]))}
+      ${this.state.clusteringState.isLoading ? this.renderSpinner() : null}`;
+    // clang format on
   }
 
   private getSalienceInterpreterNames() {
@@ -241,7 +360,6 @@ export class SalienceClusteringModule extends LitModule {
       }
       return html`
         <lit-interpreter-controls
-          bordered
           .spec=${clonedSpec}
           .name=${name}
           .opened=${name === SALIENCE_CLUSTERING_INTERPRETER_NAME}
@@ -254,13 +372,29 @@ export class SalienceClusteringModule extends LitModule {
     // Always show the clustering config first.
     const interpreters: string[] = [SALIENCE_CLUSTERING_INTERPRETER_NAME,
                                     ...this.getSalienceInterpreterNames()];
+    const expansionArea = (resultName: string) => {
+      let content = html``;
+
+      if (resultName === RESULT_DATA_TABLE) {
+        content = this.renderDataTable();
+      } else if (resultName === RESULT_TOP_TOKENS) {
+        content = this.renderTopTokens();
+      }
+      return html`
+          <expansion-panel
+              .label=${resultName}
+              ?expanded=${this.expanded[resultName]}>
+            ${content}
+          </expansion-panel>`;
+    };
     return html`
       <div class="controls-and-results-container">
         <div class="clustering-controls-container">
           ${interpreters.map(renderInterpreterControls)}
         </div>
         <div class="clustering-results-container">
-          ${this.renderClusteringState()}
+          ${expansionArea(RESULT_DATA_TABLE)}
+          ${expansionArea(RESULT_TOP_TOKENS)}
         </div>
       </div>`;
     // clang-format on

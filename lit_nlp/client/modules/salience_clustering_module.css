@@ -10,7 +10,6 @@
 }
 
 .grad-key-row {
-  border-top: 1px solid #e8eaed;
   border-bottom: 1px solid #e8eaed;
   padding: 8px;
 }
@@ -49,6 +48,8 @@
 
 .clustering-results-container {
   flex: 1 1 auto;
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .controls-and-results-container {
