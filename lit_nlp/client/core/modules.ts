@@ -28,13 +28,13 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitWidget} from './widget_group';
 
 // Width of a minimized widget group. Set to the value of
@@ -139,9 +139,14 @@ export class LitModules extends ReactiveElement {
     const numMinimized = panelConfig.reduce((agg, group) => {
       return agg + (this.modulesService.isModuleGroupHidden(group[0]) ? 1 : 0);
     }, 0);
-    const widthAvailable = window.innerWidth - COMPONENT_AREA_HPAD -
-                           MINIMIZED_WIDTH_PX * numMinimized -
-                           EXPANDER_WIDTH * (panelConfig.length - 1);
+    // Use the container width so this works correctly with simple/centered
+    // layouts as well as full width.
+    const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
+                               .getBoundingClientRect()
+                               .width;
+    const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
+        MINIMIZED_WIDTH_PX * numMinimized -
+        EXPANDER_WIDTH * (panelConfig.length - 1);
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
@@ -153,11 +158,27 @@ export class LitModules extends ReactiveElement {
 
     // Set the width for each widget group based on the maximum number of
     // columns its widgets have specified and the width available.
+    let totalNonMinimizedWidth = 0;
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
       const widthPct = Math.max(...numColsList) / totalCols;
       layoutWidths[panelName][i] = Math.round(widthPct * widthAvailable);
+      if (!this.modulesService.isModuleGroupHidden(configGroup[0])) {
+        totalNonMinimizedWidth += layoutWidths[panelName][i];
+      }
+    }
+
+    // It's possible to overflow by a few pixels due to rounding errors above.
+    // overflow: hidden will prevent this from creating evil horizontal
+    // scrollbars, but it's useful to adjust the widths anyway to keep
+    // the right padding nicely aligned. This works for underflow too.
+    // Adjust the right-most non-minimized group.
+    for (let i = panelConfig.length - 1; i >= 0; i--) {
+      if (!this.modulesService.isModuleGroupHidden(panelConfig[i][0])) {
+        layoutWidths[panelName][i] += (widthAvailable - totalNonMinimizedWidth);
+        break;
+      }
     }
   }
 
@@ -246,7 +267,7 @@ export class LitModules extends ReactiveElement {
 
     const styles = styleMap({
       '--upper-height': upperHeight,
-      '--num-tab-bars': `${upperTabsVisible ? 2 : 1}`,
+      '--upper-tab-bar-visible': `${+upperTabsVisible}`,
     });
 
     // clang-format off

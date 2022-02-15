@@ -26,20 +26,24 @@
 
 #upper-group-area {
   position: relative;
-  height: var(--upper-height);
+  height: calc(var(--upper-height) - var(--upper-tab-bar-visible) * var(--tab-bar-height));
   background-color: var(--lit-mintonal-p-1);
 }
 
 #lower-group-area {
   position: relative;
   flex: 1;
-  max-height: calc(100% - var(--upper-height) - var(--num-tab-bars) * var(--tab-bar-height));
+  max-height: calc(100% - var(--upper-height) - var(--tab-bar-height));
   background-color: var(--lit-mintonal-p-3);
+}
+
+.outer-container-centered #lower-group-area {
+  background-color: unset;
 }
 
 .components-group-holder {
   position: absolute;
-  overflow: auto;
+  overflow: hidden; /* no scrollbars, for they are the path to the dark side */
   display: flex;
   visibility: hidden;
   height: 100%;
@@ -89,7 +93,7 @@ lit-widget-group[maximized] {
 
 /* If in centered mode, tab bars should align to modules */
 .outer-container-centered .tab-bar {
-  margin: 0 4px;
+  margin: 0 8px;
   border: 1px solid rgb(218, 220, 224);
   box-sizing: border-box;
 }
