@@ -107,7 +107,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const newType = {...litType};
     newType['__class__'] = 'LitType';
     newType['show_in_data_table'] = showInDataTable;
-    return {...litType};
+    return newType;
   }
 
   @observable

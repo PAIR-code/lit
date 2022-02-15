@@ -140,7 +140,8 @@ export class ColorService extends LitService {
           const range = domain.length > 1 ? CATEGORICAL_NORMAL : [ DEFAULT ];
           return {
             name: feature,
-            getValue: (input: IndexedInput) => input.data[feature],
+            getValue: (input: IndexedInput) =>
+              this.dataService.getVal(input.id, feature),
             scale: d3.scaleOrdinal(range).domain(domain) as D3Scale
           };
         });
