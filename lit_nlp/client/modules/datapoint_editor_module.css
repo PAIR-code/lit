@@ -30,8 +30,6 @@
 }
 
 .field-header mwc-icon {
-  font-size: 10pt;
-  line-height: 0;
   vertical-align: middle;
   padding-right: 10px; /* for a larger click target */
 }

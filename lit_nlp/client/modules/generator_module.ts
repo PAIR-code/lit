@@ -148,22 +148,6 @@ export class GeneratorModule extends LitModule {
     });
   }
 
-
-  override updated() {
-    super.updated();
-
-    // Update the header items to be the width of the rows of the table.
-    const header = this.shadowRoot!.getElementById('header') as ParentNode;
-    const firstRow = this.shadowRoot!.querySelector('.row') as ParentNode;
-    if (header) {
-      for (let i = 0; i < header.children.length; i++) {
-        const width = (firstRow.children[i] as HTMLElement).offsetWidth;
-        const child = header.children[i];
-        (child as HTMLElement).style.minWidth = `${width}px`;
-      }
-    }
-  }
-
   private resetEditedData() {
     this.generated = [];
     this.appliedGenerator = null;
