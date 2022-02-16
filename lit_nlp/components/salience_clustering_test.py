@@ -103,7 +103,7 @@ class SalienceClusteringTest(parameterized.TestCase):
         self.salience_mappers)
     result = clustering_component.run_with_metadata(inputs, model, dataset,
                                                     model_outputs, config)
-    return result, clustering_component
+    return result, clustering_component, inputs, model, dataset, model_outputs
 
   def test_build_vocab(self):
     token_saliencies = [
@@ -179,7 +179,7 @@ class SalienceClusteringTest(parameterized.TestCase):
         salience_clustering.N_CLUSTERS_KEY: 2,
         salience_clustering.N_TOP_TOKENS_KEY: 2
     }
-    result, clustering_component = (
+    result, clustering_component, *_ = (
         self._call_classification_model_on_standard_input(config, grad_key))
     # Cluster id assignment is random, so in one run the first 2 examples may
     # be cluster 0, in the next run they may be in cluster 1.
@@ -204,6 +204,40 @@ class SalienceClusteringTest(parameterized.TestCase):
     self.assertIn(grad_key, clustering_component.kmeans)
     self.assertIsNotNone(clustering_component.kmeans[grad_key])
 
+  def test_clustering_create_new_kmeans(self):
+    """Tests that the kmeans component is created with every run."""
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
+        salience_clustering.N_CLUSTERS_KEY: 2,
+        salience_clustering.N_TOP_TOKENS_KEY: 2
+    }
+    grad_key = 'input_embs_grad'
+    _, clustering_component, inputs, model, dataset, model_outputs = (
+        self._call_classification_model_on_standard_input(config, grad_key))
+    kmeans_call_1 = clustering_component.kmeans[grad_key]
+    clustering_component.run_with_metadata(inputs, model, dataset,
+                                           model_outputs, config)
+    kmeans_call_2 = clustering_component.kmeans[grad_key]
+    self.assertIsNot(kmeans_call_1, kmeans_call_2)
+
+  def test_clustering_reuse_kmeans(self):
+    """Tests that the kmeans component is reused."""
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
+        salience_clustering.N_CLUSTERS_KEY: 2,
+        salience_clustering.N_TOP_TOKENS_KEY: 2
+    }
+    grad_key = 'input_embs_grad'
+    _, clustering_component, inputs, model, dataset, model_outputs = (
+        self._call_classification_model_on_standard_input(config, grad_key))
+    kmeans_call_1 = clustering_component.kmeans[grad_key]
+
+    config[salience_clustering.REUSE_CLUSTERING] = True
+    clustering_component.run_with_metadata(inputs, model, dataset,
+                                           model_outputs, config)
+    kmeans_call_2 = clustering_component.kmeans[grad_key]
+    self.assertIs(kmeans_call_1, kmeans_call_2)
+
   def test_top_tokens(self):
     """Tests top token results (doesn't apply for LIME with a test model)."""
     config = {
@@ -211,7 +245,7 @@ class SalienceClusteringTest(parameterized.TestCase):
         salience_clustering.N_CLUSTERS_KEY: 2,
         salience_clustering.N_TOP_TOKENS_KEY: 2
     }
-    result, _ = self._call_classification_model_on_standard_input(
+    result, *_ = self._call_classification_model_on_standard_input(
         config, 'input_embs_grad')
     # Clustering isn't deterministic so we don't know if examples 1 and 2 are
     # in cluster 0 or 1.
@@ -233,7 +267,7 @@ class SalienceClusteringTest(parameterized.TestCase):
         salience_clustering.N_CLUSTERS_KEY: '2',
         salience_clustering.N_TOP_TOKENS_KEY: 2
     }
-    result, _ = self._call_classification_model_on_standard_input(
+    result, *_ = self._call_classification_model_on_standard_input(
         config, 'input_embs_grad')
     self.assertIsNotNone(result)
 

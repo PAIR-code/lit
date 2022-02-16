@@ -23,19 +23,23 @@ import {customElement} from 'lit/decorators';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
+import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, Input, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {ColumnData} from '../services/data_service';
+import {DataService} from '../services/services';
 
 import {styles} from './salience_clustering_module.css';
 
 const SALIENCE_MAPPER_KEY = 'Salience Mapper';
+const N_CLUSTERS_KEY = 'Number of Clusters';
 const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'Salience Clustering';
-const RESULT_DATA_TABLE = 'Data Table';
 const RESULT_TOP_TOKENS = 'Top Tokens';
+const REUSE_CLUSTERING = 'reuse_clustering';
 
 interface ModuleState {
   dataColumns: string[];
@@ -89,6 +93,9 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   };
 
+  private readonly dataService = app.getService(DataService);
+  private runCount: number = 0;
+  private statusMessage: string = '';
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -107,8 +114,7 @@ export class SalienceClusteringModule extends LitModule {
     };
 
   @observable private readonly expanded: VisToggles = {
-    [RESULT_DATA_TABLE]: false,
-    [RESULT_TOP_TOKENS]: false,
+    [RESULT_TOP_TOKENS]: true,
   };
 
   override firstUpdated() {
@@ -129,35 +135,67 @@ export class SalienceClusteringModule extends LitModule {
   private async runInterpreter() {
     const salienceMapper = this.state.clusteringConfig[SALIENCE_MAPPER_KEY];
     this.state.clusteringState.clusterInfos = {};
-    const input = this.selectionService.selectedOrAllInputData;
+    const inputs = this.selectionService.selectedOrAllInputData;
     if (!this.canRunClustering) {
       return;
     }
     this.state.clusteringState.isLoading = true;
-    const promise = this.apiService.getInterpretations(
-        input,
+    const clusteringResult = await this.apiService.getInterpretations(
+        inputs,
         this.model,
         this.appState.currentDataset,
         SALIENCE_CLUSTERING_INTERPRETER_NAME,
         {...this.state.clusteringConfig,
             ...this.state.salienceConfigs[salienceMapper]},
         `Running ${salienceMapper}`);
-    const clusteringResult =
-        await this.loadLatest(`interpretations-${salienceMapper}`, promise);
     this.state.clusteringState.isLoading = false;
-    this.state.dataColumns = Object.keys(input[0].data);
+    this.state.dataColumns = Object.keys(inputs[0].data);
+    const dataType = this.appState.createLitType('CategoryLabel');
+    dataType.vocab = Array.from(
+        {length: this.state.clusteringConfig[N_CLUSTERS_KEY]},
+        (value, key) => key.toString()
+    );
+
+    // Function to get value for this new data column when new datapoints are
+    // added.
+    const getValueFn = async (gradKey: string, input: IndexedInput) => {
+      const config = {
+          ...this.state.clusteringConfig,
+          ...this.state.salienceConfigs[salienceMapper],
+          [REUSE_CLUSTERING]: true,
+      };
+      const clusteringResult = await this.apiService.getInterpretations(
+          [input],
+          this.model,
+          this.appState.currentDataset,
+          SALIENCE_CLUSTERING_INTERPRETER_NAME,
+          config,
+          `Running ${salienceMapper}`);
+      return clusteringResult['cluster_ids'][gradKey][0].toString();
+    };
 
     for (const gradKey of Object.keys(clusteringResult['cluster_ids'])) {
       // Store per-example cluster IDs.
       const clusterInfos: ClusterInfo[] = [];
       const clusterIds = clusteringResult['cluster_ids'][gradKey];
+      const featName = 'Cluster IDs: ' +
+          `${this.state.clusteringConfig[SALIENCE_MAPPER_KEY]}, ` +
+          `${this.state.clusteringConfig[N_CLUSTERS_KEY]}, ${gradKey}, ` +
+          `${this.runCount}`;
+      const dataMap: ColumnData = new Map();
 
       for (let i = 0; i < clusterIds.length; i++) {
         const clusterInfo: ClusterInfo = {
-            example: input[i].data, clusterId: clusterIds[i]};
+            example: inputs[i].data, clusterId: clusterIds[i]};
         clusterInfos.push(clusterInfo);
+        dataMap.set(inputs[i].id, clusterInfo.clusterId.toString());
       }
       this.state.clusteringState.clusterInfos[gradKey] = clusterInfos;
+      const localGetValueFn = (input: IndexedInput) =>
+          getValueFn(gradKey, input);
+      this.dataService.addColumn(dataMap, featName, dataType, 'Interpreter',
+                                 localGetValueFn);
+      this.statusMessage = `New column added: ${featName}.`;
 
       // Store top tokens.
       this.state.clusteringState.topTokenInfosByClusters[gradKey] = [];
@@ -176,6 +214,7 @@ export class SalienceClusteringModule extends LitModule {
             topTokenInfosByCluster);
       }
     }
+    this.runCount++;
   }
 
   renderSpinner() {
@@ -375,9 +414,7 @@ export class SalienceClusteringModule extends LitModule {
     const expansionArea = (resultName: string) => {
       let content = html``;
 
-      if (resultName === RESULT_DATA_TABLE) {
-        content = this.renderDataTable();
-      } else if (resultName === RESULT_TOP_TOKENS) {
+      if (resultName === RESULT_TOP_TOKENS) {
         content = this.renderTopTokens();
       }
       return html`
@@ -393,7 +430,6 @@ export class SalienceClusteringModule extends LitModule {
           ${interpreters.map(renderInterpreterControls)}
         </div>
         <div class="clustering-results-container">
-          ${expansionArea(RESULT_DATA_TABLE)}
           ${expansionArea(RESULT_TOP_TOKENS)}
         </div>
       </div>`;
@@ -401,8 +437,8 @@ export class SalienceClusteringModule extends LitModule {
   }
 
   private get canRunClustering() {
-    const input = this.selectionService.selectedOrAllInputData;
-    return (input != null && input.length >= 2);
+    const inputs = this.selectionService.selectedOrAllInputData;
+    return (inputs != null && inputs.length >= 2);
   }
 
   private renderSelectionWarning() {
@@ -422,12 +458,15 @@ export class SalienceClusteringModule extends LitModule {
         <div class='module-results-area'>
           ${this.renderControlsAndResults()}
         </div>
-        ${this.canRunClustering ? html`` : html`
-            <div class="module-toolbar footer">
-              ${this.renderSelectionWarning()}
-            </div>`}
+        <div class="module-footer">
+          <p class="module-status">
+            ${this.canRunClustering ? null : this.renderSelectionWarning()}
+          </p>
+          <p class="module-status">${this.statusMessage}</p>
+        </div>
       </div>`;
     // clang format on
+
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap) {

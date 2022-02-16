@@ -20,10 +20,12 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
-import {ColumnData, DataService} from './data_service';
-import {AppState} from './state_service';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
+import {StatusService} from '../services/services';
+
+import {ColumnData, DataService} from './data_service';
+import {AppState} from './state_service';
 
 describe('DataService test', () => {
   const penguinData = new Map<string, IndexedInput>();
@@ -101,6 +103,7 @@ describe('DataService test', () => {
       isAlive: true}});
 
   let appState: AppState, dataService: DataService;
+  const statusService = new StatusService();
 
   beforeEach(async () => {
     // Set up.
@@ -117,7 +120,7 @@ describe('DataService test', () => {
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
 
-    dataService = new DataService(appState);
+    dataService = new DataService(appState, statusService);
   });
 
   it('has correct columns', () => {

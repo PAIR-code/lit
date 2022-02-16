@@ -159,15 +159,25 @@ export class GroupService extends LitService {
   get categoricalFeatures(): CategoricalFeatures {
     const categoricalFeatures: CategoricalFeatures = {};
     for (const name of this.categoricalFeatureNames) {
-      const vocab = this.appState.currentDatasetSpec[name].vocab;
+      // Try to get values from the data spec.
+      const vocab = this.appState.currentDatasetSpec[name]?.vocab;
+
       if (vocab != null) {
-        // Use specified vocabulary, if available.
         categoricalFeatures[name] = [...vocab];
-      } else {
-        // Otherwise, find unique values from the data.
-        const uniqueValues = new Set(this.dataService.getColumn(name));
-        categoricalFeatures[name] = [...uniqueValues];
+        continue;
       }
+
+      // Try to get values from the data service. Either from the
+      // CategoryLabel's vocab...
+      const columnHeader = this.dataService.getColumnInfo(name);
+
+      if (columnHeader?.dataType.vocab != null) {
+        categoricalFeatures[name] = columnHeader.dataType.vocab;
+        continue;
+      }
+      // ... Or as a last resort find unique values from the data.
+      categoricalFeatures[name] =
+          [...new Set(this.dataService.getColumn(name))];
     }
     return categoricalFeatures;
   }

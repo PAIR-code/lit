@@ -131,7 +131,7 @@ export class LitApp {
     const regressionService = new RegressionService(apiService, appState);
     const settingsService =
         new SettingsService(appState, modulesService, selectionService0);
-    const dataService = new DataService(appState);
+    const dataService = new DataService(appState, statusService);
     const groupService = new GroupService(appState, dataService);
     const classificationService =
         new ClassificationService(apiService, appState, groupService);

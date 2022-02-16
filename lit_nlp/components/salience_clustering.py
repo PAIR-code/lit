@@ -28,14 +28,19 @@ IndexedInput = types.IndexedInput
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+# Result keys.
 CLUSTER_ID_KEY = 'cluster_ids'
 REPRESENTATION_KEY = 'representations'
 TOP_TOKEN_KEY = 'top_tokens'
 
+# Config items.
 N_CLUSTERS_KEY = 'Number of Clusters'
 N_TOP_TOKENS_KEY = 'Number of Top Tokens'
 SALIENCE_MAPPER_KEY = 'Salience Mapper'
 SEED_KEY = 'Clustering Seed'
+
+# Config items not to need to be surfaced in the controls for this interpreter.
+REUSE_CLUSTERING = 'reuse_clustering'
 
 
 class SalienceClustering(lit_components.Interpreter):
@@ -44,6 +49,8 @@ class SalienceClustering(lit_components.Interpreter):
   def __init__(self, salience_mappers: Dict[str, lit_components.Interpreter]):
     self.salience_mappers = salience_mappers
     self.kmeans = {}
+    self.vocab_lookup = {}
+    self.vocab = []
 
   def _build_vocab(
       self,
@@ -93,7 +100,8 @@ class SalienceClustering(lit_components.Interpreter):
     vocab_vector = np.zeros((len(vocab_lookup),))
 
     for token, token_weight in token_weights.items():
-      vocab_vector[vocab_lookup[token]] = token_weight
+      if token in vocab_lookup:
+        vocab_vector[vocab_lookup[token]] = token_weight
     return vocab_vector
 
   def _compute_fixed_length_representation(
@@ -156,6 +164,10 @@ class SalienceClustering(lit_components.Interpreter):
       config: Optional[JsonDict] = None) -> Optional[JsonDict]:
     """Run this component, given a model and input(s).
 
+    Note that when `config['REUSE_CLUSTERING'] == True` we reuse the previously
+    computed kmeans objects and vocabulary. Tokens that do not exist in the
+    vocabulary will be ignored.
+
     Args:
       indexed_inputs: Inputs to cluster.
       model: Model that provides salience maps.
@@ -185,9 +197,19 @@ class SalienceClustering(lit_components.Interpreter):
       return None
 
     salience_fields = list(token_saliencies[0].keys())
-    vocab_lookup, vocab = self._build_vocab(token_saliencies)
+    reuse_clustering = self.kmeans and config.get(REUSE_CLUSTERING, False)
+
+    if not reuse_clustering:
+      try:
+        self.vocab = model.get_embedding_table()[0]
+        self.vocab_lookup = {
+            word_type: i for i, word_type in enumerate(self.vocab)
+        }
+      except NotImplementedError:
+        self.vocab_lookup, self.vocab = self._build_vocab(token_saliencies)
+
     representations = self._compute_fixed_length_representation(
-        token_saliencies, vocab_lookup)
+        token_saliencies, self.vocab_lookup)
 
     cluster_ids = {}
     salience_field_to_representations = {}
@@ -202,22 +224,37 @@ class SalienceClustering(lit_components.Interpreter):
       seed = int(
           config.get(SEED_KEY,
                      self.config_spec()[SEED_KEY].default))
-      self.kmeans[salience_field] = cluster.KMeans(n_clusters=n_clusters,
-                                                   random_state=seed)
-      cluster_ids[salience_field] = self.kmeans[salience_field].fit_predict(
-          weight_matrix).tolist()
+      if not reuse_clustering:
+        self.kmeans[salience_field] = cluster.KMeans(
+            n_clusters=n_clusters, random_state=seed)
+        cluster_ids[salience_field] = self.kmeans[salience_field].fit_predict(
+            weight_matrix).tolist()
+      else:
+        cluster_ids[salience_field] = self.kmeans[salience_field].predict(
+            weight_matrix).tolist()
+
       salience_field_to_representations[salience_field] = weight_matrix
       salience_field_to_top_tokens[salience_field] = []
 
       for cluster_id in range(n_clusters):
+        weight_matrix_of_cluster = weight_matrix[np.asarray(
+            cluster_ids[salience_field]) == cluster_id]
+
+        # If this is empty, we don't have any data points in the current
+        # cluster. This may happen when `reuse_clustering` is true and we get
+        # only a single example.
+        if not weight_matrix_of_cluster.size:
+          continue
+
         # <float32>[vocab size]
-        mean_weight_matrix = weight_matrix[np.asarray(
-            cluster_ids[salience_field]) == cluster_id].mean(axis=0)
+        mean_weight_matrix = weight_matrix_of_cluster.mean(axis=0)
         top_indices = (
             mean_weight_matrix.argsort()[::-1][:int(
                 config.get(N_TOP_TOKENS_KEY,
                            self.config_spec()[N_TOP_TOKENS_KEY].default))])
-        top_tokens = [(vocab[i], mean_weight_matrix[i]) for i in top_indices]
+        top_tokens = [
+            (self.vocab[i], mean_weight_matrix[i]) for i in top_indices
+        ]
         salience_field_to_top_tokens[salience_field].append(top_tokens)
 
     return {

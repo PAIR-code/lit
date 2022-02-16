@@ -17,11 +17,14 @@
 
 // tslint:disable:no-new-decorators
 import {action, computed, observable, reaction} from 'mobx';
+
 import {IndexedInput, LitName, LitType} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
+import {StatusService} from './status_service';
+
 
 
 /** Data source for a data column. */
@@ -54,7 +57,9 @@ export class DataService extends LitService {
       new Map<string, DataColumnHeader>();
   @observable readonly columnData = new Map<string, ColumnData>();
 
-  constructor(private readonly appState: AppState) {
+  constructor(
+      private readonly appState: AppState,
+      private readonly statusService: StatusService) {
     super();
     reaction(() => appState.currentDataset, () => {
       this.columnHeaders.clear();
@@ -88,6 +93,10 @@ export class DataService extends LitService {
         col => col.name);
   }
 
+  getColumnInfo(name: string): DataColumnHeader|undefined {
+    return this.columnHeaders.get(name);
+  }
+
   /** Flattened list of values in data columns for reacting to data changes. **/
   // TODO(b/156100081): Can we get observers to react to changes to columnData
   // without needing this computed list?
@@ -107,6 +116,9 @@ export class DataService extends LitService {
   addColumn(
       columnVals: ColumnData, name: string, dataType: LitType, source: Source,
       getValueFn: ValueFn) {
+    if (this.columnHeaders.has(name)) {
+      this.statusService.addError(`Column name "${name}" already exists.`);
+    }
     this.columnHeaders.set(name, {dataType, source, name, getValueFn});
     this.columnData.set(name, columnVals);
   }
@@ -153,5 +165,3 @@ export class DataService extends LitService {
         input => this.getVal(input.id, key));
   }
 }
-
-
