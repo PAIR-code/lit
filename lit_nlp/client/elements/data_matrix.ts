@@ -256,21 +256,6 @@ export class DataMatrix extends LitElement {
     // clang-format on
   }
 
-  private renderDeleteButton() {
-    const deleteMatrix = () => {
-      const event = new CustomEvent('delete-matrix', {});
-      this.dispatchEvent(event);
-    };
-
-    // clang-format off
-    return html`
-      <mwc-icon class="icon-button" @click=${deleteMatrix}>
-        delete_outline
-      </mwc-icon>
-    `;
-    // clang-format on
-  }
-
   override render() {
     if (this.matrixCells.length === 0) {
       return null;
@@ -310,7 +295,7 @@ export class DataMatrix extends LitElement {
           <td class='axis-title' colspan=${colsLabelSpan}>
             ${this.colTitle}
           </td>
-          <th class="delete-cell">${this.renderDeleteButton()}</th>
+          <th></th>
         </tr>
         <tr>
           <td class='axis-title label-vertical' rowspan=${rowsLabelSpan}>

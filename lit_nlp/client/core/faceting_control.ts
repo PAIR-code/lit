@@ -65,6 +65,7 @@ export class FacetingControl extends ReactiveElement {
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
 
+  @observable @property({type: Boolean}) disabled = false;
   @observable @property({type: String}) contextName?: string;
   @observable @property({type: Number}) binLimit = DEFAULT_BIN_LIMIT;
   @observable @property({type: Number}) choiceLimit?: number;
@@ -75,6 +76,16 @@ export class FacetingControl extends ReactiveElement {
 
   constructor(private readonly groupService = app.getService(GroupService)) {
     super();
+    this.initFeatureConfigs();
+  }
+
+  /**
+   * Resets to the default faceting behavior (i.e., do not facet). Typically
+   * called if the avaialble features change.
+   */
+  reset() {
+    this.features = [];
+    this.updateBins();
     this.initFeatureConfigs();
   }
 
@@ -146,13 +157,7 @@ export class FacetingControl extends ReactiveElement {
 
   override firstUpdated() {
     const numericFeatures = () => this.groupService.denseFeatureNames;
-    this.reactImmediately(numericFeatures, () => {
-      // If the avaialble features change, reset the faceting configurations and
-      // user selections
-      this.features = [];
-      this.updateBins();
-      this.initFeatureConfigs();
-    });
+    this.reactImmediately(numericFeatures, () => {this.reset();});
 
     const onBodyClick = (event: MouseEvent) => {this.clickToClose(event);};
     this.reactImmediately(() => this.expanded, () => {
@@ -344,18 +349,26 @@ export class FacetingControl extends ReactiveElement {
       'None';
 
     const forContext = this.contextName ? ` for ${this.contextName}` : '';
+    const title =
+        `${this.expanded ? 'Hide' :
+                           'Show'} the faceting configuration${forContext}`;
+
+    const activeFacetsClass = classMap({
+      'active-facets': true,
+      'disabled': this.disabled
+    });
 
     const closeButtonClick = () => {this.expanded = false;};
 
     // clang-format off
     return html`
       <div class="faceting-info">
-        <button class="hairline-button" @click=${this.toggleExpanded}
-                title="Show or hide the faceting configuration${forContext}">
+        <button class="hairline-button" title=${title}
+                ?disabled=${this.disabled} @click=${this.toggleExpanded}>
           <span class="material-icon">dashboard</span>
           Facets
         </button>
-        <span class="active-facets">: ${facetsList}</span>
+        <span class=${activeFacetsClass}>: ${facetsList}</span>
         <div class="config-panel popup-container" style=${configPanelStyles}>
           <div class="panel-header">
             <span class="panel-label">Faceting Config${forContext}</span>

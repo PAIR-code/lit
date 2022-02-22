@@ -15,13 +15,6 @@ describe('faceting control test', () => {
   let configPanel: HTMLDivElement;
   let closeButton: HTMLElement;
 
-  const facetChangeHandler = (event: Event) => {
-    const customEvent = event as CustomEvent<FacetsChange>;
-    expect(customEvent.detail.features.length).toBe(1);
-    expect(customEvent.detail.features[0]).toBe('label');
-    expect(customEvent.detail.bins).toBeTruthy();
-  };
-
   beforeEach(async () => {
     // Set up.
     const app = new LitApp();
@@ -36,7 +29,6 @@ describe('faceting control test', () => {
     const groupService = new GroupService(appState, dataService);
     facetCtrl = new FacetingControl(groupService);
     document.body.appendChild(facetCtrl);
-    document.body.addEventListener('facets-change', facetChangeHandler);
     await facetCtrl.updateComplete;
 
     facetButton =
@@ -48,7 +40,6 @@ describe('faceting control test', () => {
   });
 
   afterEach(() => {
-    document.body.removeEventListener('facets-change', facetChangeHandler);
     document.body.removeChild(facetCtrl);
   });
 
@@ -68,7 +59,7 @@ describe('faceting control test', () => {
     const [facetButton, facetList, configPanel] = innerDiv.children;
     expect(facetButton instanceof HTMLButtonElement).toBeTrue();
     expect(facetList instanceof HTMLSpanElement).toBeTrue();
-    expect((facetList as HTMLSpanElement).className).toEqual('active-facets');
+    expect((facetList as HTMLSpanElement).className).toEqual(' active-facets ');
     expect(configPanel instanceof HTMLDivElement).toBeTrue();
     expect((configPanel as HTMLDivElement).className)
         .toEqual('config-panel popup-container');
@@ -109,6 +100,13 @@ describe('faceting control test', () => {
   });
 
   it('emits a custom facets-change event after checkbox click', async () => {
+    const facetChangeHandler = (event: Event) => {
+      const customEvent = event as CustomEvent<FacetsChange>;
+      expect(customEvent.detail.features.length).toBe(1);
+      expect(customEvent.detail.features[0]).toBe('label');
+      expect(customEvent.detail.bins).toBeTruthy();
+    };
+    document.body.addEventListener('facets-change', facetChangeHandler);
     facetButton.click();
     await facetCtrl.updateComplete;
 
@@ -120,5 +118,30 @@ describe('faceting control test', () => {
     input.click();
     await facetCtrl.updateComplete;
     expect(input.checked).toBeTrue();
+    document.body.removeEventListener('facets-change', facetChangeHandler);
+  });
+
+  it('can be reset programmatically', async () => {
+    let expectedFacetCount = 1;
+    const facetChangeHandler = (event: Event) => {
+      const customEvent = event as CustomEvent<FacetsChange>;
+      expect(customEvent.detail.features.length).toBe(expectedFacetCount);
+      expect(customEvent.detail.bins).toBeTruthy();
+    };
+
+    document.body.addEventListener('facets-change', facetChangeHandler);
+    facetButton.click();
+    await facetCtrl.updateComplete;
+
+    const featureRow = configPanel.querySelector('div.feature-options-row') as HTMLDivElement;
+    const litCheckbox = featureRow.querySelector('lit-checkbox') as LitCheckbox;
+    const mwcCheckbox = litCheckbox.renderRoot.querySelector('lit-mwc-checkbox-internal') as Checkbox;
+    const input = mwcCheckbox.renderRoot.querySelector("input[type='checkbox']") as HTMLInputElement;
+    input.click();
+    await facetCtrl.updateComplete;
+    expectedFacetCount = 0;
+    facetCtrl.reset();
+    await facetCtrl.updateComplete;
+    document.body.removeEventListener('facets-change', facetChangeHandler);
   });
 });

@@ -19,6 +19,10 @@
   line-height: 22px;
 }
 
+.active-facets.disabled {
+  color: var(--lit-neutral-400);
+}
+
 .config-panel {
   position: absolute;
   top: 26px;
