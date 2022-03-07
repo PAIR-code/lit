@@ -235,6 +235,7 @@ export class MultilabelModule extends LitModule {
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}
+            searchEnabled
           ></lit-data-table>
         </div>`;
   }

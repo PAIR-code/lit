@@ -648,8 +648,13 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
+  private columnNameToId(name: string) {
+    return name.replace(/\s+/g, '');
+  }
+
   renderColumnHeader(header: ColumnHeader) {
     const title = header.name;
+    const headerId = this.columnNameToId(title);
 
     const handleBackgroundClick = (e: Event) => {
       this.resetView();
@@ -705,7 +710,8 @@ export class DataTable extends ReactiveElement {
       // Focus cursor on newly-shown input box.
       if (this.showColumnMenu) {
         window.requestAnimationFrame(() => {
-          const inputElem = this.shadowRoot!.querySelector(`th#${title} .togglable-menu-holder input`) as HTMLElement;
+          const inputElem = this.shadowRoot!.querySelector(
+              `th#${headerId} .togglable-menu-holder input`) as HTMLElement;
           inputElem.focus();
         });
       }
@@ -738,7 +744,7 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
-        <th id=${title} @click=${handleBackgroundClick}>
+        <th id=${headerId} @click=${handleBackgroundClick}>
           <div class=${headerClasses} title=${title}>
             <div class="header-holder">
               <div @click=${toggleSort}>${header.html!}</div>
