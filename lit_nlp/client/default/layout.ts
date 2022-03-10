@@ -46,6 +46,7 @@ import {SequenceSalienceModule} from '../modules/sequence_salience_module';
 import {SliceModule} from '../modules/slice_module';
 import {SpanGraphGoldModuleVertical, SpanGraphModuleVertical} from '../modules/span_graph_module';
 import {TCAVModule} from '../modules/tcav_module';
+import {TrainingDataAttributionModule} from '../modules/tda_module';
 import {ThresholderModule} from '../modules/thresholder_module';
 
 // clang-format off
@@ -86,6 +87,7 @@ export const LAYOUTS: LitComponentLayouts = {
     lower: {
       'Predictions': [ ...MODEL_PREDS_MODULES],
       'Salience': [SalienceMapModule, SequenceSalienceModule],
+      'Influence': [TrainingDataAttributionModule],
     },
     layoutSettings: {
       hideToolbar: true,
@@ -118,6 +120,7 @@ export const LAYOUTS: LitComponentLayouts = {
         ConfusionMatrixModule,
         ThresholderModule,
       ],
+      'Influence': [TrainingDataAttributionModule],
       'Counterfactuals': [GeneratorModule, CounterfactualExplainerModule],
       'TCAV': [
         TCAVModule,

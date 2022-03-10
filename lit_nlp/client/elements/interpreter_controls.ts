@@ -49,6 +49,8 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: Object}) spec = {};
   @observable @property({type: String}) name = '';
   @observable @property({type: String}) description = '';
+  @observable @property({type: String}) applyButtonText = 'Apply';
+  @property({type: Boolean, reflect: true}) applyButtonDisabled = false;
   @observable settings: Settings = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
@@ -77,7 +79,10 @@ export class InterpreterControls extends ReactiveElement {
           <div class="description">${this.description}</div>
           ${this.renderControls()}
           <div class="buttons-holder">
-            <button class="filled-button" @click=${apply}>Apply</button>
+            <button class="filled-button" @click=${apply}
+              ?disabled=${this.applyButtonDisabled}>
+              ${this.applyButtonText}
+            </button>
           </div>
         </div>`;
 

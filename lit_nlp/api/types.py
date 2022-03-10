@@ -482,4 +482,15 @@ class CurveDataPoints(LitType):
   pass
 
 
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class InfluentialExamples(LitType):
+  """Represents influential examples from the training set.
+
+  This is as returned by a training-data attribution method like TracIn or
+  influence functions.
+
+  This describes a generator component; values are List[List[JsonDict]].
+  """
+  pass
+
 # LINT.ThenChange(../client/lib/types.ts)

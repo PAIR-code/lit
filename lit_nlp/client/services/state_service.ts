@@ -281,7 +281,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
       if (this.currentInputDataById.has(entry.id)) {
         console.log(
             'Attempted to add existing datapoint, ignoring add request.',
-            entry);
+            toJS(entry));
       } else {
         this.currentInputDataById.set(entry.id, entry);
         committedDatapoints.push(entry);
