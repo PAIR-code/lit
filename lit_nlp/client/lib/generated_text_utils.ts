@@ -18,8 +18,13 @@
 /**
  * Shared helper functions for text generation / seq2seq models.
  */
+import difflib from 'difflib';
+
 import {GeneratedTextCandidate, IndexedInput, Input, LitName, Preds, Spec} from './types';
 import {findSpecKeys, isLitSubtype} from './utils';
+
+// tslint:disable-next-line:no-any difflib does not support Closure imports
+// difflib declare placeholder - DO NOT REMOVE
 
 /**
  * Preds type for text generation.
@@ -98,4 +103,69 @@ export function getAllReferenceTexts(
 export function getAllOutputTexts(
     outputSpec: Spec, preds?: GeneratedTextResult|null): string[] {
   return getFlatTexts(findSpecKeys(outputSpec, GENERATION_TYPES), preds);
+}
+
+/**
+ * Mode for diffs against reference text.
+ */
+export enum DiffMode {
+  NONE = 'None',
+  WORD = 'Word',
+  CHAR = 'Character',
+}
+
+/**
+ * Container type for a diff between two texts.
+ */
+export interface TextDiff {
+  inputStrings: string[];
+  outputStrings: string[];
+  equal: boolean[];
+}
+
+/**
+ * Uses difflib library to compute character differences between the input
+ * strings and returns a TextDiff object, which contains arrays of parsed
+ * segments from both strings and an array of booleans indicating whether the
+ * corresponding change type is 'equal.'
+ */
+export function getTextDiff(
+    targetText: string, outputText: string, byWord: boolean): TextDiff {
+  // Use difflib library to compute opcodes, which contain a group of changes
+  // between the two input strings. Each opcode contains the change type and
+  // the start/end of the concerned characters/words in each string.
+  const targetWords = targetText.split(' ');
+  const outputWords = outputText.split(' ');
+
+  const matcher = byWord ?
+      new difflib.SequenceMatcher(() => false, targetWords, outputWords) :
+      new difflib.SequenceMatcher(() => false, targetText, outputText);
+  const opcodes = matcher.getOpcodes();
+
+  // Store an array of the parsed segments from both strings and whether
+  // the change type is 'equal.'
+  const inputStrings: string[] = [];
+  const outputStrings: string[] = [];
+  const equal: boolean[] = [];
+
+  for (const opcode of opcodes) {
+    const changeType = opcode[0];
+    const startA = Number(opcode[1]);
+    const endA = Number(opcode[2]);
+    const startB = Number(opcode[3]);
+    const endB = Number(opcode[4]);
+
+    equal.push((changeType === 'equal'));
+
+    if (byWord) {
+      inputStrings.push(targetWords.slice(startA, endA).join(' '));
+      outputStrings.push(outputWords.slice(startB, endB).join(' '));
+    } else {
+      inputStrings.push(targetText.slice(startA, endA));
+      outputStrings.push(outputText.slice(startB, endB));
+    }
+  }
+
+  const textDiff: TextDiff = {inputStrings, outputStrings, equal};
+  return textDiff;
 }

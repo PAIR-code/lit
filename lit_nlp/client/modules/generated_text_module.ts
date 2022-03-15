@@ -25,9 +25,8 @@ import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {DiffMode} from '../elements/generated_text_vis';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
-import {GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
+import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
