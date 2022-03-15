@@ -26,16 +26,12 @@ import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {GeneratedTextCandidate} from '../lib/types';
 
 import {styles} from './generated_text_vis.css';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
 // difflib declare placeholder - DO NOT REMOVE
-
-/**
- * Input data format.
- */
-export type GeneratedTextCandidate = [string, number | null];
 
 /**
  * Mode for diffs against reference text.

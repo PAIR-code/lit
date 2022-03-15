@@ -215,6 +215,11 @@ export function formatEdgeLabel(e: EdgeLabel): string {
 }
 
 /**
+ * Element of GeneratedTextCandidates and ReferenceTexts fields.
+ */
+export type GeneratedTextCandidate = [string, number | null];
+
+/**
  * Type for d3 scale object used for datapoint coloring.
  */
 export interface D3Scale {

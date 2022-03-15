@@ -10,13 +10,40 @@
   overflow: hidden;
 }
 
-.generators-panel {
+.controls-sidebar {
   border-right: 1px solid var(--lit-neutral-300);
   box-sizing: border-box;
   flex-grow: 0;
   flex-shrink: 0;
   overflow-y: auto;
   width: 400px;
+}
+
+.label-controls {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  box-sizing: border-box;
+}
+
+.label-control-holder {
+  margin: 8px;
+  display: flex;
+  align-items: center;
+  flex-flow: row wrap;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* right-align content, particularly dropdowns */
+.label-control {
+  display: flex;
+  justify-content: flex-end;
+  width: 65%;
+}
+
+.label-control .dropdown {
+  max-width: unset; /* unset default from shared_styles */
+  width: 100%;
 }
 
 .results-holder {
@@ -63,13 +90,13 @@
   margin-bottom: 4px;
 }
 
-.generators-panel .label {
+.controls-sidebar .label {
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 10px;
 }
 
-.generators-panel.visible {
+.controls-sidebar.visible {
   display: block;
 }
 

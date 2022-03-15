@@ -3,6 +3,7 @@
  */
 
 import '../elements/slider';
+
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
@@ -11,11 +12,12 @@ import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype, sumArray} from '../lib/utils';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {sumArray} from '../lib/utils';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
-import {GeneratedTextResult, GENERATION_TYPES} from './generated_text_module';
+
 import {styles} from './sequence_salience_module.css';
 
 interface SequenceSalienceMap {
@@ -88,58 +90,14 @@ export class SequenceSalienceModule extends LitModule {
   }
 
   @computed
-  get allReferenceTexts(): string[] {
-    if (!this.currentData) return [];
-
-    const ret: string[] = [];
-
-    // Search input fields: anything referenced in model's output spec
+  get salienceTargetStrings(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
-    const inputReferenceKeys = new Set<string>();
-    for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
-      const parent = outputSpec[outKey].parent;
-      if (parent && dataSpec[parent]) {
-        inputReferenceKeys.add(parent);
-      }
-    }
-    for (const key of inputReferenceKeys) {
-      const fieldData = this.currentData.data[key];
-      if (fieldData instanceof Array) {
-        for (const textAndScore of fieldData) {
-          ret.push(textAndScore[0]);
-        }
-      } else {
-        ret.push(fieldData);
-      }
+    const ret = getAllReferenceTexts(dataSpec, outputSpec, this.currentData);
+    if (this.currentData != null && this.currentPreds != null) {
+      ret.push(...getAllOutputTexts(outputSpec, this.currentPreds));
     }
     return ret;
-  }
-
-  @computed
-  get allOutputTexts(): string[] {
-    if (!this.currentPreds || !this.currentData) return [];
-
-    const ret: string[] = [];
-
-    // Search output fields.
-    const outputSpec = this.appState.getModelSpec(this.model).output;
-    for (const key of findSpecKeys(outputSpec, GENERATION_TYPES)) {
-      const fieldData = this.currentPreds[key];
-      if (fieldData instanceof Array) {
-        for (const textAndScore of fieldData) {
-          ret.push(textAndScore[0]);
-        }
-      } else {
-        ret.push(fieldData);
-      }
-    }
-    return ret;
-  }
-
-  @computed
-  get salienceTargetStrings(): string[] {
-    return [...this.allReferenceTexts, ...this.allOutputTexts];
   }
 
   override firstUpdated() {
@@ -172,23 +130,13 @@ export class SequenceSalienceModule extends LitModule {
 
     const promise = this.apiService.getPreds(
         [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
-        'Generating text');
-    const results = await this.loadLatest('preds', promise);
+        'Getting targets from model prediction');
+    const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;
 
-    // Post-process results.
-    // TODO(lit-dev): unify this with similar code in GeneratedTextModule.
-    const spec = this.appState.getModelSpec(this.model).output;
-    const result = results[0];
-    const preds: Preds = {};
-    for (const key of Object.keys(result)) {
-      if (isLitSubtype(spec[key], 'GeneratedText')) {
-        preds[key] = [[result[key], null]];
-      }
-      if (isLitSubtype(spec[key], 'GeneratedTextCandidates')) {
-        preds[key] = result[key];
-      }
-    }
+    const outputSpec = this.appState.getModelSpec(this.model).output;
+    const preds = canonicalizeGenerationResults(results[0], outputSpec);
+
     // Update data again, in case selection changed rapidly.
     this.currentData = input;
     this.currentPreds = preds;

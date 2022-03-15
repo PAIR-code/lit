@@ -27,12 +27,15 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
+import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, ComponentInfoMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
+import {filterToKeys, findSpecKeys, isLitSubtype} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
+
+const NO_LABEL_SENTINEL = '';
 
 /**
  * Custom element for in-table add/remove controls.
@@ -103,8 +106,15 @@ export class TrainingDataAttributionModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  @observable isRunning = false;
+  @observable private currentData?: IndexedInput;
+  // Field overrides from label controls.
+  @observable private customLabels: Input = {};
+  // Used to find target label options
+  // TODO(b/224802615): generalize this to other label types (classification,
+  // scoring, multilabel)
+  @observable private currentPreds?: GeneratedTextResult;
 
+  @observable isRunning = false;
   @observable retrievedExamples: IndexedInput[][] = [];
   @observable appliedGenerator: string|null = null;
 
@@ -118,6 +128,67 @@ export class TrainingDataAttributionModule extends LitModule {
     return {
       'model_name': this.model,
       'dataset_name': this.datasetName,
+    };
+  }
+
+  /**
+   * Names of all input keys that are referenced by the model output,
+   * and accepted as model input (i.e. are in the input_spec).
+   * This allows for keys which may not be in the data spec, so that we can set
+   * labels when using an otherwise unlabeled input set.
+   */
+  @computed
+  get targetLabelInputKeys(): string[] {
+    const spec = this.appState.getModelSpec(this.model);
+    const referencedKeys = new Set(Object.values(spec.output)
+                                       .filter(v => v.parent != null)
+                                       .map(v => v.parent!));
+    return [...referencedKeys].filter(k => spec.input[k] !== undefined);
+  }
+
+  /**
+   * Get possible target suggestions for an input field. This includes values
+   * for this field from the input, as well as any model generations that
+   * reference it as their parent= field.
+   * Returns [...references, ...generations]
+   */
+  getTargetStringsByInputKey(inputKey: string): string[] {
+    const ret: string[] = [];
+
+    // Reference texts for inputKey.
+    const dataSpec = this.appState.currentDatasetSpec;
+    if (this.currentData != null && dataSpec[inputKey] !== undefined) {
+      ret.push(...getFlatTexts([inputKey], this.currentData.data));
+    } else {
+      // sentinel value, handled by renderTargetSelector()
+      ret.push(NO_LABEL_SENTINEL);
+    }
+
+    // Model output from fields referencing inputKey.
+    if (this.currentData != null && this.currentPreds != null) {
+      // Filter the output spec to only fields that reference this inputKey.
+      const outputSpec = this.appState.getModelSpec(this.model).output;
+      const selectedOutputKeys =
+          Object.keys(outputSpec)
+              .filter(k => outputSpec[k].parent === inputKey);
+      const filteredOutputSpec = filterToKeys(outputSpec, selectedOutputKeys);
+      ret.push(...getAllOutputTexts(filteredOutputSpec, this.currentPreds));
+    }
+
+    return ret;
+  }
+
+  @computed
+  get modifiedInput(): IndexedInput|undefined {
+    if (this.currentData == null) return undefined;
+    if (!Object.keys(this.customLabels).length) return this.currentData;
+
+    const modifiedInputData =
+        Object.assign({}, this.currentData.data, this.customLabels);
+    return {
+      data: modifiedInputData,
+      id: '',
+      meta: {added: true, source: 'tda_custom', parentId: this.currentData.id}
     };
   }
 
@@ -146,6 +217,7 @@ export class TrainingDataAttributionModule extends LitModule {
       if (this.selectionService.lastUser !== this) {
         this.clearOutput();
       }
+      this.updateToSelection(selectedData);
     });
 
     // If all staged examples are removed one-by-one, make sure we reset
@@ -155,6 +227,33 @@ export class TrainingDataAttributionModule extends LitModule {
         this.clearOutput();
       }
     });
+  }
+
+  private async updateToSelection(input: IndexedInput|null) {
+    if (input == null) {
+      this.currentData = undefined;
+      this.customLabels = {};
+      this.currentPreds = undefined;
+      return;
+    }
+    // Before waiting for the backend call, update data and clear annotations.
+    this.currentData = input;
+    this.customLabels = {};
+    this.currentPreds = undefined;
+
+    const promise = this.apiService.getPreds(
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        'Getting targets from model prediction');
+    const results = await this.loadLatest('generationResults', promise);
+    if (results === null) return;
+
+    const outputSpec = this.appState.getModelSpec(this.model).output;
+    const preds = canonicalizeGenerationResults(results[0], outputSpec);
+
+    // Update data again, in case selection changed rapidly.
+    this.currentData = input;
+    this.customLabels = {};
+    this.currentPreds = preds;
   }
 
   private clearOutput() {
@@ -173,7 +272,7 @@ export class TrainingDataAttributionModule extends LitModule {
       generator: string, modelName: string, config?: CallConfig) {
     this.isRunning = true;
     this.appliedGenerator = generator;
-    const sourceExamples = this.selectionService.selectedInputData;
+    const sourceExamples = this.modifiedInput ? [this.modifiedInput] : [];
     try {
       const generated = await this.apiService.getGenerated(
           sourceExamples, modelName, this.appState.currentDataset, generator,
@@ -217,6 +316,66 @@ export class TrainingDataAttributionModule extends LitModule {
     }
   }
 
+  renderTargetSelector(inputKey: string) {
+    const targetStrings = this.getTargetStringsByInputKey(inputKey);
+
+    // Current value is that which would be sent to the backend.
+    // This could be undefined if the current dataset is unlabeled and a
+    // specific value has not been chosen yet; if so, set to emptystring.
+    const currentValue =
+        this.modifiedInput?.data[inputKey] ?? NO_LABEL_SENTINEL;
+
+    // TODO(b/216819289): allow entering custom text directly in this module.
+    // We could use <datalist> for this, but it's wonky and hard to control the
+    // behavior - in particular, once there is any text in the box, it will hide
+    // any suggestions that don't share a prefix.
+
+    const onChangeTarget = (e: Event) => {
+      const val: string = (e.target as HTMLInputElement).value;
+      // Note that we modify this.customLabels; this.modifiedInput will be
+      // automatically derived from those values.
+      if (val === NO_LABEL_SENTINEL) {
+        delete this.customLabels[inputKey];
+      } else {
+        this.customLabels[inputKey] = val;
+      }
+    };
+
+    const title = `Target string for ${inputKey}`;
+
+    // clang-format off
+    return html`
+      <div class='label-control-holder' title=${title}>
+        <div class="field-name">${inputKey}</div>
+        <div class='label-control'>
+          <select class="dropdown" @change=${onChangeTarget}>
+            ${targetStrings.map(target =>
+              html`<option value=${target} ?selected=${target === currentValue}>
+                     ${target}
+                   </option>`)}
+          </select>
+        </div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  renderLabelControls() {
+    const labelControls =
+        this.targetLabelInputKeys.map(k => this.renderTargetSelector(k));
+    // clang-format off
+    return html`
+      <div>
+        <expansion-panel label="Target Labels" expanded>
+          <div class='label-controls'>
+            ${labelControls}
+          </div>
+        </expansion-panel>
+      </div>
+    `;
+    // clang-format on
+  }
+
   renderFooterControls() {
     const controlsDisabled = this.totalNumGenerated <= 0;
 
@@ -235,7 +394,10 @@ export class TrainingDataAttributionModule extends LitModule {
     return html`
       <div class="module-container">
         <div class="module-content tda-module-content">
-          ${this.renderControlSidebar()}
+          <div class="controls-sidebar">
+            ${this.renderLabelControls()}
+            ${this.renderGeneratorControls()}
+          </div>
           ${this.renderRetrievedExamples()}
         </div>
         <div class="module-footer">
@@ -348,7 +510,7 @@ export class TrainingDataAttributionModule extends LitModule {
     return rows;
   }
 
-  renderControlSidebar() {
+  renderGeneratorControls() {
     const generatorsInfo = this.appState.metadata.generators;
 
     const onRunClick = (event: CustomEvent) => {
@@ -363,38 +525,35 @@ export class TrainingDataAttributionModule extends LitModule {
       this.handleGeneratorClick(generatorName, allParams);
     };
 
-    // clang-format off
-    return html`
-        <div class="generators-panel">
-          ${this.compatibleGenerators.map((genName, i) => {
-            const spec = generatorsInfo[genName].configSpec;
-            const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-            const description = generatorsInfo[genName].description;
-            for (const fieldName of Object.keys(clonedSpec)) {
-              // If the generator uses a field matcher, then get the matching
-              // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(clonedSpec[fieldName],
-                               ['FieldMatcher','MultiFieldMatcher'])) {
-                clonedSpec[fieldName].vocab =
-                    this.appState.getSpecKeysFromFieldMatcher(
-                        clonedSpec[fieldName], this.model);
-              }
-            }
-            const runDisabled = this.selectionService.primarySelectedInputData == null;
-            return html`
-                <lit-interpreter-controls
-                  .spec=${clonedSpec}
-                  .name=${genName}
-                  .description=${description||''}
-                  .applyButtonText=${"Run"}
-                  ?applyButtonDisabled=${runDisabled}
-                  ?opened=${i === 0}
-                  @interpreter-click=${onRunClick}>
-                </lit-interpreter-controls>`;
-          })}
-        </div>
-    `;
-    // clang-format on
+    return this.compatibleGenerators.map((genName, i) => {
+      const spec = generatorsInfo[genName].configSpec;
+      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const description = generatorsInfo[genName].description;
+      for (const fieldName of Object.keys(clonedSpec)) {
+        // If the generator uses a field matcher, then get the matching
+        // field names from the specified spec and use them as the vocab.
+        if (isLitSubtype(
+                clonedSpec[fieldName], ['FieldMatcher', 'MultiFieldMatcher'])) {
+          clonedSpec[fieldName].vocab =
+              this.appState.getSpecKeysFromFieldMatcher(
+                  clonedSpec[fieldName], this.model);
+        }
+      }
+      const runDisabled =
+          this.selectionService.primarySelectedInputData == null;
+      // clang-format off
+        return html`
+            <lit-interpreter-controls
+              .spec=${clonedSpec}
+              .name=${genName}
+              .description=${description||''}
+              .applyButtonText=${"Run"}
+              ?applyButtonDisabled=${runDisabled}
+              ?opened=${i === 0}
+              @interpreter-click=${onRunClick}>
+            </lit-interpreter-controls>`;
+      // clang-format on
+    });
   }
 
   static override shouldDisplayModule(

@@ -19,26 +19,20 @@
 import '@material/mwc-switch';
 import '../elements/generated_text_vis';
 
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {DiffMode, GeneratedTextCandidate} from '../elements/generated_text_vis';
+import {DiffMode} from '../elements/generated_text_vis';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
+import {GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
-
-/**
- * Preds type for text generation.
- */
-export interface GeneratedTextResult {
-  [outputFieldName: string]: GeneratedTextCandidate[];
-}
 
 interface ReferenceScoresResult {
   [referenceFieldName: string]: number[];
@@ -49,13 +43,6 @@ interface OutputGroupKeys {
   generated?: string;            /* field of this.generatedText */
   referenceModelScores?: string; /* field of this.referenceScores */
 }
-
-/**
- * Types for sequence generation output
- */
-export const GENERATION_TYPES: LitName[] =
-    ['GeneratedText', 'GeneratedTextCandidates'];
-
 
 /**
  * A LIT module that renders generated text.
