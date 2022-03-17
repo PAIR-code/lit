@@ -371,11 +371,8 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private getLabelByFields() {
-    const inputData = this.appState.currentInputData;
-    const noData = inputData === null || inputData.length === 0;
-    let options: string[] = noData ? [] : Object.keys(inputData[0].data);
-    options = options.filter((key) => !this.getImageFields().includes(key));
-    return options;
+    return findSpecKeys(this.appState.currentDatasetSpec,
+                        ['TextSegment', 'Scalar', 'String', 'CategoryLabel']);
   }
 
   private getImageFields() {
