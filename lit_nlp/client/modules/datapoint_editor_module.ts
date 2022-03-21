@@ -359,16 +359,15 @@ export class DatapointEditorModule extends LitModule {
     // Render a multi-line text input.
     const renderFreeformInput = () => {
       return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}
-        ?readonly="${!editable}">${value}</textarea>`;
+      <textarea class="input-box" style=${styleMap(inputStyle)} .value=${value}
+                @input=${handleInputChange} ?readonly=${!editable}></textarea>`;
     };
 
     // Render a single-line text input.
     const renderShortformInput = () => {
       return html`
       <input type="text" class="input-short" @input=${handleInputChange}
-        ?readonly="${!editable}" .value=${value}></input>`;
+             ?readonly="${!editable}" .value=${value}></input>`;
     };
 
     // Render a single-line text input, and convert entered value to a number.
@@ -378,7 +377,7 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`
       <input type="text" class="input-short" @input=${handleNumberInput}
-        ?readonly="${!editable}" .value=${value}></input>`;
+             ?readonly="${!editable}" .value=${value}></input>`;
     };
 
     // Render tokens as space-separated, but re-split for editing.
@@ -391,9 +390,9 @@ export class DatapointEditorModule extends LitModule {
       };
       const valueAsString = value ? value.join(' ') : '';
       return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleTokensInput}
-        ?readonly="${!editable}">${valueAsString}</textarea>`;
+      <textarea class="input-box" style=${styleMap(inputStyle)}
+                .value=${valueAsString} @input=${handleTokensInput}
+                ?readonly=${!editable}></textarea>`;
     };
 
     // Display multi-label inputs as separator-separated.
@@ -407,9 +406,9 @@ export class DatapointEditorModule extends LitModule {
         };
         const valueAsString = value ? value.join(separator) : '';
         return html`
-        <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-            handleSparseMultilabelInput}
-          ?readonly="${!editable}">${valueAsString}</textarea>`;
+        <textarea class="input-box" style=${styleMap(inputStyle)}
+                  .value=${valueAsString} @input=${handleSparseMultilabelInput}
+                  ?readonly=${!editable}></textarea>`;
       };
     };
 
