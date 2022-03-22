@@ -233,16 +233,18 @@ export class DatapointEditorModule extends LitModule {
       };
       const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
       this.appState.commitNewDatapoints(data);
-      this.selectionService.selectIds(data.map(d => d.id));
+      const newIds = data.map(d => d.id);
+      this.selectionService.selectIds(newIds);
+      return newIds;
     };
     const onClickCompare = async () => {
       const parentId = this.selectionService.primarySelectedId!;
-      await onClickNew();
+      const newIds = await onClickNew();
       this.appState.compareExamplesEnabled = true;
-      // By default, both selections will be synced to the newly-created
-      // datapoint. We want to set the reference to be the original parent
-      // example.
-      app.getServiceArray(SelectionService)[1].selectIds([parentId]);
+      // Explicitly set the reference to be the original parent example and
+      // the primary selection to the new example.
+      app.getService(SelectionService, 'pinned').selectIds([parentId]);
+      app.getService(SelectionService).selectIds(newIds);
     };
     const onClickReset = () => {
       this.resetEditedData(

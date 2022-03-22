@@ -149,10 +149,6 @@ tbody tr.focused {
   transition-property: background-color;
 }
 
-tbody tr.reference-selected {
-  outline: 1px solid #2f8c9b;
-}
-
 tbody td {
   vertical-align: top;
   min-width: 80px;

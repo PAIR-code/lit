@@ -77,7 +77,7 @@ export class LitApp {
       new Map<Constructor<LitService>, LitService|LitService[]>();
 
   /** Sync selection services */
-  syncSelectionServices() {
+  private syncSelectionServices() {
     const selectionServices = this.getServiceArray(SelectionService);
     // TODO(lit-dev): can we just copy the object instead, and skip this
     // logic?
@@ -85,15 +85,20 @@ export class LitApp {
   }
 
   /** Simple DI service system */
-  getService<T extends LitService>(t: Constructor<T>): T {
+  getService<T extends LitService>(t: Constructor<T>, instance?: string): T {
     let service = this.services.get(t);
     /**
      * Modules that don't support example comparison will always get index
      * 0 of selectionService. This way we do not have to edit any module that
-     * does not explicitly support cloning
+     * does not explicitly support cloning. For modules that support comparison,
+     * if the `pinned` instance is specified then return the appropriate
+     * instance.
      */
     if (Array.isArray(service)) {
-      service = service[0];
+      if (instance != null && instance !== 'pinned') {
+        throw new Error(`Invalid service instance name: ${instance}`);
+      }
+      service = service[instance === 'pinned' ? 1 : 0];
     }
     if (service === undefined) {
       throw new Error(`Service is undefined: ${t.name}`);

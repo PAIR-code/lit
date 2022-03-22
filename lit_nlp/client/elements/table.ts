@@ -784,7 +784,7 @@ export class DataTable extends ReactiveElement {
       'reference-selected': isReferenceSelection,
       'focused': isFocused
     });
-    const mouseDown = (e: MouseEvent) => {
+    const onClick = (e: MouseEvent) => {
       if (!this.selectionEnabled) return;
       this.handleRowClick(e, dataIndex, displayDataIndex);
     };
@@ -822,7 +822,7 @@ export class DataTable extends ReactiveElement {
     });
     // clang-format off
     return html`
-      <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
+      <tr class="${rowClass}" @click=${onClick} @mouseenter=${mouseEnter}
         @mouseleave=${mouseLeave}>
         ${data.rowData.map((d, i) =>
             html`<td style=${cellStyles}><div class=${cellClasses[i]}>${

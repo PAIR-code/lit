@@ -27,8 +27,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {customElement} from 'lit/decorators';
 import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
-import {computed, observable} from 'mobx';
+import {computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -223,8 +222,6 @@ export class LitMainToolbar extends MobxLitElement {
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
 
-  @observable private displayTooltip: boolean = false;
-
   /**
    * ID pairs, as [child, parent], from current selection or the whole dataset.
    */
@@ -358,7 +355,8 @@ export class LitMainToolbar extends MobxLitElement {
     const idPairs = this.selectedIdPairs;
     if (idPairs.length === 0) return null;
 
-    const referenceSelectionService = app.getServiceArray(SelectionService)[1];
+    const referenceSelectionService =
+        app.getService(SelectionService, 'pinned');
     const maybeGetIndex = (id: string|null) =>
         id != null ? this.appState.indicesById.get(id) : null;
     // ID pairs, as [child, parent]
@@ -450,47 +448,49 @@ export class LitMainToolbar extends MobxLitElement {
     const numSelected = this.selectionService.selectedIds.length;
     const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
+    const primaryIndex = primaryId == null ? -1 :
+        this.appState.indicesById.get(primaryId)!;
 
     const toggleExampleComparison = () => {
       this.appState.compareExamplesEnabled =
           !this.appState.compareExamplesEnabled;
     };
-    const compareDisabled =
-        !this.appState.compareExamplesEnabled && numSelected === 0;
-    const compareTextClass = classMap(
-        {'toggle-example-comparison': true, 'text-disabled': compareDisabled});
-    const tooltipStyle =
-        styleMap({visibility: this.displayTooltip ? 'visible' : 'hidden'});
-    const disableClicked = () => {
-      this.displayTooltip = true;
-    };
-    const disableMouseout = () => {
-      this.displayTooltip = false;
-    };
+
+    let referenceSelectedIndex = -1;
+    if (this.appState.compareExamplesEnabled) {
+      const referenceSelectionService =
+          app.getServiceArray(SelectionService)[1];
+      referenceSelectedIndex =
+          this.appState.indicesById.get(referenceSelectionService.primarySelectedId!)!;
+    }
+    const title = this.appState.compareExamplesEnabled ?
+        `Unpin datapoint ${referenceSelectedIndex}` :
+        primaryId == null ?
+            "Pin selected datapoint" : `Pin datapoint ${primaryIndex}`;
+    const pinDisabled = !this.appState.compareExamplesEnabled &&
+        primaryId == null;
+    const pinClasses = classMap({
+      'material-icon': true,
+      'span-outlined': !this.appState.compareExamplesEnabled
+    });
+    const buttonClasses = classMap({
+      'hairline-button': true,
+      'xl': true,
+      'pin-button': true,
+      'active': this.appState.compareExamplesEnabled
+    });
     // clang-format off
     return html`
     <div class='toolbar main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
-        <div class='compare-container'
-          @click=${compareDisabled ? null : toggleExampleComparison}
-          @mouseover=${compareDisabled ? disableClicked : null}
-          @mouseout=${compareDisabled ? disableMouseout : null}>
-          <div class=${compareTextClass}>
-            Compare datapoints
+        <button class="${buttonClasses}" title=${title}
+                ?disabled=${pinDisabled} @click=${toggleExampleComparison}>
+          <div class="pin-button-content">
+            <span class="${pinClasses}">push_pin</span>
+            <div class="pin-button-text">${title}</div>
           </div>
-          <mwc-switch id='compare-switch'
-            ?disabled='${compareDisabled}'
-            .checked=${this.appState.compareExamplesEnabled}
-          >
-          </mwc-switch>
-        </div>
-        <div class='compare-tooltip tooltip' style=${tooltipStyle}>
-          <mwc-icon class='tooltip-icon'>error_outline</mwc-icon>
-          <span class='tooltip-text'>
-            Select a datapoint to use this feature.
-          </span>
-        </div>
+        </button>
         ${this.renderPairControls()}
       </div>
       <div id='right-container'>

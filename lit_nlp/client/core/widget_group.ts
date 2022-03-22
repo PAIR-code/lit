@@ -206,13 +206,13 @@ export class WidgetGroup extends LitElement {
 
     let subtitle = modelName ?? '';
     /**
-     * If defined, modules show "Main" for 0 and "Reference for 1,
+     * If defined, modules show "Selected" for 0 and "Pinned" for 1,
      * If undefined, modules do not show selectionService related info in their
      * titles (when compare examples mode is disabled)."
      */
     if (typeof selectionServiceIndex !== 'undefined' && moduleType.duplicateForExampleComparison) {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
-        selectionServiceIndex ? 'Reference' : 'Main'}`);
+        selectionServiceIndex ? 'Pinned' : 'Selected'}`);
     }
     // Track scolling changes to the widget and request a rerender.
     const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
@@ -322,7 +322,6 @@ export class LitWidget extends MobxLitElement {
     });
     const holderClasses = classMap({
       holder: true,
-      highlight: this.highlight,
     });
     // Track content scrolling and pass the scrolling information back to the
     // widget group for sync'ing between duplicated widgets. This covers the
@@ -366,6 +365,10 @@ export class LitWidget extends MobxLitElement {
   renderHeader() {
     return html`
     <div class=header>
+      ${this.highlight ?
+        html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
+        html`<div class="pin-spacer"></div>`
+      }
       <span class="subtitle">${this.subtitle}</span>
     </div>
     `;

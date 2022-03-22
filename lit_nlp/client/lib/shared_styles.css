@@ -432,9 +432,24 @@ mwc-textfield {
   border: 1px solid var(--lit-neutral-200);
 }
 
-.hairline-button:active {
+.hairline-button:active,
+.hairline-button.active {
   background-color: var(--lit-mintonal-p-4);
   border: 1px solid var(--lit-cyea-500);
+  color: var(--lit-cyea-500);
+}
+
+.pin-icon {
+  height: 14px;
+  width: 14px;
+  min-width: 14px;
+  --mdc-icon-size: 14px;
+  user-select: none;
+  color: var(--lit-cyea-500);
+  margin-right: 2px;
+}
+
+.icon-button.cyea {
   color: var(--lit-cyea-500);
 }
 
@@ -468,6 +483,10 @@ mwc-icon.disabled{
 
 mwc-icon.mdi-outlined {
   --mdc-icon-font: "Material Icons Outlined";
+}
+
+.span-outlined {
+  font-family: "Material Icons Outlined";
 }
 
 /**

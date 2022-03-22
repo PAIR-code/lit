@@ -21,6 +21,8 @@ import '../elements/checkbox';
 
 import {html} from 'lit';
 import {customElement, query} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -160,6 +162,11 @@ export class DataTableModule extends LitModule {
   // it gets run _four_ times every time a new datapoint is added.
   @computed
   get tableData(): TableData[] {
+    const pinnedId = this.appState.compareExamplesEnabled ?
+        app.getService(SelectionService, 'pinned').primarySelectedId : null;
+    const selectedId = this.selectionService.primarySelectedId;
+    const focusedId = this.focusService.focusData?.datapointId;
+
     // TODO(b/160170742): Make data table render immediately once the
     // non-prediction data is available, then fetch predictions asynchronously
     // and enable the additional columns when ready.
@@ -198,7 +205,51 @@ export class DataTableModule extends LitModule {
               .map(k => formatForDisplay(this.dataService.getVal(d.id, k),
                                          this.dataSpec[k]));
 
-      const ret: TableData = [index];
+      const pinClick = (event: Event) => {
+        if (pinnedId === d.id) {
+          this.appState.compareExamplesEnabled = false;
+        } else {
+          this.appState.compareExamplesEnabled = true;
+          app.getService(SelectionService, 'pinned').selectIds([d.id]);
+        }
+        event.stopPropagation();
+      };
+
+      const indexHolderDivStyle = styleMap({
+        'display': 'flex',
+        'flex-direction': 'row-reverse',
+        'justify-content': 'space-between',
+        'width': '100%'
+      });
+      const indexDivStyle = styleMap({
+        'text-align': 'right',
+      });
+      // Render the pin button next to the index if datapoint is pinned,
+      // selected, or hovered.
+      const renderPin = () => {
+        const iconClass = classMap({
+           'icon-button': true,
+           'cyea': true,
+           'mdi-outlined': pinnedId !== d.id,
+        });
+        if (pinnedId === d.id || focusedId === d.id || selectedId === d.id) {
+          return html`
+              <mwc-icon class="${iconClass}" @click=${pinClick}>
+                  push_pin
+              </mwc-icon>`;
+        }
+        return null;
+      };
+      const indexHtml = html`
+          <div style="${indexHolderDivStyle}">
+            <div style="${indexDivStyle}">${index}</div>
+            ${renderPin()}
+          </div>`;
+      const indexEntry = {
+        template: indexHtml,
+        value: index
+      };
+      const ret: TableData = [indexEntry];
       if (this.columnVisibility.get('id')) {
         ret.push(displayId);
       }
@@ -475,7 +526,7 @@ export class DataTableModule extends LitModule {
     let referenceSelectedIndex = -1;
     if (this.appState.compareExamplesEnabled) {
       const referenceSelectionService =
-          app.getServiceArray(SelectionService)[1];
+          app.getService(SelectionService, 'pinned');
       referenceSelectedIndex =
           indexOfId(referenceSelectionService.primarySelectedId);
     }

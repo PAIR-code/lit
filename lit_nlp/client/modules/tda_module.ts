@@ -307,7 +307,7 @@ export class TrainingDataAttributionModule extends LitModule {
     // for direct comparison.
     if (this.appState.compareExamplesEnabled) {
       const referenceSelectionService =
-          app.getServiceArray(SelectionService)[1];
+          app.getService(SelectionService, 'pinned');
       referenceSelectionService.selectIds([...parentIds, ...newIds], this);
       // parentIds[0] is not necessarily the parent of newIds[0], if
       // generated[0] is [].
