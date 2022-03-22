@@ -84,15 +84,18 @@ function spansToEdges(spans: SpanLabel[]): EdgeLabel[] {
 
 function mapTokenToTags(spec: Spec): FieldNameMultimap {
   const tagKeys = findSpecKeys(spec, supportedPredTypes);
-
   const tokenKeys = findSpecKeys(spec, 'Tokens');
+
   // Make a mapping of token keys to one or more tag sets
   const tokenToTags = {} as FieldNameMultimap;
-  for (const tokenKey of tokenKeys) {
-    tokenToTags[tokenKey] = [];
-  }
   for (const tagKey of tagKeys) {
     const tokenKey = spec[tagKey].align as string;
+    if (!tokenKeys.includes(tokenKey)) {
+      continue;
+    }
+    if (tokenToTags[tokenKey] == null) {
+      tokenToTags[tokenKey] = [];
+    }
     tokenToTags[tokenKey].push(tagKey);
   }
   return tokenToTags;
