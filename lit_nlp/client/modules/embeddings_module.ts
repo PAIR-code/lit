@@ -30,7 +30,7 @@ import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService, FocusService} from '../services/services';
+import {ColorService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -94,6 +94,8 @@ export class EmbeddingsModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
   private resizeObserver!: ResizeObserver;
 
   private scatterGL!: ScatterGL;
@@ -442,9 +444,11 @@ export class EmbeddingsModule extends LitModule {
     const isHovered = this.focusService.focusData != null &&
         this.focusService.focusData.datapointId === currentPoint.id &&
         this.focusService.focusData.io == null;
+    const isPinned = currentPoint != null &&
+        this.pinnedSelectionService.primarySelectedId === currentPoint.id;
 
-    if (isHovered) {
-      color = getBrandColor('mage', '300').color;
+    if (isHovered || isPinned) {
+      color = getBrandColor('mage', '400').color;
     }
 
     // Do not add color to rendered images unless they are hovered or selected.

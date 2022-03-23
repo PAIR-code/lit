@@ -31,7 +31,7 @@ import {ThresholdChange} from '../elements/threshold_slider';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService} from '../services/services';
+import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService, SelectionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -87,6 +87,8 @@ export class ScalarModule extends LitModule {
   private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
 
   private readonly inputIDToIndex = new Map();
   private resizeObserver!: ResizeObserver;
@@ -177,6 +179,17 @@ export class ScalarModule extends LitModule {
       // Update colors of datapoints as they may be based on predicted label.
       this.updateColors();
     });
+    const getCompareEnabled = () => [
+      this.appState.compareExamplesEnabled,
+      this.pinnedSelectionService.primarySelectedInputData];
+    this.reactImmediately(getCompareEnabled, () => {
+      let referenceInputData = null;
+      if (this.appState.compareExamplesEnabled) {
+        referenceInputData =
+            this.pinnedSelectionService.primarySelectedInputData;
+      }
+      this.updateReferenceSelection(referenceInputData);
+    });
 
     const getSelectedColorOption = () => this.colorService.selectedColorOption;
     this.reactImmediately(getSelectedColorOption, selectedColorOption => {
@@ -240,7 +253,7 @@ export class ScalarModule extends LitModule {
   }
 
   /**
-   * Updates the scatterplot with the new primary selection.
+   * Updates the scatterplot with the new hovered selection.
    */
   private updateHoveredPoint(focusData: FocusData|null) {
     let hoveredData: IndexedInput[] = [];
@@ -249,6 +262,18 @@ export class ScalarModule extends LitModule {
     }
     this.updateCallouts(
         hoveredData, '#hoverOverlay', 'hovered-point', false);
+  }
+
+  /**
+   * Updates the scatterplot with the new reference selection.
+   */
+  private updateReferenceSelection(referenceInputData: IndexedInput|null) {
+    const referencesInputData: IndexedInput[] = [];
+    if (referenceInputData !== null) {
+      referencesInputData.push(referenceInputData);
+    }
+    this.updateCallouts(
+        referencesInputData, '#referenceOverlay', 'reference-point', true);
   }
 
   /**
@@ -489,6 +514,7 @@ export class ScalarModule extends LitModule {
   private updateAllScatterplotColors(scatterplot: SVGGElement) {
     this.updateScatterplotColors(scatterplot, '#dataPoints');
     this.updateScatterplotColors(scatterplot, '#overlay');
+    this.updateScatterplotColors(scatterplot, '#referenceOverlay');
     this.updateScatterplotColors(scatterplot, '#primaryOverlay');
   }
 
@@ -563,6 +589,12 @@ export class ScalarModule extends LitModule {
       d3.select(scatterplot)
           .append('g')
           .attr('id', 'primaryOverlay')
+          .attr('transform', this.plotTranslation);
+
+      // Add group for overlaying reference selected point.
+      d3.select(scatterplot)
+          .append('g')
+          .attr('id', 'referenceOverlay')
           .attr('transform', this.plotTranslation);
 
       // Add group for overlaying hovered points.
@@ -701,6 +733,7 @@ export class ScalarModule extends LitModule {
       // Raise point groups to be in front of the d3.brush.
       dataPoints.raise();
       d3.select(scatterplot).select('#overlay').raise();
+      d3.select(scatterplot).select('#referenceOverlay').raise();
       d3.select(scatterplot).select('#primaryOverlay').raise();
       d3.select(scatterplot).select('#hoverOverlay').raise();
 
