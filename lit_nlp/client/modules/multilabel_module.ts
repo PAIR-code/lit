@@ -140,7 +140,7 @@ export class MultilabelModule extends LitModule {
             let key = `${models[modelIdx]}`;
             // If there are two datapoints, then label them.
             if (results[modelIdx].length > 1) {
-              key += (datapointIdx === 0) ? ' main' : ' reference';
+              key += (datapointIdx === 0) ? ' selected' : ' pinned';
             }
             allResults[predKey][label][key] = score;
             if (this.maxValues[predKey] == null) {
@@ -181,7 +181,7 @@ export class MultilabelModule extends LitModule {
       for (const label of this.groundTruthLabels) {
         let labelColName = label;
         if (this.datapoints.length > 1) {
-          labelColName += i === 0 ? ' main' : ' reference';
+          labelColName += i === 0 ? ' selected' : ' pinned';
         }
         columnNames.push(labelColName);
       }
