@@ -42,6 +42,7 @@ from lit_nlp.components import pdp
 from lit_nlp.components import projection
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
+from lit_nlp.components import shap_explainer
 from lit_nlp.components import tcav
 from lit_nlp.components import thresholder
 from lit_nlp.components import umap
@@ -487,6 +488,7 @@ class LitApp(object):
           'pdp': pdp.PdpInterpreter(),
           'Salience Clustering': salience_clustering.SalienceClustering(
               gradient_map_interpreters),
+          'Tabular SHAP': shap_explainer.TabularShapExplainer(),
           # Embedding projectors expose a standard interface, but get special
           # handling so we can precompute the projections if requested.
           'pca': projection.ProjectionManager(pca.PCAModel),

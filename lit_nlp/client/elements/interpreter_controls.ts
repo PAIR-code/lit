@@ -31,14 +31,15 @@ import {isLitSubtype} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';
 
-interface Settings {
+/** Settings for an interpreter */
+export interface InterpreterSettings {
   [name: string]: boolean | number | string | string[];
 }
 
 /** Custom click event for interpreter controls */
 export interface InterpreterClick {
   name: string;
-  settings: Settings;
+  settings: InterpreterSettings;
 }
 
 /**
@@ -51,7 +52,7 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: String}) description = '';
   @observable @property({type: String}) applyButtonText = 'Apply';
   @property({type: Boolean, reflect: true}) applyButtonDisabled = false;
-  @observable settings: Settings = {};
+  @observable settings: InterpreterSettings = {};
   @property({type: Boolean, reflect: true}) opened = false;
 
   static override get styles() {

@@ -83,7 +83,7 @@ export abstract class LitModule extends ReactiveElement {
   @observable @property({type: Number}) selectionServiceIndex = 0;
 
   // tslint:disable-next-line:no-any
-  private readonly latestLoadPromises = new Map<string, Promise<any>>();
+  protected readonly latestLoadPromises = new Map<string, Promise<any>>();
 
   protected readonly apiService = app.getService(ApiService);
   protected readonly appState = app.getService(AppState);

@@ -20,7 +20,6 @@ import transformers
 MODEL_PATH = transformers.file_utils.cached_path(MODEL_PATH)
 
 FLAGS = flags.FLAGS
-
 flags.DEFINE_string('model_path', MODEL_PATH, 'Path to load trained model.')
 
 
@@ -36,7 +35,6 @@ def get_wsgi_app():
 
 def main(_):
   model_path = FLAGS.model_path
-
   models = {'species classifier': penguin_model.PenguinModel(model_path)}
   datasets = {'penguins': penguin_data.PenguinDataset()}
   generators = {
