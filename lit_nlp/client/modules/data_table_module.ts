@@ -422,10 +422,10 @@ export class DataTableModule extends LitModule {
   }
 
   onHover(tableIndex: number|null) {
-    const id = tableIndex != null ? this.getIdFromTableIndex(tableIndex) : null;
-    if (id == null) {
+    if (tableIndex == null) {
       this.focusService.clearFocus();
     } else {
+      const id = this.getIdFromTableIndex(tableIndex);
       this.focusService.setFocusedDatapoint(id);
     }
   }

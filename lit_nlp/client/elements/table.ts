@@ -34,7 +34,7 @@ import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {formatForDisplay} from '../lib/types';
-import {isNumber, randInt} from '../lib/utils';
+import {isNumber, median, randInt} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './table.css';
@@ -78,6 +78,7 @@ enum SpanAnchor {
 const IMAGE_PREFIX = 'data:image';
 
 const CONTAINER_HEIGHT_CHANGE_DELTA = 20;
+const PAGE_SIZE_INCREMENT = 10;
 
 /**
  * A generic data table component
@@ -97,7 +98,7 @@ export class DataTable extends ReactiveElement {
   // to generate a new reference and force a refresh if needed.
   @observable.struct @property({type: Array}) data: TableData[] = [];
   @observable.struct @property({type: Array})
-  columnNames: Array<string|ColumnHeader> = [];
+      columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) selectedIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
@@ -114,8 +115,8 @@ export class DataTable extends ReactiveElement {
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
 
   // Callbacks
-  @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
-  @property({type: Object}) onHover: OnHoverCallback|undefined;
+  @property({type: Object}) onClick?: OnPrimarySelectCallback;
+  @property({type: Object}) onHover?: OnHoverCallback;
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
@@ -130,7 +131,7 @@ export class DataTable extends ReactiveElement {
   @observable private columnMenuName = '';
   @observable private readonly columnSearchQueries = new Map<string, string>();
   @observable private pageNum = 0;
-  @observable private entriesPerPage = 10;
+  @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
   private resizeObserver!: ResizeObserver;
   private needsEntriesPerPageRecompute = true;
@@ -153,14 +154,17 @@ export class DataTable extends ReactiveElement {
     // If inputs changed, re-sort data based on the new inputs.
     this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
       this.needsEntriesPerPageRecompute = true;
-      this.pageNum = 0;
       this.requestUpdate();
     });
 
     // Reset page number if invalid on change in total pages.
     const triggerPageChange = () => this.totalPages;
     this.reactImmediately(triggerPageChange, () => {
-      if (this.pageNum >= this.totalPages) {
+      const isPageOverflow = this.pageNum >= this.totalPages;
+      const lastIndexOnPage = this.entriesPerPage * (this.pageNum + 1);
+      const isHoveredInvisible =
+          this.hoveredIndex != null && this.hoveredIndex > lastIndexOnPage;
+      if (isPageOverflow || isHoveredInvisible) {
         this.pageNum = 0;
       }
     });
@@ -204,8 +208,7 @@ export class DataTable extends ReactiveElement {
   private computeEntriesPerPage() {
     this.needsEntriesPerPageRecompute = false;
 
-    // If pagination is disabled, then ensure all entires can fit on a single
-    // page.
+    // If pagination is disabled, then put all entries on a single page.
     if (!this.paginationEnabled) {
       this.entriesPerPage = this.rowFilteredData.length + 1;
       return;
@@ -219,30 +222,57 @@ export class DataTable extends ReactiveElement {
         this.shadowRoot!.querySelector('tfoot')!.getBoundingClientRect().height;
     const availableHeight =
         Math.max(0, containerHeight - headerHeight - footerHeight);
-    const rows: NodeListOf<HTMLElement> =
-        this.shadowRoot!.querySelectorAll('tbody > tr');
+
+    // Iterate over rows, adding up their heights until they overfill the
+    // container (or run out of rows), to get the number of rows per page.
     let height = 0;
     let i = 0;
-
-    // Iterate over rows, adding up their height until they fill the container,
-    // to get the number of rows to display per page.
-    for (i = 0; i < rows.length; i++) {
+    const rows: NodeListOf<HTMLElement> =
+        this.shadowRoot!.querySelectorAll('tbody > tr.lit-data-table-row');
+    while (height < availableHeight && i < rows.length) {
       height += rows[i].getBoundingClientRect().height;
-      if (height > availableHeight) {
-        this.entriesPerPage = i + 1;
-        break;
+      i += 1;
+    }
+
+    // Calculate how many rows will fit on a page given the available space.
+    let entriesPerPage;
+    if (height === 0 || i === 0) {
+      // No content, calculate how many would fill it assuming minimum row size
+      // given styles, 28px.
+      // div.cell-holder (18px height + 8px padding) + td (2px padding) = 28px
+      entriesPerPage = Math.ceil(availableHeight / 28);
+    } else {
+      const hasFillers =
+          this.shadowRoot!.querySelectorAll('tbody > tr.filler').length > 0;
+
+      if (hasFillers || height === availableHeight) {
+        // The height is exactly the same as the container, which means either
+        // LIT got incredibly lucky (unlikely) or that the browser's table
+        // algorithm is stretching the rows to fill the available space (very
+        // likely). Since it's so likely that the table-row elements are being
+        // stretched to fit the available space, use the median div height
+        // instead of mean row height to calculate how many would fit.
+        const cellHolderSelector = 'tbody > tr > td > div.cell-holder';
+        const cellHolders: NodeListOf<HTMLDivElement> =
+            this.shadowRoot!.querySelectorAll(cellHolderSelector);
+        const cellHolderHeights = [...cellHolders.values()].map(div =>
+            div.getBoundingClientRect().height);
+        const medianHeight = median(cellHolderHeights);
+        entriesPerPage = Math.ceil(availableHeight / medianHeight);
+      } else if (height < availableHeight) {
+        // If there aren't enough entries to fill the container, calculate how
+        // many will fill the container based on the mean height.
+        const meanHeight = height / i;
+        entriesPerPage = Math.ceil(availableHeight / meanHeight);
+      } else {
+        // There are enough entries to fill the container, use i.
+        entriesPerPage = i;
       }
     }
-    if (height === 0) {
-      this.entriesPerPage = 10;
-    } else if (height <= availableHeight) {
-      // If there aren't enough entries to take up the entire container,
-      // calculate how many will fill the container based on the heights so far.
-      const heightPerEntry = height / i;
-      this.entriesPerPage = Math.ceil(availableHeight / heightPerEntry);
-    }
+
     // Round up to the nearest 10.
-    this.entriesPerPage = Math.ceil(this.entriesPerPage / 10) * 10;
+    this.entriesPerPage =
+        Math.ceil(entriesPerPage / PAGE_SIZE_INCREMENT) * PAGE_SIZE_INCREMENT;
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
@@ -380,6 +410,17 @@ export class DataTable extends ReactiveElement {
     const begin = this.pageNum * this.entriesPerPage;
     const end = begin + this.entriesPerPage;
     return this.displayData.slice(begin, end);
+  }
+
+  @computed
+  get fillerRows(): TemplateResult[] {
+    const rows: TemplateResult[] = [];
+    for(let i = 0; i < (this.entriesPerPage - this.pageData.length); i++) {
+      rows.push(html`<tr class="filler">
+        <td colspan=${this.columnNames.length}>&nbsp;</td>
+      </tr>`);
+    }
+    return rows;
   }
 
   @computed
@@ -558,34 +599,33 @@ export class DataTable extends ReactiveElement {
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
     // clang-format off
-    return html`
-      <div class="holder">
-        <table>
-          <thead>
-            ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
-          </thead>
-          <tbody>
-            ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-          </tbody>
-          <tfoot>
-            ${this.renderFooter()}
-          </tfoot>
-        </table>
-      </div>
-    `;
+    return html`<div class="holder">
+      <table>
+        <thead>
+          ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
+        </thead>
+        <tbody>
+          ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
+          ${this.fillerRows}
+        </tbody>
+        <tfoot>
+          ${this.renderFooter()}
+        </tfoot>
+      </table>
+    </div>`;
     // clang-format on
   }
 
   renderFooter() {
-    if (!this.hasFooter) {
-      return null;
-    }
-    const pageDisplayNum = this.pageNum + 1;
+    if (!this.hasFooter) {return null;}
+
     // Use this modulo function so that if pageNum is negative (when
     // decrementing pages), the modulo returns the expected positive value.
     const modPageNumber = (pageNum: number) => {
       return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
     };
+
+    const firstPage = () => {this.pageNum = 0;};
     const nextPage = () => {
       const newPageNum = modPageNumber(this.pageNum + 1);
       this.pageNum = newPageNum;
@@ -594,24 +634,22 @@ export class DataTable extends ReactiveElement {
       const newPageNum = modPageNumber(this.pageNum - 1);
       this.pageNum = newPageNum;
     };
-    const firstPage = () => {
-      this.pageNum = 0;
-    };
-    const firstPageButtonClasses = {
-      'icon-button': true,
-      'disabled': this.pageNum === 0
-    };
-    const lastPage = () => {
-      this.pageNum = this.totalPages - 1;
-    };
-    const lastPageButtonClasses = {
-      'icon-button': true,
-      'disabled': this.pageNum === this.totalPages - 1
-    };
+    const lastPage = () => {this.pageNum = this.totalPages - 1;};
     const randomPage = () => {
       const newPageNum = randInt(0, this.totalPages);
       this.pageNum = newPageNum;
     };
+
+    const pageDisplayNum = this.pageNum + 1;
+    const firstPageButtonClasses = {
+      'icon-button': true,
+      'disabled': this.pageNum === 0
+    };
+    const lastPageButtonClasses = {
+      'icon-button': true,
+      'disabled': this.pageNum === (this.totalPages - 1)
+    };
+
     // clang-format off
     return html`
       <tr>
@@ -779,6 +817,7 @@ export class DataTable extends ReactiveElement {
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
     const isFocused = this.focusedIndex === dataIndex;
     const rowClass = classMap({
+      'lit-data-table-row': true,
       'selected': isSelected,
       'primary-selected': isPrimarySelection,
       'reference-selected': isReferenceSelection,
