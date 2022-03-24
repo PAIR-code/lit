@@ -43,3 +43,4 @@ dependencies:
         - attrs
         - Jinja2
         - stanza
+        - shap==0.37.0
