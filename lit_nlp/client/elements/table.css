@@ -108,7 +108,8 @@
 }
 
 .menu-button {
-  --mdc-icon-size: 20px;
+  --mdc-icon-size: 16px;
+  margin-top: 2px;
 }
 
 .menu-button:hover {

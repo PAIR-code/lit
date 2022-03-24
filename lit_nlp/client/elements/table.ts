@@ -789,7 +789,7 @@ export class DataTable extends ReactiveElement {
               ${this.searchEnabled ? html`
                 <div class="menu-button-container">
                   <mwc-icon class="menu-button" style=${menuButtonStyle}
-                   @click=${handleMenuButton}>search</mwc-icon>
+                   @click=${handleMenuButton}>filter_list</mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}>
                 <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
@@ -801,7 +801,7 @@ export class DataTable extends ReactiveElement {
             <div class='togglable-menu-holder' style=${searchMenuStyle}>
                 <input type="search" class='search-input'
                 .value=${searchText}
-                placeholder="Search" @input=${handleSearchChange}/>
+                placeholder="Filter" @input=${handleSearchChange}/>
             </div>` : null}
         </th>
       `;

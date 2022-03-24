@@ -123,3 +123,12 @@ textarea {
   background: rgb(211,211,211, 0.8);
 }
 
+mwc-icon.google-icon {
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-font: "Google Material Icons";
+  --mdc-icon-size: 12px;
+  margin-bottom: 1px;
+  margin-left: 4px;
+}

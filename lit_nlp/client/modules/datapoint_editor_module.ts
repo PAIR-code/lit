@@ -510,7 +510,7 @@ export class DatapointEditorModule extends LitModule {
         <a href="https://www.google.com/search?${
           params.toString()}" target="_blank">
           ${headerContent}
-          <mwc-icon class="icon-button">search</mwc-icon>
+          <mwc-icon class="icon-button google-icon">google</mwc-icon>
         </a>`;
     }
 
