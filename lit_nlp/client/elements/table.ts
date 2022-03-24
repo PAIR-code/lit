@@ -600,13 +600,13 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`<div class="holder">
-      <table>
+      <table class=${classMap({'paginated': this.paginationEnabled})}>
         <thead>
           ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
         </thead>
         <tbody>
           ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-          ${this.fillerRows}
+          ${this.paginationEnabled ? this.fillerRows : null}
         </tbody>
         <tfoot>
           ${this.renderFooter()}
