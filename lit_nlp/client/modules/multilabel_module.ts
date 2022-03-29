@@ -211,7 +211,9 @@ export class MultilabelModule extends LitModule {
       for (let i = 0; i < this.datapoints.length; i++) {
         const ex = this.datapoints[i];
         for (const label of this.groundTruthLabels.keys()) {
-          row.push(formatBoolean(ex.data[label] === className));
+          // TODO(lit-dev): consider making a Set() for faster membership
+          // checking if we have a large # of labels.
+          row.push(formatBoolean(ex.data[label].includes(className)));
         }
       }
       let baselineScore = 0;
