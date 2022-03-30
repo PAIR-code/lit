@@ -41,6 +41,83 @@
   width: -webkit-fill-available;
 }
 
+.token-box {
+  height: 26px;
+  padding-right: 16px;
+  box-sizing: border-box;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  resize: none;
+  min-width: 48px;
+  max-width: 250px;
+  padding-left: 4px;
+  max-width: 250px;
+  overflow: auto;
+}
+
+.token-div {
+  height: 26px;
+  min-width: 16px;
+  max-width: 226px;
+  padding-right: 4px;
+  padding-top: 2px;
+  padding-left: 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  overflow: auto;
+}
+
+.token-div:hover {
+  cursor: text;
+}
+
+.tokens-holder {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: 6px;
+}
+
+.icon-button.token-button {
+  width: 18px;
+  height: 18px;
+  padding-top: 4px;
+  padding-left: 2px;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.token-holder {
+  margin-right: 2px;
+  position: relative;
+  height: 28px;
+}
+
+.delete-button {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+}
+
+.token-outer {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.insert-token-div {
+  width: 6px;
+  background: white;
+  margin-right: 2px;
+  margin-bottom: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.insert-token-div:hover {
+  background: var(--lit-neutral-400);
+}
+
 .input-short {
   width: 95%;
   /* Fill available up to outer margin, if supported. */
@@ -71,6 +148,10 @@ select.dropdown {
 .entry-content-long {
   flex-grow: 1;
   flex-basis: 100%;
+}
+
+.entry-content.left-align {
+  justify-content: flex-start;
 }
 
 input {

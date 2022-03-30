@@ -70,6 +70,9 @@ export class DatapointEditorModule extends LitModule {
   @observable datapointEdited: boolean = false;
   @observable inputHeights: {[name: string]: string} = {};
   @observable maximizedImageFields = new Set<string>();
+  @observable editingTokenIndex = -1;
+  @observable editingTokenField?: string;
+  @observable editingTokenWidth = 0;
 
   @computed
   get dataTextLengths(): {[key: string]: number} {
@@ -85,14 +88,15 @@ export class DatapointEditorModule extends LitModule {
       if (this.groupService.categoricalFeatureNames.includes(key)) continue;
       if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Correctly handle fields with value type string[]
+      // Skip fields with value type string[]
       const fieldSpec = spec[key];
       const isListField = isLitSubtype(
           fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
+      if (isListField) continue;
+
       const lengths = this.appState.currentInputData.map(indexedInput => {
         const value = indexedInput.data[key];
-        return isListField ? value?.join(fieldSpec.separator ?? ',').length :
-                             value?.length;
+        return value?.length;
       });
       defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
       // Override if the distribution is short-tailed, we can expand a bit to
@@ -166,6 +170,7 @@ export class DatapointEditorModule extends LitModule {
 
   private resetEditedData(selectedInputData: Input|null) {
     this.datapointEdited = false;
+    this.editingTokenIndex = -1;
     const data: Input = {};
 
     // If no datapoint is selected, then show an empty datapoint to fill in.
@@ -286,7 +291,7 @@ export class DatapointEditorModule extends LitModule {
       ${resetButton}
       ${clearButton}
     `;
-    // clang-format off
+    // clang-format on
   }
 
   renderEditText() {
@@ -383,21 +388,6 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}" .value=${value}></input>`;
     };
 
-    // Render tokens as space-separated, but re-split for editing.
-    const renderTokensInput = () => {
-      const handleTokensInput = (e: Event) => {
-        handleInputChange(e, (value: string): string[] => {
-          // If value is empty, return [] instead of ['']
-          return value ? value.split(' ') : [];
-        });
-      };
-      const valueAsString = value ? value.join(' ') : '';
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleTokensInput}
-        ?readonly="${!editable}">${valueAsString}</textarea>`;
-    };
-
     // Display multi-label inputs as separator-separated.
     const renderSparseMultilabelInputGenerator = (separator: string) => {
       return () => {
@@ -444,10 +434,15 @@ export class DatapointEditorModule extends LitModule {
       ></lit-checkbox>`;
     };
 
+    const renderTokensInput = () => {
+      return this.renderTokensInput(key, value, handleInputChange);
+    };
+
     let renderInput = renderFreeformInput;  // default: free text
     const entryContentClasses = {
       'entry-content': true,
       'entry-content-long': false,
+      'left-align': false
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
@@ -460,6 +455,7 @@ export class DatapointEditorModule extends LitModule {
     } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
+      entryContentClasses['left-align'] = true;
     } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
@@ -532,6 +528,113 @@ export class DatapointEditorModule extends LitModule {
       </div>
     `;
     // clang-format on
+  }
+
+  renderTokensInput(
+      key: string, value: string[],
+      handleInputChange: (e: Event, converterFn: InputConverterFn) => void) {
+    const tokenValues = value == null ? [] : [...value];
+    const tokenRenders = [];
+    for (let i = 0; i < tokenValues.length; i++) {
+      const tokenOrigValue = tokenValues[i];
+      const handleTokenInput = (e: Event) => {
+        handleInputChange(e, (tokenValue: string): string[] => {
+          tokenValues[i] = tokenValue;
+          return tokenValues;
+        });
+      };
+      const showTextArea =
+          this.editingTokenIndex === i && this.editingTokenField === key;
+      const deleteToken = (e: Event) => {
+        handleInputChange(e, (): string[] => {
+          tokenValues.splice(i, 1);
+          return tokenValues;
+        });
+      };
+      const insertToken = (e: Event) => {
+        handleInputChange(e, (): string[] => {
+          tokenValues.splice(i + 1, 0, '');
+          return tokenValues;
+        });
+        this.editingTokenIndex = i + 1;
+        this.editingTokenField = key;
+      };
+      const renderDeleteButton = () =>
+        showTextArea ?
+            // clang-format off
+            html`<mwc-icon class="icon-button delete-button"
+                           title="delete token"
+                           @click=${deleteToken}>delete</mwc-icon>` :
+            // clang-format on
+            null;
+      const insertButtonClass = classMap({
+        'insert-token-div': true,
+      });
+      const handleTokenClick = (e: Event) => {
+        this.editingTokenIndex = i;
+        this.editingTokenField = key;
+        this.editingTokenWidth = (e.target as HTMLElement).clientWidth;
+      };
+      const handleTokenFocusOut = (e: Event) => {
+        // Reset our editingTokenIndex after a timeout so as to allow for
+        // the delete token button to be pressed, as that also removes focus.
+        setTimeout(() => {
+          if (this.editingTokenIndex === i) {
+            this.editingTokenIndex = -1;
+          }
+        }, 200);
+      };
+      const renderTextArea = () => {
+        requestAnimationFrame(() => {
+          const textarea = this.renderRoot.querySelector(
+              '.token-box') as HTMLElement;
+          if (textarea != null) {
+            textarea.focus();
+          }
+        });
+
+        const TEXTAREA_EXTRA_WIDTH = 60;
+        const width = this.editingTokenWidth + TEXTAREA_EXTRA_WIDTH;
+        const textareaStyle = styleMap({
+          'width': `${width}px`
+        });
+        return html`
+            <textarea class="token-box"
+                      style=${textareaStyle}
+                      @input=${handleTokenInput} rows=1
+                      @focusout=${handleTokenFocusOut}
+            >${tokenOrigValue}</textarea>`;
+      };
+      const renderDiv = () => html`
+        <div class="token-div"
+             @click=${handleTokenClick}>${tokenOrigValue}</div>`;
+      tokenRenders.push(
+          // clang-format off
+          html`<div class="token-outer">
+                 <div class="token-holder">
+                   ${showTextArea ? renderTextArea() : renderDiv()}
+                   ${renderDeleteButton()}
+                 </div>
+                 <div class="${insertButtonClass}" @click=${insertToken}
+                      title="insert token">
+                 </div>
+              </div>`);
+         // clang-format on
+    }
+    const newToken = (e: Event) => {
+      handleInputChange(e, (): string[] => {
+          tokenValues.push('');
+          return tokenValues;
+        });
+      this.editingTokenIndex = tokenValues.length - 1;
+      this.editingTokenField = key;
+    };
+    return html`<div class="tokens-holder">
+        ${tokenRenders.map(tokenRender => tokenRender)}
+        <mwc-icon class="icon-button token-button" @click=${newToken}
+                  title="insert token">add
+        </mwc-icon>
+        </div>`;
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
