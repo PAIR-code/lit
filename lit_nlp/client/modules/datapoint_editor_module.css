@@ -213,3 +213,12 @@ mwc-icon.google-icon {
   margin-bottom: 1px;
   margin-left: 4px;
 }
+
+.hidden {
+  display: none;
+}
+
+.image-button {
+  margin-left: 0;
+}
+

@@ -98,6 +98,7 @@ export class ScalarModule extends LitModule {
   // there are multiple pred keys).
   private readonly brushObjects: BrushObject[] = [];
 
+  @observable private readonly isPlotHidden = new Map();
   @observable private preds: Preds[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
@@ -859,16 +860,29 @@ export class ScalarModule extends LitModule {
     const plotLabel =
         `${axisTitle}${selectedValue ? ` - ${selectedValue}` : ''}`;
 
+    const toggleCollapse = () => {
+      const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
+          collapseByDefault : this.isPlotHidden.get(axisTitle);
+      this.isPlotHidden.set(axisTitle, !isHidden);
+    };
+    // This plot's value in isPlotHidden gets set in toggleCollapse and is null
+    // before the user opens/closes it for the first time. This uses the
+    // collapseByDefault setting if isPlotHidden hasn't been set yet.
+    const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
+        collapseByDefault : this.isPlotHidden.get(axisTitle);
+
     // clang-format off
     return html`
         <div class='plot-holder'>
-          <expansion-panel .label=${plotLabel} ?expanded=${!collapseByDefault}
-                            padLeft padRight>
+          <expansion-panel .label=${plotLabel} ?expanded=${!isHidden}
+                            padLeft padRight
+                            @expansion-toggle=${toggleCollapse}>
+            ${isHidden ? null : html`
             <div class='scatterplot-background'>
               ${svg`<svg class='scatterplot' data-key='${key}'
                       data-label='${label}'>
                     </svg>`}
-            </div>
+            </div>`}
           </expansion-panel>
         </div>`;
     // clang-format on
