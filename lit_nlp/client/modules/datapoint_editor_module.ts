@@ -484,7 +484,7 @@ export class DatapointEditorModule extends LitModule {
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
-    if (vocab != null) {
+    if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
