@@ -53,6 +53,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @observable initialized = false;
 
   @observable documentationOpen = false;
+  // TODO(b/204677206): While cleaning up console warnings, find a better way to
+  // initialize the app so that we don't need this non-null assertion here
+  // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled: boolean = false;
@@ -302,23 +305,22 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @action
   async initialize() {
+    // TODO(b/160480922) Move away from AppState being the source of truth for
+    // URL configuration data.
     const {urlConfiguration} = this;
     console.log('[LIT - url configuration]', urlConfiguration);
-
-    const info = await this.apiService.getInfo();
-    console.log('[LIT - metadata]', toJS(info));
-    this.metadata = info;
     // Add any custom layouts that were specified in Python.
     this.addLayouts(this.metadata.layouts);
     this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
+    // TODO(b/160480922) Move away from AppState being the source of truth for
+    // URL configuration data.
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
     this.setCurrentDataset(
         await this.determineCurrentDatasetFromUrl(urlConfiguration),
         /** should Load Data */ false);
 
     await this.loadData();
-
     this.initialized = true;
   }
 

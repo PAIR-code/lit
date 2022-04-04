@@ -30,6 +30,7 @@ export class UrlConfiguration {
   selectedTabLower?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
+  pinnedSelectedData?: string;
   primarySelectedData?: string;
   /**
    * For datapoints that are not in the original dataset, the fields
@@ -89,10 +90,10 @@ const SELECTED_TAB_UPPER_KEY = 'upper_tab';
 const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
+const PINNED_SELECTED_DATA_KEY = 'pinned';
 const SELECTED_DATASET_KEY = 'dataset';
 const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
-const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
 const DOC_OPEN_KEY = 'doc_open';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
@@ -157,12 +158,12 @@ export class UrlService extends LitService {
         urlConfiguration.selectedData = this.urlParseArray(value);
       } else if (key === PRIMARY_SELECTED_DATA_KEY) {
         urlConfiguration.primarySelectedData = this.urlParseString(value);
+      } else if (key === PINNED_SELECTED_DATA_KEY) {
+        urlConfiguration.pinnedSelectedData = this.urlParseString(value);
       } else if (key === SELECTED_DATASET_KEY) {
         urlConfiguration.selectedDataset = this.urlParseString(value);
       } else if (key === HIDDEN_MODULES_KEY) {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
-      } else if (key === COMPARE_EXAMPLES_ENABLED_KEY) {
-        urlConfiguration.compareExamplesEnabled = this.urlParseBoolean(value);
       } else if (key === DOC_OPEN_KEY) {
         urlConfiguration.documentationOpen = this.urlParseBoolean(value);
       } else if (key === SELECTED_TAB_UPPER_KEY) {
@@ -226,8 +227,9 @@ export class UrlService extends LitService {
    */
   syncStateToUrl(
       appState: StateObservedByUrlService,
+      modulesService: ModulesObservedByUrlService,
       selectionService: SelectionObservedByUrlService,
-      modulesService: ModulesObservedByUrlService) {
+      pinnedSelectionService: SelectionObservedByUrlService) {
     const urlConfiguration = this.getConfigurationFromUrl();
     appState.setUrlConfiguration(urlConfiguration);
     modulesService.setUrlConfiguration(urlConfiguration);
@@ -235,17 +237,9 @@ export class UrlService extends LitService {
     const urlSelectedIds = urlConfiguration.selectedData || [];
     selectionService.selectIds(urlSelectedIds, this);
 
-    // TODO(lit-dev) Add compared examples to URL parameters.
-    // Only enable compare example mode if both selections and compare mode
-    // exist in URL.
-    if (selectionService.selectedIds.length > 0 &&
-        urlConfiguration.compareExamplesEnabled) {
-      appState.compareExamplesEnabled = true;
-    }
-
-    if (selectionService.selectedIds.length > 0 &&
-        urlConfiguration.compareExamplesEnabled) {
-      appState.compareExamplesEnabled = true;
+    if (urlConfiguration.pinnedSelectedData) {
+      const {pinnedSelectedData} = urlConfiguration;
+      pinnedSelectionService.selectIds([pinnedSelectedData], this);
     }
 
     appState.documentationOpen = urlConfiguration.documentationOpen || false;
@@ -255,6 +249,7 @@ export class UrlService extends LitService {
 
       // Syncing app state
       this.setUrlParam(urlParams, SELECTED_MODELS_KEY, appState.currentModels);
+
       if (selectionService.selectedIds.length <= MAX_IDS_IN_URL_SELECTION) {
         this.setUrlParam(
             urlParams, SELECTED_DATA_KEY, selectionService.selectedIds);
@@ -265,16 +260,19 @@ export class UrlService extends LitService {
           this.setDataFieldURLParams(urlParams, id, appState);
         }
       }
+
+      if (pinnedSelectionService.primarySelectedId) {
+        const id = pinnedSelectionService.primarySelectedId;
+        this.setUrlParam(urlParams, PINNED_SELECTED_DATA_KEY, id);
+        this.setDataFieldURLParams(urlParams, id, appState);
+      }
+
       this.setUrlParam(
           urlParams, SELECTED_DATASET_KEY, appState.currentDataset);
 
       if (appState.documentationOpen) {
         this.setUrlParam(urlParams, DOC_OPEN_KEY, 'true');
       }
-
-      this.setUrlParam(
-          urlParams, COMPARE_EXAMPLES_ENABLED_KEY,
-          appState.compareExamplesEnabled ? 'true' : 'false');
 
       // Syncing hidden modules
       this.setUrlParam(
@@ -323,16 +321,16 @@ export class UrlService extends LitService {
       };
       return datum;
     });
-    // If there are data fields set in the url, make new datapoints
-    // from them and select all passed data points.
-    // TODO(b/185155960) Allow specifying selection for passed examples in url.
+
     if (dataToAdd.length > 0) {
+      // If there are data fields set in the url, make new datapoints
+      // from them and select all passed data points.
+      // TODO(b/185155960) Allow specifying selection for passed examples in url
       const data = await appState.annotateNewData(dataToAdd);
       appState.commitNewDatapoints(data);
       selectionService.selectIds(data.map((d) => d.id), this);
-    }
-    // Otherwise, use the primary selected datapoint url param directly.
-    else {
+    } else {
+      // Otherwise, use the primary selected datapoint url param directly.
       const id = urlConfiguration.primarySelectedData;
       if (id !== undefined) {
         selectionService.setPrimarySelection(id, this);

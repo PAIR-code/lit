@@ -184,12 +184,9 @@ export class ScalarModule extends LitModule {
       this.appState.compareExamplesEnabled,
       this.pinnedSelectionService.primarySelectedInputData];
     this.reactImmediately(getCompareEnabled, () => {
-      let referenceInputData = null;
-      if (this.appState.compareExamplesEnabled) {
-        referenceInputData =
-            this.pinnedSelectionService.primarySelectedInputData;
-      }
-      this.updateReferenceSelection(referenceInputData);
+      const pinned = this.appState.compareExamplesEnabled ?
+          this.pinnedSelectionService.primarySelectedInputData : null;
+      this.updateReferenceSelection(pinned);
     });
 
     const getSelectedColorOption = () => this.colorService.selectedColorOption;
@@ -269,12 +266,10 @@ export class ScalarModule extends LitModule {
    * Updates the scatterplot with the new reference selection.
    */
   private updateReferenceSelection(referenceInputData: IndexedInput|null) {
-    const referencesInputData: IndexedInput[] = [];
-    if (referenceInputData !== null) {
-      referencesInputData.push(referenceInputData);
-    }
+    const references: IndexedInput[] =
+        referenceInputData ? [referenceInputData] : [];
     this.updateCallouts(
-        referencesInputData, '#referenceOverlay', 'reference-point', true);
+        references, '#referenceOverlay', 'reference-point', true);
   }
 
   /**
@@ -285,11 +280,10 @@ export class ScalarModule extends LitModule {
   private updateCallouts(
       inputData: IndexedInput[], groupID: string, styleClass: string,
       detectHover: boolean) {
-    const scatterplotClass = this.shadowRoot!.querySelectorAll('.scatterplot');
+    const scatterplotClass: NodeListOf<SVGGElement> =
+        this.shadowRoot!.querySelectorAll('.scatterplot');
 
-    for (const item of Array.from(scatterplotClass)) {
-      const scatterplot = item as SVGGElement;
-
+    for (const scatterplot of Array.from(scatterplotClass)) {
       const circles =
           d3.select(scatterplot).select('#dataPoints').selectAll('circle');
 
@@ -321,6 +315,7 @@ export class ScalarModule extends LitModule {
       overlayCircles
           .attr('cx', d => +d[0])
           .attr('cy', d => +d[1])
+          .attr('data-id', d => d[3])
           .classed(styleClass, true)
           .style('fill', d => d[2]);
 
@@ -773,7 +768,10 @@ export class ScalarModule extends LitModule {
           });
     }
     this.updateGeneralSelection(this.selectionService.selectedInputData);
-    this.updatePrimarySelection(this.selectionService.primarySelectedInputData);
+    this.updatePrimarySelection(
+        this.selectionService.primarySelectedInputData);
+    this.updateReferenceSelection(
+        this.pinnedSelectionService.primarySelectedInputData);
   }
 
   private selectBrushedPoints(scatterplot: SVGGElement) {

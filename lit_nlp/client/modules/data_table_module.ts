@@ -208,6 +208,7 @@ export class DataTableModule extends LitModule {
       const pinClick = (event: Event) => {
         if (pinnedId === d.id) {
           this.appState.compareExamplesEnabled = false;
+          app.getService(SelectionService, 'pinned').selectIds([]);
         } else {
           this.appState.compareExamplesEnabled = true;
           app.getService(SelectionService, 'pinned').selectIds([d.id]);
