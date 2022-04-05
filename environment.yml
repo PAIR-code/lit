@@ -19,6 +19,7 @@ dependencies:
     - numpy
     - scipy
     - pandas
+    - datasets
     - scikit-learn
     - gunicorn
     - pip
