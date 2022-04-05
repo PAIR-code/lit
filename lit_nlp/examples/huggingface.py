@@ -196,9 +196,8 @@ def main(_):
         model_path, extract_compressed_file=True)
 
   # Load the model we defined above.
-  # models = {"sst": SimpleSentimentModel(model_path)}
   models = {"mrm8488/bert-tiny-finetuned-sms-spam-detection": spam_huggingface(model_path)}
-  # Load SST-2 validation set from TFDS.
+  # Load Spam_Dataset from Spam_Data.
   datasets = {"Spam_Dataset": glue.Spam_Data("sms_spam")}
 
   # Start the LIT server. See server_flags.py for server options.
