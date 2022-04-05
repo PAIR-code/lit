@@ -493,7 +493,7 @@ class GlueModel(lit_model.Model):
     return ret
 
 class SpamModel(GlueModel):
-  """Classification model for huggingface"""
+  """Classification model on Huggingface sms-spam-detection"""
 
   def __init__(self, *args, **kw):
     super().__init__(
