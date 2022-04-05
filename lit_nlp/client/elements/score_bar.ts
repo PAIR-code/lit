@@ -20,6 +20,9 @@ import {customElement} from 'lit/decorators';
 import {css, html, LitElement} from 'lit';
 import {styleMap} from 'lit/directives/style-map';
 
+const PRED_TITLE = 'The predicted label';
+const TRUTH_TITLE = 'The ground truth label';
+
 /**
  * A horizontal bar with a score label.
  */
@@ -68,8 +71,65 @@ export class ScoreBar extends LitElement {
   }
 }
 
+/**
+ * A ScoreBar variant with annotations for the correct prediction and/or ground
+ * truth value (if provided).
+ */
+@customElement('annotated-score-bar')
+export class AnnotatedScoreBar extends LitElement {
+  @property({type: Boolean}) hasTruth = false;
+  @property({type: Boolean}) isPredicted = false;
+  @property({type: Boolean}) isTruth = false;
+  @property({type: Number}) value = 0;
+
+  static override get styles() {
+    return css`
+        .annotated-cell{
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .indicator {
+          min-width: 16px;
+          text-align: center;
+        }`;
+  }
+
+  override render() {
+    return html`<div class="annotated-cell">
+      <score-bar score=${this.value} maxScore=${1}></score-bar>
+      <div class="indicator" title=${PRED_TITLE}>
+        ${this.isPredicted ? 'P' : null}
+      </div>
+      ${this.hasTruth ?
+          html`<div class="indicator" title=${TRUTH_TITLE}>
+            ${this.isTruth ? 'T' : null}
+          </div>` : null}
+    </div>`;
+  }
+}
+
+/**
+ * A legend for use with the AnnotatedScoreBar.
+ */
+@customElement('annotated-score-bar-legend')
+export class AnnotatedScoreBarLegend extends LitElement {
+  @property({type: Boolean}) hasTruth = false;
+
+  override render() {
+    return html`<span>
+      P = ${PRED_TITLE}
+      ${this.hasTruth ? `, T = ${TRUTH_TITLE}` : ''}
+    </span>`;
+  }
+}
+
 declare global {
   interface HTMLElementTagNameMap {
+    'annotated-score-bar': AnnotatedScoreBar;
+    'annotated-score-bar-legend': AnnotatedScoreBarLegend;
     'score-bar': ScoreBar;
   }
 }
