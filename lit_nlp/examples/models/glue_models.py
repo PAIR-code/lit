@@ -492,6 +492,18 @@ class GlueModel(lit_model.Model):
           align_in="tokens", align_out="tokens")
     return ret
 
+class SpamModel(GlueModel):
+  """Classification model for huggingface"""
+
+  def __init__(self, *args, **kw):
+    super().__init__(
+        *args,
+        text_a_name="sms",
+        text_b_name=None,
+        labels=["not_spam", "spam"],
+        null_label_idx=0,
+        **kw)
+
 
 class SST2Model(GlueModel):
   """Classification model on SST-2."""
