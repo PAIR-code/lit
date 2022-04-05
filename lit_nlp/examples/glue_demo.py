@@ -39,7 +39,7 @@ flags.DEFINE_list(
         "sst2-base:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_base.tar.gz",
         "stsb:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_base.tar.gz",
         "mnli:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_base.tar.gz",
-        "mrm8488/bert-tiny-finetuned-sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection"
+        "sms-spam-detection:sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection"
     ], "List of models to load, as <name>:<task>:<path>. "
     "See MODELS_BY_TASK for available tasks. Path should be the output of "
     "saving a transformers model, e.g. model.save_pretrained(path) and "
@@ -55,7 +55,7 @@ MODELS_BY_TASK = {
     "sst2": glue_models.SST2Model,
     "stsb": glue_models.STSBModel,
     "mnli": glue_models.MNLIModel,
-    "mrm8488/bert-tiny-finetuned-sms-spam-detection":glue_models.SpamModel,
+    "sms-spam-detection":glue_models.SpamModel,
 }
 
 # Pre-specified set of small models, which will load and run much faster.
@@ -64,7 +64,7 @@ QUICK_START_MODELS = (
     "sst2-small:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_small.tar.gz",
     "stsb-tiny:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz",
     "mnli-small:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_small.tar.gz",
-    "mrm8488/bert-tiny-finetuned-sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection"
+    "sms-spam-detection:sms-spam-detection:mrm8488/bert-tiny-finetuned-sms-spam-detection"
 )
 
 
@@ -114,8 +114,8 @@ def main(_):
     logging.info("Loading data for STS-B task.")
     datasets["stsb_dev"] = glue.STSBData("validation")
   
-  if "mrm8488/bert-tiny-finetuned-sms-spam-detection" in tasks_to_load:
-    logging.info("Loading data for Spam_Dataset-B task.")
+  if "sms-spam-detection" in tasks_to_load:
+    logging.info("Loading data for Spam_Dataset.")
     datasets["Spam_Dataset"] = glue.Spam_Data("sms_spam")
 
   if "mnli" in tasks_to_load:
