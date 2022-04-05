@@ -9,7 +9,7 @@ datasets just contain regular Python/NumPy data.
 """
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-
+from datasets import load_dataset
 import tensorflow_datasets as tfds
 
 
@@ -24,6 +24,30 @@ def load_tfds(*args, do_sort=True, **kw):
     ret.sort(key=lambda ex: ex['idx'])
   return ret
 
+# spam data
+class Spam_Data(lit_dataset.Dataset):
+  """Hugging Face Spam Dataset.
+
+  See https://huggingface.co/datasets/sms_spam
+  """
+  LABELS = ["not_spam", "spam"]
+
+  def __init__(self, path):
+    # load dataset from huggingface sms_spam
+    dataset = load_dataset(path, split='train')
+    dataset.set_format("pandas")
+    df = dataset[:]
+    # Store as a list of dicts, conforming to self.spec()
+    self._examples = [{
+      'sms': row['sms'],
+      'label': self.LABELS[row['label']],
+    } for _, row in df.iterrows()]
+    
+  def spec(self):
+    return {
+        'sms': lit_types.TextSegment(),
+        'label': lit_types.CategoryLabel(vocab=self.LABELS)
+    }
 
 class CoLAData(lit_dataset.Dataset):
   """Corpus of Linguistic Acceptability.
