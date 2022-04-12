@@ -128,7 +128,10 @@ class ProjectionInterpreter(lit_components.Interpreter):
                         dataset: lit_dataset.Dataset,
                         model_outputs: Optional[List[JsonDict]] = None,
                         config: Optional[Dict[Text, Any]] = None):
-    del config  # unused - configure in constructor instead
+    # If using input values, then treat inputs as outputs instead of running
+    # the model.
+    if config and config["use_input"]:
+      model_outputs = [inp["data"] for inp in indexed_inputs]
     del dataset  # unused - pass examples to constructor instead
     return self._run(model, indexed_inputs, model_outputs, do_fit=False)
 
@@ -176,9 +179,15 @@ class ProjectionManager(lit_components.Interpreter):
     train_inputs = dataset.indexed_examples
     # TODO(lit-dev): remove 'dataset_name' from caching logic so we don't need
     # to track it here or elsewhere.
-    train_outputs = list(
-        model.predict_with_metadata(
-            train_inputs, dataset_name=config.get("dataset_name")))
+
+    # If using input values, then treat inputs as outputs instead of running
+    # the model.
+    if config.get("use_input"):
+      train_outputs = [inp["data"] for inp in train_inputs]
+    else:
+      train_outputs = list(
+          model.predict_with_metadata(
+              train_inputs, dataset_name=config.get("dataset_name")))
     logging.info("Creating new projection instance on %d points",
                  len(train_inputs))
     return ProjectionInterpreter(
@@ -212,4 +221,4 @@ class ProjectionManager(lit_components.Interpreter):
     proj_instance = self._instances[instance_key]
     # If projector was just trained, points should be cached.
     return proj_instance.run_with_metadata(indexed_inputs, model, dataset,
-                                           model_outputs)
+                                           model_outputs, config)

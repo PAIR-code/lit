@@ -309,11 +309,17 @@ class LitApp(object):
     """Run an interpretation component."""
     interpreter = self._interpreters[interpreter]
     # Pre-compute using self._predict, which looks for cached results.
-    model_outputs = self._predict(data['inputs'], model, dataset_name)
+    if model:
+      assert model in self._models, f"Model '{model}' is not a valid model."
+      model_outputs = self._predict(data['inputs'], model, dataset_name)
+      model = self._models[model]
+    else:
+      model_outputs = None
+      model = None
 
     return interpreter.run_with_metadata(
         data['inputs'],
-        self._models[model],
+        model,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
         config=data.get('config'))

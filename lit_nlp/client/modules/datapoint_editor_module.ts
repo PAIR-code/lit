@@ -473,7 +473,9 @@ export class DatapointEditorModule extends LitModule {
     };
 
     const renderTokensInput = () => {
-      return this.renderTokensInput(key, value, handleInputChange);
+      return this.renderTokensInput(
+          key, value, handleInputChange,
+          !isLitSubtype(fieldSpec, 'Embeddings'));
     };
 
     let renderInput = renderFreeformInput;  // default: free text
@@ -490,7 +492,8 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
+    } else if (isLitSubtype(fieldSpec,
+                            ['Tokens', 'SequenceTags', 'Embeddings'])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
@@ -568,9 +571,19 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
+  /**
+   * Renders an input value as tokens.
+   *
+   * Args:
+   *   key: Feature name
+   *   value: List of values for the feature
+   *   handleInputChange: Callback on changes to the feature values
+   *   dyanmicTokenLength: If true, allow adding/deleting of tokens.
+   */
   renderTokensInput(
       key: string, value: string[],
-      handleInputChange: (e: Event, converterFn: InputConverterFn) => void) {
+      handleInputChange: (e: Event, converterFn: InputConverterFn) => void,
+      dynamicTokenLength: boolean = true) {
     const tokenValues = value == null ? [] : [...value];
     const tokenRenders = [];
     for (let i = 0; i < tokenValues.length; i++) {
@@ -646,16 +659,18 @@ export class DatapointEditorModule extends LitModule {
       const renderDiv = () => html`
         <div class="token-div"
              @click=${handleTokenClick}>${tokenOrigValue}</div>`;
+      const renderInsertTokenButton = () => html`
+        <div class="${insertButtonClass}" @click=${insertToken}
+            title="insert token">
+        </div>`;
       tokenRenders.push(
           // clang-format off
           html`<div class="token-outer">
                  <div class="token-holder">
                    ${showTextArea ? renderTextArea() : renderDiv()}
-                   ${renderDeleteButton()}
+                   ${dynamicTokenLength ? renderDeleteButton() : null}
                  </div>
-                 <div class="${insertButtonClass}" @click=${insertToken}
-                      title="insert token">
-                 </div>
+                 ${dynamicTokenLength ? renderInsertTokenButton() : null}
               </div>`);
          // clang-format on
     }
@@ -667,11 +682,13 @@ export class DatapointEditorModule extends LitModule {
       this.editingTokenIndex = tokenValues.length - 1;
       this.editingTokenField = key;
     };
+    const renderAddTokenButton = () =>
+      html`<mwc-icon class="icon-button token-button" @click=${newToken}
+                  title="insert token">add
+           </mwc-icon>`;
     return html`<div class="tokens-holder">
         ${tokenRenders.map(tokenRender => tokenRender)}
-        <mwc-icon class="icon-button token-button" @click=${newToken}
-                  title="insert token">add
-        </mwc-icon>
+        ${dynamicTokenLength ? renderAddTokenButton() : null}
         </div>`;
   }
 
