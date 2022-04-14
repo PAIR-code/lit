@@ -22,6 +22,7 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils as lit_utils
+import numpy as np
 import sklearn.metrics as metrics
 
 JsonDict = types.JsonDict
@@ -86,11 +87,11 @@ class CurvesInterpreter(lit_components.Interpreter):
 
     # Compute ROC curve data.
     x, y, _ = metrics.roc_curve(ground_truth_list, scores)
-    roc_data = list(zip(x, y))
+    roc_data = list(zip(np.nan_to_num(x), np.nan_to_num(y)))
 
     # Compute PR curve data.
     x, y, _ = metrics.precision_recall_curve(ground_truth_list, scores)
-    pr_data = list(zip(x, y))
+    pr_data = list(zip(np.nan_to_num(x), np.nan_to_num(y)))
 
     # Create and return the result.
     return {ROC_DATA: roc_data, PR_DATA: pr_data}

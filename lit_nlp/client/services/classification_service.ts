@@ -227,7 +227,6 @@ export class ClassificationService extends LitService {
   @action
   setMargin(model: string, fieldName: string, value: number,
             facet?: FacetedData) {
-    console.log('setMargin');
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }

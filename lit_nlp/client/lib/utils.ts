@@ -296,6 +296,11 @@ export function isBinaryClassification(litType: LitType) {
     return predictionLabels.length === 2 && nullIdx != null;
 }
 
+/** Returns if a LitType has a parent field. */
+export function hasParent(litType: LitType) {
+    return litType.parent != null;
+}
+
 /**
  * Helper function to make an object into a human readable key.
  * Sorts object keys, so order of object does not matter.

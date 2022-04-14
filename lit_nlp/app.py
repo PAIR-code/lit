@@ -30,6 +30,7 @@ from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
+from lit_nlp.components import curves
 from lit_nlp.components import gradient_maps
 from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
@@ -488,6 +489,7 @@ class LitApp(object):
           'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
+          'curves': curves.CurvesInterpreter(),
           'thresholder': thresholder.Thresholder(),
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,

@@ -26,6 +26,7 @@ import {ClassificationModule} from '../modules/classification_module';
 import {ColorModule} from '../modules/color_module';
 import {ConfusionMatrixModule} from '../modules/confusion_matrix_module';
 import {CounterfactualExplainerModule} from '../modules/counterfactual_explainer_module';
+import {CurvesModule} from '../modules/curves_module';
 import {DataTableModule, SimpleDataTableModule} from '../modules/data_table_module';
 import {DatapointEditorModule, SimpleDatapointEditorModule} from '../modules/datapoint_editor_module';
 import {DocumentationModule} from '../modules/documentation_module';
@@ -118,6 +119,7 @@ export const LAYOUTS: LitComponentLayouts = {
       'Metrics': [
         MetricsModule,
         ConfusionMatrixModule,
+        CurvesModule,
         ThresholderModule,
       ],
       'Influence': [TrainingDataAttributionModule],
