@@ -196,7 +196,7 @@ class TopTokens(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URL(TextSegment):
   """TextSegment that should be interpreted as a URL."""
-  pass
+  align: Text = None  # name of field in the model output
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
