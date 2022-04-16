@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Lightweight trainer script to fine-tune on a GLUE or GLUE-like task.
 
 Usage:

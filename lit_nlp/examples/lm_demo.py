@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Example demo loading pre-trained language models.
 
 Currently supports the following model types:

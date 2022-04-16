@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Code example for a custom model, using PyTorch.
 
 This demo shows how to use a custom model with LIT, in just a few lines of code.

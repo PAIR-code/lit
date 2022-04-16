@@ -1,4 +1,3 @@
-# Lint as: python3
 """Text classification datasets, including single- and two-sentence tasks."""
 from typing import List
 

@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Quick-start demo for a sentiment analysis model with a custom frontend.
 
 This demo fine-tunes a small Transformer (BERT-tiny) on the Stanford Sentiment

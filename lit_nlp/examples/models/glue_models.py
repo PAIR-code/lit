@@ -1,4 +1,3 @@
-# Lint as: python3
 """Wrapper for fine-tuned HuggingFace models in LIT."""
 
 import os

@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""LIT Demo for a Toxicity model.
 
 To run locally:

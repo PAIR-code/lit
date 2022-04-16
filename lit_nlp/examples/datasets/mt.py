@@ -1,4 +1,3 @@
-# Lint as: python3
 """Machine translation datasets."""
 
 from typing import Optional

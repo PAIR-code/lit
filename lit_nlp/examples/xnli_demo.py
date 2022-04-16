@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Example demo for multilingual NLI on the XNLI eval set.
 
 To run locally with our trained model:

@@ -1,4 +1,3 @@
-# Lint as: python3
 """Local Interpretable Model-agnostic Explanations (LIME).
 
 LIME was proposed in the following paper:

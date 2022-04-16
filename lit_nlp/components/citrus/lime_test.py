@@ -1,4 +1,3 @@
-# Lint as: python3
 import collections
 import functools
 from absl.testing import absltest

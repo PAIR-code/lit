@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Example demo loading a handful of GLUE models.
 
 For a quick-start set of models, run:

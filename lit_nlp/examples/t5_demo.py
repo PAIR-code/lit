@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Example demo loading a T5 model.
 
 To run locally with a small number of examples:
