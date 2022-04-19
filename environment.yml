@@ -14,7 +14,7 @@
 # ==============================================================================
 name: lit-nlp
 dependencies:
-    - python=3.7
+    - python=3.9
     - absl-py
     - numpy
     - scipy
