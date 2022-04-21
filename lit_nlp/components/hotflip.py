@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """HotFlip generator that perturbs input tokens to flip the prediction.
 
 A HotFlip is defined as a counterfactual input that alters one or more

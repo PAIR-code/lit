@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Backtranslation generator through Google Cloud Translate API."""
 from typing import List, Sequence, Tuple, Text, Any, Optional
 

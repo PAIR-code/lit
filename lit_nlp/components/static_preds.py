@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """LIT model wrapper for pre-computed (offline) predictions."""
 from typing import Optional, Iterable, Iterator, List
 

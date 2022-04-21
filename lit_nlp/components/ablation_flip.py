@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """AblationFlip generator that ablates input tokens to flip the prediction.
 
 An AblationFlip is defined as a counterfactual input that ablates one or more

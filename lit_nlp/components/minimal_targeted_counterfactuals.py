@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Minimal Targeted Counterfactual generator for tabular datasets.
 
 A Minimal Targeted Counterfactual is defined as a counterfactual input that is

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """A collection of gradient based saliency interpreters for images.
 
 This module implements interpreters that use the pair-code saliency library to

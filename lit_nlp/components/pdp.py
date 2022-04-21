@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Partial dependence plot interpreter.
 
 Runs a model on a set of edited examples to see the effect of changing a
