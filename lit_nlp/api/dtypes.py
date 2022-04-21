@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Dataclasses for representing structured output.
 
 Classes in this file should be used for actual input/output data,

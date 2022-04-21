@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Type classes for LIT inputs and outputs.
 
 These are simple dataclasses used in model.input_spec() and model.output_spec()

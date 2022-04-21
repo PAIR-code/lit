@@ -18,7 +18,6 @@ Contains things like dummy LIT Model so we don't have to define it in every
 test.
 """
 
-# Lint as: python3
 from typing import Iterable, Iterator, List
 
 from lit_nlp.api import model as lit_model
