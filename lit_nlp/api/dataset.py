@@ -82,7 +82,7 @@ class Dataset(object):
       # In case user child class requires the instance to convert examples
       # this makes sure the user class is preserved. We cannot do this below
       # as the default method is static and does not require instance.
-      self.lit_example_to_bytes = self._base.lit_example_to_bytes
+      self.bytes_from_lit_example = self._base.bytes_from_lit_example
       self.lit_example_from_bytes = self._base.lit_example_from_bytes
 
     # Override from direct arguments.
@@ -183,7 +183,7 @@ class Dataset(object):
     return serialize.from_json(input_bytes.decode('utf-8'))
 
   @staticmethod
-  def lit_example_to_bytes(lit_example: JsonDict) -> bytes:
+  def bytes_from_lit_example(lit_example: JsonDict) -> bytes:
     """Convert LIT example to bytes representation."""
     return serialize.to_json(lit_example).encode('utf-8')
 
