@@ -219,6 +219,8 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   private readonly appState = app.getService(AppState);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
   private readonly selectionService = app.getService(SelectionService);
   private readonly sliceService = app.getService(SliceService);
 
@@ -451,20 +453,25 @@ export class LitMainToolbar extends MobxLitElement {
     const primaryIndex = primaryId == null ? -1 :
         this.appState.indicesById.get(primaryId)!;
 
-    const toggleExampleComparison = () => {
-      this.appState.compareExamplesEnabled =
-          !this.appState.compareExamplesEnabled;
+    const updatePinnedDatapoint = () => {
+      if (this.pinnedSelectionService.primarySelectedId) {
+        this.pinnedSelectionService.selectIds([]);
+        this.appState.compareExamplesEnabled = false;
+      } else if (primaryId) {
+        this.pinnedSelectionService.selectIds([primaryId]);
+        this.appState.compareExamplesEnabled = true;
+      }
     };
 
-    let referenceSelectedIndex = -1;
-    if (this.appState.compareExamplesEnabled) {
-      const referenceSelectionService =
-          app.getServiceArray(SelectionService)[1];
-      referenceSelectedIndex =
-          this.appState.indicesById.get(referenceSelectionService.primarySelectedId!)!;
+    let pinnedIndex = -1;
+    if (this.appState.compareExamplesEnabled &&
+        this.pinnedSelectionService.primarySelectedId) {
+      pinnedIndex = this.appState.indicesById.get(
+          this.pinnedSelectionService.primarySelectedId)!;
     }
+
     const title = this.appState.compareExamplesEnabled ?
-        `Unpin datapoint ${referenceSelectedIndex}` :
+        `Unpin datapoint ${pinnedIndex}` :
         primaryId == null ?
             "Pin selected datapoint" : `Pin datapoint ${primaryIndex}`;
     const pinDisabled = !this.appState.compareExamplesEnabled &&
@@ -485,7 +492,7 @@ export class LitMainToolbar extends MobxLitElement {
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
         <button class="${buttonClasses}" title=${title}
-                ?disabled=${pinDisabled} @click=${toggleExampleComparison}>
+                ?disabled=${pinDisabled} @click=${updatePinnedDatapoint}>
           <div class="pin-button-content">
             <span class="${pinClasses}">push_pin</span>
             <div class="pin-button-text">${title}</div>
