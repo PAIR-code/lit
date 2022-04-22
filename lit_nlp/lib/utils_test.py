@@ -94,52 +94,6 @@ class UtilsTest(absltest.TestCase):
 
     self.assertDictEqual({}, utils.filter_by_keys({}, pred))
 
-  def test_copy_and_update(self):
-    d = {
-        "a": True,
-        "b": False,
-        "c": True
-    }
-    update = {
-        "a": False,
-        "b": True
-    }
-    expected = {
-        "a": False,
-        "b": True,
-        "c": True
-    }
-    self.assertDictEqual(expected, utils.copy_and_update(d, update))
-
-    d = {
-        "a": True,
-        "b": False,
-    }
-    update = {
-        "a": False,
-        "c": True
-    }
-    expected = {
-        "a": False,
-        "b": False,
-        "c": True
-    }
-    self.assertDictEqual(expected, utils.copy_and_update(d, update))
-
-    d = {
-        "a": True,
-        "b": False,
-    }
-    update = {}
-    self.assertDictEqual(d, utils.copy_and_update(d, update))
-
-    d = {}
-    update = {
-        "a": False,
-        "c": True
-    }
-    self.assertDictEqual(update, utils.copy_and_update(d, update))
-
   def test_remap_dict(self):
     d = {
         "a": True,

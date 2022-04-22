@@ -14,7 +14,6 @@
 # ==============================================================================
 """Miscellaneous helper functions."""
 
-import copy
 import itertools
 import queue
 import threading
@@ -51,13 +50,6 @@ def find_spec_keys(d: Dict[K, Any], types) -> List[K]:
 def filter_by_keys(d: Dict[K, V], predicate: Callable[[K], bool]) -> Dict[K, V]:
   """Filter to keys matching predicate."""
   return {k: v for k, v in d.items() if predicate(k)}
-
-
-def copy_and_update(d: Dict[K, Any], patch: Dict[K, Any]) -> Dict[K, Any]:
-  """Make a copy of d and apply the patch to a subset of fields."""
-  ret = copy.copy(d)
-  ret.update(patch)
-  return ret
 
 
 def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:

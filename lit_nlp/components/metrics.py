@@ -35,8 +35,6 @@ JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
 
-BLEU_SMOOTHING_VAL = 0.1
-
 
 def map_pred_keys(
     data_spec: lit_model.Spec, model_output_spec: lit_model.Spec,
@@ -109,6 +107,13 @@ def get_classifications(
   return pred_idxs
 
 
+def nan_to_none(metrics: Dict[str, float]) -> Dict[str, Optional[float]]:
+  # NaN is not a valid JSON value, so replace with None which will be
+  # serialized as null.
+  # TODO(lit-dev): consider moving this logic to serialize.py?
+  return {k: (v if not np.isnan(v) else None) for k, v in metrics.items()}
+
+
 class SimpleMetrics(lit_components.Interpreter):
   """Base class for simple metrics, which should render in the main metrics table."""
 
@@ -163,17 +168,11 @@ class SimpleMetrics(lit_components.Interpreter):
           label_spec=dataset.spec()[label_key],
           pred_spec=spec.output[pred_key],
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -207,17 +206,11 @@ class SimpleMetrics(lit_components.Interpreter):
           indices=indices,
           metas=metas,
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -445,6 +438,8 @@ class MulticlassPairedMetrics(ClassificationMetricsWrapper):
 class CorpusBLEU(SimpleMetrics):
   """Corpus BLEU score using SacreBLEU."""
 
+  BLEU_SMOOTHING_VAL = 0.1
+
   def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
     return isinstance(field_spec,
@@ -468,7 +463,7 @@ class CorpusBLEU(SimpleMetrics):
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
       name_suffix = '@1'
-    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
+    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], self.BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
 
