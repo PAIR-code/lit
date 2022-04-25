@@ -353,6 +353,7 @@ class LitApp(object):
               dataset_name=dataset_name,
               model_name=model,
               field_name=field_name,
+              use_input=False,
               proj_kw={'n_components': 3})
           data = {'inputs': [], 'config': config}
           for interpreter_name in interpreters:

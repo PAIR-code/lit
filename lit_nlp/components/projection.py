@@ -129,7 +129,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
                         config: Optional[Dict[Text, Any]] = None):
     # If using input values, then treat inputs as outputs instead of running
     # the model.
-    if config and config["use_input"]:
+    if config and config.get("use_input"):
       model_outputs = [inp["data"] for inp in indexed_inputs]
     del dataset  # unused - pass examples to constructor instead
     return self._run(model, indexed_inputs, model_outputs, do_fit=False)
