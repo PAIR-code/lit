@@ -25,7 +25,7 @@ from absl import logging
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.api import dtypes
+from lit_nlp.api import layout
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
@@ -409,7 +409,7 @@ class LitApp(object):
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       annotators: Optional[List[lit_components.Annotator]] = None,
-      layouts: Optional[dtypes.LitComponentLayouts] = None,
+      layouts: Optional[layout.LitComponentLayouts] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,

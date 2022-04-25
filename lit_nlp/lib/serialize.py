@@ -48,7 +48,7 @@ def _obj_to_json(o: object):
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
 
-# TODO(lit-team): remove this once frontend can use the invertible versions.
+# TODO(lit-dev): remove this once frontend can use the invertible versions.
 def _obj_to_json_simple(o: object):
   """JSON serialization helper. Not invertible!"""
   if isinstance(o, np.ndarray):
@@ -62,6 +62,8 @@ def _obj_to_json_simple(o: object):
     return o.to_json()
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
+  elif isinstance(o, dtypes.EnumSerializableAsValues):
+    return o.value
   elif isinstance(o, tuple):
     return list(o)
   else:

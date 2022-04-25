@@ -19,7 +19,7 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.api import dtypes as lit_dtypes
+from lit_nlp.api import layout
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
@@ -50,20 +50,21 @@ flags.DEFINE_bool(
 )
 
 # Custom frontend layout; see client/lib/types.ts
-LM_LAYOUT = lit_dtypes.LitComponentLayout(
+modules = layout.LitModuleName
+LM_LAYOUT = layout.LitComponentLayout(
     components={
         "Main": [
-            "embeddings-module",
-            "data-table-module",
-            "datapoint-editor-module",
-            "lit-slice-module",
-            "color-module",
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+            modules.SliceModule,
+            modules.ColorModule,
         ],
         "Predictions": [
-            "lm-prediction-module",
-            "confusion-matrix-module",
+            modules.LanguageModelPredictionModule,
+            modules.ConfusionMatrixModule,
         ],
-        "Counterfactuals": ["generator-module"],
+        "Counterfactuals": [modules.GeneratorModule],
     },
     description="Custom layout for language models.",
 )

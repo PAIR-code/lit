@@ -53,6 +53,7 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes as lit_dtypes
+from lit_nlp.api import layout
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.coref import edge_predictor
 from lit_nlp.examples.coref import encoders
@@ -93,23 +94,24 @@ flags.DEFINE_string(
     "This is needed for training, and optional for running LIT.")
 
 # Custom frontend layout; see client/lib/types.ts
-WINOGENDER_LAYOUT = lit_dtypes.LitComponentLayout(
+modules = layout.LitModuleName
+WINOGENDER_LAYOUT = layout.LitComponentLayout(
     components={
         "Main": [
-            "data-table-module",
-            "datapoint-editor-module",
-            "lit-slice-module",
-            "color-module",
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+            modules.SliceModule,
+            modules.ColorModule,
         ],
         "Predictions": [
-            "span-graph-gold-module",
-            "span-graph-module",
-            "classification-module",
+            modules.SpanGraphGoldModule,
+            modules.SpanGraphModule,
+            modules.ClassificationModule,
         ],
         "Performance": [
-            "metrics-module",
-            "scalar-module",
-            "confusion-matrix-module",
+            modules.MetricsModule,
+            modules.ScalarModule,
+            modules.ConfusionMatrixModule,
         ],
     },
     description="Custom layout for the Winogender coreference demo.",

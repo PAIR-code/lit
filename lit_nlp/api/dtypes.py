@@ -29,11 +29,16 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Text, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Text, Tuple, Union
 
 import attr
 
 JsonDict = Dict[Text, Any]
+
+
+class EnumSerializableAsValues(object):
+  """Dummy class to mark that an enum's members should be serialized as their values."""
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -116,7 +121,11 @@ class SequenceSalienceMap(DataTuple):
   salience: Sequence[Sequence[float]]  # usually, a np.ndarray
 
 
-# LINT.IfChange
+##
+# DEPRECATED layout class definitions for compatibility. New uses should use
+# the versions in layout.py, which enable type checking of module names.
+# TODO(b/205853382): remove once all references to LitComponentLayout are
+# updated.
 # pylint: disable=invalid-name
 @attr.s(auto_attribs=True)
 class LayoutSettings(DataTuple):
@@ -125,6 +134,7 @@ class LayoutSettings(DataTuple):
   centerPage: bool = False
 
 
+# TODO(b/205853382): remove this once all references are updated.
 @attr.s(auto_attribs=True)
 class LitComponentLayout(DataTuple):
   """Frontend UI layout (legacy); should match client/lib/types.ts."""
@@ -141,24 +151,4 @@ class LitComponentLayout(DataTuple):
     return attr.asdict(self, recurse=True)
 
 
-@attr.s(auto_attribs=True)
-class LitCanonicalLayout(DataTuple):
-  """Frontend UI layout; should match client/lib/types.ts."""
-  # Keys are names of tabs, and values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  upper: Dict[str, List[str]]
-  lower: Dict[str, List[str]] = attr.ib(factory=dict)
-  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
-  description: Optional[str] = None
-
-  def to_json(self) -> JsonDict:
-    """Override serialization to properly convert nested objects."""
-    # Not invertible, but these only go from server -> frontend anyway.
-    return attr.asdict(self, recurse=True)
-
-
-LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
-                                         LitCanonicalLayout]]
-
 # pylint: enable=invalid-name
-# LINT.ThenChange(../client/lib/types.ts)
