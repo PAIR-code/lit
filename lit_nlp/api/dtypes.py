@@ -120,35 +120,3 @@ class SequenceSalienceMap(DataTuple):
   # <float>[num_tokens_out, num_tokens_in + num_tokens_out]
   salience: Sequence[Sequence[float]]  # usually, a np.ndarray
 
-
-##
-# DEPRECATED layout class definitions for compatibility. New uses should use
-# the versions in layout.py, which enable type checking of module names.
-# TODO(b/205853382): remove once all references to LitComponentLayout are
-# updated.
-# pylint: disable=invalid-name
-@attr.s(auto_attribs=True)
-class LayoutSettings(DataTuple):
-  hideToolbar: bool = False
-  mainHeight: int = 45
-  centerPage: bool = False
-
-
-# TODO(b/205853382): remove this once all references are updated.
-@attr.s(auto_attribs=True)
-class LitComponentLayout(DataTuple):
-  """Frontend UI layout (legacy); should match client/lib/types.ts."""
-  # Keys are names of tabs; one must be called "Main".
-  # Values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  components: Dict[str, List[str]]
-  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
-  description: Optional[str] = None
-
-  def to_json(self) -> JsonDict:
-    """Override serialization to properly convert nested objects."""
-    # Not invertible, but these only go from server -> frontend anyway.
-    return attr.asdict(self, recurse=True)
-
-
-# pylint: enable=invalid-name

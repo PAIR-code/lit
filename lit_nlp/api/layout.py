@@ -114,10 +114,8 @@ class LitCanonicalLayout(dtypes.DataTuple):
     return attr.asdict(self, recurse=True)
 
 
-# TODO(b/205853382): remove dtypes.LitComponentLayout once references are
-# updated.
-LitComponentLayouts = Mapping[str, Union[LitComponentLayout, LitCanonicalLayout,
-                                         dtypes.LitComponentLayout]]
+LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
+                                         LitCanonicalLayout]]
 
 # pylint: enable=invalid-name
 # LINT.ThenChange(../client/lib/types.ts)
