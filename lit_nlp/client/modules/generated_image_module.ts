@@ -36,7 +36,7 @@ export class GeneratedImageModule extends LitModule {
   static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-image-module model=${model}
-        selectionServiceIndex=${selectionServiceIndex}>
+                              selectionServiceIndex=${selectionServiceIndex}>
       </generated-image-module>`;
   };
 
@@ -77,7 +77,8 @@ export class GeneratedImageModule extends LitModule {
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset,
-        [...GeneratedImageModule.supportedTypes, 'URL'], 'Generating images');
+        [...GeneratedImageModule.supportedTypes, 'GeneratedURL'],
+        'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;
 
@@ -113,17 +114,17 @@ export class GeneratedImageModule extends LitModule {
         <div class="module-results-area">
           ${Object.entries(this.generatedImages).map(([key, value]) => {
               const keyType = output[key];
-
-              if (isLitSubtype(keyType, 'URL') && keyType.align != null &&
-                  keyType.align in this.generatedImages) {
-                return this.renderLink(key, value);
-              }
-
               if (isLitSubtype(keyType, GeneratedImageModule.supportedTypes)) {
                 return this.renderImage(key, value);
               }
 
-              return html``;
+              const {align} = keyType;
+              if (isLitSubtype(keyType, 'GeneratedURL') &&
+                  align != null && align in this.generatedImages) {
+                return this.renderLink(key, value);
+              }
+
+              return null;
             })}
         </div>
       </div>
