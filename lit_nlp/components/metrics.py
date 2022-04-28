@@ -31,6 +31,7 @@ from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
+from rouge_score import rouge_scorer
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
@@ -466,6 +467,45 @@ class CorpusBLEU(SimpleMetrics):
     bleu = sacrebleu.raw_corpus_bleu(preds, [labels], self.BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
+
+
+class RougeL(SimpleMetrics):
+  """RougeL score for generation tasks."""
+
+  def __init__(self, *args, **kw):
+    super().__init__(*args, **kw)
+    self._scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+
+  def _score(self, reference, prediction):
+    return self._scorer.score(
+        target=reference, prediction=prediction)['rougeL'].fmeasure
+
+  def is_compatible(self, field_spec: types.LitType) -> bool:
+    """Return true if compatible with this field."""
+    return isinstance(field_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates))
+
+  def compute(self,
+              labels: Sequence[Text],
+              preds: Sequence[Union[Text, types.ScoredTextCandidates]],
+              label_spec: types.TextSegment,
+              pred_spec: Union[types.GeneratedText,
+                               types.GeneratedTextCandidates],
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del label_spec
+    del config
+
+    if not labels or not preds:
+      return {}
+
+    name_suffix = ''
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
+    scores = list(map(self._score, labels, preds))
+
+    return {'rougeL' + name_suffix: np.mean(scores)}
 
 
 class BinaryConfusionMetricsImpl(SimpleMetrics):

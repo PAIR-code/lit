@@ -477,6 +477,7 @@ class LitApp(object):
           'multiclass': metrics.MulticlassMetrics(),
           'paired': metrics.MulticlassPairedMetrics(),
           'bleu': metrics.CorpusBLEU(),
+          'rouge': metrics.RougeL(),
       })
       gradient_map_interpreters = {
           'Grad L2 Norm': gradient_maps.GradientNorm(),

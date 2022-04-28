@@ -211,44 +211,118 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
 class CorpusBLEUTest(absltest.TestCase):
 
   def test_is_compatible(self):
-    corpusblue_metrics = metrics.CorpusBLEU()
+    bleu_metrics = metrics.CorpusBLEU()
 
-    # Only compatible with GeneratedText spec.
-    self.assertTrue(corpusblue_metrics.is_compatible(types.GeneratedText()))
+    # Only compatible with generation types.
+    self.assertTrue(bleu_metrics.is_compatible(types.GeneratedText()))
+    self.assertTrue(bleu_metrics.is_compatible(types.GeneratedTextCandidates()))
+
     self.assertFalse(
-        corpusblue_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(corpusblue_metrics.is_compatible(types.RegressionScore()))
+        bleu_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(bleu_metrics.is_compatible(types.RegressionScore()))
 
   def test_compute(self):
-    corpusblue_metrics = metrics.CorpusBLEU()
+    bleu_metrics = metrics.CorpusBLEU()
 
     # All correct predictions.
-    result = corpusblue_metrics.compute(
+    result = bleu_metrics.compute(
         ['This is a test.', 'Test two', 'A third test example'],
         ['This is a test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
     testing_utils.assert_deep_almost_equal(self, result,
-                                           {'corpus_bleu': 100.00000})
+                                           {'corpus_bleu': 100.0000})
 
     # Some incorrect predictions.
-    result = corpusblue_metrics.compute(
+    result = bleu_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['This is a test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
     testing_utils.assert_deep_almost_equal(self, result,
                                            {'corpus_bleu': 68.037493})
 
-    result = corpusblue_metrics.compute(
+    result = bleu_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['these test.', 'Test two', 'A third test example'],
         types.GeneratedText(), types.GeneratedText())
     testing_utils.assert_deep_almost_equal(self, result,
-                                           {'corpus_bleu': 29.508062388758525})
+                                           {'corpus_bleu': 29.508062})
 
     # Empty labels and predictions
-    result = corpusblue_metrics.compute([], [], types.GeneratedText(),
-                                        types.GeneratedText())
+    result = bleu_metrics.compute([], [], types.GeneratedText(),
+                                  types.GeneratedText())
     testing_utils.assert_deep_almost_equal(self, result, {})
+
+  def test_compute_with_candidates(self):
+    bleu_metrics = metrics.CorpusBLEU()
+
+    # Should only score the first one (@1).
+    labels = ['This is a test.', 'Test two']
+    preds = [
+        [('This is a test.', -1.0), ('foobar', -20.0)],
+        [('Test two', -1.0), ('spam', -20.0)],
+    ]
+
+    result = bleu_metrics.compute(labels, preds, types.TextSegment(),
+                                  types.GeneratedTextCandidates())
+    testing_utils.assert_deep_almost_equal(self, result,
+                                           {'corpus_bleu@1': 100.0000})
+
+
+class RougeLTest(absltest.TestCase):
+
+  def test_is_compatible(self):
+    rouge_metrics = metrics.RougeL()
+
+    # Only compatible with generation types.
+    self.assertTrue(rouge_metrics.is_compatible(types.GeneratedText()))
+    self.assertTrue(
+        rouge_metrics.is_compatible(types.GeneratedTextCandidates()))
+
+    self.assertFalse(
+        rouge_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
+    self.assertFalse(rouge_metrics.is_compatible(types.RegressionScore()))
+
+  def test_compute(self):
+    rouge_metrics = metrics.RougeL()
+
+    # All correct predictions.
+    result = rouge_metrics.compute(
+        ['This is a test.', 'Test two', 'A third test example'],
+        ['This is a test.', 'Test two', 'A third test example'],
+        types.TextSegment(), types.GeneratedText())
+    testing_utils.assert_deep_almost_equal(self, result, {'rougeL': 1.0})
+
+    # Some incorrect predictions.
+    result = rouge_metrics.compute(
+        ['This is a test.', 'Test one', 'A third test'],
+        ['This is a test.', 'Test two', 'A third test example'],
+        types.TextSegment(), types.GeneratedText())
+    testing_utils.assert_deep_almost_equal(self, result, {'rougeL': 0.785714})
+
+    result = rouge_metrics.compute(
+        ['This is a test.', 'Test one', 'A third test'],
+        ['these test.', 'Test two', 'A third test example'],
+        types.TextSegment(), types.GeneratedText())
+    testing_utils.assert_deep_almost_equal(self, result, {'rougeL': 0.563492})
+
+    # Empty labels and predictions
+    result = rouge_metrics.compute([], [], types.GeneratedText(),
+                                   types.GeneratedText())
+    testing_utils.assert_deep_almost_equal(self, result, {})
+
+  def test_compute_with_candidates(self):
+    rouge_metrics = metrics.RougeL()
+
+    # Should only score the first one (@1).
+    labels = ['This is a test.', 'Test two']
+    preds = [
+        [('This is a test.', -1.0), ('foobar', -20.0)],
+        [('Test two', -1.0), ('spam', -20.0)],
+    ]
+
+    result = rouge_metrics.compute(labels, preds, types.TextSegment(),
+                                   types.GeneratedTextCandidates())
+    testing_utils.assert_deep_almost_equal(self, result, {'rougeL@1': 1.0})
 
 
 class ClassifcationMarginTest(absltest.TestCase):
