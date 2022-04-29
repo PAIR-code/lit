@@ -51,15 +51,17 @@ flags.DEFINE_bool(
 
 # Custom frontend layout; see client/lib/types.ts
 modules = layout.LitModuleName
-LM_LAYOUT = layout.LitComponentLayout(
-    components={
+LM_LAYOUT = layout.LitCanonicalLayout(
+    upper={
         "Main": [
             modules.EmbeddingsModule,
             modules.DataTableModule,
             modules.DatapointEditorModule,
             modules.SliceModule,
             modules.ColorModule,
-        ],
+        ]
+    },
+    lower={
         "Predictions": [
             modules.LanguageModelPredictionModule,
             modules.ConfusionMatrixModule,

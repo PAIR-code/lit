@@ -29,28 +29,20 @@ except ImportError:
   is_colab = False
 
 modules = layout.LitModuleName
-MODEL_PREDS_MODULES = [
-    modules.SpanGraphGoldModuleVertical,
-    modules.SpanGraphModuleVertical,
-    modules.ClassificationModule,
-    modules.MultilabelModule,
-    modules.RegressionModule,
-    modules.LanguageModelPredictionModule,
-    modules.GeneratedTextModule,
-    modules.AnnotatedTextGoldModule,
-    modules.AnnotatedTextModule,
-    modules.GeneratedImageModule,
-]
 
 LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
     upper={
-        'Predictions': [modules.SimpleDataTableModule] + MODEL_PREDS_MODULES,
-        'Explanations': [modules.SimpleDatapointEditorModule] +
-                        MODEL_PREDS_MODULES + [
-                            modules.SalienceMapModule,
-                            modules.SequenceSalienceModule,
-                            modules.AttentionModule,
-                        ],
+        'Predictions': [
+            modules.SimpleDataTableModule,
+            *layout.MODEL_PREDS_MODULES,
+        ],
+        'Explanations': [
+            modules.SimpleDatapointEditorModule,
+            *layout.MODEL_PREDS_MODULES,
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.AttentionModule,
+        ],
         'Analysis': [
             modules.MetricsModule,
             modules.ConfusionMatrixModule,

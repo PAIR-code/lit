@@ -27,7 +27,5 @@ import '../core/lit_app';
 
 import {app} from '../core/app';
 
-import {LAYOUTS} from './layout';
-
-// Initialize the app core logic, using the specified declared layout.
-app.initialize(LAYOUTS);
+// Initialize the app core logic.
+app.initialize({});

@@ -86,12 +86,18 @@ const layout: LitComponentLayout = {
 };
 ```
 
-The full layouts are defined in
-[`layout.ts`](../lit_nlp/client/default/layout.ts).
+Layouts are generally specified in Python (see
+[Custom Layouts](./api.md#ui-layouts)) through the `LitCanonicalLayout` object.
+The default layouts are defined in
+[`layout.py`](../lit_nlp/api/layout.py), and you can
+add your own by defining one or more `LitCanonicalLayout` objects and passing
+them to the server. For an example, see `CUSTOM_LAYOUTS` in
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
+
 To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
-or "mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
-layout can be set on-the-fly a URL param (the url param overrides the server
-flag).
+or "default" or the name of a user-specified layout defined in Python) as a
+server flag when initializing LIT (`--default_layout=<layout>`). The layout can
+be set on-the-fly a URL param (the url param overrides the server flag).
 
 The actual layout of components in
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)
@@ -385,14 +391,15 @@ example:
 ```ts
 import {PotatoModule} from './potato';
 
-LAYOUTS = {};  // or import existing set from client/default/layout.ts
-LAYOUTS['potato'] = {
+// Define a custom layout which includes our spud-tastic potato module!
+const POTATO_LAYOUT = {
   components: {
     'Main': [DatapointEditorModule, ClassificationModule],
     'Data': [DataTableModule, PotatoModule],
   },
 };
-app.initialize(LAYOUTS);
+
+app.initialize({'potato': POTATO_LAYOUT});
 ```
 
 Then, build the app, specifying the directory to build with the `env.build`

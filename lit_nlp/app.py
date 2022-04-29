@@ -435,9 +435,13 @@ class LitApp(object):
     self._onboard_start_doc = onboard_start_doc
     self._onboard_end_doc = onboard_end_doc
     self._data_dir = data_dir
-    self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
+
+    # TODO(lit-dev): override layouts instead of merging, to allow clients
+    # to opt-out of the default bundled layouts. This will require updating
+    # client code to manually merge when this is the desired behavior.
+    self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
 
     # Wrap models in caching wrapper
     self._models = {

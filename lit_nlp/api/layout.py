@@ -119,3 +119,106 @@ LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
 
 # pylint: enable=invalid-name
 # LINT.ThenChange(../client/lib/types.ts)
+
+##
+# Common layout definitions.
+
+modules = LitModuleName  # pylint: disable=invalid-name
+
+MODEL_PREDS_MODULES = (
+    modules.SpanGraphGoldModuleVertical,
+    modules.SpanGraphModuleVertical,
+    modules.ClassificationModule,
+    modules.MultilabelModule,
+    modules.RegressionModule,
+    modules.LanguageModelPredictionModule,
+    modules.GeneratedTextModule,
+    modules.AnnotatedTextGoldModule,
+    modules.AnnotatedTextModule,
+    modules.GeneratedImageModule,
+)
+
+DEFAULT_MAIN_GROUP = (
+    modules.DataTableModule,
+    modules.DatapointEditorModule,
+    modules.SliceModule,
+    modules.ColorModule,
+)
+
+##
+# A "simple demo server" layout.
+SIMPLE_LAYOUT = LitCanonicalLayout(
+    upper={
+        'Editor': [
+            modules.DocumentationModule,
+            modules.SimpleDatapointEditorModule,
+        ],
+        'Examples': [modules.SimpleDataTableModule],
+    },
+    lower={
+        'Predictions': list(MODEL_PREDS_MODULES),
+        'Salience': [
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+        ],
+        'Influence': [modules.TrainingDataAttributionModule],
+    },
+    layoutSettings=LayoutSettings(
+        hideToolbar=True,
+        mainHeight=30,
+        centerPage=True,
+    ),
+    description=(
+        'A basic layout just containing a datapoint creator/editor, the '
+        'predictions, and the data table. There are also some visual '
+        'simplifications: the toolbar is hidden, and the modules are centered '
+        'on the page rather than being full width.'),
+)
+
+##
+# A "kitchen sink" layout with maximum functionality.
+STANDARD_LAYOUT = LitCanonicalLayout(
+    upper={
+        'Main': [
+            modules.DocumentationModule,
+            modules.EmbeddingsModule,
+            *DEFAULT_MAIN_GROUP,
+        ]
+    },
+    lower={
+        'Predictions': [
+            *MODEL_PREDS_MODULES,
+            modules.ScalarModule,
+            modules.PdpModule,
+        ],
+        'Explanations': [
+            *MODEL_PREDS_MODULES,
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.AttentionModule,
+            modules.FeatureAttributionModule,
+        ],
+        'Clustering': [modules.SalienceClusteringModule],
+        'Metrics': [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.CurvesModule,
+            modules.ThresholderModule,
+        ],
+        'Influence': [modules.TrainingDataAttributionModule],
+        'Counterfactuals': [
+            modules.GeneratorModule,
+            modules.CounterfactualExplainerModule,
+        ],
+        'TCAV': [modules.TCAVModule],
+    },
+    description=(
+        'The default LIT layout, which includes the data table and data point '
+        'editor, the performance and metrics, predictions, explanations, and '
+        'counterfactuals.'),
+)
+
+DEFAULT_LAYOUTS = {
+    'simple': SIMPLE_LAYOUT,
+    'default': STANDARD_LAYOUT,
+}
