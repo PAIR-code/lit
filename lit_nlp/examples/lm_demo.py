@@ -12,6 +12,7 @@ Then navigate to localhost:5432 to access the demo UI.
 """
 import os
 import sys
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
@@ -32,19 +33,19 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-flags.DEFINE_list(
+_MODELS = flags.DEFINE_list(
     "models", ["bert-base-uncased", "gpt2"],
     "Models to load. Currently supports variants of BERT and GPT-2.")
 
-flags.DEFINE_integer("top_k", 10,
-                     "Rank to which the output distribution is pruned.")
+_TOP_K = flags.DEFINE_integer(
+    "top_k", 10, "Rank to which the output distribution is pruned.")
 
-flags.DEFINE_integer(
+_MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", 1000,
     "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
 )
 
-flags.DEFINE_bool(
+_LOAD_BWB = flags.DEFINE_bool(
     "load_bwb", False,
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
@@ -76,7 +77,7 @@ CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
 FLAGS.set_default("default_layout", "lm")
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
@@ -85,21 +86,23 @@ def get_wsgi_app():
   return main(unused)
 
 
-def main(_):
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
 
   ##
   # Load models, according to the --models flag.
   models = {}
-  for model_name_or_path in FLAGS.models:
+  for model_name_or_path in _MODELS.value:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
     if model_name.startswith("bert-"):
       models[model_name] = pretrained_lms.BertMLM(
-          model_name_or_path, top_k=FLAGS.top_k)
+          model_name_or_path, top_k=_TOP_K.value)
     elif model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
       models[model_name] = pretrained_lms.GPT2LanguageModel(
-          model_name_or_path, top_k=FLAGS.top_k)
+          model_name_or_path, top_k=_TOP_K.value)
     else:
       raise ValueError(
           f"Unsupported model name '{model_name}' from path '{model_name_or_path}'"
@@ -115,13 +118,13 @@ def main(_):
   }
   # Guard this with a flag, because TFDS will download and process 1.67 GB
   # of data if you haven't loaded `lm1b` before.
-  if FLAGS.load_bwb:
+  if _LOAD_BWB.value:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
     datasets["bwb"] = lm.BillionWordBenchmark(
-        "train", max_examples=FLAGS.max_examples)
+        "train", max_examples=_MAX_EXAMPLES.value)
 
   for name in datasets:
-    datasets[name] = datasets[name].slice[:FLAGS.max_examples]
+    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
     logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
 
   generators = {"word_replacer": word_replacer.WordReplacer()}

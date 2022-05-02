@@ -14,10 +14,12 @@ import os
 import pathlib
 import sys
 import tempfile
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
 from absl import logging
+
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import glue
@@ -29,11 +31,12 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-flags.DEFINE_string(
+_ENCODER_NAME = flags.DEFINE_string(
     "encoder_name", "google/bert_uncased_L-2_H-128_A-2",
     "Encoder name to use for fine-tuning. See https://huggingface.co/models.")
 
-flags.DEFINE_string("model_path", None, "Path to save trained model.")
+_MODEL_PATH = flags.DEFINE_string("model_path", None,
+                                  "Path to save trained model.")
 
 # Use our custom frontend build from this directory.
 FLAGS.set_default(
@@ -42,7 +45,7 @@ FLAGS.set_default(
 FLAGS.set_default("default_layout", "potato")
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
@@ -56,13 +59,16 @@ def run_finetuning(train_path):
   """Fine-tune a transformer model."""
   train_data = glue.SST2Data("train")
   val_data = glue.SST2Data("validation")
-  model = glue_models.SST2Model(FLAGS.encoder_name)
+  model = glue_models.SST2Model(_ENCODER_NAME.value)
   model.train(train_data.examples, validation_inputs=val_data.examples)
   model.save(train_path)
 
 
-def main(_):
-  model_path = FLAGS.model_path or tempfile.mkdtemp()
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
+
+  model_path = _MODEL_PATH.value or tempfile.mkdtemp()
   logging.info("Working directory: %s", model_path)
   run_finetuning(model_path)
 

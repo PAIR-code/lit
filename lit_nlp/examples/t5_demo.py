@@ -15,6 +15,7 @@ Then navigate to localhost:5432 to access the demo UI.
 """
 import os
 import sys
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
@@ -33,26 +34,28 @@ from lit_nlp.lib import caching  # for hash id fn
 
 # NOTE: additional flags defined in server_flags.py
 
-flags.DEFINE_integer(
+_MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", 200,
     "Maximum number of examples to load from the development set.")
 
-flags.DEFINE_integer("max_index_examples", 2000,
-                     "Maximum number of examples to index from the train set.")
+_MAX_INDEX_EXAMPLES = flags.DEFINE_integer(
+    "max_index_examples", 2000,
+    "Maximum number of examples to index from the train set.")
 
-flags.DEFINE_list("models", ["t5-small"], "Which model(s) to load.")
-flags.DEFINE_list("tasks", ["summarization", "mt"], "Which task(s) to load.")
+_MODELS = flags.DEFINE_list("models", ["t5-small"], "Which model(s) to load.")
+_TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
+                           "Which task(s) to load.")
 
-flags.DEFINE_integer("token_top_k", 10,
-                     "Rank to which the output distribution is pruned.")
-flags.DEFINE_integer("num_to_generate", 4,
-                     "Number of generations to produce for each input.")
+_TOKEN_TOP_K = flags.DEFINE_integer(
+    "token_top_k", 10, "Rank to which the output distribution is pruned.")
+_NUM_TO_GEN = flags.DEFINE_integer(
+    "num_to_generate", 4, "Number of generations to produce for each input.")
 
 ##
 # Options for nearest-neighbor indexer.
-flags.DEFINE_boolean("use_indexer", True,
-                     "If true, will use the nearest neighbor index.")
-flags.DEFINE_boolean(
+_USE_INDEXER = flags.DEFINE_boolean(
+    "use_indexer", True, "If true, will use the nearest neighbor index.")
+_INITIALIZE_INDEX = flags.DEFINE_boolean(
     "initialize_index", True,
     "If the flag is set, it builds the nearest neighbor index before starting "
     "the server. If false, will look for one in --data_dir. No effect if "
@@ -63,7 +66,7 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   FLAGS.set_default("data_dir", "./t5_data/")
@@ -81,7 +84,7 @@ def build_indexer(models):
   index_datasets = {
       "CNNDM":
           summarization.CNNDMData(
-              split="train", max_examples=FLAGS.max_index_examples),
+              split="train", max_examples=_MAX_INDEX_EXAMPLES.value),
   }
   index_datasets = lit_dataset.IndexedDataset.index_all(index_datasets,
                                                         caching.input_hash)
@@ -96,16 +99,18 @@ def build_indexer(models):
       datasets=index_datasets,
       models=index_models,
       data_dir=FLAGS.data_dir,
-      initialize_new_indices=FLAGS.initialize_index)
+      initialize_new_indices=_INITIALIZE_INDEX.value)
 
 
-def main(_):
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
   ##
   # Load models. You can specify several here, if you want to compare different
   # models side-by-side, and can also include models of different types that use
   # different datasets.
   base_models = {}
-  for model_name_or_path in FLAGS.models:
+  for model_name_or_path in _MODELS.value:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
@@ -118,8 +123,8 @@ def main(_):
       # can send this to the frontend more efficiently.
       base_models[model_name] = t5.T5HFModel(
           model_name=model_name_or_path,
-          num_to_generate=FLAGS.num_to_generate,
-          token_top_k=FLAGS.token_top_k,
+          num_to_generate=_NUM_TO_GEN.value,
+          token_top_k=_TOKEN_TOP_K.value,
           output_attention=False)
 
   ##
@@ -129,13 +134,13 @@ def main(_):
   models = {}
   datasets = {}
 
-  if "summarization" in FLAGS.tasks:
+  if "summarization" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_summarization"] = t5.SummarizationWrapper(m)
     datasets["CNNDM"] = summarization.CNNDMData(
-        split="validation", max_examples=FLAGS.max_examples)
+        split="validation", max_examples=_MAX_EXAMPLES.value)
 
-  if "mt" in FLAGS.tasks:
+  if "mt" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_translation"] = t5.TranslationWrapper(m)
     datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
@@ -144,7 +149,7 @@ def main(_):
   # Truncate datasets if --max_examples is set.
   for name in datasets:
     logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
-    datasets[name] = datasets[name].slice[:FLAGS.max_examples]
+    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
     logging.info("  truncated to %d examples", len(datasets[name]))
 
   ##
@@ -155,7 +160,7 @@ def main(_):
       "word_replacer": word_replacer.WordReplacer(),
   }
 
-  if FLAGS.use_indexer:
+  if _USE_INDEXER.value:
     indexer = build_indexer(models)
     # Wrap the indexer into a Generator component that we can query.
     generators["similarity_searcher"] = similarity_searcher.SimilaritySearcher(

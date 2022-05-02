@@ -25,6 +25,10 @@ import portpicker
 from werkzeug import serving as werkzeug_serving
 
 
+# TODO(b/231171830): Create abstract base class for the WSGI Server flavors.
+
+
+# TODO(b/231171830): Update to inherit from WSGI Server ABC.
 class BasicDevServer(object):
   """Basic development server; not recommended for deployment."""
 
@@ -54,6 +58,7 @@ class WsgiServerIpv6(wsgiref.simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
+# TODO(b/231171830): Update to inherit from WSGI Server ABC.
 class NotebookWsgiServer(object):
   """WSGI server for notebook environments."""
 
