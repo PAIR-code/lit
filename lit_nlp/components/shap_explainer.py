@@ -154,7 +154,7 @@ class TabularShapExplainer(lit_components.Interpreter):
           preds.append(max_value)
         elif isinstance(pred_info, types.SparseMultilabelPreds):
           pred_tuples = pred[pred_key_to_explain]
-          pred_list = list(map(lambda pred: pred[1], pred_tuples))
+          pred_list = list(map(lambda pred: pred[1], pred_tuples))  # pytype: disable=annotation-type-mismatch  # enable-nested-classes
           max_value: float = max(pred_list)
           preds.append(max_value)
         else:

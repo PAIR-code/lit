@@ -36,7 +36,7 @@ def _obj_to_json(o: object):
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    return o.to_json()
+    return o.to_json()  # pytype: disable=attribute-error  # enable-nested-classes
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
   elif isinstance(o, tuple):
@@ -59,7 +59,7 @@ def _obj_to_json_simple(o: object):
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    return o.to_json()
+    return o.to_json()  # pytype: disable=attribute-error  # enable-nested-classes
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
   elif isinstance(o, dtypes.EnumSerializableAsValues):

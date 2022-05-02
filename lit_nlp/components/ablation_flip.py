@@ -276,7 +276,7 @@ class AblationFlip(lit_components.Generator):
         continue
 
       # Create counterfactual and obtain model prediction.
-      cf = self._create_cf(example, input_spec, ablation_idxs)
+      cf = self._create_cf(example, input_spec, ablation_idxs)  # pytype: disable=wrong-arg-types  # enable-nested-classes
       cf_output = list(model.predict([cf]))[0]
 
       # Check if counterfactual results in a prediction flip.

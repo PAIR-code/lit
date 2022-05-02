@@ -164,7 +164,7 @@ class TabularMTC(lit_components.Generator):
     original_pred = list(model.predict([example]))[0]
 
     # Find dataset examples that are flips.
-    filtered_examples = self._filter_ds_examples(
+    filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
         dataset=dataset,
         dataset_name=dataset_name,
         model=model,
