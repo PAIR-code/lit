@@ -358,6 +358,12 @@ For a full example, see
 can see the default layouts as well as the list of available modules in
 [`layout.py`](../lit_nlp/api/layout.py).
 
+To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
+or "default" or the name of a custom layout defined in Python) as a server flag
+when initializing LIT (`--default_layout=<layout>`). Commonly, this is done
+using `FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
+also be set on-the-fly the `layout=` URL param, which will take precedence.
+
 ## Interpretation Components
 
 Backend interpretation components include metrics, salience maps, visualization

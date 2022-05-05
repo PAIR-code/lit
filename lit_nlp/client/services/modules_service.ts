@@ -285,7 +285,13 @@ export class ModulesService extends LitService implements
               key, moduleType, modelName, compareExamples ? 0 : undefined));
         }
       }
-      renderConfigs.push(configs);
+      // Don't push empty configs, e.g. if there is no model selected.
+      if (configs.length > 0) {
+        renderConfigs.push(configs);
+      } else {
+        console.warn(`LIT layout: no compatible configs for module '${
+            moduleType.title}' in tab '${tabName}'`);
+      }
     }
 
     return renderConfigs;

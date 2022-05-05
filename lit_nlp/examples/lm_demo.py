@@ -50,7 +50,7 @@ _LOAD_BWB = flags.DEFINE_bool(
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
 
-# Custom frontend layout; see client/lib/types.ts
+# Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
 LM_LAYOUT = layout.LitCanonicalLayout(
     upper={

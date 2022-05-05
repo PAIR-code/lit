@@ -18,7 +18,8 @@
 // Import Services
 // Import and add injection functionality to LitModule
 import {toJS} from 'mobx';
-import {Constructor, LitComponentLayouts} from '../lib/types';
+
+import {Constructor} from '../lib/types';
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
@@ -48,7 +49,7 @@ export class LitApp {
    * Begins loading data from the LIT server, and computes the layout that
    * the `modules` component will use to render.
    */
-  async initialize(layouts: LitComponentLayouts) {
+  async initialize() {
     const apiService = this.getService(ApiService);
     const appState = this.getService(AppState);
     const modulesService = this.getService(ModulesService);
@@ -71,7 +72,6 @@ export class LitApp {
         appState, modulesService, selectionService, pinnedSelectionService);
 
     // Initialize the rest of the app state
-    appState.addLayouts(layouts);
     await appState.initialize();
 
     // Initilize the module layout
