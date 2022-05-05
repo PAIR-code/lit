@@ -23,8 +23,6 @@ import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
-import {StatusService} from './status_service';
-
 
 
 /** Data source for a data column. */
@@ -58,8 +56,7 @@ export class DataService extends LitService {
   @observable readonly columnData = new Map<string, ColumnData>();
 
   constructor(
-      private readonly appState: AppState,
-      private readonly statusService: StatusService) {
+      private readonly appState: AppState) {
     super();
     reaction(() => appState.currentDataset, () => {
       this.columnHeaders.clear();
@@ -111,16 +108,22 @@ export class DataService extends LitService {
 
   /**
    * Add new column to data service, including values for existing datapoints.
+   *
+   * If column has been previously added, replaces the existing data with new
+   * data, if they are different.
    */
   @action
   addColumn(
       columnVals: ColumnData, name: string, dataType: LitType, source: Source,
-      getValueFn: ValueFn) {
-    if (this.columnHeaders.has(name)) {
-      this.statusService.addError(`Column name "${name}" already exists.`);
+      getValueFn: ValueFn = () => null) {
+    if (!this.columnHeaders.has(name)) {
+      this.columnHeaders.set(name, {dataType, source, name, getValueFn});
     }
-    this.columnHeaders.set(name, {dataType, source, name, getValueFn});
-    this.columnData.set(name, columnVals);
+    if (!this.columnData.has(name) || (
+            JSON.stringify(columnVals.values()) !==
+            JSON.stringify(this.columnData.get(name)!.values()))) {
+      this.columnData.set(name, columnVals);
+    }
   }
 
   /** Get stored value for a datapoint ID for the provided column key. */

@@ -30,8 +30,9 @@ import {LitModule} from '../core/lit_module';
 import {ThresholdChange} from '../elements/threshold_slider';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
+import {ColumnData} from '../services/data_service';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, ColorService, DataService, GroupService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -84,7 +85,6 @@ export class ScalarModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
-  private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
@@ -107,7 +107,16 @@ export class ScalarModule extends LitModule {
 
   @computed
   private get scalarKeys() {
-    return this.groupService.numericalFeatureNames;
+    const numericFeatures = this.groupService.numericalFeatureNames;
+    // Filter out columns from regression results as those are handled
+    // separatly so that error can be shown on Y axis.
+    return numericFeatures.filter(feat => {
+      const col = this.dataService.getColumnInfo(feat);
+      if (col == null) {
+        return true;
+      }
+      return col.source !== 'Regression';
+    });
   }
 
   @computed
@@ -346,8 +355,8 @@ export class ScalarModule extends LitModule {
     const promise = Promise.all([
       this.classificationService.getClassificationPreds(
           currentInputData, this.model, dataset),
-      this.regressionService.getRegressionPreds(
-          currentInputData, this.model, dataset),
+      this.apiService.getPreds(
+          currentInputData, this.model, dataset, ['RegressionScore']),
       this.apiService.getPreds(
           currentInputData, this.model, dataset, ['Scalar']),
     ]);
@@ -377,17 +386,29 @@ export class ScalarModule extends LitModule {
       preds.push(pred);
     }
 
-    // Add the error info for any regression keys.
+    // Add regression results as new columns to the data service.
+    const regressionKeys = Object.keys(regressionPreds[0]);
     if (regressionPreds != null && regressionPreds.length) {
-      const ids = currentInputData.map(data => data.id);
-      const regressionKeys = Object.keys(regressionPreds[0]);
-      for (let j = 0; j < regressionKeys.length; j++) {
-        const regressionInfo = await this.regressionService.getResults(
-            ids, this.model, regressionKeys[j]);
-        for (let i = 0; i < preds.length; i++) {
-          preds[i][this.regressionService.getErrorKey(regressionKeys[j])] =
-              regressionInfo[i].error;
+      for (const key of regressionKeys) {
+        const scoreFeatName = `${this.model}:${key}`;
+        const errorFeatName = `${this.model}:${key} error`;
+        const sqErrorFeatName = `${this.model}:${key} squared error`;
+        const scoreMap: ColumnData = new Map();
+        const errorMap: ColumnData = new Map();
+        const sqErrorMap: ColumnData = new Map();
+        for (let i = 0; i < regressionPreds.length; i++) {
+          const input = this.appState.currentInputData[i];
+          scoreMap.set(input.id, regressionPreds[i][key]['score']);
+          errorMap.set(input.id, regressionPreds[i][key]['error']);
+          sqErrorMap.set(input.id, regressionPreds[i][key]['squared_error']);
         }
+        const dataType = this.appState.createLitType('Scalar', false);
+        this.dataService.addColumn(
+            scoreMap, scoreFeatName, dataType, 'Regression');
+        this.dataService.addColumn(
+          errorMap, errorFeatName, dataType, 'Regression');
+        this.dataService.addColumn(
+          sqErrorMap, sqErrorFeatName, dataType, 'Regression');
       }
     }
 
@@ -405,7 +426,9 @@ export class ScalarModule extends LitModule {
 
     const outputSpec = this.appState.currentModelSpecs[this.model]?.spec.output;
     if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
-      const scalarValues = this.preds.map((pred) => pred[key]);
+      const scalarValues = isLitSubtype(outputSpec[key], 'RegressionScore')
+          ? this.preds.map((pred) => pred[key]['score'])
+          : this.preds.map((pred) => pred[key]);
       scoreRange = [Math.min(...scalarValues), Math.max(...scalarValues)];
       // If the range is 0 (all values are identical, then artificially increase
       // the range so that an X-axis is properly displayed.
@@ -429,11 +452,19 @@ export class ScalarModule extends LitModule {
     let scoreRange = [0, 1];
 
     const outputSpec = this.appState.currentModelSpecs[this.model]?.spec.output;
-    if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
-      const ranges = this.regressionService.ranges[`${this.model}:${key}`];
-      if (ranges != null && !isNaN(ranges.error[0]) &&
-          !isNaN(ranges.error[1])) {
-        scoreRange = ranges.error;
+    if (outputSpec != null &&
+        isLitSubtype(outputSpec[key], 'RegressionScore')) {
+      const errorFeatName = `${this.model}:${key} error`;
+      const range = this.groupService.numericalFeatureRanges[errorFeatName];
+      if (range != null && !isNaN(range[0]) && !isNaN(range[1])) {
+        // If range has a negative min and positive max, then make it symmetric
+        // around 0.
+        if (range[0] * range[1] < 0) {
+          const largest = Math.max(-range[0], range[1]);
+          scoreRange = [-largest, largest];
+        } else {
+          scoreRange = range;
+        }
       }
     }
     return d3.scaleLinear().domain(scoreRange).range([
@@ -449,8 +480,9 @@ export class ScalarModule extends LitModule {
       const predictionLabels = spec.output[key].vocab!;
       const index = predictionLabels.indexOf(label);
       return preds[key][index];
+    } else if (isLitSubtype(spec.output[key], 'RegressionScore')) {
+      return preds[key]['score'];
     }
-    // Otherwise, return the raw value.
     return preds[key];
   }
 
@@ -618,11 +650,9 @@ export class ScalarModule extends LitModule {
 
       const spec = this.appState.getModelSpec(this.model);
       const isScalarKey = isLitSubtype(spec.output[key], 'Scalar');
-      const regressionRanges =
-          this.regressionService.ranges[`${this.model}:${key}`];
-      const hasRegressionGroundTruth = regressionRanges != null &&
-          !isNaN(regressionRanges.error[0]) &&
-          !isNaN(regressionRanges.error[1]);
+      const errorFeatName = `${this.model}:${key} error`;
+      const yRange = this.groupService.numericalFeatureRanges[errorFeatName];
+      const hasRegressionGroundTruth = yRange != null;
 
       const scatterplot = item as SVGGElement;
       const selected = d3.select(scatterplot);
@@ -676,8 +706,6 @@ export class ScalarModule extends LitModule {
 
       // Create zero line if this is a regression plot centered around zero.
       if (isScalarKey && hasRegressionGroundTruth) {
-        const ranges = this.regressionService.ranges[`${this.model}:${key}`];
-        const yRange = ranges.error;
         if (yRange[0] < 0 && yRange[1] > 0) {
           const halfHeight =
                 (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
@@ -748,7 +776,7 @@ export class ScalarModule extends LitModule {
           .attr('cy', d => {
             if (isLitSubtype(spec.output[key], 'Scalar') &&
                 hasRegressionGroundTruth) {
-              return yScale(d[this.regressionService.getErrorKey(key)]);
+              return yScale(d[key]['error']);
             }
             // Otherwise, return a random value.
             return yScale(rng());

@@ -120,3 +120,18 @@ class SequenceSalienceMap(DataTuple):
   # <float>[num_tokens_out, num_tokens_in + num_tokens_out]
   salience: Sequence[Sequence[float]]  # usually, a np.ndarray
 
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class RegressionResult(DataTuple):
+  """Dataclass for regression result."""
+  score: float
+  error: Optional[float]
+  squared_error: Optional[float]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ClassificationResult(DataTuple):
+  """Dataclass for classification result."""
+  scores: List[float]
+  predicted_idx: int
+  correct: Optional[bool]

@@ -22,6 +22,7 @@ from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, 
 from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils
@@ -279,7 +280,7 @@ class RegressionMetrics(SimpleMetrics):
 
   def compute(self,
               labels: Sequence[float],
-              preds: Sequence[float],
+              preds: Sequence[dtypes.RegressionResult],
               label_spec: types.Scalar,
               pred_spec: types.RegressionScore,
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
@@ -289,12 +290,13 @@ class RegressionMetrics(SimpleMetrics):
     if not labels or not preds:
       return {}
 
-    mse = sklearn_metrics.mean_squared_error(labels, preds)
+    pred_vals = [result.score for result in preds]
+    mse = sklearn_metrics.mean_squared_error(labels, pred_vals)
     if len(labels) < 2:  # Check if only one point selected.
       pearsonr = np.nan
     else:
-      pearsonr = scipy_stats.pearsonr(labels, preds)[0]
-    spearmanr = scipy_stats.spearmanr(labels, preds)[0]
+      pearsonr = scipy_stats.pearsonr(labels, pred_vals)[0]
+    spearmanr = scipy_stats.spearmanr(labels, pred_vals)[0]
     return {'mse': mse, 'pearsonr': pearsonr, 'spearmanr': spearmanr}
 
 

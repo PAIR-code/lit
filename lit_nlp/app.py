@@ -40,6 +40,7 @@ from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import pdp
 from lit_nlp.components import projection
+from lit_nlp.components import regression_results
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
 from lit_nlp.components import shap_explainer
@@ -187,6 +188,16 @@ class LitApp(object):
       List[JsonDict] containing requested fields of model predictions
     """
     preds = self._predict(data['inputs'], model, dataset_name)
+
+    # For any regression results, run the regression interpreter to replace the
+    # raw output from the mode with detailed output from the interpreter.
+    regression_interpreter = regression_results.RegressionInterpreter()
+    if regression_interpreter.is_compatible(self._models[model]):
+      reg_results = regression_interpreter.run_with_metadata(
+          data['inputs'], self._models[model], self._datasets[dataset_name],
+          preds)
+      for pred, reg_result in zip(preds, reg_results):
+        pred.update(reg_result)
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']

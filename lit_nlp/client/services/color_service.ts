@@ -26,7 +26,6 @@ import {ClassificationService} from './classification_service';
 import {DataService} from './data_service';
 import {GroupService} from './group_service';
 import {LitService} from './lit_service';
-import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
 
 /** Color map for salience maps. */
@@ -102,7 +101,6 @@ export class ColorService extends LitService {
       private readonly appState: AppState,
       private readonly groupService: GroupService,
       private readonly classificationService: ClassificationService,
-      private readonly regressionService: RegressionService,
       private readonly dataService: DataService) {
     super();
     reaction(() => this.appState.currentModels, currentModels => {
@@ -158,8 +156,7 @@ export class ColorService extends LitService {
         });
     return [
       ...catInputFeatureOptions, ...numInputFeatureOptions,
-      ...this.classificationService.colorOptions,
-      ...this.regressionService.colorOptions, this.defaultOption
+      ...this.classificationService.colorOptions, this.defaultOption
     ];
   }
 

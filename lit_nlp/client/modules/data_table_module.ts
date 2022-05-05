@@ -32,8 +32,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays, findSpecKeys, shortenId} from '../lib/utils';
 import {ClassificationInfo} from '../services/classification_service';
-import {RegressionInfo} from '../services/regression_service';
-import {ClassificationService, DataService, FocusService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
 
@@ -58,14 +57,12 @@ export class DataTableModule extends LitModule {
 
   private readonly classificationService =
       app.getService(ClassificationService);
-  private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
 
   @observable columnVisibility = new Map<string, boolean>();
   @observable
   modelPredToClassificationInfo = new Map<string, ClassificationInfo[]>();
-  @observable modelPredToRegressionInfo = new Map<string, RegressionInfo[]>();
   @observable searchText = '';
 
   // Module options / configuration state
@@ -80,16 +77,31 @@ export class DataTableModule extends LitModule {
     return this.appState.currentDatasetSpec;
   }
 
+  // Column names from the current data for the data table.
   @computed
   get keys(): string[] {
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
     const keys = this.appState.currentInputDataKeys;
-    const dataKeys = this.dataService.cols.filter(
-        col => col.dataType.show_in_data_table).map(col => col.name);
+    const dataKeys = this.dataService.cols.map(col => col.name);
     return keys.concat(dataKeys);
   }
 
+  // Filtered keys that hide ones tagged as not to be shown by default in the
+  // data table. The filtered ones can still be enabled through the "Columns"
+  // selector dropdown.
+  @computed
+  get defaultKeys(): string[] {
+    return this.keys.filter(feat => {
+      const col = this.dataService.getColumnInfo(feat);
+      if (col == null) {
+        return true;
+      }
+      return col.dataType.show_in_data_table;
+    });
+  }
+
+  // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): string[] {
     return ['index', ...this.keys];
@@ -130,17 +142,11 @@ export class DataTableModule extends LitModule {
     models.forEach((model) => {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
       const classificationKeys = findSpecKeys(outputSpec, ['MulticlassPreds']);
-      const regressionKeys = findSpecKeys(outputSpec, ['RegressionScore']);
 
       this.addTableEntries(
           keysToTableEntry, model, classificationKeys,
           this.modelPredToClassificationInfo,
           this.classificationService.getDisplayNames());
-
-      this.addTableEntries(
-          keysToTableEntry, model, regressionKeys,
-          this.modelPredToRegressionInfo,
-          this.regressionService.getDisplayNames());
     });
 
     return keysToTableEntry;
@@ -283,14 +289,12 @@ export class DataTableModule extends LitModule {
   private async updatePredictionInfo(currentInputData: IndexedInput[]) {
     const modelPredToClassificationInfo =
         new Map<string, ClassificationInfo[]>();
-    const modelPredToRegressionInfo = new Map<string, RegressionInfo[]>();
 
     const models = this.appState.currentModels;
     const ids = currentInputData.map(data => data.id);
 
     for (const model of models) {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-      const regressionKeys = findSpecKeys(outputSpec, ['RegressionScore']);
       const classificationKeys = findSpecKeys(outputSpec, ['MulticlassPreds']);
 
       for (const key of classificationKeys) {
@@ -299,16 +303,9 @@ export class DataTableModule extends LitModule {
         modelPredToClassificationInfo.set(
             this.getTableKey(model, key), results);
       }
-
-      for (const key of regressionKeys) {
-        const results =
-            await this.regressionService.getResults(ids, model, key);
-        modelPredToRegressionInfo.set(this.getTableKey(model, key), results);
-      }
     }
 
     this.modelPredToClassificationInfo = modelPredToClassificationInfo;
-    this.modelPredToRegressionInfo = modelPredToRegressionInfo;
   }
 
   private updateColumns() {
@@ -316,28 +313,23 @@ export class DataTableModule extends LitModule {
 
     // Add default columns to the map of column names.
     this.defaultColumns.forEach((column) => {
-      columnVisibility.set(column, true);
+      columnVisibility.set(
+          column, this.defaultKeys.includes(column) || column === 'index');
     });
-    columnVisibility.set('id', false);
 
     // Update the map of column names with a possible column for every
     // combination of model, pred key, and classification/regression info type.
     const classificationInfoTypes =
         this.classificationService.getDisplayNames();
-    const regressionInfoTypes = this.regressionService.getDisplayNames();
 
     const models = this.appState.currentModels;
     models.forEach((model) => {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-      const regressionKeys = findSpecKeys(outputSpec, ['RegressionScore']);
-      this.setColumnNames(
-          model, columnVisibility, regressionKeys, regressionInfoTypes);
 
       const classificationKeys = findSpecKeys(outputSpec, ['MulticlassPreds']);
       this.setColumnNames(
           model, columnVisibility, classificationKeys, classificationInfoTypes);
     });
-
     this.columnVisibility = columnVisibility;
   }
 
@@ -362,14 +354,14 @@ export class DataTableModule extends LitModule {
   private addTableEntries(
       keysToTableEntry: Map<string, string|number>, model: string,
       keys: string[],
-      modelPredToInfo: Map<string, RegressionInfo[]|ClassificationInfo[]>,
+      modelPredToInfo: Map<string, ClassificationInfo[]>,
       displayNames: string[]) {
     const ids = this.appState.currentInputData.map(data => data.id);
     keys.forEach((key) => {
       const results = modelPredToInfo.get(this.getTableKey(model, key));
       if (results == null) return;
 
-      results.forEach((info: RegressionInfo|ClassificationInfo, i: number) => {
+      results.forEach((info: ClassificationInfo, i: number) => {
         const entries = Object.entries(info);
         const rowName = ids[i];
 
