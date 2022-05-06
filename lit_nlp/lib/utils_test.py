@@ -15,9 +15,9 @@
 """Tests for lit_nlp.lib.utils."""
 
 from absl.testing import absltest
-
 from lit_nlp.api import types
 from lit_nlp.lib import utils
+import numpy as np
 
 
 class UtilsTest(absltest.TestCase):
@@ -170,6 +170,16 @@ class UtilsTest(absltest.TestCase):
     expected = [[1], [2], [3], [4], [1, 2], [1, 3], [1, 4], [2, 3], [2, 4],
                 [3, 4]]
     self.assertListEqual(combinations, expected)
+
+  def test_get_real(self):
+    l = np.array([1, 2, 3, 4])
+    self.assertListEqual(utils.coerce_real(l).tolist(), l.tolist())
+
+    l = np.array([1, 2 + 0.5j, 3, 4])
+    self.assertListEqual(utils.coerce_real(l, 0.51).tolist(), [1, 2, 3, 4])
+
+    with self.assertRaises(AssertionError):
+      utils.coerce_real(l, 0.4)
 
 
 if __name__ == "__main__":

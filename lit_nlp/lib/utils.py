@@ -20,6 +20,7 @@ import threading
 import time
 
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
+import numpy as np
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -162,6 +163,24 @@ def find_all_combinations(l: List[Any], min_element_count: int,
   for element_count in range(min_element_count, max_element_count + 1):
     result.extend(list(x) for x in itertools.combinations(l, element_count))
   return result
+
+
+def coerce_real(vals: np.ndarray, limit=0.0001):
+  """Return a copy of the array with only the real numbers, with a check.
+
+  If any of the imaginary part of a value is greater than the provided limit,
+  then assert an error.
+
+  Args:
+    vals: The array to convert
+    limit: The limit above which any imaginary part of a value causes an error.
+
+  Returns:
+    The array with only the real portions of the numbers.
+  """
+  assert np.all(np.imag(vals) < limit), (
+      'Array contains imaginary part out of acceptable limits.')
+  return np.real(vals)
 
 
 class TaskQueue(queue.Queue):

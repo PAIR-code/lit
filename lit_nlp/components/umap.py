@@ -16,6 +16,7 @@
 
 from absl import logging
 from lit_nlp.components import projection
+from lit_nlp.lib import utils
 import numpy as np
 import umap
 
@@ -37,7 +38,7 @@ class UmapModel(projection.ProjectorModel):
     logging.info("UMAP input x_train: %s", str(x_train.shape))
     zs = self._umap.fit_transform(x_train)
     self._fitted = True
-    return ({"z": z} for z in zs)
+    return ({"z": utils.coerce_real(z)} for z in zs)
 
   ##
   # LIT model API
@@ -46,4 +47,4 @@ class UmapModel(projection.ProjectorModel):
       return ({"z": [0, 0, 0]} for i in inputs)
     x = np.stack([i["x"] for i in inputs])
     zs = self._umap.transform(x)
-    return ({"z": z} for z in zs)
+    return ({"z": utils.coerce_real(z)} for z in zs)
