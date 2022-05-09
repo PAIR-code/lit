@@ -76,6 +76,7 @@ export class DatapointEditorModule extends LitModule {
 
   @computed
   get dataTextLengths(): {[key: string]: number} {
+    // Returns the 80th percentile string lengths per field.
     const defaultLengths: {[key: string]: number} = {};
 
     // The string length at this percentile in the input data sample is used
@@ -162,7 +163,7 @@ export class DatapointEditorModule extends LitModule {
       const characterWidth = 8.3;  // estimate for character width in pixels
       const numLines = Math.ceil(
           characterWidth * defaultCharLength / inputBoxElement.clientWidth);
-      const pad = 1;
+      const pad = .5;
       // Set 2 ex per line.
       this.inputHeights[key] = `${2 * numLines + pad}ex`;
     }
