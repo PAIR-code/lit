@@ -17,8 +17,8 @@
 
 // tslint:disable:enforce-comments-on-exported-symbols enforce-name-casing
 import * as d3 from 'd3';
-
 import {TemplateResult} from 'lit';
+
 import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
@@ -51,7 +51,7 @@ export interface LitType {
   null_idx?: number;
   required?: boolean;
   annotated?: boolean;
-  default? : string|string[]|number|number[];
+  default?: string|string[]|number|number[];
   spec?: string;
   types?: LitName|LitName[];
   min_val?: number;
@@ -324,8 +324,8 @@ export function defaultValueByField(key: string, spec: Spec) {
     return '';
   }
   console.log(
-      'Warning: default value requested for unrecognized input field type',
-      key, fieldSpec);
+      'Warning: default value requested for unrecognized input field type', key,
+      fieldSpec);
   return '';
 }
 
@@ -336,15 +336,36 @@ export declare interface LitComponentLayouts {
   [key: string]: LitComponentLayout|LitCanonicalLayout;
 }
 
+// LINT.IfChange
 /**
- * Leaf values in a LitComponentLayout.
- * Can be either a class constructor, or the name of a LIT module
- * custom element.
+ * Module with additional config options.
+ */
+export declare interface LitModuleConfig {
+  module: (keyof HTMLElementTagNameMap);
+  requiredForTab?: boolean;
+  // TODO(b/172979677): support title, duplicateAsRow, numCols,
+  // and startMinimized.
+}
+
+/**
+ * As above, but guaranteeing fields have been populated.
+ */
+export declare interface ResolvedModuleConfig {
+  module: (keyof HTMLElementTagNameMap);
+  constructor: LitModuleClass;
+  requiredForTab: boolean;
+  title: string;
+  // TODO(b/172979677): support title, duplicateAsRow, numCols,
+  // and startMinimized.
+}
+
+/**
+ * Leaf values in a LitComponentLayout or LitCanonicalLayout.
  */
 export type LitComponentSpecifier =
-    LitModuleClass|(keyof HTMLElementTagNameMap);
+    (keyof HTMLElementTagNameMap)|LitModuleConfig;
 
-// LINT.IfChange
+
 export declare interface LitTabGroupLayout {
   [tabName: string]: LitComponentSpecifier[];
 }
@@ -394,6 +415,7 @@ export declare interface LayoutSettings {
 /**
  * Convert a layout to canonical form.
  * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
+ * TODO(lit-dev): move this to Python.
  */
 export function canonicalizeLayout(layout: LitComponentLayout|
                                    LitCanonicalLayout): LitCanonicalLayout {
@@ -422,7 +444,7 @@ export function canonicalizeLayout(layout: LitComponentLayout|
   return canonicalLayout;
 }
 
-// LINT.ThenChange(../../api/dtypes.py)
+// LINT.ThenChange(../../api/layout.py)
 
 /** Display name for the "no dataset" dataset in settings. */
 export const NONE_DS_DISPLAY_NAME = 'none';

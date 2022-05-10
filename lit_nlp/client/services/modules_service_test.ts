@@ -32,13 +32,13 @@ import {AppState} from './state_service';
 const MOCK_LAYOUT: LitCanonicalLayout = {
   upper: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
   },
   lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      AttentionModule
+      'attention-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},

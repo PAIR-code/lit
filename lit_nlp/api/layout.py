@@ -67,12 +67,24 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   TrainingDataAttributionModule = 'tda-module'
   ThresholderModule = 'thresholder-module'
 
+  def __call__(self, **kw):
+    return ModuleConfig(self.value, **kw)
+
+
+# TODO(lit-dev): consider making modules subclass this instead of LitModuleName.
+@attr.s(auto_attribs=True)
+class ModuleConfig(dtypes.DataTuple):
+  module: Union[str, LitModuleName]
+  requiredForTab: bool = False
+  # TODO(b/172979677): support title, duplicateAsRow, numCols,
+  # and startMinimized.
+
 
 # Most users should use LitModuleName, but we allow fallback to strings
 # so that users can reference custom modules which are defined in TypeScript
 # but not included in the LitModuleName enum above.
 # If a string is used, it should be the HTML element name, like foo-bar-module.
-LitModuleList = List[Union[str, LitModuleName]]
+LitModuleList = List[Union[str, LitModuleName, ModuleConfig]]
 
 
 @attr.s(auto_attribs=True)
@@ -158,8 +170,12 @@ SIMPLE_LAYOUT = LitCanonicalLayout(
     lower={
         'Predictions': list(MODEL_PREDS_MODULES),
         'Salience': [
-            modules.SalienceMapModule,
-            modules.SequenceSalienceModule,
+            *MODEL_PREDS_MODULES,
+            modules.SalienceMapModule(requiredForTab=True),
+        ],
+        'Sequence Salience': [
+            *MODEL_PREDS_MODULES,
+            modules.SequenceSalienceModule(requiredForTab=True),
         ],
         'Influence': [modules.TrainingDataAttributionModule],
     },
@@ -198,7 +214,7 @@ STANDARD_LAYOUT = LitCanonicalLayout(
             modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
-        'Clustering': [modules.SalienceClusteringModule],
+        'Salience Clustering': [modules.SalienceClusteringModule],
         'Metrics': [
             modules.MetricsModule,
             modules.ConfusionMatrixModule,
