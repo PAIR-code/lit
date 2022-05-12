@@ -75,75 +75,80 @@ export class DatapointEditorModule extends LitModule {
   @observable editingTokenWidth = 0;
 
   @computed
-  get dataTextLengths(): {[key: string]: number} {
-    // Returns the 80th percentile string lengths per field.
-    const defaultLengths: {[key: string]: number} = {};
+  get dataTextKeys(): string[]{
+   // Returns keys for data text fields.
+   const dataTextKeys: string[] = [];
 
-    // The string length at this percentile in the input data sample is used
-    // to determine the default height of the input box.
-    const percentileForDefault = 0.8;
-
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of this.appState.currentInputDataKeys) {
+   for (const key of this.appState.currentInputDataKeys) {
       // Skip numerical and categorical keys.
       if (this.groupService.categoricalFeatureNames.includes(key)) continue;
       if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
       // Skip fields with value type string[]
-      const fieldSpec = spec[key];
+      const fieldSpec = this.appState.currentDatasetSpec[key];
       const isListField = isLitSubtype(
           fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
       if (isListField) continue;
+      dataTextKeys.push(key);
+    }
+    return dataTextKeys;
+  }
+
+  @computed
+  get sparseMultilabelInputKeys(): string[] {
+    const spec = this.appState.currentDatasetSpec;
+    return findSpecKeys(spec, 'SparseMultilabel');
+  }
+
+  private calculateQuantileLengthsForFields(
+      fieldKeys: string[],
+      percentile: number = .8) {
+    const defaultLengths: {[key: string]: number} = {};
+
+    for (const key of fieldKeys) {
+      const fieldSpec = this.appState.currentDatasetSpec[key];
+      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
+
+      if (isLitSubtype(fieldSpec, ['String', 'TextSegment'])) {
+        calculateStringLength = (s: string) => s.length;
+      }
+      else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+        const separator = fieldSpec.separator;
+        calculateStringLength = (s: string[]) =>
+          Object.values(s).join(separator).length;
+      }
+      else {
+            throw new Error(
+              `Attempted to convert unrecognized type to string: ${key}.`);
+        }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
-        const value = indexedInput.data[key];
-        return value?.length;
+        return calculateStringLength(indexedInput.data[key]);
       });
-      defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
+
+      defaultLengths[key] = d3.quantile(lengths, percentile) ?? 1;
       // Override if the distribution is short-tailed, we can expand a bit to
       // avoid scrolling at all. This is useful if everything in a particular
       // column is close to the same length.
       const maxLength = Math.max(...lengths);
-      if (percentileForDefault * maxLength <= defaultLengths[key]) {
+      if (percentile * maxLength <= defaultLengths[key]) {
         defaultLengths[key] = maxLength;
       }
     }
     return defaultLengths;
   }
 
+  @computed
+  get dataTextLengths(): {[key: string]: number} {
+    return this.calculateQuantileLengthsForFields(
+      this.dataTextKeys);
+  }
 
   @computed
   get sparseMultilabelInputLengths(): {[key: string]: number} {
-    const defaultLengths: {[key: string]: number} = {};
-
-    // The string length at this percentile in the input data sample is used
-    // to determine the default height of the input box.
-    const percentileForDefault = 0.8;
-
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of findSpecKeys(spec, 'SparseMultilabel')) {
-      const fieldSpec = spec[key];
-
-      const separator = fieldSpec.separator;
-
-      // Calculate the combined length of all tokens with their separators.
-      const lengths = this.appState.currentInputData.map(indexedInput => {
-        const multiLabels = indexedInput.data[key];
-        return Object.values(multiLabels).join(separator).length;
-      });
-
-      defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
-      // Override if the distribution is short-tailed, we can expand a bit to
-      // avoid scrolling at all. This is useful if everything in a particular
-      // column is close to the same length.
-      const maxLength = Math.max(...lengths);
-      if (percentileForDefault * maxLength <= defaultLengths[key]) {
-        defaultLengths[key] = maxLength;
-      }
-    }
-    return defaultLengths;
+    return this.calculateQuantileLengthsForFields(
+      this.sparseMultilabelInputKeys);
   }
-
 
   override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.module-container')!;
