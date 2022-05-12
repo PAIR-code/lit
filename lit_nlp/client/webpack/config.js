@@ -33,7 +33,7 @@ module.exports = (env = {}) => {
    * determine which output bundles to build and where to move them to
    */
   const entry = {
-    default: resolveDir('../default/main.ts'),
+    default: resolveDir('../main.ts'),
   };
   const fileManagerParams = {
     onEnd: {
