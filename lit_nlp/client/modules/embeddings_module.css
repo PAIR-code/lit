@@ -7,26 +7,14 @@
   outline: none;
 }
 
-.toolbar-container {
-  padding: 2pt 0;
-  justify-content: space-between;
-  position: absolute
-}
-
-.flex-row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
 .container {
   position: relative;
   height: 100%;
   overflow: hidden;
 }
 
-.selected-nearest-button {
-  margin-top: 10px;
+.module-footer {
+  justify-content: flex-end;
 }
 
 .selected-nearest-button:disabled {

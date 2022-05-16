@@ -518,21 +518,23 @@ export class EmbeddingsModule extends LitModule {
     };
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
-      <div class="container">
-        <div class="toolbar-container flex-row">
-          ${this.renderProjectorSelect()}
-          ${this.renderEmbeddingsSelect()}
-          ${this.renderLabelBySelect()}
-          ${this.renderSpriteBySelect()}
+      <div class="module-container">
+        <div class="module-toolbar">
+            ${this.renderProjectorSelect()}
+            ${this.renderEmbeddingsSelect()}
+            ${this.renderLabelBySelect()}
+            ${this.renderSpriteBySelect()}
         </div>
-        <div class="toolbar-container flex-row" id="select-button-container">
+        <div class="module-results-area">
+          <div id="scatter-gl-container"></div>
+        </div>
+        <div class="module-footer">
           <button class="hairline-button selected-nearest-button"
             ?disabled=${disabled}
             @click=${onSelectNearest}
             title=${disabled ? 'Select a single point to use this feature' : ''}
           >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
         </div>
-        <div id="scatter-gl-container"></div>
       </div>
     `;
   }
