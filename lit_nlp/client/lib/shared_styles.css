@@ -535,7 +535,7 @@ mwc-icon.mdi-outlined {
   flex-grow: 0;
   flex-shrink: 0;
   justify-content: space-between;
-  min-height: 36px;
+  height: 36px;
   padding: 0 4px;
 }
 
