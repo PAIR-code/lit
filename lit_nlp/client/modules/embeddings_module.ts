@@ -86,6 +86,9 @@ export class EmbeddingsModule extends LitModule {
 
   static override numCols = 3;
 
+  @observable
+  private isLoading: boolean = false;
+
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
   @computed
@@ -209,6 +212,7 @@ export class EmbeddingsModule extends LitModule {
       const cache = new BatchRequestCache(requestFn, keyFn);
       this.embeddingCache.set(key, cache);
     }
+
     return this.embeddingCache.get(key)!;
   }
 
@@ -251,10 +255,10 @@ export class EmbeddingsModule extends LitModule {
   }
 
   override firstUpdated() {
-    const scatterContainer =
+    const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
-    this.scatterGL = new ScatterGL(scatterContainer, {
+    this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
@@ -270,7 +274,6 @@ export class EmbeddingsModule extends LitModule {
     this.setupReactions();
 
     // Resize the scatter GL container.
-    const container = this.shadowRoot!.getElementById('scatter-gl-container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.handleResize();
     });
@@ -352,6 +355,8 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private async computeProjectedEmbeddings() {
+    this.isLoading = true;
+
     // Clear projections if dataset is empty.
     if (!this.appState.currentInputData.length) {
       this.projectedPoints = [];
@@ -391,6 +396,9 @@ export class EmbeddingsModule extends LitModule {
     }
 
     this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
+
+    // Add an artificial timeout to indicate that the display has changed.
+    setTimeout(() => this.isLoading = false, 400);
   }
 
   private getLabelByFields() {
@@ -520,13 +528,13 @@ export class EmbeddingsModule extends LitModule {
     return html`
       <div class="module-container">
         <div class="module-toolbar">
-            ${this.renderProjectorSelect()}
-            ${this.renderEmbeddingsSelect()}
-            ${this.renderLabelBySelect()}
-            ${this.renderSpriteBySelect()}
+          ${this.renderProjectorSelect()}
+          ${this.renderEmbeddingsSelect()}
+          ${this.renderLabelBySelect()}
+          ${this.renderSpriteBySelect()}
         </div>
         <div class="module-results-area">
-          <div id="scatter-gl-container"></div>
+          ${this.renderResultsArea()}
         </div>
         <div class="module-footer">
           <button class="hairline-button selected-nearest-button"
@@ -539,10 +547,21 @@ export class EmbeddingsModule extends LitModule {
     `;
   }
 
+  renderResultsArea() {
+    // The container is referenced when rendering and resizing the ScatterGL.
+    // We hide the container when loading occurs, but it is still present.
+    // See cl/449599579 for more context.
+    return html`
+     ${this.isLoading ? this.renderSpinner() : null}
+     <div class=${this.isLoading ? 'hidden-container' : ''}
+      id="scatter-gl-container"></div>
+    `;
+  }
+
   renderSpinner() {
     return html`
       <div class="spinner-container">
-        <lit-spinner size=${36} color="var(--app-dark-color)"></lit-spinner>
+        <lit-spinner size=${20} color="var(--app-secondary-color)"></lit-spinner>
       </div>`;
   }
 
