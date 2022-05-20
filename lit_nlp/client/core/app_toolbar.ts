@@ -88,19 +88,33 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   renderStatusAndTitle() {
-    let title = 'Language Interpretability Tool';
+    const defaultTitle = 'LIT';
+    const subtitle = 'Powered by 🔥 LIT';
+    let showSubtitle = false;
+    let title = defaultTitle;
     if (this.appState.initialized && this.appState.metadata.pageTitle) {
       title = this.appState.metadata.pageTitle;
+      if (!title.includes(defaultTitle)) {
+        showSubtitle = true;
+      }
     }
+    const renderFavicon = () => {
+      if (this.statusService.hasError) {
+        return html`<img src="static/potato.svg" class="status-emoji">`;
+      }
+      if (showSubtitle) {
+        return null;
+      }
+      return html`<img src="static/favicon.png" class="status-emoji">`;
+    };
     // clang-format off
     return html`
       <div id="title-group">
         <a href="https://github.com/PAIR-code/lit/issues/new" target="_blank">
-          ${this.statusService.hasError ?
-            html`<img src="static/potato.svg" class="status-emoji">` :
-            html`<img src="static/favicon.png" class="status-emoji">`}
+          ${renderFavicon()}
         </a>
         ${title}
+        ${showSubtitle ? html`<div class="subtitle">${subtitle}</div>` : null}
       </div>
     `;
     // clang-format on

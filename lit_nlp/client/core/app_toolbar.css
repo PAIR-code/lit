@@ -33,6 +33,7 @@
 
 #title-group {
   font-family: 'Google Sans', sans;
+  margin-left: 8px;
 }
 
 .icon-button {
@@ -113,4 +114,10 @@ button {
 
 .headline-button:disabled {
   color: rgba(60, 64, 67, 0.38);
+}
+
+.subtitle {
+  margin-top: 4px;
+  margin-left: 12px;
+  font-size: 12px;
 }
