@@ -16,7 +16,6 @@
 
 import abc
 import collections
-import numbers
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
@@ -24,6 +23,7 @@ from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
+from lit_nlp.components import classification_results
 from lit_nlp.lib import utils
 import numpy as np
 import sacrebleu
@@ -56,56 +56,6 @@ def map_pred_keys(
       continue
     ret[pred_key] = label_key
   return ret
-
-
-def get_margin_for_input(margin_config: Optional[JsonDict] = None,
-                         inp: Optional[JsonDict] = None):
-  """Get margin given a margin config and input example."""
-  if not margin_config:
-    return 0
-
-  for margin_entry in margin_config.values():
-    facet_info = (margin_entry['facetData']['facets']
-                  if 'facetData' in margin_entry else {})
-    match = True
-    if inp:
-      for feat, facet_info in facet_info.items():
-        value = facet_info['val']
-        if (isinstance(inp[feat], numbers.Number) and
-            not isinstance(inp[feat], bool)):
-          # If the facet is a numeric range string, extract the min and max
-          # and check the value against that range.
-          min_val = value[0]
-          max_val = value[1]
-          if not (inp[feat] >= min_val and inp[feat] < max_val):
-            match = False
-        # If the facet is a standard value, check the feature value for
-        # equality to it.
-        elif inp[feat] != value:
-          match = False
-    if match:
-      return margin_entry['margin']
-  return 0
-
-
-def get_classifications(
-    preds: Sequence[np.ndarray], pred_spec: types.MulticlassPreds,
-    margin_config: Optional[Sequence[float]] = None) -> Sequence[int]:
-  """Get classified indices given prediction scores and configs."""
-  # If there is a margin set for the prediction, take the log of the prediction
-  # scores and add the margin to the null indexes value before taking argmax
-  # to find the predicted class.
-  if margin_config is not None:
-    multiclass_pred_spec = cast(types.MulticlassPreds, pred_spec)
-    null_idx = multiclass_pred_spec.null_idx
-    pred_idxs = []
-    for p, margin in zip(preds, margin_config):
-      logit_mask = margin * np.eye(len(multiclass_pred_spec.vocab))[null_idx]
-      pred_idx = np.argmax(np.log(p) + logit_mask)
-      pred_idxs.append(pred_idx)
-  else:
-    pred_idxs = [np.argmax(p) for p in preds]
-  return pred_idxs
 
 
 def nan_to_none(metrics: Dict[str, float]) -> Dict[str, Optional[float]]:
@@ -245,7 +195,8 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [classification_results.get_margin_for_input(
+          field_config, inp) for inp in inputs]
       margin_config[pred_key] = margins
     return self._metrics.run(inputs, model, dataset, model_outputs,
                              margin_config)
@@ -264,7 +215,8 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     for pred_key in field_map:
       inputs = [ex['data'] for ex in indexed_inputs]
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [classification_results.get_margin_for_input(
+          field_config, inp) for inp in inputs]
       margin_config[pred_key] = margins
     return self._metrics.run_with_metadata(
         indexed_inputs, model, dataset, model_outputs, margin_config)
@@ -357,7 +309,8 @@ class MulticlassMetricsImpl(SimpleMetrics):
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
         for label in labels
     ]
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
     return self.get_all_metrics(
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
 
@@ -415,7 +368,8 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
     if ret['num_pairs'] == 0:
       return {}
 
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     # 'swapped' just means the prediction changed.
     is_swapped = [(pred_idxs[i] == pred_idxs[j]) for i, j in pairs]
@@ -557,7 +511,8 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     ]
     # Get classifications using possible margin value to control threshold
     # of positive classification.
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     return self.get_all_metrics(
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)

@@ -30,7 +30,7 @@ def _obj_to_json(o: object):
         '__class__': 'np.ndarray',
         '__value__': o.tolist(),
     }
-  elif isinstance(o, np.number):
+  elif isinstance(o, (np.number, np.bool_)):
     # Handle numpy scalar types, like np.float32
     # This discards some precision information, but is consistent with using
     # .tolist() on a NumPy array.
@@ -53,7 +53,7 @@ def _obj_to_json_simple(o: object):
   """JSON serialization helper. Not invertible!"""
   if isinstance(o, np.ndarray):
     return o.tolist()
-  elif isinstance(o, np.number):
+  elif isinstance(o, (np.number, np.bool_)):
     # Handle numpy scalar types, like np.float32
     # This discards some precision information, but is consistent with using
     # .tolist() on a NumPy array.

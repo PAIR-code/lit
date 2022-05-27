@@ -66,6 +66,9 @@ class CurvesInterpreter(lit_components.Interpreter):
             f' of the prediction field to use for calculations.')
       predictions_key = config.get(TARGET_PREDICTION_KEY)
 
+    if not indexed_inputs:
+      return {ROC_DATA: [], PR_DATA: []}
+
     # Run prediction if needed:
     if model_outputs is None:
       model_outputs = list(model.predict_with_metadata(indexed_inputs))

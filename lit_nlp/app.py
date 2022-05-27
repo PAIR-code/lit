@@ -29,6 +29,7 @@ from lit_nlp.api import layout
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
+from lit_nlp.components import classification_results
 from lit_nlp.components import curves
 from lit_nlp.components import gradient_maps
 from lit_nlp.components import hotflip
@@ -40,6 +41,7 @@ from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import pdp
 from lit_nlp.components import projection
+from lit_nlp.components import regression_results
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
 from lit_nlp.components import shap_explainer
@@ -475,6 +477,7 @@ class LitApp(object):
 
     if interpreters is not None:
       self._interpreters = interpreters
+
     else:
       metrics_group = lit_components.ComponentGroup({
           'regression': metrics.RegressionMetrics(),
@@ -490,7 +493,7 @@ class LitApp(object):
           'LIME': lime_explainer.LIME(),
       }
       # pyformat: disable
-      self._interpreters = {
+      self._interpreters: dict[str, lit_components.Interpreter] = {
           'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
@@ -509,6 +512,14 @@ class LitApp(object):
       }
       # pyformat: enable
       self._interpreters.update(gradient_map_interpreters)
+
+    # Ensure the prediction analysis interpreters are included.
+    prediction_analysis_interpreters = {
+        'classification': classification_results.ClassificationInterpreter(),
+        'regression': regression_results.RegressionInterpreter(),
+    }
+    self._interpreters = dict(
+        **self._interpreters, **prediction_analysis_interpreters)
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()

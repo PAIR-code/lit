@@ -47,7 +47,7 @@ class TestRegressionModel(lit_model.Model):
     return self._input_spec
 
   def output_spec(self):
-    return {'scores': lit_types.RegressionScore()}
+    return {'scores': lit_types.RegressionScore(parent='label')}
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)

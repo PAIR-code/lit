@@ -325,41 +325,5 @@ class RougeLTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {'rougeL@1': 1.0})
 
 
-class ClassifcationMarginTest(absltest.TestCase):
-
-  def setUp(self):
-    super(ClassifcationMarginTest, self).setUp()
-    self.inputs = [{'s': 'hi', 'n': 2}, {'s': 'bye', 'n': 1}]
-    self.preds = [[0.3, 0.7], [0.6, 0.4]]
-    self.pred_spec = types.MulticlassPreds(vocab=['0', '1'], null_idx=0)
-
-  def test_no_margins(self):
-    classes = metrics.get_classifications(
-        self.preds, self.pred_spec, None)
-    self.assertEqual([1, 0], classes)
-
-  def test_single_margin(self):
-    config = {'': {'margin': -4, 'facetData': {'facets': {}}}}
-    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
-    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
-    self.assertEqual([1, 1], classes)
-
-  def test_faceted_margins_text(self):
-    config = {
-        'hi': {'margin': 5, 'facetData': {'facets': {'s': {'val': 'hi'}}}},
-        'bye': {'margin': -4, 'facetData': {'facets': {'s': {'val': 'bye'}}}}}
-    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
-    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
-    self.assertEqual([0, 1], classes)
-
-  def test_faceted_margins_num(self):
-    config = {
-        'high': {'margin': 5, 'facetData': {'facets': {'n': {'val': [2, 3]}}}},
-        'low': {'margin': -4, 'facetData': {'facets': {'n': {'val': [0, 2]}}}}}
-    margins = [metrics.get_margin_for_input(config, inp) for inp in self.inputs]
-    classes = metrics.get_classifications(self.preds, self.pred_spec, margins)
-    self.assertEqual([0, 1], classes)
-
-
 if __name__ == '__main__':
   absltest.main()
