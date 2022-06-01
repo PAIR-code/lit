@@ -66,8 +66,7 @@ interface LayoutWidths {
 @customElement('lit-modules')
 export class LitModules extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({type: Number}) mainSectionHeight =
-      this.modulesService.getSetting('mainHeight') || 45;
+  @property({type: Number}) mainSectionHeight = 45;
   @observable upperLayoutWidths: LayoutWidths = {};
   @observable lowerLayoutWidths: LayoutWidths = {};
   private resizeObserver!: ResizeObserver;
@@ -99,6 +98,12 @@ export class LitModules extends ReactiveElement {
       container.style.setProperty('--modules-area-height', `${bcr.height}px`);
     });
     this.resizeObserver.observe(container);
+
+    this.reactImmediately(
+      () => this.modulesService.getSetting('mainHeight'),
+      (mainHeight) => {
+        if (mainHeight != null) {this.mainSectionHeight = Number(mainHeight);}
+      });
 
     this.reactImmediately(
         () => this.modulesService.getRenderLayout(), renderLayout => {
