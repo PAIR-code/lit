@@ -221,6 +221,32 @@ export function formatEdgeLabel(e: EdgeLabel): string {
 export type GeneratedTextCandidate = [string, number | null];
 
 /**
+ * Info about individual classifications including computed properties.
+ */
+export interface ClassificationResult {
+  scores: number[];
+  predicted_class: string;
+  correct?: boolean;
+}
+
+export interface ClassificationResults {
+  [key: string]: ClassificationResult;
+}
+
+/**
+ * Info about individual regressions including computed properties.
+ */
+export interface RegressionResult {
+  score: number;
+  error?: number;
+  squared_error?: number;
+}
+
+export interface RegressionResults {
+  [key: string]: RegressionResult;
+}
+
+/**
  * Type for d3 scale object used for datapoint coloring.
  */
 export interface D3Scale {

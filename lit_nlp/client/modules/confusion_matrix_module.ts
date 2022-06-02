@@ -27,10 +27,9 @@ import {LitModule} from '../core/lit_module';
 import {MatrixCell, MatrixSelection} from '../elements/data_matrix';
 import {ReactiveElement} from '../lib/elements';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
-import {doesOutputSpecContain, facetMapToDictKey, findSpecKeys} from '../lib/utils';
-import {ClassificationInfo} from '../services/classification_service';
+import {arrayContainsSame, doesOutputSpecContain, facetMapToDictKey} from '../lib/utils';
 import {GetFeatureFunc, GroupService, FacetingMethod, NumericFeatureBins} from '../services/group_service';
-import {ClassificationService} from '../services/services';
+import {DataService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -64,15 +63,14 @@ export class ConfusionMatrixModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  private readonly classificationService =
-      app.getService(ClassificationService);
+  private readonly dataService = app.getService(DataService);
   private readonly groupService = app.getService(GroupService);
 
   @observable verticalColumnLabels = false;
   @observable hideEmptyLabels = false;
   @observable showSelection = false;
   @observable selectedRowOption = 0;
-  @observable selectedColOption = 0;
+  @observable selectedColOption = 1;
 
   @observable private facetFeatures: string[] = [];
   @observable private facetBins: NumericFeatureBins = {};
@@ -160,8 +158,10 @@ export class ConfusionMatrixModule extends LitModule {
   @computed
   get options(): CmatOption[] {
     // Get all preds fields and their parents
-    const models = this.appState.currentModels;
     const options: CmatOption[] = [];
+    // TODO(b/156100081): Get proper reactions on data service columns.
+    // tslint:disable:no-unused-variable Causes recompute on change.
+    const data = this.dataService.dataVals;
 
     // From the data, we can bin by any categorical feature.
     const categoricalFeatures = this.groupService.categoricalFeatures;
@@ -179,39 +179,6 @@ export class ConfusionMatrixModule extends LitModule {
       const labelsRunner = async (dataset: IndexedInput[]) =>
           dataset.map(getLabelsFn);
       options.push({name: labelKey, labelList, runner: labelsRunner});
-    }
-
-    // For each model, select preds fields.
-    for (const model of models) {
-      const outputSpec = this.appState.getModelSpec(model).output;
-      for (const predKey of findSpecKeys(outputSpec, 'MulticlassPreds')) {
-        // Labels for this key.
-        const labelKey = outputSpec[predKey].parent;
-        // Note: vocab should always be present for MulticlassPreds.
-        const labelList = outputSpec[predKey].vocab!;
-        if (labelList.length > this.MAX_ENTRIES) {
-          continue;
-        }
-        // Preds for this key.
-        const predsRunner = async (dataset: IndexedInput[]) => {
-          const preds = await this.classificationService.getClassificationPreds(
-              dataset, model, this.appState.currentDataset);
-          const classPromises = preds.map(
-              async (d: {[key: string]: number[]}, i: number) =>
-                  this.classificationService.getResults(
-                      [dataset[i].id], model, predKey));
-          const classResults = await Promise.all(classPromises);
-          return classResults.map(
-              (info: ClassificationInfo[]) =>
-                  labelList[info[0].predictedClassIdx]);
-        };
-        options.push({
-          name: `${model}:${predKey}`,
-          labelList,
-          runner: predsRunner,
-          parent: labelKey
-        });
-      }
     }
 
     return options;
@@ -362,6 +329,14 @@ class ConfusionMatrix extends ReactiveElement {
     ]);
     const results = await this.loadLatest('rowColIdxs', promise);
     if (results == null) return;
+
+    // If label lists for rows/cols are identical, ensure they are rendered in
+    // the same order.
+    const labelsIdentical = arrayContainsSame(
+        this.row.labelList, this.col.labelList);
+    if (labelsIdentical) {
+      this.col.labelList = this.row.labelList;
+    }
 
     const rowLabels = this.row.labelList;
     const colLabels = this.col.labelList;

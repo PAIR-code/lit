@@ -31,6 +31,9 @@ export interface ColorEntry {
   textColor: string;
 }
 
+/** Type of a continuous or discrete color range. */
+export type ColorRange = string[]|((val: number) => string);
+
 /** Names of palettes in the VisColor family */
 export type VizPaletteKey = 'pastel'|'bright'|'deep'|'dark';
 
@@ -376,10 +379,9 @@ export const LOADING: string = BRAND_COLORS.neutral[5].color;
 export const CATEGORICAL_NORMAL: string[] =
   VIZ_COLORS.deep.slice(0,-1).map(ce => ce.color);
 
-/** Binary Classification for Positive/Negative Semantics -- Blue, Coral */
-export const BINARY_POS_NEG: string[] = [
-  VIZ_COLORS.deep[1].color, VIZ_COLORS.deep[4].color
-];
+/** Binary Classification for Negative/Positive Semantics -- Coral, Blue */
+export const BINARY_NEG_POS: string[] =
+    [VIZ_COLORS.deep[4].color, VIZ_COLORS.deep[1].color];
 
 /** Continuous ramp for signed data: Coral, Neutral, Teal */
 export const CONTINUOUS_SIGNED = ramp([

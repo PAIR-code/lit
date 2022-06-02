@@ -28,7 +28,6 @@ import {FocusService} from '../services/focus_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
 import {ModulesService} from '../services/modules_service';
-import {RegressionService} from '../services/regression_service';
 import {SelectionService} from '../services/selection_service';
 import {SettingsService} from '../services/settings_service';
 import {SliceService} from '../services/slice_service';
@@ -140,16 +139,14 @@ export class LitApp {
     const selectionService = new SelectionService(appState);
     const pinnedSelectionService = new SelectionService(appState);
     const sliceService = new SliceService(selectionService, appState);
-    const regressionService = new RegressionService(apiService, appState);
     const settingsService =
         new SettingsService(appState, modulesService, selectionService);
-    const dataService = new DataService(appState, statusService);
+    const classificationService = new ClassificationService();
+    const dataService = new DataService(
+        appState, classificationService, apiService, settingsService);
     const groupService = new GroupService(appState, dataService);
-    const classificationService =
-        new ClassificationService(apiService, appState, groupService);
     const colorService = new ColorService(
-        appState, groupService, classificationService, regressionService,
-        dataService);
+        appState, groupService, dataService);
     const focusService = new FocusService(selectionService);
 
     // Populate the internal services map for dependency injection
@@ -161,7 +158,6 @@ export class LitApp {
     this.services.set(FocusService, focusService);
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);
-    this.services.set(RegressionService, regressionService);
     this.services.set(SelectionService, [
       selectionService, pinnedSelectionService
     ]);

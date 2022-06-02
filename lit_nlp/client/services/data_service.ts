@@ -18,13 +18,12 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, reaction} from 'mobx';
 
-import {IndexedInput, LitName, LitType} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
+import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
+import {ClassificationResults, IndexedInput, LitName, LitType, RegressionResults} from '../lib/types';
+import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
-import {AppState} from './state_service';
-import {StatusService} from './status_service';
-
+import {ApiService, AppState, ClassificationService, SettingsService} from './services';
 
 
 /** Data source for a data column. */
@@ -43,10 +42,24 @@ export interface DataColumnHeader {
   name: string;
   source: Source;
   getValueFn: ValueFn;
+  colorRange?: ColorRange;
+}
+
+/** Types of columns auto calculated by data service. */
+export enum CalculatedColumnType {
+  PREDICTED_CLASS = 'class',
+  CORRECT = 'correct',
+  ERROR = 'error',
+  SQUARED_ERROR = 'squared error',
 }
 
 /** Map of datapoint ID to values for a column of data. */
 export type ColumnData = Map<string, ValueType>;
+
+/** Column source prefix for columns from the classification interpreter. */
+export const CLASSIFICATION_SOURCE_PREFIX = 'Classification';
+/** Column source prefix for columns from the regression interpreter. */
+export const REGRESSION_SOURCE_PREFIX = 'Regression';
 
 /**
  * Data service singleton, responsible for maintaining columns of computed data
@@ -59,15 +72,151 @@ export class DataService extends LitService {
 
   constructor(
       private readonly appState: AppState,
-      private readonly statusService: StatusService) {
+      private readonly classificationService: ClassificationService,
+      private readonly apiService: ApiService,
+      private readonly settingsService: SettingsService) {
     super();
     reaction(() => appState.currentDataset, () => {
       this.columnHeaders.clear();
       this.columnData.clear();
     });
 
+    // Run classification interpreter when necessary.
+    const getClassificationInputs = () =>
+        [this.appState.currentInputData, this.appState.currentModels,
+         this.classificationService.allMarginSettings];
+    reaction(getClassificationInputs, () => {
+      if (this.appState.currentInputData == null ||
+          this.appState.currentInputData.length === 0 ||
+          this.appState.currentModels.length === 0 ||
+          !this.settingsService.isValidCurrentDataAndModels) {
+        return;
+      }
+      for (const model of this.appState.currentModels) {
+        this.runClassification(model, this.appState.currentInputData);
+      }
+    }, {fireImmediately: true});
+
+    // Run regression interpreter when necessary.
+    const getRegressionInputs =
+        () => [this.appState.currentInputData, this.appState.currentModels];
+    reaction(getRegressionInputs, () => {
+      if (this.appState.currentInputData == null ||
+          this.appState.currentInputData.length === 0 ||
+          this.appState.currentModels.length === 0 ||
+          !this.settingsService.isDatasetValidForModels(
+              this.appState.currentDataset, this.appState.currentModels)) {
+        return;
+      }
+      for (const model of this.appState.currentModels) {
+        this.runRegression(model, this.appState.currentInputData);
+      }
+    }, {fireImmediately: true});
+
     this.appState.addNewDatapointsCallback(async (newDatapoints) =>
       this.setValuesForNewDatapoints(newDatapoints));
+  }
+
+  getColumnName(model: string, predKey: string, type?: CalculatedColumnType) {
+    let columnName = `${model}:${predKey}`;
+    if (type != null) {
+      columnName += ` ${type}`;
+    }
+    return columnName;
+  }
+
+  /**
+   * Run classification interpreter and store results in data service.
+   */
+  private async runClassification(model: string, data: IndexedInput[]) {
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    if (findSpecKeys(output, 'MulticlassPreds').length === 0) {
+      return;
+    }
+
+    const interpreterPromise = this.apiService.getInterpretations(
+        data, model, this.appState.currentDataset, 'classification',
+        this.classificationService.marginSettings[model],
+        `Computing classification results`);
+    const classificationResults = await interpreterPromise;
+
+    // Add classification results as new columns to the data service.
+    if (classificationResults == null || classificationResults.length === 0) {
+      return;
+    }
+    const classificationKeys = Object.keys(classificationResults[0]);
+    for (const key of classificationKeys) {
+      // Parse results into new data columns and add the columns.
+      const scoreFeatName = this.getColumnName(model, key);
+      const predClassFeatName =
+          this.getColumnName(model, key, CalculatedColumnType.PREDICTED_CLASS);
+      const correctnessName =
+          this.getColumnName(model, key, CalculatedColumnType.CORRECT);
+      const scores = classificationResults.map(
+          (result: ClassificationResults) => result[key].scores);
+      const predClasses = classificationResults.map(
+          (result: ClassificationResults) => result[key].predicted_class);
+      const correctness = classificationResults.map(
+          (result: ClassificationResults) => result[key].correct);
+      const source = `CLASSIFICATION_SOURCE_PREFIX:${model}`;
+      this.addColumnFromList(
+          scores, data, scoreFeatName,
+          this.appState.createLitType('MulticlassPreds', false), source);
+      const litTypeClassification =
+          this.appState.createLitType('CategoryLabel', false);
+      litTypeClassification.vocab = output[key].vocab;
+      this.addColumnFromList(
+          predClasses, data, predClassFeatName, litTypeClassification, source);
+      if (output[key].parent != null) {
+        this.addColumnFromList(
+            correctness, data, correctnessName,
+            this.appState.createLitType('Boolean', false), source, () => null,
+            BINARY_NEG_POS);
+      }
+    }
+  }
+
+  /**
+   * Run regression interpreter and store results in data service.
+   */
+  private async runRegression(model: string, data: IndexedInput[]) {
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    if (findSpecKeys(output, 'RegressionScore').length === 0) {
+      return;
+    }
+
+    const interpreterPromise = this.apiService.getInterpretations(
+        data, model, this.appState.currentDataset, 'regression', undefined,
+        `Computing regression results`);
+    const regressionResults = await interpreterPromise;
+
+    // Add regression results as new columns to the data service.
+    if (regressionResults == null || regressionResults.length === 0) {
+      return;
+    }
+    const regressionKeys = Object.keys(regressionResults[0]);
+    for (const key of regressionKeys) {
+      // Parse results into new data columns and add the columns.
+      const scoreFeatName = this.getColumnName(model, key);
+      const errorFeatName =
+          this.getColumnName(model, key, CalculatedColumnType.ERROR);
+      const sqErrorFeatName =
+          this.getColumnName(model, key, CalculatedColumnType.SQUARED_ERROR);
+      const scores = regressionResults.map(
+          (result: RegressionResults) => result[key].score);
+      const errors = regressionResults.map(
+          (result: RegressionResults) => result[key].error);
+      const sqErrors = regressionResults.map(
+          (result: RegressionResults) => result[key].squared_error);
+      const dataType = this.appState.createLitType('Scalar', false);
+      const source = `REGRESSION_SOURCE_PREFIX:${model}`;
+      this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
+      if (output[key].parent != null) {
+        this.addColumnFromList(errors, data, errorFeatName, dataType, source);
+        this.addColumnFromList(
+            sqErrors, data, sqErrorFeatName, dataType, source);
+      }
+    }
   }
 
   @action
@@ -111,22 +260,54 @@ export class DataService extends LitService {
 
   /**
    * Add new column to data service, including values for existing datapoints.
+   *
+   * If column has been previously added, replaces the existing data with new
+   * data, if they are different.
    */
   @action
   addColumn(
       columnVals: ColumnData, name: string, dataType: LitType, source: Source,
-      getValueFn: ValueFn) {
-    if (this.columnHeaders.has(name)) {
-      this.statusService.addError(`Column name "${name}" already exists.`);
+      getValueFn: ValueFn = () => null, colorRange?: ColorRange) {
+    if (!this.columnHeaders.has(name)) {
+      this.columnHeaders.set(
+          name, {dataType, source, name, getValueFn, colorRange});
     }
-    this.columnHeaders.set(name, {dataType, source, name, getValueFn});
-    this.columnData.set(name, columnVals);
+    // TODO(b/156100081): If data service table is properly observable, may
+    // be able to get rid of this check.
+    if (!this.columnData.has(name) ||
+        !mapsContainSame(this.columnData.get(name)!, columnVals)) {
+      this.columnData.set(name, columnVals);
+    }
+  }
+
+  /**
+   * Add new column to data service, including values for existing datapoints.
+   *
+   * If column has been previously added, replaces the existing data with new
+   * data, if they are different.
+   */
+  @action
+  addColumnFromList(
+      values: ValueType[], data: IndexedInput[], name: string,
+      dataType: LitType, source: Source, getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange) {
+    if (values.length !== data.length) {
+      throw new Error(`Attempted to add data column ${
+          name} with incorrect number of values.`);
+    }
+    const columnVals: ColumnData = new Map();
+    for (let i = 0; i < data.length; i++) {
+      const input = data[i];
+      const value = values[i];
+      columnVals.set(input.id, value);
+    }
+    this.addColumn(columnVals, name, dataType, source, getValueFn, colorRange);
   }
 
   /** Get stored value for a datapoint ID for the provided column key. */
   getVal(id: string, key: string) {
-    // If column not tracked by data service, get value from input data through
-    // appState.
+    // If column not tracked by data service, get value from input data
+    // through appState.
     if (!this.columnHeaders.has(key)) {
       return this.appState.getCurrentInputDataById(id)!.data[key];
     }
@@ -137,7 +318,8 @@ export class DataService extends LitService {
     return this.columnData.get(key)!.get(id);
   }
 
-  /** Asyncronously get value for a datapoint ID for the provided column key.
+  /**
+   * Asynchronously get value for a datapoint ID for the provided column key.
    *
    *  This method is async as if the value has not yet been been retrieved
    *  for a new datapoint, it will return the promise fetching the value.

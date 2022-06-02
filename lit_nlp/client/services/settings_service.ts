@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, reaction} from 'mobx';
+import {action, computed, reaction} from 'mobx';
 
 import {arrayContainsSame} from '../lib/utils';
 
@@ -58,6 +58,12 @@ export class SettingsService extends LitService {
     const availableDatasets =
         this.appState.metadata?.models?.[model].datasets || [];
     return availableDatasets.includes(dataset);
+  }
+
+  @computed
+  get isValidCurrentDataAndModels() {
+    return this.isDatasetValidForModels(
+        this.appState.currentDataset, this.appState.currentModels);
   }
 
   /**

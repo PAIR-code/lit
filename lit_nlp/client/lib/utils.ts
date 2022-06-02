@@ -75,6 +75,20 @@ export function arrayContainsSame<T>(arrayA: T[], arrayB: T[]) {
   return setEquals(new Set<T>(arrayA), new Set<T>(arrayB));
 }
 
+/** Determines whether two maps contain the same keys and values. */
+export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
+  const mapAKeys = Array.from(mapA.keys());
+  if (!arrayContainsSame(mapAKeys, Array.from(mapB.keys()))) {
+    return false;
+  }
+  for (const key of mapAKeys) {
+    if (mapA.get(key) !== mapB.get(key)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Check if a spec field (LitType) is an instance of one or more type names.
  * This is analogous to using isinstance(litType, typesToFind) in Python,

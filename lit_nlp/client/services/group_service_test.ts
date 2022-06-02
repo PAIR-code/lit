@@ -151,9 +151,9 @@ describe('GroupService test', () => {
     // to load the data (causes test flakiness.)
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('penguin_dev');
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    appState.setCurrentDataset('penguin_dev');
 
     groupService = new GroupService(appState, dataService);
   });

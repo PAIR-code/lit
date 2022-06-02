@@ -26,11 +26,9 @@ import {IndexedInput} from '../lib/types';
 import {DEFAULT, CATEGORICAL_NORMAL} from '../lib/colors';
 import {mockMetadata} from '../lib/testing_utils';
 
-import {ClassificationService} from './classification_service';
 import {ColorService, SignedSalienceCmap, UnsignedSalienceCmap} from './color_service';
 import {DataService} from './data_service';
 import {GroupService} from './group_service';
-import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
 
 describe('Color service test', () => {
@@ -42,6 +40,7 @@ describe('Color service test', () => {
     'testNumFeat0': [-5, 5],
     'testNumFeat1': [0, 1],
   };
+  const booleanFeatureNames: string[] = ['testBool'];
   const categoricalFeatureNames = Object.keys(categoricalFeatures);
   const numericalFeatureNames = Object.keys(numericalFeatureRanges);
   // It seems you can't mock mobx @computed values since they're read-only, so
@@ -49,6 +48,7 @@ describe('Color service test', () => {
   const mockGroupService = {
     categoricalFeatureNames,
     numericalFeatureNames,
+    booleanFeatureNames,
     categoricalFeatures,
     numericalFeatureRanges
   } as unknown as GroupService;
@@ -57,15 +57,14 @@ describe('Color service test', () => {
   const app = new LitApp();
   const colorService = new ColorService(
       app.getService(AppState), mockGroupService,
-      app.getService(ClassificationService), app.getService(RegressionService),
       app.getService(DataService));
 
   it('Tests colorableOption', () => {
     const opts = colorService.colorableOptions;
 
-    // Default value + two cat features + 2 numerical features = 3 options
-    // total.
-    expect(opts.length).toBe(5);
+    // Default value + two cat features + 2 numerical features +
+    // 1 bool feature = 6 options total.
+    expect(opts.length).toBe(6);
 
     // Test a categorical option.
     const colorOpt = opts[0];

@@ -30,7 +30,7 @@ import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService, FocusService, SelectionService} from '../services/services';
+import {ColorService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -103,6 +103,7 @@ export class EmbeddingsModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
+  private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
   private resizeObserver!: ResizeObserver;
@@ -300,6 +301,9 @@ export class EmbeddingsModule extends LitModule {
       // pointColorer uses the latest settings from colorService automatically,
       // so to pick up the colors we just need to trigger a rerender on
       // scatterGL.
+      this.updateScatterGL();
+    });
+    this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
     this.react(() => this.focusService.focusData, focusData => {

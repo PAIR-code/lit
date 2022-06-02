@@ -22,10 +22,8 @@ import 'jasmine';
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
-import {StatusService} from '../services/services';
-
+import {ApiService, AppState, ClassificationService, SettingsService, StatusService} from '../services/services';
 import {ColumnData, DataService} from './data_service';
-import {AppState} from './state_service';
 
 describe('DataService test', () => {
   const penguinData = new Map<string, IndexedInput>();
@@ -102,25 +100,29 @@ describe('DataService test', () => {
       flipper_length_mm: 231,
       isAlive: true}});
 
-  let appState: AppState, dataService: DataService;
-  const statusService = new StatusService();
+  let appState: AppState;
+  let dataService: DataService;
+  const apiService = new ApiService(new StatusService());
+  const classificationService = new ClassificationService();
+  let settingsService: SettingsService;
 
   beforeEach(async () => {
     // Set up.
     const app = new LitApp();
     const inputData = new Map<string, Map<string, IndexedInput>>();
     inputData.set('penguin_dev', penguinData);
-
     appState = app.getService(AppState);
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness.)
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('penguin_dev');
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    appState.setCurrentDataset('penguin_dev');
 
-    dataService = new DataService(appState, statusService);
+    settingsService = app.getService(SettingsService);
+    dataService = new DataService(
+        appState, classificationService, apiService, settingsService);
   });
 
   it('has correct columns', () => {
