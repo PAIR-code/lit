@@ -32,7 +32,7 @@ import {ThresholdChange} from '../elements/threshold_slider';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
-import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX} from '../services/data_service';
+import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
 import {FocusData} from '../services/focus_service';
 import {ClassificationService, ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
@@ -118,18 +118,13 @@ export class ScalarModule extends LitModule {
         return true;
       } else if (col.source.includes(REGRESSION_SOURCE_PREFIX)) {
         return false;
-      } else if (col.source.includes(CLASSIFICATION_SOURCE_PREFIX)) {
+      } else if (col.source.includes(CLASSIFICATION_SOURCE_PREFIX) ||
+                 col.source.includes(SCALAR_SOURCE_PREFIX)) {
         return col.source.includes(this.model);
       } else {
         return true;
       }
     });
-  }
-
-  @computed
-  private get scalarModelOutputKeys() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    return findSpecKeys(outputSpec, 'Scalar');
   }
 
   @computed
@@ -365,8 +360,6 @@ export class ScalarModule extends LitModule {
           currentInputData, this.model, dataset, ['MulticlassPreds']),
       this.apiService.getPreds(
           currentInputData, this.model, dataset, ['RegressionScore']),
-      this.apiService.getPreds(
-          currentInputData, this.model, dataset, ['Scalar']),
     ]);
     const results = await this.loadLatest('predictionScores', promise);
     if (results === null) {
@@ -374,9 +367,7 @@ export class ScalarModule extends LitModule {
     }
     const classificationPreds = results[0];
     const regressionPreds = results[1];
-    const scalarPreds = results[2];
-    if (classificationPreds == null && regressionPreds == null &&
-        scalarPreds == null) {
+    if (classificationPreds == null && regressionPreds == null) {
       return;
     }
 
@@ -386,7 +377,7 @@ export class ScalarModule extends LitModule {
       // TODO(lit-dev): structure this as a proper IndexedInput,
       // rather than having 'id' as a regular field.
       const pred = Object.assign(
-          {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
+          {}, classificationPreds[i], regressionPreds[i],
           {id: currId});
       for (const scalarKey of this.scalarColumnsToPlot) {
         pred[scalarKey] = this.dataService.getVal(currId, scalarKey);
@@ -819,7 +810,6 @@ export class ScalarModule extends LitModule {
     // clang-format off
     return html`
       <div id='container'>
-        ${this.scalarModelOutputKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
         ${this.scalarColumnsToPlot.map(key => this.renderPlot(key, ''))}

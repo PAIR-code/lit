@@ -60,6 +60,8 @@ export type ColumnData = Map<string, ValueType>;
 export const CLASSIFICATION_SOURCE_PREFIX = 'Classification';
 /** Column source prefix for columns from the regression interpreter. */
 export const REGRESSION_SOURCE_PREFIX = 'Regression';
+/** Column source prefix for columns from scalar model outputs. */
+export const SCALAR_SOURCE_PREFIX = 'Scalar';
 
 /**
  * Data service singleton, responsible for maintaining columns of computed data
@@ -110,6 +112,7 @@ export class DataService extends LitService {
       }
       for (const model of this.appState.currentModels) {
         this.runRegression(model, this.appState.currentInputData);
+        this.runScalarPreds(model, this.appState.currentInputData);
       }
     }, {fireImmediately: true});
 
@@ -216,6 +219,33 @@ export class DataService extends LitService {
         this.addColumnFromList(
             sqErrors, data, sqErrorFeatName, dataType, source);
       }
+    }
+  }
+
+  /**
+   * Run scalar predictions and store results in data service.
+   */
+  private async runScalarPreds(model: string, data: IndexedInput[]) {
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    if (findSpecKeys(output, 'Scalar').length === 0) {
+      return;
+    }
+
+    const predsPromise = this.apiService.getPreds(
+        data, model, this.appState.currentDataset, ['Scalar']);
+    const preds = await predsPromise;
+
+    // Add scalar results as new column to the data service.
+    if (preds == null || preds.length === 0) {
+      return;
+    }
+    const scalarKeys = Object.keys(preds[0]);
+    for (const key of scalarKeys) {
+      const scoreFeatName = this.getColumnName(model, key);
+      const scores = preds.map(pred => pred[key]);
+      const dataType = this.appState.createLitType('Scalar', false);
+      const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
+      this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
     }
   }
 
