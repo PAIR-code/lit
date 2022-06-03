@@ -44,6 +44,11 @@
   text-align: right;
 }
 
+.direction-toggle {
+  --mdc-icon-button-size: 24px;
+  --mdc-icon-font: 'Material Icons Outlined';
+}
+
 .scroll-toggle {
   --mdc-icon-button-size: 24px;
 }
