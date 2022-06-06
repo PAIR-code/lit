@@ -528,6 +528,10 @@ export class EmbeddingsModule extends LitModule {
             this.selectionService.primarySelectedInputData);
       }
     };
+    const onClickReset = () => {
+      this.scatterGL.resetZoom();
+    };
+
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
       <div class="module-container">
@@ -536,6 +540,11 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderEmbeddingsSelect()}
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
+          <div>
+            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
+              title="Reset view"
+              @click=${onClickReset}>view_in_ar</mwc-icon>
+          </div>
         </div>
         <div class="module-results-area">
           ${this.renderResultsArea()}
