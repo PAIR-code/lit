@@ -15,7 +15,6 @@
 """Tests for lit_nlp.components.metrics."""
 
 from absl.testing import absltest
-
 from lit_nlp.api import types
 from lit_nlp.components import metrics
 from lit_nlp.lib import testing_utils
@@ -32,10 +31,9 @@ class RegressionMetricsTest(absltest.TestCase):
         regression_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
     self.assertFalse(regression_metrics.is_compatible(types.GeneratedText()))
 
-  def test_compute(self):
+  def test_compute_correct(self):
     regression_metrics = metrics.RegressionMetrics()
 
-    # All correct predictions.
     result = regression_metrics.compute([1, 2, 3, 4], [1, 2, 3, 4],
                                         types.RegressionScore(),
                                         types.RegressionScore())
@@ -45,7 +43,9 @@ class RegressionMetricsTest(absltest.TestCase):
         'spearmanr': 1.0
     })
 
-    # Some incorrect predictions.
+  def test_compute_some_incorrect(self):
+    regression_metrics = metrics.RegressionMetrics()
+
     result = regression_metrics.compute([1, 2, 3, 4], [1, 2, 5.5, 6.3],
                                         types.RegressionScore(),
                                         types.RegressionScore())
@@ -54,6 +54,9 @@ class RegressionMetricsTest(absltest.TestCase):
         'pearsonr': 0.96566,
         'spearmanr': 1.0
     })
+
+  def test_compute_all_incorrect(self):
+    regression_metrics = metrics.RegressionMetrics()
 
     # All incorrect predictions (and not monotonic).
     result = regression_metrics.compute([1, 2, 3, 4], [-5, -10, 5, 6],
@@ -65,7 +68,9 @@ class RegressionMetricsTest(absltest.TestCase):
         'spearmanr': 0.799999
     })
 
-    # Empty labels and predictions
+  def test_compute_empty_labels(self):
+    regression_metrics = metrics.RegressionMetrics()
+
     result = regression_metrics.compute([], [], types.RegressionScore(),
                                         types.RegressionScore())
     testing_utils.assert_deep_almost_equal(self, result, {})
@@ -82,55 +87,127 @@ class MulticlassMetricsTest(absltest.TestCase):
     self.assertFalse(multiclass_metrics.is_compatible(types.RegressionScore()))
     self.assertFalse(multiclass_metrics.is_compatible(types.GeneratedText()))
 
-  def test_compute(self):
+  def test_compute_correct(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
 
-    # All correct predictions.
     result = multiclass_metrics.compute(
         ['1', '2', '0', '1'], [[0, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(self, result, {
-        'accuracy': 1.0,
-        'f1': 1.0,
-        'precision': 1.0,
-        'recall': 1.0
-    })
+    testing_utils.assert_deep_almost_equal(
+        self, result, {
+            'accuracy': 1.0,
+            'auc': 1.0,
+            'aucpr': 1.0,
+            'f1': 1.0,
+            'precision': 1.0,
+            'recall': 1.0
+        })
 
-    # Some incorrect predictions.
+  def test_compute_some_incorrect(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
     result = multiclass_metrics.compute(
         ['1', '2', '0', '1'],
         [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(self, result, {
-        'accuracy': 0.5,
-        'f1': 0.57143,
-        'precision': 0.5,
-        'recall': 0.66667
-    })
+    testing_utils.assert_deep_almost_equal(
+        self, result, {
+            'accuracy': 0.5,
+            'auc': 0.828125,
+            'aucpr': .69167,
+            'f1': 0.57143,
+            'precision': 0.5,
+            'recall': 0.66667
+        })
 
+  def test_compute_all_incorrect(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
     # All incorrect predictions.
     result = multiclass_metrics.compute(
         ['1', '2', '0', '1'],
         [[.1, .4, .5], [.2, .7, .1], [.1, 0, .9], [1, 0, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(self, result, {
-        'accuracy': 0.0,
-        'f1': 0.0,
-        'precision': 0.0,
-        'recall': 0.0
-    })
+    testing_utils.assert_deep_almost_equal(
+        self, result, {
+            'accuracy': 0.0,
+            'auc': 0.3125,
+            'aucpr': 0.3,
+            'f1': 0.0,
+            'precision': 0.0,
+            'recall': 0.0
+        })
 
-    # No null index.
+  def test_compute_no_null_index(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
     result = multiclass_metrics.compute(
         ['1', '2', '0', '1'],
         [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
         types.CategoryLabel(), types.MulticlassPreds(vocab=['0', '1', '2']))
     testing_utils.assert_deep_almost_equal(self, result, {'accuracy': 0.5})
 
-    # Empty labels and predictions
+  def test_compute_correct_single_class(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
+    result = multiclass_metrics.compute(['1', '1'], [[.1, .9], [.2, .8]],
+                                        types.CategoryLabel(),
+                                        types.MulticlassPreds(
+                                            vocab=['0', '1'], null_idx=0))
+    testing_utils.assert_deep_almost_equal(
+        self,
+        result,
+        {
+            'accuracy': 1.0,
+            # No AUC in this case.
+            'aucpr': 1.0,
+            'f1': 1.0,
+            'precision': 1.0,
+            'recall': 1.0
+        })
+
+  def test_compute_almost_correct_single_class_with_null_idx(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
+    result = multiclass_metrics.compute(['1', '0', '1'],
+                                        [[.1, .9], [.9, .1], [.8, .2]],
+                                        types.CategoryLabel(),
+                                        types.MulticlassPreds(
+                                            vocab=['0', '1'], null_idx=0))
+    testing_utils.assert_deep_almost_equal(
+        self, result, {
+            'accuracy': 0.66667,
+            'auc': 1.0,
+            'aucpr': 1.0,
+            'f1': 0.66667,
+            'precision': 1.0,
+            'recall': 0.5
+        })
+
+  def test_compute_almost_correct_multiclass(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
+    result = multiclass_metrics.compute(
+        ['1', '0', '2', '3'],
+        [[.1, .4, .2, .3], [.9, .1, 0, 0], [0, .3, .5, .2], [.1, .1, .5, .3]],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1', '2', '3'], null_idx=0))
+
+    testing_utils.assert_deep_almost_equal(
+        self, result, {
+            'accuracy': 0.75,
+            'auc': 0.92708,
+            'aucpr': 0.747,
+            'f1': 0.66667,
+            'precision': 0.66667,
+            'recall': 0.66667,
+        })
+
+  def test_compute_empty_labels(self):
+    multiclass_metrics = metrics.MulticlassMetricsImpl()
+
     result = multiclass_metrics.compute([], [], types.CategoryLabel(),
                                         types.MulticlassPreds(
                                             vocab=['0', '1', '2'], null_idx=0))
@@ -221,10 +298,9 @@ class CorpusBLEUTest(absltest.TestCase):
         bleu_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
     self.assertFalse(bleu_metrics.is_compatible(types.RegressionScore()))
 
-  def test_compute(self):
+  def test_compute_correct(self):
     bleu_metrics = metrics.CorpusBLEU()
 
-    # All correct predictions.
     result = bleu_metrics.compute(
         ['This is a test.', 'Test two', 'A third test example'],
         ['This is a test.', 'Test two', 'A third test example'],
@@ -232,7 +308,9 @@ class CorpusBLEUTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result,
                                            {'corpus_bleu': 100.0000})
 
-    # Some incorrect predictions.
+  def test_compute_some_incorrect(self):
+    bleu_metrics = metrics.CorpusBLEU()
+
     result = bleu_metrics.compute(
         ['This is a test.', 'Test one', 'A third test'],
         ['This is a test.', 'Test two', 'A third test example'],
@@ -247,7 +325,9 @@ class CorpusBLEUTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result,
                                            {'corpus_bleu': 29.508062})
 
-    # Empty labels and predictions
+  def test_compute_empty_labels(self):
+    bleu_metrics = metrics.CorpusBLEU()
+
     result = bleu_metrics.compute([], [], types.GeneratedText(),
                                   types.GeneratedText())
     testing_utils.assert_deep_almost_equal(self, result, {})

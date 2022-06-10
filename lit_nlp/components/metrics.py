@@ -30,8 +30,10 @@ import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
+from sklearn import preprocessing
 
 from rouge_score import rouge_scorer
+
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
@@ -195,8 +197,10 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
-      margins = [classification_results.get_margin_for_input(
-          field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
     return self._metrics.run(inputs, model, dataset, model_outputs,
                              margin_config)
@@ -209,17 +213,19 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(
-        dataset.spec(), model.spec().output, self.is_compatible)
+    field_map = map_pred_keys(dataset.spec(),
+                              model.spec().output, self.is_compatible)
     margin_config = {}
     for pred_key in field_map:
       inputs = [ex['data'] for ex in indexed_inputs]
       field_config = config.get(pred_key) if config else None
-      margins = [classification_results.get_margin_for_input(
-          field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
-    return self._metrics.run_with_metadata(
-        indexed_inputs, model, dataset, model_outputs, margin_config)
+    return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
+                                           model_outputs, margin_config)
 
 
 class RegressionMetrics(SimpleMetrics):
@@ -255,15 +261,20 @@ class MulticlassMetricsImpl(SimpleMetrics):
 
   def get_all_metrics(self,
                       y_true: Sequence[int],
-                      y_pred: Sequence[int],
-                      vocab: Sequence[Text],
+                      y_pred_probs: Sequence[np.ndarray],
+                      pred_spec: types.MulticlassPreds,
+                      config: Optional[JsonDict] = None,
                       null_idx: Optional[int] = None):
+
     # Filter out unlabeled examples before calculating metrics.
     total_len = len(y_true)
     labeled_example_indices = [
         index for index, y in enumerate(y_true) if y != -1
     ]
     y_true = [y_true[i] for i in labeled_example_indices]
+    y_pred_probs = [y_pred_probs[i] for i in labeled_example_indices]
+    y_pred = classification_results.get_classifications(y_pred_probs, pred_spec,
+                                                        config)
     y_pred = [y_pred[i] for i in labeled_example_indices]
 
     ret = collections.OrderedDict()
@@ -274,13 +285,32 @@ class MulticlassMetricsImpl(SimpleMetrics):
     # null_idx as the negative / "other" class.
     if null_idx is not None:
       # Note: labels here are indices.
-      labels: List[int] = [i for i in range(len(vocab)) if i != null_idx]
+      labels: List[int] = [
+          i for i in range(len(pred_spec.vocab)) if i != null_idx
+      ]
       ret['precision'] = sklearn_metrics.precision_score(
           y_true, y_pred, labels=labels, average='micro')
       ret['recall'] = sklearn_metrics.recall_score(
           y_true, y_pred, labels=labels, average='micro')
       ret['f1'] = sklearn_metrics.f1_score(
           y_true, y_pred, labels=labels, average='micro')
+
+      # The target type used in computing metrics will be 'binary'.
+      # Reshape predictions to only include those of the positive class.
+      if len(pred_spec.vocab) == 2:
+        y_score = [1 - p[null_idx] for p in y_pred_probs
+                  ]  # <float[]>[num_examples]
+      else:
+        y_score = y_pred_probs  # <float[]>[num_examples, num_classes]
+
+      y_true_one_hot = preprocessing.label_binarize(
+          y_true, classes=range(max(labels) + 1))
+      # AUC is not defined when there is only 1 unique class.
+      if len(set(y_true)) > 1:
+        ret['auc'] = sklearn_metrics.roc_auc_score(
+            y_true_one_hot, y_score, average='micro')
+      ret['aucpr'] = sklearn_metrics.average_precision_score(
+          y_true_one_hot, y_score, average='micro')
 
     if len(labeled_example_indices) != total_len:
       ret['num_missing_labels'] = total_len - len(labeled_example_indices)
@@ -309,10 +339,12 @@ class MulticlassMetricsImpl(SimpleMetrics):
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
         for label in labels
     ]
-    pred_idxs = classification_results.get_classifications(
-        preds, pred_spec, config)
     return self.get_all_metrics(
-        label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
+        label_idxs,
+        preds,
+        pred_spec,
+        null_idx=pred_spec.null_idx,
+        config=config)
 
 
 class MulticlassMetrics(ClassificationMetricsWrapper):
