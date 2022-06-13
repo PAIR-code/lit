@@ -15,11 +15,21 @@
  * limitations under the License.
  */
 
+const glob = require('glob');
 const path = require('path');
 const webpack = require('webpack');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
 
+const GLOB_OPTIONS = {
+  ignore: ['**/*test.ts', '**/*test.js', '**/testing_utils.ts']
+};
 
+/**
+ * WebPack config generator function.
+ *
+ * @param {?object=} env Environment variables for WebPack to use.
+ * @return {!object} WebPack config definition.
+ */
 module.exports = (env = {}) => {
   const isProd = !!env.production;
   const isDev = !isProd;
@@ -29,11 +39,27 @@ module.exports = (env = {}) => {
   const toBuild = buildStr.split(',').filter(x => x.length > 0);
 
   /**
-   * Make the default entry and FileManagerPlugin params objects, which will
-   * determine which output bundles to build and where to move them to
-   */
+  * File groups to include in the build.
+  */
+  const core = glob.sync(resolveDir('../core/**/*.ts'), GLOB_OPTIONS);
+  const elements = glob.sync(resolveDir('../elements/**/*.ts'), GLOB_OPTIONS);
+  const lib = glob.sync(resolveDir('../lib/**/*.ts'), GLOB_OPTIONS);
+  const modules = glob.sync(resolveDir('../modules/**/*.ts'), GLOB_OPTIONS);
+  const services = glob.sync(resolveDir('../services/**/*.ts'), GLOB_OPTIONS);
+
+  /**
+  * Make the default entry and FileManagerPlugin params objects, which will
+  * determine which output bundles to build and where to move them to
+  */
   const entry = {
-    default: resolveDir('../main.ts'),
+    default: [
+      resolveDir('../main.ts'),
+      ...core,
+      ...elements,
+      ...lib,
+      ...modules,
+      ...services,
+    ],
   };
   const fileManagerParams = {
     onEnd: {
@@ -109,6 +135,14 @@ module.exports = (env = {}) => {
   };
 };
 
+/**
+ * Convenience wrapper for path.resolve().
+ *
+ * @param {string} relativeDir path to a directory relative to
+ *    lit_nlp/client/webpack.
+ *
+ * @return {string} Fully qualified path.
+ */
 function resolveDir(relativeDir) {
   return path.resolve(__dirname, relativeDir);
 }
