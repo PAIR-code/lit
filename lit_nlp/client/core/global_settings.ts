@@ -37,7 +37,7 @@ import {action, computed, observable} from 'mobx';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY} from '../lib/types';
 import {linkifyUrls} from '../lib/utils';
-import {getModuleConstructor} from '../services/modules_service';
+import {resolveModuleConfig} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {app} from './app';
@@ -573,7 +573,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
             </div>
             ${groupLayout[tabName].map(module => html`
               <div class='indent-line'>
-                ${getModuleConstructor(module).title}
+                ${resolveModuleConfig(module).title}
               </div>`)}
           </div>`;
         // clang-format on

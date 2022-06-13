@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """An interpreters for generating data for ROC and PR curves."""
 
 from typing import cast, List, Optional, Sequence, Text
@@ -22,6 +21,7 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils as lit_utils
+import numpy as np
 import sklearn.metrics as metrics
 
 JsonDict = types.JsonDict
@@ -66,6 +66,9 @@ class CurvesInterpreter(lit_components.Interpreter):
             f' of the prediction field to use for calculations.')
       predictions_key = config.get(TARGET_PREDICTION_KEY)
 
+    if not indexed_inputs:
+      return {ROC_DATA: [], PR_DATA: []}
+
     # Run prediction if needed:
     if model_outputs is None:
       model_outputs = list(model.predict_with_metadata(indexed_inputs))
@@ -86,11 +89,11 @@ class CurvesInterpreter(lit_components.Interpreter):
 
     # Compute ROC curve data.
     x, y, _ = metrics.roc_curve(ground_truth_list, scores)
-    roc_data = list(zip(x, y))
+    roc_data = list(zip(np.nan_to_num(x), np.nan_to_num(y)))
 
     # Compute PR curve data.
     x, y, _ = metrics.precision_recall_curve(ground_truth_list, scores)
-    pr_data = list(zip(x, y))
+    pr_data = list(zip(np.nan_to_num(x), np.nan_to_num(y)))
 
     # Create and return the result.
     return {ROC_DATA: roc_data, PR_DATA: pr_data}

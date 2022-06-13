@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Base classes for LIT models."""
 import glob
 import inspect
@@ -83,8 +82,8 @@ class Dataset(object):
       # In case user child class requires the instance to convert examples
       # this makes sure the user class is preserved. We cannot do this below
       # as the default method is static and does not require instance.
-      self.lit_example_to_bytes = self._base.lit_example_to_bytes
-      self.bytes_to_lit_example = self._base.bytes_to_lit_example
+      self.bytes_from_lit_example = self._base.bytes_from_lit_example
+      self.lit_example_from_bytes = self._base.lit_example_from_bytes
 
     # Override from direct arguments.
     self._examples = examples if examples is not None else self._examples
@@ -179,12 +178,12 @@ class Dataset(object):
     return Dataset(new_spec, new_examples, base=self)
 
   @staticmethod
-  def bytes_to_lit_example(input_bytes: bytes) -> Optional[JsonDict]:
+  def lit_example_from_bytes(input_bytes: bytes) -> Optional[JsonDict]:
     """Convert bytes representation to LIT example."""
     return serialize.from_json(input_bytes.decode('utf-8'))
 
   @staticmethod
-  def lit_example_to_bytes(lit_example: JsonDict) -> bytes:
+  def bytes_from_lit_example(lit_example: JsonDict) -> bytes:
     """Convert LIT example to bytes representation."""
     return serialize.to_json(lit_example).encode('utf-8')
 

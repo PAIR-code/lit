@@ -30,7 +30,7 @@ import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService, FocusService, SelectionService} from '../services/services';
+import {ColorService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -47,6 +47,12 @@ interface ProjectionBackendResult {
 
 interface NearestNeighborsResult {
   id: string;
+}
+
+interface EmbeddingOptions {
+  // modelName is the empty string for embeddings that don't use a model.
+  modelName: string;
+  fieldName: string;
 }
 
 const NN_INTERPRETER_NAME = 'nearest neighbors';
@@ -80,6 +86,9 @@ export class EmbeddingsModule extends LitModule {
 
   static override numCols = 3;
 
+  @observable
+  private isLoading: boolean = false;
+
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
   @computed
@@ -94,6 +103,7 @@ export class EmbeddingsModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
+  private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
   private resizeObserver!: ResizeObserver;
@@ -125,12 +135,17 @@ export class EmbeddingsModule extends LitModule {
   }
 
   @computed
-  get embeddingOptions() {
-    return this.appState.currentModels.flatMap((modelName: string) => {
-      const modelSpec = this.appState.metadata.models[modelName].spec;
-      const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
-      return embKeys.map((fieldName) => ({modelName, fieldName}));
-    });
+  get embeddingOptions(): EmbeddingOptions[] {
+    const modelOptions: EmbeddingOptions[] =
+        this.appState.currentModels.flatMap((modelName: string) => {
+          const modelSpec = this.appState.metadata.models[modelName].spec;
+          const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
+          return embKeys.map((fieldName) => ({modelName, fieldName}));
+        });
+    const datasetOptions =
+        findSpecKeys(this.appState.currentDatasetSpec, 'Embeddings').map(
+            key => ({modelName: '', fieldName: key}));
+    return datasetOptions.concat(modelOptions);
   }
 
   /**
@@ -139,7 +154,13 @@ export class EmbeddingsModule extends LitModule {
   @computed
   get embeddingOptionNames() {
     return this.embeddingOptions.map(
-        option => `${option.modelName}:${option.fieldName}`);
+        option => {
+          if (option.modelName === '') {
+            return `${option.fieldName}`;
+          } else {
+            return `${option.modelName}:${option.fieldName}`;
+          }
+        });
   }
 
   @computed
@@ -192,6 +213,7 @@ export class EmbeddingsModule extends LitModule {
       const cache = new BatchRequestCache(requestFn, keyFn);
       this.embeddingCache.set(key, cache);
     }
+
     return this.embeddingCache.get(key)!;
   }
 
@@ -199,11 +221,13 @@ export class EmbeddingsModule extends LitModule {
       example: IndexedInput, numNeighbors: number = DEFAULT_NUM_NEAREST) {
     const {modelName, fieldName} =
         this.embeddingOptions[this.selectedEmbeddingsIndex];
+    const useInput = modelName === '';
     const datasetName = this.appState.currentDataset;
     const config: CallConfig = {
       'dataset_name': datasetName,
       'embedding_name': fieldName,
       'num_neighbors': numNeighbors,
+      'use_input': useInput,
     };
 
     // All indexed inputs in the dataset are passed in, with the main example
@@ -232,10 +256,10 @@ export class EmbeddingsModule extends LitModule {
   }
 
   override firstUpdated() {
-    const scatterContainer =
+    const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
-    this.scatterGL = new ScatterGL(scatterContainer, {
+    this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
@@ -251,7 +275,6 @@ export class EmbeddingsModule extends LitModule {
     this.setupReactions();
 
     // Resize the scatter GL container.
-    const container = this.shadowRoot!.getElementById('scatter-gl-container')!;
     this.resizeObserver = new ResizeObserver(() => {
       this.handleResize();
     });
@@ -278,6 +301,9 @@ export class EmbeddingsModule extends LitModule {
       // pointColorer uses the latest settings from colorService automatically,
       // so to pick up the colors we just need to trigger a rerender on
       // scatterGL.
+      this.updateScatterGL();
+    });
+    this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
     this.react(() => this.focusService.focusData, focusData => {
@@ -333,6 +359,8 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private async computeProjectedEmbeddings() {
+    this.isLoading = true;
+
     // Clear projections if dataset is empty.
     if (!this.appState.currentInputData.length) {
       this.projectedPoints = [];
@@ -346,10 +374,12 @@ export class EmbeddingsModule extends LitModule {
     const {modelName, fieldName} = embeddingsInfo;
 
     const datasetName = this.appState.currentDataset;
+    const useInput = modelName === '';
     const projConfig = {
       'dataset_name': datasetName,
       'model_name': modelName,
       'field_name': fieldName,
+      'use_input': useInput,
       'proj_kw': {'n_components': 3},
     };
     // Projections will be returned for the whole dataset, including generated
@@ -370,6 +400,9 @@ export class EmbeddingsModule extends LitModule {
     }
 
     this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
+
+    // Add an artificial timeout to indicate that the display has changed.
+    setTimeout(() => this.isLoading = false, 400);
   }
 
   private getLabelByFields() {
@@ -495,31 +528,53 @@ export class EmbeddingsModule extends LitModule {
             this.selectionService.primarySelectedInputData);
       }
     };
+    const onClickReset = () => {
+      this.scatterGL.resetZoom();
+    };
+
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
-      <div class="container">
-        <div class="toolbar-container flex-row">
+      <div class="module-container">
+        <div class="module-toolbar">
           ${this.renderProjectorSelect()}
           ${this.renderEmbeddingsSelect()}
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
+          <div>
+            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
+              title="Reset view"
+              @click=${onClickReset}>view_in_ar</mwc-icon>
+          </div>
         </div>
-        <div class="toolbar-container flex-row" id="select-button-container">
+        <div class="module-results-area">
+          ${this.renderResultsArea()}
+        </div>
+        <div class="module-footer">
           <button class="hairline-button selected-nearest-button"
             ?disabled=${disabled}
             @click=${onSelectNearest}
             title=${disabled ? 'Select a single point to use this feature' : ''}
           >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
         </div>
-        <div id="scatter-gl-container"></div>
       </div>
+    `;
+  }
+
+  renderResultsArea() {
+    // The container is referenced when rendering and resizing the ScatterGL.
+    // We hide the container when loading occurs, but it is still present.
+    // See cl/449599579 for more context.
+    return html`
+     ${this.isLoading ? this.renderSpinner() : null}
+     <div class=${this.isLoading ? 'hidden-container' : ''}
+      id="scatter-gl-container"></div>
     `;
   }
 
   renderSpinner() {
     return html`
       <div class="spinner-container">
-        <lit-spinner size=${36} color="var(--app-dark-color)"></lit-spinner>
+        <lit-spinner size=${20} color="var(--app-secondary-color)"></lit-spinner>
       </div>`;
   }
 

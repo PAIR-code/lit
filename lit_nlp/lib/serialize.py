@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Miscellaneous utility functions."""
 import json
 from typing import cast, Optional, Text
@@ -31,13 +30,13 @@ def _obj_to_json(o: object):
         '__class__': 'np.ndarray',
         '__value__': o.tolist(),
     }
-  elif isinstance(o, np.number):
+  elif isinstance(o, (np.number, np.bool_)):
     # Handle numpy scalar types, like np.float32
     # This discards some precision information, but is consistent with using
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    return o.to_json()
+    return o.to_json()  # pytype: disable=attribute-error  # enable-nested-classes
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
   elif isinstance(o, tuple):
@@ -49,20 +48,22 @@ def _obj_to_json(o: object):
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
 
-# TODO(lit-team): remove this once frontend can use the invertible versions.
+# TODO(lit-dev): remove this once frontend can use the invertible versions.
 def _obj_to_json_simple(o: object):
   """JSON serialization helper. Not invertible!"""
   if isinstance(o, np.ndarray):
     return o.tolist()
-  elif isinstance(o, np.number):
+  elif isinstance(o, (np.number, np.bool_)):
     # Handle numpy scalar types, like np.float32
     # This discards some precision information, but is consistent with using
     # .tolist() on a NumPy array.
     return cast(np.number, o).tolist()  # to regular Python scalar
   elif isinstance(o, types.LitType):
-    return o.to_json()
+    return o.to_json()  # pytype: disable=attribute-error  # enable-nested-classes
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
+  elif isinstance(o, dtypes.EnumSerializableAsValues):
+    return o.value
   elif isinstance(o, tuple):
     return list(o)
   else:

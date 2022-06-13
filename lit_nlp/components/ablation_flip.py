@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """AblationFlip generator that ablates input tokens to flip the prediction.
 
 An AblationFlip is defined as a counterfactual input that ablates one or more
@@ -277,7 +276,7 @@ class AblationFlip(lit_components.Generator):
         continue
 
       # Create counterfactual and obtain model prediction.
-      cf = self._create_cf(example, input_spec, ablation_idxs)
+      cf = self._create_cf(example, input_spec, ablation_idxs)  # pytype: disable=wrong-arg-types  # enable-nested-classes
       cf_output = list(model.predict([cf]))[0]
 
       # Check if counterfactual results in a prediction flip.

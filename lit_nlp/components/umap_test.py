@@ -42,6 +42,7 @@ class UmapTest(absltest.TestCase):
     shape = output_np.shape
     expected_shape = (n, 3)
     self.assertEqual(shape, expected_shape)
+    self.assertFalse(np.any(np.iscomplex(output_np)))
 
   def test_predict_minibatch(self):
     umap_model = umap.UmapModel(n_components=3)
@@ -58,6 +59,7 @@ class UmapTest(absltest.TestCase):
     # Test that we can now predict a minibatch.
     output = umap_model.predict_minibatch(inputs)
     output_shape = np.array(list(output)[0]['z']).shape
+    self.assertFalse(np.any(np.iscomplex(output)))
     self.assertEqual(output_shape, (3,))
 
 

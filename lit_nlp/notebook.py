@@ -19,7 +19,7 @@ import attr
 from IPython import display
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.api import dtypes
+from lit_nlp.api import layout
 from lit_nlp.lib import wsgi_serving
 
 try:
@@ -28,29 +28,26 @@ try:
 except ImportError:
   is_colab = False
 
-MODEL_PREDS_MODULES = [
-    'span-graph-gold-module-vertical',
-    'span-graph-module-vertical',
-    'classification-module',
-    'multilabel-module',
-    'regression-module',
-    'lm-prediction-module',
-    'generated-text-module',
-    'annotated-text-gold-module',
-    'annotated-text-module',
-    'generated-image-module',
-]
+modules = layout.LitModuleName
 
-LIT_NOTEBOOK_LAYOUT = dtypes.LitCanonicalLayout(
+LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
     upper={
-        'Predictions': ['simple-data-table-module'] + MODEL_PREDS_MODULES,
-        'Explanations': ['simple-datapoint-editor-module'] +
-                        MODEL_PREDS_MODULES + [
-                            'salience-map-module', 'sequence-salience-module',
-                            'attention-module'
-                        ],
-        'Analysis':
-            ['metrics-module', 'confusion-matrix-module', 'scalar-module'],
+        'Predictions': [
+            modules.SimpleDataTableModule,
+            *layout.MODEL_PREDS_MODULES,
+        ],
+        'Explanations': [
+            modules.SimpleDatapointEditorModule,
+            *layout.MODEL_PREDS_MODULES,
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.AttentionModule,
+        ],
+        'Analysis': [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.ScalarModule,
+        ],
     })
 
 
@@ -83,7 +80,7 @@ class LitWidget(object):
                height=1000,
                render=False,
                proxy_url=None,
-               layouts: Optional[dtypes.LitComponentLayouts] = None,
+               layouts: Optional[layout.LitComponentLayouts] = None,
                **kw):
     """Start LIT server and optionally render the UI immediately.
 

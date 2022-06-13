@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Minimal Targeted Counterfactual generator for tabular datasets.
 
 A Minimal Targeted Counterfactual is defined as a counterfactual input that is
@@ -165,7 +164,7 @@ class TabularMTC(lit_components.Generator):
     original_pred = list(model.predict([example]))[0]
 
     # Find dataset examples that are flips.
-    filtered_examples = self._filter_ds_examples(
+    filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
         dataset=dataset,
         dataset_name=dataset_name,
         model=model,

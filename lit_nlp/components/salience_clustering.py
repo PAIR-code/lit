@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """kmeans clustering of salience weights."""
 
 from typing import Dict, List, Optional, Sequence, Tuple

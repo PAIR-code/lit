@@ -38,6 +38,7 @@ export class LineChart extends ReactiveElement {
   @property({type: Number}) margin = 30;  // Default margin size.
   @property({type: Number}) width = 0;
   @property({type: Number}) height = 0;
+  @property({type: Array}) xScale: number[] = [];
   @property({type: Array}) yScale: number[] = [];
 
   static override get styles() {
@@ -54,9 +55,12 @@ export class LineChart extends ReactiveElement {
   }
 
   private getXScale() {
-    const labels = Array.from(this.scores.keys());
-    return d3.scaleLinear().domain([d3.min(labels)!, d3.max(labels)!]).range(
-        [0, this.width]);
+    let scale: number[] = this.xScale;
+    if (scale == null || scale.length < 2) {
+      const labels = Array.from(this.scores.keys());
+      scale = [d3.min(labels)!, d3.max(labels)!];
+    }
+    return d3.scaleLinear().domain(scale).range([0, this.width]);
   }
 
   private getYScale() {
@@ -98,7 +102,7 @@ export class LineChart extends ReactiveElement {
     chart.selectAll('*').remove();
 
     // Make axes.
-    const xAxis = d3.axisBottom(x);
+    const xAxis = d3.axisBottom(x).ticks(5);
     const yAxis = d3.axisLeft(y).ticks(5);
     chart.append('g')
         .attr('transform', `translate(0, ${this.height})`)

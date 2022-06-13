@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Common flags for the LIT server, for port, host, authentication, etc.
 
 Not required to use LIT, but helpful as a convenience mixin.

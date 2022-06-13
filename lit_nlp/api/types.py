@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Type classes for LIT inputs and outputs.
 
 These are simple dataclasses used in model.input_spec() and model.output_spec()
@@ -197,6 +196,12 @@ class TopTokens(LitType):
 class URL(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class GeneratedURL(TextSegment):
+  """A URL that was generated as part of a model prediction."""
+  align: Optional[Text] = None      # name of a field in the model output
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)

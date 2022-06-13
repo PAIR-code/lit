@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Finds the k nearest neighbors to an input embedding."""
 
 
 from typing import List, Optional, Sequence
-
 import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -38,6 +36,7 @@ class NearestNeighborsConfig(object):
   embedding_name: str = ''
   num_neighbors: Optional[int] = 10
   dataset_name: Optional[str] = ''
+  use_input: Optional[bool] = False
 
 
 class NearestNeighbors(lit_components.Interpreter):
@@ -67,6 +66,7 @@ class NearestNeighbors(lit_components.Interpreter):
           'num_neighbors': [the number of nearest neighbors to return]
           'dataset_name': [the name of the dataset (used for caching)]
           'embedding_name': [the name of the embedding field to use]
+          'use_input': [Optional boolean if the embedding comes from input data]
         }
 
     Returns:
@@ -75,11 +75,16 @@ class NearestNeighbors(lit_components.Interpreter):
     """
     config = NearestNeighborsConfig(**config)
 
-    dataset_outputs = list(model.predict_with_metadata(
-        dataset.indexed_examples, dataset_name=config.dataset_name))
-
-    example_outputs = list(model.predict_with_metadata(
-        indexed_inputs, dataset_name=config.dataset_name))
+    if config.use_input:
+      # If using input values, then treat inputs as outputs instead of running
+      # the model.
+      dataset_outputs = [inp['data'] for inp in dataset.indexed_examples]
+      example_outputs = [inp['data'] for inp in indexed_inputs]
+    else:
+      dataset_outputs = list(model.predict_with_metadata(
+          dataset.indexed_examples, dataset_name=config.dataset_name))
+      example_outputs = list(model.predict_with_metadata(
+          indexed_inputs, dataset_name=config.dataset_name))
     # TODO(lit-dev): Add support for selecting nearest neighbors of a set.
     if len(example_outputs) != 1:
       raise ValueError('More than one selected example was passed in.')

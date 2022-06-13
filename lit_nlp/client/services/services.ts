@@ -22,7 +22,6 @@ export {DataService} from './data_service';
 export {FocusService} from './focus_service';
 export {GroupService} from './group_service';
 export {ModulesService} from './modules_service';
-export {RegressionService} from './regression_service';
 export {SelectionService} from './selection_service';
 export {SettingsService} from './settings_service';
 export {SliceService} from './slice_service';

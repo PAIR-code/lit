@@ -22,11 +22,12 @@
 #doc {
   font-family: 'Google Sans';
   position: absolute;
-  top: 30vh;
-  left: 27vw;
-  height: 40vh;
-  width: 46vw;
-  padding: 16px 8px 8px 8px;
+  top: 10vh;
+  left: 33vw;
+  /*height: calc(60vh + 300px);*/
+  max-height: 86vh;
+  width: 33vw;
+  padding-bottom: 8px;
   box-sizing: border-box;
   background-color: white;
   box-shadow: var(--lit-box-shadow);
@@ -46,8 +47,7 @@ a {
 }
 
 #holder {
-  padding: 12pt;
-  height: calc(100% - 48pt);
+  padding: 0 12px 12px 12px;
 }
 
 .page-controls {
@@ -83,10 +83,12 @@ a {
 
 .dots-line {
   margin: auto;
+  padding-bottom: 8px;
 }
 
 .dots-holder {
   display: flex;
+  justify-content: center;
 }
 
 .checkbox {
@@ -100,4 +102,37 @@ a {
 
 .nav-icon {
   margin: 0 4px;
+}
+
+.top-section {
+  overflow: auto;
+}
+
+.close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #9AA0A6CC;
+  border-radius: 8px;
+}
+
+.bottom-area {
+  padding: 0 12px;
+}
+
+img {
+  display: block;
+  width: calc(100% + 24px);
+  margin-left: -12px;
+}
+
+p {
+  font-size: 14px;
+  margin-block-start: 0;
+  min-height: 100px;
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: normal;
 }

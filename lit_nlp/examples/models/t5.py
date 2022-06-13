@@ -1,4 +1,3 @@
-# Lint as: python3
 """LIT wrappers for T5, supporting both HuggingFace and SavedModel formats."""
 import re
 from typing import List

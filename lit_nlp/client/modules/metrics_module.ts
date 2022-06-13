@@ -17,20 +17,20 @@
 
 // tslint:disable:no-new-decorators
 
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {computed, observable} from 'mobx';
 
-import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
+import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
-import {TableData} from '../elements/table';
+import {ColumnHeader, TableData} from '../elements/table';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 import {styles} from './metrics_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 // Each entry from the server.
 interface MetricsResponse {
@@ -78,7 +78,7 @@ interface MetricsMap {
 
 // Data to render the metrics table, created from the MetricsMap.
 interface TableHeaderAndData {
-  header: string[];
+  header: Array<string|ColumnHeader>;
   data: TableData[];
 }
 
@@ -318,9 +318,13 @@ export class MetricsModule extends LitModule {
       tableRows.push(tableRow);
     }
 
+    const metricHeaders: ColumnHeader[] = metricNames.map(name => {
+      return {name, rightAlign: true};
+    });
+
     return {
       'header': [
-        'Model', 'From', ...this.selectedFacets, 'Field', 'N', ...metricNames
+        'Model', 'From', ...this.selectedFacets, 'Field', 'N', ...metricHeaders
       ],
       'data': tableRows
     };

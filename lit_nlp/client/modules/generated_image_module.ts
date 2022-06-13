@@ -23,7 +23,7 @@ import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, LitName, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain} from '../lib/utils';
+import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
 /**
  * A LIT module that renders generated text.
@@ -36,7 +36,7 @@ export class GeneratedImageModule extends LitModule {
   static override template = (model = '', selectionServiceIndex = 0) => {
     return html`
       <generated-image-module model=${model}
-        selectionServiceIndex=${selectionServiceIndex}>
+                              selectionServiceIndex=${selectionServiceIndex}>
       </generated-image-module>`;
   };
 
@@ -46,9 +46,19 @@ export class GeneratedImageModule extends LitModule {
   static override get styles() {
     const styles = css`
       .field-group {
-        padding: 4px;
+        padding: 8px;
       }
-    `;
+
+      .field-title {
+        color: var(--lit-bold-label-color);
+      }
+
+      .field-group a {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: left;
+      }`;
     return [sharedStyles, styles];
   }
 
@@ -56,9 +66,8 @@ export class GeneratedImageModule extends LitModule {
 
   override firstUpdated() {
     this.reactImmediately(
-        () => this.selectionService.primarySelectedInputData, data => {
-          this.updateSelection(data);
-        });
+        () => this.selectionService.primarySelectedInputData,
+        data => {this.updateSelection(data);});
   }
 
   private async updateSelection(input: IndexedInput|null) {
@@ -67,7 +76,8 @@ export class GeneratedImageModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, GeneratedImageModule.supportedTypes,
+        [input], this.model, dataset,
+        [...GeneratedImageModule.supportedTypes, 'GeneratedURL'],
         'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;
@@ -75,24 +85,47 @@ export class GeneratedImageModule extends LitModule {
     this.generatedImages = results[0];
   }
 
-  renderOutputGroup(name: string) {
+  renderImage(name: string, src: string) {
     // clang-format off
     return html`
       <div class='field-group'>
         <div class="field-title">${name}</div>
-        <img src=${this.generatedImages[name]}>
+        <img src=${src}>
       </div>
     `;
     // clang-format on
   }
 
+  renderLink(name: string, url: string) {
+    // clang-format off
+    return html`
+      <div class='field-group'>
+        <div class="field-title">${name}</div>
+        <a href=${url} target="_blank">${url}</a>
+      </div>`;
+    // clang-format on
+  }
+
   override render() {
+    const {output} = this.appState.getModelSpec(this.model);
     // clang-format off
     return html`
       <div class='module-container'>
         <div class="module-results-area">
-          ${Object.keys(this.generatedImages).map(
-              name => this.renderOutputGroup(name))}
+          ${Object.entries(this.generatedImages).map(([key, value]) => {
+              const keyType = output[key];
+              if (isLitSubtype(keyType, GeneratedImageModule.supportedTypes)) {
+                return this.renderImage(key, value);
+              }
+
+              const {align} = keyType;
+              if (isLitSubtype(keyType, 'GeneratedURL') &&
+                  align != null && align in this.generatedImages) {
+                return this.renderLink(key, value);
+              }
+
+              return null;
+            })}
         </div>
       </div>
     `;

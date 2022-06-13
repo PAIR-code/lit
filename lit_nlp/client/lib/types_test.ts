@@ -17,7 +17,11 @@
 
 import 'jasmine';
 
+// These are needed to preserve the import, as they are referenced indirectly.
+// through the names of elements they define.
+// tslint:disable-next-line:no-unused-variable
 import {ClassificationModule} from '../modules/classification_module';
+// tslint:disable-next-line:no-unused-variable
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 
 import {canonicalizeLayout, formatForDisplay, LitCanonicalLayout, LitComponentLayout} from './types';
@@ -61,11 +65,11 @@ describe('formatForDisplay test', () => {
 const MOCK_LAYOUT: LitComponentLayout = {
   components: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      ClassificationModule
+      'classification-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
@@ -75,13 +79,13 @@ const MOCK_LAYOUT: LitComponentLayout = {
 const CANONICAL_MOCK_LAYOUT: LitCanonicalLayout = {
   upper: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
   },
   lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      ClassificationModule
+      'classification-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},

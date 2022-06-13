@@ -1,4 +1,3 @@
-# Lint as: python3
 """Wrapper for HuggingFace models in LIT.
 
 Includes BERT masked LM, GPT-2, and T5.

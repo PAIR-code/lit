@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Implementation of PCA as a dimensionality reduction model."""
 
 from absl import logging
 from lit_nlp.components import projection
+from lit_nlp.lib import utils
 import numpy as np
 
 
@@ -51,7 +51,7 @@ class PCAModel(projection.ProjectorModel):
 
     # Apply PCA projection
     zs = np.dot(x_train, self._evecs)
-    return ({"z": z} for z in zs)
+    return ({"z": utils.coerce_real(z)} for z in zs)
 
   ##
   # LIT model API
@@ -61,4 +61,4 @@ class PCAModel(projection.ProjectorModel):
     x = np.stack([i["x"] for i in inputs])
     x = x - self._mean
     zs = np.dot(x, self._evecs)
-    return ({"z": z} for z in zs)
+    return ({"z": utils.coerce_real(z)} for z in zs)

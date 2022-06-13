@@ -12,12 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Metric component and implementations."""
 
 import abc
 import collections
-import numbers
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
@@ -25,18 +23,20 @@ from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
+from lit_nlp.components import classification_results
 from lit_nlp.lib import utils
 import numpy as np
 import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
+from sklearn import preprocessing
+
+from rouge_score import rouge_scorer
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
-
-BLEU_SMOOTHING_VAL = 0.1
 
 
 def map_pred_keys(
@@ -60,54 +60,11 @@ def map_pred_keys(
   return ret
 
 
-def get_margin_for_input(margin_config: Optional[JsonDict] = None,
-                         inp: Optional[JsonDict] = None):
-  """Get margin given a margin config and input example."""
-  if not margin_config:
-    return 0
-
-  for margin_entry in margin_config.values():
-    facet_info = (margin_entry['facetData']['facets']
-                  if 'facetData' in margin_entry else {})
-    match = True
-    if inp:
-      for feat, facet_info in facet_info.items():
-        value = facet_info['val']
-        if (isinstance(inp[feat], numbers.Number) and
-            not isinstance(inp[feat], bool)):
-          # If the facet is a numeric range string, extract the min and max
-          # and check the value against that range.
-          min_val = value[0]
-          max_val = value[1]
-          if not (inp[feat] >= min_val and inp[feat] < max_val):
-            match = False
-        # If the facet is a standard value, check the feature value for
-        # equality to it.
-        elif inp[feat] != value:
-          match = False
-    if match:
-      return margin_entry['margin']
-  return 0
-
-
-def get_classifications(
-    preds: Sequence[np.ndarray], pred_spec: types.MulticlassPreds,
-    margin_config: Optional[Sequence[float]] = None) -> Sequence[int]:
-  """Get classified indices given prediction scores and configs."""
-  # If there is a margin set for the prediction, take the log of the prediction
-  # scores and add the margin to the null indexes value before taking argmax
-  # to find the predicted class.
-  if margin_config is not None:
-    multiclass_pred_spec = cast(types.MulticlassPreds, pred_spec)
-    null_idx = multiclass_pred_spec.null_idx
-    pred_idxs = []
-    for p, margin in zip(preds, margin_config):
-      logit_mask = margin * np.eye(len(multiclass_pred_spec.vocab))[null_idx]
-      pred_idx = np.argmax(np.log(p) + logit_mask)
-      pred_idxs.append(pred_idx)
-  else:
-    pred_idxs = [np.argmax(p) for p in preds]
-  return pred_idxs
+def nan_to_none(metrics: Dict[str, float]) -> Dict[str, Optional[float]]:
+  # NaN is not a valid JSON value, so replace with None which will be
+  # serialized as null.
+  # TODO(lit-dev): consider moving this logic to serialize.py?
+  return {k: (v if not np.isnan(v) else None) for k, v in metrics.items()}
 
 
 class SimpleMetrics(lit_components.Interpreter):
@@ -164,17 +121,11 @@ class SimpleMetrics(lit_components.Interpreter):
           label_spec=dataset.spec()[label_key],
           pred_spec=spec.output[pred_key],
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -208,17 +159,11 @@ class SimpleMetrics(lit_components.Interpreter):
           indices=indices,
           metas=metas,
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -252,7 +197,10 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
     return self._metrics.run(inputs, model, dataset, model_outputs,
                              margin_config)
@@ -265,16 +213,19 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                         config: Optional[JsonDict] = None) -> List[JsonDict]:
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(
-        dataset.spec(), model.spec().output, self.is_compatible)
+    field_map = map_pred_keys(dataset.spec(),
+                              model.spec().output, self.is_compatible)
     margin_config = {}
     for pred_key in field_map:
       inputs = [ex['data'] for ex in indexed_inputs]
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
-    return self._metrics.run_with_metadata(
-        indexed_inputs, model, dataset, model_outputs, margin_config)
+    return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
+                                           model_outputs, margin_config)
 
 
 class RegressionMetrics(SimpleMetrics):
@@ -310,15 +261,20 @@ class MulticlassMetricsImpl(SimpleMetrics):
 
   def get_all_metrics(self,
                       y_true: Sequence[int],
-                      y_pred: Sequence[int],
-                      vocab: Sequence[Text],
+                      y_pred_probs: Sequence[np.ndarray],
+                      pred_spec: types.MulticlassPreds,
+                      config: Optional[JsonDict] = None,
                       null_idx: Optional[int] = None):
+
     # Filter out unlabeled examples before calculating metrics.
     total_len = len(y_true)
     labeled_example_indices = [
         index for index, y in enumerate(y_true) if y != -1
     ]
     y_true = [y_true[i] for i in labeled_example_indices]
+    y_pred_probs = [y_pred_probs[i] for i in labeled_example_indices]
+    y_pred = classification_results.get_classifications(y_pred_probs, pred_spec,
+                                                        config)
     y_pred = [y_pred[i] for i in labeled_example_indices]
 
     ret = collections.OrderedDict()
@@ -329,13 +285,32 @@ class MulticlassMetricsImpl(SimpleMetrics):
     # null_idx as the negative / "other" class.
     if null_idx is not None:
       # Note: labels here are indices.
-      labels: List[int] = [i for i in range(len(vocab)) if i != null_idx]
+      labels: List[int] = [
+          i for i in range(len(pred_spec.vocab)) if i != null_idx
+      ]
       ret['precision'] = sklearn_metrics.precision_score(
           y_true, y_pred, labels=labels, average='micro')
       ret['recall'] = sklearn_metrics.recall_score(
           y_true, y_pred, labels=labels, average='micro')
       ret['f1'] = sklearn_metrics.f1_score(
           y_true, y_pred, labels=labels, average='micro')
+
+      # The target type used in computing metrics will be 'binary'.
+      # Reshape predictions to only include those of the positive class.
+      if len(pred_spec.vocab) == 2:
+        y_score = [1 - p[null_idx] for p in y_pred_probs
+                  ]  # <float[]>[num_examples]
+      else:
+        y_score = y_pred_probs  # <float[]>[num_examples, num_classes]
+
+      y_true_one_hot = preprocessing.label_binarize(
+          y_true, classes=range(max(labels) + 1))
+      # AUC is not defined when there is only 1 unique class.
+      if len(set(y_true)) > 1:
+        ret['auc'] = sklearn_metrics.roc_auc_score(
+            y_true_one_hot, y_score, average='micro')
+      ret['aucpr'] = sklearn_metrics.average_precision_score(
+          y_true_one_hot, y_score, average='micro')
 
     if len(labeled_example_indices) != total_len:
       ret['num_missing_labels'] = total_len - len(labeled_example_indices)
@@ -364,9 +339,12 @@ class MulticlassMetricsImpl(SimpleMetrics):
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
         for label in labels
     ]
-    pred_idxs = get_classifications(preds, pred_spec, config)
     return self.get_all_metrics(
-        label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
+        label_idxs,
+        preds,
+        pred_spec,
+        null_idx=pred_spec.null_idx,
+        config=config)
 
 
 class MulticlassMetrics(ClassificationMetricsWrapper):
@@ -422,7 +400,8 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
     if ret['num_pairs'] == 0:
       return {}
 
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     # 'swapped' just means the prediction changed.
     is_swapped = [(pred_idxs[i] == pred_idxs[j]) for i, j in pairs]
@@ -445,6 +424,8 @@ class MulticlassPairedMetrics(ClassificationMetricsWrapper):
 
 class CorpusBLEU(SimpleMetrics):
   """Corpus BLEU score using SacreBLEU."""
+
+  BLEU_SMOOTHING_VAL = 0.1
 
   def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
@@ -469,9 +450,48 @@ class CorpusBLEU(SimpleMetrics):
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
       name_suffix = '@1'
-    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
+    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], self.BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
+
+
+class RougeL(SimpleMetrics):
+  """RougeL score for generation tasks."""
+
+  def __init__(self, *args, **kw):
+    super().__init__(*args, **kw)
+    self._scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+
+  def _score(self, reference, prediction):
+    return self._scorer.score(
+        target=reference, prediction=prediction)['rougeL'].fmeasure
+
+  def is_compatible(self, field_spec: types.LitType) -> bool:
+    """Return true if compatible with this field."""
+    return isinstance(field_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates))
+
+  def compute(self,
+              labels: Sequence[Text],
+              preds: Sequence[Union[Text, types.ScoredTextCandidates]],
+              label_spec: types.TextSegment,
+              pred_spec: Union[types.GeneratedText,
+                               types.GeneratedTextCandidates],
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del label_spec
+    del config
+
+    if not labels or not preds:
+      return {}
+
+    name_suffix = ''
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
+    scores = list(map(self._score, labels, preds))
+
+    return {'rougeL' + name_suffix: np.mean(scores)}
 
 
 class BinaryConfusionMetricsImpl(SimpleMetrics):
@@ -523,7 +543,8 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     ]
     # Get classifications using possible margin value to control threshold
     # of positive classification.
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     return self.get_all_metrics(
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)

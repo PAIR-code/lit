@@ -21,12 +21,13 @@ import '@material/mwc-icon-button-toggle';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import {html, LitElement} from 'lit';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 
+import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
@@ -35,7 +36,6 @@ import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** Type for custom widget minimize event. */
 export interface WidgetMinimizedChange {
@@ -52,13 +52,14 @@ export interface WidgetScroll {
  * compareDatapoints is enabled) for a single component.
  */
 @customElement('lit-widget-group')
-export class WidgetGroup extends LitElement {
+export class WidgetGroup extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({ type: Array }) configGroup: RenderConfig[] = [];
-  @property({ type: Boolean, reflect: true }) minimized = false;
-  @property({ type: Boolean, reflect: true }) maximized = false;
-  @property({ type: Boolean, reflect: true }) dragging = false;
-  @property({ type: Number}) width = 0;
+  @property({type: Array}) configGroup: RenderConfig[] = [];
+  @property({type: Boolean, reflect: true}) duplicateAsRow = false;
+  @property({type: Boolean, reflect: true}) minimized = false;
+  @property({type: Boolean, reflect: true}) maximized = false;
+  @property({type: Boolean, reflect: true}) dragging = false;
+  @property({type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
   // Not set as @observable since re-renders were not occuring when changed.
@@ -72,6 +73,10 @@ export class WidgetGroup extends LitElement {
   override firstUpdated() {
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
+
+    this.reactImmediately(() => this.configGroup, configGroup => {
+      this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
+    });
   }
 
   override render() {
@@ -104,6 +109,21 @@ export class WidgetGroup extends LitElement {
       }
     };
 
+    const renderDirectionControl = () => {
+      const toggleDirection = () => {
+        this.duplicateAsRow = !this.duplicateAsRow;
+        this.requestUpdate();
+      };
+      return html`
+        <mwc-icon-button-toggle class="icon-button direction-toggle"
+          title="Toggle layout direction"
+          onIcon="view_week" offIcon="table_rows"
+          ?on="${this.duplicateAsRow}"
+          @MDCIconButtonToggle:change="${toggleDirection}"
+          @icon-button-toggle-change="${toggleDirection}">
+        </mwc-icon-button-toggle>`;
+    };
+
     const renderScrollSyncControl = () => {
       const toggleSyncScrolling = () => {
         this.syncScrolling = !this.syncScrolling;
@@ -112,8 +132,8 @@ export class WidgetGroup extends LitElement {
       return html`
         <mwc-icon-button-toggle class="icon-button scroll-toggle"
           title="Toggle scroll sync"
-          onIcon="sync_disabled" offIcon="sync"
-          ?on="${!this.syncScrolling}"
+          onIcon="sync" offIcon="sync_disabled"
+          ?on="${this.syncScrolling}"
           @MDCIconButtonToggle:change="${toggleSyncScrolling}"
           @icon-button-toggle-change="${toggleSyncScrolling}">
         </mwc-icon-button-toggle>`;
@@ -125,7 +145,7 @@ export class WidgetGroup extends LitElement {
         <div class="title" @click=${onTitleClick}>${title}</div>
         ${this.minimized || configGroup.length < 2 ?
           null :
-          renderScrollSyncControl()
+          [renderDirectionControl(), renderScrollSyncControl()]
         }
         <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
           ${this.minimized ? 'maximize' : 'minimize'}
@@ -142,7 +162,6 @@ export class WidgetGroup extends LitElement {
    */
   renderModules(configGroup: RenderConfig[]) {
     const modulesInGroup = configGroup.length > 1;
-    const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
 
     // Set width properties based on provided width.
     const host = this.shadowRoot!.host as HTMLElement;
@@ -156,14 +175,14 @@ export class WidgetGroup extends LitElement {
     });
 
     const holderClasses = classMap({
-      'component-row': modulesInGroup && duplicateAsRow,
-      'component-column': modulesInGroup && !duplicateAsRow,
+      'component-row': modulesInGroup && this.duplicateAsRow,
+      'component-column': modulesInGroup && !this.duplicateAsRow,
       'holder': true,
     });
 
     // Set sub-component dimensions based on the container.
     const widgetStyle = {width: '100%', height: '100%'};
-    if (duplicateAsRow) {
+    if (this.duplicateAsRow) {
       widgetStyle['width'] = `${100 / configGroup.length}%`;
     } else {
       widgetStyle['height'] = `${100 / configGroup.length}%`;

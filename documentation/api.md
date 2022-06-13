@@ -313,6 +313,57 @@ use these and bypass the tokenizer:
 lit_types.CategoryLabel(required=False)`), though these can also be omitted from
 the input spec entirely if they are not needed to compute model outputs.
 
+## UI Layouts
+
+You can also specify one or more custom layouts for the frontend UI. To do this,
+pass a dict of `LitCanonicalLayout` objects in `layouts=` when initializing the
+server. These objects represent a tabbed layout of modules, such as:
+
+```python
+LM_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+            modules.SliceModule,
+            modules.ColorModule,
+        ]
+    },
+    lower={
+        "Predictions": [
+            modules.LanguageModelPredictionModule,
+            modules.ConfusionMatrixModule,
+        ],
+        "Counterfactuals": [modules.GeneratorModule],
+    },
+    description="Custom layout for language models.",
+)
+```
+
+You can pass this to the server as:
+
+```python
+lit_demo = dev_server.Server(
+    models,
+    datasets,
+    # other args...
+    layouts={"lm": LM_LAYOUT},
+    **server_flags.get_flags())
+return lit_demo.serve()
+```
+
+For a full example, see
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py) You
+can see the default layouts as well as the list of available modules in
+[`layout.py`](../lit_nlp/api/layout.py).
+
+To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
+or "default" or the name of a custom layout defined in Python) as a server flag
+when initializing LIT (`--default_layout=<layout>`). Commonly, this is done
+using `FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
+also be set on-the-fly the `layout=` URL param, which will take precedence.
+
 ## Interpretation Components
 
 Backend interpretation components include metrics, salience maps, visualization

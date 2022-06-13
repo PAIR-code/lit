@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """LIT backend, as a standard WSGI app."""
 
 import functools
@@ -26,10 +25,12 @@ from absl import logging
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.api import dtypes
+from lit_nlp.api import layout
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
+from lit_nlp.components import classification_results
+from lit_nlp.components import curves
 from lit_nlp.components import gradient_maps
 from lit_nlp.components import hotflip
 from lit_nlp.components import lemon_explainer
@@ -40,6 +41,7 @@ from lit_nlp.components import nearest_neighbors
 from lit_nlp.components import pca
 from lit_nlp.components import pdp
 from lit_nlp.components import projection
+from lit_nlp.components import regression_results
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
 from lit_nlp.components import shap_explainer
@@ -309,11 +311,17 @@ class LitApp(object):
     """Run an interpretation component."""
     interpreter = self._interpreters[interpreter]
     # Pre-compute using self._predict, which looks for cached results.
-    model_outputs = self._predict(data['inputs'], model, dataset_name)
+    if model:
+      assert model in self._models, f"Model '{model}' is not a valid model."
+      model_outputs = self._predict(data['inputs'], model, dataset_name)
+      model = self._models[model]
+    else:
+      model_outputs = None
+      model = None
 
     return interpreter.run_with_metadata(
         data['inputs'],
-        self._models[model],
+        model,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
         config=data.get('config'))
@@ -347,6 +355,7 @@ class LitApp(object):
               dataset_name=dataset_name,
               model_name=model,
               field_name=field_name,
+              use_input=False,
               proj_kw={'n_components': 3})
           data = {'inputs': [], 'config': config}
           for interpreter_name in interpreters:
@@ -402,7 +411,7 @@ class LitApp(object):
       generators: Optional[Mapping[Text, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
       annotators: Optional[List[lit_components.Annotator]] = None,
-      layouts: Optional[dtypes.LitComponentLayouts] = None,
+      layouts: Optional[layout.LitComponentLayouts] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[Text] = None,
       warm_start: float = 0.0,
@@ -428,9 +437,13 @@ class LitApp(object):
     self._onboard_start_doc = onboard_start_doc
     self._onboard_end_doc = onboard_end_doc
     self._data_dir = data_dir
-    self._layouts = layouts or {}
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
+
+    # TODO(lit-dev): override layouts instead of merging, to allow clients
+    # to opt-out of the default bundled layouts. This will require updating
+    # client code to manually merge when this is the desired behavior.
+    self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
 
     # Wrap models in caching wrapper
     self._models = {
@@ -464,12 +477,14 @@ class LitApp(object):
 
     if interpreters is not None:
       self._interpreters = interpreters
+
     else:
       metrics_group = lit_components.ComponentGroup({
           'regression': metrics.RegressionMetrics(),
           'multiclass': metrics.MulticlassMetrics(),
           'paired': metrics.MulticlassPairedMetrics(),
           'bleu': metrics.CorpusBLEU(),
+          'rouge': metrics.RougeL(),
       })
       gradient_map_interpreters = {
           'Grad L2 Norm': gradient_maps.GradientNorm(),
@@ -478,10 +493,11 @@ class LitApp(object):
           'LIME': lime_explainer.LIME(),
       }
       # pyformat: disable
-      self._interpreters = {
+      self._interpreters: dict[str, lit_components.Interpreter] = {
           'Model-provided salience': model_salience.ModelSalience(self._models),
           'counterfactual explainer': lemon_explainer.LEMON(),
           'tcav': tcav.TCAV(),
+          'curves': curves.CurvesInterpreter(),
           'thresholder': thresholder.Thresholder(),
           'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
@@ -496,6 +512,14 @@ class LitApp(object):
       }
       # pyformat: enable
       self._interpreters.update(gradient_map_interpreters)
+
+    # Ensure the prediction analysis interpreters are included.
+    prediction_analysis_interpreters = {
+        'classification': classification_results.ClassificationInterpreter(),
+        'regression': regression_results.RegressionInterpreter(),
+    }
+    self._interpreters = dict(
+        **self._interpreters, **prediction_analysis_interpreters)
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()

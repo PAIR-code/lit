@@ -19,8 +19,8 @@ import '../elements/checkbox';
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
@@ -29,7 +29,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
+import {isLitSubtype, findSpecKeys} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -75,39 +75,79 @@ export class DatapointEditorModule extends LitModule {
   @observable editingTokenWidth = 0;
 
   @computed
-  get dataTextLengths(): {[key: string]: number} {
-    const defaultLengths: {[key: string]: number} = {};
+  get dataTextKeys(): string[]{
+   // Returns keys for data text fields.
+   const dataTextKeys: string[] = [];
 
-    // The string length at this percentile in the input data sample is used
-    // to determine the default height of the input box.
-    const percentileForDefault = 0.8;
-
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of this.appState.currentInputDataKeys) {
+   for (const key of this.appState.currentInputDataKeys) {
       // Skip numerical and categorical keys.
       if (this.groupService.categoricalFeatureNames.includes(key)) continue;
       if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
       // Skip fields with value type string[]
-      const fieldSpec = spec[key];
+      const fieldSpec = this.appState.currentDatasetSpec[key];
       const isListField = isLitSubtype(
           fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
       if (isListField) continue;
+      dataTextKeys.push(key);
+    }
+    return dataTextKeys;
+  }
+
+  @computed
+  get sparseMultilabelInputKeys(): string[] {
+    const spec = this.appState.currentDatasetSpec;
+    return findSpecKeys(spec, 'SparseMultilabel');
+  }
+
+  private calculateQuantileLengthsForFields(
+      fieldKeys: string[],
+      percentile: number = .8) {
+    const defaultLengths: {[key: string]: number} = {};
+
+    for (const key of fieldKeys) {
+      const fieldSpec = this.appState.currentDatasetSpec[key];
+      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
+
+      if (isLitSubtype(fieldSpec, ['String', 'TextSegment'])) {
+        calculateStringLength = (s: string) => s.length;
+      }
+      else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+        const separator = fieldSpec.separator;
+        calculateStringLength = (s: string[]) =>
+          Object.values(s).join(separator).length;
+      }
+      else {
+            throw new Error(
+              `Attempted to convert unrecognized type to string: ${key}.`);
+        }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
-        const value = indexedInput.data[key];
-        return value?.length;
+        return calculateStringLength(indexedInput.data[key]);
       });
-      defaultLengths[key] = d3.quantile(lengths, percentileForDefault) ?? 1;
+
+      defaultLengths[key] = d3.quantile(lengths, percentile) ?? 1;
       // Override if the distribution is short-tailed, we can expand a bit to
       // avoid scrolling at all. This is useful if everything in a particular
       // column is close to the same length.
       const maxLength = Math.max(...lengths);
-      if (percentileForDefault * maxLength <= defaultLengths[key]) {
+      if (percentile * maxLength <= defaultLengths[key]) {
         defaultLengths[key] = maxLength;
       }
     }
     return defaultLengths;
+  }
+
+  @computed
+  get dataTextLengths(): {[key: string]: number} {
+    return this.calculateQuantileLengthsForFields(
+      this.dataTextKeys);
+  }
+
+  @computed
+  get sparseMultilabelInputLengths(): {[key: string]: number} {
+    return this.calculateQuantileLengthsForFields(
+      this.sparseMultilabelInputKeys);
   }
 
   override firstUpdated() {
@@ -144,6 +184,21 @@ export class DatapointEditorModule extends LitModule {
     }
   }
 
+  private convertNumLinesToHeight(numLines: number) {
+    // Returns a height value in ex.
+    const padding = .2;
+    return 2.4 * numLines + padding;
+  }
+
+  private getHeightForInputBox(
+      textLength: number, clientWidth: number,
+      convertToString: boolean = true) {
+    const characterWidth = 8.3;  // estimate for character width in pixels
+    const numLines = Math.ceil(characterWidth * textLength / clientWidth);
+    const height = this.convertNumLinesToHeight(numLines);
+    return convertToString ? `${height}ex` : height;
+  }
+
   private resize() {
     // Get the first input box element, used for  getting the client width to
     // compute the input box height below.
@@ -151,20 +206,27 @@ export class DatapointEditorModule extends LitModule {
         this.shadowRoot!.querySelectorAll('.input-box')[0] as HTMLElement;
     if (inputBoxElement == null) return;
 
-    const keys = Array.from(Object.keys(this.dataTextLengths));
-    for (const key of keys) {
-      const defaultCharLength = this.dataTextLengths[key];
+    // Set heights for string-based input boxes.
+    for (const [key, defaultCharLength] of Object.entries(this.dataTextLengths)) {
       if (defaultCharLength === -Infinity) {
         continue;
       }
 
-      // Heuristic for computing height.
-      const characterWidth = 8.3;  // estimate for character width in pixels
-      const numLines = Math.ceil(
-          characterWidth * defaultCharLength / inputBoxElement.clientWidth);
-      const pad = 1;
-      // Set 2 ex per line.
-      this.inputHeights[key] = `${2 * numLines + pad}ex`;
+      this.inputHeights[key] =
+          this.getHeightForInputBox(
+              defaultCharLength, inputBoxElement.clientWidth) as string;
+    }
+
+    // Set heights for multi-label input boxes.
+    for (const [key, textLength] of Object.entries(this.sparseMultilabelInputLengths)) {
+
+      // Truncate input height to 4 lines maximum.
+      const maxHeight = this.convertNumLinesToHeight(4);
+      const defaultHeight =
+          this.getHeightForInputBox(
+              textLength, inputBoxElement.clientWidth, false) as number;
+      const height = Math.min(defaultHeight, maxHeight);
+      this.inputHeights[key] = `${height}ex`;
     }
   }
 
@@ -253,8 +315,9 @@ export class DatapointEditorModule extends LitModule {
     };
     const onClickReset = () => {
       this.resetEditedData(
-          this.selectionService.primarySelectedInputData == null ?  null :
-          this.selectionService.primarySelectedInputData!.data);
+          this.selectionService.primarySelectedInputData == null ?
+              null :
+              this.selectionService.primarySelectedInputData.data);
     };
     const onClickClear = () => {
       this.selectionService.selectIds([]);
@@ -348,8 +411,7 @@ export class DatapointEditorModule extends LitModule {
         }
       };
       const uploadClicked = () => {
-        (this.shadowRoot!.querySelector(
-            '#uploadimage') as HTMLInputElement).click();
+        this.shadowRoot!.querySelector<HTMLInputElement>('#uploadimage')!.click();
       };
       const handleUpload = (e: Event) => {
         const inputElem = e.target as HTMLInputElement;
@@ -371,27 +433,23 @@ export class DatapointEditorModule extends LitModule {
       const maximizeImage = this.maximizedImageFields.has(key);
       const imageSource = (value == null) ? '' : value.toString() as string;
       const noImage = imageSource === '';
-      const imageClasses = classMap({
-        'image-min': !maximizeImage,
-        'hidden': noImage
-      });
-      const toggleClasses = classMap({
-        'image-toggle': true,
-        'hidden': noImage
-      });
+      const imageClasses =
+          classMap({'image-min': !maximizeImage, 'hidden': noImage});
+      const toggleClasses = classMap({'image-toggle': true, 'hidden': noImage});
       const uploadLabel = noImage ? 'Upload image' : 'Replace image';
       return html`
         <div class="image-holder">
           <img class=${imageClasses} src=${imageSource}>
           <mwc-icon class="${toggleClasses}" @click=${toggleImageSize}
                     title="Toggle full size">
-            ${maximizeImage ?
-             'photo_size_select_small' : 'photo_size_select_large'}
+            ${maximizeImage ? 'photo_size_select_small' :
+              'photo_size_select_large'}
           </mwc-icon>
           <div>
             <input type='file' id='uploadimage' accept="image/*"
                    @change=${handleUpload} class="hidden">
-            <button class="hairline-button image-button" @click=${uploadClicked}>
+            <button class="hairline-button image-button"
+                   @click=${uploadClicked}>
               <span class="material-icon">publish</span>
               ${uploadLabel}
             </button>
@@ -473,7 +531,9 @@ export class DatapointEditorModule extends LitModule {
     };
 
     const renderTokensInput = () => {
-      return this.renderTokensInput(key, value, handleInputChange);
+      return this.renderTokensInput(
+          key, value, handleInputChange,
+          !isLitSubtype(fieldSpec, 'Embeddings'));
     };
 
     let renderInput = renderFreeformInput;  // default: free text
@@ -484,13 +544,14 @@ export class DatapointEditorModule extends LitModule {
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const vocab = fieldSpec?.vocab;
-    if (vocab != null) {
+    if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(fieldSpec, ['Tokens', 'SequenceTags'])) {
+    } else if (isLitSubtype(
+                   fieldSpec, ['Tokens', 'SequenceTags', 'Embeddings'])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
@@ -568,9 +629,19 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
+  /**
+   * Renders an input value as tokens.
+   *
+   * Args:
+   *   key: Feature name
+   *   value: List of values for the feature
+   *   handleInputChange: Callback on changes to the feature values
+   *   dyanmicTokenLength: If true, allow adding/deleting of tokens.
+   */
   renderTokensInput(
       key: string, value: string[],
-      handleInputChange: (e: Event, converterFn: InputConverterFn) => void) {
+      handleInputChange: (e: Event, converterFn: InputConverterFn) => void,
+      dynamicTokenLength: boolean = true) {
     const tokenValues = value == null ? [] : [...value];
     const tokenRenders = [];
     for (let i = 0; i < tokenValues.length; i++) {
@@ -597,14 +668,13 @@ export class DatapointEditorModule extends LitModule {
         this.editingTokenIndex = i + 1;
         this.editingTokenField = key;
       };
-      const renderDeleteButton = () =>
-        showTextArea ?
-            // clang-format off
+      const renderDeleteButton = () => showTextArea ?
+          // clang-format off
             html`<mwc-icon class="icon-button delete-button"
                            title="delete token"
                            @click=${deleteToken}>delete</mwc-icon>` :
-            // clang-format on
-            null;
+          // clang-format on
+          null;
       const insertButtonClass = classMap({
         'insert-token-div': true,
       });
@@ -624,8 +694,8 @@ export class DatapointEditorModule extends LitModule {
       };
       const renderTextArea = () => {
         requestAnimationFrame(() => {
-          const textarea = this.renderRoot.querySelector(
-              '.token-box') as HTMLElement;
+          const textarea =
+              this.renderRoot.querySelector<HTMLElement>('.token-box');
           if (textarea != null) {
             textarea.focus();
           }
@@ -633,9 +703,7 @@ export class DatapointEditorModule extends LitModule {
 
         const TEXTAREA_EXTRA_WIDTH = 60;
         const width = this.editingTokenWidth + TEXTAREA_EXTRA_WIDTH;
-        const textareaStyle = styleMap({
-          'width': `${width}px`
-        });
+        const textareaStyle = styleMap({'width': `${width}px`});
         return html`
             <textarea class="token-box"
                       style=${textareaStyle}
@@ -646,36 +714,41 @@ export class DatapointEditorModule extends LitModule {
       const renderDiv = () => html`
         <div class="token-div"
              @click=${handleTokenClick}>${tokenOrigValue}</div>`;
+      const renderInsertTokenButton = () => html`
+        <div class="${insertButtonClass}" @click=${insertToken}
+            title="insert token">
+        </div>`;
       tokenRenders.push(
           // clang-format off
           html`<div class="token-outer">
                  <div class="token-holder">
                    ${showTextArea ? renderTextArea() : renderDiv()}
-                   ${renderDeleteButton()}
+                   ${dynamicTokenLength ? renderDeleteButton() : null}
                  </div>
-                 <div class="${insertButtonClass}" @click=${insertToken}
-                      title="insert token">
-                 </div>
+                 ${dynamicTokenLength ? renderInsertTokenButton() : null}
               </div>`);
-         // clang-format on
+      // clang-format on
     }
     const newToken = (e: Event) => {
       handleInputChange(e, (): string[] => {
-          tokenValues.push('');
-          return tokenValues;
-        });
+        tokenValues.push('');
+        return tokenValues;
+      });
       this.editingTokenIndex = tokenValues.length - 1;
       this.editingTokenField = key;
     };
+    const renderAddTokenButton = () =>
+        html`<mwc-icon class="icon-button token-button" @click=${newToken}
+                  title="insert token">add
+           </mwc-icon>`;
     return html`<div class="tokens-holder">
         ${tokenRenders.map(tokenRender => tokenRender)}
-        <mwc-icon class="icon-button token-button" @click=${newToken}
-                  title="insert token">add
-        </mwc-icon>
+        ${dynamicTokenLength ? renderAddTokenButton() : null}
         </div>`;
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

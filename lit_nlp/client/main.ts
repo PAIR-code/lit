@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2020 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,12 @@
  * limitations under the License.
  */
 
-/**
- * The main entry point for the LIT App, compiled into `bundle.js`. This file
- * imports the LIT App container web component, a declared layout of LIT
- * Modules, and the LIT App core service, then initializes the app.
- */
+import {app} from './core/app';
 
-// Imports the main LIT App web component, which is declared here then attached
-// to the DOM as <lit-app>
-import '../core/lit_app';
-
-import {app} from '../core/app';
-
-import {LAYOUTS} from './layout';
-
-// Initialize the app core logic, using the specified declared layout.
-app.initialize(LAYOUTS);
+// Initialize the app here so that this is not automatically called in unit
+// tests. Otherwise, we would need to inject mocks into the global singleton
+// so that it doesn't crash when the test is run without a backend server.
+// TODO(lit-dev): consider using DOMContentLoaded to initialize sooner?
+window.addEventListener('load', () => {
+  app.initialize();
+});

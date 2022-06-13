@@ -26,7 +26,7 @@ c-copy: "Get familiar with the interface of the Language Interpretability Tool."
 ## Conducting analysis in LIT
 
 {% include partials/tutorial-link-element c-title: "Global Model Analysis with TCAV", link: "/tutorials/tcav",
-c-copy: "Learn about examaning model behavior through user-curated concepts." %}
+c-copy: "Learn about examining model behavior through user-curated concepts." %}
 
 {% include partials/tutorial-link-element c-title: "Exploring a Sentiment Classifier", link: "/tutorials/sentiment",
 c-copy: "Learn about how we used LIT to analyze a sentiment classifier." %}

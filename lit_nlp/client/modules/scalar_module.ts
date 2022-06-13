@@ -16,11 +16,12 @@
  */
 
 import '../elements/expansion_panel';
+
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
+import {html, svg} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html, svg} from 'lit';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
@@ -28,13 +29,14 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ThresholdChange} from '../elements/threshold_slider';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
+import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
 import {FocusData} from '../services/focus_service';
-import {ClassificationService, ColorService, DataService, GroupService, FocusService, RegressionService, SelectionService} from '../services/services';
+import {ClassificationService, ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * The maximum number of scatterplots to render on page load.
@@ -84,7 +86,6 @@ export class ScalarModule extends LitModule {
   private readonly classificationService =
       app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
-  private readonly regressionService = app.getService(RegressionService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
@@ -106,14 +107,24 @@ export class ScalarModule extends LitModule {
       `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
   @computed
-  private get scalarKeys() {
-    return this.groupService.numericalFeatureNames;
-  }
-
-  @computed
-  private get scalarModelOutputKeys() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    return findSpecKeys(outputSpec, 'Scalar');
+  private get scalarColumnsToPlot() {
+    const numericFeatures = this.groupService.numericalFeatureNames;
+    // Filter out columns from regression results as those are handled
+    // separately so that error can be shown on Y axis. Also filter out any
+    // classification results that aren't from the model for this module.
+    return numericFeatures.filter(feat => {
+      const col = this.dataService.getColumnInfo(feat);
+      if (col == null) {
+        return true;
+      } else if (col.source.includes(REGRESSION_SOURCE_PREFIX)) {
+        return false;
+      } else if (col.source.includes(CLASSIFICATION_SOURCE_PREFIX) ||
+                 col.source.includes(SCALAR_SOURCE_PREFIX)) {
+        return col.source.includes(this.model);
+      } else {
+        return true;
+      }
+    });
   }
 
   @computed
@@ -143,7 +154,7 @@ export class ScalarModule extends LitModule {
     });
 
     // Update predictions when new scalar columns exist to plot.
-    const getScalarKeys = () => this.scalarKeys;
+    const getScalarKeys = () => this.scalarColumnsToPlot;
     this.reactImmediately(getScalarKeys, scalarKeys => {
       this.updatePredictions(this.appState.currentInputData);
     });
@@ -341,15 +352,14 @@ export class ScalarModule extends LitModule {
       return;
     }
 
-    // TODO(lit-dev): consolidate to a single call here, with client-side cache.
+    // TODO(b/233048097): Make use of data service instead of making getPreds
+    // calls explicitly.
     const dataset = this.appState.currentDataset;
     const promise = Promise.all([
-      this.classificationService.getClassificationPreds(
-          currentInputData, this.model, dataset),
-      this.regressionService.getRegressionPreds(
-          currentInputData, this.model, dataset),
       this.apiService.getPreds(
-          currentInputData, this.model, dataset, ['Scalar']),
+          currentInputData, this.model, dataset, ['MulticlassPreds']),
+      this.apiService.getPreds(
+          currentInputData, this.model, dataset, ['RegressionScore']),
     ]);
     const results = await this.loadLatest('predictionScores', promise);
     if (results === null) {
@@ -357,9 +367,7 @@ export class ScalarModule extends LitModule {
     }
     const classificationPreds = results[0];
     const regressionPreds = results[1];
-    const scalarPreds = results[2];
-    if (classificationPreds == null && regressionPreds == null &&
-        scalarPreds == null) {
+    if (classificationPreds == null && regressionPreds == null) {
       return;
     }
 
@@ -369,26 +377,12 @@ export class ScalarModule extends LitModule {
       // TODO(lit-dev): structure this as a proper IndexedInput,
       // rather than having 'id' as a regular field.
       const pred = Object.assign(
-          {}, classificationPreds[i], scalarPreds[i], regressionPreds[i],
+          {}, classificationPreds[i], regressionPreds[i],
           {id: currId});
-      for (const scalarKey of this.scalarKeys) {
+      for (const scalarKey of this.scalarColumnsToPlot) {
         pred[scalarKey] = this.dataService.getVal(currId, scalarKey);
       }
       preds.push(pred);
-    }
-
-    // Add the error info for any regression keys.
-    if (regressionPreds != null && regressionPreds.length) {
-      const ids = currentInputData.map(data => data.id);
-      const regressionKeys = Object.keys(regressionPreds[0]);
-      for (let j = 0; j < regressionKeys.length; j++) {
-        const regressionInfo = await this.regressionService.getResults(
-            ids, this.model, regressionKeys[j]);
-        for (let i = 0; i < preds.length; i++) {
-          preds[i][this.regressionService.getErrorKey(regressionKeys[j])] =
-              regressionInfo[i].error;
-        }
-      }
     }
 
     this.preds = preds;
@@ -413,7 +407,7 @@ export class ScalarModule extends LitModule {
         scoreRange[0] = scoreRange[0] - .1;
         scoreRange[1] = scoreRange[1] + .1;
       }
-    } else if (this.scalarKeys.indexOf(key) !== -1) {
+    } else if (this.scalarColumnsToPlot.indexOf(key) !== -1) {
       scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
@@ -429,11 +423,20 @@ export class ScalarModule extends LitModule {
     let scoreRange = [0, 1];
 
     const outputSpec = this.appState.currentModelSpecs[this.model]?.spec.output;
-    if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
-      const ranges = this.regressionService.ranges[`${this.model}:${key}`];
-      if (ranges != null && !isNaN(ranges.error[0]) &&
-          !isNaN(ranges.error[1])) {
-        scoreRange = ranges.error;
+    if (outputSpec != null &&
+        isLitSubtype(outputSpec[key], 'RegressionScore')) {
+      const errorFeatName = this.dataService.getColumnName(
+          this.model, key, CalculatedColumnType.ERROR);
+      const range = this.groupService.numericalFeatureRanges[errorFeatName];
+      if (range != null && !isNaN(range[0]) && !isNaN(range[1])) {
+        // If range has a negative min and positive max, then make it symmetric
+        // around 0.
+        if (range[0] * range[1] < 0) {
+          const largest = Math.max(-range[0], range[1]);
+          scoreRange = [-largest, largest];
+        } else {
+          scoreRange = range;
+        }
       }
     }
     return d3.scaleLinear().domain(scoreRange).range([
@@ -468,7 +471,7 @@ export class ScalarModule extends LitModule {
       const scatterplot = item as SVGGElement;
       const key = (item as HTMLElement).dataset['key'];
 
-      if (key == null || this.scalarKeys.indexOf(key) !== -1) {
+      if (key == null || this.scalarColumnsToPlot.indexOf(key) !== -1) {
         return;
       }
 
@@ -618,11 +621,10 @@ export class ScalarModule extends LitModule {
 
       const spec = this.appState.getModelSpec(this.model);
       const isScalarKey = isLitSubtype(spec.output[key], 'Scalar');
-      const regressionRanges =
-          this.regressionService.ranges[`${this.model}:${key}`];
-      const hasRegressionGroundTruth = regressionRanges != null &&
-          !isNaN(regressionRanges.error[0]) &&
-          !isNaN(regressionRanges.error[1]);
+      const errorFeatName = this.dataService.getColumnName(
+          this.model, key, CalculatedColumnType.ERROR);
+      const yRange = this.groupService.numericalFeatureRanges[errorFeatName];
+      const hasRegressionGroundTruth = yRange != null;
 
       const scatterplot = item as SVGGElement;
       const selected = d3.select(scatterplot);
@@ -676,8 +678,6 @@ export class ScalarModule extends LitModule {
 
       // Create zero line if this is a regression plot centered around zero.
       if (isScalarKey && hasRegressionGroundTruth) {
-        const ranges = this.regressionService.ranges[`${this.model}:${key}`];
-        const yRange = ranges.error;
         if (yRange[0] < 0 && yRange[1] > 0) {
           const halfHeight =
                 (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
@@ -748,7 +748,9 @@ export class ScalarModule extends LitModule {
           .attr('cy', d => {
             if (isLitSubtype(spec.output[key], 'Scalar') &&
                 hasRegressionGroundTruth) {
-              return yScale(d[this.regressionService.getErrorKey(key)]);
+              const errorFeatName = this.dataService.getColumnName(
+                  this.model, key, CalculatedColumnType.ERROR);
+              return yScale(this.dataService.getVal(d['id'], errorFeatName));
             }
             // Otherwise, return a random value.
             return yScale(rng());
@@ -808,10 +810,9 @@ export class ScalarModule extends LitModule {
     // clang-format off
     return html`
       <div id='container'>
-        ${this.scalarModelOutputKeys.map(key => this.renderPlot(key, ''))}
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
-        ${this.scalarKeys.map(key => this.renderPlot(key, ''))}
+        ${this.scalarColumnsToPlot.map(key => this.renderPlot(key, ''))}
       </div>
     `;
     // clang-format on

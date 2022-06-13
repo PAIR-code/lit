@@ -49,40 +49,47 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   // Markdown of splash screen text to render.
-  // TODO(lit-dev): When adding assets to this documentation, move this
-  // to being supplied by the backend.
   @observable private readonly markdownPages = [
-    `# Welcome to LIT\nLIT is a visual, interactive tool to help ML
-    researchers, engineers, product teams, and decision makers explore and
-    compare models using out-of-the-box interpretability methods to improve
-    performance and mitigate bias issues. We support a variety of models, data
-    types, and interpretability methods.`,
-    `# Start interacting with flexible modules\nLIT uses modules that allow
-    rich interactions using visualizations, tables, to perform lots of tasks.
-    Modules interact with each other so you can seamlessly switch between
-    various workflows – from datapoint explorations, to model predictions to
-    counterfactuals – without getting lost.`,
-    `# Workspaces in LIT\nWhether you're evaluating model predictions, looking
-    for explanations, or generating counterfactuals, you can find the modules
-    you need in LIT's workflow-optimized workspaces.`,
-    `# Explore data and models\nExplore model performance across the entire
-    dataset, a subset, or individual data points. Create subsets of your loaded
-    data by filtering on criteria, curating by selection, or by generating
-    “what-if” style counterfactuals.`,
-    `# Manage models, datasets, and selections\nLIT's toolbars present controls
-    for selecting models and datasets and sharing findings. Advanced controls
-    allow you to navigate individual data points systematically or switch into
-    datapoint comparison mode.`,
-    `# Dynamically evaluate models side-by-side\nEasily switch between exploring
-    a single model or comparing multiple models from within your workflow.
-    Compare predictions, explanations, and metrics to see differences in
-    behavior and performance.\n\nCompare models to see differences in behavior
-    Evaluate interpretability results for fine-grained comparison, or see
-    - while others show information from all loaded models. See predictions,
-    explanations, and metrics side-by-side to quickly understand differences
-    in behavior and performance.`,
-    `# Start exploring!\nNeed more help? Visit our documentation page for more
-    advanced help and support. Otherwise, click get started.`
+    `![](static/onboarding_1_welcome.gif)\n# Welcome to LIT!\nLIT is a ` +
+    `visual, interactive tool to help ML researchers, engineers, product ` +
+    `teams, and decision makers explore and compare models using ` +
+    `out-of-the-box interpretability methods to improve performance and ` +
+    `mitigate bias issues. We support a variety of models, data types, and ` +
+    `interpretability methods.`,
+
+    `![](static/onboarding_2_modules.gif)\n# Start interacting with flexible ` +
+    `modules\nLIT uses modules that allow rich interactions using ` +
+    `visualizations, tables, to perform lots of tasks. Modules interact with ` +
+    `each other so you can seamlessly switch between various workflows – `  +
+    `from datapoint explorations, to model predictions to counterfactuals – ` +
+    `without getting lost.`,
+
+    `![](static/onboarding_3_workspaces.gif)\n# Workspaces in LIT\nWhether ` +
+    `you're evaluating model predictions, looking for explanations, or ` +
+    `generating counterfactuals, you can find the modules you need in ` +
+    `LIT's workflow-optimized workspaces.\n`,
+
+    `![](static/onboarding_4_explore.gif)\n# Explore data and models\n` +
+    `Explore model performance across the entire dataset, a subset, or ` +
+    `individual data points. Create subsets of your loaded data by filtering ` +
+    `on criteria, curating by selection, or by generating “what-if” ` +
+    `style counterfactuals.`,
+
+    `![](static/onboarding_5_toolbars.gif)\n# Manage models, datasets, and ` +
+    `selections\nLIT's toolbars present controls for selecting models and ` +
+    `datasets and sharing findings. Advanced controls allow you to navigate ` +
+    `individual data points systematically or switch into datapoint ` +
+    `comparison mode.`,
+
+    `![](static/onboarding_6_compare.gif)\n# Dynamically evaluate models ` +
+    `side-by-side\nEasily switch between exploring a single model or ` +
+    `comparing multiple models from within your workflow. Compare ` +
+    `predictions, explanations, and metrics to see differences in behavior ` +
+    `and performance.`,
+
+    `![](static/onboarding_7_start.gif)\n# Start exploring!\nNeed more help? ` +
+    `Visit our documentation page for more advanced help and support. ` +
+    `Otherwise, click get started.`
   ];
 
   @query('#holder') docElement!: HTMLDivElement;
@@ -111,7 +118,17 @@ export class DocumentationComponent extends ReactiveElement {
     });
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Escape') this.close();
+      if (e.key === 'Escape') {
+        this.close();
+      } else if (e.key === 'ArrowLeft' && this.currentPage > 0) {
+        this.currentPage -= 1;
+      } else if (e.key === 'ArrowRight') {
+        if (this.currentPage < this.totalPages - 1) {
+          this.currentPage += 1;
+        } else {
+          this.close();
+        }
+      }
     });
 
     // The splash screen will be open if it isn't set to hide due to user
@@ -161,36 +178,46 @@ export class DocumentationComponent extends ReactiveElement {
     const changeHideDialog = (e: any) => {
       this.hideDialog = e.target.checked;
     };
-
     const hiddenClassMap = classMap({hide: !this.isOpen});
     const docToDisplay = this.pagesToRender[this.currentPage];
+    const onCloseClick = () => {
+      this.isOpen = false;
+    };
+
     // clang-format off
     return html`
       <div id="doc-holder">
         <div id="overlay" class=${hiddenClassMap}
          @click=${() => { this.close(); }}></div>
         <div id="doc" class=${hiddenClassMap}>
-          <div class="dots-line">
-            <div class="dots-holder">
-              ${this.pagesToRender.map((page, i) => this.renderDot(i))}
+          <div class="top-section">
+            <div id="holder">
+               ${docToDisplay}
             </div>
           </div>
-          <div id="holder">
-             ${docToDisplay}
-          </div>
-          <div class="page-controls">
-            <div class="doc-link-holder">
-              ${this.renderDocLink()}
+          <div class="bottom-area">
+            <div class="dots-line">
+              <div class="dots-holder">
+                ${this.pagesToRender.map((page, i) => this.renderDot(i))}
+              </div>
+              <mwc-icon class="icon-button close-button" @click=${onCloseClick}>
+                close
+              </mwc-icon>
             </div>
-            <div class="prev-next-container">
-              ${this.renderNextPrevButton(false)}
-              ${this.renderNextPrevButton(true)}
+            <div class="page-controls">
+              <div class="doc-link-holder">
+                ${this.renderDocLink()}
+              </div>
+              <div class="prev-next-container">
+                ${this.renderNextPrevButton(false)}
+                ${this.renderNextPrevButton(true)}
+              </div>
             </div>
-          </div>
-          <div class="bottom-controls">
-            <lit-checkbox class='checkbox' ?checked=${this.hideDialog}
-                label="Don't show this screen again"
-                @change=${changeHideDialog}></lit-checkbox>
+            <div class="bottom-controls">
+              <lit-checkbox class='checkbox' ?checked=${this.hideDialog}
+                  label="Don't show this screen again"
+                  @change=${changeHideDialog}></lit-checkbox>
+            </div>
           </div>
         </div>
       </div>

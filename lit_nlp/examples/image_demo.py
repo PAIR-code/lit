@@ -11,7 +11,7 @@ from absl import app
 from absl import flags
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.api import dtypes as lit_dtypes
+from lit_nlp.api import layout
 from lit_nlp.components import image_gradient_maps
 
 from lit_nlp.examples.datasets import imagenette
@@ -37,17 +37,19 @@ def get_wsgi_app():
 
 
 def main(_):
-  demo_layout = lit_dtypes.LitComponentLayout(
+  modules = layout.LitModuleName
+  demo_layout = layout.LitComponentLayout(
       components={
           'Main': [
-              'data-table-module',
-              'datapoint-editor-module',
-              'lit-slice-module',
-              'color-module',
+              modules.DataTableModule,
+              modules.DatapointEditorModule,
+              modules.SliceModule,
+              modules.ColorModule,
           ],
-          'Predictions': ['classification-module', 'scalar-module'],
+          'Predictions': [modules.ClassificationModule, modules.ScalarModule],
           'Explanations': [
-              'classification-module', 'salience-map-module'],
+              modules.ClassificationModule, modules.SalienceMapModule
+          ],
       },
       description='Basic layout for image demo',
   )

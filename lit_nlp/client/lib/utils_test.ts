@@ -461,3 +461,31 @@ describe('replaceNth test', () => {
         'hello world yes');
   });
 });
+
+describe('mapsContainSame test', () => {
+  it('correctly determines that empty maps contain the same items', () => {
+    const emptyA = new Map<string, string>();
+    const emptyB = new Map<string, string>();
+    expect(utils.mapsContainSame(emptyA, emptyB)).toBe(true);
+  });
+
+  it('correctly determines maps with different values are different', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB =
+        new Map<string, string>([['keyA', 'valA'], ['keyB', 'valBAlt']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(false);
+  });
+
+  it('correctly determines maps with different keys are different', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB =
+        new Map<string, string>([['keyA', 'valA'], ['keyBAlt', 'valB']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(false);
+  });
+
+  it('correctly determines identical maps are the same', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(true);
+  });
+});

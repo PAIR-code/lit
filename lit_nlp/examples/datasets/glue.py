@@ -1,4 +1,3 @@
-# Lint as: python3
 """GLUE benchmark datasets, using TFDS.
 
 See https://gluebenchmark.com/ and

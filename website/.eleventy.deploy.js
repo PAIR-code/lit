@@ -4,7 +4,7 @@ const syntaxHighlight = require ("@11ty/eleventy-plugin-syntaxhighlight");
 const rootPrefix = "/lit";
 
 module.exports = function(eleventyConfig) {
-  eleventyConfig.templateFormats = ["liquid", "md", "png"];
+  eleventyConfig.templateFormats = ["liquid", "md"];
 
   eleventyConfig.addFilter('markdownify', (str) => {
     return markdownItRenderer.renderInline(str);
@@ -17,4 +17,9 @@ module.exports = function(eleventyConfig) {
   });
 
   eleventyConfig.addPassthroughCopy("src/assets/");
+
+  eleventyConfig.setLiquidOptions({
+    dynamicPartials: false,
+    strictFilters: false,
+  });
 };

@@ -62,36 +62,13 @@ A layout is defined by a structure of `LitModule` classes, and includes a set of
 main components that are always visible, (designated in the object by the "main"
 key) and a set of tabs that each contain a group other components.
 
-A simplified version for a classifier model might look like:
-
-```typescript
-const layout: LitComponentLayout = {
-  components : {
-    'Main': [DataTableModule, DatapointEditorModule],
-
-    'Classifiers': [
-      ConfusionMatrixModule,
-    ],
-    'Counterfactuals': [GeneratorModule],
-    'Predictions': [
-      ScalarModule,
-      ClassificationModule,
-    ],
-    'Explanations': [
-      ClassificationModule,
-      SalienceMapModule,
-      AttentionModule,
-    ]
-  }
-};
-```
-
-The full layouts are defined in
-[`layout.ts`](../lit_nlp/client/default/layout.ts).
-To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
-or "mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
-layout can be set on-the-fly a URL param (the url param overrides the server
-flag).
+Layouts are generally specified in Python (see
+[Custom Layouts](./api.md#ui-layouts)) through the `LitCanonicalLayout` object.
+The default layouts are defined in
+[`layout.py`](../lit_nlp/api/layout.py), and you can
+add your own by defining one or more `LitCanonicalLayout` objects and passing
+them to the server. For an example, see `CUSTOM_LAYOUTS` in
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
 
 The actual layout of components in
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)
@@ -376,26 +353,12 @@ modules, though this is currently provided as "best effort" support and the API
 is not as mature as for Python extensions.
 
 An example of a custom LIT client application, including a custom
-(potato-themed) module can be found in `lit_nlp/examples/custom_module`. In
-short, to build and serve a custom LIT client application, create a new
-directory containing a `main.ts` entrypoint. This should import any custom
-modules, define a layout that includes them, and call `app.initialize`. For
-example:
+(potato-themed) module can be found in
+[`lit_nlp/examples/custom_module`](../lit_nlp/examples/custom_module).
+You need only define any custom modules (subclass of `LitModule`) and include
+them in the build.
 
-```ts
-import {PotatoModule} from './potato';
-
-LAYOUTS = {};  // or import existing set from client/default/layout.ts
-LAYOUTS['potato'] = {
-  components: {
-    'Main': [DatapointEditorModule, ClassificationModule],
-    'Data': [DataTableModule, PotatoModule],
-  },
-};
-app.initialize(LAYOUTS);
-```
-
-Then, build the app, specifying the directory to build with the `env.build`
+When you build the app, specify the directory to build with the `env.build`
 flag. For example, to build the `custom_module` demo app:
 
 ```sh
@@ -415,3 +378,24 @@ in `examples/custom_module/potato_demo.py`.
 parent_dir = os.path.join(pathlib.Path(__file__).parent.absolute()
 FLAGS.set_default("client_root", parent_dir, "build"))
 ```
+
+You must also define a [custom layout definition](./api.md#ui-layouts) in Python
+which references your new module. Note that because Python enums are not
+extensible, you need to reference the custom module using its HTML tag name:
+
+```python
+modules = layout.LitModuleName
+POTATO_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [modules.DatapointEditorModule, modules.ClassificationModule],
+    },
+    lower={
+        "Data": [modules.DataTableModule, "potato-module"],
+    },
+    description="Custom layout with our spud-tastic potato module.",
+)
+```
+
+See
+[`potato_demo.py`](../lit_nlp/examples/custom_module/potato_demo.py)
+for the full example.

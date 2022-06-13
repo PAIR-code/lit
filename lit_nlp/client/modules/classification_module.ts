@@ -16,6 +16,8 @@
  */
 
 // tslint:disable:no-new-decorators
+import '../elements/score_bar';
+
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
 import {observable} from 'mobx';
@@ -23,14 +25,13 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, SortableTemplateResult, TableData} from '../elements/table';
-import '../elements/score_bar';
-import {IndexedInput, ModelInfoMap, Preds, Spec} from '../lib/types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ClassificationInfo} from '../services/classification_service';
-import {ClassificationService, SelectionService} from '../services/services';
+import {CalculatedColumnType} from '../services/data_service';
+import {DataService, SelectionService} from '../services/services';
 
 import {styles} from './classification_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface DisplayInfo {
   value: number;
@@ -65,20 +66,18 @@ export class ClassificationModule extends LitModule {
     return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
   }
 
-  private readonly classificationService =
-      app.getService(ClassificationService);
+  private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
 
   @observable private labeledPredictions: LabeledPredictions = {};
 
   override firstUpdated() {
-    const getSelectionChanges = () => [
-      this.appState.compareExamplesEnabled,
-      this.appState.currentModels,
-      this.pinnedSelectionService.primarySelectedInputData,
-      this.selectionService.primarySelectedInputData
-    ];
+    const getSelectionChanges = () =>
+        [this.appState.compareExamplesEnabled, this.appState.currentModels,
+         this.pinnedSelectionService.primarySelectedInputData,
+         this.selectionService.primarySelectedInputData,
+         this.dataService.dataVals];
     this.reactImmediately(getSelectionChanges, () => {this.updateSelection();});
   }
 
@@ -107,28 +106,7 @@ export class ClassificationModule extends LitModule {
     // are grouped into the same expansion panel, using the prediciton head as
     // the panel label.
     for (const model of this.appState.currentModels) {
-      // Get the complete multiclass label predictions for the datapoints
-      const clsPredsPromise = this.classificationService.getClassificationPreds(
-          data, model, this.appState.currentDataset);
-      const clsPredsData =
-          await this.loadLatest('multiclassPreds', clsPredsPromise);
-
-      if (clsPredsData == null) {continue;}
-
-      // Get the assigned model predictions for the datapoints
-      const clsInfoData: ClassificationInfo[] = [];
-      for (const predictionName of Object.keys(clsPredsData[0])) {
-        const info: ClassificationInfo[] =
-            await this.classificationService.getResults(data.map(d => d.id),
-                                                        model,
-                                                        predictionName);
-        clsInfoData.push(...info);
-      }
-
-      if (!clsInfoData.length) {continue;}
-
-      const labeledPredictions =
-          this.parseResult(model, data, clsPredsData, clsInfoData);
+      const labeledPredictions = this.parseResult(model, data);
       Object.assign(this.labeledPredictions, labeledPredictions);
     }
   }
@@ -139,31 +117,39 @@ export class ClassificationModule extends LitModule {
    * and the values are dictionaries with a key for each class in the vocabulary
    * and arrays of DisplayInfo values for the pinned and selected datapoints.
    */
-  private parseResult(model: string, inputs: IndexedInput[], preds: Preds[],
-                      info: ClassificationInfo[]): LabeledPredictions {
-
+  private parseResult(model: string, inputs: IndexedInput[]):
+      LabeledPredictions {
     // currentModelSpecs getter accesses appState.metadata.models before init???
     const {output} = this.appState.currentModelSpecs[model].spec;
     const multiclassKeys = findSpecKeys(output, 'MulticlassPreds');
     const labeledPredictions: LabeledPredictions = {};
 
     // Iterate over the multiclass prediction heads
-    for (const predKey of Object.keys(preds[0])) {
-      if (!multiclassKeys.includes(predKey)) {continue;}
-
-      const topLevelKey = `${model}: ${predKey}`;
+    for (const predKey of multiclassKeys) {
+      const topLevelKey = this.dataService.getColumnName(model, predKey);
+      const predClassKey = this.dataService.getColumnName(
+          model, predKey, CalculatedColumnType.PREDICTED_CLASS);
       labeledPredictions[topLevelKey] = {};
-      const {parent} = output[predKey];
-      const labels = this.classificationService.getLabelNames(model, predKey);
+      const {parent, vocab} = output[predKey];
+      const scores =
+          inputs.map(input => this.dataService.getVal(input.id, topLevelKey));
+      const predictedClasses =
+          inputs.map(input => this.dataService.getVal(input.id, predClassKey));
+      // If no vocab provided, create a list of strings of the class indices.
+      const labels =
+          vocab || Array.from({length: scores[0].length}, (v, k) => `${k}`);
 
       // Iterate over the vocabulary for this prediction head
       for (let i = 0; i < labels.length; i++) {
         const label = labels[i];
 
         // Map the predctions for each example into DisplayInfo objects
-        const rowPreds = preds.map((predDict, j): DisplayInfo => {
-          const value = predDict[predKey][i] as number;
-          const isPredicted = i === info[j].predictedClassIdx;
+        const rowPreds = scores.map((score, j): DisplayInfo => {
+          if (score == null) {
+            return {value: 0, isPredicted: false, isTruth: false};
+          }
+          const value = score[i];
+          const isPredicted = label === predictedClasses[j];
           const {data} = inputs[j];
           const isTruth = (parent != null && data[parent] === labels[i]);
           return {value, isPredicted, isTruth};

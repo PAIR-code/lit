@@ -18,7 +18,6 @@ Contains things like dummy LIT Model so we don't have to define it in every
 test.
 """
 
-# Lint as: python3
 from typing import Iterable, Iterator, List
 
 from lit_nlp.api import model as lit_model
@@ -48,7 +47,7 @@ class TestRegressionModel(lit_model.Model):
     return self._input_spec
 
   def output_spec(self):
-    return {'scores': lit_types.RegressionScore()}
+    return {'scores': lit_types.RegressionScore(parent='label')}
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
