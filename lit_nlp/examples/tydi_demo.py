@@ -1,7 +1,7 @@
 r"""Example demo loading a tydiqa model (modified t5_demo.py ).
 
 To run locally with a small number of examples:
-  python -m lit_nlp.examples.tydiqa_demo \
+  python -m lit_nlp.examples.tydi_demo \
       --alsologtostderr --port=5432 --max_examples=10 \
       --nouse_indexer
 
