@@ -484,23 +484,6 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}" .value=${value}></input>`;
     };
 
-    // Display multi-label inputs as separator-separated.
-    const renderSparseMultilabelInputGenerator = (separator: string) => {
-      return () => {
-        const handleSparseMultilabelInput = (e: Event) => {
-          handleInputChange(e, (value: string): string[] => {
-            // If value is empty, return [] instead of ['']
-            return value ? value.split(separator) : [];
-          });
-        };
-        const valueAsString = value ? value.join(separator) : '';
-        return html`
-        <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-            handleSparseMultilabelInput}
-          ?readonly="${!editable}">${valueAsString}</textarea>`;
-      };
-    };
-
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
       const renderLabel = (d: SpanLabel) =>
@@ -550,8 +533,9 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(
-                   fieldSpec, ['Tokens', 'SequenceTags', 'Embeddings'])) {
+    } else if (isLitSubtype(fieldSpec, [
+                 'Tokens', 'SequenceTags', 'Embeddings', 'SparseMultilabel'
+               ])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
@@ -559,10 +543,6 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderSpanLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
       renderInput = renderEdgeLabelsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
-      renderInput =
-          renderSparseMultilabelInputGenerator(fieldSpec.separator ?? ',');
-      entryContentClasses['entry-content-long'] = true;
     } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
     } else if (isLitSubtype(fieldSpec, 'Boolean')) {
