@@ -130,54 +130,10 @@ class TydiWrapper(lit_model.Model):
     tokens = self.tokenizer.convert_ids_to_tokens(ids)
     return [self.clean_bpe_token(t) for t in tokens]
 
-  def _pred(self, encoded_inputs):
-    """Predicts one batch of tokenized text.
-
-    Also performs some batch-level post-processing in TF.
-    Single-example postprocessing is done in _postprocess(), and operates on
-    numpy arrays.
-
-    Each prediction has the following returns:
-    logits: tf.Tensor (batch_size, sequence_length, config.vocab_size).
-    past: List[tf.Tensor] of length config.n_layers with each tensor shape
-             (2, batch_size, num_heads, sequence_length, embed_size_per_head)).
-    states: Tuple of tf.Tensor (one for embeddings + one for each layer),
-            with shape (batch_size, sequence_length, hidden_size).
-    attentions: Tuple of tf.Tensor (one for each layer) with shape
-                (batch_size, num_heads, sequence_length, sequence_length)
-    Within this function, we combine each Tuple/List into a single Tensor.
-
-    Args:
-      encoded_inputs: output of self.tokenizer.batch_encode_plus()
-
-    Returns:
-      payload: Dictionary with items described above, each as single Tensor.
-    """
-    # print(encoded_inputs)
-    out: transformers.modeling_flax_outputs.FlaxQuestionAnsweringModelOutput = \
-        self.model(encoded_inputs["input_ids"])
-
-    model_probs = tf.nn.softmax(out.logits, axis=-1)
-    top_k = tf.math.top_k(model_probs, k=self.top_k, sorted=True, name=None)
-    batched_outputs = {
-        "input_ids": encoded_inputs["input_ids"],
-        "ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
-        "top_k_indices": top_k.indices,
-        "top_k_probs": top_k.values,
-    }
-
-    # Convert representations for each layer from tuples to single Tensor.
-    for i in range(len(out.attentions)):
-      batched_outputs[f"layer_{i+1:d}_attention"] = out.attentions[i]
-    for i in range(len(out.hidden_states)):
-      batched_outputs[f"layer_{i:d}_avg_embedding"] = tf.math.reduce_mean(
-          out.hidden_states[i], axis=1)
-
-    return batched_outputs
   def _force_decode(self, encoded_inputs):
     """Get predictions for a batch of tokenized examples.
 
-    Each forward pass produces the following:
+    Each forward pass produces the following(this is only for tensorflow not jax):
       logits: batch_size x dec_len x vocab_size
       decoder_past_key_value_states: tuple with cached outputs.
       dec_states: tuple[len:dec_layers]:
@@ -247,7 +203,7 @@ class TydiWrapper(lit_model.Model):
         new_input.append(i['question']+ i['context'])
 
     encoded_inputs = self._encode_texts(new_input)
-    print('encoded_inputs')
+    print('encoded_inputs printing below..')
     print(encoded_inputs)
     
     # Get the predictions.
