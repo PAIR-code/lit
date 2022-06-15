@@ -173,8 +173,6 @@ class TydiModel(lit_model.Model):
         batched_outputs[
             f"encoder_layer_{i+1:d}_attention"] = results.encoder_attentions[i]
     
-    print("Batched_outputs printing below.........")
-    print(batched_outputs)
     return batched_outputs
   ##
   # LIT API implementation
@@ -196,7 +194,9 @@ class TydiModel(lit_model.Model):
     
     # Get the predictions.
     batched_outputs = self._force_decode(encoded_inputs)
-    # Convert to numpy for post-processing.
+
+    # Convert to numpy for post-processing ... this doesn't work for jax
+    # detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
