@@ -1,9 +1,15 @@
-r"""Example demo loading a tydiqa model (modified t5_demo.py ).
+r"""Example demo loading a T5 model.
 
 To run locally with a small number of examples:
   python -m lit_nlp.examples.tydi_demo \
       --alsologtostderr --port=5432 --max_examples=10 \
       --nouse_indexer
+
+To run using the nearest-neighbor lookup index (warning, this will take a while
+to load):
+  python -m lit_nlp.examples.tydi_demo \
+      --alsologtostderr --port=5432 --warm_start 1.0 \
+      --use_indexer --initialize_index --data_dir=/tmp/t5_index
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -29,14 +35,14 @@ from lit_nlp.lib import caching  # for hash id fn
 # NOTE: additional flags defined in server_flags.py
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 100,
+    "max_examples", 200,
     "Maximum number of examples to load from the development set.")
 
 _MAX_INDEX_EXAMPLES = flags.DEFINE_integer(
     "max_index_examples", 2000,
     "Maximum number of examples to index from the train set.")
 
-_MODELS = flags.DEFINE_list("models", ["Narrativa/mT5-base-finetuned-tydiQA-xqa"], "Which model(s) to load.")
+_MODELS = flags.DEFINE_list("models", ["mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"], "Which model(s) to load.")
 _TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
                            "Which task(s) to load.")
 
@@ -76,9 +82,8 @@ def build_indexer(models):
   assert FLAGS.data_dir, "--data_dir must be set to use the indexer."
   # Datasets for indexer - this one loads the training corpus instead of val.
   index_datasets = {
-      "TYDIQAData":
-          summarization.TYDIQAData(
-              split="train", max_examples=_MAX_INDEX_EXAMPLES.value),
+      "tydi_qa":
+          summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value),
   }
   index_datasets = lit_dataset.IndexedDataset.index_all(index_datasets,
                                                         caching.input_hash)
@@ -86,7 +91,7 @@ def build_indexer(models):
   # easier after we remap the model specs, so it doesn't try to cross-index
   # between the summarization model and the MT data.
   index_models = {
-      k: m for k, m in models.items() if isinstance(m, tydi.QAWrapper)
+      k: m for k, m in models.items() if isinstance(m, tydi.SummarizationWrapper)
   }
   # Set up the Indexer, building index if necessary (this may be slow).
   return index.Indexer(
@@ -103,19 +108,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load models. You can specify several here, if you want to compare different
   # models side-by-side, and can also include models of different types that use
   # different datasets.
-  base_models = {}
+  models = {}
   for model_name_or_path in _MODELS.value:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    if model_name_or_path.startswith("SavedModel"):
-      saved_model_path = model_name_or_path.split(":", 1)[1]
-      base_models[model_name] = tydi.T5SavedModel(saved_model_path)
-    else:
-      # TODO(lit-dev): attention is temporarily disabled, because O(n^2) between
-      # tokens in a long document can get very, very large. Re-enable once we
-      # can send this to the frontend more efficiently.
-      base_models[model_name] = tydi.T5HFModel(
+    models[model_name] = tydi.SummarizationWrapper(
+          model=model_name_or_path,
           model_name=model_name_or_path,
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
@@ -125,15 +124,22 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load eval sets and model wrappers for each task.
   # Model wrappers share the same in-memory T5 model, but add task-specific pre-
   # and post-processing code.
-  models = {}
-  datasets = {}
+  
+  datasets = {
+    "TYDIQA": summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value)
+  }
 
-  if "summarization" in _TASKS.value:
-    for k, m in base_models.items():
-      models[k + "TYDIQA Model"] = tydi.QAWrapper(m)
-    datasets["TYDIQAData"] = summarization.TYDIQA(
-        split="validation-en", max_examples=_MAX_EXAMPLES.value)
+  # if "summarization" in _TASKS.value:
+  #   for k, m in base_models.items():
+  #     models[k + "_summarization"] = tydi.SummarizationWrapper(m)
+  #   datasets["tydi_qa"] = summarization.TYDIQA(
+  #       split="validation-en", max_examples=_MAX_EXAMPLES.value)
 
+  # if "mt" in _TASKS.value:
+  #   for k, m in base_models.items():
+  #     models[k + "_translation"] = t5.TranslationWrapper(m)
+  #   datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
+  #   datasets["wmt14_ende"] = mt.WMT14Data(version="de-en", reverse=True)
 
   # Truncate datasets if --max_examples is set.
   for name in datasets:

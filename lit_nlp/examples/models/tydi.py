@@ -12,11 +12,8 @@ import tensorflow as tf
 # tensorflow_text is required for T5 SavedModel
 import tensorflow_text  # pylint: disable=unused-import
 import transformers
-
-# import jax
-# import jax
-# import jax.numpy as jnp
-from transformers import AutoTokenizer, FlaxAutoModel
+from transformers import BertTokenizer
+from transformers import FlaxBertForQuestionAnswering
 
 from rouge_score import rouge_scorer
 
@@ -85,48 +82,6 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
 
   return model
 
-
-class T5SavedModel(lit_model.Model):
-  """T5 from a TensorFlow SavedModel, for black-box access.
-
-  To create a SavedModel from a regular T5 checkpoint, see
-  https://github.com/google-research/text-to-text-transfer-transformer#export
-  """
-
-  def __init__(self, saved_model_path: str, model=None, **config_kw):
-    super().__init__()
-    # By default, SavedModels from the original T5 codebase have batch_size=1
-    # hardcoded. Use setdefault here so that the user can still override if
-    # they've fixed this upstream.
-    config_kw.setdefault("inference_batch_size", 1)
-    self.config = T5ModelConfig(**config_kw)
-    self.model = model or tf.saved_model.load(saved_model_path)
-
-  ##
-  # LIT API implementations
-  def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
-    # implementation of predict(), and uses this value as the batch size.
-    return self.config.inference_batch_size
-
-  def predict_minibatch(self, inputs):
-    """Predict on a single minibatch of examples."""
-    model_inputs = tf.constant([ex["input_text"] for ex in inputs])
-    model_outputs = self.model.signatures["serving_default"](model_inputs)
-    return [{
-        "output_text": m.decode("utf-8")
-    } for m in model_outputs["outputs"].numpy()]
-
-  def input_spec(self):
-    return {
-        "input_text": lit_types.TextSegment(),
-        "target_text": lit_types.TextSegment(required=False),
-    }
-
-  def output_spec(self):
-    return {"output_text": lit_types.GeneratedText(parent="target_text")}
-
-
 class T5HFModel(lit_model.Model):
   """T5 using HuggingFace Transformers and Keras.
 
@@ -140,8 +95,8 @@ class T5HFModel(lit_model.Model):
 
   def __init__(self,
                model_name="mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp",
-               model=FlaxAutoModel.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
-               tokenizer=AutoTokenizer.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
+               model=FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
+               tokenizer=BertTokenizer.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
                **config_kw):
     super().__init__()
     self.config = T5ModelConfig(**config_kw)
@@ -157,7 +112,7 @@ class T5HFModel(lit_model.Model):
   def _encode_texts(self, texts: List[str]):
     return self.tokenizer.batch_encode_plus(
         texts,
-        return_tensors="tf",
+        return_tensors="jax",
         padding="longest",
         truncation="longest_first")
 
@@ -187,13 +142,14 @@ class T5HFModel(lit_model.Model):
     Returns:
       batched_outputs: Dict[str, tf.Tensor]
     """
+    
     results = self.model(
         input_ids=encoded_inputs["input_ids"],
-        decoder_input_ids=encoded_targets["input_ids"],
+        # decoder_input_ids=encoded_targets["input_ids"],
         attention_mask=encoded_inputs["attention_mask"],
         decoder_attention_mask=encoded_targets["attention_mask"])
 
-    model_probs = tf.nn.softmax(results.logits, axis=-1)
+    model_probs = tf.nn.softmax(results.start_logits, axis=-1)
     top_k = tf.math.top_k(
         model_probs, k=self.config.token_top_k, sorted=True, name=None)
     batched_outputs = {
@@ -216,7 +172,8 @@ class T5HFModel(lit_model.Model):
       for i in range(len(results.encoder_attentions)):
         batched_outputs[
             f"encoder_layer_{i+1:d}_attention"] = results.encoder_attentions[i]
-
+    print('batched_outputs incoming.........')
+    print(batched_outputs)
     return batched_outputs
 
   def _postprocess(self, preds):
@@ -270,91 +227,11 @@ class T5HFModel(lit_model.Model):
       # keeps a pointer around that prevents the source array from being GCed.
       preds[key] = preds[key].copy()
 
+    print('preds incoming.........')
+    print(preds)
     return preds
 
-  ##
-  # LIT API implementations
-  def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
-    # implementation of predict(), and uses this value as the batch size.
-    return self.config.inference_batch_size
-
-  def predict_minibatch(self, inputs):
-    """Run model on a single batch.
-
-    Args:
-      inputs: List[Dict] with fields as described by input_spec()
-
-    Returns:
-      outputs: List[Dict] with fields as described by output_spec()
-    """
-    # Text as sequence of sentencepiece ID"s.
-    encoded_inputs = self._encode_texts([ex["input_text"] for ex in inputs])
-    encoded_targets = self._encode_texts(
-        [ex.get("target_text", "") for ex in inputs])
-
-    ##
-    # Force-decode on target text, and also get encoder embs and attention.
-    batched_outputs = self._force_decode(encoded_inputs, encoded_targets)
-    # Get the conditional generation from the model.
-    # Workaround for output_hidden not being compatible with generate.
-    # See https://github.com/huggingface/transformers/issues/8361
-    self.model.config.output_hidden_states = False
-    generated_ids = self.model.generate(
-        encoded_inputs.input_ids,
-        num_beams=self.config.beam_size,
-        attention_mask=encoded_inputs.attention_mask,
-        max_length=self.config.max_gen_length,
-        num_return_sequences=self.config.num_to_generate)
-    # [batch_size*num_return_sequences, num_steps]
-    # -> [batch_size, num_return_sequences, num_steps]
-    batched_outputs["generated_ids"] = tf.reshape(
-        generated_ids,
-        [-1, self.config.num_to_generate, generated_ids.shape[-1]])
-    self.model.config.output_hidden_states = True
-
-    # Convert to numpy for post-processing.
-    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
-    # Split up batched outputs, then post-process each example.
-    unbatched_outputs = utils.unbatch_preds(detached_outputs)
-    return list(map(self._postprocess, unbatched_outputs))
-
-  def input_spec(self):
-    return {
-        "input_text": lit_types.TextSegment(),
-        "target_text": lit_types.TextSegment(required=False),
-    }
-
-  def output_spec(self):
-    spec = {
-        "output_text": lit_types.GeneratedText(parent="target_text"),
-        "input_tokens": lit_types.Tokens(parent="input_text"),
-        "encoder_final_embedding": lit_types.Embeddings(),
-        # If target text is given, the following will also be populated.
-        "target_tokens": lit_types.Tokens(parent="target_text"),
-        "pred_tokens": lit_types.TokenTopKPreds(align="target_tokens"),
-    }
-    if self.config.num_to_generate > 1:
-      spec["output_text"] = lit_types.GeneratedTextCandidates(
-          parent="target_text")
-
-    if self.config.output_attention:
-      # Add attention for each layer.
-      for i in range(self.num_layers):
-        spec[f"encoder_layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
-            align_in="input_tokens", align_out="input_tokens")
-        spec[f"decoder_layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
-            align_in="target_tokens", align_out="target_tokens")
-    return spec
-
-
-##
-# Task-specific wrapper classes.
-
-
-
-
-class QAWrapper(lit_model.ModelWrapper):
+class SummarizationWrapper(lit_model.Model):
   """Wrapper class to perform a summarization task."""
 
   # Mapping from generic T5 fields to this task
@@ -362,63 +239,94 @@ class QAWrapper(lit_model.ModelWrapper):
       "input_text": "context",
       "target_text": "question",
   }
+  @property
+  def max_seq_length(self):
+    return self.model.config.max_position_embeddings
 
-  def __init__(self, model: lit_model.Model):
-    model = validate_t5_model(model)
-    super().__init__(model)
+  def __init__(self, 
+              model_name="mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp", 
+              model=FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
+              tokenizer=BertTokenizer.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
+              **config_kw):
+    super().__init__()
+    self.config = T5ModelConfig(**config_kw)
+    self.tokenizer = tokenizer or transformers.AutoTokenizer.from_pretrained(
+        model_name, use_fast=False)
+    # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
+    # prediction head as well.
+    self.model = model or model_utils.load_pretrained(
+        transformers.TFBertForMaskedLM,
+        model_name,
+        output_hidden_states=True,
+        output_attentions=True)
 
-    # TODO(gehrmann): temp solution for ROUGE.
-    self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
-    # If output is List[(str, score)] instead of just str
-    self._multi_output = isinstance(self.output_spec()["output_text"],
-                                    lit_types.GeneratedTextCandidates)
-    self._get_pred_string = (
-        lit_types.GeneratedTextCandidates.top_text if self._multi_output else
-        (lambda x: x))
+    # # TODO(gehrmann): temp solution for ROUGE.
+    # self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
+    # # If output is List[(str, score)] instead of just str
+    # self._multi_output = isinstance(self.output_spec()["output_text"],
+    #                                 lit_types.GeneratedTextCandidates)
+    # self._get_pred_string = (
+    #     lit_types.GeneratedTextCandidates.top_text if self._multi_output else
+    #     (lambda x: x))
 
   def preprocess(self, ex: JsonDict) -> JsonDict:
-    myquestion = "question" + ex['question']
-    mycontext = "context: " + ex["context"]
-    ret = {"input_text": '%s %s'% (myquestion, mycontext) }
-    # if "question" in ex:
-    #   ret["target_text"] = ex["question"]
-    return ret
+    myquestion = ex['question']
+    mycontext = ex["context"]
+    ret = myquestion, mycontext
+    tokenized_text = self.tokenizer(myquestion, mycontext, return_tensors='jax', padding="longest",
+        truncation="longest_first")
+    print('tokenized_text incoming.....')
+    print(tokenized_text)
+    return tokenized_text
 
   ##
   # LIT API implementation
-  def description(self) -> str:
-    return "T5 for summarization\n" + self.wrapped.description()
-
-  # TODO(b/170662608): remove these after batching API is cleaned up.
   def max_minibatch_size(self) -> int:
-    raise NotImplementedError("Use predict() instead.")
+    # The lit.Model base class handles batching automatically in the
+    # implementation of predict(), and uses this value as the batch size.
+    return 8
 
   def predict_minibatch(self, inputs):
-    raise NotImplementedError("Use predict() instead.")
-
-  def predict(self, inputs):
     """Predict on a single minibatch of examples."""
-    inputs = list(inputs)  # needs to be referenced below, so keep full list
-    model_inputs = (self.preprocess(ex) for ex in inputs)
-    outputs = self.wrapped.predict(model_inputs)
-    outputs = (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
+    # If input has a 'tokens' field, use that. Otherwise tokenize the text.
+    new_input = []
+    for  i in inputs:
+        new_input.append(i['question']+ i['context'])
 
-    # TODO(gehrmann): temp solution to get ROUGE scores in data table.
-    for ex, mo in zip(inputs, outputs):
-      score = self._scorer.score(
-          target=ex["question"],
-          prediction=self._get_pred_string(mo["output_text"]))
-      mo["rougeL"] = float(score["rougeL"].fmeasure)
-      yield mo
+    for i in new_input:
+        tokenized_texts = self.tokenizer(i,return_tensors='jax')
+    
+    encoded_input = self.model(**tokenized_texts)
 
-  def predict_with_metadata(self, indexed_inputs):
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex["data"] for ex in indexed_inputs))
+    print('encoded_input printing below...')
+    print(encoded_input)
+    # out.logits is a single tensor
+    #    <float32>[batch_size, num_tokens, vocab_size]
+    # out.hidden_states is a list of num_layers + 1 tensors, each
+    #    <float32>[batch_size, num_tokens, h_dim]
+    out: transformers.modeling_tf_outputs.TFMaskedLMOutput = \
+        self.model(encoded_input)
+    batched_outputs = {
+        "probas": tf.nn.softmax(out.logits, axis=-1).numpy(),
+        "input_ids": encoded_input["input_ids"].numpy(),
+        "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1).numpy(),
+        # last layer, first token
+        "cls_emb": out.hidden_states[-1][:, 0].numpy(),
+    }
+    # List of dicts, one per example.
+    unbatched_outputs = utils.unbatch_preds(batched_outputs)
+    # Postprocess to remove padding and decode predictions.
+    return map(self._postprocess, unbatched_outputs)
 
   def input_spec(self):
-    return lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
+    return {
+        "context": lit_types.TextSegment(),
+        "question": lit_types.TextSegment(required=False),
+    }
 
   def output_spec(self):
-    spec = lit_types.remap_spec(self.wrapped.output_spec(), self.FIELD_RENAMES)
+    spec = spec = {
+        "output_text": lit_types.GeneratedText(parent="question")
+    }
     spec["rougeL"] = lit_types.Scalar()
     return spec

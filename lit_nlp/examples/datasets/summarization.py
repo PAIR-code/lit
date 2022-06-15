@@ -42,7 +42,7 @@ class TYDIQA(lit_dataset.Dataset):
     # populate this with data records
     self._examples = [{
       'context': row['context'],
-      'question': 'question: ' + row['question'],
+      'question': row['question'],
     } for _, row in df.iterrows()]
 
   def spec(self) -> lit_types.Spec:
