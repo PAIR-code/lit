@@ -91,7 +91,7 @@ def build_indexer(models):
   # easier after we remap the model specs, so it doesn't try to cross-index
   # between the summarization model and the MT data.
   index_models = {
-      k: m for k, m in models.items() if isinstance(m, tydi.SummarizationWrapper)
+      k: m for k, m in models.items() if isinstance(m, tydi.TydiModel)
   }
   # Set up the Indexer, building index if necessary (this may be slow).
   return index.Indexer(
@@ -113,7 +113,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = tydi.TydiWrapper(
+    models[model_name] = tydi.TydiModel(
           model=model_name_or_path,
           model_name=model_name_or_path,
           num_to_generate=_NUM_TO_GEN.value,

@@ -82,7 +82,7 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
 
   return model
 
-class TydiWrapper(lit_model.Model):
+class TydiModel(lit_model.Model):
   """Wrapper class to perform a summarization task."""
 
   # Mapping from generic T5 fields to this task
@@ -151,25 +151,23 @@ class TydiWrapper(lit_model.Model):
         attention_mask=encoded_inputs["attention_mask"]
         )
     
-    # after here I'm trying to replicate collab notebook's result
+    # after here I'm trying to replicate collab notebook's result for JAX
+
     # start_scores = results.start_logits
     # end_scores = results.end_logits
     # answer_start_index = results.start_logits.argmax()
     # answer_end_index = results.end_logits.argmax()
     # predict_answer_tokens = results.input_ids[0, answer_start_index : answer_end_index + 1]
-    # # generates answer text
+    #    # generates answer text
     # tokenizer.decode(predict_answer_tokens)
 
-    model_probs = tf.nn.softmax(results.logits, axis=-1)
-    top_k = tf.math.top_k(
-        model_probs, k=self.config.token_top_k, sorted=True, name=None)
+    start_scores = results.start_logits
+    end_scores = results.end_logits
     batched_outputs = {
         "input_ids": encoded_inputs["input_ids"],
         "input_ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
-        # "target_ids": encoded_targets["input_ids"],
-        # "target_ntok": tf.reduce_sum(encoded_targets["attention_mask"], axis=1),
-        "top_k_indices": top_k.indices,
-        "top_k_probs": top_k.values,
+        "answer_start_index": start_scores.argmax(),
+        "answer_end_index": end_scores.argmax(),
     }
     # encoder_last_hidden_state is <float>[batch_size, num_tokens, emb_dim]
     # take the mean over real tokens to get <float>[batch_size, emb_dim]
@@ -183,7 +181,8 @@ class TydiWrapper(lit_model.Model):
       for i in range(len(results.encoder_attentions)):
         batched_outputs[
             f"encoder_layer_{i+1:d}_attention"] = results.encoder_attentions[i]
-    print("Batched_outputs incoming.........")
+    
+    print("Batched_outputs printing below.........")
     print(batched_outputs)
     return batched_outputs
   ##
