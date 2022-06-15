@@ -126,9 +126,6 @@ class TydiModel(lit_model.Model):
           return_tensors="jax",
           padding="longest",
           truncation="longest_first")
-  def _detokenize(self, ids):
-    tokens = self.tokenizer.convert_ids_to_tokens(ids)
-    return [self.clean_bpe_token(t) for t in tokens]
 
   def _force_decode(self, encoded_inputs):
     """Get predictions for a batch of tokenized examples need to follow same thing as for tensorflow and trying to 
