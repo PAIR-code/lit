@@ -135,10 +135,6 @@ class TydiModel(lit_model.Model):
     convert it to jax. Jax output is not same it gives only:
     start_logits, end_logits, hiden stages and attentions
 
-
-    The two optional attention fields are only returned if
-    config.output_attention is set.
-
     Args:
       encoded_inputs: Dict as returned from Tokenizer for inputs.
 
@@ -169,11 +165,6 @@ class TydiModel(lit_model.Model):
         "answer_start_index": start_scores.argmax(),
         "answer_end_index": end_scores.argmax(),
     }
-    # encoder_last_hidden_state is <float>[batch_size, num_tokens, emb_dim]
-    # take the mean over real tokens to get <float>[batch_size, emb_dim]
-    batched_outputs["encoder_final_embedding"] = masked_token_mean(
-        results.encoder_last_hidden_state, encoded_inputs["attention_mask"])
-
     if self.config.output_attention:
       for i in range(len(results.decoder_attentions)):
         batched_outputs[
