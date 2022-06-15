@@ -186,15 +186,18 @@ class TydiModel(lit_model.Model):
     new_input = []
     for  i in inputs:
         new_input.append(i['question']+ i['context'])
-
     encoded_inputs = self._encode_texts(new_input)
-    
     # Get the predictions.
     batched_outputs = self._force_decode(encoded_inputs)
 
     # Convert to numpy for post-processing ... this doesn't work for jax
-    # detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    # Instead of the above I am trying to implement something like this below for jax
+    # ---->
+    # predict_answer_tokens = results.input_ids[0, answer_start_index : answer_end_index + 1]
+    #    # generates answer text
+    # tokenizer.decode(predict_answer_tokens)
+    
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
     return map(self._postprocess, unbatched_outputs)
