@@ -131,7 +131,10 @@ class TydiWrapper(lit_model.Model):
     return [self.clean_bpe_token(t) for t in tokens]
 
   def _force_decode(self, encoded_inputs):
-    """Get predictions for a batch of tokenized examples.
+    """Get predictions for a batch of tokenized examples need to follow same thing as for tensorflow and trying to 
+    convert it to jax. Jax output is not same it gives only:
+    start_logits, end_logits, hiden stages and attentions
+
 
     Each forward pass produces the following(this is only for tensorflow not jax):
       logits: batch_size x dec_len x vocab_size
