@@ -82,7 +82,7 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
 
   return model
 
-class SummarizationWrapper(lit_model.Model):
+class TydiWrapper(lit_model.Model):
   """Wrapper class to perform a summarization task."""
 
   # Mapping from generic T5 fields to this task
