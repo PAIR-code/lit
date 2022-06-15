@@ -110,6 +110,7 @@ class TydiWrapper(lit_model.Model):
         model_name,
         output_hidden_states=True,
         output_attentions=True)
+
     # # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
     # If output is List[(str, score)] instead of just str
@@ -125,7 +126,6 @@ class TydiWrapper(lit_model.Model):
           return_tensors="jax",
           padding="longest",
           truncation="longest_first")
-  
   def _detokenize(self, ids):
     tokens = self.tokenizer.convert_ids_to_tokens(ids)
     return [self.clean_bpe_token(t) for t in tokens]
@@ -136,19 +136,6 @@ class TydiWrapper(lit_model.Model):
     start_logits, end_logits, hiden stages and attentions
 
 
-    Each forward pass produces the following(this is only for tensorflow not jax):
-      logits: batch_size x dec_len x vocab_size
-      decoder_past_key_value_states: tuple with cached outputs.
-      dec_states: tuple[len:dec_layers]:
-                  batch_size x dec_len x hid_size
-      dec_attn: [optional] tuple[len:dec_layers+1]
-                batch_size x num_heads x dec_len x dec_len
-      enc_final_state: batch_size x enc_len x hid_size
-      enc_states: tuple[len:enc_layers]:
-                  batch_size x enc_len x hid_size
-      enc_attn: [optional] tuple[len:enc_layers+1]
-                batch_size x num_heads x enc_len x enc_len
-
     The two optional attention fields are only returned if
     config.output_attention is set.
 
@@ -158,10 +145,20 @@ class TydiWrapper(lit_model.Model):
     Returns:
       batched_outputs: Dict[str, jax]
     """
-    results = self.model(
+    m = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
+    results = m(
         input_ids=encoded_inputs["input_ids"],
         attention_mask=encoded_inputs["attention_mask"]
         )
+    
+    # after here I'm trying to replicate collab notebook's result
+    # start_scores = results.start_logits
+    # end_scores = results.end_logits
+    # answer_start_index = results.start_logits.argmax()
+    # answer_end_index = results.end_logits.argmax()
+    # predict_answer_tokens = results.input_ids[0, answer_start_index : answer_end_index + 1]
+    # # generates answer text
+    # tokenizer.decode(predict_answer_tokens)
 
     model_probs = tf.nn.softmax(results.logits, axis=-1)
     top_k = tf.math.top_k(
@@ -206,8 +203,6 @@ class TydiWrapper(lit_model.Model):
         new_input.append(i['question']+ i['context'])
 
     encoded_inputs = self._encode_texts(new_input)
-    print('encoded_inputs printing below..')
-    print(encoded_inputs)
     
     # Get the predictions.
     batched_outputs = self._force_decode(encoded_inputs)
