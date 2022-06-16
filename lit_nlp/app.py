@@ -499,16 +499,11 @@ class LitApp(object):
           'tcav': tcav.TCAV(),
           'curves': curves.CurvesInterpreter(),
           'thresholder': thresholder.Thresholder(),
-          'nearest neighbors': nearest_neighbors.NearestNeighbors(),
           'metrics': metrics_group,
           'pdp': pdp.PdpInterpreter(),
           'Salience Clustering': salience_clustering.SalienceClustering(
               gradient_map_interpreters),
           'Tabular SHAP': shap_explainer.TabularShapExplainer(),
-          # Embedding projectors expose a standard interface, but get special
-          # handling so we can precompute the projections if requested.
-          'pca': projection.ProjectionManager(pca.PCAModel),
-          'umap': projection.ProjectionManager(umap.UmapModel),
       }
       # pyformat: enable
       self._interpreters.update(gradient_map_interpreters)
@@ -518,8 +513,17 @@ class LitApp(object):
         'classification': classification_results.ClassificationInterpreter(),
         'regression': regression_results.RegressionInterpreter(),
     }
+    # Ensure the embedding-based interpreters are included.
+    embedding_based_interpreters = {
+        'nearest neighbors': nearest_neighbors.NearestNeighbors(),
+        # Embedding projectors expose a standard interface, but get special
+        # handling so we can precompute the projections if requested.
+        'pca': projection.ProjectionManager(pca.PCAModel),
+        'umap': projection.ProjectionManager(umap.UmapModel),
+    }
     self._interpreters = dict(
-        **self._interpreters, **prediction_analysis_interpreters)
+        **self._interpreters, **prediction_analysis_interpreters,
+        **embedding_based_interpreters)
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
