@@ -2,8 +2,7 @@ r"""Example demo loading a T5 model.
 
 To run locally with a small number of examples:
   python -m lit_nlp.examples.tydi_demo \
-      --alsologtostderr --port=5432 --max_examples=10 \
-      --nouse_indexer
+      --alsologtostderr --port=5432 --max_examples=10
 
 To run using the nearest-neighbor lookup index (warning, this will take a while
 to load):
@@ -23,11 +22,8 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.api import layout
 from lit_nlp.components import word_replacer
-from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import summarization
-from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.models import tydi
 
 # NOTE: additional flags defined in server_flags.py
@@ -54,32 +50,6 @@ _LOAD_BWB = flags.DEFINE_bool(
     "load_bwb", False,
     "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
 )
-
-# Custom frontend layout; see api/layout.py
-modules = layout.LitModuleName
-LM_LAYOUT = layout.LitCanonicalLayout(
-    upper={
-        "Main": [
-            modules.EmbeddingsModule,
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-            modules.SliceModule,
-            modules.ColorModule,
-        ]
-    },
-    lower={
-        "Predictions": [
-            modules.LanguageModelPredictionModule,
-            modules.ConfusionMatrixModule,
-        ],
-        "Counterfactuals": [modules.GeneratorModule],
-    },
-    description="Custom layout for language models.",
-)
-CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
-
-# You can also change this via URL param e.g. localhost:5432/?layout=default
-FLAGS.set_default("default_layout", "lm")
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
@@ -125,7 +95,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       models,
       datasets,
       generators=generators,
-      layouts=CUSTOM_LAYOUTS,
       **server_flags.get_flags())
   return lit_demo.serve()
 
