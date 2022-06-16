@@ -137,7 +137,7 @@ class TydiModel(lit_model.Model):
         question.append(i['question'])
         context.append(i['context'])
 
-    prediction = []
+    prediction_output = []
     for i in range(len(inputs)):
         model = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
         inputs = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
@@ -149,11 +149,17 @@ class TydiModel(lit_model.Model):
 
         predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
 
-        prediction.append(self.tokenizer.decode(predict_answer_tokens))
+        # creating output DIct
+        output = {
+            "output_text" : self.tokenizer.decode(predict_answer_tokens)
+        }
+        prediction_output.append(output)
+    
     print('Predictions for the data is---->/n')
-    print(prediction)
+    print(prediction_output)
+
     # returning list of prediction
-    return prediction
+    return prediction_output
     
 
   def input_spec(self):
