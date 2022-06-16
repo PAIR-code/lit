@@ -119,58 +119,6 @@ class TydiModel(lit_model.Model):
     self._get_pred_string = (
         lit_types.GeneratedTextCandidates.top_text if self._multi_output else
         (lambda x: x))
-
-  def _encode_texts(self, texts: List[str]):
-      return self.tokenizer.batch_encode_plus(
-          texts,
-          return_tensors="jax",
-          padding="longest",
-          truncation="longest_first")
-
-  def _force_decode(self, encoded_inputs):
-    """Get predictions for a batch of tokenized examples need to follow same thing as for tensorflow and trying to 
-    convert it to jax. Jax output is not same it gives only:
-    start_logits, end_logits, hiden stages and attentions
-
-    Args:
-      encoded_inputs: Dict as returned from Tokenizer for inputs.
-
-    Returns:
-      batched_outputs: Dict[str, jax]
-    """
-    m = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
-    results = m(
-        input_ids=encoded_inputs["input_ids"],
-        attention_mask=encoded_inputs["attention_mask"]
-        )
-    
-    # after here I'm trying to replicate collab notebook's result for JAX
-
-    # start_scores = results.start_logits
-    # end_scores = results.end_logits
-    # answer_start_index = results.start_logits.argmax()
-    # answer_end_index = results.end_logits.argmax()
-    # predict_answer_tokens = results.input_ids[0, answer_start_index : answer_end_index + 1]
-    #    # generates answer text
-    # tokenizer.decode(predict_answer_tokens)
-
-    start_scores = results.start_logits
-    end_scores = results.end_logits
-    batched_outputs = {
-        "input_ids": encoded_inputs["input_ids"],
-        "input_ntok": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
-        "answer_start_index": start_scores.argmax(),
-        "answer_end_index": end_scores.argmax(),
-    }
-    if self.config.output_attention:
-      for i in range(len(results.decoder_attentions)):
-        batched_outputs[
-            f"decoder_layer_{i+1:d}_attention"] = results.decoder_attentions[i]
-      for i in range(len(results.encoder_attentions)):
-        batched_outputs[
-            f"encoder_layer_{i+1:d}_attention"] = results.encoder_attentions[i]
-    
-    return batched_outputs
   ##
   # LIT API implementation
   def max_minibatch_size(self) -> int:
@@ -180,27 +128,33 @@ class TydiModel(lit_model.Model):
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
-    # If input has a 'tokens' field, use that. Otherwise tokenize the text.
+    # tokenize the text. -> then return prediction
   
     # Text as sequence of sentencepiece ID"s.
-    new_input = []
-    for  i in inputs:
-        new_input.append(i['question']+ i['context'])
-    encoded_inputs = self._encode_texts(new_input)
-    # Get the predictions.
-    batched_outputs = self._force_decode(encoded_inputs)
+    context =[]
+    question = []
+    for i in inputs:
+        question.append(i['question'])
+        context.append(i['context'])
 
-    # Convert to numpy for post-processing ... this doesn't work for jax
-    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
-    # Instead of the above I am trying to implement something like this below for jax
-    # ---->
-    # predict_answer_tokens = results.input_ids[0, answer_start_index : answer_end_index + 1]
-    #    # generates answer text
-    # tokenizer.decode(predict_answer_tokens)
+    prediction = []
+    for i in range(len(inputs)):
+        model = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
+        inputs = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
+        outputs = model(**inputs)
+
+        answer_start_index = outputs.start_logits.argmax()
+
+        answer_end_index = outputs.end_logits.argmax()
+
+        predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
+
+        prediction.append(self.tokenizer.decode(predict_answer_tokens))
+    print('Predictions for the data is---->/n')
+    print(prediction)
+    # returning list of prediction
+    return prediction
     
-    # Split up batched outputs, then post-process each example.
-    unbatched_outputs = utils.unbatch_preds(detached_outputs)
-    return map(self._postprocess, unbatched_outputs)
 
   def input_spec(self):
     return {
