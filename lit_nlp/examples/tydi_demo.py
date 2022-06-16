@@ -23,95 +23,81 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.components import index
-from lit_nlp.components import similarity_searcher
+from lit_nlp.api import layout
 from lit_nlp.components import word_replacer
-from lit_nlp.examples.datasets import mt
+from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import summarization
+from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.models import tydi
-from lit_nlp.lib import caching  # for hash id fn
 
 # NOTE: additional flags defined in server_flags.py
-
-_MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 200,
-    "Maximum number of examples to load from the development set.")
-
-_MAX_INDEX_EXAMPLES = flags.DEFINE_integer(
-    "max_index_examples", 2000,
-    "Maximum number of examples to index from the train set.")
-
-_MODELS = flags.DEFINE_list("models", ["mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"], "Which model(s) to load.")
-_TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
-                           "Which task(s) to load.")
-
-_TOKEN_TOP_K = flags.DEFINE_integer(
-    "token_top_k", 10, "Rank to which the output distribution is pruned.")
-_NUM_TO_GEN = flags.DEFINE_integer(
-    "num_to_generate", 4, "Number of generations to produce for each input.")
-
-##
-# Options for nearest-neighbor indexer.
-_USE_INDEXER = flags.DEFINE_boolean(
-    "use_indexer", True, "If true, will use the nearest neighbor index.")
-_INITIALIZE_INDEX = flags.DEFINE_boolean(
-    "initialize_index", True,
-    "If the flag is set, it builds the nearest neighbor index before starting "
-    "the server. If false, will look for one in --data_dir. No effect if "
-    "--use_indexer is False.")
 
 FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
+_MODELS = flags.DEFINE_list(
+    "models", ["mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"],
+    "Models to load")
+_NUM_TO_GEN = flags.DEFINE_integer(
+    "num_to_generate", 4, "Number of generations to produce for each input.")
+
+_TOKEN_TOP_K = flags.DEFINE_integer(
+    "token_top_k", 10, "Rank to which the output distribution is pruned.")
+
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    "max_examples", 1000,
+    "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
+)
+
+_LOAD_BWB = flags.DEFINE_bool(
+    "load_bwb", False,
+    "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
+)
+
+# Custom frontend layout; see api/layout.py
+modules = layout.LitModuleName
+LM_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+            modules.SliceModule,
+            modules.ColorModule,
+        ]
+    },
+    lower={
+        "Predictions": [
+            modules.LanguageModelPredictionModule,
+            modules.ConfusionMatrixModule,
+        ],
+        "Counterfactuals": [modules.GeneratorModule],
+    },
+    description="Custom layout for language models.",
+)
+CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
+
+# You can also change this via URL param e.g. localhost:5432/?layout=default
+FLAGS.set_default("default_layout", "lm")
+
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
-  FLAGS.set_default("data_dir", "./t5_data/")
-  FLAGS.set_default("initialize_index", False)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
   return main(unused)
 
 
-def build_indexer(models):
-  """Build nearest-neighbor indices."""
-  assert FLAGS.data_dir, "--data_dir must be set to use the indexer."
-  # Datasets for indexer - this one loads the training corpus instead of val.
-  index_datasets = {
-      "tydi_qa":
-          summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value),
-  }
-  index_datasets = lit_dataset.IndexedDataset.index_all(index_datasets,
-                                                        caching.input_hash)
-  # TODO(lit-dev): add training data and indexing for MT task. This will be
-  # easier after we remap the model specs, so it doesn't try to cross-index
-  # between the summarization model and the MT data.
-  index_models = {
-      k: m for k, m in models.items() if isinstance(m, tydi.TydiModel)
-  }
-  # Set up the Indexer, building index if necessary (this may be slow).
-  return index.Indexer(
-      datasets=index_datasets,
-      models=index_models,
-      data_dir=FLAGS.data_dir,
-      initialize_new_indices=_INITIALIZE_INDEX.value)
-
-
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
+
   ##
-  # Load models. You can specify several here, if you want to compare different
-  # models side-by-side, and can also include models of different types that use
-  # different datasets.
+  # Load models, according to the --models flag.
   models = {}
-  datasets = {
-  "tydi_qa": summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value)
-}
   for model_name_or_path in _MODELS.value:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
@@ -122,52 +108,25 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
           output_attention=False)
-    datasets["tydi_qa"] = summarization.TYDIQA(
-        split="validation-en", max_examples=_MAX_EXAMPLES.value)
-  ##
-  # Load eval sets and model wrappers for each task.
-  # Model wrappers share the same in-memory T5 model, but add task-specific pre-
-  # and post-processing code.
-  
- 
 
-  # if "summarization" in _TASKS.value:
-  #   for k, m in models.items():
-  #     models[k + "_summarization"] = tydi.TydiModel(m)
-  #   datasets["tydi_qa"] = summarization.TYDIQA(
-  #       split="validation-en", max_examples=_MAX_EXAMPLES.value)
+  datasets = {
+      "tydi_qa": summarization.TYDIQA(
+        split="validation-en", max_examples=_MAX_EXAMPLES.value),
 
-  # if "mt" in _TASKS.value:
-  #   for k, m in base_models.items():
-  #     models[k + "_translation"] = t5.TranslationWrapper(m)
-  #   datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
-  #   datasets["wmt14_ende"] = mt.WMT14Data(version="de-en", reverse=True)
-
-  # Truncate datasets if --max_examples is set.
-  for name in datasets:
-    logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
-    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
-    logging.info("  truncated to %d examples", len(datasets[name]))
-
-  ##
-  # We can also add custom components. Generators are used to create new
-  # examples by perturbing or modifying existing ones.
-  generators = {
-      # Word-substitution, like "great" -> "terrible"
-      "word_replacer": word_replacer.WordReplacer(),
   }
 
-  if _USE_INDEXER.value:
-    indexer = build_indexer(models)
-    # Wrap the indexer into a Generator component that we can query.
-    generators["similarity_searcher"] = similarity_searcher.SimilaritySearcher(
-        indexer=indexer)
+  for name in datasets:
+    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
+    logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
 
-  ##
-  # Actually start the LIT server, using the models, datasets, and other
-  # components constructed above.
+  generators = {"word_replacer": word_replacer.WordReplacer()}
+
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 
