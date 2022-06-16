@@ -109,6 +109,9 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # models side-by-side, and can also include models of different types that use
   # different datasets.
   models = {}
+  datasets = {
+  "tydi_qa": summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value)
+}
   for model_name_or_path in _MODELS.value:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
@@ -119,19 +122,18 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
           output_attention=False)
-
+    datasets["tydi_qa"] = summarization.TYDIQA(
+        split="validation-en", max_examples=_MAX_EXAMPLES.value)
   ##
   # Load eval sets and model wrappers for each task.
   # Model wrappers share the same in-memory T5 model, but add task-specific pre-
   # and post-processing code.
   
-  datasets = {
-    "TYDIQA": summarization.TYDIQA(split="validation-en", max_examples=_MAX_EXAMPLES.value)
-  }
+ 
 
   # if "summarization" in _TASKS.value:
-  #   for k, m in base_models.items():
-  #     models[k + "_summarization"] = tydi.SummarizationWrapper(m)
+  #   for k, m in models.items():
+  #     models[k + "_summarization"] = tydi.TydiModel(m)
   #   datasets["tydi_qa"] = summarization.TYDIQA(
   #       split="validation-en", max_examples=_MAX_EXAMPLES.value)
 
