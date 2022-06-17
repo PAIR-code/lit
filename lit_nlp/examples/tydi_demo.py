@@ -72,12 +72,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = tydi.TydiModel(
-          model=model_name_or_path,
-          model_name=model_name_or_path,
-          num_to_generate=_NUM_TO_GEN.value,
-          token_top_k=_TOKEN_TOP_K.value,
-          output_attention=False)
+    models[model_name] = tydi.TydiModel(model_name=model_name_or_path)
 
   datasets = {
       "tydi_qa": summarization.TYDIQA(

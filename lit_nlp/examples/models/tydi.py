@@ -12,11 +12,11 @@ import tensorflow as tf
 # tensorflow_text is required for T5 SavedModel
 import tensorflow_text  # pylint: disable=unused-import
 import transformers
-from transformers import BertTokenizer
-from transformers import FlaxBertForQuestionAnswering
 
 from rouge_score import rouge_scorer
 
+BertTokenizer = transformers.BertTokenizer
+FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
 JsonDict = lit_types.JsonDict
 
 
@@ -96,20 +96,15 @@ class TydiModel(lit_model.Model):
 
   def __init__(self, 
               model_name="mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp", 
-              model=FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
-              tokenizer=BertTokenizer.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp"),
+              model=None,
+              tokenizer=None,
               **config_kw):
     super().__init__()
     self.config = T5ModelConfig(**config_kw)
-    self.tokenizer = tokenizer or transformers.AutoTokenizer.from_pretrained(
-        model_name, use_fast=False)
+    self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
-    self.model = model or model_utils.load_pretrained(
-        transformers.TFBertForMaskedLM,
-        model_name,
-        output_hidden_states=True,
-        output_attentions=True)
+    self.model = model or FlaxBertForQuestionAnswering.from_pretrained(model_name)
 
     # # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
@@ -131,29 +126,16 @@ class TydiModel(lit_model.Model):
     # tokenize the text. -> then return prediction
   
     # Text as sequence of sentencepiece ID"s.
-    context =[]
-    question = []
-    for i in inputs:
-        question.append(i['question'])
-        context.append(i['context'])
-
     prediction_output = []
-    for i in range(len(inputs)):
-        model = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
-        inputs = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
-        outputs = model(**inputs)
-
-        answer_start_index = outputs.start_logits.argmax()
-
-        answer_end_index = outputs.end_logits.argmax()
-
-        predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
-
-        # creating output DIct
-        output = {
-            "output_text" : self.tokenizer.decode(predict_answer_tokens)
-        }
-        prediction_output.append(output)
+    for inp in inputs:
+      tokenized = self.tokenizer(inp['question'], inp['context'], return_tensors="jax", padding=True)
+      output = self.model(**tokenized)
+      answer_start_index = output.start_logits.argmax()
+      answer_end_index = output.end_logits.argmax()
+      predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
+      prediction_output.append({
+          "output_text" : self.tokenizer.decode(predict_answer_tokens)
+      })
     
     print('Predictions for the data is---->/n')
     print(prediction_output)
@@ -169,8 +151,7 @@ class TydiModel(lit_model.Model):
     }
 
   def output_spec(self):
-    spec = spec = {
-        "output_text": lit_types.GeneratedText(parent="question")
+    return {
+        "output_text": lit_types.GeneratedText(parent="question"),
+        "rougeL": lit_types.Scalar()
     }
-    spec["rougeL"] = lit_types.Scalar()
-    return spec
