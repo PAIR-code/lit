@@ -23,7 +23,7 @@ from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.components import word_replacer
-from lit_nlp.examples.datasets import summarization
+from lit_nlp.examples.datasets import question_answering
 from lit_nlp.examples.models import tydi
 
 # NOTE: additional flags defined in server_flags.py
@@ -72,10 +72,10 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = tydi.TydiModel(model_name=model_name_or_path)
+    models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
 
   datasets = {
-      "tydi_qa": summarization.TYDIQA(
+      "tydi_qa": question_answering.TyDiQA(
         split="validation-en", max_examples=_MAX_EXAMPLES.value),
 
   }

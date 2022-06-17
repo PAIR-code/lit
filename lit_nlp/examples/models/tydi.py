@@ -82,8 +82,8 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
 
   return model
 
-class TydiModel(lit_model.Model):
-  """Wrapper class to perform a summarization task."""
+class TyDiModel(lit_model.Model):
+  """Question Answering Jax model based on TyDiQA Dataset ."""
 
   # Mapping from generic T5 fields to this task
   FIELD_RENAMES = {
@@ -104,6 +104,7 @@ class TydiModel(lit_model.Model):
     self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
+    
     self.model = model or FlaxBertForQuestionAnswering.from_pretrained(model_name)
 
     # # TODO(gehrmann): temp solution for ROUGE.
@@ -126,16 +127,29 @@ class TydiModel(lit_model.Model):
     # tokenize the text. -> then return prediction
   
     # Text as sequence of sentencepiece ID"s.
+    context =[]
+    question = []
+    for i in inputs:
+        question.append(i['question'])
+        context.append(i['context'])
+
     prediction_output = []
-    for inp in inputs:
-      tokenized = self.tokenizer(inp['question'], inp['context'], return_tensors="jax", padding=True)
-      output = self.model(**tokenized)
-      answer_start_index = output.start_logits.argmax()
-      answer_end_index = output.end_logits.argmax()
-      predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
-      prediction_output.append({
-          "output_text" : self.tokenizer.decode(predict_answer_tokens)
-      })
+    for i in range(len(inputs)):
+        model = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
+        inputs = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
+        outputs = model(**inputs)
+
+        answer_start_index = outputs.start_logits.argmax()
+
+        answer_end_index = outputs.end_logits.argmax()
+
+        predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
+
+        # creating output DIct
+        output = {
+            "output_text" : self.tokenizer.decode(predict_answer_tokens)
+        }
+        prediction_output.append(output)
     
     print('Predictions for the data is---->/n')
     print(prediction_output)
