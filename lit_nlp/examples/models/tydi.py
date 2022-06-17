@@ -134,29 +134,35 @@ class TyDiModel(lit_model.Model):
         context.append(i['context'])
 
     prediction_output = []
+
     for i in range(len(inputs)):
-        model = FlaxBertForQuestionAnswering.from_pretrained("mrm8488/bert-multi-cased-finedtuned-xquad-tydiqa-goldp")
-        inputs = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
-        outputs = model(**inputs)
+    
+        tokenized_text = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
+        outputs = self.model(**tokenized_text, output_attentions=True, output_hidden_states=True)
 
         answer_start_index = outputs.start_logits.argmax()
 
         answer_end_index = outputs.end_logits.argmax()
 
-        predict_answer_tokens = inputs.input_ids[0, answer_start_index : answer_end_index + 1]
+        predict_answer_tokens = tokenized_text.input_ids[0, answer_start_index : answer_end_index + 1]
 
-        # creating output DIct
+        # creating output Dict
         output = {
-            "output_text" : self.tokenizer.decode(predict_answer_tokens)
+            "output_text" : self.tokenizer.decode(predict_answer_tokens),
         }
         prediction_output.append(output)
-    
+        
     print('Predictions for the data is---->/n')
     print(prediction_output)
 
-    # returning list of prediction
-    return prediction_output
-    
+    #  Scalar Score
+    for ex, mo in zip(inputs, prediction_output):
+      score = self._scorer.score(
+          target=ex["context"],
+          prediction=self._get_pred_string(mo["output_text"]))
+      mo["rougeL"] = float(score["rougeL"].fmeasure)
+      yield mo
+
 
   def input_spec(self):
     return {
@@ -169,3 +175,4 @@ class TyDiModel(lit_model.Model):
         "output_text": lit_types.GeneratedText(parent="question"),
         "rougeL": lit_types.Scalar()
     }
+  
