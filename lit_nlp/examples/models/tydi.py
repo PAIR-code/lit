@@ -20,68 +20,6 @@ FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
 JsonDict = lit_types.JsonDict
 
 
-def masked_token_mean(vectors, masks):
-  """Mean over tokens.
-
-  Args:
-    vectors: <tf.float32>[batch_size, num_tokens, emb_dim]
-    masks: <tf.int32>[batch_size, num_tokens]
-
-  Returns:
-    <tf.float32>[batch_size, emb_dim]
-  """
-  masks = tf.cast(masks, tf.float32)
-  weights = masks / tf.reduce_sum(masks, axis=1, keepdims=True)
-  return tf.reduce_sum(vectors * tf.expand_dims(weights, axis=-1), axis=1)
-
-
-@attr.s(auto_attribs=True, kw_only=True)
-class T5ModelConfig(object):
-  """Config options for a T5 generation model."""
-  # Input options
-  inference_batch_size: int = 4
-  # Generation options
-  beam_size: int = 4
-  max_gen_length: int = 50
-  num_to_generate: int = 1
-  # Decoding options
-  token_top_k: int = 10
-  output_attention: bool = False
-
-
-def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
-  """Validate that a given model looks like a T5 model.
-
-  This checks the model spec at runtime; it is intended to be used before server
-  start, such as in the __init__() method of a wrapper class.
-
-  Args:
-    model: a LIT model
-
-  Returns:
-    model: the same model
-
-  Raises:
-    AssertionError: if the model's spec does not match that expected for a T5
-    model.
-  """
-  # Check inputs
-  ispec = model.input_spec()
-  assert "input_text" in ispec
-  assert isinstance(ispec["input_text"], lit_types.TextSegment)
-  if "target_text" in ispec:
-    assert isinstance(ispec["target_text"], lit_types.TextSegment)
-
-  # Check outputs
-  ospec = model.output_spec()
-  assert "output_text" in ospec
-  assert isinstance(
-      ospec["output_text"],
-      (lit_types.GeneratedText, lit_types.GeneratedTextCandidates))
-  assert ospec["output_text"].parent == "target_text"
-
-  return model
-
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
 
@@ -100,7 +38,7 @@ class TyDiModel(lit_model.Model):
               tokenizer=None,
               **config_kw):
     super().__init__()
-    self.config = T5ModelConfig(**config_kw)
+    # self.config = TyDiModelConfig(**config_kw)
     self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
@@ -120,7 +58,7 @@ class TyDiModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
-    return self.config.inference_batch_size
+    return 8
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
@@ -138,11 +76,11 @@ class TyDiModel(lit_model.Model):
     for i in range(len(inputs)):
     
         tokenized_text = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
-        outputs = self.model(**tokenized_text, output_attentions=True, output_hidden_states=True)
+        results = self.model(**tokenized_text, output_attentions=True, output_hidden_states=True)
 
-        answer_start_index = outputs.start_logits.argmax()
+        answer_start_index = results.start_logits.argmax()
 
-        answer_end_index = outputs.end_logits.argmax()
+        answer_end_index = results.end_logits.argmax()
 
         predict_answer_tokens = tokenized_text.input_ids[0, answer_start_index : answer_end_index + 1]
 
@@ -151,11 +89,15 @@ class TyDiModel(lit_model.Model):
             "output_text" : self.tokenizer.decode(predict_answer_tokens),
         }
         prediction_output.append(output)
-        
-    print('Predictions for the data is---->/n')
-    print(prediction_output)
+    # for i, layer_attention in enumerate(results.attentions):
+    #       output[f"layer_{i}/attention"] = layer_attention
+    #       prediction_output.append(output)
 
-    #  Scalar Score
+
+    print('Predictions for the data is---->/n')
+    # print(prediction_output)
+
+    # Getting ROUGE scores
     for ex, mo in zip(inputs, prediction_output):
       score = self._scorer.score(
           target=ex["context"],
@@ -171,8 +113,13 @@ class TyDiModel(lit_model.Model):
     }
 
   def output_spec(self):
-    return {
+    ret = {
         "output_text": lit_types.GeneratedText(parent="question"),
-        "rougeL": lit_types.Scalar()
+        "rougeL": lit_types.Scalar(),
+        # "encoder_final_embedding": lit_types.Embeddings(),
     }
+    # for i in range(self.model.config.num_hidden_layers):
+    #   ret[f"layer_{i}/attention"] = lit_types.AttentionHeads(
+    #       align_in="tokens", align_out="tokens")
+    return ret
   
