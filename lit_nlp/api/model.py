@@ -106,6 +106,18 @@ class Model(metaclass=abc.ABCMeta):
     """Maximum minibatch size for this model."""
     return 1
 
+  @property
+  def supports_concurrent_predictions(self):
+    """Indcates support for multiple concurrent predict calls across threads.
+
+    Defaults to false.
+
+    Returns:
+      (bool) True if the model can handle multiple concurrent calls to its
+      `predict_minibatch` method.
+    """
+    return False
+
   @abc.abstractmethod
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     """Run prediction on a batch of inputs.
@@ -239,6 +251,10 @@ class ModelWrapper(Model):
   def max_minibatch_size(self) -> int:
     return self.wrapped.max_minibatch_size()
 
+  @property
+  def supports_concurrent_predictions(self):
+    return self.wrapped.supports_concurrent_predictions
+
   def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
@@ -306,6 +322,11 @@ class BatchedRemoteModel(Model):
   def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model. Subclass can override this."""
     return 1
+
+  @property
+  def supports_concurrent_predictions(self):
+    """Remote models can handle concurrent predictions by default."""
+    return True
 
   @abc.abstractmethod
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:

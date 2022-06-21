@@ -35,6 +35,13 @@ IndexedInput = types.IndexedInput
 # None is used as a sentinel to skip the cache.
 CacheKey = Union[Tuple[Text, Text], None]
 
+# The keys to the prediction locks are frozen sets of CacheKeys.
+PredLockKey = frozenset[CacheKey]
+
+# Special CacheKey to use when a model doesn't allow concurrent predictions.
+PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS: CacheKey = (
+    "NO_CONCURRENT_PREDICTION", "")
+
 
 def input_hash(example: JsonDict) -> Text:
   """Create stable hash of an input example."""
@@ -46,13 +53,19 @@ def input_hash(example: JsonDict) -> Text:
 class PredsCache(object):
   """Cache for model outputs."""
 
-  def __init__(self):
+  def __init__(self, allow_concurrent_predictions: bool = True):
     # TODO(lit-team): consider using a read/write lock, or setting timeouts if
     # contention becomes an issue.
     self._lock = threading.RLock()
     # TODO(lit-dev): consider using an OrderedDict to implement a LRU cache of
     # bounded size.
-    self._d = dict()
+    self._d: dict[CacheKey, Any] = dict()
+
+    self._allow_concurrent_predictions = allow_concurrent_predictions
+
+    # A map of keys needing predictions to a lock for that model predict call.
+    # Used for not duplicating concurrent prediction calls on the same inputs.
+    self._pred_locks: dict[frozenset[CacheKey], threading.RLock] = dict()
 
   @property
   def lock(self):
@@ -73,6 +86,54 @@ class PredsCache(object):
   def info(self) -> Text:
     """Print some info, for logging."""
     return str(len(self._d))
+
+  def _construct_pred_lock_key(self, keys: list[CacheKey]) -> PredLockKey:
+    # If this cache is set up to not allow concurrent predictions, then use the
+    # same key to the predictions lock map regardless of example keys provided.
+    fs = frozenset(keys) if self._allow_concurrent_predictions else frozenset(
+        [PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS])
+    return fs
+
+  def pred_lock_key(self, keys: list[CacheKey]) -> Optional[PredLockKey]:
+    """Get the key for the predictions lock for the provided cache keys."""
+    fs = self._construct_pred_lock_key(keys)
+
+    # If the provided cache keys already have a lock, return the key.
+    if fs in self._pred_locks:
+      return fs
+    # If there is a lock for a superset of the provided cache keys, return the
+    # key to that lock.
+    # This means that requests for subsets of data already being predicted will
+    # wait for the larger set of predictions to complete. This can slow down
+    # certain single-example requests but leads to more efficient use of the
+    # model. We may have duplicate predict calls for an example to a model if
+    # one example is part of separate but distinct predict calls with different
+    # subsets of examples, but this is unlikely given how LIT predict requests
+    # work.
+    for key in self._pred_locks:
+      if fs.issubset(key):
+        return key
+    # Otherwise, return None as there is no lock yet for the provided cache
+    # keys.
+    return None
+
+  def get_pred_lock(self, keys: list[CacheKey]) -> threading.RLock:
+    """Gets the lock for the provided cache keys, creating one if neccessary."""
+    # If the lock already exists for the provided keys, return it.
+    pl_key = self.pred_lock_key(keys)
+    if pl_key:
+      return self._pred_locks[pl_key]
+    # If no such lock exists, create, store and return it.
+    pred_lock = threading.RLock()
+    self._pred_locks[self._construct_pred_lock_key(keys)] = pred_lock
+    return pred_lock
+
+  def delete_pred_lock(self, keys: list[CacheKey]) -> Optional[threading.RLock]:
+    """Remove the lock from the map to clean up, returns it."""
+    pl_key = self.pred_lock_key(keys)
+    if pl_key is None:
+      return None
+    return self._pred_locks.pop(pl_key)
 
   ##
   # For development use
@@ -112,7 +173,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     """
     super().__init__(model)
     self._log_prefix = f"CachingModelWrapper '{name:s}'"
-    self._cache = PredsCache()
+    self._cache = PredsCache(model.supports_concurrent_predictions)
     self._cache_path = None
     if cache_dir:
       self._cache_path = os.path.join(cache_dir, name + ".cache.pkl")
@@ -174,12 +235,12 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   def predict_with_metadata(self, *args, **kw):
     """As predict(), but inputs are IndexedInput."""
-    # Lock for the entire request, to avoid running the model more than once
-    # on the same inputs. This shouldn't cause much of a performance hit, since
-    # models are generally compute-bound anyway.
-    with self._cache.lock:
-      results = self._predict_with_metadata(*args, **kw)
+    results = self._predict_with_metadata(*args, **kw)
     return results
+
+  def _get_results_from_cache(self, input_keys: list[str]):
+    with self._cache.lock:
+      return [self._cache.get(input_key) for input_key in input_keys]
 
   def _predict_with_metadata(self,
                              indexed_inputs: List[JsonDict],
@@ -196,26 +257,40 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
 
     # Try to get results from the cache.
-    results = [self._cache.get(key_fn(d)) for d in indexed_inputs]
-    miss_idxs = [i for i, v in enumerate(results) if v is None]
-    logging.info("%s: misses (dataset=%s): %s", self._log_prefix, dataset_name,
-                 str([indexed_inputs[i]["id"] for i in miss_idxs]))
-    logging.info("%s: %d misses out of %d inputs", self._log_prefix,
-                 len(miss_idxs), len(results))
+    input_keys = [key_fn(d) for d in indexed_inputs]
+    if self._cache.pred_lock_key(input_keys):
+      with self._cache.get_pred_lock(input_keys):
+        results = self._get_results_from_cache(input_keys)
+    else:
+      results = self._get_results_from_cache(input_keys)
 
     # Make a single list of everything that wasn't found in the cache,
-    # and actually run the model on these inputs.
-    model_inputs = [indexed_inputs[i] for i in miss_idxs]
-    logging.info("Prepared %d inputs for model", len(model_inputs))
-    model_preds = list(self.wrapped.predict_with_metadata(model_inputs))
-    logging.info("Received %d predictions from model", len(model_preds))
-    assert len(model_preds) == len(
-        model_inputs
-    ), f"Received {len(model_preds)} predictions, which does not match {len(model_inputs)}, the number of inputs."
+    # to actually run the model on these inputs.
+    miss_idxs = [i for i, v in enumerate(results) if v is None]
+    misses = [indexed_inputs[i] for i in miss_idxs]
+    if misses:
+      logging.info("%s: misses (dataset=%s): %s", self._log_prefix,
+                   dataset_name, str([miss["id"] for miss in misses]))
+      logging.info("%s: %d misses out of %d inputs", self._log_prefix,
+                   len(miss_idxs), len(results))
+    else:
+      # If all results were already cached, return them.
+      return results
 
-    # Merge results back into the output list.
-    for i, orig_idx in enumerate(miss_idxs):
-      self._cache.put(model_preds[i], key_fn(indexed_inputs[orig_idx]))
-      results[orig_idx] = model_preds[i]
+    with self._cache.get_pred_lock(input_keys):
+      model_preds = list(self.wrapped.predict_with_metadata(misses))
+      logging.info("Received %d predictions from model", len(model_preds))
+      assert len(model_preds) == len(
+          misses
+      ), f"Received {len(model_preds)} predictions, which does not match {len(misses)}, the number of inputs."
+
+      # Merge results back into the output list.
+      with self._cache.lock:
+        for i, orig_idx in enumerate(miss_idxs):
+          self._cache.put(model_preds[i], key_fn(indexed_inputs[orig_idx]))
+          results[orig_idx] = model_preds[i]
+
+      # Remove the prediction lock from the cache as the request is complete
+      self._cache.delete_pred_lock(input_keys)
 
     return results
