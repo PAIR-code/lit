@@ -16,7 +16,9 @@ import transformers
 
 from rouge_score import rouge_scorer
 
-
+BertTokenizer = transformers.BertTokenizer
+FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
+JsonDict = lit_types.JsonDict
 
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
