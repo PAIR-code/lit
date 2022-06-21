@@ -91,12 +91,12 @@ class TyDiModel(lit_model.Model):
 
         }
         # Explanation for attentions
-        for j in range(len(results.attentions)):
-          output[f"layer_{j+1:d}_attention"] = str(results.attentions[j])
+        # for j in range(len(results.attentions)):
+        #   output[f"layer_{j+1:d}_attention"] = str(results.attentions[j])
         
-        for j in range(len(results.hidden_states)):
-          output[f"layer_{j:d}_avg_embedding"] = tf.math.reduce_mean(
-              results.hidden_states[i], axis=1)
+        # for j in range(len(results.hidden_states)):
+        #   output[f"layer_{j:d}_avg_embedding"] = tf.math.reduce_mean(
+        #       results.hidden_states[i], axis=1)
         prediction_output.append(output)
 
    
@@ -122,9 +122,9 @@ class TyDiModel(lit_model.Model):
         "tokens": lit_types.Tokens(parent="context"),
     }
     # Add attention and embeddings from each layer.
-    for i in range(self.model.config.num_hidden_layers):
-      ret[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
-          align_in="tokens", align_out="tokens")
-      ret[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
+    # for i in range(self.model.config.num_hidden_layers):
+    #   ret[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
+    #       align_in="tokens", align_out="tokens")
+    #   ret[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
     return ret
   
