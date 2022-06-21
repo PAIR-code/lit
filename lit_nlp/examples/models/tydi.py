@@ -23,11 +23,7 @@ JsonDict = lit_types.JsonDict
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
 
-  # Mapping from generic T5 fields to this task
-  FIELD_RENAMES = {
-      "input_text": "context",
-      "target_text": "question",
-  }
+
   @property
   def max_seq_length(self):
     return self.model.config.max_position_embeddings
