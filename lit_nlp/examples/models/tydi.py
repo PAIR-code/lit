@@ -1,4 +1,4 @@
-"""LIT wrappers for T5, supporting both HuggingFace and SavedModel formats."""
+"""LIT wrappers for TyDiModel"""
 import re
 from typing import List
 
@@ -10,8 +10,7 @@ from lit_nlp.lib import utils
 
 import tensorflow as tf
 import numpy as np
-# tensorflow_text is required for T5 SavedModel
-import tensorflow_text  # pylint: disable=unused-import
+
 import transformers
 
 from rouge_score import rouge_scorer
