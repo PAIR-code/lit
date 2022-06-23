@@ -112,7 +112,7 @@ class TyDiModel(lit_model.Model):
 
   def output_spec(self):
     ret = {
-        "output_text": lit_types.GeneratedText(parent="question"),
+        "output_text": lit_types.GeneratedText(parent="context"),
         "rougeL": lit_types.Scalar(),
         "tokens": lit_types.Tokens(parent="context"),
     }
