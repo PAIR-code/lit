@@ -154,6 +154,12 @@ class TextSegment(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class RepeatedTextSegment(LitType):
+  """Repeated text input (untokenized), as Sequence[Text]."""
+  default: Sequence[Text] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ImageBytes(LitType):
   """An image, an encoded base64 ascii string (starts with 'data:image...')."""
   pass
