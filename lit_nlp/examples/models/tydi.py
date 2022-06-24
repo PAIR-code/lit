@@ -85,13 +85,6 @@ class TyDiModel(lit_model.Model):
             "tokens": self.tokenizer.convert_ids_to_tokens(tokenized_text.input_ids[i]),
 
         }
-        # Explanation for attentions
-        # for j in range(len(results.attentions)):
-        #   output[f"layer_{j+1:d}_attention"] = str(results.attentions[j])
-        
-        # for j in range(len(results.hidden_states)):
-        #   output[f"layer_{j:d}_avg_embedding"] = tf.math.reduce_mean(
-        #       results.hidden_states[i], axis=1)
         prediction_output.append(output)
 
    
