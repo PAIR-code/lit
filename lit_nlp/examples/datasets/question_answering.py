@@ -16,6 +16,7 @@ class TyDiQA(lit_dataset.Dataset):
 
     # populate this with data records
     self._examples = []
+    
     for row in ds.take(max_examples):
       answers_text = row['answers']['text'].numpy()
       answers_start = row['answers']['answer_start'].numpy()
@@ -25,13 +26,16 @@ class TyDiQA(lit_dataset.Dataset):
         span = dtypes.SpanLabel(start, start + len(label))
         answers.append(dtypes.AnnotationCluster(label=label.decode(), spans=[span]))
 
-
-      self._examples = [{
+      self._examples.append({
+        'answers_text': answers,
         'title': row['title'].numpy().decode('utf-8'),
         'context': row['context'].numpy().decode('utf-8'),
         'question': row['question'].numpy().decode('utf-8'),
-        'answers_text': answers,
-      } for row in ds.take(max_examples)]
+      })
+
+
+        
+      
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
