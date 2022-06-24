@@ -23,14 +23,15 @@ class TyDiQA(lit_dataset.Dataset):
 
       for label, start in zip(answers_text, answers_start):
         span = dtypes.SpanLabel(start, start + len(label))
-        answers.append(dtypes.AnnotationCluster(label=label.decode('utf-8'), spans=[span]))
+        answers.append(dtypes.AnnotationCluster(label=label.decode(), spans=[span]))
 
-    self._examples = [{
-      'title': row['title'].numpy().decode('utf-8'),
-      'context': row['context'].numpy().decode('utf-8'),
-      'question': row['question'].numpy().decode('utf-8'),
-      'answers_text': answers,
-    } for row in ds.take(max_examples)]
+
+      self._examples = [{
+        'title': row['title'].numpy().decode('utf-8'),
+        'context': row['context'].numpy().decode('utf-8'),
+        'question': row['question'].numpy().decode('utf-8'),
+        'answers_text': answers,
+      } for row in ds.take(max_examples)]
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
