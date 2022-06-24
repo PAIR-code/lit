@@ -106,20 +106,17 @@ class TyDiModel(lit_model.Model):
 
   def input_spec(self):
     return {
+        "title":lit_types.TextSegment(),
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(required=False),
+        "answers_text": lit_types.MultiSegmentAnnotations() 
     }
 
   def output_spec(self):
-    ret = {
+    return {
         "output_text": lit_types.GeneratedText(parent="context"),
         "rougeL": lit_types.Scalar(),
         "tokens": lit_types.Tokens(parent="context"),
     }
-    # Add attention and embeddings from each layer.
-    # for i in range(self.model.config.num_hidden_layers):
-    #   ret[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
-    #       align_in="tokens", align_out="tokens")
-    #   ret[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
-    return ret
+    
   
