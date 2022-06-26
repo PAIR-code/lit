@@ -18,11 +18,11 @@ class TyDiQA(lit_dataset.Dataset):
     self._examples = []
     for row in ds.take(max_examples):
       answers_text = row['answers']['text'].numpy()
-      answers_start = row['answers']['answer_start'].numpy()
+      answers_start = [row['answers']['answer_start'].numpy()[0]]
       answers = []
 
       for label, start in zip(answers_text, answers_start):
-        span = dtypes.SpanLabel(start, start + len(label))
+        span = dtypes.SpanLabel(start, start + len(label), label.decode(), "context")
         answers.append(dtypes.AnnotationCluster(label=label.decode(), spans=[span]))
 
       self._examples.append({
@@ -42,6 +42,6 @@ class TyDiQA(lit_dataset.Dataset):
         "title":lit_types.TextSegment(),
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
-        "answers_text": lit_types.MultiSegmentAnnotations() 
+        "answers_text": lit_types.MultiSegmentAnnotations(),
 
     }
