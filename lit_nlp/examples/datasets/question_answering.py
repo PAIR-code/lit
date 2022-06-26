@@ -9,14 +9,13 @@ import tensorflow_datasets as tfds
 class TyDiQA(lit_dataset.Dataset):
   """TyDiQA dataset."""
 
-  def __init__(self, split="validation-en", max_examples=-1):
+  def __init__(self, split: str, max_examples=-1):
     """Dataset constructor, loads the data into memory."""
     ds = tfds.load("tydi_qa", split=split)
  
 
     # populate this with data records
     self._examples = []
-    
     for row in ds.take(max_examples):
       answers_text = row['answers']['text'].numpy()
       answers_start = row['answers']['answer_start'].numpy()

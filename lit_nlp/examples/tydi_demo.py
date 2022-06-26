@@ -66,9 +66,24 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
 
   datasets = {
-      "tydi_qa": question_answering.TyDiQA(
+      "TyDiQA-English": question_answering.TyDiQA(
         split="validation-en", max_examples=_MAX_EXAMPLES.value),
-
+      "TyDiQA-Finnish": question_answering.TyDiQA(
+        split="validation-fi", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Arabic": question_answering.TyDiQA(
+        split="validation-ar", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Bengali": question_answering.TyDiQA(
+        split="validation-bn", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Indonesian": question_answering.TyDiQA(
+        split="validation-id", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Korean": question_answering.TyDiQA(
+        split="validation-ko", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Russian": question_answering.TyDiQA(
+        split="validation-ru", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Swahili": question_answering.TyDiQA(
+        split="validation-sw", max_examples=_MAX_EXAMPLES.value),
+      "TyDiQA-Telugu": question_answering.TyDiQA(
+        split="validation-te", max_examples=_MAX_EXAMPLES.value)
   }
 
   for name in datasets:
