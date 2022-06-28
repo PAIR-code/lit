@@ -35,8 +35,6 @@ class TyDiModel(lit_model.Model):
     super().__init__()
     # self.config = TyDiModelConfig(**config_kw)
     self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
-    # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
-    # prediction head as well.
     
     self.model = model or FlaxBertForQuestionAnswering.from_pretrained(model_name)
 
@@ -54,6 +52,9 @@ class TyDiModel(lit_model.Model):
     # The lit.Model base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 8
+
+  # def findSpecKeys(spec, type):
+
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
@@ -84,6 +85,7 @@ class TyDiModel(lit_model.Model):
         # creating output Dict
         output = {
             "generated_text" : self.tokenizer.decode(predict_answer_tokens),
+            "generated_text2" : self.tokenizer.decode(predict_answer_tokens),
             # adding answer_text for debugging
             "answers_text": answers_text[i]
             # "tokens": self.tokenizer.convert_ids_to_tokens(tokenized_text.input_ids[i]),
@@ -92,15 +94,16 @@ class TyDiModel(lit_model.Model):
         prediction_output.append(output)
 
     # printing for debugging
-    print('Answers------->\n')
-    print(prediction_output)
+    # print('Answers------->\n')
+    # print(prediction_output)
+    return prediction_output
     # Getting ROUGE scores
-    for ex, mo in zip(inputs, prediction_output):
-      score = self._scorer.score(
-          target=ex["context"],
-          prediction=self._get_pred_string(mo["generated_text"]))
-      mo["rougeL"] = float(score["rougeL"].fmeasure)
-      yield mo
+    # for ex, mo in zip(inputs, prediction_output):
+    #   score = self._scorer.score(
+    #       target=ex["context"],
+    #       prediction=self._get_pred_string(mo["generated_text"]))
+    #   mo["rougeL"] = float(score["rougeL"].fmeasure)
+    #   yield mo
 
 
   def input_spec(self):
@@ -112,9 +115,11 @@ class TyDiModel(lit_model.Model):
     }
 
   def output_spec(self):
+
     return {
-        "generated_text": lit_types.GeneratedText(parent="context"),
-        "rougeL": lit_types.Scalar(),
+        # "generated_text": lit_types.GeneratedText(parent="context"),
+        # "rougeL": lit_types.Scalar(),
+        "generated_text": lit_types.GeneratedText(parent='answers_text'),
     }
     
   

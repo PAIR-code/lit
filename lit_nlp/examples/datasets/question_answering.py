@@ -22,7 +22,7 @@ class TyDiQA(lit_dataset.Dataset):
       answers = []
 
       for label, start in zip(answers_text, answers_start):
-        span = dtypes.SpanLabel(start, start + len(label), label.decode(), "context")
+        span = dtypes.SpanLabel(start, start + len(label), align= "context")
         answers.append(dtypes.AnnotationCluster(label=label.decode(), spans=[span]))
 
       self._examples.append({

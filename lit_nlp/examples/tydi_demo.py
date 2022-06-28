@@ -86,10 +86,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
         split="validation-te", max_examples=_MAX_EXAMPLES.value)
   }
 
-  for name in datasets:
-    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
-    logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
-
   generators = {"word_replacer": word_replacer.WordReplacer()}
 
   lit_demo = dev_server.Server(

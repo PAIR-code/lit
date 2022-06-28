@@ -227,6 +227,34 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
                                            model_outputs, margin_config)
 
+class ExactMatchMetrics(SimpleMetrics):
+  """Standard regression metrics."""
+
+  def is_compatible(self, model: lit_model.Model) -> bool:
+    """Return true if compatible with this field."""
+    gen_txt_keys = utils.find_spec_keys(model.output_spec(),
+                                        types.GeneratedText)
+    return any([
+      isinstance(model.input_spec()[model.output_spec()[key].parent], types.MultiSegmentAnnotations)
+      for key in gen_txt_keys if model.output_spec()[key].parent
+    ])
+
+  def compute(self,
+              inputs: Sequence[Any],
+              preds: Sequence[Any],
+              label_spec: types.MultiSegmentAnnotations,
+              pred_spec: types.GeneratedText,
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del config
+    if not inputs or not preds:
+      return {}
+  # pseudo code for the class is something like this
+  #  acceptable_answers = # map input['answers'] to a list[str]
+  #  correct = output in acceptable_answers
+  # if correct:
+  #   answer_index = acceptable_answers.index(output)
+    return 0
 
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
