@@ -23,9 +23,6 @@ class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
 
 
-  @property
-  def max_seq_length(self):
-    return self.model.config.max_position_embeddings
 
   def __init__(self, 
               model_name: str, 
@@ -71,39 +68,28 @@ class TyDiModel(lit_model.Model):
 
     prediction_output = []
 
-    for i in range(len(inputs)):
-    
-        tokenized_text = self.tokenizer(question[i], context[i], return_tensors="jax",padding=True)
+    for inp in inputs:
+        tokenized_text = self.tokenizer(inp['question'], inp['context'], return_tensors="jax",padding=True)
         results = self.model(**tokenized_text, output_attentions=True, output_hidden_states=True)
-
         answer_start_index = results.start_logits.argmax()
-
         answer_end_index = results.end_logits.argmax()
-
         predict_answer_tokens = tokenized_text.input_ids[0, answer_start_index : answer_end_index + 1]
-
-        # creating output Dict
         output = {
             "generated_text" : self.tokenizer.decode(predict_answer_tokens),
-            "generated_text2" : self.tokenizer.decode(predict_answer_tokens),
             # adding answer_text for debugging
-            "answers_text": answers_text[i]
+            "answers_text": inp['answers_text']
             # "tokens": self.tokenizer.convert_ids_to_tokens(tokenized_text.input_ids[i]),
-
         }
         prediction_output.append(output)
 
-    # printing for debugging
-    # print('Answers------->\n')
-    # print(prediction_output)
-    return prediction_output
+
     # Getting ROUGE scores
-    # for ex, mo in zip(inputs, prediction_output):
-    #   score = self._scorer.score(
-    #       target=ex["context"],
-    #       prediction=self._get_pred_string(mo["generated_text"]))
-    #   mo["rougeL"] = float(score["rougeL"].fmeasure)
-    #   yield mo
+    for ex, mo in zip(inputs, prediction_output):
+      score = self._scorer.score(
+          target=ex["context"],
+          prediction=self._get_pred_string(mo["generated_text"]))
+      mo["rougeL"] = float(score["rougeL"].fmeasure)
+      yield mo
 
 
   def input_spec(self):
