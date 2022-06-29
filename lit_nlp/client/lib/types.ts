@@ -216,6 +216,19 @@ export function formatEdgeLabel(e: EdgeLabel): string {
 }
 
 /**
+ * Represents an annotation and its score, and the segment(s) is spans.
+ */
+export interface AnnotationCluster {
+  label: string;
+  score?: number;
+  spans: SpanLabel[];
+}
+/** Formats an AnnotationCluster for textual display, e.g., in the DataTable. */
+export function formatAnnotationCluster(ac: AnnotationCluster): string {
+  return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
+}
+
+/**
  * Element of GeneratedTextCandidates and ReferenceTexts fields.
  */
 export type GeneratedTextCandidate = [string, number | null];
@@ -509,6 +522,12 @@ export function formatForDisplay(input: any, fieldSpec?: LitType,
   // Handle EdgeLabels, if field spec given.
   if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
+    return formattedTags.join(', ');
+  }
+  // Handle MultiSegmentAnnotations, if field spec given.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+    const formattedTags =
+        (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');
   }
   const formatNumber = (item: number) =>

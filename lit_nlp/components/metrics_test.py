@@ -94,15 +94,12 @@ class MulticlassMetricsTest(absltest.TestCase):
         ['1', '2', '0', '1'], [[0, 1, 0], [0, 0, 1], [1, 0, 0], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(
-        self, result, {
-            'accuracy': 1.0,
-            'auc': 1.0,
-            'aucpr': 1.0,
-            'f1': 1.0,
-            'precision': 1.0,
-            'recall': 1.0
-        })
+    testing_utils.assert_deep_almost_equal(self, result, {
+        'accuracy': 1.0,
+        'f1': 1.0,
+        'precision': 1.0,
+        'recall': 1.0
+    })
 
   def test_compute_some_incorrect(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
@@ -112,15 +109,12 @@ class MulticlassMetricsTest(absltest.TestCase):
         [[.1, .4, .5], [0, .1, .9], [.1, 0, .9], [0, 1, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(
-        self, result, {
-            'accuracy': 0.5,
-            'auc': 0.828125,
-            'aucpr': .69167,
-            'f1': 0.57143,
-            'precision': 0.5,
-            'recall': 0.66667
-        })
+    testing_utils.assert_deep_almost_equal(self, result, {
+        'accuracy': 0.5,
+        'f1': 0.57143,
+        'precision': 0.5,
+        'recall': 0.66667
+    })
 
   def test_compute_all_incorrect(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
@@ -130,15 +124,12 @@ class MulticlassMetricsTest(absltest.TestCase):
         [[.1, .4, .5], [.2, .7, .1], [.1, 0, .9], [1, 0, 0]],
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2'], null_idx=0))
-    testing_utils.assert_deep_almost_equal(
-        self, result, {
-            'accuracy': 0.0,
-            'auc': 0.3125,
-            'aucpr': 0.3,
-            'f1': 0.0,
-            'precision': 0.0,
-            'recall': 0.0
-        })
+    testing_utils.assert_deep_almost_equal(self, result, {
+        'accuracy': 0.0,
+        'f1': 0.0,
+        'precision': 0.0,
+        'recall': 0.0
+    })
 
   def test_compute_no_null_index(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
@@ -168,7 +159,7 @@ class MulticlassMetricsTest(absltest.TestCase):
             'recall': 1.0
         })
 
-  def test_compute_almost_correct_single_class_with_null_idx(self):
+  def test_compute_almost_correct_single_class_with_null_idx_0(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
 
     result = multiclass_metrics.compute(['1', '0', '1'],
@@ -195,15 +186,12 @@ class MulticlassMetricsTest(absltest.TestCase):
         types.CategoryLabel(),
         types.MulticlassPreds(vocab=['0', '1', '2', '3'], null_idx=0))
 
-    testing_utils.assert_deep_almost_equal(
-        self, result, {
-            'accuracy': 0.75,
-            'auc': 0.92708,
-            'aucpr': 0.747,
-            'f1': 0.66667,
-            'precision': 0.66667,
-            'recall': 0.66667,
-        })
+    testing_utils.assert_deep_almost_equal(self, result, {
+        'accuracy': 0.75,
+        'f1': 0.66667,
+        'precision': 0.66667,
+        'recall': 0.66667,
+    })
 
   def test_compute_empty_labels(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()

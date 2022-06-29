@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-06-22' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -115,8 +115,8 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
     field should set the `parent=` attribute to the name of this field.
 *   A negative class can be designated using the `null_idx` attribute of
     `MulticlassPreds` (most commonly, `null_idx=0`), and metrics such as
-    precision, recall, F1, AUC and AUPRC will be computed for the remaining classes.
-    For an example, see the
+    precision, recall, F1 will be computed for the remaining classes. AUC and
+    AUCPR will be computed for binary classification tasks. For an example, see the
     [comment toxicity model](../lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be

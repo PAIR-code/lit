@@ -120,12 +120,14 @@ export class DataService extends LitService {
       this.setValuesForNewDatapoints(newDatapoints));
   }
 
+  /**
+   * Get the column name given a model, key, and optional type.
+   *
+   * Note that colons are used as separators between these three pieces of data,
+   * so none of these values should contain a colon.
+   */
   getColumnName(model: string, predKey: string, type?: CalculatedColumnType) {
-    let columnName = `${model}:${predKey}`;
-    if (type != null) {
-      columnName += ` ${type}`;
-    }
-    return columnName;
+    return `${model}:${predKey}${type != null ? `:${type}` : ''}`;
   }
 
   /**
@@ -161,7 +163,7 @@ export class DataService extends LitService {
           (result: ClassificationResults) => result[key].predicted_class);
       const correctness = classificationResults.map(
           (result: ClassificationResults) => result[key].correct);
-      const source = `CLASSIFICATION_SOURCE_PREFIX:${model}`;
+      const source = `${CLASSIFICATION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, scoreFeatName,
           this.appState.createLitType('MulticlassPreds', false), source);
@@ -212,7 +214,7 @@ export class DataService extends LitService {
       const sqErrors = regressionResults.map(
           (result: RegressionResults) => result[key].squared_error);
       const dataType = this.appState.createLitType('Scalar', false);
-      const source = `REGRESSION_SOURCE_PREFIX:${model}`;
+      const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
       if (output[key].parent != null) {
         this.addColumnFromList(errors, data, errorFeatName, dataType, source);
