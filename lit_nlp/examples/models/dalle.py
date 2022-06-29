@@ -7,8 +7,8 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
 from lit_nlp.lib import utils
+from lit_nlp.lib import image_utils
 
-import tensorflow as tf
 import numpy as np
 # tensorflow_text is required for T5 SavedModel
 # import tensorflow_text  # pylint: disable=unused-import
@@ -67,7 +67,8 @@ class DalleModel(lit_model.Model):
     VQGAN_REPO = "dalle-mini/vqgan_imagenet_f16_16384"
     VQGAN_COMMIT_ID = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
 
-    DALLE_MODEL = "dalle-mini/dalle-mini/mini-1:v0"
+    # small model -> dalle-mini/dalle-mini/mini-1:v0
+    DALLE_MODEL = "dalle-mini/dalle-mini/mega-1-fp16:latest"
     DALLE_COMMIT_ID = None
     model, params = DalleBart.from_pretrained(
         DALLE_MODEL, revision=DALLE_COMMIT_ID, dtype=jnp.float16, _do_init=False
@@ -111,7 +112,7 @@ class DalleModel(lit_model.Model):
 
     # generate Images
     # number of predictions per prompt
-    n_predictions = 8
+    n_predictions = 1
 
     # We can customize generation parameters (see https://huggingface.co/blog/how-to-generate)
     gen_top_k = None
@@ -122,6 +123,7 @@ class DalleModel(lit_model.Model):
     print(f"Prompts: {prompts}\n")
     # generate images
     images = []
+    final_arr = []
     for i in trange(max(n_predictions // jax.device_count(), 1)):
         # get a new key
         key, subkey = jax.random.split(key)
@@ -144,12 +146,16 @@ class DalleModel(lit_model.Model):
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             images.append(img)
             print('Display->')
-            display(img)
-            print('  empty  ')
-            print()
-            print('Images array->')
-            print(images)
-    return images
+            # display(img)
+            image_str = image_utils.convert_pil_to_image_str(img)
+
+            output = {
+                'image': image_str
+            }
+            print(output)
+            final_arr.append(output)
+    
+    return final_arr
     
 
   def input_spec(self):

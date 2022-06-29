@@ -11,7 +11,7 @@ class Dalle(lit_dataset.Dataset):
   def __init__(self):
     """Dataset constructor, loads the data into memory."""
     # data = {'prompt': ["sunset over a lake in the mountains","the Eiffel tower landing on the moon","Crypto Bro working at McDonalds"]}
-    data = {'prompt': ["the Eiffel tower landing on the moon"]}
+    data = {'prompt': ["a kiwi that is both a bird and a fruit"]}
     # into datafrane to decode string
     df = pd.DataFrame(data=data)
 

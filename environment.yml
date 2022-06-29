@@ -47,3 +47,7 @@ dependencies:
         - jax
         - jaxlib
         - flax
+        - dalle-mini
+        - git+https://github.com/patil-suraj/vqgan-jax.git
+        - ipython
+        - ipywidgets
