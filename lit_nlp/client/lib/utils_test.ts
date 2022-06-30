@@ -20,24 +20,26 @@
  */
 
 import 'jasmine';
+
 import {Spec} from '../lib/types';
+
 import * as utils from './utils';
 
 describe('mean test', () => {
   it('computes a mean', () => {
-    const values = [1,3,2,5,4];
+    const values = [1, 3, 2, 5, 4];
     expect(utils.mean(values)).toEqual(3);
   });
 });
 
 describe('median test', () => {
   it('computes a median for a list of integers with odd length', () => {
-    const values = [1,3,2,5,4];
+    const values = [1, 3, 2, 5, 4];
     expect(utils.median(values)).toEqual(3);
   });
 
   it('computes a median for a list of integers with even length', () => {
-    const values = [1,3,2,5,4,6];
+    const values = [1, 3, 2, 5, 4, 6];
     expect(utils.median(values)).toEqual(3.5);
   });
 });
@@ -180,12 +182,12 @@ describe('findSpecKeys test', () => {
     'segment': {
       __class__: 'LitType',
       __name__: 'TextSegment',
-      __mro__: ['TextSegment', 'LitType', 'object']
+      __mro__: ['TextSegment', 'String', 'LitType', 'object']
     },
     'generated_text': {
       __class__: 'LitType',
       __name__: 'GeneratedText',
-      __mro__: ['GeneratedText', 'TextSegment', 'LitType', 'object'],
+      __mro__: ['GeneratedText', 'TextSegment', 'String', 'LitType', 'object'],
       parent: 'segment'
     }
   };
@@ -436,29 +438,29 @@ describe('findMatchingIndices test', () => {
 
 describe('replaceNth test', () => {
   it('returns same string when no match', () => {
-    expect(utils.replaceNth('hello world', 'no', 'yes', 1)).toEqual(
-        'hello world');
-    expect(utils.replaceNth('hello world', 'world', 'yes', 2)).toEqual(
-        'hello world');
-    expect(utils.replaceNth('hello world', 'world', 'yes', 0)).toEqual(
-        'hello world');
+    expect(utils.replaceNth('hello world', 'no', 'yes', 1))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 2))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 0))
+        .toEqual('hello world');
   });
 
   it('returns correct string on single match', () => {
-    expect(utils.replaceNth('hello world', 'world', 'yes', 1)).toEqual(
-        'hello yes');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 1))
+        .toEqual('hello yes');
   });
 
   it('can handle strings with special regex chars', () => {
-    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1)).toEqual(
-        'hello yes');
+    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1))
+        .toEqual('hello yes');
   });
 
   it('returns correct string with multiple matches', () => {
-    expect(utils.replaceNth('hello world world', 'world', 'yes', 1)).toEqual(
-        'hello yes world');
-    expect(utils.replaceNth('hello world world', 'world', 'yes', 2)).toEqual(
-        'hello world yes');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 1))
+        .toEqual('hello yes world');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 2))
+        .toEqual('hello world yes');
   });
 });
 

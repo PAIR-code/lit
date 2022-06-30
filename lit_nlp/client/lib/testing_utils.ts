@@ -16,6 +16,7 @@
  */
 
 import 'jasmine';
+
 import {LitMetadata} from './types';
 
 /**
@@ -57,7 +58,9 @@ export const mockMetadata: LitMetadata = {
           'passage': {
             '__class__': 'LitType',
             '__name__': 'TextSegment',
-            '__mro__': ['TextSegment', 'LitType', 'object'],
+            // TODO(b/162269499): This omits private classes, and will be
+            // removed after we replace LitTypes.
+            '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
             'required': true
           },
           'passage_tokens': {
@@ -141,7 +144,7 @@ export const mockMetadata: LitMetadata = {
           'passage': {
             '__class__': 'LitType',
             '__name__': 'TextSegment',
-            '__mro__': ['TextSegment', 'LitType', 'object'],
+            '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
             'required': true
           },
           'passage_tokens': {
@@ -227,13 +230,13 @@ export const mockMetadata: LitMetadata = {
         'passage': {
           '__class__': 'LitType',
           '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'LitType', 'object'],
+          '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
           'required': true
         },
         'label': {
           '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['0', '1']
         }
@@ -257,14 +260,14 @@ export const mockMetadata: LitMetadata = {
         'testFeat0': {
           '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['0', '1']
         },
         'testFeat1': {
           '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['a', 'b', 'c']
         }
@@ -304,21 +307,21 @@ export const mockMetadata: LitMetadata = {
         'island': {
           '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['Biscoe', 'Dream', 'Torgersen']
         },
         'sex': {
           '__class__': 'LitType',
           '__name__': 'Boolean',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['female', 'male']
         },
         'species': {
           '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
           'required': true,
           'vocab': ['Adelie', 'Chinstrap', 'Gentoo']
         },
@@ -337,7 +340,7 @@ export const mockMetadata: LitMetadata = {
         'Substitutions': {
           '__class__': 'LitType',
           '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'LitType', 'object'],
+          '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
           'required': true,
           'default': 'great -> terrible'
         }

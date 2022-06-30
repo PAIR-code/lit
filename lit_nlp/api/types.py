@@ -25,15 +25,17 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Any, Dict, List, NewType, Optional, Sequence, Text, Tuple, Union
+from typing import Any, Dict, NewType, Optional, Sequence, Text, Union
 
 import attr
+from lit_nlp.api import dtypes
 
 JsonDict = Dict[Text, Any]
 Input = JsonDict  # TODO(lit-dev): stronger typing using NewType
 IndexedInput = NewType("IndexedInput", JsonDict)  # has keys: id, data, meta
 ExampleId = Text
-TokenTopKPredsList = List[List[Tuple[str, float]]]
+ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
+TokenTopKPredsList = Sequence[ScoredTextCandidates]
 
 
 ##
@@ -88,6 +90,7 @@ class LitType(metaclass=abc.ABCMeta):
     d["__mro__"] = [a.__name__ for a in cls.mro()]
     return d
 
+
 Spec = Dict[Text, LitType]
 
 # Attributes that should be treated as a reference to other fields.
@@ -117,8 +120,9 @@ def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
 
 # TODO(b/162269499): remove this once we have a proper implementation of
 # these types on the frontend.
-def all_littypes():
+def all_littypes(ignore_private=True):
   """Return json of class info for all LitType classes."""
+
   def all_subclasses(cls):
     # pylint: disable=g-complex-comprehension
     types_set = set(cls.__subclasses__()).union(
@@ -127,6 +131,9 @@ def all_littypes():
     return list(types_set)
 
   classes = all_subclasses(LitType)
+  if ignore_private:
+    classes = [c for c in classes if not c.__name__.startswith("_")]
+
   return {cls.__name__: cls.cls_to_json() for cls in classes}
 
 
@@ -148,9 +155,9 @@ class String(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TextSegment(LitType):
+class TextSegment(String):
   """Text input (untokenized), a single string."""
-  default: Text = ""
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -163,15 +170,24 @@ class ImageBytes(LitType):
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
   # Name of a TextSegment field to evaluate against
-  parent: Optional[Text] = None
-
-
-ScoredTextCandidates = List[Tuple[str, Optional[float]]]
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class GeneratedTextCandidates(TextSegment):
-  """Multiple candidates for GeneratedText; values are List[(text, score)]."""
+class _List(LitType):
+  """List type."""
+  default: Sequence[Any] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class _StringCandidateList(_List):
+  """A list of (text, score) tuples."""
+  default: ScoredTextCandidates = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class GeneratedTextCandidates(_StringCandidateList):
+  """Multiple candidates for GeneratedText."""
   # Name of a TextSegment field to evaluate against
   parent: Optional[Text] = None
 
@@ -181,14 +197,14 @@ class GeneratedTextCandidates(TextSegment):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ReferenceTexts(LitType):
-  """Multiple candidates for TextSegment; values are List[(text, score)]."""
+class ReferenceTexts(_StringCandidateList):
+  """Multiple candidates for TextSegment."""
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TopTokens(LitType):
-  """Multiple tokens with weight; values are List[(text, score)]."""
+class TopTokens(_StringCandidateList):
+  """Multiple tokens with weight."""
   pass
 
 
@@ -201,7 +217,7 @@ class URL(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedURL(TextSegment):
   """A URL that was generated as part of a model prediction."""
-  align: Optional[Text] = None      # name of a field in the model output
+  align: Optional[Text] = None  # name of a field in the model output
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -211,9 +227,15 @@ class SearchQuery(TextSegment):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class Tokens(LitType):
-  """Tokenized text, as List[str]."""
-  default: List[Text] = attr.Factory(list)
+class _StringList(_List):
+  """A list of strings."""
+  default: Sequence[Text] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Tokens(_StringList):
+  """Tokenized text."""
+  default: Sequence[Text] = attr.Factory(list)
   # Name of a TextSegment field from the input
   # TODO(b/167617375): should we use 'align' here?
   parent: Optional[Text] = None
@@ -222,12 +244,13 @@ class Tokens(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenTopKPreds(LitType):
+class TokenTopKPreds(_List):
   """Predicted tokens, as from a language model.
 
-  Data should be a List[List[Tuple[str, float]]], where the inner list contains
-  (word, probability) in descending order.
+  The inner list should contain (word, probability) in descending order.
   """
+  default: Sequence[ScoredTextCandidates] = None
+
   align: Text = None  # name of a Tokens field in the model output
   parent: Optional[Text] = None
 
@@ -249,14 +272,16 @@ class RegressionScore(Scalar):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ReferenceScores(LitType):
-  """Score of one or more target sequences, as List[float]."""
+class ReferenceScores(_List):
+  """Score of one or more target sequences."""
+  default: Sequence[float] = None
+
   # name of a TextSegment or ReferenceTexts field in the input
   parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class CategoryLabel(LitType):
+class CategoryLabel(String):
   """Category or class label, a single string."""
   # Optional vocabulary to specify allowed values.
   # If omitted, any value is accepted.
@@ -264,7 +289,13 @@ class CategoryLabel(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class MulticlassPreds(LitType):
+class _Tensor(LitType):
+  """A tensor type."""
+  default: Sequence[float] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MulticlassPreds(_Tensor):
   """Multiclass predicted probabilities, as <float>[num_labels]."""
   # Vocabulary is required here for decoding model output.
   # Usually this will match the vocabulary in the corresponding label field.
@@ -279,7 +310,7 @@ class MulticlassPreds(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SequenceTags(LitType):
+class SequenceTags(_StringList):
   """Sequence tags, aligned to tokens.
 
   The data should be a list of string labels, one for each token.
@@ -288,19 +319,21 @@ class SequenceTags(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SpanLabels(LitType):
-  """Span labels, a List[dtypes.SpanLabel] aligned to tokens.
+class SpanLabels(_List):
+  """Span labels aligned to tokens.
 
   Span labels can cover more than one token, may not cover all tokens in the
   sentence, and may overlap with each other.
   """
+  default: Sequence[dtypes.SpanLabel] = None
+
   align: Text  # name of Tokens field
   parent: Optional[Text] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class EdgeLabels(LitType):
-  """Edge labels, a List[dtypes.EdgeLabel] between pairs of spans.
+class EdgeLabels(_List):
+  """Edge labels between pairs of spans.
 
   This is a general form for structured prediction output; each entry consists
   of (span1, span2, label). See
@@ -308,12 +341,14 @@ class EdgeLabels(LitType):
   https://github.com/nyu-mll/jiant/tree/master/probing#data-format for more
   details.
   """
+  default: Sequence[dtypes.EdgeLabel] = None
+
   align: Text  # name of Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class MultiSegmentAnnotations(LitType):
-  """Very general type for in-line text annotations, as List[AnnotationCluster].
+class MultiSegmentAnnotations(_List):
+  """Very general type for in-line text annotations.
 
   This is a more general version of SpanLabel, EdgeLabel, and other annotation
   types, designed to represent annotations that may span multiple segments.
@@ -325,6 +360,8 @@ class MultiSegmentAnnotations(LitType):
   TODO(lit-dev): by default, spans are treated as bytes in this context.
   Make this configurable, if some spans need to refer to tokens instead.
   """
+  default: Sequence[dtypes.AnnotationCluster] = None
+
   exclusive: bool = False  # if true, treat as candidate list
   background: bool = False  # if true, don't emphasize in visualization
 
@@ -334,14 +371,15 @@ class MultiSegmentAnnotations(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class Embeddings(LitType):
+class Embeddings(_Tensor):
   """Embeddings or model activations, as fixed-length <float>[emb_dim]."""
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class Gradients(LitType):
-  """Gradients with respect to embeddings."""
+class _GradientsBase(_Tensor):
+  """Shared gradient attributes."""
+  align: Optional[Text] = None  # name of a Tokens field
   grad_for: Optional[Text] = None  # name of Embeddings field
   # Name of the field in the input that can be used to specify the target class
   # for the gradients.
@@ -349,33 +387,37 @@ class Gradients(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenEmbeddings(LitType):
+class Gradients(_GradientsBase):
+  """1D gradients with respect to embeddings."""
+  pass
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class _InfluenceEncodings(_Tensor):
+  """A single vector of <float>[enc_dim]."""
+  grad_target: Optional[Text] = None  # class for computing gradients (string)
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class TokenEmbeddings(_Tensor):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
   align: Optional[Text] = None  # name of a Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenGradients(LitType):
+class TokenGradients(_GradientsBase):
   """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # name of a Tokens field
-  grad_for: Optional[Text] = None  # name of TokenEmbeddings field
-  # Name of the field in the input that can be used to specify the target class
-  # for the gradients.
-  grad_target_field_key: Optional[Text] = None
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ImageGradients(LitType):
+class ImageGradients(_GradientsBase):
   """Gradients with respect to per-pixel inputs, as a multidimensional array."""
-  # Name of the field in the input for which the gradients are computed.
-  align: Optional[Text] = None
-  # Name of the field in the input that can be used to specify the target class
-  # for the gradients.
-  grad_target_field_key: Optional[Text] = None
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class AttentionHeads(LitType):
+class AttentionHeads(_Tensor):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
   # input and output Tokens fields; for self-attention these can be the same
   align_in: Text
@@ -383,33 +425,35 @@ class AttentionHeads(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SubwordOffsets(LitType):
-  """Offsets to align input tokens to wordpieces or characters, as List[int].
+class SubwordOffsets(_List):
+  """Offsets to align input tokens to wordpieces or characters.
 
   offsets[i] should be the index of the first wordpiece for input token i.
   """
+  default: Sequence[int] = None
+
   align_in: Text  # name of field in data spec
   align_out: Text  # name of field in model output spec
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SparseMultilabel(LitType):
-  """Sparse multi-label represented as a list of strings, as List[str]."""
+class SparseMultilabel(_StringList):
+  """Sparse multi-label represented as a list of strings."""
   vocab: Optional[Sequence[Text]] = None  # label names
-  default: Sequence[Text] = []
   # TODO(b/162269499) Migrate non-comma separators to custom type.
   separator: Text = ","  # Used for display purposes.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SparseMultilabelPreds(LitType):
+class SparseMultilabelPreds(_StringCandidateList):
   """Sparse multi-label predictions represented as a list of tuples.
 
-  The tuples are of the label and the score. So as a List[(str, float)].
+  The tuples are of the label and the score.
   """
+  default: ScoredTextCandidates = None
+
   vocab: Optional[Sequence[Text]] = None  # label names
   parent: Optional[Text] = None
-  default: Sequence[Text] = []
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -436,39 +480,44 @@ class MultiFieldMatcher(LitType):
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
   vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+
   default: Sequence[Text] = []  # default names of selected items.
   select_all: bool = False  # Select all by default (overriddes default).
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenSalience(LitType):
-  """Metadata about a returned token salience map, returned as dtypes.TokenSalience."""
+class _Salience(LitType):
+  """Metadata about a returned salience map."""
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class FeatureSalience(LitType):
-  """Metadata about a returned feature salience map, returned as dtypes.FeatureSalience."""
-  autorun: bool = True  # If the saliency technique is automatically run.
-  signed: bool  # If the returned values are signed.
+class TokenSalience(_Salience):
+  """Metadata about a returned token salience map."""
+  default: dtypes.TokenSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ImageSalience(LitType):
+class FeatureSalience(_Salience):
+  """Metadata about a returned feature salience map."""
+  default: dtypes.FeatureSalience = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageSalience(_Salience):
   """Metadata about a returned image saliency.
 
   The data is returned as an image in the base64 URL encoded format, e.g.,
   data:image/jpg;base64,w4J3k1Bfa...
   """
-  autorun: bool = False  # If the saliency technique is automatically run.
+  pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SequenceSalience(LitType):
-  """Metadata about a returned sequence salience map, returned as dtypes.SequenceSalienceMap."""
-  autorun: bool = False  # If the saliency technique is automatically run.
-  signed: bool  # If the returned values are signed.
+class SequenceSalience(_Salience):
+  """Metadata about a returned sequence salience map."""
+  default: dtypes.SequenceSalienceMap = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -494,8 +543,9 @@ class InfluentialExamples(LitType):
   This is as returned by a training-data attribution method like TracIn or
   influence functions.
 
-  This describes a generator component; values are List[List[JsonDict]].
+  This describes a generator component; values are Sequence[Sequence[JsonDict]].
   """
   pass
+
 
 # LINT.ThenChange(../client/lib/types.ts)
