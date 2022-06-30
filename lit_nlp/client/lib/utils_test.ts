@@ -145,6 +145,8 @@ describe('isLitSubtype test', () => {
       'score': {
         __class__: 'LitType',
         __name__: 'RegressionScore',
+        // TODO(b/162269499): Update Specs to have updated relevant properties,
+        // now that the __mro__ field is no longer needed.
         __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
       },
     };
