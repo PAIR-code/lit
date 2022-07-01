@@ -15,6 +15,7 @@
 """Metric component and implementations."""
 
 import abc
+from cProfile import label
 import collections
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
@@ -229,14 +230,45 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
 class ExactMatchMetrics(SimpleMetrics):
   """Standard regression metrics."""
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
+  # Note from ryanmullins@: I'm not convinced this is the correct form of
+  # is_compatible(...). When tracing the code path from app.py through the
+  # metrics I noticed that 1) there's a bunch of indirection in here, and 2)
+  # the call to compute valdiates the inidividual fields for type compatibility,
+  # but just assumes that the field's parent will be compatible without
+  # providing the info necessary to check that.
+  #
+  # Here's the code path:
+  #
+  #   1.  api_service.ts:167 -- Makes a call to /get_interpretations endpoint
+  #   2.  app.py:563 -- Forwards API call to _get_interpretations(...)
+  #   3.  app.py:322 -- Calls run_with_metadata(...) on the Metric Interpreter
+  #   4.  metrics.py:145 -- Calls map_pred_keys(..) to get preds and labels,
+  #       passing self.is_compatible(...) as the predicate
+  #   5.  metrics.py:47 -- Uses utils.find_keys(...) to get a list of compatible
+  #       fields
+  #   6.  utils.py:43 -- Passes the LitType definition from a model's
+  #       output_spec() to self.is_compatible(...), i.e., the predicate
+  #   7.  metrics.py:59 -- Assumes that the parent is compatible with the metric
+  #       event though it never actually checked.
+  #   8.  metrics.py:154 -- Proceeds to call compute_with_metadata(...) using
+  #       the potenitally incomaptible {pred: str, label: str} pairs, thus
+  #       inducing the error we've been seeing
+  #
+  # This is a more complex design question than can/should be solved in this PR
+  # so I've done 2 things...
+  #
+  #   1.  Implemented a type-check hack in the compute(...) method for
+  #       CorpusBLEU that returns an empty dict if the check fails.
+  #   2.  Updated the is_compatible(...) function below to be compatible with
+  #       the codepath documented above.
+  #
+  # This should unblock you on this PR while the LIT team sort sout the correct
+  # redesign internally.
+  #
+  # Feel free to delete this comment after youve read it.
+  def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
-    gen_txt_keys = utils.find_spec_keys(model.output_spec(),
-                                        types.GeneratedText)
-    return any([
-      isinstance(model.input_spec()[model.output_spec()[key].parent], types.MultiSegmentAnnotations)
-      for key in gen_txt_keys if model.output_spec()[key].parent
-    ])
+    return isinstance(field_spec, types.GeneratedText)
 
   def compute(self,
               inputs: Sequence[Any],
@@ -269,6 +301,8 @@ class RegressionMetrics(SimpleMetrics):
               pred_spec: types.RegressionScore,
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
+    del label_spec
+    del pred_spec
     del config
 
     if not labels or not preds:
@@ -470,6 +504,10 @@ class CorpusBLEU(SimpleMetrics):
     if not labels or not preds:
       return {}
 
+    if any([not isinstance(label, str) for label in labels]):
+      logging.warning("Received non-string labels. Skipping.")
+      return {}
+
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
@@ -507,6 +545,10 @@ class RougeL(SimpleMetrics):
     del config
 
     if not labels or not preds:
+      return {}
+
+    if any([not isinstance(label, str) for label in labels]):
+      logging.warning("Received non-string labels. Skipping.")
       return {}
 
     name_suffix = ''
