@@ -175,6 +175,26 @@ textarea {
   font-family: Monospace;
 }
 
+.annotation-cluster,
+.multi-segment-annotation {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  width: 100%;
+  width: -moz-available;
+  width: -webkit-fill-available;
+}
+
+.annotation-cluster:last-child {
+  margin-bottom: 0;
+}
+
+.annotation-cluster ul {
+  margin-block-start: 0;
+  margin-block-end: 0;
+  padding-inline-start: 16px;
+}
+
 .image-holder {
   position: relative;
 }
