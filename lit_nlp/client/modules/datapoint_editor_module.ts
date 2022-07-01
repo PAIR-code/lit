@@ -28,7 +28,7 @@ import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {defaultValueByField, EdgeLabel, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
+import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype, findSpecKeys} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
@@ -484,12 +484,13 @@ export class DatapointEditorModule extends LitModule {
         ?readonly="${!editable}" .value=${value}></input>`;
     };
 
+    const renderSpanLabel = (d: SpanLabel) =>
+        html`<div class="span-label">${formatSpanLabel(d)}</div>`;
+
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
-      const renderLabel = (d: SpanLabel) =>
-          html`<div class="span-label">${formatSpanLabel(d)}</div>`;
       return html`<div>${
-          value ? (value as SpanLabel[]).map(renderLabel) : null}</div>`;
+          value ? (value as SpanLabel[]).map(renderSpanLabel) : null}</div>`;
     };
     // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
@@ -498,6 +499,17 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`<div>${
           value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
+    };
+    // Non-editable render for multi-segment annotations.
+    const renderMultiSegmentAnnotationsNonEditable = () => {
+      const renderLabel = (ac: AnnotationCluster) => {
+        return html`<div class="annotation-cluster">
+          <div>${formatAnnotationCluster(ac)}</div>
+          <ul>${ac.spans.map(s => html`<li>${renderSpanLabel(s)}</li>`)}</ul>
+        </div>`;
+      };
+      return html`<div class="multi-segment-annotation">${
+          value ? (value as AnnotationCluster[]).map(renderLabel) : ''}</div>`;
     };
 
     // For boolean values, render a checkbox.
@@ -543,6 +555,8 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderSpanLabelsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
       renderInput = renderEdgeLabelsNonEditable;
+    } else if (isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+      renderInput = renderMultiSegmentAnnotationsNonEditable;
     } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
     } else if (isLitSubtype(fieldSpec, 'Boolean')) {
