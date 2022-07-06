@@ -155,7 +155,8 @@ class DalleModel(lit_model.Model):
 
   def output_spec(self):
     # we have GeneratedTextCandidates for multiple text output but for image IDK.. I checked doc
-    # If there's more than one image prediction it gives error
+    # Maybe a loop based on number of self.predictions? So if n_predictions = 5 in that case 
+    # it should return 5 ImageBytes... is this a good approach? 
     return {
         "image": lit_types.ImageBytes()
     }
