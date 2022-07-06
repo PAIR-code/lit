@@ -1,8 +1,7 @@
-"""Data loaders for summarization datasets."""
+"""Data loaders for text-to-image model."""
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-import tensorflow_datasets as tfds
 import pandas as pd
 
 class Dalle(lit_dataset.Dataset):
@@ -10,8 +9,7 @@ class Dalle(lit_dataset.Dataset):
 
   def __init__(self):
     """Dataset constructor, loads the data into memory."""
-    # data = {'prompt': ["sunset over a lake in the mountains","the Eiffel tower landing on the moon","Crypto Bro working at McDonalds"]}
-    data = {'prompt': ["a kiwi that is both a bird and a fruit"]}
+    data = {'prompt': ["Batman feeding his pet Goldfish"," You're at a museum and there's a painting of a woman wearing a white dress. She has a blue scarf around her neck and she's holding a red rose. You take a picture of the painting, but when you look at the picture, the woman is gone and there's a blue bird in her place.","a kiwi that is both a bird and a fruit"]}
     # into datafrane to decode string
     df = pd.DataFrame(data=data)
 

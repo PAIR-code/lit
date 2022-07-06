@@ -1,74 +1,68 @@
-"""LIT wrappers for T5, supporting both HuggingFace and SavedModel formats."""
+"""Dalle model based on https://github.com/borisdayma/dalle-mini."""
+from ast import Str
 import re
 from typing import List
 
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.examples.models import model_utils
-from lit_nlp.lib import utils
 from lit_nlp.lib import image_utils
-
+from PIL import Image
 import numpy as np
-# tensorflow_text is required for T5 SavedModel
-# import tensorflow_text  # pylint: disable=unused-import
-import transformers
-
-from rouge_score import rouge_scorer
 
 import jax
-import jax.numpy as jnp
-from flax.jax_utils import replicate
+import  jax.numpy as jnp
 from functools import partial
 import random
 # Load models & tokenizer
-from dalle_mini import DalleBart, DalleBartProcessor
-from vqgan_jax.modeling_flax_vqgan import VQModel
-from transformers import CLIPProcessor, FlaxCLIPModel
-from flax.training.common_utils import shard_prng_key
-from IPython.display import display
-import numpy as np
-from PIL import Image
-from tqdm.notebook import trange
+import dalle_mini 
+import vqgan_jax
+import vqgan_jax.modeling_flax_vqgan
+import transformers
+import flax
+import flax.training.common_utils
+import tqdm.notebook
 
-BertTokenizer = transformers.BertTokenizer
-FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
+
+DalleBart = dalle_mini.DalleBart
+DalleBartProcessor = dalle_mini.DalleBartProcessor
+VQModel = vqgan_jax.modeling_flax_vqgan.VQModel
+CLIPProcessor = transformers.CLIPProcessor
+FlaxCLIPModel = transformers.FlaxCLIPModel
+shard_prng_key = flax.training.common_utils.shard_prng_key
+trange = tqdm.notebook.trange
+
+replicate = flax.jax_utils.replicate
 JsonDict = lit_types.JsonDict
 
 class DalleModel(lit_model.Model):
-  """Question Answering Jax model based on TyDiQA Dataset ."""
+  """Image to Text Model"""
 
  
-  @property
-  def max_seq_length(self):
-    return self.model.config.max_position_embeddings
 
-  def __init__(self, 
-              model_name=None, 
-              model=None,
-              tokenizer=None,
-              **config_kw):
+  def __init__(self,
+              model_name:Str,
+              predictions:int):
     super().__init__()
 
-    
+    self.model = model_name
+    self.predictions = predictions
     
   ##
   # LIT API implementation
   def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
-    # implementation of predict(), and uses this value as the batch size.
     return 8
 
   def predict_minibatch(self, inputs):
-    """Predict on a single minibatch of examples."""
+    """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini"""
     # tokenize the text. -> then return prediction
     # Load VQGAN
     # VQGAN model
     VQGAN_REPO = "dalle-mini/vqgan_imagenet_f16_16384"
     VQGAN_COMMIT_ID = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
 
-    # small model -> dalle-mini/dalle-mini/mini-1:v0
-    DALLE_MODEL = "dalle-mini/dalle-mini/mega-1-fp16:latest"
+    # small model -> dalle-mini/dalle-mini/mini-1:v0  larger one:"dalle-mini/dalle-mini/mega-1-fp16:latest"
+    DALLE_MODEL = self.model
     DALLE_COMMIT_ID = None
     model, params = DalleBart.from_pretrained(
         DALLE_MODEL, revision=DALLE_COMMIT_ID, dtype=jnp.float16, _do_init=False
@@ -112,18 +106,16 @@ class DalleModel(lit_model.Model):
 
     # generate Images
     # number of predictions per prompt
-    n_predictions = 1
-
-    # We can customize generation parameters (see https://huggingface.co/blog/how-to-generate)
+    n_predictions = self.predictions
+    # We can customize generation parameters ( https://huggingface.co/blog/how-to-generate)
     gen_top_k = None
     gen_top_p = None
     temperature = None
     cond_scale = 10.0
 
-    print(f"Prompts: {prompts}\n")
     # generate images
     images = []
-    final_arr = []
+    final_Output = []
     for i in trange(max(n_predictions // jax.device_count(), 1)):
         # get a new key
         key, subkey = jax.random.split(key)
@@ -145,17 +137,15 @@ class DalleModel(lit_model.Model):
         for decoded_img in decoded_images:
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             images.append(img)
-            print('Display->')
-            # display(img)
             image_str = image_utils.convert_pil_to_image_str(img)
 
             output = {
                 'image': image_str
             }
-            print(output)
-            final_arr.append(output)
+            # print(output)
+            final_Output.append(output)
     
-    return final_arr
+    return final_Output
     
 
   def input_spec(self):
@@ -164,13 +154,10 @@ class DalleModel(lit_model.Model):
     }
 
   def output_spec(self):
-    ret = {
+    # we have GeneratedTextCandidates for multiple text output but for image IDK.. I checked doc
+    # If there's more than one image prediction it gives error
+    return {
         "image": lit_types.ImageBytes()
     }
-    # Add attention and embeddings from each layer.
-    # for i in range(self.model.config.num_hidden_layers):
-    #   ret[f"layer_{i+1:d}_attention"] = lit_types.AttentionHeads(
-    #       align_in="tokens", align_out="tokens")
-    #   ret[f"layer_{i:d}_avg_embedding"] = lit_types.Embeddings()
-    return ret
+    
   
