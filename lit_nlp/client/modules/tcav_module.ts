@@ -20,22 +20,22 @@ import '../elements/spinner';
 import '../elements/tcav_score_bar';
 import '@material/mwc-switch';
 
+import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {TemplateResult} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
+import {createLitType} from '../lib/lit_types_utils';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './tcav_module.css';
 
 const MIN_EXAMPLES_LENGTH = 3;  // minimum examples needed to train the CAV.
@@ -329,8 +329,8 @@ export class TCAVModule extends LitModule {
   }
 
   private async runSingleTCAV(
-      config: CallConfig, positiveSlice: string, negativeSlice: string):
-      Promise<TcavResults|undefined> {
+      config: CallConfig, positiveSlice: string,
+      negativeSlice: string): Promise<TcavResults|undefined> {
     const comparisonSetLength = this.appState.currentInputData.length -
         config['concept_set_ids'].length;
     if (config['concept_set_ids'].length < MIN_EXAMPLES_LENGTH ||
@@ -362,13 +362,11 @@ export class TCAVModule extends LitModule {
   }
 
   /** Get CAV score for a single new datapoint. **/
-  private async runCAVSimilarity(
-      config: CallConfig, datapoint: IndexedInput):
+  private async runCAVSimilarity(config: CallConfig, datapoint: IndexedInput):
       Promise<number[]|undefined> {
     const result = await this.apiService.getInterpretations(
-        [datapoint], this.model,
-        this.appState.currentDataset, TCAV_INTERPRETER_NAME, config,
-        `Running ${TCAV_INTERPRETER_NAME}`);
+        [datapoint], this.model, this.appState.currentDataset,
+        TCAV_INTERPRETER_NAME, config, `Running ${TCAV_INTERPRETER_NAME}`);
 
     if (result == null) {
       return;
@@ -377,8 +375,8 @@ export class TCAVModule extends LitModule {
   }
 
   /** Create a human-readable unique name for a TCAV run. **/
-  private getTcavRunName(config: CallConfig, positiveSlice: string,
-                         negativeSlice:  string) {
+  private getTcavRunName(
+      config: CallConfig, positiveSlice: string, negativeSlice: string) {
     let name = positiveSlice;
     if (negativeSlice !== '-') {
       name += `-${negativeSlice}`;
@@ -437,18 +435,16 @@ export class TCAVModule extends LitModule {
       if (res.p_val != null && res.p_val > MAX_P_VAL) {
         displayScore = '-';
         scoreBar = HIGH_P_VAL_WARNING;
-      }
-      else if (res.p_val == null) {
+      } else if (res.p_val == null) {
         scoreBar = NO_T_TESTING_WARNING;
-      }
-      else {
+      } else {
         // Add TCAV run's cosine similarity to datapoints through the data
         // service.
         const tcavRunName = this.getTcavRunName(
             res.config, res.positiveSlice, res.negativeSlice);
         const featName = `TCAV cosine similarity: ${tcavRunName}`;
 
-        const dataType = this.appState.createLitType('Scalar');
+        const dataType = createLitType('Scalar');
 
         // Function to get value for this new data column when new datapoints
         // are added.
@@ -484,7 +480,8 @@ export class TCAVModule extends LitModule {
     this.requestUpdate();
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // Ensure the models can support TCAV and that the TCAV interpreter is
     // loaded.
     const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');

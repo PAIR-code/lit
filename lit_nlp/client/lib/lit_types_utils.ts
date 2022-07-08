@@ -2,7 +2,6 @@ import {Spec} from '../lib/types';
 
 import {LitName, LitType, REGISTRY} from './lit_types';
 
-
 /**
  * Creates and returns a new LitType instance.
  * @param typeName: The name of the desired LitType.

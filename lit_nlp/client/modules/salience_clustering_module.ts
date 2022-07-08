@@ -27,6 +27,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
+import {createLitType} from '../lib/lit_types_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -150,7 +151,7 @@ export class SalienceClusteringModule extends LitModule {
         `Running ${salienceMapper}`);
     this.state.clusteringState.isLoading = false;
     this.state.dataColumns = Object.keys(inputs[0].data);
-    const dataType = this.appState.createLitType('CategoryLabel');
+    const dataType = createLitType('CategoryLabel');
     dataType.vocab = Array.from(
         {length: this.state.clusteringConfig[N_CLUSTERS_KEY]},
         (value, key) => key.toString()

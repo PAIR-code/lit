@@ -145,7 +145,7 @@ describe('DataService test', () => {
   });
 
   it('has correct column data', () => {
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
@@ -163,7 +163,7 @@ describe('DataService test', () => {
   });
 
   it('handles new datapoints', async () => {
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1000;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {

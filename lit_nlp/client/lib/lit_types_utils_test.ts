@@ -15,7 +15,8 @@ describe('createLitType test', () => {
 
     const result = litTypesUtils.createLitType('Scalar');
     expect(result).toEqual(expected);
-  });
+    expect(result instanceof litTypes.Scalar).toEqual(true);
+ });
 
   it('creates with constructor params', () => {
     const expected = new litTypes.String();
@@ -39,6 +40,20 @@ describe('createLitType test', () => {
     expect(() => litTypesUtils.createLitType('String', {
       'notAStringParam': true
     })).toThrowError();
+  });
+
+  it('creates with constructor params and custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel =
+        litTypesUtils.createLitType('CategoryLabel', {'vocab': vocab});
+    expect(categoryLabel.vocab).toEqual(vocab);
+  });
+
+  it('allows modification of custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel = litTypesUtils.createLitType('CategoryLabel');
+    categoryLabel.vocab = vocab;
+    expect(categoryLabel.vocab).toEqual(vocab);
   });
 
   it('populates mro', () => {

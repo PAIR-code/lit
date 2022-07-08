@@ -168,8 +168,7 @@ export class DataService extends LitService {
       this.addColumnFromList(
           scores, data, scoreFeatName,
           this.appState.createLitType('MulticlassPreds', false), source);
-      const litTypeClassification =
-          this.appState.createLitType('CategoryLabel', false);
+      const litTypeClassification = createLitType('CategoryLabel');
       litTypeClassification.vocab = output[key].vocab;
       this.addColumnFromList(
           predClasses, data, predClassFeatName, litTypeClassification, source);
@@ -246,7 +245,7 @@ export class DataService extends LitService {
     for (const key of scalarKeys) {
       const scoreFeatName = this.getColumnName(model, key);
       const scores = preds.map(pred => pred[key]);
-      const dataType = this.appState.createLitType('Scalar', false);
+      const dataType = createLitType('Scalar');
       const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
     }
