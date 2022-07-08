@@ -15,8 +15,26 @@
  * limitations under the License.
  */
 
-type LitClass = 'LitType';
+// tslint:disable:no-new-decorators
 
+/**
+ * A dictionary of registered LitType names mapped to their constructor.
+ * LitTypes are added using the @registered decorator.
+ */
+export const REGISTRY: {[litType: string]: LitType} = {};
+// tslint:disable-next-line:no-any
+function registered(target: any) {
+  REGISTRY[target.name] = target;
+}
+
+const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
+/**
+ * The types of all LitTypes in the registry, e.g.
+ * 'String' | 'TextSegment' ...
+ */
+export type LitName = typeof registryKeys[number];
+
+type LitClass = 'LitType';
 /**
  * Data classes used in configuring front-end components to describe
  * input data and model outputs.
@@ -43,6 +61,7 @@ export class LitType {
 /**
  * A string LitType.
  */
+@registered
 export class String extends LitType {
   override default: string = '';
 }
@@ -50,6 +69,7 @@ export class String extends LitType {
 /**
  * A scalar value, either a single float or int.
  */
+@registered
 export class Scalar extends LitType {
   override default: number = 0;
   min_val: number = 0;

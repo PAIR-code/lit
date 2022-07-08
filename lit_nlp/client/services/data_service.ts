@@ -19,6 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
+import {createLitType} from '../lib/lit_types_utils';
 import {ClassificationResults, IndexedInput, LitName, LitType, RegressionResults} from '../lib/types';
 import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -213,7 +214,7 @@ export class DataService extends LitService {
           (result: RegressionResults) => result[key].error);
       const sqErrors = regressionResults.map(
           (result: RegressionResults) => result[key].squared_error);
-      const dataType = this.appState.createLitType('Scalar', false);
+      const dataType = createLitType('Scalar');
       const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
       if (output[key].parent != null) {

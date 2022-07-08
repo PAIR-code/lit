@@ -20,6 +20,7 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
+import {createLitType} from '../lib/lit_types_utils';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
 import {ApiService, AppState, ClassificationService, SettingsService, StatusService} from '../services/services';
@@ -128,7 +129,7 @@ describe('DataService test', () => {
   it('has correct columns', () => {
     expect(dataService.cols.length).toBe(0);
 
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
