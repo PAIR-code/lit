@@ -26,6 +26,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, SortableTemplateResult, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
@@ -130,7 +131,7 @@ export class ClassificationModule extends LitModule {
       const predClassKey = this.dataService.getColumnName(
           model, predKey, CalculatedColumnType.PREDICTED_CLASS);
       labeledPredictions[topLevelKey] = {};
-      const {parent, vocab} = output[predKey];
+      const {parent, vocab} = tryCastAsType(output[predKey], 'MulticlassPreds');
       const scores =
           inputs.map(input => this.dataService.getVal(input.id, topLevelKey));
       const predictedClasses =
@@ -163,20 +164,25 @@ export class ClassificationModule extends LitModule {
   }
 
   override render() {
-    const hasGroundTruth = this.appState.currentModels.some(model =>
-      Object.values(this.appState.currentModelSpecs[model].spec.output)
-            .some(feature => feature.parent != null));
+    const hasGroundTruth = this.appState.currentModels.some(
+        model =>
+            Object.values(this.appState.currentModelSpecs[model].spec.output)
+                .some(
+                    feature =>
+                        tryCastAsType(feature, 'MulticlassPreds').parent !=
+                        null));
     return html`<div class='module-container'>
       <div class="module-results-area">
-        ${Object.entries(this.labeledPredictions)
-                .map(([fieldName, labelRow], i, arr) => {
-                  const featureTable =
-                      this.renderFeatureTable(labelRow, hasGroundTruth);
-                  return arr.length === 1 ? featureTable: html`
+        ${
+        Object.entries(this.labeledPredictions)
+            .map(([fieldName, labelRow], i, arr) => {
+              const featureTable =
+                  this.renderFeatureTable(labelRow, hasGroundTruth);
+              return arr.length === 1 ? featureTable : html`
                       <expansion-panel .label=${fieldName} expanded>
                         ${featureTable}
                       </expansion-panel>`;
-                })}
+            })}
       </div>
       <div class="module-footer">
         <annotated-score-bar-legend ?hasTruth=${hasGroundTruth}>

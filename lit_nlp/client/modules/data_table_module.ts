@@ -76,7 +76,8 @@ export class DataTableModule extends LitModule {
   @computed
   get keys(): ColumnHeader[] {
     const createColumnHeader = (name: string, type: LitType) => {
-      const header = {name, vocab: type.vocab};
+      // tslint:disable-next-line:no-any
+      const header = {name, vocab: (type as any).vocab};
       if (isLitSubtype(type, 'Boolean')) {
         header.vocab = ['✔', ' '];
       }

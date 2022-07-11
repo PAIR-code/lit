@@ -30,6 +30,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ThresholdChange} from '../elements/threshold_slider';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
@@ -136,7 +137,7 @@ export class ScalarModule extends LitModule {
   override firstUpdated() {
     const modelSpec = this.appState.getModelSpec(this.model);
     this.classificationKeys.forEach((predKey) => {
-      const predSpec = modelSpec.output[predKey];
+      const predSpec = tryCastAsType(modelSpec.output[predKey], 'MulticlassPreds');
       if (predSpec.null_idx != null && predSpec.vocab != null) {
         this.classificationService.setMargin(this.model, predKey, 0);
       }
@@ -448,8 +449,9 @@ export class ScalarModule extends LitModule {
 
   private getValue(preds: Preds, spec: ModelSpec, key: string, label: string) {
     // If for a multiclass prediction, return the top label score.
-    if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
-      const predictionLabels = spec.output[key].vocab!;
+    const litType = tryCastAsType(spec.output[key], 'MulticlassPreds');
+    if (isLitSubtype(litType, 'MulticlassPreds')) {
+      const predictionLabels = litType.vocab;
       const index = predictionLabels.indexOf(label);
       return preds[key][index];
     }
@@ -476,7 +478,7 @@ export class ScalarModule extends LitModule {
       }
 
       const spec = this.appState.getModelSpec(this.model);
-      const labelList = spec.output[key].vocab!;
+      const labelList = tryCastAsType(spec.output[key], 'MulticlassPreds').vocab;
 
       // Don't render the threshold for regression or multiclass models.
       if (isLitSubtype(spec.output[key], 'Scalar') || labelList.length !== 2) {
@@ -820,11 +822,12 @@ export class ScalarModule extends LitModule {
 
   renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
-    const predictionLabels = spec.output[key].vocab!;
+    const litType = tryCastAsType(spec.output[key], 'MulticlassPreds');
+    const predictionLabels : string[] = litType.vocab;
 
     // In the binary classification case, only render one plot that
     // displays the positive class.
-    const nullIdx = spec.output[key].null_idx;
+    const nullIdx = litType.null_idx;
     if (predictionLabels.length === 2 && nullIdx != null) {
       return html`${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
     }

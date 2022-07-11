@@ -24,6 +24,7 @@
 import * as d3 from 'd3';  // Used for creating bins, not visualization.
 import {computed} from 'mobx';
 
+import {CategoryLabel, Scalar} from '../lib/lit_types';
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
 import {facetMapToDictKey, findSpecKeys, getStepSizeGivenRange, roundToDecimalPlaces} from '../lib/utils';
 
@@ -160,7 +161,8 @@ export class GroupService extends LitService {
     const categoricalFeatures: CategoricalFeatures = {};
     for (const name of this.categoricalFeatureNames) {
       // Try to get values from the data spec.
-      const vocab = this.appState.currentDatasetSpec[name]?.vocab;
+      // tslint:disable-next-line:no-any
+      const vocab = (this.appState.currentDatasetSpec[name] as any).vocab;
 
       if (vocab != null) {
         categoricalFeatures[name] = [...vocab];
@@ -170,9 +172,9 @@ export class GroupService extends LitService {
       // Try to get values from the data service. Either from the
       // CategoryLabel's vocab...
       const columnHeader = this.dataService.getColumnInfo(name);
-
-      if (columnHeader?.dataType.vocab != null) {
-        categoricalFeatures[name] = columnHeader.dataType.vocab;
+      const categoryLabel = columnHeader?.dataType as CategoryLabel;
+      if (categoryLabel.vocab != null) {
+        categoricalFeatures[name] = categoryLabel.vocab;
         continue;
       }
       // ... Or as a last resort find unique values from the data.
@@ -245,7 +247,7 @@ export class GroupService extends LitService {
   private discreteBins(feat:string): NumericBins {
     const bins: NumericBins = {};
     const [min, max] = this.numericalFeatureRanges[feat];
-    const step = this.appState.currentDatasetSpec[feat]?.step
+    const step = (this.appState.currentDatasetSpec[feat] as Scalar).step
         ?? getStepSizeGivenRange(max - min);
 
     if (typeof step !== 'number') {

@@ -25,6 +25,7 @@ import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
 import {ModelInfoMap, Spec} from '../lib/types';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
 
 import {styles} from './pdp_module.css';
@@ -159,10 +160,11 @@ export class PdpModule extends LitModule {
         }
       }
 
-      const nullIdx = spec.output[predKey].null_idx;
-      const vocab = spec.output[predKey].vocab;
-      const isClassification = isLitSubtype(
-          spec.output[predKey], 'MulticlassPreds');
+      const litType = tryCastAsType(spec.output[predKey], 'MulticlassPreds');
+      const nullIdx = litType.null_idx;
+      const vocab = litType.vocab;
+      const isClassification = isLitSubtype(litType, 'MulticlassPreds');
+
       const yRange = isClassification ? [0, 1] : [];
       const renderChart = (chartData: ChartInfo) => {
         if (isNumeric) {

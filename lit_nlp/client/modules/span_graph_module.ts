@@ -31,6 +31,7 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
@@ -89,7 +90,8 @@ function mapTokenToTags(spec: Spec): FieldNameMultimap {
   // Make a mapping of token keys to one or more tag sets
   const tokenToTags = {} as FieldNameMultimap;
   for (const tagKey of tagKeys) {
-    const tokenKey = spec[tagKey].align as string;
+    const litType = tryCastAsType(spec[tagKey], 'Tokens');
+    const tokenKey = litType.align as string;
     if (!tokenKeys.includes(tokenKey)) {
       continue;
     }

@@ -25,6 +25,7 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {findMatchingIndices, findSpecKeys, isLitSubtype, replaceNth} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
@@ -74,13 +75,16 @@ export class LanguageModelPredictionModule extends LitModule {
   @computed
   private get outputTokensKey(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return this.modelSpec.output[this.predKey].align as string;
+    return tryCastAsType(this.modelSpec.output[this.predKey], 'TokenTopKPreds')
+               .align as string;
   }
 
   @computed
   private get outputTokensPrefix(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return this.modelSpec.output[this.outputTokensKey].token_prefix as string;
+    return tryCastAsType(
+               this.modelSpec.output[this.outputTokensKey], 'TokenTopKPreds')
+               .token_prefix as string;
   }
 
   @computed
@@ -97,7 +101,8 @@ export class LanguageModelPredictionModule extends LitModule {
   private get maskToken() {
     // Look at metadata for /input/ field matching output tokens name.
     return this.inputTokensKey ?
-        this.modelSpec.input[this.inputTokensKey].mask_token :
+        tryCastAsType(this.modelSpec.input[this.inputTokensKey], 'Tokens')
+            .mask_token :
         undefined;
   }
 
@@ -382,7 +387,7 @@ export class LanguageModelPredictionModule extends LitModule {
   static findTargetFields(outputSpec: Spec): string[] {
     const candidates = findSpecKeys(outputSpec, 'TokenTopKPreds');
     return candidates.filter(k => {
-      const align = outputSpec[k].align;
+      const align = tryCastAsType(outputSpec[k], 'TokenTopKPreds').align;
       return align != null && isLitSubtype(outputSpec[align], 'Tokens');
     });
   }

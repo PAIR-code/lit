@@ -24,6 +24,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, ModelInfoMap, RegressionResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
@@ -100,7 +101,7 @@ export class RegressionModule extends LitModule {
       // Add new row for each output from the model.
       const score = result[scoreField]?.score?.toFixed(4) || '';
       // Target score to compare against.
-      const parentField = spec.output[scoreField].parent! || '';
+      const parentField = tryCastAsType(spec.output[scoreField], 'RegressionScore').parent || '';
       const parentScore = input.data[parentField]?.toFixed(4) || '';
       let errorScore = '';
       if (parentField && parentScore) {

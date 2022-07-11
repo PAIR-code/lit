@@ -28,6 +28,7 @@ import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
 
@@ -75,7 +76,7 @@ export class GeneratedTextModule extends LitModule {
     const refMap = new Map<string, string>();
     const textKeys = findSpecKeys(outputSpec, GENERATION_TYPES);
     for (const textKey of textKeys) {
-      const parent = outputSpec[textKey].parent;
+      const parent = tryCastAsType(outputSpec[textKey], GENERATION_TYPES).parent;
       if (parent && dataSpec[parent]) {
         refMap.set(textKey, parent);
       }
@@ -91,7 +92,7 @@ export class GeneratedTextModule extends LitModule {
     const refMap = new Map<string, string>();
     const scoreKeys = findSpecKeys(outputSpec, 'ReferenceScores');
     for (const scoreKey of scoreKeys) {
-      const parent = outputSpec[scoreKey].parent;
+      const parent = tryCastAsType(outputSpec[scoreKey], 'ReferenceScores').parent;
       if (parent && dataSpec[parent]) {
         refMap.set(scoreKey, parent);
       }

@@ -27,6 +27,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
@@ -455,11 +456,12 @@ export class GeneratorModule extends LitModule {
             for (const fieldName of Object.keys(clonedSpec)) {
               // If the generator uses a field matcher, then get the matching
               // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(clonedSpec[fieldName],
+              const litType = tryCastAsType(clonedSpec[fieldName], ['FieldMatcher','MultiFieldMatcher']);
+              if (isLitSubtype(litType,
                                ['FieldMatcher','MultiFieldMatcher'])) {
-                clonedSpec[fieldName].vocab =
+                litType.vocab =
                     this.appState.getSpecKeysFromFieldMatcher(
-                        clonedSpec[fieldName], this.modelName);
+                        litType, this.modelName);
               }
             }
             return html`

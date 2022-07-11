@@ -28,6 +28,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -213,10 +214,11 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo.default) {
-        defaultCallConfig[configKey] = configInfo.default;
-      } else if (configInfo.vocab && configInfo.vocab.length) {
-        defaultCallConfig[configKey] = configInfo.vocab[0];
+      const litType = tryCastAsType(configInfo, 'FeatureSalience');
+      if (litType.default) {
+        defaultCallConfig[configKey] = litType.default;
+      } else if (litType.vocab && litType.vocab.length) {
+        defaultCallConfig[configKey] = litType.vocab[0];
       }
     }
 
@@ -345,10 +347,10 @@ export class FeatureAttributionModule extends LitModule {
     for (const fieldName of Object.keys(clonedSpec)) {
       // If the interpreter uses a field matcher, then get the matching field
       // names from the specified spec and use them as the vocab.
-      if (isLitSubtype(clonedSpec[fieldName], ['FieldMatcher'])) {
-        clonedSpec[fieldName].vocab =
-            this.appState.getSpecKeysFromFieldMatcher(
-                clonedSpec[fieldName], this.model);
+      const litType = tryCastAsType(clonedSpec[fieldName], 'FieldMatcher');
+      if (isLitSubtype(litType, ['FieldMatcher'])) {
+        litType.vocab =
+            this.appState.getSpecKeysFromFieldMatcher(litType, this.model);
       }
     }
     const interpreterControlClick = (event: CustomEvent<InterpreterClick>) => {

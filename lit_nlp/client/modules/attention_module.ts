@@ -27,6 +27,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
@@ -135,7 +136,7 @@ export class AttentionModule extends LitModule {
 
   private renderAttnHead() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const fieldSpec = outputSpec[this.selectedLayer!];
+    const fieldSpec = tryCastAsType(outputSpec[this.selectedLayer!], 'AttentionHeads');
 
     // Tokens involved in the attention.
     const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;

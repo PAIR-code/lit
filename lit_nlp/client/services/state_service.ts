@@ -18,6 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
 
@@ -245,12 +246,15 @@ export class AppState extends LitService implements StateObservedByUrlService {
    */
   getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
     let spec = this.currentDatasetSpec;
-    if (matcher.spec === 'output') {
+
+    const typedMatcher =
+        tryCastAsType(matcher, ['FieldMatcher', 'MultiFieldMatcher'], true);
+    if (typedMatcher.spec === 'output') {
       spec = this.currentModelSpecs[modelName].spec.output;
-    } else if (matcher.spec === 'input') {
+    } else if (typedMatcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.types!);
+    return findSpecKeys(spec, typedMatcher.types);
   }
 
   //=================================== Generation logic

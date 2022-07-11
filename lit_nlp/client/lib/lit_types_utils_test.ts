@@ -16,7 +16,7 @@ describe('createLitType test', () => {
     const result = litTypesUtils.createLitType('Scalar');
     expect(result).toEqual(expected);
     expect(result instanceof litTypes.Scalar).toEqual(true);
- });
+  });
 
   it('creates with constructor params', () => {
     const expected = new litTypes.String();
@@ -117,5 +117,38 @@ describe('findSpecKeys test', () => {
   it('handles invalid spec keys', () => {
     expect(() => litTypesUtils.findSpecKeys(spec, '')).toThrowError();
     expect(() => litTypesUtils.findSpecKeys(spec, 'NotAType')).toThrowError();
+  });
+});
+
+describe('tryCastAsType test', () => {
+  const litString = litTypesUtils.createLitType('String');
+  const textSegment = litTypesUtils.createLitType('TextSegment');
+  it('conditionally throws error if fails on an invalid type', () => {
+    expect(litTypesUtils.tryCastAsType(3, 'String')).toEqual(null);
+    expect(() => litTypesUtils.tryCastAsType(3, 'String', true)).toThrowError();
+  });
+
+  it('conditionally throw error if fails on a missing type', () => {
+    expect(litTypesUtils.tryCastAsType(litString, ['TextSegment'])).toEqual(null);
+    expect(() => litTypesUtils.tryCastAsType(litString, 'TextSegment', true))
+        .toThrowError();
+  });
+
+  it('tries to cast a single type', () => {
+    expect(litTypesUtils.tryCastAsType(textSegment, 'TextSegment'))
+        .toEqual(textSegment);
+    expect(litTypesUtils.tryCastAsType(textSegment, 'String'))
+        .toEqual((textSegment as litTypes.String));
+    expect(litTypesUtils.tryCastAsType(textSegment, 'Scalar'))
+        .toEqual(null);
+  });
+
+  it('returns the first valid type in a list', () => {
+    expect(litTypesUtils.tryCastAsType(textSegment, [
+      'Scalar', 'TextSegment', 'String'
+    ])).toEqual(textSegment);
+    expect(litTypesUtils.tryCastAsType(textSegment, [
+      'Scalar', 'String', 'TextSegment'
+    ])).toEqual(textSegment as litTypes.String);
   });
 });

@@ -9,8 +9,7 @@ import {LitName, LitType, REGISTRY} from './lit_types';
  * For example, {'show_in_data_table': true}.
  */
 export function createLitType(
-    typeName: LitName,
-    constructorParams: {[key: string]: unknown} = {}){
+    typeName: LitName, constructorParams: {[key: string]: unknown} = {}) {
   const litType = REGISTRY[typeName];
 
   // tslint:disable-next-line:no-any
@@ -53,8 +52,7 @@ export function getMethodResolutionOrder(litType: LitType): string[] {
  * @param litType: The LitType to check.
  * @param typesToFind: Either a single or list of parent LitType candidates.
  */
-export function isLitSubtype(
-    litType: LitType, typesToFind: LitName|LitName[]) {
+export function isLitSubtype(litType: LitType, typesToFind: LitName|LitName[]) {
   if (litType == null) return false;
 
   if (typeof typesToFind === 'string') {
@@ -80,6 +78,31 @@ export function isLitSubtype(
 export function findSpecKeys(
     spec: Spec, typesToFind: LitName|LitName[]): string[] {
   return Object.keys(spec).filter(
-      key => isLitSubtype(
-          spec[key] as LitType, typesToFind));
+      key => isLitSubtype(spec[key], typesToFind));
+}
+
+/**
+ * Try to cast the unknown litType as any of the candidate typesToTry.
+ * Returns the first appropriate cast in the list, or null otherwise.
+ */
+export function tryCastAsType(
+    litType: unknown, typesToTry: LitName|LitName[], throwErrorIfFail = false) {
+  if (typeof typesToTry === 'string') {
+    typesToTry = [typesToTry];
+  }
+
+  for (const typeName of typesToTry) {
+    // tslint:disable-next-line:no-any
+    const registryType: any = REGISTRY[typeName];
+
+    if (litType instanceof registryType) {
+      return litType as typeof registryType;
+    }
+  }
+
+  if (throwErrorIfFail) {
+    throw new TypeError(`Unable to cast type as ${typesToTry}: ${litType}`);
+  }
+
+  return null;
 }

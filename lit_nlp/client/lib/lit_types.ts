@@ -36,7 +36,8 @@ const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
  */
 export type LitName = typeof registryKeys[number];
 
-type LitClass = 'LitType';
+/** A type alias for LitType. */
+export type LitClass = 'LitType';
 type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
 /**
@@ -58,7 +59,6 @@ export class LitType {
   readonly default: any|undefined = null;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.
   show_in_data_table: boolean = false;
-
   // TODO(b/162269499): Add isCompatible functionality.
 }
 
@@ -462,7 +462,8 @@ export class MultiFieldMatcher extends LitType {
 /**
  * Metadata about a returned salience map.
  */
-class _Salience extends LitType {
+@registered
+export class Salience extends LitType {
   /** If the saliency technique is automatically run. */
   autorun: boolean = false;
   /** If the returned values are signed. */
@@ -473,14 +474,14 @@ class _Salience extends LitType {
  * Metadata about a returned token salience map.
  */
 @registered
-export class TokenSalience extends _Salience {
+export class TokenSalience extends Salience {
 }
 
 /**
  * Metadata about a returned feature salience map.
  */
 @registered
-export class FeatureSalience extends _Salience {
+export class FeatureSalience extends Salience {
   // TODO(b/162269499): Add Typescript dtypes so that we can set default types.
 }
 
@@ -490,14 +491,14 @@ export class FeatureSalience extends _Salience {
  * data:image/jpg;base64,w4J3k1Bfa...
  */
 @registered
-export class ImageSalience extends _Salience {
+export class ImageSalience extends Salience {
 }
 
 /**
  * Metadata about a returned sequence salience map.
  */
 @registered
-export class SequenceSalience extends _Salience {
+export class SequenceSalience extends Salience {
 }
 
 /**
@@ -505,7 +506,7 @@ export class SequenceSalience extends _Salience {
  */
 @registered
 export class Boolean extends LitType {
-  override default : boolean = false;
+  override default: boolean = false;
 }
 
 /**

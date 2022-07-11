@@ -89,7 +89,8 @@ export function getAllReferenceTexts(
   // Search input fields: anything referenced in model's output spec
   const inputReferenceKeys = new Set<string>();
   for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
-    const parent = outputSpec[outKey].parent;
+    // tslint:disable-next-line:no-any
+    const parent = (outputSpec[outKey] as any).parent;
     if (parent && dataSpec[parent]) {
       inputReferenceKeys.add(parent);
     }

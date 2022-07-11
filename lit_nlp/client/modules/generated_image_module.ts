@@ -22,6 +22,7 @@ import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, LitName, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
@@ -113,7 +114,7 @@ export class GeneratedImageModule extends LitModule {
       <div class='module-container'>
         <div class="module-results-area">
           ${Object.entries(this.generatedImages).map(([key, value]) => {
-              const keyType = output[key];
+              const keyType = tryCastAsType(output[key], GeneratedImageModule.supportedTypes);
               if (isLitSubtype(keyType, GeneratedImageModule.supportedTypes)) {
                 return this.renderImage(key, value);
               }

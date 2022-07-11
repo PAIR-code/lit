@@ -24,6 +24,7 @@ import {action, computed, observable} from 'mobx';
 import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, hasParent} from '../lib/utils';
 import {GroupService} from '../services/services';
@@ -176,16 +177,19 @@ export class CurvesModule extends LitModule {
     for (const modelName of this.appState.currentModels) {
       const modelSpec = this.appState.metadata.models[modelName].spec;
       if (this.predKey in modelSpec.output) {
-        if (modelSpec.output[this.predKey].vocab == null) {
+        const litType =
+            tryCastAsType(modelSpec.output[this.predKey], 'MulticlassPreds');
+        if (litType.vocab == null) {
           continue;
         }
+
         // Find default positive label by finding first index that isn't
         // the null index for a predicted class vocab.
         this.selectedPositiveLabelIndex =
-            modelSpec.output[this.predKey].vocab!.findIndex(
-                (elem, i) => i !== modelSpec.output[this.predKey].null_idx);
+            (litType.vocab as string[])
+                .findIndex((elem, i) => i !== litType.null_idx);
 
-        return modelSpec.output[this.predKey].vocab!;
+        return litType.vocab;
       }
     }
     return [];

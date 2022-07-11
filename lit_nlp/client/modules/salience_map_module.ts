@@ -32,6 +32,7 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
@@ -122,7 +123,8 @@ export class SalienceMapModule extends LitModule {
       if (salienceKeys.length === 0) {
         continue;
       }
-      const salienceSpecInfo = interpreters[key].metaSpec[salienceKeys[0]];
+      const salienceSpecInfo = tryCastAsType(
+          interpreters[key].metaSpec[salienceKeys[0]], 'Salience');
       state[key] = {
         autorun: !!salienceSpecInfo.autorun,
         isLoading: false,
@@ -367,11 +369,12 @@ export class SalienceMapModule extends LitModule {
       for (const fieldName of Object.keys(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName],
+        const litType = tryCastAsType(clonedSpec[fieldName], ['FieldMatcher', 'MultiFieldMatcher']);
+        if (isLitSubtype(litType,
                          ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
+          litType.vocab =
               this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+                 litType, this.model);
         }
       }
       return html`

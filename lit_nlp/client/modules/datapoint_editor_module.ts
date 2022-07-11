@@ -28,6 +28,7 @@ import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {isLitSubtype, findSpecKeys} from '../lib/utils';
 import {GroupService} from '../services/group_service';
@@ -107,20 +108,20 @@ export class DatapointEditorModule extends LitModule {
 
     for (const key of fieldKeys) {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
-
-      if (isLitSubtype(fieldSpec, ['String', 'TextSegment'])) {
+      let calculateStringLength: ((s: string) => number)|
+          ((s: string[]) => number);
+      const litType = tryCastAsType(
+          fieldSpec, ['String', 'TextSegment', 'SparseMultilabel']);
+      if (isLitSubtype(litType, ['String', 'TextSegment'])) {
         calculateStringLength = (s: string) => s.length;
-      }
-      else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
-        const separator = fieldSpec.separator;
+      } else if (isLitSubtype(litType, 'SparseMultilabel')) {
+        const separator = litType.separator;
         calculateStringLength = (s: string[]) =>
-          Object.values(s).join(separator).length;
+            Object.values(s).join(separator).length;
+      } else {
+        throw new Error(
+            `Attempted to convert unrecognized type to string: ${key}.`);
       }
-      else {
-            throw new Error(
-              `Attempted to convert unrecognized type to string: ${key}.`);
-        }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
         return calculateStringLength(indexedInput.data[key]);
@@ -538,7 +539,8 @@ export class DatapointEditorModule extends LitModule {
       'left-align': false
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
-    const vocab = fieldSpec?.vocab;
+    // tslint:disable-next-line:no-any
+    const vocab = (fieldSpec as any).vocab;
     if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {

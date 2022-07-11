@@ -25,6 +25,7 @@ import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
+import {MulticlassPreds} from './lit_types';
 import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
@@ -305,14 +306,19 @@ export function doesInputSpecContain(
 
 /** Returns if a LitType specifies binary classification. */
 export function isBinaryClassification(litType: LitType) {
+  if (litType instanceof MulticlassPreds) {
     const predictionLabels = litType.vocab!;
     const nullIdx = litType.null_idx;
     return predictionLabels.length === 2 && nullIdx != null;
+  }
+
+  return false;
 }
 
 /** Returns if a LitType has a parent field. */
 export function hasParent(litType: LitType) {
-    return litType.parent != null;
+    // tslint:disable-next-line:no-any
+    return (litType as any).parent != null;
 }
 
 /**

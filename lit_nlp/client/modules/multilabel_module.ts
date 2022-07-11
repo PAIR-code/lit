@@ -24,6 +24,7 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {formatBoolean, IndexedInput, ModelInfoMap, NumericResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {SelectionService} from '../services/services';
@@ -113,7 +114,8 @@ export class MultilabelModule extends LitModule {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
       const predKeys = findSpecKeys(outputSpec, 'SparseMultilabelPreds');
       for (const predKey of predKeys) {
-        const labelField = outputSpec[predKey].parent;
+        const labelField =
+            tryCastAsType(outputSpec[predKey], 'SparseMultilabelPreds').parent;
         if (labelField != null) {
           this.groundTruthLabels.add(labelField);
         }

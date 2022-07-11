@@ -14,6 +14,7 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {tryCastAsType} from '../lib/lit_types_utils';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
@@ -82,7 +83,9 @@ export class SequenceSalienceModule extends LitModule {
   @computed
   get cmap() {
     if (this.selectedSalienceField != null &&
-        this.salienceSpecInfo[this.selectedSalienceField]?.signed) {
+        tryCastAsType(
+            this.salienceSpecInfo[this.selectedSalienceField], 'Salience')
+            .signed) {
       return new SignedSalienceCmap(/* gamma */ this.cmapGamma);
     } else {
       return new UnsignedSalienceCmap(/* gamma */ this.cmapGamma);
