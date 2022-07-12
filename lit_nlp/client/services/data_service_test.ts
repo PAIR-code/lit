@@ -102,9 +102,9 @@ describe('DataService test', () => {
       isAlive: true}});
 
   let appState: AppState;
+  let classificationService: ClassificationService;
   let dataService: DataService;
   const apiService = new ApiService(new StatusService());
-  const classificationService = new ClassificationService();
   let settingsService: SettingsService;
 
   beforeEach(async () => {
@@ -122,6 +122,7 @@ describe('DataService test', () => {
     appState.setCurrentDataset('penguin_dev');
 
     settingsService = app.getService(SettingsService);
+    classificationService = app.getService(ClassificationService);
     dataService = new DataService(
         appState, classificationService, apiService, settingsService);
   });
@@ -136,9 +137,11 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, 1);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.cols.length).toBe(1);
+    expect(dataService.cols[0].key).toBe('featKey');
     expect(dataService.cols[0].name).toBe('newFeat');
     expect(dataService.getColNamesOfType('Scalar').length).toBe(1);
     expect(dataService.getColNamesOfType('TextSegment').length).toBe(0);
@@ -152,7 +155,8 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('a', 'newFeat')).toBe(0);
     expect(dataService.getVal('b', 'newFeat')).toBe(1);
@@ -170,7 +174,8 @@ describe('DataService test', () => {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('newDatapoint', 'newFeat')).toBeNull();
     const newDatapoint = {

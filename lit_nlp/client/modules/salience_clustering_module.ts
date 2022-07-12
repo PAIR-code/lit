@@ -194,8 +194,9 @@ export class SalienceClusteringModule extends LitModule {
       this.state.clusteringState.clusterInfos[gradKey] = clusterInfos;
       const localGetValueFn = (input: IndexedInput) =>
           getValueFn(gradKey, input);
-      this.dataService.addColumn(dataMap, featName, dataType, 'Interpreter',
-                                 localGetValueFn);
+      this.dataService.addColumn(
+          dataMap, SALIENCE_CLUSTERING_INTERPRETER_NAME, featName, dataType,
+          'Interpreter', localGetValueFn);
       this.statusMessage = `New column added: ${featName}.`;
 
       // Store top tokens.

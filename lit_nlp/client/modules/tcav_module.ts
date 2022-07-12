@@ -462,7 +462,7 @@ export class TCAVModule extends LitModule {
           dataMap.set(input.id, res.cosSim[i]);
         }
         this.dataService.addColumn(
-            dataMap, featName, dataType, 'Interpreter', getValueFn);
+            dataMap, 'TCAV', featName, dataType, 'Interpreter', getValueFn);
       }
 
       this.resultsTableData.push({
