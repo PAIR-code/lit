@@ -23,6 +23,7 @@ import 'jasmine';
 
 import {Spec} from '../lib/types';
 
+import {createLitType} from './lit_types_utils';
 import * as utils from './utils';
 
 describe('mean test', () => {
@@ -142,13 +143,7 @@ describe('arrayContainsSame test', () => {
 describe('isLitSubtype test', () => {
   it('finds a subclass', () => {
     const spec: Spec = {
-      'score': {
-        __class__: 'LitType',
-        __name__: 'RegressionScore',
-        // TODO(b/162269499): Update Specs to have updated relevant properties,
-        // now that the __mro__ field is no longer needed.
-        __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-      },
+      'score': createLitType('RegressionScore'),
     };
 
     expect(utils.isLitSubtype(spec['score'], 'RegressionScore')).toBe(true);
@@ -160,38 +155,12 @@ describe('isLitSubtype test', () => {
 
 describe('findSpecKeys test', () => {
   const spec: Spec = {
-    'score': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'probabilities': {
-      __class__: 'LitType',
-      __name__: 'MulticlassPreds',
-      __mro__: ['MulticlassPreds', 'LitType', 'object'],
-      null_idx: 0
-    },
-    'score2': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'scalar_foo': {
-      __class__: 'LitType',
-      __name__: 'Scalar',
-      __mro__: ['Scalar', 'LitType', 'object']
-    },
-    'segment': {
-      __class__: 'LitType',
-      __name__: 'TextSegment',
-      __mro__: ['TextSegment', 'String', 'LitType', 'object']
-    },
-    'generated_text': {
-      __class__: 'LitType',
-      __name__: 'GeneratedText',
-      __mro__: ['GeneratedText', 'TextSegment', 'String', 'LitType', 'object'],
-      parent: 'segment'
-    }
+    'score': createLitType('RegressionScore'),
+    'probabilities': createLitType('MulticlassPreds', {'null_idx': 0}),
+    'score2': createLitType('RegressionScore'),
+    'scalar_foo': createLitType('Scalar'),
+    'segment': createLitType('TextSegment'),
+    'generated_text': createLitType('GeneratedText', {'parent': 'segment'}),
   };
 
   it('finds all spec keys that match the specified types', () => {

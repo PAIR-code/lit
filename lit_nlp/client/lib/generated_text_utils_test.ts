@@ -18,48 +18,28 @@
 import 'jasmine';
 
 import {canonicalizeGenerationResults, getAllOutputTexts, getAllReferenceTexts, getFlatTexts, getTextDiff} from './generated_text_utils';
+import {createLitType} from './lit_types_utils';
 import {Input, LitType, Preds, Spec} from './types';
 
-// TODO(b/162269499): replace with a real class constructor.
 function textSegmentType(): LitType {
-  return {
-    '__class__': 'LitType',
-    '__name__': 'TextSegment',
-    '__mro__': ['TextSegment', 'LitType', 'object'],
+  return createLitType('TextSegment', {
     'required': false,
-  };
+  });
 }
 
-// TODO(b/162269499): replace with a real class constructor.
 function referenceTextsType(): LitType {
-  return {
-    '__class__': 'LitType',
-    '__name__': 'ReferenceTexts',
-    '__mro__': ['ReferenceTexts', 'LitType', 'object'],
+  return createLitType('ReferenceTexts', {
     'required': false,
-  };
+  });
 }
 
-// TODO(b/162269499): replace with a real class constructor.
 function generatedTextType(parent: string): LitType {
-  return {
-    '__class__': 'LitType',
-    '__name__': 'GeneratedText',
-    '__mro__': ['GeneratedText', 'TextSegment', 'LitType', 'object'],
-    'required': false,
-    parent
-  };
+  return createLitType('GeneratedText', {'required': false, 'parent': parent});
 }
 
-// TODO(b/162269499): replace with a real class constructor.
 function generatedTextCandidatesType(parent: string): LitType {
-  return {
-    '__class__': 'LitType',
-    '__name__': 'GeneratedTextCandidates',
-    '__mro__': ['GeneratedTextCandidates', 'TextSegment', 'LitType', 'object'],
-    'required': false,
-    parent
-  };
+  return createLitType(
+      'GeneratedTextCandidates', {'required': false, 'parent': parent});
 }
 
 describe('canonicalizeGenerationResults test', () => {
