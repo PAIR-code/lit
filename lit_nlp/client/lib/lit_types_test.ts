@@ -26,3 +26,13 @@ describe('creates lit types', () => {
     expect(generatedText.parent).toBe(undefined);
   });
 });
+
+describe('handles custom methods', () => {
+  it('MulticlassPreds num_labels', () => {
+    const preds = new litTypes.MulticlassPreds();
+    preds.vocab = ['1', '2', '3'];
+
+    expect(preds.num_labels).toBe(3);
+    expect(preds.autosort).toBe(false);
+  });
+});

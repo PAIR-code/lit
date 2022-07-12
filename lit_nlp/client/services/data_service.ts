@@ -166,17 +166,16 @@ export class DataService extends LitService {
           (result: ClassificationResults) => result[key].correct);
       const source = `${CLASSIFICATION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
-          scores, data, scoreFeatName,
-          this.appState.createLitType('MulticlassPreds', false), source);
+          scores, data, scoreFeatName, createLitType('MulticlassPreds'),
+          source);
       const litTypeClassification = createLitType('CategoryLabel');
       litTypeClassification.vocab = output[key].vocab;
       this.addColumnFromList(
           predClasses, data, predClassFeatName, litTypeClassification, source);
       if (output[key].parent != null) {
         this.addColumnFromList(
-            correctness, data, correctnessName,
-            this.appState.createLitType('Boolean', false), source, () => null,
-            BINARY_NEG_POS);
+            correctness, data, correctnessName, createLitType('Boolean'),
+            source, () => null, BINARY_NEG_POS);
       }
     }
   }
