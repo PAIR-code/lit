@@ -500,3 +500,18 @@ export function numberRangeFnFromString(str: string): (num: number) => boolean {
     return false;
   };
 }
+
+/** Return evenly spaced numbers between minValue and maxValue. */
+export function linearSpace(
+    minValue: number, maxValue: number, numSteps: number): number[] {
+  if (minValue > maxValue) {
+    return [];
+  }
+
+  const values = [];
+  const step = (maxValue - minValue) / (numSteps - 1);
+  for (let i = 0; i < numSteps; i++) {
+    values.push(minValue + i * step);
+  }
+  return values;
+}

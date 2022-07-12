@@ -520,3 +520,31 @@ describe('numberRangeFnFromString test', () => {
     expect(fn(1.5)).toBe(false);
   });
 });
+
+describe('linearSpace test', () => {
+  it('returns evenly spaced numbers between minValue and maxValue', () => {
+    let minValue = 0;
+    let maxValue = 1;
+    let numSteps = 5;
+    let result = [0, 0.25, 0.5, 0.75, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = -1;
+    maxValue = 1;
+    numSteps = 5;
+    result = [-1, -0.5, 0, 0.5, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 0.25;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [0.25, 0.5, 0.75];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 1;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+  });
+});

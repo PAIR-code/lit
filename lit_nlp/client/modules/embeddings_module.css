@@ -18,7 +18,7 @@
 }
 
 .module-footer {
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 
 .selected-nearest-button:disabled {
