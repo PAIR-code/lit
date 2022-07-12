@@ -464,3 +464,39 @@ export function getTemplateStringFromMarkdown(markdown: string) {
   const htmlStr = marked(markdown);
   return unsafeHTML(htmlStr);
 }
+
+/**
+ * Convert a number range from strings to a function to check inclusion.
+ *
+ * Can use commas or spaces to separate individual numbers/ranges. Logic can
+ * handle negative numbers and decimals. Ranges are inclusive.
+ * e.x. "1, 2, 4-6" will match the numbers 1, 2, and numbers between 4 and 6.
+ * e.x. "-.5-1.5 10" will match numbers between -.5 and 1.5 and also 10.
+ */
+export function numberRangeFnFromString(str: string): (num: number) => boolean {
+  // Matches single numbers, including decimals with and without leading zeros,
+  // and negative numbers. Also matches ranges of numbers separated by a hyphen.
+  const regexStr = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
+
+  // Convert the string into a list of ranges of numbers to match.
+  const ranges: Array<[number, number]> = [];
+  for (const [, beginStr, endStr] of str.matchAll(regexStr)) {
+    if (beginStr.length === 0) {
+      continue;
+    }
+    ranges.push([beginStr, endStr || beginStr].map(Number) as [number, number]);
+  }
+
+  // Returns a function that matches numbers against the ranges.
+  return (num: number) => {
+    if (ranges.length === 0) {
+      return true;
+    }
+    for (const range of ranges) {
+      if (num >= range[0] && num <= range[1]) {
+        return true;
+      }
+    }
+    return false;
+  };
+}

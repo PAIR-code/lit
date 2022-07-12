@@ -27,10 +27,10 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {DataTable, TableData} from '../elements/table';
+import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {compareArrays, shortenId} from '../lib/utils';
+import {formatForDisplay, IndexedInput, LitType, ModelInfoMap, Spec} from '../lib/types';
+import {compareArrays, isLitSubtype, shortenId} from '../lib/utils';
 import {DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
@@ -74,11 +74,22 @@ export class DataTableModule extends LitModule {
 
   // Column names from the current data for the data table.
   @computed
-  get keys(): string[] {
+  get keys(): ColumnHeader[] {
+    const createColumnHeader = (name: string, type: LitType) => {
+      const header = {name, vocab: type.vocab};
+      if (isLitSubtype(type, 'Boolean')) {
+        header.vocab = ['✔', ' '];
+      }
+      return header;
+    };
+
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
-    const keys = this.appState.currentInputDataKeys;
-    const dataKeys = this.dataService.cols.map(col => col.name);
+    const keyNames = this.appState.currentInputDataKeys;
+    const keys =
+        keyNames.map(key => createColumnHeader(key, this.dataSpec[key]));
+    const dataKeys = this.dataService.cols.map(
+        col => createColumnHeader(col.name, col.dataType));
     return keys.concat(dataKeys);
   }
 
@@ -86,9 +97,9 @@ export class DataTableModule extends LitModule {
   // data table. The filtered ones can still be enabled through the "Columns"
   // selector dropdown.
   @computed
-  get defaultKeys(): string[] {
+  get defaultKeys(): ColumnHeader[] {
     return this.keys.filter(feat => {
-      const col = this.dataService.getColumnInfo(feat);
+      const col = this.dataService.getColumnInfo(feat.name);
       if (col == null) {
         return true;
       }
@@ -98,8 +109,8 @@ export class DataTableModule extends LitModule {
 
   // All columns to be available by default in the data table.
   @computed
-  get defaultColumns(): string[] {
-    return ['index', ...this.keys];
+  get defaultColumns(): ColumnHeader[] {
+    return [{name: 'index'}, ...this.keys];
   }
 
   @computed
@@ -158,9 +169,11 @@ export class DataTableModule extends LitModule {
       if (index == null) return [];
 
       const dataEntries =
-          this.keys.filter(k => this.columnVisibility.get(k))
-              .map(k => formatForDisplay(this.dataService.getVal(d.id, k),
-                                         this.dataSpec[k]));
+          this.keys.filter(k => this.columnVisibility.get(k.name))
+              .map(
+                  k => formatForDisplay(
+                      this.dataService.getVal(d.id, k.name),
+                      this.dataSpec[k.name]));
 
       const pinClick = (event: Event) => {
         if (pinnedId === d.id) {
@@ -238,7 +251,8 @@ export class DataTableModule extends LitModule {
     // Add default columns to the map of column names.
     for (const column of this.defaultColumns) {
       columnVisibility.set(
-          column, this.defaultKeys.includes(column) || column === 'index');
+          column.name,
+          this.defaultKeys.includes(column) || column.name === 'index');
     }
     this.columnVisibility = columnVisibility;
   }
@@ -373,8 +387,8 @@ export class DataTableModule extends LitModule {
           indexOfId(referenceSelectionService.primarySelectedId);
     }
 
-    const columnNames = [...this.columnVisibility.keys()].filter(
-        k => this.columnVisibility.get(k));
+    const columnNames =
+        this.defaultColumns.filter(col => this.columnVisibility.get(col.name));
 
     // clang-format off
     return html`

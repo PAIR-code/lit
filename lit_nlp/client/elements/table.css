@@ -231,3 +231,11 @@ tbody td {
 .button-extra-margin {
   margin-left: 4px;
 }
+
+.checkbox-holder{
+  padding: 4px;
+}
+
+.right-aligned-search {
+  right: 0;
+}

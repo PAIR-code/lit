@@ -493,3 +493,61 @@ describe('mapsContainSame test', () => {
     expect(utils.mapsContainSame(mapA, mapB)).toBe(true);
   });
 });
+
+describe('numberRangeFnFromString test', () => {
+  it('handles single items', () => {
+    const input = '1, 2 -3';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(true);
+    expect(fn(-3)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(-1)).toBe(false);
+    expect(fn(3)).toBe(false);
+  });
+
+  it('handles ranges', () => {
+    const input = '-20--10, -4-4 10-20';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(-19)).toBe(true);
+    expect(fn(-10)).toBe(true);
+    expect(fn(-9)).toBe(false);
+    expect(fn(0)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(9)).toBe(false);
+    expect(fn(12)).toBe(true);
+  });
+
+  it('handles mix of singles and ranges', () => {
+    const input = '1, 3-5';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(false);
+    expect(fn(3)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(5)).toBe(true);
+    expect(fn(6)).toBe(false);
+  });
+
+  it('ignores invalid settings', () => {
+    const input = 'not a number';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(0)).toBe(true);
+    expect(fn(100)).toBe(true);
+  });
+
+  it('handles decimal numbers with and without leading zeros', () => {
+    const input = '-11.23--5.5, 0.45-.49, .99-1.4';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-11.4)).toBe(false);
+    expect(fn(-6.5)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(0.451)).toBe(true);
+    expect(fn(0.5)).toBe(false);
+    expect(fn(1)).toBe(true);
+    expect(fn(1.4)).toBe(true);
+    expect(fn(1.5)).toBe(false);
+  });
+});
