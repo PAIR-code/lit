@@ -30,7 +30,7 @@ import {LitModule} from '../core/lit_module';
 import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, LitType, ModelInfoMap, Spec} from '../lib/types';
-import {compareArrays, isLitSubtype, shortenId} from '../lib/utils';
+import {compareArrays, isLitSubtype} from '../lib/utils';
 import {DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
@@ -129,6 +129,22 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get dataEntries(): Array<Array<string|number>> {
+    return this.sortedData.map((d) => {
+      const index = this.appState.indicesById.get(d.id);
+      if (index == null) return [];
+
+      const dataEntries =
+          this.keys.filter(k => this.columnVisibility.get(k.name))
+              .map(
+                  k => formatForDisplay(
+                      this.dataService.getVal(d.id, k.name),
+                      this.dataSpec[k.name]));
+      return dataEntries;
+    });
+  }
+
+  @computed
   get selectedRowIndices(): number[] {
     return this.sortedData
         .map((ex, i) => this.selectionService.isIdSelected(ex.id) ? i : -1)
@@ -159,21 +175,10 @@ export class DataTableModule extends LitModule {
     // TODO(b/160170742): Make data table render immediately once the
     // non-prediction data is available, then fetch predictions asynchronously
     // and enable the additional columns when ready.
-    return this.sortedData.map((d) => {
-      let displayId = shortenId(d.id);
-      displayId = displayId ? displayId + '...' : '';
-      // Add an asterisk for generated examples
-      // TODO(lit-dev): set up something with CSS instead.
-      displayId = d.meta['added'] ? '*' + displayId : displayId;
+    return this.dataEntries.map((dataEntry, i) => {
+      const d = this.sortedData[i];
       const index = this.appState.indicesById.get(d.id);
       if (index == null) return [];
-
-      const dataEntries =
-          this.keys.filter(k => this.columnVisibility.get(k.name))
-              .map(
-                  k => formatForDisplay(
-                      this.dataService.getVal(d.id, k.name),
-                      this.dataSpec[k.name]));
 
       const pinClick = (event: Event) => {
         if (pinnedId === d.id) {
@@ -221,10 +226,7 @@ export class DataTableModule extends LitModule {
         value: index
       };
       const ret: TableData = [indexEntry];
-      if (this.columnVisibility.get('id')) {
-        ret.push(displayId);
-      }
-      return [...ret, ...dataEntries];
+      return [...ret, ...dataEntry];
     });
   }
 

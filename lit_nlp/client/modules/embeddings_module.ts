@@ -305,19 +305,22 @@ export class EmbeddingsModule extends LitModule {
     // Don't react immediately; we'll wait and make a single update.
     const getColorAll = () => this.colorService.all;
     this.react(getColorAll, allColorOptions => {
-      // pointColorer uses the latest settings from colorService automatically,
-      // so to pick up the colors we just need to trigger a rerender on
-      // scatterGL.
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
     this.react(() => this.focusService.focusData, focusData => {
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.selectionService.primarySelectedId, primaryId => {
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.selectedSpriteIndex, focusData => {
       this.computeSpriteMap();

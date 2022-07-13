@@ -16,9 +16,8 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
 import {html} from 'lit';
-import {property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -26,13 +25,13 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {MatrixCell, MatrixSelection} from '../elements/data_matrix';
 import {ReactiveElement} from '../lib/elements';
-import {IndexedInput, ModelInfoMap} from '../lib/types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {GroupedExamples, IndexedInput, ModelInfoMap} from '../lib/types';
 import {arrayContainsSame, doesOutputSpecContain, facetMapToDictKey} from '../lib/utils';
-import {GetFeatureFunc, GroupService, FacetingMethod, NumericFeatureBins} from '../services/group_service';
-import {DataService} from '../services/services';
+import {FacetingMethod, GetFeatureFunc, GroupService, NumericFeatureBins} from '../services/group_service';
+import {DataService, SelectionService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /**
@@ -187,17 +186,12 @@ export class ConfusionMatrixModule extends LitModule {
   override render() {
     const row = this.options[this.selectedRowOption];
     const col = this.options[this.selectedColOption];
-    const onCellClick = (event: CustomEvent<MatrixSelection>) => {
-      const {ids} = event.detail;
-      this.selectionService.selectIds(ids, this);
-    };
 
     // clang-format off
     const matrices = [...this.subsets.entries()].map(([name, data]) =>
         html` <confusion-matrix ?hideEmptyLabels=${this.hideEmptyLabels}
                                 .row=${row} .col=${col}
-                                .data=${data} .label=${name}
-                                @matrix-selection=${onCellClick}>
+                                .data=${data} .label=${name}>
               </confusion-matrix>`);
 
     return html`<div class="module-container">
@@ -302,7 +296,9 @@ class ConfusionMatrix extends ReactiveElement {
 
   // tslint:disable-next-line:no-any
   private readonly latestLoadPromises = new Map<string, Promise<any>>();
+  private groups: GroupedExamples = {};
   private readonly groupService = app.getService(GroupService);
+  private readonly selectionService = app.getService(SelectionService);
 
   private async loadLatest<T>(key: string, promise: Promise<T>) {
     this.latestLoadPromises.set(key, promise);
@@ -352,7 +348,7 @@ class ConfusionMatrix extends ReactiveElement {
       {featureName: rowName, method: FacetingMethod.DISCRETE},
       {featureName: colName, method: FacetingMethod.DISCRETE}
     ]);
-    const groups = this.groupService.groupExamplesByFeatures(
+    this.groups = this.groupService.groupExamplesByFeatures(
         bins, this.data, [rowName, colName], getFeatFunc);
 
     this.cells = rowLabels.map(rowLabel => colLabels.map(colLabel => {
@@ -361,16 +357,15 @@ class ConfusionMatrix extends ReactiveElement {
       // go into that cell. Handle this special case as the facetsDict below
       // only handles a single value per feature.
       if (colName === rowName && colLabel !== rowLabel) {
-        return {ids: [], selected: false};
+        return {size: 0, selected: false};
       }
       // Find the bin corresponding to this row/column value combination.
       const facetsDict = {
         [colName]: {val: colLabel, displayVal: colLabel},
         [rowName]: {val: rowLabel, displayVal: rowLabel}
       };
-      const bin = groups[facetMapToDictKey(facetsDict)];
-      const ids = bin ? bin.data.map(example => example.id) : [];
-      return {ids, selected: false} as MatrixCell;
+      const bin = this.groups[facetMapToDictKey(facetsDict)];
+      return {size: bin ? bin.data.length : 0, selected: false} as MatrixCell;
     }));
   }
 
@@ -388,9 +383,19 @@ class ConfusionMatrix extends ReactiveElement {
     const onCellClick = (event: CustomEvent<MatrixSelection>) => {
       event.stopPropagation();
       event.preventDefault();
-      this.dispatchEvent(new CustomEvent<MatrixSelection>('matrix-selection', {
-        detail: {...event.detail}
-      }));
+
+      let ids: string[] = [];
+      for (const [i, j] of event.detail.cells) {
+        const rowLabel = this.row!.labelList[i];
+        const colLabel = this.col!.labelList[j];
+        const facetsDict = {
+          [this.col!.name]: {val: colLabel, displayVal: colLabel},
+          [this.row!.name]: {val: rowLabel, displayVal: rowLabel}
+        };
+        const bin = this.groups[facetMapToDictKey(facetsDict)];
+        ids = ids.concat(bin.data.map(example => example.id));
+      }
+      this.selectionService.selectIds(ids, this);
     };
 
     return html`
