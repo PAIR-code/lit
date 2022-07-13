@@ -141,7 +141,7 @@ export class LitApp {
     const sliceService = new SliceService(selectionService, appState);
     const settingsService =
         new SettingsService(appState, modulesService, selectionService);
-    const classificationService = new ClassificationService();
+    const classificationService = new ClassificationService(appState);
     const dataService = new DataService(
         appState, classificationService, apiService, settingsService);
     const groupService = new GroupService(appState, dataService);

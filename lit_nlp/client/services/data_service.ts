@@ -19,6 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
+import {createLitType} from '../lib/lit_types_utils';
 import {ClassificationResults, IndexedInput, LitName, LitType, RegressionResults} from '../lib/types';
 import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -40,6 +41,7 @@ export type ValueFn = (input: IndexedInput) => ValueType;
 export interface DataColumnHeader {
   dataType: LitType;
   name: string;
+  key: string;
   source: Source;
   getValueFn: ValueFn;
   colorRange?: ColorRange;
@@ -83,9 +85,9 @@ export class DataService extends LitService {
       this.columnData.clear();
     });
 
-    // Run classification interpreter when necessary.
+    // Run classification interpreter when the inputs or margins change.
     const getClassificationInputs = () =>
-        [this.appState.currentInputData, this.appState.currentModels,
+        [this.appState.currentInputData,
          this.classificationService.allMarginSettings];
     reaction(getClassificationInputs, () => {
       if (this.appState.currentInputData == null ||
@@ -165,18 +167,17 @@ export class DataService extends LitService {
           (result: ClassificationResults) => result[key].correct);
       const source = `${CLASSIFICATION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
-          scores, data, scoreFeatName,
-          this.appState.createLitType('MulticlassPreds', false), source);
-      const litTypeClassification =
-          this.appState.createLitType('CategoryLabel', false);
+          scores, data, key, scoreFeatName, createLitType('MulticlassPreds'),
+          source);
+      const litTypeClassification = createLitType('CategoryLabel');
       litTypeClassification.vocab = output[key].vocab;
       this.addColumnFromList(
-          predClasses, data, predClassFeatName, litTypeClassification, source);
+          predClasses, data, key, predClassFeatName, litTypeClassification,
+          source);
       if (output[key].parent != null) {
         this.addColumnFromList(
-            correctness, data, correctnessName,
-            this.appState.createLitType('Boolean', false), source, () => null,
-            BINARY_NEG_POS);
+            correctness, data, key, correctnessName, createLitType('Boolean'),
+            source, () => null, BINARY_NEG_POS);
       }
     }
   }
@@ -213,13 +214,15 @@ export class DataService extends LitService {
           (result: RegressionResults) => result[key].error);
       const sqErrors = regressionResults.map(
           (result: RegressionResults) => result[key].squared_error);
-      const dataType = this.appState.createLitType('Scalar', false);
+      const dataType = createLitType('Scalar');
       const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
-      this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
+      this.addColumnFromList(
+          scores, data, key, scoreFeatName, dataType, source);
       if (output[key].parent != null) {
-        this.addColumnFromList(errors, data, errorFeatName, dataType, source);
         this.addColumnFromList(
-            sqErrors, data, sqErrorFeatName, dataType, source);
+            errors, data, key, errorFeatName, dataType, source);
+        this.addColumnFromList(
+            sqErrors, data, key, sqErrorFeatName, dataType, source);
       }
     }
   }
@@ -245,9 +248,10 @@ export class DataService extends LitService {
     for (const key of scalarKeys) {
       const scoreFeatName = this.getColumnName(model, key);
       const scores = preds.map(pred => pred[key]);
-      const dataType = this.appState.createLitType('Scalar', false);
+      const dataType = createLitType('Scalar');
       const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
-      this.addColumnFromList(scores, data, scoreFeatName, dataType, source);
+      this.addColumnFromList(
+          scores, data, key, scoreFeatName, dataType, source);
     }
   }
 
@@ -270,8 +274,8 @@ export class DataService extends LitService {
   }
 
   getColNamesOfType(typeName: LitName): string[] {
-    return this.cols.filter(col => isLitSubtype(col.dataType, typeName)).map(
-        col => col.name);
+    return this.cols.filter(col => isLitSubtype(col.dataType, typeName))
+                    .map(col => col.name);
   }
 
   getColumnInfo(name: string): DataColumnHeader|undefined {
@@ -295,14 +299,37 @@ export class DataService extends LitService {
    *
    * If column has been previously added, replaces the existing data with new
    * data, if they are different.
+   *
+   * @param {ColumnData} columnVals Map from datapoint ID to values to associate
+   *     with this column.
+   * @param {string} key the field name associated with this column in the
+   *     Dataset's or Model's spec.
+   * @param {string} name the display name for this column. For Dataset (i.e.,
+   *     input) columns these are typically the same as `key`. For columns
+   *     asociated with a Model's output spec, use DataService.getColumnName()
+   *     to generate the name to use here.
+   * @param {LitType} dataType the LitType (i.e., the type used in Specs)
+   *     corresonding to the values in this column.
+   * @param {Source} source a colon-separated (:) string describing the origins
+   *     of the values in this column. These are used by modules -- e.g.,
+   *     Scalars -- to determine which columns to draw from for display. For
+   *     model predictions, source should always contain the model name,
+   *     optionally preceeded by one of the *_SOURCE_PREFIX constants exported
+   *     by this module.
+   * @param {ValueFn} getValueFn function for getting new values for this
+   *     column, typically called when a user adds a new Datapoint to the
+   *     DataService through the Datapoint Editor or a Generator.
+   * @param {ColorRange=} colorRange a color range to associate with values from
+   *     this column.
    */
   @action
   addColumn(
-      columnVals: ColumnData, name: string, dataType: LitType, source: Source,
-      getValueFn: ValueFn = () => null, colorRange?: ColorRange) {
+      columnVals: ColumnData, key: string, name: string, dataType: LitType,
+      source: Source, getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange) {
     if (!this.columnHeaders.has(name)) {
       this.columnHeaders.set(
-          name, {dataType, source, name, getValueFn, colorRange});
+          name, {dataType, source, name, key, getValueFn, colorRange});
     }
     // TODO(b/156100081): If data service table is properly observable, may
     // be able to get rid of this check.
@@ -320,7 +347,7 @@ export class DataService extends LitService {
    */
   @action
   addColumnFromList(
-      values: ValueType[], data: IndexedInput[], name: string,
+      values: ValueType[], data: IndexedInput[], key: string, name: string,
       dataType: LitType, source: Source, getValueFn: ValueFn = () => null,
       colorRange?: ColorRange) {
     if (values.length !== data.length) {
@@ -333,15 +360,17 @@ export class DataService extends LitService {
       const value = values[i];
       columnVals.set(input.id, value);
     }
-    this.addColumn(columnVals, name, dataType, source, getValueFn, colorRange);
+    this.addColumn(
+        columnVals, key, name, dataType, source, getValueFn, colorRange);
   }
 
   /** Get stored value for a datapoint ID for the provided column key. */
   getVal(id: string, key: string) {
-    // If column not tracked by data service, get value from input data
-    // through appState.
+    // If column not tracked by data service, try to get the value from the
+    // input data through appState.
     if (!this.columnHeaders.has(key)) {
-      return this.appState.getCurrentInputDataById(id)!.data[key];
+      const inputData = this.appState.getCurrentInputDataById(id);
+      return inputData != null ? inputData.data[key] : null;
     }
     // If no value yet stored for this datapoint for this column, return null.
     if (!this.columnData.get(key)!.has(id)) {

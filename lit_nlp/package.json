@@ -2,8 +2,12 @@
   "name": "lit-client",
   "version": "0.0.1",
   "description": "Client app for the Language Interpretability Tool (LIT)",
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "scripts": {
     "clean": "rm -rf ./client/build",
+    "lint": "eslint -c ./.eslint.json 'client/**/*.ts'",
     "build": "yarn clean && webpack --env.production --config ./client/webpack/config.js",
     "watch": "yarn clean && webpack --config ./client/webpack/config.js --watch"
   },
@@ -33,13 +37,18 @@
   "devDependencies": {
     "@types/d3": "5.7.2",
     "@types/difflib": "0.2.0",
+    "@types/eslint": "^8.0.0",
     "@types/jasmine": "3.5.10",
     "@types/marked": "4.0.3",
     "@types/node": "14.0.13",
     "@types/resize-observer-browser": "0.1.3",
     "@types/seedrandom": "2.4.28",
+    "@typescript-eslint/eslint-plugin": "5.0.0",
+    "@typescript-eslint/parser": "5.0.0",
     "copy-webpack-plugin": "5.1.1",
     "css-loader": "3.4.2",
+    "eslint": "8.0.0",
+    "eslint-plugin-node": "11.1.0",
     "filemanager-webpack-plugin": "3.0.0-alpha.1",
     "html-webpack-plugin": "4.0.3",
     "jasmine": "3.5.0",

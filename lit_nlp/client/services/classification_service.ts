@@ -16,11 +16,15 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable} from 'mobx';
+import {action, computed, observable, reaction} from 'mobx';
 
-import {FacetedData, GroupedExamples} from '../lib/types';
+import {FacetedData, GroupedExamples, Spec} from '../lib/types';
+import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
+import {AppState} from './state_service';
+
+const GLOBAL_FACET = '';
 
 /**
  * A margin setting is the margin value and the facet information for which
@@ -61,6 +65,21 @@ export interface MarginSettings {
 export class ClassificationService extends LitService {
   @observable marginSettings: MarginSettings = {};
 
+  constructor(private readonly appState: AppState) {
+    super();
+
+    // Reset classification margins when the models change.
+    reaction(() => this.appState.currentModels, (models) => {
+      if (models.length === 0) {return;}
+      const modelOutputSpecMap: {[model: string]: Spec} = {};
+      for (const model of models) {
+        modelOutputSpecMap[model] =
+            this.appState.currentModelSpecs[model].spec.output;
+      }
+      this.resetMargins(modelOutputSpecMap);
+    }, {fireImmediately: true});
+  }
+
   // Returns all margin settings for use as a reaction input function when
   // setting up observers.
   // TODO(lit-team): Remove need for this intermediate object (b/156100081)
@@ -95,6 +114,33 @@ export class ClassificationService extends LitService {
   }
 
   @action
+  resetMargins(modelOutputSpecMap: {[model: string]: Spec}) {
+    const marginSettings: MarginSettings = {};
+
+    for (const [model, output] of Object.entries(modelOutputSpecMap)) {
+      marginSettings[model] = {};
+      for (const [fieldName, fieldSpec] of Object.entries(output)) {
+        if (isLitSubtype(fieldSpec, 'MulticlassPreds') &&
+            fieldSpec.null_idx != null && fieldSpec.vocab != null) {
+          marginSettings[model][fieldName] = {};
+
+          if (this.marginSettings[model][fieldName] != null) {
+            // Reset all facets to margin = 0.
+            const facets = Object.keys(this.marginSettings[model][fieldName]);
+            for (const key of facets) {
+              marginSettings[model][fieldName][key] = {margin: 0};
+            }
+          }
+
+          marginSettings[model][fieldName][GLOBAL_FACET] = {margin: 0};
+        }
+      }
+    }
+
+    this.marginSettings = marginSettings;
+  }
+
+  @action
   setMargin(model: string, fieldName: string, value: number,
             facet?: FacetedData) {
     if (this.marginSettings[model] == null) {
@@ -106,8 +152,8 @@ export class ClassificationService extends LitService {
     if (facet == null) {
       // If no facet provided, then update the facet for the entire dataset
       // if one exists, otherwise update all facets with the provided margin.
-      if ("" in this.marginSettings[model][fieldName]) {
-        this.marginSettings[model][fieldName][""] =
+      if (GLOBAL_FACET in this.marginSettings[model][fieldName]) {
+        this.marginSettings[model][fieldName][GLOBAL_FACET] =
             {facetData: facet, margin: value};
       } else {
         for (const key of Object.keys(this.marginSettings[model][fieldName])) {
@@ -126,10 +172,10 @@ export class ClassificationService extends LitService {
       return 0;
     }
     if (facet == null) {
-      if (this.marginSettings[model][fieldName][""] == null) {
+      if (this.marginSettings[model][fieldName][GLOBAL_FACET] == null) {
         return 0;
       }
-      return this.marginSettings[model][fieldName][""].margin;
+      return this.marginSettings[model][fieldName][GLOBAL_FACET].margin;
     } else {
       if (this.marginSettings[model][fieldName][facet.displayName!] == null) {
         return 0;

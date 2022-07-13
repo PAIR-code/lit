@@ -17,6 +17,7 @@
 
 import 'jasmine';
 
+import {createLitType} from './lit_types_utils';
 import {LitMetadata} from './types';
 
 /**
@@ -55,81 +56,28 @@ export const mockMetadata: LitMetadata = {
     'sst_0_micro': {
       'spec': {
         'input': {
-          'passage': {
-            '__class__': 'LitType',
-            '__name__': 'TextSegment',
-            // TODO(b/162269499): This omits private classes, and will be
-            // removed after we replace LitTypes.
-            '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
-            'required': true
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': false,
-            'parent': 'passage'
-          }
+          'passage': createLitType('TextSegment'),
+          'passage_tokens':
+              createLitType('Tokens', {'required': false, 'parent': 'passage'}),
         },
         'output': {
-          'probabilities': {
-            '__class__': 'LitType',
-            '__name__': 'MulticlassPreds',
-            '__mro__': ['MulticlassPreds', 'LitType', 'object'],
-            'required': true,
-            'vocab': ['0', '1'],
-            'null_idx': 0,
-            'parent': 'label'
-          },
-          'pooled_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'mean_word_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': undefined
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': 'passage'
-          },
-          'passage_grad': {
-            '__class__': 'LitType',
-            '__name__': 'TokenGradients',
-            '__mro__': ['TokenGradients', 'LitType', 'object'],
-            'required': true,
-            'align': 'passage_tokens'
-          },
-          'layer_0/attention': {
-            '__class__': 'LitType',
-            '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
-            'required': true,
+          'probabilities': createLitType(
+              'MulticlassPreds',
+              {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
+          'pooled_embs': createLitType('Embeddings'),
+          'mean_word_embs': createLitType('Embeddings'),
+          'tokens': createLitType('Tokens'),
+          'passage_tokens': createLitType('Tokens', {'parent': 'passage'}),
+          'passage_grad':
+              createLitType('TokenGradients', {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType('AttentionHeads', {
             'align_in': 'tokens',
             'align_out': 'tokens',
-          },
-          'layer_1/attention': {
-            '__class__': 'LitType',
-            '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
-            'required': true,
+          }),
+          'layer_1/attention': createLitType('AttentionHeads', {
             'align_in': 'tokens',
             'align_out': 'tokens',
-          }
+          }),
         }
       },
       'datasets': ['sst_dev'],
@@ -141,79 +89,28 @@ export const mockMetadata: LitMetadata = {
     'sst_1_micro': {
       'spec': {
         'input': {
-          'passage': {
-            '__class__': 'LitType',
-            '__name__': 'TextSegment',
-            '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
-            'required': true
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': false,
-            'parent': 'passage'
-          }
+          'passage': createLitType('TextSegment'),
+          'passage_tokens':
+              createLitType('Tokens', {'required': false, 'parent': 'passage'}),
         },
         'output': {
-          'probabilities': {
-            '__class__': 'LitType',
-            '__name__': 'MulticlassPreds',
-            '__mro__': ['MulticlassPreds', 'LitType', 'object'],
-            'required': true,
-            'vocab': ['0', '1'],
-            'null_idx': 0,
-            'parent': 'label'
-          },
-          'pooled_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'mean_word_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': undefined
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': 'passage'
-          },
-          'passage_grad': {
-            '__class__': 'LitType',
-            '__name__': 'TokenGradients',
-            '__mro__': ['TokenGradients', 'LitType', 'object'],
-            'required': true,
-            'align': 'passage_tokens'
-          },
-          'layer_0/attention': {
-            '__class__': 'LitType',
-            '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
-            'required': true,
+          'probabilities': createLitType(
+              'MulticlassPreds',
+              {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
+          'pooled_embs': createLitType('Embeddings'),
+          'mean_word_embs': createLitType('Embeddings'),
+          'tokens': createLitType('Tokens'),
+          'passage_tokens': createLitType('Tokens', {'parent': 'passage'}),
+          'passage_grad':
+              createLitType('TokenGradients', {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType('AttentionHeads', {
             'align_in': 'tokens',
             'align_out': 'tokens',
-          },
-          'layer_1/attention': {
-            '__class__': 'LitType',
-            '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
-            'required': true,
+          }),
+          'layer_1/attention': createLitType('AttentionHeads', {
             'align_in': 'tokens',
             'align_out': 'tokens',
-          }
+          })
         }
       },
       'datasets': ['sst_dev'],
@@ -227,123 +124,49 @@ export const mockMetadata: LitMetadata = {
     'sst_dev': {
       'size': 872,
       'spec': {
-        'passage': {
-          '__class__': 'LitType',
-          '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
-          'required': true
-        },
-        'label': {
-          '__class__': 'LitType',
-          '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['0', '1']
-        }
+        'passage': createLitType('TextSegment'),
+        'label': createLitType('CategoryLabel', {'vocab': ['0', '1']}),
       }
     },
     'color_test': {
       'size': 2,
       'spec': {
-        'testNumFeat0': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'required': true
-        },
-        'testNumFeat1': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'required': true
-        },
-        'testFeat0': {
-          '__class__': 'LitType',
-          '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['0', '1']
-        },
-        'testFeat1': {
-          '__class__': 'LitType',
-          '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['a', 'b', 'c']
-        }
+        'testNumFeat0': createLitType('Scalar'),
+        'testNumFeat1': createLitType('Scalar'),
+        'testFeat0': createLitType('CategoryLabel', {'vocab': ['0', '1']}),
+        'testFeat1': createLitType('CategoryLabel', {'vocab': ['a', 'b', 'c']})
       }
     },
     'penguin_dev': {
       'size': 10,
       'spec': {
-        'body_mass_g': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
+        'body_mass_g': createLitType('Scalar', {
           'step': 1,
-          'required': true
-        },
-        'culmen_depth_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
+        }),
+        'culmen_depth_mm': createLitType('Scalar', {
           'step': 1,
-          'required': true
-        },
-        'culmen_length_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
+        }),
+        'culmen_length_mm': createLitType('Scalar', {
           'step': 1,
-          'required': true
-        },
-        'flipper_length_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
+        }),
+        'flipper_length_mm': createLitType('Scalar', {
           'step': 1,
-          'required': true
-        },
-        'island': {
-          '__class__': 'LitType',
-          '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['Biscoe', 'Dream', 'Torgersen']
-        },
-        'sex': {
-          '__class__': 'LitType',
-          '__name__': 'Boolean',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['female', 'male']
-        },
-        'species': {
-          '__class__': 'LitType',
-          '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'String', 'LitType', 'object'],
-          'required': true,
-          'vocab': ['Adelie', 'Chinstrap', 'Gentoo']
-        },
-        'isAlive': {
-          '__class__': 'LitType',
-          '__name__': 'Boolean',
-          '__mro__': ['Boolean', 'LitType', 'object'],
-          'required': false
-        }
+        }),
+        'island': createLitType(
+            'CategoryLabel', {'vocab': ['Biscoe', 'Dream', 'Torgersen']}),
+        'sex': createLitType('CategoryLabel', {'vocab': ['female', 'male']}),
+        'species': createLitType(
+            'CategoryLabel', {'vocab': ['Adelie', 'Chinstrap', 'Gentoo']}),
+        'isAlive': createLitType('Boolean', {'required': false})
       }
     }
   },
   'generators': {
     'word_replacer': {
       'configSpec': {
-        'Substitutions': {
-          '__class__': 'LitType',
-          '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'String', 'LitType', 'object'],
-          'required': true,
+        'Substitutions': createLitType('TextSegment', {
           'default': 'great -> terrible'
-        }
+        }),
       },
       'metaSpec': {}
     },
@@ -361,11 +184,7 @@ export const mockMetadata: LitMetadata = {
   },
   'layouts': {},
   'littypes': {
-    'Scalar': {
-      '__class__': 'type',
-      '__mro__': ['Scalar', 'LitType', 'object'],
-      '__name__': 'Scalar'
-    }
+    'Scalar': createLitType('Scalar'),
   },
   'demoMode': false,
   'defaultLayout': 'default',

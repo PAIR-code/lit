@@ -20,6 +20,7 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
+import {createLitType} from '../lib/lit_types_utils';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
 import {ApiService, AppState, ClassificationService, SettingsService, StatusService} from '../services/services';
@@ -101,9 +102,9 @@ describe('DataService test', () => {
       isAlive: true}});
 
   let appState: AppState;
+  let classificationService: ClassificationService;
   let dataService: DataService;
   const apiService = new ApiService(new StatusService());
-  const classificationService = new ClassificationService();
   let settingsService: SettingsService;
 
   beforeEach(async () => {
@@ -121,6 +122,7 @@ describe('DataService test', () => {
     appState.setCurrentDataset('penguin_dev');
 
     settingsService = app.getService(SettingsService);
+    classificationService = app.getService(ClassificationService);
     dataService = new DataService(
         appState, classificationService, apiService, settingsService);
   });
@@ -128,30 +130,33 @@ describe('DataService test', () => {
   it('has correct columns', () => {
     expect(dataService.cols.length).toBe(0);
 
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, 1);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.cols.length).toBe(1);
+    expect(dataService.cols[0].key).toBe('featKey');
     expect(dataService.cols[0].name).toBe('newFeat');
     expect(dataService.getColNamesOfType('Scalar').length).toBe(1);
     expect(dataService.getColNamesOfType('TextSegment').length).toBe(0);
   });
 
   it('has correct column data', () => {
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('a', 'newFeat')).toBe(0);
     expect(dataService.getVal('b', 'newFeat')).toBe(1);
@@ -162,14 +167,15 @@ describe('DataService test', () => {
   });
 
   it('handles new datapoints', async () => {
-    const dataType = appState.createLitType('Scalar');
+    const dataType = createLitType('Scalar');
     const getValueFn = () => 1000;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
       const input = appState.currentInputData[i];
       dataMap.set(input.id, i);
     }
-    dataService.addColumn(dataMap, 'newFeat', dataType, 'Test', getValueFn);
+    dataService.addColumn(
+        dataMap, 'featKey', 'newFeat', dataType, 'Test', getValueFn);
 
     expect(dataService.getVal('newDatapoint', 'newFeat')).toBeNull();
     const newDatapoint = {

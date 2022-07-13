@@ -1,6 +1,6 @@
 # 🔥 Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-12' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-07-08' } *-->
 
 The Language Interpretability Tool (LIT) is a visual, interactive ML
 model-understanding tool that supports text, image, and tabular data. It can be
@@ -102,12 +102,12 @@ To explore classification and regression models tasks from the popular
 python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
 ```
 
-Navigate to http://localhost:5432 to access the LIT UI. 
+Navigate to http://localhost:5432 to access the LIT UI.
 
-Your default view will be a 
+Your default view will be a
 [small BERT-based model](https://arxiv.org/abs/1908.08962) fine-tuned on the
 [Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
-but you can switch to 
+but you can switch to
 [STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
 gear icon in the upper right.
@@ -124,7 +124,7 @@ And navigate to http://localhost:5432 for the UI.
 
 ### Notebook usage
 
-Colab notebooks showing the use of LIT inside of notebooks can be found at 
+Colab notebooks showing the use of LIT inside of notebooks can be found at
 google3/third_party/py/lit_nlp/examples/notebooks.
 
 We provide a simple
@@ -134,7 +134,7 @@ Run all the cells to see LIT on an example classification model in the notebook.
 ### Run LIT in a Docker container
 
 See [docker.md](https://github.com/PAIR-code/lit/wiki/docker.md) for instructions on running LIT as a
-containerized web app. This is how we run our 
+containerized web app. This is how we run our
 [hosted demos](https://pair-code.github.io/lit/demos/).
 
 ### More Examples
@@ -172,10 +172,28 @@ started.
 
 ## Pull Request Process
 
-To make code changes to LIT, please work off of the `dev` branch and create
-pull requests against that branch. The `main` branch is for stable releases, and
-it is expected that the `dev` branch will always be ahead of `main` in terms of
-commits.
+To make code changes to LIT, please work off of the `dev` branch and
+[create pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request)
+(PRs) against that branch. The `main` branch is for stable releases, and it is
+expected that the `dev` branch will always be ahead of `main`.
+
+[Draft PRs](https://github.blog/2019-02-14-introducing-draft-pull-requests/) are
+encouraged, especially for first-time contributors or contributors working on
+complex tasks (e.g., Google Summer of Code contributors). Please use these to
+communicate ideas and implementations with the LIT team, in addition to issues.
+
+Prior to sending your PR or marking a Draft PR as "Ready for Review", please run
+the Python and TypeScript linters on your code to ensure compliance with
+Google's [Python](https://google.github.io/styleguide/pyguide.html) and
+[TypeScript](https://google.github.io/styleguide/tsguide.html) Style Guides.
+
+```sh
+# Run Pylint on your code using the following command from the root of this repo
+pushd lit_nlp & pylint & popd
+
+# Run ESLint on your code using the following command from the root of this repo
+pushd lit_nlp & yarn lint & popd
+```
 
 ## Citing LIT
 
