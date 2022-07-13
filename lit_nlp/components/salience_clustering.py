@@ -268,9 +268,9 @@ class SalienceClustering(lit_components.Interpreter):
             types.CategoryLabel(
                 required=True, vocab=list(self.salience_mappers.keys())),
         N_CLUSTERS_KEY:
-            types.Scalar(min_val=2, max_val=25, default=2, step=1),
+            types.Scalar(min_val=2, max_val=100, default=10, step=1),
         N_TOP_TOKENS_KEY:
-            types.Scalar(min_val=1, max_val=100, default=10, step=1),
+            types.Scalar(min_val=1, max_val=20, default=5, step=1),
         SEED_KEY:
             types.TextSegment(default='0'),
     }

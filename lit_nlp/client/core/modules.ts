@@ -22,7 +22,7 @@
 import '@material/mwc-icon';
 
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property, state} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
@@ -48,9 +48,14 @@ const MIN_GROUP_WIDTH_PX = 100;
 // recalculations.
 const MIN_GROUP_WIDTH_DELTA_PX = 10;
 
-// The following values are derived from
+// The following values are derived from modules.css
 const COMPONENT_AREA_HPAD = 16;   // 2x components-group-holder.padding
-const EXPANDER_WIDTH = 8;         //
+const EXPANDER_WIDTH = 8;         // expander-drag-target.width
+
+// Main section height types and settings
+type SectionHeightPreset = 'lower' | 'split' | 'upper';
+const MAIN_SECTION_HEIGHT_MIDDLE = 45;  // % of outer-container height
+const MIN_TAG_GROUP_HEIGHT = 90;  // Minimum group height in px
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -66,10 +71,52 @@ interface LayoutWidths {
 @customElement('lit-modules')
 export class LitModules extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({type: Number}) mainSectionHeight = 45;
+
+  /** Percentage of .outer-container's height given to the upper tab group. */
+  @property({type: Number}) mainSectionHeight = MAIN_SECTION_HEIGHT_MIDDLE;
   @observable upperLayoutWidths: LayoutWidths = {};
   @observable lowerLayoutWidths: LayoutWidths = {};
-  private resizeObserver!: ResizeObserver;
+
+  /**
+   * A dictionary containing the percentages of .outer-container's height that
+   * should be allocated to the upper tab group when the user clicks a preset
+   * space allocation button in the center tab bar. These preset states are:
+   *
+   * * `lower`: Maximize the space allocated to the lower tab group.
+   * * `split`: Approximately equal allocation to both tab groups.
+   * * `upper`: Maximize the space allocated to the upper tab group.
+   *
+   * These values are also used to set the disabled states for the tab bar
+   * position preset buttons, i.e., if this.mainSectionHeight === {value} then
+   * disable the associated button.
+   */
+  @state() private readonly upperGroupHeightPresets = Object.seal({
+    lower: 0,
+    split: MAIN_SECTION_HEIGHT_MIDDLE,
+    upper: 100
+  });
+
+  private readonly resizeObserver = new ResizeObserver(() => {
+    const renderLayout = this.modulesService.getRenderLayout();
+    this.calculateAllWidths(renderLayout);
+    // Set offset for maximized modules. This module doesn't know which
+    // toolbars are present, but we can just find the bounding area
+    // explicitly.
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
+    const {top, height} = container.getBoundingClientRect();
+    container.style.setProperty('--top-toolbar-offset', `${top}px`);
+    container.style.setProperty('--modules-area-height', `${height}px`);
+
+    // Since the percentages associated with the preset states for maximizing
+    // the upper and lower tab group areas depend on the height of
+    // .outer-container, we need to update these values when .outer-container
+    // resizes.
+    Object.assign(this.upperGroupHeightPresets, {
+      lower: Math.floor(MIN_TAG_GROUP_HEIGHT / height * 100),
+      upper: Math.floor((height - MIN_TAG_GROUP_HEIGHT) / height * 100)
+    });
+  });
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -84,19 +131,8 @@ export class LitModules extends ReactiveElement {
       this.requestUpdate();
     });
 
-    const container: HTMLElement =
-        this.shadowRoot!.querySelector('.outer-container')!;
-
-    this.resizeObserver = new ResizeObserver(() => {
-      const renderLayout = this.modulesService.getRenderLayout();
-      this.calculateAllWidths(renderLayout);
-      // Set offset for maximized modules. This module doesn't know which
-      // toolbars are present, but we can just find the bounding area
-      // explicitly.
-      const bcr = container.getBoundingClientRect();
-      container.style.setProperty('--top-toolbar-offset', `${bcr.top}px`);
-      container.style.setProperty('--modules-area-height', `${bcr.height}px`);
-    });
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
     this.resizeObserver.observe(container);
 
     this.reactImmediately(
@@ -275,6 +311,8 @@ export class LitModules extends ReactiveElement {
       '--upper-tab-bar-visible': `${+upperTabsVisible}`,
     });
 
+    const {lower, split, upper} = this.upperGroupHeightPresets;
+
     // clang-format off
     return html`
       <div id='outer-container' class=${containerClasses} style=${styles}>
@@ -295,6 +333,23 @@ export class LitModules extends ReactiveElement {
                   @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
               </div>
             </div>
+            <div class="preset-buttons">
+              <mwc-icon class="icon-button" title="Maximize lower area"
+                        ?disabled=${lower === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('lower');}}>
+                vertical_align_top
+              </mwc-icon>
+              <mwc-icon class="icon-button" title="Split screen"
+                        ?disabled=${split === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('split');}}>
+                vertical_align_center
+              </mwc-icon>
+              <mwc-icon class="icon-button" title="Maximize upper area"
+                        ?disabled=${upper === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('upper');}}>
+                vertical_align_bottom
+              </mwc-icon>
+            </div>
           </div>
           <div id='lower-group-area'>
             ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
@@ -302,31 +357,28 @@ export class LitModules extends ReactiveElement {
                                          'widget-group-lower')}
           </div>
         ` : null}
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
+  private setMainSectionHeight(setting: SectionHeightPreset) {
+    this.mainSectionHeight = this.upperGroupHeightPresets[setting];
+  }
+
   private onBarDragged(e: DragEvent) {
-    const {top, bottom} = this.shadowRoot!.getElementById('outer-container')!
+    const {top, height} = this.shadowRoot!.getElementById('outer-container')!
                                           .getBoundingClientRect();
-    // Sometimes Chrome will fire bad drag events, either at (0,0)
-    // or jumping around a few hundred pixels off from the drag handler.
-    // Detect and ignore these so the UI doesn't get messed up.
-    const handlerBCR = this.shadowRoot!.getElementById('drag-handler')!
-                                       .getBoundingClientRect();
-    const yOffset = -10;
 
-    if (e.clientY + yOffset < top ||              // Drag over the top
-        e.clientY <= handlerBCR.top - 30 ||       // Different drag over the top
-        e.clientY >= handlerBCR.bottom + 30) {    // Drag below the bottom
-      console.log('Anomalous drag event; skipping resize', e);
-      return;
-    }
+    // When the user releases the cursor after a drag, browsers sometimes fire
+    // a final DragEvent at position <0,0>, so we ignore it.
+    if (e.clientY === 0) return;
 
-    this.mainSectionHeight =
-        Math.floor((e.clientY + yOffset - top) / Math.abs(bottom - top) * 100);
-    this.requestUpdate();
+    const maxHeight = height - MIN_TAG_GROUP_HEIGHT;
+    const cursorPosition = e.clientY + 10 - top;
+    const barPoisition =
+        cursorPosition < MIN_TAG_GROUP_HEIGHT ? MIN_TAG_GROUP_HEIGHT :
+        cursorPosition > maxHeight ? maxHeight : cursorPosition;
+    this.mainSectionHeight = Math.floor(barPoisition / height * 100);
   }
 
   /**

@@ -36,7 +36,7 @@ describe('formatForDisplay test', () => {
 
   it('formats number for display', () => {
     const formatted = formatForDisplay(1.23456789);
-    expect(formatted).toBe('1.2346');
+    expect(formatted).toBe(1.2346);
   });
 
   it('formats boolean for display', () => {

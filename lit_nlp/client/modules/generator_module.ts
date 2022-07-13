@@ -509,7 +509,7 @@ export class GeneratorModule extends LitModule {
     const renderFreeformInput = () => {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
-      const formattedVal = formatForDisplay(value, fieldSpec);
+      const formattedVal = formatForDisplay(value, fieldSpec).toString();
 
       if (isLitSubtype(fieldSpec, nonEditableSpecs)) {
         return formattedVal;

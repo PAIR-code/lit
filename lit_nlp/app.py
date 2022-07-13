@@ -539,6 +539,8 @@ class LitApp(object):
     if warm_start > 0:
       self._warm_start(rate=warm_start)
       self.save_cache()
+      if warm_start >= 1:
+        warm_projections = True
 
     # If you add a new embedding projector that should be warm-started,
     # also add it to the list here.

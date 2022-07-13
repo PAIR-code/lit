@@ -30,7 +30,6 @@ import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
-from sklearn import preprocessing
 
 from rouge_score import rouge_scorer
 
@@ -300,17 +299,14 @@ class MulticlassMetricsImpl(SimpleMetrics):
       if len(pred_spec.vocab) == 2:
         y_score = [1 - p[null_idx] for p in y_pred_probs
                   ]  # <float[]>[num_examples]
-      else:
-        y_score = y_pred_probs  # <float[]>[num_examples, num_classes]
 
-      y_true_one_hot = preprocessing.label_binarize(
-          y_true, classes=range(max(labels) + 1))
-      # AUC is not defined when there is only 1 unique class.
-      if len(set(y_true)) > 1:
-        ret['auc'] = sklearn_metrics.roc_auc_score(
-            y_true_one_hot, y_score, average='micro')
-      ret['aucpr'] = sklearn_metrics.average_precision_score(
-          y_true_one_hot, y_score, average='micro')
+        y_true_indicators = [y != null_idx for y in y_true]
+        # AUC is not defined when there is only 1 unique class.
+        if len(np.unique(y_true)) > 1:
+          ret['auc'] = sklearn_metrics.roc_auc_score(
+              y_true_indicators, y_score, average='micro')
+        ret['aucpr'] = sklearn_metrics.average_precision_score(
+            y_true_indicators, y_score, average='micro')
 
     if len(labeled_example_indices) != total_len:
       ret['num_missing_labels'] = total_len - len(labeled_example_indices)

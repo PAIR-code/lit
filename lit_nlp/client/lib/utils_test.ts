@@ -20,24 +20,27 @@
  */
 
 import 'jasmine';
+
 import {Spec} from '../lib/types';
+
+import {createLitType} from './lit_types_utils';
 import * as utils from './utils';
 
 describe('mean test', () => {
   it('computes a mean', () => {
-    const values = [1,3,2,5,4];
+    const values = [1, 3, 2, 5, 4];
     expect(utils.mean(values)).toEqual(3);
   });
 });
 
 describe('median test', () => {
   it('computes a median for a list of integers with odd length', () => {
-    const values = [1,3,2,5,4];
+    const values = [1, 3, 2, 5, 4];
     expect(utils.median(values)).toEqual(3);
   });
 
   it('computes a median for a list of integers with even length', () => {
-    const values = [1,3,2,5,4,6];
+    const values = [1, 3, 2, 5, 4, 6];
     expect(utils.median(values)).toEqual(3.5);
   });
 });
@@ -140,11 +143,7 @@ describe('arrayContainsSame test', () => {
 describe('isLitSubtype test', () => {
   it('finds a subclass', () => {
     const spec: Spec = {
-      'score': {
-        __class__: 'LitType',
-        __name__: 'RegressionScore',
-        __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-      },
+      'score': createLitType('RegressionScore'),
     };
 
     expect(utils.isLitSubtype(spec['score'], 'RegressionScore')).toBe(true);
@@ -156,38 +155,12 @@ describe('isLitSubtype test', () => {
 
 describe('findSpecKeys test', () => {
   const spec: Spec = {
-    'score': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'probabilities': {
-      __class__: 'LitType',
-      __name__: 'MulticlassPreds',
-      __mro__: ['MulticlassPreds', 'LitType', 'object'],
-      null_idx: 0
-    },
-    'score2': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'scalar_foo': {
-      __class__: 'LitType',
-      __name__: 'Scalar',
-      __mro__: ['Scalar', 'LitType', 'object']
-    },
-    'segment': {
-      __class__: 'LitType',
-      __name__: 'TextSegment',
-      __mro__: ['TextSegment', 'LitType', 'object']
-    },
-    'generated_text': {
-      __class__: 'LitType',
-      __name__: 'GeneratedText',
-      __mro__: ['GeneratedText', 'TextSegment', 'LitType', 'object'],
-      parent: 'segment'
-    }
+    'score': createLitType('RegressionScore'),
+    'probabilities': createLitType('MulticlassPreds', {'null_idx': 0}),
+    'score2': createLitType('RegressionScore'),
+    'scalar_foo': createLitType('Scalar'),
+    'segment': createLitType('TextSegment'),
+    'generated_text': createLitType('GeneratedText', {'parent': 'segment'}),
   };
 
   it('finds all spec keys that match the specified types', () => {
@@ -436,29 +409,29 @@ describe('findMatchingIndices test', () => {
 
 describe('replaceNth test', () => {
   it('returns same string when no match', () => {
-    expect(utils.replaceNth('hello world', 'no', 'yes', 1)).toEqual(
-        'hello world');
-    expect(utils.replaceNth('hello world', 'world', 'yes', 2)).toEqual(
-        'hello world');
-    expect(utils.replaceNth('hello world', 'world', 'yes', 0)).toEqual(
-        'hello world');
+    expect(utils.replaceNth('hello world', 'no', 'yes', 1))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 2))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 0))
+        .toEqual('hello world');
   });
 
   it('returns correct string on single match', () => {
-    expect(utils.replaceNth('hello world', 'world', 'yes', 1)).toEqual(
-        'hello yes');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 1))
+        .toEqual('hello yes');
   });
 
   it('can handle strings with special regex chars', () => {
-    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1)).toEqual(
-        'hello yes');
+    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1))
+        .toEqual('hello yes');
   });
 
   it('returns correct string with multiple matches', () => {
-    expect(utils.replaceNth('hello world world', 'world', 'yes', 1)).toEqual(
-        'hello yes world');
-    expect(utils.replaceNth('hello world world', 'world', 'yes', 2)).toEqual(
-        'hello world yes');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 1))
+        .toEqual('hello yes world');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 2))
+        .toEqual('hello world yes');
   });
 });
 
@@ -487,5 +460,91 @@ describe('mapsContainSame test', () => {
     const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
     const mapB = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
     expect(utils.mapsContainSame(mapA, mapB)).toBe(true);
+  });
+});
+
+describe('numberRangeFnFromString test', () => {
+  it('handles single items', () => {
+    const input = '1, 2 -3';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(true);
+    expect(fn(-3)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(-1)).toBe(false);
+    expect(fn(3)).toBe(false);
+  });
+
+  it('handles ranges', () => {
+    const input = '-20--10, -4-4 10-20';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(-19)).toBe(true);
+    expect(fn(-10)).toBe(true);
+    expect(fn(-9)).toBe(false);
+    expect(fn(0)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(9)).toBe(false);
+    expect(fn(12)).toBe(true);
+  });
+
+  it('handles mix of singles and ranges', () => {
+    const input = '1, 3-5';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(false);
+    expect(fn(3)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(5)).toBe(true);
+    expect(fn(6)).toBe(false);
+  });
+
+  it('ignores invalid settings', () => {
+    const input = 'not a number';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(0)).toBe(true);
+    expect(fn(100)).toBe(true);
+  });
+
+  it('handles decimal numbers with and without leading zeros', () => {
+    const input = '-11.23--5.5, 0.45-.49, .99-1.4';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-11.4)).toBe(false);
+    expect(fn(-6.5)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(0.451)).toBe(true);
+    expect(fn(0.5)).toBe(false);
+    expect(fn(1)).toBe(true);
+    expect(fn(1.4)).toBe(true);
+    expect(fn(1.5)).toBe(false);
+  });
+});
+
+describe('linearSpace test', () => {
+  it('returns evenly spaced numbers between minValue and maxValue', () => {
+    let minValue = 0;
+    let maxValue = 1;
+    let numSteps = 5;
+    let result = [0, 0.25, 0.5, 0.75, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = -1;
+    maxValue = 1;
+    numSteps = 5;
+    result = [-1, -0.5, 0, 0.5, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 0.25;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [0.25, 0.5, 0.75];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 1;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
   });
 });

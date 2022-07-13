@@ -98,6 +98,17 @@ lit-widget-group[maximized] {
   box-sizing: border-box;
 }
 
+.tab-bar .preset-buttons {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-bar .preset-buttons .icon-button[disabled] {
+  color: var(--lit-neutral-500);
+}
+
 #drag-container{
   position: relative;
   width: 50%;

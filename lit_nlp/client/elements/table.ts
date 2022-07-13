@@ -23,6 +23,7 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
+import './checkbox';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
@@ -33,10 +34,10 @@ import {styleMap} from 'lit/directives/style-map';
 import {action, computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {formatForDisplay} from '../lib/types';
-import {isNumber, median, randInt} from '../lib/utils';
-
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {formatForDisplay} from '../lib/types';
+import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
+
 import {styles} from './table.css';
 
 type SortableTableEntry = string|number;
@@ -55,6 +56,11 @@ export interface ColumnHeader {
   name: string;
   html?: TemplateResult;
   rightAlign?: boolean;
+  /**
+   * If vocab provided and search enabled, then the column is searchable
+   *  through selected items from the vocab list.
+   */
+  vocab?: string[];
 }
 
 /** Internal data, including metadata */
@@ -69,6 +75,17 @@ export type OnSelectCallback = (selectedIndices: number[]) => void;
 export type OnPrimarySelectCallback = (index: number) => void;
 /** Callback for hover */
 export type OnHoverCallback = (index: number|null) => void;
+
+/** Type for search filters in data headers. */
+export type FilterFn = (entry: SortableTableEntry) => boolean;
+
+/** Info stored for the filter info for each column. */
+interface ColumnFilterInfo {
+  /** The generated filter function. */
+  fn: FilterFn;
+  /** String lists backing the user settings of a search filter. */
+  values: string[];
+}
 
 enum SpanAnchor {
   START,
@@ -129,7 +146,9 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
-  @observable private readonly columnSearchQueries = new Map<string, string>();
+  // Filters for each column when search is used.
+  @observable
+  private readonly columnFilterInfo = new Map<string, ColumnFilterInfo>();
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
@@ -363,20 +382,12 @@ export class DataTable extends ReactiveElement {
     return this.indexedData.filter((item) => {
       let isShownByTextFilter = true;
       // Apply column search filters
-      for (const [key, value] of this.columnSearchQueries) {
+      for (const [key, info] of this.columnFilterInfo) {
         const index = this.columnStrings.indexOf(key);
         if (index === -1) return;
 
-        const col = item.rowData[index];
-        if (typeof col === 'string') {
-          isShownByTextFilter =
-              isShownByTextFilter && col.search(new RegExp(value)) !== -1;
-        } else if (typeof col === 'number') {
-          // TODO(b/158299036) Support syntax like 1-3,6 for numbers.
-          isShownByTextFilter = isShownByTextFilter && value === '' ?
-              true :
-              col.toString() === value;
-        }
+        const col = this.getSortableEntry(item.rowData[index]);
+        isShownByTextFilter = isShownByTextFilter && info.fn(col);
       }
       return isShownByTextFilter;
     });
@@ -579,11 +590,11 @@ export class DataTable extends ReactiveElement {
    */
   @computed
   get isDefaultView() {
-    return this.sortName === undefined && this.columnSearchQueries.size === 0;
+    return this.sortName === undefined && this.columnFilterInfo.size === 0;
   }
 
   resetView() {
-    this.columnSearchQueries.clear();
+    this.columnFilterInfo.clear();
     this.sortName = undefined;    // reset to input ordering
     this.showColumnMenu = false;  // hide search bar
     this.requestUpdate();
@@ -602,7 +613,8 @@ export class DataTable extends ReactiveElement {
     return html`<div class="holder">
       <table class=${classMap({'paginated': this.paginationEnabled})}>
         <thead>
-          ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
+          ${this.columnHeaders.map((c, i) =>
+              this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
         </thead>
         <tbody>
           ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
@@ -690,13 +702,9 @@ export class DataTable extends ReactiveElement {
     return name.replace(/\s+/g, '');
   }
 
-  renderColumnHeader(header: ColumnHeader) {
+  renderColumnHeader(header: ColumnHeader, isRightmostHeader: boolean) {
     const title = header.name;
     const headerId = this.columnNameToId(title);
-
-    const handleBackgroundClick = (e: Event) => {
-      this.resetView();
-    };
 
     const toggleSort = (e: Event) => {
       e.stopPropagation();
@@ -717,22 +725,16 @@ export class DataTable extends ReactiveElement {
       }
     };
 
-    const searchText = this.columnSearchQueries.get(title) ?? '';
-
     const isSearchActive = () => {
-      const searchString = this.columnSearchQueries.get(title);
-      if (searchString ||
+      const searchValues = this.columnFilterInfo.get(title)?.values;
+      const hasSearchValues =
+          searchValues && searchValues.length > 0 && searchValues[0].length > 0;
+      if (hasSearchValues ||
           (this.showColumnMenu && this.columnMenuName === title)) {
         return true;
       }
       return false;
     };
-
-    const searchMenuStyle = styleMap({
-      'visibility':
-          (this.showColumnMenu && this.columnMenuName === title ? 'visible' :
-                                                                  'hidden'),
-    });
 
     const menuButtonStyle =
         styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
@@ -750,14 +752,11 @@ export class DataTable extends ReactiveElement {
         window.requestAnimationFrame(() => {
           const inputElem = this.shadowRoot!.querySelector(
               `th#${headerId} .togglable-menu-holder input`) as HTMLElement;
-          inputElem.focus();
+          if (inputElem != null) {
+            inputElem.focus();
+          }
         });
       }
-    };
-
-    const handleSearchChange = (e: KeyboardEvent) => {
-      this.columnSearchQueries.set(
-          title, (e.target as HTMLInputElement)?.value || '');
     };
 
     const isUpActive = this.sortName === title && this.sortAscending;
@@ -782,7 +781,7 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
-        <th id=${headerId} @click=${handleBackgroundClick}>
+        <th id=${headerId}>
           <div class=${headerClasses} title=${title}>
             <div class="header-holder">
               <div @click=${toggleSort}>${header.html!}</div>
@@ -797,15 +796,91 @@ export class DataTable extends ReactiveElement {
               </div>
             </div>
           </div>
-          ${this.searchEnabled ? html`
-            <div class='togglable-menu-holder' style=${searchMenuStyle}>
-                <input type="search" class='search-input'
-                .value=${searchText}
-                placeholder="Filter" @input=${handleSearchChange}/>
-            </div>` : null}
+          ${this.searchEnabled ?
+              this.renderSearch(header, isRightmostHeader) : null}
         </th>
       `;
     // clang-format on
+  }
+
+  renderSearch(header: ColumnHeader, isRightmostHeader: boolean) {
+    const searchMenuStyle = styleMap({
+      'display': (
+          this.showColumnMenu && this.columnMenuName === header.name ? 'block' :
+                                                                       'none'),
+    });
+    const searchMenuClasses = classMap({
+      'togglable-menu-holder': true,
+      'checkbox-holder': header.vocab != null,
+      'right-aligned-search': isRightmostHeader
+    });
+
+    if (header.vocab == null) {
+      // If the column has no vocab, then set filter through a free-Text
+      // field with different behavior for string columns vs numeric columns.
+      const handleSearchChange = (e: KeyboardEvent) => {
+        const searchQuery = (e.target as HTMLInputElement)?.value || '';
+        const fn = (col: SortableTableEntry) => {
+          if (typeof col === 'string') {
+            // String columns use a reg ex search.
+            return col.search(new RegExp(searchQuery)) !== -1;
+          } else if (typeof col === 'number') {
+            // Numeric columns use a range-based search.
+            const matchFn = numberRangeFnFromString(searchQuery);
+            return matchFn(col);
+          } else {
+            return false;
+          }
+        };
+        this.columnFilterInfo.set(header.name, {fn, values: [searchQuery]});
+      };
+
+
+      const searchText = this.columnFilterInfo.has(header.name) ?
+          this.columnFilterInfo.get(header.name)!.values[0] :
+          '';
+
+      return html`
+        <div class=${searchMenuClasses} style=${searchMenuStyle}>
+            <input type="search" class='search-input'
+            .value=${searchText}
+            placeholder="Filter" @input=${handleSearchChange}/>
+        </div>`;  // clang-format off
+    } else {
+      // For columns with vocabs, use a set of checkboxes, one per each vocab
+      // item.
+      return html`
+        <div class=${searchMenuClasses} style=${searchMenuStyle}>
+          ${header.vocab.map(option => {
+            const isChecked = this.columnFilterInfo.get(
+              header.name)?.values.includes(option) || false;
+            // tslint:disable-next-line:no-any
+            const handleCheck = (e: any) => {
+              let list = this.columnFilterInfo.get(header.name)?.values || [];
+              if (e.target.checked) {
+                list.push(option);
+              } else {
+                list = list.filter(name => name !== option);
+              }
+
+              const fn = (col: SortableTableEntry) => {
+                const checkedItems = this.columnFilterInfo.get(
+                  header.name)?.values || [];
+                // If no items are checked, do not filter the column.
+                if (checkedItems.length === 0) {
+                  return true;
+                }
+                // If any items are checked, only show the items that match
+                // one of the checked vocab values.
+                return checkedItems.includes(col.toString());
+              };
+              this.columnFilterInfo.set(header.name, {fn, values: list});
+            };
+            return html`<lit-checkbox label=${option} ?checked=${isChecked}
+                @change=${handleCheck}></lit-checkbox>`;
+        })}
+        </div>`;  // clang-format off
+    }
   }
 
   renderRow(data: TableRowInternal, rowIndex: number) {
@@ -846,8 +921,8 @@ export class DataTable extends ReactiveElement {
         return html`${templateResult}`;
       }
 
-      // Text formatting uses pre-wrap, so be sure that this template doesn't
-      // add any extra whitespace inside the div.
+      // Text formatting uses pre-wrap, so be sure that this template
+      // doesn't add any extra whitespace inside the div.
       // clang-format off
       return html`
           <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
@@ -856,9 +931,8 @@ export class DataTable extends ReactiveElement {
 
     const cellClasses = this.columnHeaders.map(
         h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
-    const cellStyles = styleMap({
-      verticalAlign: this.verticalAlignMiddle ? 'middle' : 'top'
-    });
+    const cellStyles = styleMap(
+        {'vertical-align': this.verticalAlignMiddle ? 'middle' : 'top'});
     // clang-format off
     return html`
       <tr class="${rowClass}" @click=${onClick} @mouseenter=${mouseEnter}

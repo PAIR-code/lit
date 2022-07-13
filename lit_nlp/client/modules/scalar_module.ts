@@ -30,7 +30,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ThresholdChange} from '../elements/threshold_slider';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec, Preds, Spec} from '../lib/types';
+import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
 import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
 import {FocusData} from '../services/focus_service';
@@ -51,6 +51,23 @@ interface BrushObject {
   // tslint:disable-next-line:no-any
   brush: d3.BrushBehavior<any>;
   selection: D3Selection;
+}
+
+/** Indexed scalars for an id, inclusive of model input and output scalars. */
+interface IndexedScalars {
+  id: string;
+  data:{
+    // Values in this structure can be undefined if the call to
+    // DataService.getVal(2) in this.updatePredictions() occurs before the
+    // async calls in DataService have returned the scalar values for model's
+    // scalar predictions, regressions, and classifications. If these calls have
+    // not yet returned, DataService.getVal(2) will try to get the value from
+    // the Dataset, but since the key being used is from the model's output spec
+    // the function will return undefined. These eventually get sorted out via
+    // updates, but can cause hidden/frustrating errors in D3.attr(2) calls if
+    // not handled appropriately.
+    [key: string]: number | number[] | undefined
+  };
 }
 
 /**
@@ -92,7 +109,7 @@ export class ScalarModule extends LitModule {
       app.getService(SelectionService, 'pinned');
 
   private readonly inputIDToIndex = new Map();
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {this.resize();});
   private numPlotsRendered: number = 0;
 
   // Stores a BrushObject for each scatterplot that's drawn (in the case that
@@ -100,7 +117,7 @@ export class ScalarModule extends LitModule {
   private readonly brushObjects: BrushObject[] = [];
 
   @observable private readonly isPlotHidden = new Map();
-  @observable private preds: Preds[] = [];
+  @observable private preds: IndexedScalars[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
   private readonly plotTranslation: string =
@@ -108,17 +125,12 @@ export class ScalarModule extends LitModule {
 
   @computed
   private get scalarColumnsToPlot() {
-    const numericFeatures = this.groupService.numericalFeatureNames;
-    // Filter out columns from regression results as those are handled
-    // separately so that error can be shown on Y axis. Also filter out any
-    // classification results that aren't from the model for this module.
-    return numericFeatures.filter(feat => {
+    return this.groupService.numericalFeatureNames.filter(feat => {
       const col = this.dataService.getColumnInfo(feat);
       if (col == null) {
-        return true;
-      } else if (col.source.includes(REGRESSION_SOURCE_PREFIX)) {
-        return false;
+        return true;  // Col will be null for input fields
       } else if (col.source.includes(CLASSIFICATION_SOURCE_PREFIX) ||
+                 col.source.includes(REGRESSION_SOURCE_PREFIX) ||
                  col.source.includes(SCALAR_SOURCE_PREFIX)) {
         return col.source.includes(this.model);
       } else {
@@ -129,39 +141,17 @@ export class ScalarModule extends LitModule {
 
   @computed
   private get classificationKeys() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    return findSpecKeys(outputSpec, 'MulticlassPreds');
+    const {output} = this.appState.getModelSpec(this.model);
+    return findSpecKeys(output, 'MulticlassPreds');
   }
 
   override firstUpdated() {
-    const modelSpec = this.appState.getModelSpec(this.model);
-    this.classificationKeys.forEach((predKey) => {
-      const predSpec = modelSpec.output[predKey];
-      if (predSpec.null_idx != null && predSpec.vocab != null) {
-        this.classificationService.setMargin(this.model, predKey, 0);
-      }
-    });
-
-    this.makePlot();
-
-    const getCurrentInputData = () => this.appState.currentInputData;
-    this.reactImmediately(getCurrentInputData, currentInputData => {
-      if (currentInputData != null) {
-        // Get predictions from the backend for all input data and
-        // display them by prediction score in the plot.
-        this.updatePredictions(currentInputData);
-      }
-    });
-
-    // Update predictions when new scalar columns exist to plot.
-    const getScalarKeys = () => this.scalarColumnsToPlot;
-    this.reactImmediately(getScalarKeys, scalarKeys => {
-      this.updatePredictions(this.appState.currentInputData);
-    });
-
-    // Update predictions when new data values are set.
-    const getDataVals = () => this.dataService.dataVals;
-    this.reactImmediately(getDataVals, dataVals => {
+    const getDataChanges = () => [
+      this.appState.currentInputData,
+      this.dataService.dataVals,
+      this.scalarColumnsToPlot
+    ];
+    this.reactImmediately(getDataChanges, () => {
       this.updatePredictions(this.appState.currentInputData);
     });
 
@@ -186,22 +176,21 @@ export class ScalarModule extends LitModule {
 
     const getMarginSettings = () =>
         this.classificationService.allMarginSettings;
-    this.reactImmediately(getMarginSettings, margins => {
+    this.reactImmediately(getMarginSettings, () => {
       this.updateThreshold();
       // Update colors of datapoints as they may be based on predicted label.
       this.updateColors();
     });
-    const getCompareEnabled = () => [
-      this.appState.compareExamplesEnabled,
-      this.pinnedSelectionService.primarySelectedInputData];
+
+    const getCompareEnabled = () =>
+        this.pinnedSelectionService.primarySelectedInputData;
     this.reactImmediately(getCompareEnabled, () => {
-      const pinned = this.appState.compareExamplesEnabled ?
-          this.pinnedSelectionService.primarySelectedInputData : null;
+      const pinned = this.pinnedSelectionService.primarySelectedInputData;
       this.updateReferenceSelection(pinned);
     });
 
     const getSelectedColorOption = () => this.colorService.selectedColorOption;
-    this.reactImmediately(getSelectedColorOption, selectedColorOption => {
+    this.reactImmediately(getSelectedColorOption, () => {
       this.updateColors();
     });
 
@@ -209,10 +198,12 @@ export class ScalarModule extends LitModule {
       this.updateHoveredPoint(focusData);
     });
 
-    const container = this.shadowRoot!.getElementById('container')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
+    this.react(() => this.preds, () => {
+      this.makePlot();
+      this.updatePlotData();
     });
+
+    const container = this.shadowRoot!.getElementById('container')!;
     this.resizeObserver.observe(container);
   }
 
@@ -234,10 +225,10 @@ export class ScalarModule extends LitModule {
    * Updates the colors of datapoints to match color service settings.
    */
   private updateColors() {
-    const scatterplotClass = this.shadowRoot!.querySelectorAll('.scatterplot');
+    const scatterplots =
+        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
 
-    for (const item of Array.from(scatterplotClass)) {
-      const scatterplot = item as SVGGElement;
+    for (const scatterplot of scatterplots) {
       this.updateAllScatterplotColors(scatterplot);
     }
   }
@@ -291,26 +282,26 @@ export class ScalarModule extends LitModule {
   private updateCallouts(
       inputData: IndexedInput[], groupID: string, styleClass: string,
       detectHover: boolean) {
-    const scatterplotClass: NodeListOf<SVGGElement> =
-        this.shadowRoot!.querySelectorAll('.scatterplot');
+    const providedIndices =
+        inputData.map(input => this.inputIDToIndex.get(input.id));
+    const scatterplotClass =
+        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
 
-    for (const scatterplot of Array.from(scatterplotClass)) {
+    for (const scatterplot of scatterplotClass) {
       const circles =
           d3.select(scatterplot).select('#dataPoints').selectAll('circle');
-
-      const providedIndices =
-          inputData.map((input) => this.inputIDToIndex.get(input.id));
-
       const providedDatapoints: string[][] = [];
 
       circles.each((d, i, e) => {
         if (providedIndices.includes(i)) {
-          const x = d3.select(e[i]).attr('cx');
-          const y = d3.select(e[i]).attr('cy');
-          const color = d3.select(e[i]).style('fill');
-          const id = d3.select(e[i]).attr('data-id');
-
-          providedDatapoints.push([x, y, color, id]);
+          const circle = d3.select(e[i]);
+          const props = [
+            circle.attr('cx'),
+            circle.attr('cy'),
+            circle.style('fill'),
+            circle.attr('data-id')
+          ];
+          providedDatapoints.push(props);
         }
       });
 
@@ -320,23 +311,22 @@ export class ScalarModule extends LitModule {
 
       // Add provided datapoints.
       const overlayCircles = overlay.selectAll('circle')
-                                 .data(providedDatapoints)
-                                 .enter()
-                                 .append('circle');
-      overlayCircles
-          .attr('cx', d => +d[0])
-          .attr('cy', d => +d[1])
+          .data(providedDatapoints)
+          .enter()
+          .append('circle')
+          .attr('cx', d => Number(d[0]))
+          .attr('cy', d => Number(d[1]))
           .attr('data-id', d => d[3])
           .classed(styleClass, true)
           .style('fill', d => d[2]);
 
       // Add the appropriate event listeners.
       if (detectHover) {
-        overlayCircles.on('mouseenter', (d, i, e) => {
+        overlayCircles.on('mouseenter', d => {
           this.focusService.setFocusedDatapoint(d[3]);
         });
       } else {
-        overlayCircles.on('click', (d, i, e) => {
+        overlayCircles.on('click', d => {
           this.selectionService.setPrimarySelection(d[3]);
         });
       }
@@ -347,46 +337,24 @@ export class ScalarModule extends LitModule {
    * Get predictions from the backend for all input data and display by
    * prediction score in the plot.
    */
-  private async updatePredictions(currentInputData: IndexedInput[]) {
-    if (currentInputData == null) {
-      return;
-    }
+  private async updatePredictions(currentInputData?: IndexedInput[]) {
+    if (currentInputData == null) {return;}
 
-    // TODO(b/233048097): Make use of data service instead of making getPreds
-    // calls explicitly.
-    const dataset = this.appState.currentDataset;
-    const promise = Promise.all([
-      this.apiService.getPreds(
-          currentInputData, this.model, dataset, ['MulticlassPreds']),
-      this.apiService.getPreds(
-          currentInputData, this.model, dataset, ['RegressionScore']),
-    ]);
-    const results = await this.loadLatest('predictionScores', promise);
-    if (results === null) {
-      return;
-    }
-    const classificationPreds = results[0];
-    const regressionPreds = results[1];
-    if (classificationPreds == null && regressionPreds == null) {
-      return;
-    }
+    const preds: IndexedScalars[] = [];
+    for (const {id} of currentInputData) {
+      const pred: IndexedScalars = {id, data: {}};
+      for (const key of this.classificationKeys) {
+        const column = this.dataService.getColumnName(this.model, key);
+        pred.data[key] = this.dataService.getVal(id, column);
+      }
 
-    const preds: Preds[] = [];
-    for (let i = 0; i < classificationPreds.length; i++) {
-      const currId = currentInputData[i].id;
-      // TODO(lit-dev): structure this as a proper IndexedInput,
-      // rather than having 'id' as a regular field.
-      const pred = Object.assign(
-          {}, classificationPreds[i], regressionPreds[i],
-          {id: currId});
       for (const scalarKey of this.scalarColumnsToPlot) {
-        pred[scalarKey] = this.dataService.getVal(currId, scalarKey);
+        pred.data[scalarKey] = this.dataService.getVal(id, scalarKey);
       }
       preds.push(pred);
     }
 
     this.preds = preds;
-    this.updatePlotData();
   }
 
   /**
@@ -397,9 +365,9 @@ export class ScalarModule extends LitModule {
   private getXScale(key: string) {
     let scoreRange = [0, 1];
 
-    const outputSpec = this.appState.currentModelSpecs[this.model]?.spec.output;
-    if (outputSpec != null && isLitSubtype(outputSpec[key], 'Scalar')) {
-      const scalarValues = this.preds.map((pred) => pred[key]);
+    const {output} = this.appState.getModelSpec(this.model);
+    if (isLitSubtype(output[key], 'Scalar')) {
+      const scalarValues = this.preds.map((pred) => pred.data[key]) as number[];
       scoreRange = [Math.min(...scalarValues), Math.max(...scalarValues)];
       // If the range is 0 (all values are identical, then artificially increase
       // the range so that an X-axis is properly displayed.
@@ -419,42 +387,47 @@ export class ScalarModule extends LitModule {
   /**
    * Returns the scale function for the scatter plot's y axis.
    */
-  private getYScale(key: string) {
-    let scoreRange = [0, 1];
-
-    const outputSpec = this.appState.currentModelSpecs[this.model]?.spec.output;
-    if (outputSpec != null &&
-        isLitSubtype(outputSpec[key], 'RegressionScore')) {
-      const errorFeatName = this.dataService.getColumnName(
-          this.model, key, CalculatedColumnType.ERROR);
-      const range = this.groupService.numericalFeatureRanges[errorFeatName];
-      if (range != null && !isNaN(range[0]) && !isNaN(range[1])) {
-        // If range has a negative min and positive max, then make it symmetric
-        // around 0.
-        if (range[0] * range[1] < 0) {
-          const largest = Math.max(-range[0], range[1]);
-          scoreRange = [-largest, largest];
-        } else {
-          scoreRange = range;
-        }
-      }
-    }
-    return d3.scaleLinear().domain(scoreRange).range([
+  private getYScale(column: string) {
+    const scale = d3.scaleLinear().domain([0, 1]).range([
       this.plotHeight - ScalarModule.plotBottomMargin -
           ScalarModule.plotTopMargin,
       ScalarModule.plotTopMargin
     ]);
+
+    const colInfo = this.dataService.getColumnInfo(column);
+    if (colInfo == null || column.includes(CalculatedColumnType.ERROR)) {
+      return scale;  // Input field or a regression error field.
+    }
+
+    const errorName = this.dataService.getColumnName(
+        this.model, colInfo.key, CalculatedColumnType.ERROR);
+    const errFeatInfo = this.dataService.getColumnInfo(errorName);
+    if (errFeatInfo == null) {return scale;}  // Non-regression output field
+
+    const values = this.dataService.getColumn(errorName);
+    const range = d3.extent(values);
+    if (range != null && !range.some(isNaN)) {
+      // Make the domain symmetric around 0
+      const largest = Math.max(...(range as number[]).map(Math.abs));
+      scale.domain([-largest, largest]);
+    }
+
+    return scale;   // Regression output field
   }
 
-  private getValue(preds: Preds, spec: ModelSpec, key: string, label: string) {
-    // If for a multiclass prediction, return the top label score.
+  private getValue(preds: IndexedScalars, spec: ModelSpec, key: string,
+                   label: string): number | undefined {
+    // If for a multiclass prediction and the DataService has loaded the
+    // classification results, return the label score from the array.
     if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
-      const predictionLabels = spec.output[key].vocab!;
-      const index = predictionLabels.indexOf(label);
-      return preds[key][index];
+      const {vocab} = spec.output[key];
+      const index = vocab!.indexOf(label);
+      const classPreds = preds.data[key];
+      if (Array.isArray(classPreds)) return classPreds[index];
     }
-    // Otherwise, return the raw value.
-    return preds[key];
+    // Otherwise, return the value of data[key], which may be undefined if the
+    // DataService async calls are still pending.
+    return preds.data[key] as number | undefined;
   }
 
   /**
@@ -465,31 +438,23 @@ export class ScalarModule extends LitModule {
     // Get classification threshold.
     const margins = this.classificationService.marginSettings[this.model] || {};
 
-    const scatterplotClass = this.shadowRoot!.querySelectorAll('.scatterplot');
+    const scatterplotClass =
+        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
 
-    for (const item of Array.from(scatterplotClass)) {
-      const scatterplot = item as SVGGElement;
-      const key = (item as HTMLElement).dataset['key'];
-
-      if (key == null || this.scalarColumnsToPlot.indexOf(key) !== -1) {
-        return;
-      }
-
-      const spec = this.appState.getModelSpec(this.model);
-      const labelList = spec.output[key].vocab!;
+    for (const scatterplot of scatterplotClass) {
+      const {'key': key} = scatterplot.dataset;
+      if (key == null || !this.classificationKeys.includes(key)) continue;
 
       // Don't render the threshold for regression or multiclass models.
-      if (isLitSubtype(spec.output[key], 'Scalar') || labelList.length !== 2) {
-        continue;
-      }
+      const {output} = this.appState.getModelSpec(this.model);
+      const {vocab} = output[key];
+      if (isLitSubtype(output[key], 'Scalar') || vocab?.length !== 2) continue;
 
       // If there is no margin set for the entire dataset (empty string) facet
       // name, then do not draw a threshold on the plot.
-      if (margins[key] == null || margins[key][''] == null) {
-        continue;
-      }
-      const threshold = getThresholdFromMargin(margins[key][""].margin);
+      if (margins[key] == null || margins[key][''] == null) continue;
 
+      const threshold = getThresholdFromMargin(margins[key][''].margin);
       const thresholdSelection = d3.select(scatterplot).select('#threshold');
       thresholdSelection.selectAll('line').remove();
 
@@ -539,100 +504,67 @@ export class ScalarModule extends LitModule {
    */
   private makePlot() {
     const container = this.shadowRoot!.getElementById('container')!;
-    if (!container.offsetHeight || !container.offsetWidth) {
-      return;
-    }
+    if (!container.offsetHeight || !container.offsetWidth) {return;}
 
     const scatterplots =
-        Array.from(this.shadowRoot!.querySelectorAll('.scatterplot'));
-    if (!scatterplots.length) {
-      return;
-    }
+        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
+    if (scatterplots.length < 1) {return;}
+
+    this.plotHeight = 100;
     this.plotWidth =
         container.offsetWidth - ScalarModule.plotLeftMargin * 1.5;
 
-    this.plotHeight = 100;
+    for (const scatterplot of scatterplots) {
+      const {'key': key} = scatterplot.dataset;
+      if (key == null) {continue;}
 
-    for (const item of Array.from(scatterplots)) {
-      const key = (item as HTMLElement).dataset['key'];
-      if (key == null) {
-        continue;
-      }
-
-      const scatterplot = item as SVGGElement;
       const selected = d3.select(scatterplot)
-                           .attr('width', this.plotWidth)
-                           .attr('height', this.plotHeight);
+                         .attr('width', this.plotWidth)
+                         .attr('height', this.plotHeight);
       selected.selectAll('*').remove();
 
-      // Add group for threshold marker.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'threshold')
-          .attr('transform', this.plotTranslation);
-      this.updateThreshold();
+      const ids = [
+          'threshold', 'dataPoints', 'overlay', 'primaryOverlay',
+          'referenceOverlay', 'hoverOverlay'];
 
-      // Add group for data points.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'dataPoints')
-          .attr('transform', this.plotTranslation);
-
-      // Add group for overlaying selected points.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'overlay')
-          .attr('transform', this.plotTranslation);
-
-      // Add group for overlaying primary selected points.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'primaryOverlay')
-          .attr('transform', this.plotTranslation);
-
-      // Add group for overlaying reference selected point.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'referenceOverlay')
-          .attr('transform', this.plotTranslation);
-
-      // Add group for overlaying hovered points.
-      d3.select(scatterplot)
-          .append('g')
-          .attr('id', 'hoverOverlay')
-          .attr('transform', this.plotTranslation);
+      for (const id of ids) {
+        selected.append('g')
+            .attr('id', id)
+            .attr('transform', this.plotTranslation);
+      }
 
       this.updateAllScatterplotColors(scatterplot);
     }
+
+    this.updateThreshold();
   }
 
   /**
    * Sets up brush and updates datapoints to reflect the current scalars.
    */
   private updatePlotData() {
-    const scatterplots = this.shadowRoot!.querySelectorAll('.scatterplot');
+    const scatterplots =
+        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
 
-    for (const item of Array.from(scatterplots)) {
-      const key = (item as HTMLElement).dataset['key'];
-      const label = (item as HTMLElement).dataset['label'];
-      if (key == null || label == null) {
-        return;
-      }
+    for (const scatterplot of scatterplots) {
+      const {'key': key, 'label': label} = scatterplot.dataset;
+      if (key == null || label == null) {return;}
 
       const spec = this.appState.getModelSpec(this.model);
-      const isScalarKey = isLitSubtype(spec.output[key], 'Scalar');
-      const errorFeatName = this.dataService.getColumnName(
-          this.model, key, CalculatedColumnType.ERROR);
-      const yRange = this.groupService.numericalFeatureRanges[errorFeatName];
-      const hasRegressionGroundTruth = yRange != null;
+      const errorFeatName = `${key}:${CalculatedColumnType.ERROR}`;
+      const errFeatInfo = this.dataService.getColumnInfo(errorFeatName);
+      const hasRegressionGroundTruth =
+          errFeatInfo?.source.includes(REGRESSION_SOURCE_PREFIX) &&
+          !key.includes(CalculatedColumnType.ERROR);
+      const errFeatCol = this.dataService.getColumn(errorFeatName);
+      const yRange = hasRegressionGroundTruth ? d3.extent(errFeatCol) : null;
 
-      const scatterplot = item as SVGGElement;
       const selected = d3.select(scatterplot);
 
       // Remove axes and brush groups before rerendering with current data.
-      d3.select(scatterplot).select('#xAxis').remove();
-      d3.select(scatterplot).select('#yAxis').remove();
-      d3.select(scatterplot).select('#brushGroup').remove();
+      selected.select('#xAxis').remove();
+      selected.select('#yAxis').remove();
+      selected.select('#brushGroup').remove();
 
       const xScale = this.getXScale(key);
       const yScale = this.getYScale(key);
@@ -642,48 +574,37 @@ export class ScalarModule extends LitModule {
           `translate(${ScalarModule.plotLeftMargin},${yAxisHeight})`;
 
       // Create axes.
-      d3.select(scatterplot)
-          .append('g')
+      selected.append('g')
           .attr('id', 'xAxis')
           .attr('transform', xAxisTranslation)
           .call(d3.axisBottom(xScale));
 
       const axisGenerator = d3.axisLeft(yScale);
-      let numTicks = 0;
-      if (isScalarKey && hasRegressionGroundTruth) {
-        // Only display ticks if we have a meaningful y axis.
-        numTicks = 5;
-      }
+      const numTicks = hasRegressionGroundTruth ? 5 : 0;
       axisGenerator.ticks(numTicks);
 
-      d3.select(scatterplot)
-          .append('g')
+      selected.append('g')
           .attr('id', 'yAxis')
           .attr('transform', this.plotTranslation)
           .call(axisGenerator);
 
-      // Create y axis label for regression models, where error is on the y
-      // axis.
-      if (isScalarKey && hasRegressionGroundTruth) {
-        const errorTextY = ScalarModule.plotTopMargin +
-                           this.plotHeight / 2 +
+      // Add labels and lines for regression plots
+      if (hasRegressionGroundTruth) {
+        const errorTextY = ScalarModule.plotTopMargin + this.plotHeight / 2 +
                            ScalarModule.yLabelOffsetY;
 
-        d3.select(scatterplot)
-          .append('text')
+        // Add axis label
+        selected.append('text')
           .attr('transform', `translate(0,${errorTextY}) rotate(270)`)
           .style('text-anchor', 'middle')
           .text('error');
-      }
 
-      // Create zero line if this is a regression plot centered around zero.
-      if (isScalarKey && hasRegressionGroundTruth) {
-        if (yRange[0] < 0 && yRange[1] > 0) {
+        // Create zero line at y = 0
+        if (yRange != null && yRange[0] < 0 && yRange[1] > 0) {
           const halfHeight =
                 (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
                 ScalarModule.plotTopMargin;
-          d3.select(scatterplot)
-              .append('line')
+          selected.append('line')
               .attr('x1', ScalarModule.plotLeftMargin)
               .attr('y1', halfHeight)
               .attr('x2', xScale.range()[1] + ScalarModule.plotLeftMargin)
@@ -694,8 +615,7 @@ export class ScalarModule extends LitModule {
 
       // Create a 2D brush for regression keys (since both axes are meaningful)
       // and a 1D brush for multiclass preds keys.
-      const newBrush =
-          (isScalarKey && hasRegressionGroundTruth) ? d3.brush() : d3.brushX();
+      const newBrush = hasRegressionGroundTruth ? d3.brush() : d3.brushX();
       newBrush
           .extent([
             [0, ScalarModule.plotTopMargin],
@@ -718,57 +638,65 @@ export class ScalarModule extends LitModule {
           .call(newBrush);
 
       // Store brush and selection group to be used for clearing the brush.
-      this.brushObjects.push({
-        brush: newBrush,
-        selection: brushGroup,
-      });
+      this.brushObjects.push({brush: newBrush, selection: brushGroup});
 
-      const dataPoints = d3.select(scatterplot).select('#dataPoints');
+
+      /**
+       * Random number generator for jitter Y positions.
+       *
+       * Seeded random number generators produce the same value on sequential
+       * calls to `.seedrandom()` across instances initialized with the same
+       * seed, in this case the string `'lit'`. We use this to maintain stable Y
+       * axis positions in and across jiter plots (i.e., plots of non-regression
+       * scalars), when `.updatePlotData()` is called, e.g., after a resize, so
+       * we cannot move this to a module constant.
+       */
+      // tslint:disable-next-line:no-any ban-module-namespace-object-escape
+      const rng = seedrandom('lit');
+
+      const dataPoints = selected.select('#dataPoints');
       dataPoints.selectAll('circle').remove();
 
       // Raise point groups to be in front of the d3.brush.
       dataPoints.raise();
-      d3.select(scatterplot).select('#overlay').raise();
-      d3.select(scatterplot).select('#referenceOverlay').raise();
-      d3.select(scatterplot).select('#primaryOverlay').raise();
-      d3.select(scatterplot).select('#hoverOverlay').raise();
-
+      selected.select('#overlay').raise();
+      selected.select('#referenceOverlay').raise();
+      selected.select('#primaryOverlay').raise();
+      selected.select('#hoverOverlay').raise();
       // Create scatterplot circles.
-      const circles = dataPoints.selectAll('circle')
-                          .data(this.preds)
-                          .enter()
-                          .append('circle');
-
-      const rngSeed = 'lit';
-      // tslint:disable-next-line:no-any ban-module-namespace-object-escape
-      const rng = seedrandom(rngSeed);
-
-      circles
-          .attr('cx', d => xScale(this.getValue(d, spec, key, label)))
+      dataPoints.selectAll('circle')
+          .data(this.preds)
+          .enter()
+          .append('circle')
+          .attr('cx', d => {
+            // This value can be undefined if an async call originating in
+            // DataService has not returned, so we put these points 8px off the
+            // right side of the plot
+            const rawVal = this.getValue(d, spec, key, label);
+            return rawVal == null ? xScale.range()[1] + 8 : xScale(rawVal);
+          })
           .attr('cy', d => {
-            if (isLitSubtype(spec.output[key], 'Scalar') &&
-                hasRegressionGroundTruth) {
-              const errorFeatName = this.dataService.getColumnName(
-                  this.model, key, CalculatedColumnType.ERROR);
-              return yScale(this.dataService.getVal(d['id'], errorFeatName));
-            }
-            // Otherwise, return a random value.
-            return yScale(rng());
+            // If a regression use the error value, else use a random number
+            const rawVal = hasRegressionGroundTruth ?
+                this.dataService.getVal(d.id, errorFeatName) : rng();
+            const scaledVal = yScale(rawVal);
+            return scaledVal;
+          })
+          .attr('data-id', (d, i) => {
+            // Store the inputID as a data attribute on the circle.
+            this.inputIDToIndex.set(d.id, i);
+            return d.id;
           })
           .style('fill', d => {
-            const indexedInput = this.appState.getCurrentInputDataById(d['id']);
+            const indexedInput = this.appState.getCurrentInputDataById(d.id);
             return this.colorService.getDatapointColor(indexedInput);
           })
           .classed('point', true)
           .on('mouseenter', d => {
-            this.focusService.setFocusedDatapoint(d['id']);
-          })
-          .each((d, i, e) => {
-            this.inputIDToIndex.set(d['id'], i);
-            // Store the inputID as a data attribute on the circle.
-            d3.select(e[i]).attr('data-id', d['id']);
+            this.focusService.setFocusedDatapoint(d.id);
           });
     }
+
     this.updateGeneralSelection(this.selectionService.selectedInputData);
     this.updatePrimarySelection(
         this.selectionService.primarySelectedInputData);
@@ -820,26 +748,25 @@ export class ScalarModule extends LitModule {
 
   renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
-    const predictionLabels = spec.output[key].vocab!;
+    const {vocab, null_idx} = spec.output[key];
+    if (vocab == null) return;
 
     // In the binary classification case, only render one plot that
     // displays the positive class.
-    const nullIdx = spec.output[key].null_idx;
-    if (predictionLabels.length === 2 && nullIdx != null) {
-      return html`${this.renderPlot(key, predictionLabels[1 - nullIdx])}`;
+    if (vocab?.length === 2 && null_idx != null) {
+      return html`${this.renderPlot(key, vocab[1 - null_idx])}`;
     }
 
     // Otherwise, return one plot per label in the multiclass case.
     // clang-format off
     return html`
-        ${(predictionLabels != null && nullIdx != null) ?
-          this.renderMarginSlider(key) : null}
-        ${predictionLabels.map(label => this.renderPlot(key, label))}`;
+        ${null_idx != null ? this.renderMarginSlider(key) : null}
+        ${vocab.map(label => this.renderPlot(key, label))}`;
     // clang-format on
   }
 
   renderPlot(key: string, label: string) {
-    const collapseByDefault = (this.numPlotsRendered > (MAX_DEFAULT_PLOTS - 1));
+    const collapseByDefault = this.numPlotsRendered >= MAX_DEFAULT_PLOTS;
     this.numPlotsRendered++;
 
     const axisTitle = label ? `${key}:${label}` : key;
@@ -899,7 +826,7 @@ export class ScalarModule extends LitModule {
                 </threshold-slider>`;
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
     return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
   }
 }

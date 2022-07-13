@@ -26,6 +26,7 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
@@ -100,6 +101,8 @@ export class EmbeddingsModule extends LitModule {
   @observable private projectedPoints: Point3D[] = [];
 
   @observable private spriteImage?: HTMLImageElement|string;
+
+  @observable private legendWidth = 150;  // width of the color legend
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
@@ -259,6 +262,8 @@ export class EmbeddingsModule extends LitModule {
     const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
+    // invoke handleResize to assign a value for legendWidth
+    this.handleResize();
     this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
@@ -286,6 +291,8 @@ export class EmbeddingsModule extends LitModule {
     // during model switching.
     const scatterContainer =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
+    this.legendWidth =
+        scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
     if (scatterContainer.offsetWidth > 0) {
       this.scatterGL.resize();
     }
@@ -298,19 +305,22 @@ export class EmbeddingsModule extends LitModule {
     // Don't react immediately; we'll wait and make a single update.
     const getColorAll = () => this.colorService.all;
     this.react(getColorAll, allColorOptions => {
-      // pointColorer uses the latest settings from colorService automatically,
-      // so to pick up the colors we just need to trigger a rerender on
-      // scatterGL.
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
     this.react(() => this.focusService.focusData, focusData => {
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.selectionService.primarySelectedId, primaryId => {
-      this.updateScatterGL();
+      this.scatterGL.setPointColorer(
+          (i, selectedIndices, hoverIndex) =>
+              this.pointColorer(i, selectedIndices, hoverIndex));
     });
     this.react(() => this.selectedSpriteIndex, focusData => {
       this.computeSpriteMap();
@@ -522,6 +532,12 @@ export class EmbeddingsModule extends LitModule {
   }
 
   override render() {
+    // check the type of the labels.
+    const domain = this.colorService.selectedColorOption.scale.domain();
+    const sequentialScale = typeof domain[0] === 'number';
+    const legendType =
+        sequentialScale ? LegendType.SEQUENTIAL: LegendType.CATEGORICAL;
+
     const onSelectNearest = () => {
       if (this.selectionService.primarySelectedInputData != null) {
         this.getNearestNeighbors(
@@ -550,6 +566,11 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderResultsArea()}
         </div>
         <div class="module-footer">
+          <color-legend legendType=${legendType}
+            legendWidth=${this.legendWidth}
+            selectedColorName=${this.colorService.selectedColorOption.name}
+            .scale=${this.colorService.selectedColorOption.scale}>
+          </color-legend>
           <button class="hairline-button selected-nearest-button"
             ?disabled=${disabled}
             @click=${onSelectNearest}

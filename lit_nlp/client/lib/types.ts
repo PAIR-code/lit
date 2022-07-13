@@ -216,6 +216,19 @@ export function formatEdgeLabel(e: EdgeLabel): string {
 }
 
 /**
+ * Represents an annotation and its score, and the segment(s) is spans.
+ */
+export interface AnnotationCluster {
+  label: string;
+  score?: number;
+  spans: SpanLabel[];
+}
+/** Formats an AnnotationCluster for textual display, e.g., in the DataTable. */
+export function formatAnnotationCluster(ac: AnnotationCluster): string {
+  return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
+}
+
+/**
  * Element of GeneratedTextCandidates and ReferenceTexts fields.
  */
 export type GeneratedTextCandidate = [string, number | null];
@@ -495,9 +508,9 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
  */
-// tslint:disable-next-line:no-any
-export function formatForDisplay(input: any, fieldSpec?: LitType,
-                                 limitWords?: boolean): string {
+export function formatForDisplay(
+    // tslint:disable-next-line:no-any
+    input: any, fieldSpec?: LitType, limitWords?: boolean): string|number {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
@@ -511,8 +524,14 @@ export function formatForDisplay(input: any, fieldSpec?: LitType,
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
     return formattedTags.join(', ');
   }
+  // Handle MultiSegmentAnnotations, if field spec given.
+  if (fieldSpec != null && isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+    const formattedTags =
+        (input as AnnotationCluster[]).map(formatAnnotationCluster);
+    return formattedTags.join(', ');
+  }
   const formatNumber = (item: number) =>
-    Number.isInteger(item) ? item.toString() : item.toFixed(4).toString();
+      Number.isInteger(item) ? item : Number(item.toFixed(4));
 
   // Generic data, based on type of input.
   if (Array.isArray(input)) {
