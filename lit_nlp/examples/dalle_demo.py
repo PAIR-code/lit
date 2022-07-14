@@ -41,8 +41,6 @@ Dalle_LAYOUT = layout.LitCanonicalLayout(
     upper={
         "Main": [
             modules.EmbeddingsModule,
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
             modules.SliceModule,
             modules.ColorModule,
         ]

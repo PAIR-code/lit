@@ -1,9 +1,7 @@
 """Dalle model based on https://github.com/borisdayma/dalle-mini."""
-from ast import Str
-import re
+
 from typing import List
 
-import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import image_utils
@@ -41,12 +39,31 @@ class DalleModel(lit_model.Model):
  
 
   def __init__(self,
-              model_name:Str,
+              model_name:str,
               predictions:int):
     super().__init__()
 
+    # small model -> dalle-mini/dalle-mini/mini-1:v0  larger one:"dalle-mini/dalle-mini/mega-1-fp16:latest"
     self.model = model_name
     self.predictions = predictions
+    
+    # Load VQGAN
+    # VQGAN model
+    
+    vqgan_repo = "dalle-mini/vqgan_imagenet_f16_16384"
+    vqgan_commit_id = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
+    self.dalle_commit_id = None
+    
+    self.dalle_bert_model, params = DalleBart.from_pretrained(
+        self.model, revision=self.dalle_commit_id, dtype=jnp.float16, _do_init=False
+    )
+    self.vqgan, vqgan_params = VQModel.from_pretrained(
+        vqgan_repo, revision=vqgan_commit_id, _do_init=False
+    )
+    
+    self.params = replicate(params)
+    self.vqgan_params = replicate(vqgan_params)
+
     
   ##
   # LIT API implementation
@@ -56,30 +73,13 @@ class DalleModel(lit_model.Model):
   def predict_minibatch(self, inputs):
     """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini"""
     # tokenize the text. -> then return prediction
-    # Load VQGAN
-    # VQGAN model
-    VQGAN_REPO = "dalle-mini/vqgan_imagenet_f16_16384"
-    VQGAN_COMMIT_ID = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
-
-    # small model -> dalle-mini/dalle-mini/mini-1:v0  larger one:"dalle-mini/dalle-mini/mega-1-fp16:latest"
-    DALLE_MODEL = self.model
-    DALLE_COMMIT_ID = None
-    model, params = DalleBart.from_pretrained(
-        DALLE_MODEL, revision=DALLE_COMMIT_ID, dtype=jnp.float16, _do_init=False
-    )
-    vqgan, vqgan_params = VQModel.from_pretrained(
-        VQGAN_REPO, revision=VQGAN_COMMIT_ID, _do_init=False
-    )
     
-    params = replicate(params)
-    vqgan_params = replicate(vqgan_params)
-
     # model inference
     @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(3, 4, 5, 6))
     def p_generate(
         tokenized_prompt, key, params, top_k, top_p, temperature, condition_scale
     ):
-        return model.generate(
+        return self.dalle_bert_model.generate(
             **tokenized_prompt,
             prng_key=key,
             params=params,
@@ -92,7 +92,7 @@ class DalleModel(lit_model.Model):
     # decode image
     @partial(jax.pmap, axis_name="batch")
     def p_decode(indices, params):
-        return vqgan.decode_code(indices, params=params)
+        return self.vqgan.decode_code(indices, params=params)
     
     # create a random key
     seed = random.randint(0, 2**32 - 1)
@@ -100,12 +100,12 @@ class DalleModel(lit_model.Model):
     
     prompts = [ex["prompt"] for ex in inputs]
 
-    processor = DalleBartProcessor.from_pretrained(DALLE_MODEL, revision=DALLE_COMMIT_ID)
+    processor = DalleBartProcessor.from_pretrained(self.model, revision=self.dalle_commit_id)
     tokenized_prompts = processor(prompts)
     tokenized_prompt = replicate(tokenized_prompts)
 
     # generate Images
-    # number of predictions per prompt
+    # Generates number of predictions per prompt
     n_predictions = self.predictions
     # We can customize generation parameters ( https://huggingface.co/blog/how-to-generate)
     gen_top_k = None
@@ -115,15 +115,16 @@ class DalleModel(lit_model.Model):
 
     # generate images
     images = []
-    final_Output = []
     for i in trange(max(n_predictions // jax.device_count(), 1)):
         # get a new key
+        # as per documentation Keys are passed to the model on each device to generate unique inference per device.
+        # if key will be same than it will generate same images
         key, subkey = jax.random.split(key)
         # generate images
         encoded_images = p_generate(
             tokenized_prompt,
             shard_prng_key(subkey),
-            params,
+            self.params,
             gen_top_k,
             gen_top_p,
             temperature,
@@ -132,20 +133,18 @@ class DalleModel(lit_model.Model):
         # remove BOS
         encoded_images = encoded_images.sequences[..., 1:]
         # decode images
-        decoded_images = p_decode(encoded_images, vqgan_params)
+        decoded_images = p_decode(encoded_images, self.vqgan_params)
         decoded_images = decoded_images.clip(0.0, 1.0).reshape((-1, 256, 256, 3))
         for decoded_img in decoded_images:
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
-            images.append(img)
             image_str = image_utils.convert_pil_to_image_str(img)
-
             output = {
                 'image': image_str
             }
             # print(output)
-            final_Output.append(output)
+            images.append(output)
     
-    return final_Output
+    return images
     
 
   def input_spec(self):
@@ -154,9 +153,7 @@ class DalleModel(lit_model.Model):
     }
 
   def output_spec(self):
-    # we have GeneratedTextCandidates for multiple text output but for image IDK.. I checked doc
-    # Maybe a loop based on number of self.predictions? So if n_predictions = 5 in that case 
-    # it should return 5 ImageBytes... is this a good approach? 
+    # returns only one image for now
     return {
         "image": lit_types.ImageBytes()
     }
