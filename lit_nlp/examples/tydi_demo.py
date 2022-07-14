@@ -64,7 +64,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
     models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
-
   datasets = {
       "TyDiQA-English": question_answering.TyDiQA(
         split="validation-en", max_examples=_MAX_EXAMPLES.value),

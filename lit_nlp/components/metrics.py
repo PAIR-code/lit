@@ -33,6 +33,7 @@ from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
 from rouge_score import rouge_scorer
+import logging
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
@@ -277,15 +278,19 @@ class ExactMatchMetrics(SimpleMetrics):
               pred_spec: types.GeneratedText,
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
+    logging.warning('Watch out! 1----------->\n')
     del config
     if not inputs or not preds:
+      logging.warning('Watch out! 2--------->\n')
       return {}
+    
   # pseudo code for the class is something like this
   #  acceptable_answers = # map input['answers'] to a list[str]
   #  correct = output in acceptable_answers
   # if correct:
   #   answer_index = acceptable_answers.index(output)
-    return 0
+    logging.warning('Watch out! 3--------->\n')
+    return {'test': 2.0}
 
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
