@@ -28,6 +28,7 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {ThresholdChange} from '../elements/threshold_slider';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
@@ -120,6 +121,7 @@ export class ScalarModule extends LitModule {
   @observable private preds: IndexedScalars[] = [];
   @observable private plotWidth = ScalarModule.maxPlotWidth;
   @observable private plotHeight = ScalarModule.minPlotHeight;
+  @observable private legendWidth = 150;  // width of the color legend
   private readonly plotTranslation: string =
       `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
@@ -506,6 +508,10 @@ export class ScalarModule extends LitModule {
     const container = this.shadowRoot!.getElementById('container')!;
     if (!container.offsetHeight || !container.offsetWidth) {return;}
 
+    /** determine the size of the color legend */
+    this.legendWidth =
+        container ? container.clientWidth / 2 : this.legendWidth;
+
     const scatterplots =
         this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
     if (scatterplots.length < 1) {return;}
@@ -737,13 +743,31 @@ export class ScalarModule extends LitModule {
     this.numPlotsRendered = 0;
     // clang-format off
     return html`
-      <div id='container'>
+      <div id='container' class="module-container">
         ${this.classificationKeys.map(key =>
           this.renderClassificationGroup(key))}
         ${this.scalarColumnsToPlot.map(key => this.renderPlot(key, ''))}
+        ${this.renderFooter()}
       </div>
     `;
     // clang-format on
+  }
+
+  renderFooter() {
+    /** check the type of the labels */
+    const domain = this.colorService.selectedColorOption.scale.domain();
+    const sequentialScale = typeof domain[0] === 'number';
+    const legendType =
+        sequentialScale ? LegendType.SEQUENTIAL: LegendType.CATEGORICAL;
+
+    return html`
+      <div class="module-footer">
+        <color-legend legendType=${legendType}
+          legendWidth=${this.legendWidth}
+          selectedColorName=${this.colorService.selectedColorOption.name}
+          .scale=${this.colorService.selectedColorOption.scale}>
+        </color-legend>
+      </div>`;
   }
 
   renderClassificationGroup(key: string) {
