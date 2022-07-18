@@ -2,7 +2,9 @@ import 'jasmine';
 import {LitElement} from 'lit';
 import {DocumentationComponent} from './documentation';
 
+import {Checkbox} from '@material/mwc-checkbox';
 import {LitApp} from '../core/app';
+import {LitCheckbox} from '../elements/checkbox';
 import {mockMetadata} from '../lib/testing_utils';
 import {AppState} from '../services/services';
 
@@ -21,6 +23,9 @@ describe('documentation display test', () => {
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
     appState.setCurrentDataset('sst_dev');
+
+    // Reset the hideDialog flag in localStorage between tests
+    localStorage.setItem('hideDialog', false.toString());
 
     docComponent = new DocumentationComponent(appState);
     document.body.appendChild(docComponent);
@@ -70,6 +75,20 @@ describe('documentation display test', () => {
       nextButton.click();
       await docComponent.updateComplete;
     }
+    expect(docComponent.isOpen).toBeFalse();
+  });
+
+  it('closes when the checkbox is checked', async () => {
+    await docComponent.updateComplete;
+
+    const litCheckbox = docComponent.renderRoot.querySelector('lit-checkbox') as LitCheckbox;
+    const mwcCheckbox = litCheckbox.renderRoot.querySelector('lit-mwc-checkbox-internal') as Checkbox;
+    const doNotShowCheckbox = mwcCheckbox.renderRoot.querySelector("input[type='checkbox']") as HTMLInputElement;
+
+    doNotShowCheckbox.click();
+    await docComponent.updateComplete;
+
+    expect(doNotShowCheckbox.checked).toBeTrue();
     expect(docComponent.isOpen).toBeFalse();
   });
 });
