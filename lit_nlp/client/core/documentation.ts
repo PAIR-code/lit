@@ -177,6 +177,7 @@ export class DocumentationComponent extends ReactiveElement {
     // tslint:disable-next-line:no-any
     const changeHideDialog = (e: any) => {
       this.hideDialog = e.target.checked;
+      if (e.target.checked) {this.close();}
     };
     const hiddenClassMap = classMap({hide: !this.isOpen});
     const docToDisplay = this.pagesToRender[this.currentPage];
