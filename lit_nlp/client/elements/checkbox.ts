@@ -55,12 +55,16 @@ export class LitCheckbox extends LitElement {
         transform: scale(0.7);
         margin-right: -8px;
       }
+
+      .checkbox-label {
+        cursor: pointer;
+      }
     `;
   }
 
   override render() {
-    const handleChange = (e: Event) => {
-      this.checked = (e.target as HTMLInputElement).checked;
+    const handleChange = () => {
+      this.checked = !this.checked;
       const changeEvent = new Event('change');
       this.dispatchEvent(changeEvent);
     };
@@ -77,7 +81,7 @@ export class LitCheckbox extends LitElement {
           @change=${handleChange}
         >
         </lit-mwc-checkbox-internal>
-        ${this.label}
+        <span class="checkbox-label" @click=${handleChange}>${this.label}</span>
       </div>
     `;
   }
