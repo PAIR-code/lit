@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-06-22' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-7-15' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -116,7 +116,8 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
 *   A negative class can be designated using the `null_idx` attribute of
     `MulticlassPreds` (most commonly, `null_idx=0`), and metrics such as
     precision, recall, F1 will be computed for the remaining classes. AUC and
-    AUCPR will be computed for binary classification tasks. For an example, see the
+    AUCPR will be computed for binary classification tasks. For an example, see
+    the
     [comment toxicity model](../lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be
@@ -215,13 +216,21 @@ and otherwise to different parts of the input.
 
 ### Tabular data
 
-While many uses of LIT involve natural language inputs, data can also contain or
-consist of categorical or scalar features using the `CategoryLabel` or `Scalar`
-types. LIT can be used as a replacement for the [What-If Tool](https://whatif-tool.dev),
-containing a similar feature set but with more extensibility.
+LIT can be used as a replacement for the [What-If Tool](https://whatif-tool.dev)
+but with more extensibility, when working with predictions over tabular data.
 
-*   For a demo using a penguin stats dataset/binary classification task, see
-    [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py).
+Some interpreters, such as Kernel SHAP, require models that use tabular data. In
+these cases, LIT validates model compatibility by checking that:
+
+*   The model inputs (`input_spec()`) are exclusively categorical
+    (`CategoryLabel`) or numeric (`Scalar`), and none of these are marked as
+    optional (`required=False`).
+*   The model outputs include at least one classification (`MulticlassPreds`),
+    regression (`RegressionScore` or `Scalar`), or multilabel
+    (`SparseMultilabel`) field.
+
+For a demo using a penguin stats dataset/binary classification task, see
+google3/third_party/py/lit_nlp/examples/penguin_demo.py.
 
 ### Images
 
@@ -672,8 +681,8 @@ CAVs using the selected concept slice and random splits of the same size from
 the remainder of the dataset. We also generate 15 random CAVs using random
 splits against random splits. We then do a t-test to check if these two sets of
 scores are from the same distribution and reject CAVs as insignificant if the
-p-value is greater than 0.05. (If this happens, a warning is displayed in place of
-the TCAV score in the UI.)
+p-value is greater than 0.05. (If this happens, a warning is displayed in place
+of the TCAV score in the UI.)
 
 For relative TCAV, users would ideally test concepts with at least ~100 examples
 each so we can perform ~15 runs on unique subsets. In practice, users may not
