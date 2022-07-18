@@ -252,10 +252,14 @@ class ExactMatchMetrics(SimpleMetrics):
       answers = clusters[0]
       # append just answer label example:'223' to correct_answer
       correct_answer.append(answers.label)
- 
+
+    # basically right now if acceptable_answers is in correct answer it gives 0, else 1
+    # I don't think it's a right approach
     for prediction, answer in zip(preds,correct_answer):
       if prediction in answer:
         acceptable_answers = correct_answer.index(prediction)
+      else:
+        acceptable_answers = 1
 
     
     return {'answer':acceptable_answers}
