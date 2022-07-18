@@ -244,23 +244,21 @@ class ExactMatchMetrics(SimpleMetrics):
     del config
     if not inputs or not preds:
       return {}
-    
+
     correct_answer = []
-    output = {}
+
     for clusters in inputs:
       # this gets entire annotaion cluster AnnotationCluster(label='223', spans=[SpanLabel(start=31, end=34...)
       answers = clusters[0]
       # append just answer label example:'223' to correct_answer
       correct_answer.append(answers.label)
-
+ 
     for prediction, answer in zip(preds,correct_answer):
-        # logging.warning('Answers and prediction below!----------->\n')
-        # logging.warning(answer)
-        # logging.warning(prediction)
       if prediction in answer:
-        output[answer] = answer
+        acceptable_answers = correct_answer.index(prediction)
 
-    return output
+    
+    return {'answer':acceptable_answers}
 
 
 class RegressionMetrics(SimpleMetrics):

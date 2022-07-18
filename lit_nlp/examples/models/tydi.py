@@ -35,8 +35,6 @@ class TyDiModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     return 8
 
-  # def findSpecKeys(spec, type):
-
 
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
