@@ -230,43 +230,6 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
 
 class ExactMatchMetrics(SimpleMetrics):
   """Standard regression metrics."""
-
-  # Note from ryanmullins@: I'm not convinced this is the correct form of
-  # is_compatible(...). When tracing the code path from app.py through the
-  # metrics I noticed that 1) there's a bunch of indirection in here, and 2)
-  # the call to compute valdiates the inidividual fields for type compatibility,
-  # but just assumes that the field's parent will be compatible without
-  # providing the info necessary to check that.
-  #
-  # Here's the code path:
-  #
-  #   1.  api_service.ts:167 -- Makes a call to /get_interpretations endpoint
-  #   2.  app.py:563 -- Forwards API call to _get_interpretations(...)
-  #   3.  app.py:322 -- Calls run_with_metadata(...) on the Metric Interpreter
-  #   4.  metrics.py:145 -- Calls map_pred_keys(..) to get preds and labels,
-  #       passing self.is_compatible(...) as the predicate
-  #   5.  metrics.py:47 -- Uses utils.find_keys(...) to get a list of compatible
-  #       fields
-  #   6.  utils.py:43 -- Passes the LitType definition from a model's
-  #       output_spec() to self.is_compatible(...), i.e., the predicate
-  #   7.  metrics.py:59 -- Assumes that the parent is compatible with the metric
-  #       event though it never actually checked.
-  #   8.  metrics.py:154 -- Proceeds to call compute_with_metadata(...) using
-  #       the potenitally incomaptible {pred: str, label: str} pairs, thus
-  #       inducing the error we've been seeing
-  #
-  # This is a more complex design question than can/should be solved in this PR
-  # so I've done 2 things...
-  #
-  #   1.  Implemented a type-check hack in the compute(...) method for
-  #       CorpusBLEU that returns an empty dict if the check fails.
-  #   2.  Updated the is_compatible(...) function below to be compatible with
-  #       the codepath documented above.
-  #
-  # This should unblock you on this PR while the LIT team sort sout the correct
-  # redesign internally.
-  #
-  # Feel free to delete this comment after youve read it.
   def is_compatible(self, field_spec: types.LitType) -> bool:
     """Return true if compatible with this field."""
     return isinstance(field_spec, types.GeneratedText)
@@ -278,19 +241,27 @@ class ExactMatchMetrics(SimpleMetrics):
               pred_spec: types.GeneratedText,
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
-    logging.warning('Watch out! 1----------->\n')
     del config
     if not inputs or not preds:
-      logging.warning('Watch out! 2--------->\n')
       return {}
     
-  # pseudo code for the class is something like this
-  #  acceptable_answers = # map input['answers'] to a list[str]
-  #  correct = output in acceptable_answers
-  # if correct:
-  #   answer_index = acceptable_answers.index(output)
-    logging.warning('Watch out! 3--------->\n')
-    return {'test': 2.0}
+    correct_answer = []
+    output = {}
+    for clusters in inputs:
+      # this gets entire annotaion cluster AnnotationCluster(label='223', spans=[SpanLabel(start=31, end=34...)
+      answers = clusters[0]
+      # append just answer label example:'223' to correct_answer
+      correct_answer.append(answers.label)
+
+    for prediction, answer in zip(preds,correct_answer):
+        # logging.warning('Answers and prediction below!----------->\n')
+        # logging.warning(answer)
+        # logging.warning(prediction)
+      if prediction in answer:
+        output[answer] = answer
+
+    return output
+
 
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
