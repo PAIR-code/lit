@@ -1,27 +1,52 @@
 """LIT wrappers for TyDiModel"""
-import re
-from typing import List
-
-import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.examples.models import model_utils
-from lit_nlp.lib import utils
-
-import tensorflow as tf
-import numpy as np
-
 import transformers
 
-from rouge_score import rouge_scorer
+
 
 BertTokenizer = transformers.BertTokenizer
 FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
 JsonDict = lit_types.JsonDict
 
+
+def validate_TyDiModel(model: lit_model.Model) -> lit_model.Model:
+  """Validate that a given model looks like a TyDi model used by tydi_test.py.
+  Args:
+    model: a LIT model
+
+  Returns:
+    model: the same model
+
+  Raises:
+    AssertionError: if the model's spec does not match that expected for a TyDi
+    model.
+  """
+  # Check inputs
+  ispec = model.input_spec()
+  assert "context" in ispec
+  assert isinstance(ispec["context"], lit_types.TextSegment)
+  if "answers_text" in ispec:
+    assert isinstance(ispec["answers_text"], lit_types.MultiSegmentAnnotations)
+
+  # Check outputs
+  ospec = model.output_spec()
+  assert "generated_text" in ospec
+  assert isinstance(
+      ospec["generated_text"],
+      (lit_types.GeneratedText))
+  assert ospec["generated_text"].parent == "answers_text"
+
+  return model
+
+
+
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
 
+  TYDI_LANG_VOCAB = ['english','bengali', 'russian', 'telugu','swahili',
+                    'korean','indonesian','arabic','finnish']
+                  
   def __init__(self,
               model_name: str,
               model=None,
@@ -51,9 +76,7 @@ class TyDiModel(lit_model.Model):
           0, answer_start_index : answer_end_index + 1]
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
-          # adding answer_text for debugging
           "answers_text": inp['answers_text']
-          # "tokens": self.tokenizer.convert_ids_to_tokens(tokenized_text.input_ids[i]),
       })
     
     return prediction_output
@@ -65,6 +88,7 @@ class TyDiModel(lit_model.Model):
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
+        "language": lit_types.CategoryLabel(vocab=self.TYDI_LANG_VOCAB)
     }
 
   def output_spec(self):

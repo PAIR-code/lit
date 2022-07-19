@@ -18,7 +18,7 @@ from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
-from absl import logging
+
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
@@ -65,6 +65,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name = os.path.basename(model_name_or_path)
     models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
   datasets = {
+      "TyDiQA-Multilingual": question_answering.TyDiQA(
+        split="validation", max_examples=_MAX_EXAMPLES.value),
       "TyDiQA-English": question_answering.TyDiQA(
         split="validation-en", max_examples=_MAX_EXAMPLES.value),
       "TyDiQA-Finnish": question_answering.TyDiQA(
