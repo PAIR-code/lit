@@ -14,13 +14,14 @@
 # ==============================================================================
 """Metric component and implementations."""
 
+from __future__ import annotations
 import abc
 from cProfile import label
 import collections
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
-from lit_nlp.api import components as lit_components
+from lit_nlp.api import components as lit_components, dtypes
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
@@ -235,34 +236,26 @@ class ExactMatchMetrics(SimpleMetrics):
     return isinstance(field_spec, types.GeneratedText)
 
   def compute(self,
-              inputs: Sequence[Any],
-              preds: Sequence[Any],
+              inputs: Sequence[Sequence[dtypes.AnnotationCluster]],
+              preds: Sequence[JsonDict],
               label_spec: types.MultiSegmentAnnotations,
               pred_spec: types.GeneratedText,
               config: Optional[JsonDict] = None) -> Dict[Text, float]:
     """Compute metric(s) between labels and predictions."""
     del config
+    del label_spec
+    del pred_spec
+
     if not inputs or not preds:
       return {}
 
-    correct_answer = []
+    matches = 0
+    for annotations, pred in zip(inputs, preds):
+      answers = [annotation.label for annotation in annotations]
+      if any(pred == answer for answer in answers):
+        matches += 1
 
-    for clusters in inputs:
-      # this gets entire annotaion cluster AnnotationCluster(label='223', spans=[SpanLabel(start=31, end=34...)
-      answers = clusters[0]
-      # append just answer label example:'223' to correct_answer
-      correct_answer.append(answers.label)
-
-    # basically right now if acceptable_answers is in correct answer it gives 0, else 1
-    # I don't think it's a right approach
-    for prediction, answer in zip(preds,correct_answer):
-      if prediction in answer:
-        acceptable_answers = correct_answer.index(prediction)
-      else:
-        acceptable_answers = 1
-
-    
-    return {'answer':acceptable_answers}
+    return {'pct_correct': matches/len(preds) * 100}
 
 
 class RegressionMetrics(SimpleMetrics):
