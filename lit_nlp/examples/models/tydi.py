@@ -88,7 +88,7 @@ class TyDiModel(lit_model.Model):
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(vocab=self.TYDI_LANG_VOCAB)
+        "language": lit_types.CategoryLabel(required=False,vocab=self.TYDI_LANG_VOCAB)
     }
 
   def output_spec(self):
