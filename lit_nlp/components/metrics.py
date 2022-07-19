@@ -14,15 +14,14 @@
 # ==============================================================================
 """Metric component and implementations."""
 
-from __future__ import annotations
 import abc
-from cProfile import label
 import collections
 from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
 
 from absl import logging
-from lit_nlp.api import components as lit_components, dtypes
+from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import classification_results
@@ -34,7 +33,6 @@ from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
 from rouge_score import rouge_scorer
-import logging
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
