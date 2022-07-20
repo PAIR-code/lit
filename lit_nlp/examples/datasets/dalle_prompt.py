@@ -1,4 +1,4 @@
-"""Data loaders for text-to-image model."""
+"""Example prompts dataset for use with Dall-E and other text-to-image generative models"""
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
@@ -9,9 +9,8 @@ class Dalle(lit_dataset.Dataset):
 
   def __init__(self):
 
-    prompt = ["A still of Homer Simpson in The Blair Witch Project",
-              "A still of Homer Simpson in Jaws",
-              "Mario playing himself at an arcade"]
+    # just keeping one prompt for testing for time being
+    prompt = ["Mario playing himself at an arcade"]
 
     # populate this with data records
     for phrase in prompt:

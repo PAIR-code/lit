@@ -103,6 +103,14 @@ class _List extends LitType {
 /**
  * A list of (text, score) tuples.
  */
+ @registered
+ export class ImageBytesList extends _List {
+
+}
+
+/**
+ * A list of (text, score) tuples.
+ */
 class _StringCandidateList extends _List {
   override default: ScoredTextCandidates = [];
 }

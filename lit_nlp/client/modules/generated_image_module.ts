@@ -41,7 +41,7 @@ export class GeneratedImageModule extends LitModule {
   };
 
 
-  static supportedTypes: LitName[] = ['ImageBytes'];
+  static supportedTypes: LitName[] = ['ImageBytes','ImageBytesList'];
 
   static override get styles() {
     const styles = css`
@@ -85,7 +85,7 @@ export class GeneratedImageModule extends LitModule {
     this.generatedImages = results[0];
   }
 
-  renderImage(name: string, src: string) {
+  renderImage(name: string, src: string | string[]) {
     // clang-format off
     return html`
       <div class='field-group'>
