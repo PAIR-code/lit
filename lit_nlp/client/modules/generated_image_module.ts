@@ -87,6 +87,7 @@ export class GeneratedImageModule extends LitModule {
 
   renderImage(name: string, src: string | string[]) {
     // clang-format off
+    // need to check if it's string[] then map accordingly
     return html`
       <div class='field-group'>
         <div class="field-title">${name}</div>
