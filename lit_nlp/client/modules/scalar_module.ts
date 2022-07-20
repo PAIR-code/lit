@@ -28,6 +28,7 @@ const seedrandom = require('seedrandom');  // from //third_party/javascript/typi
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {ThresholdChange} from '../elements/threshold_slider';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
@@ -110,7 +111,8 @@ export class ScalarModule extends LitModule {
 
   private readonly inputIDToIndex = new Map();
   private readonly resizeObserver = new ResizeObserver(() => {this.resize();});
-  private numPlotsRendered: number = 0;
+  private numPlotsRendered = 0;
+  private legendWidth = 150;
 
   // Stores a BrushObject for each scatterplot that's drawn (in the case that
   // there are multiple pred keys).
@@ -208,6 +210,10 @@ export class ScalarModule extends LitModule {
   }
 
   private resize() {
+    const footer =
+        this.shadowRoot!.querySelector<HTMLElement>('.module-footer');
+    this.legendWidth = footer?.clientWidth || 150;
+
     this.makePlot();
     this.updatePlotData();
   }
@@ -735,14 +741,29 @@ export class ScalarModule extends LitModule {
 
   override render() {
     this.numPlotsRendered = 0;
+
+    const domain = this.colorService.selectedColorOption.scale.domain();
+    const sequentialScale = typeof domain[0] === 'number';
+    const legendType =
+        sequentialScale ? LegendType.SEQUENTIAL: LegendType.CATEGORICAL;
+
     // clang-format off
-    return html`
-      <div id='container'>
-        ${this.classificationKeys.map(key =>
-          this.renderClassificationGroup(key))}
-        ${this.scalarColumnsToPlot.map(key => this.renderPlot(key, ''))}
+    return html`<div class="module-container">
+      <div class="module-results-area">
+        <div id='container'>
+          ${this.classificationKeys.map(key =>
+            this.renderClassificationGroup(key))}
+          ${this.scalarColumnsToPlot.map(key => this.renderPlot(key, ''))}
+        </div>
       </div>
-    `;
+      <div class="module-footer">
+        <color-legend legendType=${legendType}
+          legendWidth=${this.legendWidth}
+          selectedColorName=${this.colorService.selectedColorOption.name}
+          .scale=${this.colorService.selectedColorOption.scale}>
+        </color-legend>
+      </div>
+    </div>`;
     // clang-format on
   }
 
