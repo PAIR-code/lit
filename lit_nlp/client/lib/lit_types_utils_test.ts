@@ -19,14 +19,14 @@ describe('createLitType test', () => {
  });
 
   it('creates with constructor params', () => {
-    const expected = new litTypes.String();
-    expected.__name__ = 'String';
-    expected.__mro__ = ['String', 'LitType', 'Object'];
+    const expected = new litTypes.StringLitType();
+    expected.__name__ = 'StringLitType';
+    expected.__mro__ = ['StringLitType', 'LitType', 'Object'];
     expected.default = 'foo';
     expected.show_in_data_table = true;
 
     const result = litTypesUtils.createLitType(
-        'String', {'show_in_data_table': true, 'default': 'foo'});
+        'StringLitType', {'show_in_data_table': true, 'default': 'foo'});
     expect(result).toEqual(expected);
   });
 
@@ -37,7 +37,7 @@ describe('createLitType test', () => {
   });
 
   it('handles invalid constructor params', () => {
-    expect(() => litTypesUtils.createLitType('String', {
+    expect(() => litTypesUtils.createLitType('StringLitType', {
       'notAStringParam': true
     })).toThrowError();
   });
@@ -57,9 +57,9 @@ describe('createLitType test', () => {
   });
 
   it('populates mro', () => {
-    let testType = new litTypes.String();
+    let testType = new litTypes.StringLitType();
     expect(litTypesUtils.getMethodResolutionOrder(testType)).toEqual([
-      'String', 'LitType', 'Object'
+      'StringLitType', 'LitType', 'Object'
     ]);
 
     testType = new litTypes.LitType();
@@ -75,9 +75,9 @@ describe('createLitType test', () => {
 
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
-    const testType = new litTypes.String();
-    expect(litTypesUtils.isLitSubtype(testType, 'String')).toBe(true);
-    expect(litTypesUtils.isLitSubtype(testType, ['String'])).toBe(true);
+    const testType = new litTypes.StringLitType();
+    expect(litTypesUtils.isLitSubtype(testType, 'StringLitType')).toBe(true);
+    expect(litTypesUtils.isLitSubtype(testType, ['StringLitType'])).toBe(true);
     expect(litTypesUtils.isLitSubtype(testType, ['Scalar'])).toBe(false);
 
     // LitType is not a subtype of LitType.
@@ -93,19 +93,19 @@ describe('findSpecKeys test', () => {
   // TODO(cjqian): Add original utils_test test after adding more types.
   const spec: Spec = {
     'scalar_foo': new litTypes.Scalar(),
-    'segment': new litTypes.String(),
-    'generated_text': new litTypes.String(),
+    'segment': new litTypes.StringLitType(),
+    'generated_text': new litTypes.StringLitType(),
   };
 
 
   it('finds all spec keys that match the specified types', () => {
     // Key is in spec.
-    expect(litTypesUtils.findSpecKeys(spec, 'String')).toEqual([
+    expect(litTypesUtils.findSpecKeys(spec, 'StringLitType')).toEqual([
       'segment', 'generated_text'
     ]);
 
     // Keys are in spec.
-    expect(litTypesUtils.findSpecKeys(spec, ['String', 'Scalar'])).toEqual([
+    expect(litTypesUtils.findSpecKeys(spec, ['StringLitType', 'Scalar'])).toEqual([
       'scalar_foo', 'segment', 'generated_text'
     ]);
   });

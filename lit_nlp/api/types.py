@@ -143,7 +143,7 @@ def all_littypes(ignore_private=True):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class String(LitType):
+class StringLitType(LitType):
   """User-editable text input.
 
   All automated edits are disabled for this type.
@@ -155,7 +155,7 @@ class String(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TextSegment(String):
+class TextSegment(StringLitType):
   """Text input (untokenized), a single string."""
   pass
 
@@ -281,7 +281,7 @@ class ReferenceScores(_List):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class CategoryLabel(String):
+class CategoryLabel(StringLitType):
   """Category or class label, a single string."""
   # Optional vocabulary to specify allowed values.
   # If omitted, any value is accepted.
@@ -548,4 +548,4 @@ class InfluentialExamples(LitType):
   pass
 
 
-# LINT.ThenChange(../client/lib/types.ts)
+# LINT.ThenChange(../client/lib/lit_types.ts)

@@ -66,7 +66,7 @@ export class LitType {
  * A string LitType.
  */
 @registered
-export class String extends LitType {
+export class StringLitType extends LitType {
   override default: string = '';
 }
 
@@ -74,7 +74,7 @@ export class String extends LitType {
  * Text input (untokenized), a single string.
  */
 @registered
-export class TextSegment extends String {
+export class TextSegment extends StringLitType {
 }
 
 /**
@@ -219,7 +219,7 @@ export class ReferenceScores extends _List {
  * Category or class label, a single string.
  */
 @registered
-export class CategoryLabel extends String {
+export class CategoryLabel extends StringLitType {
   /**
    * Optional vocabulary to specify allowed values.
    * If omitted, any value is accepted.

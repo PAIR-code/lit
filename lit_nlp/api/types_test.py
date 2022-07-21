@@ -13,7 +13,7 @@ class TypesTest(googletest.TestCase):
     self.assertEqual(num_types, NUM_TYPES)
 
   def test_inherit_parent_default_type(self):
-    lit_type = types.String()
+    lit_type = types.StringLitType()
     self.assertIsInstance(lit_type.default, str)
 
   def test_inherit_parent_default_value(self):

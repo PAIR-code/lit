@@ -37,7 +37,7 @@ class ClassificationTestDataset(lit_dataset.Dataset):
         'size': lit_types.CategoryLabel(vocab=['small', 'medium', 'large']),
         'weight': lit_types.Scalar(),
         'legs': lit_types.Boolean(),
-        'description': lit_types.String(),
+        'description': lit_types.StringLitType(),
         'animal': lit_types.CategoryLabel(vocab=ANIMALS),
     }
 
@@ -90,7 +90,7 @@ class ClassificationTestModel(lit_model.Model):
         'size': lit_types.CategoryLabel(vocab=['small', 'medium', 'large']),
         'weight': lit_types.Scalar(),
         'legs': lit_types.Boolean(),
-        'description': lit_types.String(),
+        'description': lit_types.StringLitType(),
     }
 
   def output_spec(self) -> lit_types.Spec:
