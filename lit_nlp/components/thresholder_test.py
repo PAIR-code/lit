@@ -92,7 +92,6 @@ class ThresholderTest(absltest.TestCase):
     result = self.thresholder.run_with_metadata(
         self.indexed_inputs, self.model, self.dataset, self.model_outputs,
         config=config)
-    print(result)
     self.assertEqual(0.71, result[0]['thresholds']['label:0']['Single'])
     self.assertEqual(0.71, result[0]['thresholds']['label:1']['Single'])
     self.assertEqual(0.86, result[0]['thresholds']['label:0']['Individual'])
