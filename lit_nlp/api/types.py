@@ -511,7 +511,7 @@ class ImageSalience(_Salience):
   The data is returned as an image in the base64 URL encoded format, e.g.,
   data:image/jpg;base64,w4J3k1Bfa...
   """
-  pass
+  signed = False  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
