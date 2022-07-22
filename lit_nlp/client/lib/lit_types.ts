@@ -32,7 +32,7 @@ function registered(target: any) {
 const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
 /**
  * The types of all LitTypes in the registry, e.g.
- * 'String' | 'TextSegment' ...
+ * 'StringLitType' | 'TextSegment' ...
  */
 export type LitName = typeof registryKeys[number];
 

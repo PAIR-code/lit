@@ -109,7 +109,7 @@ export class DatapointEditorModule extends LitModule {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
 
-      if (isLitSubtype(fieldSpec, ['String', 'TextSegment'])) {
+      if (isLitSubtype(fieldSpec, ['StringLitType', 'TextSegment'])) {
         calculateStringLength = (s: string) => s.length;
       }
       else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {

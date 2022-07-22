@@ -416,8 +416,9 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private getLabelByFields() {
-    return findSpecKeys(this.appState.currentDatasetSpec,
-                        ['TextSegment', 'Scalar', 'String', 'CategoryLabel']);
+    return findSpecKeys(
+        this.appState.currentDatasetSpec,
+        ['TextSegment', 'Scalar', 'StringLitType', 'CategoryLabel']);
   }
 
   private getImageFields() {
