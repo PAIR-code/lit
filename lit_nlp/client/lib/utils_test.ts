@@ -435,6 +435,23 @@ describe('replaceNth test', () => {
   });
 });
 
+describe('getStepSizeGivenRange test', () => {
+  it('Works as expected in the basic case', () => {
+    expect(utils.getStepSizeGivenRange(0.9)).toEqual(0.01);
+    expect(utils.getStepSizeGivenRange(1)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(9.9)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(10)).toEqual(1);
+    expect(utils.getStepSizeGivenRange(100)).toEqual(10);
+    expect(utils.getStepSizeGivenRange(101)).toEqual(10);
+  });
+  it('Behaves correctly for 0 range', () => {
+    expect(utils.getStepSizeGivenRange(0)).toEqual(0);
+  });
+  it('Behaves correctly for negative range', () => {
+    expect(utils.getStepSizeGivenRange(-1)).toBeNaN();
+  });
+});
+
 describe('mapsContainSame test', () => {
   it('correctly determines that empty maps contain the same items', () => {
     const emptyA = new Map<string, string>();

@@ -456,7 +456,11 @@ export function replaceNth(str: string, orig: string, replacement: string,
 
 /** Return a good step size given a range of values. */
 export function getStepSizeGivenRange(range: number) {
-  return range > 100 ? 10: range > 10 ? 1 : range > 1 ? 0.1 : 0.01;
+  // Returns 0.1 for values of at least 1 and less than 10.
+  // Returns 1 for values of at least 10 and less than 100.
+  // Returns 10 for values of at least 100 and less than 1000.
+  // And so on, both for larger ranges and smaller.
+  return Math.pow(10, Math.floor(Math.log10(range)) - 1);
 }
 
 /** Convert a markdown string into an HTML template for rendering. */
