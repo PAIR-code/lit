@@ -10,7 +10,7 @@ class Dalle(lit_dataset.Dataset):
   def __init__(self):
 
     # just keeping one prompt for testing for time being
-    prompt = ["Mario playing himself at an arcade"]
+    prompt = ["a pikachu that looks lika a pug"]
 
     # populate this with data records
     for phrase in prompt:
