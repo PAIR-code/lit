@@ -15,21 +15,32 @@
 """Tests for lit_nlp.components.metrics."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import types
 from lit_nlp.components import metrics
 from lit_nlp.lib import testing_utils
 
+LitType = types.LitType
+DUMMY_MODEL = testing_utils.TestModelBatched()
 
-class RegressionMetricsTest(absltest.TestCase):
+
+class RegressionMetricsTest(parameterized.TestCase):
 
   def test_is_compatible(self):
+    """Always false to prevent use as explainer."""
     regression_metrics = metrics.RegressionMetrics()
+    self.assertFalse(regression_metrics.is_compatible(DUMMY_MODEL))
+    self.assertFalse(regression_metrics.is_compatible(None))
 
-    # Only compatible with RegressionScore spec.
-    self.assertTrue(regression_metrics.is_compatible(types.RegressionScore()))
-    self.assertFalse(
-        regression_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(regression_metrics.is_compatible(types.GeneratedText()))
+  @parameterized.named_parameters(
+      ('regression', types.RegressionScore(), None, True),
+      ('mulitclass', types.MulticlassPreds(vocab=['']), None, False),
+      ('generated text', types.GeneratedText(), None, False))
+  def test_is_field_compatible(self, pred: LitType, parent: LitType,
+                               expected: bool):
+    regression_metrics = metrics.RegressionMetrics()
+    self.assertEqual(
+        regression_metrics.is_field_compatible(pred, parent), expected)
 
   def test_compute_correct(self):
     regression_metrics = metrics.RegressionMetrics()
@@ -76,16 +87,23 @@ class RegressionMetricsTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {})
 
 
-class MulticlassMetricsTest(absltest.TestCase):
+class MulticlassMetricsTest(parameterized.TestCase):
 
   def test_is_compatible(self):
+    """Always false to prevent use as explainer."""
     multiclass_metrics = metrics.MulticlassMetrics()
+    self.assertFalse(multiclass_metrics.is_compatible(DUMMY_MODEL))
+    self.assertFalse(multiclass_metrics.is_compatible(None))
 
-    # Only compatible with MulticlassPreds spec.
-    self.assertTrue(
-        multiclass_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(multiclass_metrics.is_compatible(types.RegressionScore()))
-    self.assertFalse(multiclass_metrics.is_compatible(types.GeneratedText()))
+  @parameterized.named_parameters(
+      ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
+      ('regression', types.RegressionScore(), None, False),
+      ('generated text', types.GeneratedText(), None, False))
+  def test_is_field_compatible(self, pred: LitType, parent: LitType,
+                               expected: bool):
+    multiclass_metrics = metrics.MulticlassMetrics()
+    self.assertEqual(
+        multiclass_metrics.is_field_compatible(pred, parent), expected)
 
   def test_compute_correct(self):
     multiclass_metrics = metrics.MulticlassMetricsImpl()
@@ -202,19 +220,23 @@ class MulticlassMetricsTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {})
 
 
-class MulticlassPairedMetricsTest(absltest.TestCase):
+class MulticlassPairedMetricsTest(parameterized.TestCase):
 
   def test_is_compatible(self):
+    """Always false to prevent use as explainer."""
     multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
+    self.assertFalse(multiclass_paired_metrics.is_compatible(DUMMY_MODEL))
+    self.assertFalse(multiclass_paired_metrics.is_compatible(None))
 
-    # Only compatible with MulticlassPreds spec.
-    self.assertTrue(
-        multiclass_paired_metrics.is_compatible(
-            types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(
-        multiclass_paired_metrics.is_compatible(types.RegressionScore()))
-    self.assertFalse(
-        multiclass_paired_metrics.is_compatible(types.GeneratedText()))
+  @parameterized.named_parameters(
+      ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
+      ('regression', types.RegressionScore(), None, False),
+      ('generated text', types.GeneratedText(), None, False))
+  def test_is_field_compatible(self, pred: LitType, parent: LitType,
+                               expected: bool):
+    multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
+    self.assertEqual(
+        multiclass_paired_metrics.is_field_compatible(pred, parent), expected)
 
   def test_compute(self):
     multiclass_paired_metrics = metrics.MulticlassPairedMetricsImpl()
@@ -273,18 +295,26 @@ class MulticlassPairedMetricsTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {})
 
 
-class CorpusBLEUTest(absltest.TestCase):
+class CorpusBLEUTest(parameterized.TestCase):
 
   def test_is_compatible(self):
+    """Always false to prevent use as explainer."""
     bleu_metrics = metrics.CorpusBLEU()
+    self.assertFalse(bleu_metrics.is_compatible(DUMMY_MODEL))
+    self.assertFalse(bleu_metrics.is_compatible(None))
 
-    # Only compatible with generation types.
-    self.assertTrue(bleu_metrics.is_compatible(types.GeneratedText()))
-    self.assertTrue(bleu_metrics.is_compatible(types.GeneratedTextCandidates()))
-
-    self.assertFalse(
-        bleu_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(bleu_metrics.is_compatible(types.RegressionScore()))
+  @parameterized.named_parameters(
+      ('generated text + str', types.GeneratedText(), types.StringLitType(),
+       True),
+      ('candidates + str', types.GeneratedTextCandidates(),
+       types.StringLitType(), True),
+      ('bad pred, good parent', types.Scalar(), types.StringLitType(), False),
+      ('good pred, bad parent', types.GeneratedText(), types.Scalar(), False),
+      ('both bad', types.Scalar(), types.Scalar(), False))
+  def test_is_field_compatible(self, pred: LitType, parent: LitType,
+                               expected: bool):
+    bleu_metrics = metrics.CorpusBLEU()
+    self.assertEqual(bleu_metrics.is_field_compatible(pred, parent), expected)
 
   def test_compute_correct(self):
     bleu_metrics = metrics.CorpusBLEU()
@@ -336,19 +366,26 @@ class CorpusBLEUTest(absltest.TestCase):
                                            {'corpus_bleu@1': 100.0000})
 
 
-class RougeLTest(absltest.TestCase):
+class RougeLTest(parameterized.TestCase):
 
   def test_is_compatible(self):
+    """Always false to prevent use as explainer."""
     rouge_metrics = metrics.RougeL()
+    self.assertFalse(rouge_metrics.is_compatible(DUMMY_MODEL))
+    self.assertFalse(rouge_metrics.is_compatible(None))
 
-    # Only compatible with generation types.
-    self.assertTrue(rouge_metrics.is_compatible(types.GeneratedText()))
-    self.assertTrue(
-        rouge_metrics.is_compatible(types.GeneratedTextCandidates()))
-
-    self.assertFalse(
-        rouge_metrics.is_compatible(types.MulticlassPreds(vocab=[''])))
-    self.assertFalse(rouge_metrics.is_compatible(types.RegressionScore()))
+  @parameterized.named_parameters(
+      ('generated text + str', types.GeneratedText(), types.StringLitType(),
+       True),
+      ('candidates + str', types.GeneratedTextCandidates(),
+       types.StringLitType(), True),
+      ('bad pred, good parent', types.Scalar(), types.StringLitType(), False),
+      ('good pred, bad parent', types.GeneratedText(), types.Scalar(), False),
+      ('both bad', types.Scalar(), types.Scalar(), False))
+  def test_is_field_compatible(self, pred: LitType, parent: LitType,
+                               expected: bool):
+    rouge_metrics = metrics.RougeL()
+    self.assertEqual(rouge_metrics.is_field_compatible(pred, parent), expected)
 
   def test_compute(self):
     rouge_metrics = metrics.RougeL()

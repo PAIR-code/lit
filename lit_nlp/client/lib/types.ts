@@ -25,10 +25,10 @@ import {chunkWords, isLitSubtype} from './utils';
 export type D3Selection = d3.Selection<any, any, any, any>;
 
 export type LitClass = 'LitType';
-export type LitName = 'type'|'LitType'|'String'|'TextSegment'|'GeneratedText'|
-    'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|'SearchQuery'|'Tokens'|
-    'TokenTopKPreds'|'Scalar'|'RegressionScore'|'CategoryLabel'|
-    'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
+export type LitName = 'type'|'LitType'|'StringLitType'|'TextSegment'|
+    'GeneratedText'|'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|
+    'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
+    'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
     'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
     'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'MultiFieldMatcher'|
     'Gradients'|'Boolean'|'TokenSalience'|'ImageBytes'|'SparseMultilabelPreds'|

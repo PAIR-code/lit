@@ -185,9 +185,16 @@ class Thresholder(lit_components.Interpreter):
     config = TresholderConfig(**config) if config else TresholderConfig()
 
     pred_keys = []
-    for pred_key, field_spec in model.output_spec().items():
-      if self.metrics_gen.is_compatible(field_spec) and cast(
-          types.MulticlassPreds, field_spec).parent:
+    for pred_key, pred_spec in model.output_spec().items():
+      if not isinstance(pred_spec, types.MulticlassPreds):
+        continue
+
+      parent_key = cast(types.MulticlassPreds, pred_spec).parent
+      if parent_key is None:
+        continue
+
+      parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)
+      if self.metrics_gen.is_field_compatible(pred_spec, parent_spec):
         pred_keys.append(pred_key)
 
     indexed_outputs = {
