@@ -22,7 +22,7 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for creating bins, not visualization.
-import {computed} from 'mobx';
+import {computed, reaction} from 'mobx';
 
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
 import {facetMapToDictKey, findSpecKeys, getStepSizeGivenRange, roundToDecimalPlaces} from '../lib/utils';
@@ -116,9 +116,17 @@ export interface FacetingConfig {
  * A singleton class that handles grouping.
  */
 export class GroupService extends LitService {
+  // Map to store calculated numeric feature bins to avoid recomputation.
+  private numericFeatureBinsMap = new Map<string, NumericFeatureBins>();
+
   constructor(private readonly appState: AppState,
               private readonly dataService: DataService) {
     super();
+
+    // Reset stored numeric feature bins on dataset change.
+    reaction(() => this.appState.currentInputData, () => {
+      this.numericFeatureBinsMap = new Map();
+    });
   }
 
   /** Get the names of categorical features. */
@@ -245,8 +253,7 @@ export class GroupService extends LitService {
   private discreteBins(feat:string): NumericBins {
     const bins: NumericBins = {};
     const [min, max] = this.numericalFeatureRanges[feat];
-    const step = this.appState.currentDatasetSpec[feat]?.step
-        ?? getStepSizeGivenRange(max - min);
+    const step = getStepSizeGivenRange(max - min);
 
     if (typeof step !== 'number') {
       throw (new Error(
@@ -361,6 +368,11 @@ export class GroupService extends LitService {
    * numericalFeatureRanges.
    */
   numericalFeatureBins(configs: FacetingConfig[]): NumericFeatureBins {
+    // If this bins have already been calculated, return the stored bins.
+    const configsStr = JSON.stringify(configs);
+    if (this.numericFeatureBinsMap.has(configsStr)) {
+      return this.numericFeatureBinsMap.get(configsStr)!;
+    }
     const featureBins: NumericFeatureBins = {};
     const numericConfigs = configs
         .filter(c => this.numericalFeatureNames.includes(c.featureName));
@@ -380,6 +392,7 @@ export class GroupService extends LitService {
       }
     }
 
+    this.numericFeatureBinsMap.set(configsStr, featureBins);
     return featureBins;
   }
 
