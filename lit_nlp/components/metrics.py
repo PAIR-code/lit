@@ -16,7 +16,7 @@
 
 import abc
 import collections
-from typing import Any, Callable, cast, Optional, Sequence, Union
+from typing import Any, Callable, cast, Optional, Sequence, Union, Dict, Text
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -240,9 +240,10 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
 
 class ExactMatchMetrics(SimpleMetrics):
   """Standard regression metrics."""
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.GeneratedText)
+    return isinstance(pred_spec, types.GeneratedText) and isinstance(parent_spec, types.MultiSegmentAnnotations)
 
   def compute(self,
               inputs: Sequence[Sequence[dtypes.AnnotationCluster]],

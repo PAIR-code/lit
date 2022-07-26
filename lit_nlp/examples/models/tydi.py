@@ -10,37 +10,6 @@ FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
 JsonDict = lit_types.JsonDict
 
 
-def validate_TyDiModel(model: lit_model.Model) -> lit_model.Model:
-  """Validate that a given model looks like a TyDi model used by tydi_test.py.
-  Args:
-    model: a LIT model
-
-  Returns:
-    model: the same model
-
-  Raises:
-    AssertionError: if the model's spec does not match that expected for a TyDi
-    model.
-  """
-  # Check inputs
-  ispec = model.input_spec()
-  assert "context" in ispec
-  assert isinstance(ispec["context"], lit_types.TextSegment)
-  if "answers_text" in ispec:
-    assert isinstance(ispec["answers_text"], lit_types.MultiSegmentAnnotations)
-
-  # Check outputs
-  ospec = model.output_spec()
-  assert "generated_text" in ospec
-  assert isinstance(
-      ospec["generated_text"],
-      (lit_types.GeneratedText))
-  assert ospec["generated_text"].parent == "answers_text"
-
-  return model
-
-
-
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
 
