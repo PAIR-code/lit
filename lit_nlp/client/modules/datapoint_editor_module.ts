@@ -27,7 +27,7 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {LitTypeWithVocab, SparseMultilabel, StringLitType} from '../lib/lit_types';
+import {ListLitType, LitTypeWithVocab, SparseMultilabel, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -87,8 +87,7 @@ export class DatapointEditorModule extends LitModule {
 
       // Skip fields with value type string[]
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      // TODO(b/162269499) Replace this with list check.
-      const isListField = fieldSpec.__mro__.includes('_List');
+      const isListField = fieldSpec instanceof ListLitType;
       if (isListField) continue;
       dataTextKeys.push(key);
     }

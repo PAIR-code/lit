@@ -109,16 +109,17 @@ export class GeneratedText extends TextSegment {
 }
 
 /**
- * A list type.
+ * A list type. Named `ListListType` to avoid conflicts with TypeScript List.
  */
-class _List extends LitType {
+@registered
+export class ListLitType extends LitType {
   override default: unknown[] = [];
 }
 
 /**
  * A list of (text, score) tuples.
  */
-class _StringCandidateList extends _List {
+class _StringCandidateList extends ListLitType {
   override default: ScoredTextCandidates = [];
 }
 
@@ -172,7 +173,7 @@ export class SearchQuery extends TextSegment {
  * A list of strings.
  */
 @registered
-export class StringList extends _List {
+export class StringList extends ListLitType {
   override default: string[] = [];
 }
 
@@ -194,7 +195,7 @@ export class Tokens extends StringList {
  * The inner list should contain (word, probability) in descending order.
  */
 @registered
-export class TokenTopKPreds extends _List {
+export class TokenTopKPreds extends ListLitType {
   override default: ScoredTextCandidates[] = [];
   align?: string = undefined;
   parent?: string = undefined;
@@ -223,7 +224,7 @@ export class RegressionScore extends Scalar {
  * Score of one or more target sequences.
  */
 @registered
-export class ReferenceScores extends _List {
+export class ReferenceScores extends ListLitType {
   override default: number[] = [];
 
   /** Name of a TextSegment or ReferenceTexts field in the input. */
@@ -289,7 +290,7 @@ export class SequenceTags extends StringList {
  * sentence, and may overlap with each other.
  */
 @registered
-export class SpanLabels extends _List {
+export class SpanLabels extends ListLitType {
   /** Name of Tokens field. **/
   align: string = '';
   parent?: string = undefined;
@@ -302,7 +303,7 @@ export class SpanLabels extends _List {
  * of (span1, span2, label).
  */
 @registered
-export class EdgeLabels extends _List {
+export class EdgeLabels extends ListLitType {
   /** Name of Tokens field. **/
   align: string = '';
 }
@@ -318,7 +319,7 @@ export class EdgeLabels extends _List {
  * specific segment from the input.
  */
 @registered
-export class MultiSegmentAnnotations extends _List {
+export class MultiSegmentAnnotations extends ListLitType {
   /** If true, treat as candidate list. */
   exclusive: boolean = false;
   /** If true, don't emphasize in visualization. */
@@ -401,7 +402,7 @@ export class AttentionHeads extends _Tensor1D {
  * offsets[i] should be the index of the first wordpiece for input token i.
  */
 @registered
-export class SubwordOffsets extends _List {
+export class SubwordOffsets extends ListLitType {
   override default: number[] = [];
   /** Name of field in data spec. */
   align_in: string = '';

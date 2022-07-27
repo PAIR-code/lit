@@ -78,6 +78,7 @@ export class DataTableModule extends LitModule {
   get keys(): ColumnHeader[] {
     const createColumnHeader = (name: string, type: LitType) => {
       const header = {name, vocab: (type as LitTypeWithVocab).vocab};
+      // TODO(b/162269499): Rename Boolean to BooleanLitType.
       if (isLitSubtype(type, 'Boolean')) {
         header.vocab = ['✔', ' '];
       }

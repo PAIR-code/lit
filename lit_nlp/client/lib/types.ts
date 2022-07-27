@@ -19,15 +19,11 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {LitName, LitType} from './lit_types';
+import {ListLitType, LitName, LitType} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
-
-// TODO(b/162269499): Replace this with class-based lists.
-export const listFieldTypes: LitName[] =
-    ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
 
 export interface Spec {
   [key: string]: LitType;
@@ -310,7 +306,7 @@ export function defaultValueByField(key: string, spec: Spec) {
     return 0;
   }
 
-  if (isLitSubtype(fieldSpec, listFieldTypes)) {
+  if (fieldSpec instanceof ListLitType) {
     return [];
   }
 
