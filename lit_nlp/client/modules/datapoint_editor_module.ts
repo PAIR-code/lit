@@ -27,9 +27,10 @@ import {computed, observable, when} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LitTypeWithVocab, SparseMultilabel, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
-import {isLitSubtype, findSpecKeys} from '../lib/utils';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -86,8 +87,8 @@ export class DatapointEditorModule extends LitModule {
 
       // Skip fields with value type string[]
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      const isListField = isLitSubtype(
-          fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
+      // TODO(b/162269499) Replace this with list check.
+      const isListField = fieldSpec.__mro__.includes('_List');
       if (isListField) continue;
       dataTextKeys.push(key);
     }
@@ -109,10 +110,10 @@ export class DatapointEditorModule extends LitModule {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
 
-      if (isLitSubtype(fieldSpec, ['StringLitType', 'TextSegment'])) {
+      if (fieldSpec instanceof StringLitType) {
         calculateStringLength = (s: string) => s.length;
       }
-      else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+      else if (fieldSpec instanceof SparseMultilabel) {
         const separator = fieldSpec.separator;
         calculateStringLength = (s: string[]) =>
           Object.values(s).join(separator).length;
@@ -538,7 +539,7 @@ export class DatapointEditorModule extends LitModule {
       'left-align': false
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
-    const vocab = fieldSpec?.vocab;
+    const {vocab} = fieldSpec as LitTypeWithVocab;
     if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {

@@ -18,7 +18,9 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {LitType, LitTypeOfFieldMatcher} from '../lib/lit_types';
+import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {createLitType as createLitTypeUtil} from '../lib/lit_types_utils';
 import {findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -102,15 +104,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
   }
 
+  // TODO(b/162269499): Call from utilities directly.
   createLitType(typeName: string, showInDataTable = true): LitType {
-    const litType = this.metadata.littypes[typeName];
-    if (litType == null) {
-      throw new Error(`LitType ${typeName} not defined`);
-    }
-    const newType = {...litType};
-    newType['__class__'] = 'LitType';
-    newType['show_in_data_table'] = showInDataTable;
-    return newType;
+    return createLitTypeUtil(typeName, {"show_in_data_table": showInDataTable});
   }
 
   @observable
@@ -243,14 +239,14 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the spec keys matching the info from the provided FieldMatcher.
    */
-  getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
+  getSpecKeysFromFieldMatcher(matcher: LitTypeOfFieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
       spec = this.currentModelSpecs[modelName].spec.output;
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.types!);
+    return findSpecKeys(spec, matcher.types);
   }
 
   //=================================== Generation logic

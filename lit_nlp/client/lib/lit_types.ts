@@ -29,14 +29,15 @@ function registered(target: any) {
   REGISTRY[target.name] = target;
 }
 
-const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
+const registryKeys : string[] = Object.keys(REGISTRY);
 /**
  * The types of all LitTypes in the registry, e.g.
  * 'StringLitType' | 'TextSegment' ...
  */
 export type LitName = typeof registryKeys[number];
 
-type LitClass = 'LitType';
+/** A type alias for the LitType class. */
+export type LitClass = 'LitType';
 type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
 /**
@@ -56,11 +57,25 @@ export class LitType {
   // TODO(b/162269499): Replace this with `unknown` after migration.
   // tslint:disable-next-line:no-any
   readonly default: any|undefined = null;
+  // If this type is created from an Annotator.
+  annotated: boolean = false;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.
   show_in_data_table: boolean = false;
 
   // TODO(b/162269499): Add isCompatible functionality.
 }
+
+/** A type alias for LitType with an align property. */
+export type LitTypeWithAlign = LitType&{align: string};
+
+/** A type alias for LitType with a null idx property. */
+export type LitTypeWithNullIdx = LitType&{null_idx: number};
+
+/** A type alias for LitType with a parent property. */
+export type LitTypeWithParent = LitType&{parent: string};
+
+/** A type alias for LitType with a vocab property. */
+export type LitTypeWithVocab = LitType&{vocab: string[]};
 
 /**
  * A string LitType.
@@ -420,6 +435,10 @@ export class SparseMultilabelPreds extends _StringCandidateList {
   parent?: string = undefined;
 }
 
+// TODO(b/162269499): Rename FieldMatcher to SingleFieldMatcher.
+/** A type alias for FieldMatcher or MultiFieldMatcher. */
+export type LitTypeOfFieldMatcher = FieldMatcher|MultiFieldMatcher;
+
 /**
  * For matching spec fields.
  *
@@ -462,7 +481,8 @@ export class MultiFieldMatcher extends LitType {
 /**
  * Metadata about a returned salience map.
  */
-class _Salience extends LitType {
+@registered
+export class Salience extends LitType {
   /** If the saliency technique is automatically run. */
   autorun: boolean = false;
   /** If the returned values are signed. */
@@ -473,14 +493,14 @@ class _Salience extends LitType {
  * Metadata about a returned token salience map.
  */
 @registered
-export class TokenSalience extends _Salience {
+export class TokenSalience extends Salience {
 }
 
 /**
  * Metadata about a returned feature salience map.
  */
 @registered
-export class FeatureSalience extends _Salience {
+export class FeatureSalience extends Salience {
   // TODO(b/162269499): Add Typescript dtypes so that we can set default types.
 }
 
@@ -490,14 +510,14 @@ export class FeatureSalience extends _Salience {
  * data:image/jpg;base64,w4J3k1Bfa...
  */
 @registered
-export class ImageSalience extends _Salience {
+export class ImageSalience extends Salience {
 }
 
 /**
  * Metadata about a returned sequence salience map.
  */
 @registered
-export class SequenceSalience extends _Salience {
+export class SequenceSalience extends Salience {
 }
 
 /**

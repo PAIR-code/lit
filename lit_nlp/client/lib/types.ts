@@ -19,55 +19,15 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
+import {LitName, LitType} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
-export type LitClass = 'LitType';
-export type LitName = 'type'|'LitType'|'StringLitType'|'TextSegment'|
-    'GeneratedText'|'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|
-    'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
-    'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
-    'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'MultiFieldMatcher'|
-    'Gradients'|'Boolean'|'TokenSalience'|'ImageBytes'|'SparseMultilabelPreds'|
-    'ImageGradients'|'ImageSalience'|'SequenceSalience'|'ReferenceScores'|
-    'FeatureSalience'|'TopTokens'|'CurveDataPoints'|'InfluentialExamples'|
-    'GeneratedURL';
-
+// TODO(b/162269499): Replace this with class-based lists.
 export const listFieldTypes: LitName[] =
     ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
-
-export interface LitType {
-  __class__: LitClass|'type';
-  __name__: LitName;
-  __mro__: string[];
-  parent?: string;
-  align?: string;
-  align_in?: string;
-  align_out?: string;
-  vocab?: string[];
-  null_idx?: number;
-  required?: boolean;
-  annotated?: boolean;
-  default?: string|string[]|number|number[];
-  spec?: string;
-  types?: LitName|LitName[];
-  min_val?: number;
-  max_val?: number;
-  step?: number;
-  exclusive?: boolean;
-  background?: boolean;
-  separator?: string;
-  autorun?: boolean;
-  signed?: boolean;
-  mask_token?: string;
-  token_prefix?: string;
-  select_all?: boolean;
-  autosort?: boolean;
-  show_in_data_table?: boolean;
-}
 
 export interface Spec {
   [key: string]: LitType;

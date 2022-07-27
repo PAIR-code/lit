@@ -19,8 +19,9 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
+import {LitName, LitType, MulticlassPreds, RegressionScore} from '../lib/lit_types';
 import {createLitType} from '../lib/lit_types_utils';
-import {ClassificationResults, IndexedInput, LitName, LitType, RegressionResults} from '../lib/types';
+import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
@@ -170,14 +171,17 @@ export class DataService extends LitService {
           scores, data, key, scoreFeatName, createLitType('MulticlassPreds'),
           source);
       const litTypeClassification = createLitType('CategoryLabel');
-      litTypeClassification.vocab = output[key].vocab;
-      this.addColumnFromList(
-          predClasses, data, key, predClassFeatName, litTypeClassification,
-          source);
-      if (output[key].parent != null) {
+      if (output[key] instanceof MulticlassPreds) {
+        const predSpec = output[key] as MulticlassPreds;
+        litTypeClassification.vocab = predSpec.vocab;
         this.addColumnFromList(
-            correctness, data, key, correctnessName, createLitType('Boolean'),
-            source, () => null, BINARY_NEG_POS);
+            predClasses, data, key, predClassFeatName, litTypeClassification,
+            source);
+        if (predSpec.parent != null) {
+          this.addColumnFromList(
+              correctness, data, key, correctnessName, createLitType('Boolean'),
+              source, () => null, BINARY_NEG_POS);
+        }
       }
     }
   }
@@ -218,11 +222,14 @@ export class DataService extends LitService {
       const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
-      if (output[key].parent != null) {
-        this.addColumnFromList(
-            errors, data, key, errorFeatName, dataType, source);
-        this.addColumnFromList(
-            sqErrors, data, key, sqErrorFeatName, dataType, source);
+      if (output[key] instanceof RegressionScore) {
+        const predSpec = output[key] as RegressionScore;
+        if (predSpec.parent != null) {
+          this.addColumnFromList(
+              errors, data, key, errorFeatName, dataType, source);
+          this.addColumnFromList(
+              sqErrors, data, key, sqErrorFeatName, dataType, source);
+        }
       }
     }
   }

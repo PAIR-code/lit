@@ -16,7 +16,7 @@ describe('createLitType test', () => {
     const result = litTypesUtils.createLitType('Scalar');
     expect(result).toEqual(expected);
     expect(result instanceof litTypes.Scalar).toEqual(true);
- });
+  });
 
   it('creates with constructor params', () => {
     const expected = new litTypes.StringLitType();
@@ -89,8 +89,42 @@ describe('isLitSubtype test', () => {
 });
 
 
+describe('deserializeLitTypesInSpec test', () => {
+  // TODO(b/162269499): Add test for deserializeLitTypesInLitMetadata.
+  const testSpec = {
+    'probabilities': {
+      '__class__': 'LitType',
+      '__name__': 'MulticlassPreds',
+      '__mro__': ['MulticlassPreds', 'LitType', 'object'],
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    },
+    'pooled_embs': {
+      '__class__': 'LitType',
+      '__name__': 'Embeddings',
+      '__mro__': ['Embeddings', 'LitType', 'object'],
+      'required': true
+    }
+  };
+
+  it('returns serialized littypes', () => {
+    expect(testSpec['probabilities'] instanceof litTypes.MulticlassPreds)
+        .toBe(false);
+    const result = litTypesUtils.deserializeLitTypesInSpec(testSpec);
+    expect(result['probabilities'])
+        .toEqual(litTypesUtils.createLitType(
+            'MulticlassPreds',
+            {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
+    expect(result['probabilities'] instanceof litTypes.MulticlassPreds)
+        .toBe(true);
+  });
+});
+
+
 describe('findSpecKeys test', () => {
-  // TODO(cjqian): Add original utils_test test after adding more types.
+  // TODO(cjqian): Add original litTypesUtils.test test after adding more types.
   const spec: Spec = {
     'scalar_foo': new litTypes.Scalar(),
     'segment': new litTypes.StringLitType(),
@@ -105,9 +139,9 @@ describe('findSpecKeys test', () => {
     ]);
 
     // Keys are in spec.
-    expect(litTypesUtils.findSpecKeys(spec, ['StringLitType', 'Scalar'])).toEqual([
-      'scalar_foo', 'segment', 'generated_text'
-    ]);
+    expect(litTypesUtils.findSpecKeys(spec, [
+      'StringLitType', 'Scalar'
+    ])).toEqual(['scalar_foo', 'segment', 'generated_text']);
   });
 
   it('handles empty spec keys', () => {
@@ -118,4 +152,5 @@ describe('findSpecKeys test', () => {
     expect(() => litTypesUtils.findSpecKeys(spec, '')).toThrowError();
     expect(() => litTypesUtils.findSpecKeys(spec, 'NotAType')).toThrowError();
   });
+
 });

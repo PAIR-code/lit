@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import {deserializeLitTypesInLitMetadata} from '../lib/lit_types_utils';
 import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
 
 import {LitService} from './lit_service';
@@ -84,7 +85,8 @@ export class ApiService extends LitService {
    */
   async getInfo(): Promise<LitMetadata> {
     const loadMessage = 'Loading metadata';
-    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage);
+    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage)
+        .then((metadata) => deserializeLitTypesInLitMetadata(metadata));
   }
 
   /**
@@ -257,4 +259,3 @@ export class ApiService extends LitService {
     }
   }
 }
-

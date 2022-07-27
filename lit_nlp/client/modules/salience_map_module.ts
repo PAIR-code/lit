@@ -32,7 +32,8 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
-import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {FieldMatcher, LitName, LitTypeOfFieldMatcher, MultiFieldMatcher, Salience} from '../lib/lit_types';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
@@ -122,7 +123,8 @@ export class SalienceMapModule extends LitModule {
       if (salienceKeys.length === 0) {
         continue;
       }
-      const salienceSpecInfo = interpreters[key].metaSpec[salienceKeys[0]];
+      const salienceSpecInfo =
+          interpreters[key].metaSpec[salienceKeys[0]] as Salience;
       state[key] = {
         autorun: !!salienceSpecInfo.autorun,
         isLoading: false,
@@ -364,14 +366,14 @@ export class SalienceMapModule extends LitModule {
     const renderMethodControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
       const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-      for (const fieldName of Object.keys(clonedSpec)) {
+      for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName],
-                         ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+        if (fieldSpec instanceof FieldMatcher ||
+            fieldSpec instanceof MultiFieldMatcher) {
+          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
+          fieldMatcher.vocab =
+              this.appState.getSpecKeysFromFieldMatcher(fieldMatcher, this.model);
         }
       }
       return html`

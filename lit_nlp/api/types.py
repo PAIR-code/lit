@@ -486,26 +486,26 @@ class MultiFieldMatcher(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _Salience(LitType):
+class Salience(LitType):
   """Metadata about a returned salience map."""
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenSalience(_Salience):
+class TokenSalience(Salience):
   """Metadata about a returned token salience map."""
   default: dtypes.TokenSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class FeatureSalience(_Salience):
+class FeatureSalience(Salience):
   """Metadata about a returned feature salience map."""
   default: dtypes.FeatureSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ImageSalience(_Salience):
+class ImageSalience(Salience):
   """Metadata about a returned image saliency.
 
   The data is returned as an image in the base64 URL encoded format, e.g.,
@@ -515,7 +515,7 @@ class ImageSalience(_Salience):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SequenceSalience(_Salience):
+class SequenceSalience(Salience):
   """Metadata about a returned sequence salience map."""
   default: dtypes.SequenceSalienceMap = None
 

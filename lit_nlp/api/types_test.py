@@ -3,14 +3,8 @@
 from lit_nlp.api import types
 from google3.testing.pybase import googletest
 
-NUM_TYPES = 41
-
 
 class TypesTest(googletest.TestCase):
-
-  def test_num_littypes(self):
-    num_types = len(types.all_littypes())
-    self.assertEqual(num_types, NUM_TYPES)
 
   def test_inherit_parent_default_type(self):
     lit_type = types.StringLitType()
