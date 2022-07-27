@@ -46,11 +46,7 @@ class SliceWrapper(object):
 
 
 class Dataset(object):
-  """Base class for LIT datasets.
-
-  We recommend pre-loading the data in the constructor, but you can also stream
-  on the fly in Dataset.examples() if desired.
-  """
+  """Base class for LIT datasets."""
 
   _spec: Spec = {}
   _examples: List[JsonDict] = []
