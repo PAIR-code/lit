@@ -20,9 +20,8 @@ import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
 import {LitName, LitType, MulticlassPreds, RegressionScore} from '../lib/lit_types';
-import {createLitType} from '../lib/lit_types_utils';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
-import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
+import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState, ClassificationService, SettingsService} from './services';

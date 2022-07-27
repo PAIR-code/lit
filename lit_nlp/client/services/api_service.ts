@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import {deserializeLitTypesInLitMetadata} from '../lib/lit_types_utils';
 import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
+import {deserializeLitTypesInLitMetadata} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';

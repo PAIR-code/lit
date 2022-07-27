@@ -28,10 +28,9 @@ import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
 import {FieldMatcher, LitTypeOfFieldMatcher, MultiFieldMatcher} from '../lib/lit_types';
-import {createLitType} from '../lib/lit_types_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
+import {createLitType, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 

@@ -19,6 +19,9 @@
  * Shared helper functions used across the app.
  */
 
+// For consistency with types.ts.
+// tslint:disable: enforce-name-casing
+
 import * as d3 from 'd3';  // Used for array helpers.
 
 import {html, TemplateResult} from 'lit';
@@ -26,7 +29,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
-import {FacetMap, ModelInfoMap, Spec} from './types';
+import {FacetMap, LitMetadata, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -91,6 +94,89 @@ export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
 }
 
 /**
+ * Creates and returns a new LitType instance.
+ * @param typeName: The name of the desired LitType.
+ * @param constructorParams: A dictionary of properties to set on the LitType.
+ * For example, {'show_in_data_table': true}.
+ */
+export function createLitType(
+    typeName: LitName, constructorParams: {[key: string]: unknown} = {}) {
+  const litType = REGISTRY[typeName];
+  // tslint:disable-next-line:no-any
+  const newType = new (litType as any)();
+  newType.__name__ = typeName;
+
+  // Excluded properties are passed through in the Python serialization
+  // of LitTypes and can be ignored by the frontend.
+  const excluded = ['__mro__'];
+  for (const key in constructorParams) {
+    if (excluded.includes(key)) {
+      continue;
+    } else if (key in newType) {
+      newType[key] = constructorParams[key];
+    } else {
+      throw new Error(
+          `Attempted to set unrecognized property ${key} on ${newType}.`);
+    }
+  }
+
+  return newType;
+}
+
+
+interface SerializedSpec {
+  [key: string]: {__name__: string};
+}
+
+/**
+ * Converts serialized LitTypes within a Spec into LitType instances.
+ */
+export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec {
+  const typedSpec: Spec = {};
+  for (const key of Object.keys(serializedSpec)) {
+    typedSpec[key] =
+        createLitType(serializedSpec[key].__name__, serializedSpec[key] as {});
+  }
+  return typedSpec;
+}
+
+
+/**
+ * Converts serialized LitTypes within the LitMetadata into LitType instances.
+ */
+export function deserializeLitTypesInLitMetadata(metadata: LitMetadata):
+    LitMetadata {
+  for (const model of Object.keys(metadata.models)) {
+    metadata.models[model].spec.input =
+        deserializeLitTypesInSpec(metadata.models[model].spec.input);
+    metadata.models[model].spec.output =
+        deserializeLitTypesInSpec(metadata.models[model].spec.output);
+  }
+
+  for (const dataset of Object.keys(metadata.datasets)) {
+    metadata.datasets[dataset].spec =
+        deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
+  }
+
+  for (const generator of Object.keys(metadata.generators)) {
+    metadata.generators[generator].configSpec =
+        deserializeLitTypesInSpec(metadata.generators[generator].configSpec);
+    metadata.generators[generator].metaSpec =
+        deserializeLitTypesInSpec(metadata.generators[generator].metaSpec);
+  }
+
+  for (const interpreter of Object.keys(metadata.interpreters)) {
+    metadata.interpreters[interpreter].configSpec = deserializeLitTypesInSpec(
+        metadata.interpreters[interpreter].configSpec);
+    metadata.interpreters[interpreter].metaSpec =
+        deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
+  }
+
+  metadata.littypes = deserializeLitTypesInSpec(metadata.littypes);
+  return metadata;
+}
+
+/**
  * Returns whether the litType is a subtype of any of the typesToFind.
  * @param litType: The LitType to check.
  * @param typesToFind: Either a single or list of parent LitType candidates.
@@ -122,6 +208,7 @@ export function isLitSubtype(
  */
 export function findSpecKeys(
     spec: Spec, typesToFind: LitName|LitName[]): string[] {
+  // TODO(b/240199145): Change this implementation to use classes.
   return Object.keys(spec).filter(
       key => isLitSubtype(spec[key], typesToFind));
 }
@@ -349,6 +436,8 @@ export function copyToClipboard(value: string) {
   tempInput.value = value;
   document.body.appendChild(tempInput);
   tempInput.select();
+  // TODO(b/240439975): Resolve deprecated execCommand.
+  // tslint:disable:deprecation
   document.execCommand("copy");
   document.body.removeChild(tempInput);
 }

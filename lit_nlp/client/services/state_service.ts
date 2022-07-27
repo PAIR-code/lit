@@ -20,8 +20,7 @@ import {action, computed, observable, toJS} from 'mobx';
 
 import {LitType, LitTypeOfFieldMatcher} from '../lib/lit_types';
 import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {createLitType as createLitTypeUtil} from '../lib/lit_types_utils';
-import {findSpecKeys} from '../lib/utils';
+import {createLitType as createLitTypeUtil, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
