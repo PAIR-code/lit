@@ -18,11 +18,8 @@
 // For consistency with types.ts.
 // tslint:disable: enforce-name-casing
 
-import {Spec} from '../lib/types';
-
-import {LitName, LitType, REGISTRY} from './lit_types';
-import {LitMetadata} from './types';
-
+import {LitName, REGISTRY} from './lit_types';
+import {LitMetadata, Spec} from './types';
 
 /**
  * Creates and returns a new LitType instance.
@@ -36,7 +33,6 @@ export function createLitType(
   // tslint:disable-next-line:no-any
   const newType = new (litType as any)();
   newType.__name__ = typeName;
-  newType.__mro__ = getMethodResolutionOrder(newType);
 
   // Excluded properties are passed through in the Python serialization
   // of LitTypes and can be ignored by the frontend.
@@ -106,57 +102,4 @@ export function deserializeLitTypesInLitMetadata(metadata: LitMetadata):
 
   metadata.littypes = deserializeLitTypesInSpec(metadata.littypes);
   return metadata;
-}
-
-
-/**
- * Returns the method resolution order for a given litType.
- * This is for compatability with references to non-class-based LitTypes,
- * and should match the Python class hierarchy.
- */
-export function getMethodResolutionOrder(litType: LitType): string[] {
-  const mro: string[] = [];
-
-  // TODO(b/162269499): Remove this method after we replace the old LitType.
-  let object = Object.getPrototypeOf(litType);
-  while (object) {
-    mro.push(object.constructor.name);
-    object = Object.getPrototypeOf(object);
-  }
-
-  return mro;
-}
-
-/**
- * Returns whether the litType is a subtype of any of the typesToFind.
- * @param litType: The LitType to check.
- * @param typesToFind: Either a single or list of parent LitType candidates.
- */
-export function isLitSubtype(litType: LitType, typesToFind: LitName|LitName[]) {
-  if (litType == null) return false;
-
-  if (typeof typesToFind === 'string') {
-    typesToFind = [typesToFind];
-  }
-
-  for (const typeName of typesToFind) {
-    // tslint:disable-next-line:no-any
-    const registryType: any = REGISTRY[typeName];
-
-    if (litType instanceof registryType) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Returns all keys in the given spec that are subtypes of the typesToFind.
- * @param spec: A Spec object.
- * @param typesToFind: Either a single or list of parent LitType candidates.
- */
-export function findSpecKeys(
-    spec: Spec, typesToFind: LitName|LitName[]): string[] {
-  return Object.keys(spec).filter(
-      key => isLitSubtype(spec[key], typesToFind));
 }

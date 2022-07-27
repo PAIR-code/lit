@@ -1,7 +1,5 @@
 import 'jasmine';
 
-import {Spec} from '../lib/types';
-
 import * as litTypes from './lit_types';
 import * as litTypesUtils from './lit_types_utils';
 
@@ -10,7 +8,6 @@ describe('createLitType test', () => {
   it('creates a type as expected', () => {
     const expected = new litTypes.Scalar();
     expected.__name__ = 'Scalar';
-    expected.__mro__ = ['Scalar', 'LitType', 'Object'];
     expected.show_in_data_table = false;
 
     const result = litTypesUtils.createLitType('Scalar');
@@ -21,7 +18,6 @@ describe('createLitType test', () => {
   it('creates with constructor params', () => {
     const expected = new litTypes.StringLitType();
     expected.__name__ = 'StringLitType';
-    expected.__mro__ = ['StringLitType', 'LitType', 'Object'];
     expected.default = 'foo';
     expected.show_in_data_table = true;
 
@@ -56,38 +52,10 @@ describe('createLitType test', () => {
     expect(categoryLabel.vocab).toEqual(vocab);
   });
 
-  it('populates mro', () => {
-    let testType = new litTypes.StringLitType();
-    expect(litTypesUtils.getMethodResolutionOrder(testType)).toEqual([
-      'StringLitType', 'LitType', 'Object'
-    ]);
-
-    testType = new litTypes.LitType();
-    expect(litTypesUtils.getMethodResolutionOrder(testType)).toEqual([
-      'LitType', 'Object'
-    ]);
-  });
-
   it('handles invalid names', () => {
     expect(() => litTypesUtils.createLitType('notLitType')).toThrowError();
   });
 });
-
-describe('isLitSubtype test', () => {
-  it('checks is lit subtype', () => {
-    const testType = new litTypes.StringLitType();
-    expect(litTypesUtils.isLitSubtype(testType, 'StringLitType')).toBe(true);
-    expect(litTypesUtils.isLitSubtype(testType, ['StringLitType'])).toBe(true);
-    expect(litTypesUtils.isLitSubtype(testType, ['Scalar'])).toBe(false);
-
-    // LitType is not a subtype of LitType.
-    expect(() => litTypesUtils.isLitSubtype(testType, 'LitType'))
-        .toThrowError();
-    expect(() => litTypesUtils.isLitSubtype(testType, ['NotAType']))
-        .toThrowError();
-  });
-});
-
 
 describe('deserializeLitTypesInSpec test', () => {
   // TODO(b/162269499): Add test for deserializeLitTypesInLitMetadata.
@@ -120,37 +88,4 @@ describe('deserializeLitTypesInSpec test', () => {
     expect(result['probabilities'] instanceof litTypes.MulticlassPreds)
         .toBe(true);
   });
-});
-
-
-describe('findSpecKeys test', () => {
-  // TODO(cjqian): Add original litTypesUtils.test test after adding more types.
-  const spec: Spec = {
-    'scalar_foo': new litTypes.Scalar(),
-    'segment': new litTypes.StringLitType(),
-    'generated_text': new litTypes.StringLitType(),
-  };
-
-
-  it('finds all spec keys that match the specified types', () => {
-    // Key is in spec.
-    expect(litTypesUtils.findSpecKeys(spec, 'StringLitType')).toEqual([
-      'segment', 'generated_text'
-    ]);
-
-    // Keys are in spec.
-    expect(litTypesUtils.findSpecKeys(spec, [
-      'StringLitType', 'Scalar'
-    ])).toEqual(['scalar_foo', 'segment', 'generated_text']);
-  });
-
-  it('handles empty spec keys', () => {
-    expect(litTypesUtils.findSpecKeys(spec, [])).toEqual([]);
-  });
-
-  it('handles invalid spec keys', () => {
-    expect(() => litTypesUtils.findSpecKeys(spec, '')).toThrowError();
-    expect(() => litTypesUtils.findSpecKeys(spec, 'NotAType')).toThrowError();
-  });
-
 });

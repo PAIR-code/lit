@@ -44,6 +44,7 @@ type ScoredTextCandidates = Array<[text: string, score: number|null]>;
  * Data classes used in configuring front-end components to describe
  * input data and model outputs.
  */
+@registered
 export class LitType {
   // tslint:disable:enforce-name-casing
   __class__: LitClass|'type' = 'LitType';

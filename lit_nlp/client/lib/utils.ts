@@ -25,7 +25,7 @@ import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
-import {LitName, LitType, LitTypeWithParent, MulticlassPreds} from './lit_types';
+import {LitName, LitType, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
 import {FacetMap, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
@@ -91,39 +91,41 @@ export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
 }
 
 /**
- * Check if a spec field (LitType) is an instance of one or more type names.
- * This is analogous to using isinstance(litType, typesToFind) in Python,
- * and relies on exporting the Python class hierarchy in the __mro__ field.
+ * Returns whether the litType is a subtype of any of the typesToFind.
+ * @param litType: The LitType to check.
+ * @param typesToFind: Either a single or list of parent LitType candidates.
  */
-export function isLitSubtype(litType: LitType, typesToFind: LitName|LitName[]) {
-  // TODO(lit-dev): figure out why this is occasionally called on an invalid
-  // spec. Likely due to skew between keys and specs in specific modules when
-  // dataset is changed, but worth diagnosing to make sure this doesn't mask a
-  // larger issue.
+export function isLitSubtype(
+    litType: LitType, typesToFind: LitName|LitName[]) {
   if (litType == null) return false;
 
   if (typeof typesToFind === 'string') {
     typesToFind = [typesToFind];
   }
+
   for (const typeName of typesToFind) {
-    if (litType.__mro__.includes(typeName)) {
+    // tslint:disable-next-line:no-any
+    const registryType : any = REGISTRY[typeName];
+
+    if (litType instanceof registryType) {
       return true;
     }
   }
   return false;
 }
 
+
 /**
- * Find all keys from the spec which match any of the specified types.
+ * Returns all keys in the given spec that are subtypes of the typesToFind.
+ * @param spec: A Spec object.
+ * @param typesToFind: Either a single or list of parent LitType candidates.
  */
 export function findSpecKeys(
     spec: Spec, typesToFind: LitName|LitName[]): string[] {
-  if (typeof typesToFind === 'string') {
-    typesToFind = [typesToFind];
-  }
   return Object.keys(spec).filter(
-      key => isLitSubtype(spec[key], typesToFind as LitName[]));
+      key => isLitSubtype(spec[key], typesToFind));
 }
+
 
 /**
  * Return a new object with the selected keys from the old one.

@@ -141,6 +141,16 @@ describe('arrayContainsSame test', () => {
 });
 
 describe('isLitSubtype test', () => {
+  it('checks is lit subtype', () => {
+    const testType = createLitType('StringLitType');
+    expect(utils.isLitSubtype(testType, 'StringLitType')).toBe(true);
+    expect(utils.isLitSubtype(testType, ['StringLitType'])).toBe(true);
+    expect(utils.isLitSubtype(testType, ['Scalar'])).toBe(false);
+
+    expect(() => utils.isLitSubtype(testType, ['NotAType']))
+        .toThrowError();
+  });
+
   it('finds a subclass', () => {
     const spec: Spec = {
       'score': createLitType('RegressionScore'),
@@ -193,6 +203,16 @@ describe('findSpecKeys test', () => {
       'score', 'score2', 'scalar_foo'
     ]);
   });
+
+  it('handles empty spec keys', () => {
+    expect(utils.findSpecKeys(spec, [])).toEqual([]);
+  });
+
+  it('handles invalid spec keys', () => {
+    expect(() => utils.findSpecKeys(spec, '')).toThrowError();
+    expect(() => utils.findSpecKeys(spec, 'NotAType')).toThrowError();
+  });
+
 });
 
 
