@@ -26,12 +26,12 @@ import '../elements/span_graph_vis_vertical';
 
 import {customElement} from 'lit/decorators';
 import {css, html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
-import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
+import {LitName, LitTypeWithAlign} from '../lib/lit_types';
+import {EdgeLabel, IndexedInput, Input, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -87,9 +87,9 @@ function mapTokenToTags(spec: Spec): FieldNameMultimap {
   const tokenKeys = findSpecKeys(spec, 'Tokens');
 
   // Make a mapping of token keys to one or more tag sets
-  const tokenToTags = {} as FieldNameMultimap;
+  const tokenToTags: FieldNameMultimap = {};
   for (const tagKey of tagKeys) {
-    const tokenKey = spec[tagKey].align as string;
+    const {align: tokenKey} = spec[tagKey] as LitTypeWithAlign;
     if (!tokenKeys.includes(tokenKey)) {
       continue;
     }

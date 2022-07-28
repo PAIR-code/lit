@@ -24,6 +24,7 @@
 import * as d3 from 'd3';  // Used for creating bins, not visualization.
 import {computed, reaction} from 'mobx';
 
+import {CategoryLabel, LitTypeWithVocab} from '../lib/lit_types';
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
 import {facetMapToDictKey, findSpecKeys, getStepSizeGivenRange, roundToDecimalPlaces} from '../lib/utils';
 
@@ -168,7 +169,8 @@ export class GroupService extends LitService {
     const categoricalFeatures: CategoricalFeatures = {};
     for (const name of this.categoricalFeatureNames) {
       // Try to get values from the data spec.
-      const vocab = this.appState.currentDatasetSpec[name]?.vocab;
+      const vocab =
+          (this.appState.currentDatasetSpec[name] as LitTypeWithVocab)?.vocab;
 
       if (vocab != null) {
         categoricalFeatures[name] = [...vocab];
@@ -178,9 +180,9 @@ export class GroupService extends LitService {
       // Try to get values from the data service. Either from the
       // CategoryLabel's vocab...
       const columnHeader = this.dataService.getColumnInfo(name);
-
-      if (columnHeader?.dataType.vocab != null) {
-        categoricalFeatures[name] = columnHeader.dataType.vocab;
+      const categoryLabel = columnHeader?.dataType as CategoryLabel;
+      if (categoryLabel != null && categoryLabel.vocab != null) {
+        categoricalFeatures[name] = categoryLabel.vocab;
         continue;
       }
       // ... Or as a last resort find unique values from the data.

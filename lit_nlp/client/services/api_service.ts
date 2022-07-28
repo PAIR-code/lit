@@ -16,6 +16,7 @@
  */
 
 import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
+import {deserializeLitTypesInLitMetadata} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
@@ -84,7 +85,8 @@ export class ApiService extends LitService {
    */
   async getInfo(): Promise<LitMetadata> {
     const loadMessage = 'Loading metadata';
-    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage);
+    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage)
+        .then((metadata) => deserializeLitTypesInLitMetadata(metadata));
   }
 
   /**
@@ -257,4 +259,3 @@ export class ApiService extends LitService {
     }
   }
 }
-

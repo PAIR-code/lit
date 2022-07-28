@@ -28,9 +28,10 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
+import {FieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {findSpecKeys} from '../lib/utils';
 import {SignedSalienceCmap} from '../services/color_service';
 import {NumericFeatureBins} from '../services/group_service';
 import {AppState, GroupService} from '../services/services';
@@ -213,10 +214,12 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo.default) {
-        defaultCallConfig[configKey] = configInfo.default;
-      } else if (configInfo.vocab && configInfo.vocab.length) {
-        defaultCallConfig[configKey] = configInfo.vocab[0];
+      if (configInfo instanceof FieldMatcher) {
+        if (configInfo.default) {
+          defaultCallConfig[configKey] = configInfo.default;
+        } else if (configInfo.vocab && configInfo.vocab.length) {
+          defaultCallConfig[configKey] = configInfo.vocab[0];
+        }
       }
     }
 
@@ -342,13 +345,12 @@ export class FeatureAttributionModule extends LitModule {
     const {configSpec, description} =
         this.appState.metadata.interpreters[interpreter];
     const clonedSpec = Object.assign({}, configSpec);
-    for (const fieldName of Object.keys(clonedSpec)) {
+    for (const fieldSpec of Object.values(clonedSpec)) {
       // If the interpreter uses a field matcher, then get the matching field
       // names from the specified spec and use them as the vocab.
-      if (isLitSubtype(clonedSpec[fieldName], ['FieldMatcher'])) {
-        clonedSpec[fieldName].vocab =
-            this.appState.getSpecKeysFromFieldMatcher(
-                clonedSpec[fieldName], this.model);
+      if (fieldSpec instanceof FieldMatcher) {
+        fieldSpec.vocab =
+            this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }
     }
     const interpreterControlClick = (event: CustomEvent<InterpreterClick>) => {

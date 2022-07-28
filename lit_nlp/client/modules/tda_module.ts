@@ -29,8 +29,9 @@ import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {FieldMatcher, LitTypeOfFieldMatcher, LitTypeWithParent, MultiFieldMatcher} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {filterToKeys, findSpecKeys, isLitSubtype} from '../lib/utils';
+import {filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -140,9 +141,11 @@ export class TrainingDataAttributionModule extends LitModule {
   @computed
   get targetLabelInputKeys(): string[] {
     const spec = this.appState.getModelSpec(this.model);
-    const referencedKeys = new Set(Object.values(spec.output)
-                                       .filter(v => v.parent != null)
-                                       .map(v => v.parent!));
+    const referencedKeys =
+        new Set(Object.values(spec.output)
+                    // tslint:disable-next-line:no-any
+                    .filter(v => (v as any).parent != null)
+                    .map(v => (v as LitTypeWithParent).parent));
     return [...referencedKeys].filter(k => spec.input[k] !== undefined);
   }
 
@@ -169,8 +172,9 @@ export class TrainingDataAttributionModule extends LitModule {
       // Filter the output spec to only fields that reference this inputKey.
       const outputSpec = this.appState.getModelSpec(this.model).output;
       const selectedOutputKeys =
-          Object.keys(outputSpec)
-              .filter(k => outputSpec[k].parent === inputKey);
+          Object
+              .keys(outputSpec)
+              .filter(k => (outputSpec[k] as LitTypeWithParent).parent === inputKey);
       const filteredOutputSpec = filterToKeys(outputSpec, selectedOutputKeys);
       ret.push(...getAllOutputTexts(filteredOutputSpec, this.currentPreds));
     }
@@ -529,14 +533,14 @@ export class TrainingDataAttributionModule extends LitModule {
       const spec = generatorsInfo[genName].configSpec;
       const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
       const description = generatorsInfo[genName].description;
-      for (const fieldName of Object.keys(clonedSpec)) {
+      for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(
-                clonedSpec[fieldName], ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+        if (fieldSpec instanceof FieldMatcher ||
+            fieldSpec instanceof MultiFieldMatcher) {
+          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
+          fieldMatcher.vocab =
+              this.appState.getSpecKeysFromFieldMatcher(fieldMatcher, this.model);
         }
       }
       const runDisabled =

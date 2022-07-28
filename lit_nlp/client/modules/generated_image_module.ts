@@ -21,8 +21,9 @@ import {css, html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {GeneratedURL, LitName} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, LitName, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
 /**
@@ -113,15 +114,16 @@ export class GeneratedImageModule extends LitModule {
       <div class='module-container'>
         <div class="module-results-area">
           ${Object.entries(this.generatedImages).map(([key, value]) => {
-              const keyType = output[key];
-              if (isLitSubtype(keyType, GeneratedImageModule.supportedTypes)) {
+              const imageFieldSpec = output[key];
+              if (isLitSubtype(imageFieldSpec, GeneratedImageModule.supportedTypes)) {
                 return this.renderImage(key, value);
               }
 
-              const {align} = keyType;
-              if (isLitSubtype(keyType, 'GeneratedURL') &&
-                  align != null && align in this.generatedImages) {
-                return this.renderLink(key, value);
+              if (imageFieldSpec instanceof GeneratedURL) {
+                const {align} = imageFieldSpec;
+                if (align != null && align in this.generatedImages) {
+                  return this.renderLink(key, value);
+                }
               }
 
               return null;

@@ -29,20 +29,22 @@ function registered(target: any) {
   REGISTRY[target.name] = target;
 }
 
-const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
+const registryKeys : string[] = Object.keys(REGISTRY);
 /**
  * The types of all LitTypes in the registry, e.g.
  * 'StringLitType' | 'TextSegment' ...
  */
 export type LitName = typeof registryKeys[number];
 
-type LitClass = 'LitType';
+/** A type alias for the LitType class. */
+export type LitClass = 'LitType';
 type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
 /**
  * Data classes used in configuring front-end components to describe
  * input data and model outputs.
  */
+@registered
 export class LitType {
   // tslint:disable:enforce-name-casing
   __class__: LitClass|'type' = 'LitType';
@@ -56,11 +58,25 @@ export class LitType {
   // TODO(b/162269499): Replace this with `unknown` after migration.
   // tslint:disable-next-line:no-any
   readonly default: any|undefined = null;
+  // If this type is created from an Annotator.
+  annotated: boolean = false;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.
   show_in_data_table: boolean = false;
 
   // TODO(b/162269499): Add isCompatible functionality.
 }
+
+/** A type alias for LitType with an align property. */
+export type LitTypeWithAlign = LitType&{align: string};
+
+/** A type alias for LitType with a null idx property. */
+export type LitTypeWithNullIdx = LitType&{null_idx: number};
+
+/** A type alias for LitType with a parent property. */
+export type LitTypeWithParent = LitType&{parent: string};
+
+/** A type alias for LitType with a vocab property. */
+export type LitTypeWithVocab = LitType&{vocab: string[]};
 
 /**
  * A string LitType.
@@ -94,16 +110,17 @@ export class GeneratedText extends TextSegment {
 }
 
 /**
- * A list type.
+ * A list type. Named `ListListType` to avoid conflicts with TypeScript List.
  */
-class _List extends LitType {
+@registered
+export class ListLitType extends LitType {
   override default: unknown[] = [];
 }
 
 /**
  * A list of (text, score) tuples.
  */
-class _StringCandidateList extends _List {
+class _StringCandidateList extends ListLitType {
   override default: ScoredTextCandidates = [];
 }
 
@@ -157,7 +174,7 @@ export class SearchQuery extends TextSegment {
  * A list of strings.
  */
 @registered
-export class StringList extends _List {
+export class StringList extends ListLitType {
   override default: string[] = [];
 }
 
@@ -179,7 +196,7 @@ export class Tokens extends StringList {
  * The inner list should contain (word, probability) in descending order.
  */
 @registered
-export class TokenTopKPreds extends _List {
+export class TokenTopKPreds extends ListLitType {
   override default: ScoredTextCandidates[] = [];
   align?: string = undefined;
   parent?: string = undefined;
@@ -208,7 +225,7 @@ export class RegressionScore extends Scalar {
  * Score of one or more target sequences.
  */
 @registered
-export class ReferenceScores extends _List {
+export class ReferenceScores extends ListLitType {
   override default: number[] = [];
 
   /** Name of a TextSegment or ReferenceTexts field in the input. */
@@ -274,7 +291,7 @@ export class SequenceTags extends StringList {
  * sentence, and may overlap with each other.
  */
 @registered
-export class SpanLabels extends _List {
+export class SpanLabels extends ListLitType {
   /** Name of Tokens field. **/
   align: string = '';
   parent?: string = undefined;
@@ -287,7 +304,7 @@ export class SpanLabels extends _List {
  * of (span1, span2, label).
  */
 @registered
-export class EdgeLabels extends _List {
+export class EdgeLabels extends ListLitType {
   /** Name of Tokens field. **/
   align: string = '';
 }
@@ -303,7 +320,7 @@ export class EdgeLabels extends _List {
  * specific segment from the input.
  */
 @registered
-export class MultiSegmentAnnotations extends _List {
+export class MultiSegmentAnnotations extends ListLitType {
   /** If true, treat as candidate list. */
   exclusive: boolean = false;
   /** If true, don't emphasize in visualization. */
@@ -386,7 +403,7 @@ export class AttentionHeads extends _Tensor1D {
  * offsets[i] should be the index of the first wordpiece for input token i.
  */
 @registered
-export class SubwordOffsets extends _List {
+export class SubwordOffsets extends ListLitType {
   override default: number[] = [];
   /** Name of field in data spec. */
   align_in: string = '';
@@ -419,6 +436,10 @@ export class SparseMultilabelPreds extends _StringCandidateList {
   vocab?: string[] = undefined;
   parent?: string = undefined;
 }
+
+// TODO(b/162269499): Rename FieldMatcher to SingleFieldMatcher.
+/** A type alias for FieldMatcher or MultiFieldMatcher. */
+export type LitTypeOfFieldMatcher = FieldMatcher|MultiFieldMatcher;
 
 /**
  * For matching spec fields.
@@ -462,7 +483,8 @@ export class MultiFieldMatcher extends LitType {
 /**
  * Metadata about a returned salience map.
  */
-class _Salience extends LitType {
+@registered
+export class Salience extends LitType {
   /** If the saliency technique is automatically run. */
   autorun: boolean = false;
   /** If the returned values are signed. */
@@ -473,14 +495,14 @@ class _Salience extends LitType {
  * Metadata about a returned token salience map.
  */
 @registered
-export class TokenSalience extends _Salience {
+export class TokenSalience extends Salience {
 }
 
 /**
  * Metadata about a returned feature salience map.
  */
 @registered
-export class FeatureSalience extends _Salience {
+export class FeatureSalience extends Salience {
   // TODO(b/162269499): Add Typescript dtypes so that we can set default types.
 }
 
@@ -490,14 +512,14 @@ export class FeatureSalience extends _Salience {
  * data:image/jpg;base64,w4J3k1Bfa...
  */
 @registered
-export class ImageSalience extends _Salience {
+export class ImageSalience extends Salience {
 }
 
 /**
  * Metadata about a returned sequence salience map.
  */
 @registered
-export class SequenceSalience extends _Salience {
+export class SequenceSalience extends Salience {
 }
 
 /**

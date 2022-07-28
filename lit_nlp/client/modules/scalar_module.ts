@@ -30,6 +30,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {ThresholdChange} from '../elements/threshold_slider';
+import {MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
@@ -425,8 +426,8 @@ export class ScalarModule extends LitModule {
                    label: string): number | undefined {
     // If for a multiclass prediction and the DataService has loaded the
     // classification results, return the label score from the array.
-    if (isLitSubtype(spec.output[key], 'MulticlassPreds')) {
-      const {vocab} = spec.output[key];
+    if (spec.output[key] instanceof MulticlassPreds) {
+      const {vocab} = spec.output[key] as MulticlassPreds;
       const index = vocab!.indexOf(label);
       const classPreds = preds.data[key];
       if (Array.isArray(classPreds)) return classPreds[index];
@@ -453,8 +454,11 @@ export class ScalarModule extends LitModule {
 
       // Don't render the threshold for regression or multiclass models.
       const {output} = this.appState.getModelSpec(this.model);
-      const {vocab} = output[key];
-      if (isLitSubtype(output[key], 'Scalar') || vocab?.length !== 2) continue;
+
+      if (output[key] instanceof Scalar ||
+          (output[key] as MulticlassPreds).vocab?.length !== 2) {
+        continue;
+      }
 
       // If there is no margin set for the entire dataset (empty string) facet
       // name, then do not draw a threshold on the plot.
@@ -769,7 +773,7 @@ export class ScalarModule extends LitModule {
 
   renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
-    const {vocab, null_idx} = spec.output[key];
+    const {vocab, null_idx} = spec.output[key] as MulticlassPreds;
     if (vocab == null) return;
 
     // In the binary classification case, only render one plot that

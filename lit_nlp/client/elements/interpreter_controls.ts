@@ -19,14 +19,14 @@
 import './checkbox';
 import '@material/mwc-icon';
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {CategoryLabel, FieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {LitType, Spec} from '../lib/types';
+import {Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';
@@ -101,23 +101,25 @@ export class InterpreterControls extends ReactiveElement {
   renderControls() {
     const spec = this.spec as Spec;
     return Object.keys(spec).map(name => {
-
       // Ensure a default value for any of the options provided for setting.
       if (this.settings[name] == null) {
-        if (isLitSubtype(spec[name], 'SparseMultilabel')) {
-          this.settings[name] = spec[name].default as string[];
+        if (spec[name] instanceof SparseMultilabel) {
+          this.settings[name] = (spec[name] as SparseMultilabel).default;
         }
         // If select all is True, default value is all of vocab.
-        if (isLitSubtype(spec[name], 'MultiFieldMatcher')) {
-          this.settings[name] = spec[name].select_all!?
-              spec[name].vocab as string[] :
-              spec[name].default as string[];
+        if (spec[name] instanceof MultiFieldMatcher) {
+          const fieldSpec = spec[name] as MultiFieldMatcher;
+          this.settings[name] = fieldSpec.select_all ?
+              fieldSpec.vocab as string[] :
+              fieldSpec.default;
         }
         // FieldMatcher has its vocab set outside of this element.
-        else if (isLitSubtype(spec[name], ['CategoryLabel', 'FieldMatcher'])) {
+        else if (
+            spec[name] instanceof CategoryLabel ||
+            spec[name] instanceof FieldMatcher) {
+          const {vocab} = spec[name] as LitTypeWithVocab;
           this.settings[name] =
-              spec[name].vocab != null && spec[name].vocab!.length > 0 ?
-              spec[name].vocab![0] : '';
+              vocab != null && vocab.length > 0 ? vocab[0] : '';
         } else {
           this.settings[name] = spec[name].default as string;
         }
@@ -126,7 +128,7 @@ export class InterpreterControls extends ReactiveElement {
       return html`
           <div class="control-holder">
             <div class="control-name">
-              ${(required ? '*':'') + name}
+              ${(required ? '*' : '') + name}
             </div>
             ${this.renderControl(name, spec[name])}
           </div>`;
@@ -134,21 +136,22 @@ export class InterpreterControls extends ReactiveElement {
   }
 
   renderControl(name: string, controlType: LitType) {
-    if (isLitSubtype(controlType, ['SparseMultilabel', 'MultiFieldMatcher'])) {
+    if (controlType instanceof SparseMultilabel ||
+        controlType instanceof MultiFieldMatcher) {
+      const {vocab} = controlType as LitTypeWithVocab;
       // Render checkboxes, with the first item selected.
-      const renderCheckboxes =
-          () => controlType.vocab!.map(option => {
+      const renderCheckboxes = () => vocab.map(option => {
         // tslint:disable-next-line:no-any
         const change = (e: any) => {
           if (e.target.checked) {
             (this.settings[name] as string[]).push(option);
           } else {
-            this.settings[name] = (this.settings[name] as string[]).filter(
-                item => item !== option);
+            this.settings[name] = (this.settings[name] as string[])
+                                      .filter(item => item !== option);
           }
         };
-        const isSelected = (this.settings[name] as string[]).indexOf(
-            option) !== -1;
+        const isSelected =
+            (this.settings[name] as string[]).indexOf(option) !== -1;
         return html`
           <lit-checkbox ?checked=${isSelected} @change=${change}
             label=${option} class='checkbox-control'>
@@ -156,29 +159,31 @@ export class InterpreterControls extends ReactiveElement {
         `;
       });
       return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
-    } else if (isLitSubtype(controlType, ['CategoryLabel', 'FieldMatcher'])) {
+    } else if (
+        controlType instanceof CategoryLabel ||
+        controlType instanceof FieldMatcher) {
+      const {vocab} = controlType as LitTypeWithVocab;
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);
-        this.settings[name] = controlType.vocab![select?.selectedIndex || 0];
+        this.settings[name] = vocab[select?.selectedIndex || 0];
       };
-      const options = controlType.vocab!.map((option, optionIndex) => {
+      const options = vocab.map((option, optionIndex) => {
         return html`
           <option value=${optionIndex}>${option}</option>
         `;
       });
       const defaultValue =
-          controlType.vocab != null && controlType.vocab.length > 0 ?
-          controlType.vocab[0] : '';
+          vocab != null && vocab.length > 0 ?
+          vocab[0] :
+          '';
       return html`<select class="dropdown control" @change=${updateDropdown}
-          .value=${defaultValue} ?disabled=${controlType.vocab!.length < 2}>
+          .value=${defaultValue} ?disabled=${vocab.length < 2}>
         ${options}
       </select>`;
-    } else if (isLitSubtype(controlType, ['Scalar'])) {
+    } else if (controlType instanceof Scalar) {
       // Render a slider.
-      const step = controlType.step!;
-      const minVal = controlType.min_val!;
-      const maxVal = controlType.max_val!;
+      const {step, min_val: minVal, max_val: maxVal} = controlType;
 
       const updateSettings = (e: Event) => {
         const input = (e.target as HTMLInputElement);

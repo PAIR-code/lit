@@ -18,8 +18,8 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, reaction} from 'mobx';
 
+import {MulticlassPreds} from '../lib/lit_types';
 import {FacetedData, GroupedExamples, Spec} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
@@ -120,11 +120,12 @@ export class ClassificationService extends LitService {
     for (const [model, output] of Object.entries(modelOutputSpecMap)) {
       marginSettings[model] = {};
       for (const [fieldName, fieldSpec] of Object.entries(output)) {
-        if (isLitSubtype(fieldSpec, 'MulticlassPreds') &&
+        if (fieldSpec instanceof MulticlassPreds &&
             fieldSpec.null_idx != null && fieldSpec.vocab != null) {
           marginSettings[model][fieldName] = {};
 
-          if (this.marginSettings[model][fieldName] != null) {
+          if (model in this.marginSettings &&
+              this.marginSettings[model][fieldName] != null) {
             // Reset all facets to margin = 0.
             const facets = Object.keys(this.marginSettings[model][fieldName]);
             for (const key of facets) {

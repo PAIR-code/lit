@@ -174,13 +174,13 @@ class GeneratedText(TextSegment):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _List(LitType):
+class ListLitType(LitType):
   """List type."""
   default: Sequence[Any] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _StringCandidateList(_List):
+class _StringCandidateList(ListLitType):
   """A list of (text, score) tuples."""
   default: ScoredTextCandidates = None
 
@@ -227,7 +227,7 @@ class SearchQuery(TextSegment):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _StringList(_List):
+class _StringList(ListLitType):
   """A list of strings."""
   default: Sequence[Text] = []
 
@@ -244,7 +244,7 @@ class Tokens(_StringList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenTopKPreds(_List):
+class TokenTopKPreds(ListLitType):
   """Predicted tokens, as from a language model.
 
   The inner list should contain (word, probability) in descending order.
@@ -272,7 +272,7 @@ class RegressionScore(Scalar):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ReferenceScores(_List):
+class ReferenceScores(ListLitType):
   """Score of one or more target sequences."""
   default: Sequence[float] = None
 
@@ -319,7 +319,7 @@ class SequenceTags(_StringList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SpanLabels(_List):
+class SpanLabels(ListLitType):
   """Span labels aligned to tokens.
 
   Span labels can cover more than one token, may not cover all tokens in the
@@ -332,7 +332,7 @@ class SpanLabels(_List):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class EdgeLabels(_List):
+class EdgeLabels(ListLitType):
   """Edge labels between pairs of spans.
 
   This is a general form for structured prediction output; each entry consists
@@ -347,7 +347,7 @@ class EdgeLabels(_List):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class MultiSegmentAnnotations(_List):
+class MultiSegmentAnnotations(ListLitType):
   """Very general type for in-line text annotations.
 
   This is a more general version of SpanLabel, EdgeLabel, and other annotation
@@ -425,7 +425,7 @@ class AttentionHeads(_Tensor1D):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SubwordOffsets(_List):
+class SubwordOffsets(ListLitType):
   """Offsets to align input tokens to wordpieces or characters.
 
   offsets[i] should be the index of the first wordpiece for input token i.
@@ -486,36 +486,36 @@ class MultiFieldMatcher(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _Salience(LitType):
+class Salience(LitType):
   """Metadata about a returned salience map."""
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class TokenSalience(_Salience):
+class TokenSalience(Salience):
   """Metadata about a returned token salience map."""
   default: dtypes.TokenSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class FeatureSalience(_Salience):
+class FeatureSalience(Salience):
   """Metadata about a returned feature salience map."""
   default: dtypes.FeatureSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ImageSalience(_Salience):
+class ImageSalience(Salience):
   """Metadata about a returned image saliency.
 
   The data is returned as an image in the base64 URL encoded format, e.g.,
   data:image/jpg;base64,w4J3k1Bfa...
   """
-  signed = False  # If the returned values are signed.
+  signed: bool = False  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class SequenceSalience(_Salience):
+class SequenceSalience(Salience):
   """Metadata about a returned sequence salience map."""
   default: dtypes.SequenceSalienceMap = None
 

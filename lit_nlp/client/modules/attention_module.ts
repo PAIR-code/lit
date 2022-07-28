@@ -27,6 +27,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {AttentionHeads as AttentionHeadsLitType} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
@@ -135,13 +136,14 @@ export class AttentionModule extends LitModule {
 
   private renderAttnHead() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const fieldSpec = outputSpec[this.selectedLayer!];
+    const fieldSpec =
+        outputSpec[this.selectedLayer!] as AttentionHeadsLitType;
 
     // Tokens involved in the attention.
     const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
     const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
 
-    const fontFamily = "'Share Tech Mono', monospace";
+    const fontFamily = '\'Share Tech Mono\', monospace';
     const fontSize = 12;
     const defaultCharWidth = 6.5;
     const font = `${fontSize}px ${fontFamily}`;
