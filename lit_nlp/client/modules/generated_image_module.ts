@@ -85,21 +85,14 @@ export class GeneratedImageModule extends LitModule {
     this.generatedImages = results[0];
   }
 
-  renderImage(name: string, src: string | string[]) {
+  renderImage(name: string, src: string|string[]) {
     // clang-format off
-    if (Array.isArray(src)){
-      return src.map((item) => (
-        `<div class='field-group'>
-          <div class="field-title">${name}</div>
-            <img src= ${item}>
-          </div>`
-      )
-
-    }
     return html`
       <div class='field-group'>
         <div class="field-title">${name}</div>
-        <img src=${src}>
+        ${Array.isArray(src) ?
+            src.map(s => html`<img src=${s}>`) :
+            html`<img src=${src}>`}
       </div>
     `;
     // clang-format on
