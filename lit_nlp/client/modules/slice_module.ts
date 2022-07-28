@@ -48,17 +48,33 @@ export class SliceModule extends LitModule {
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
 
-  static override template = () => {
-    return html`<lit-slice-module></lit-slice-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <lit-slice-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </lit-slice-module>`;
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
   private sliceByBins: NumericFeatureBins = {};
 
   @observable private sliceByFeatures: string[] = [];
 
   @observable private sliceName: string|null = null;
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.sliceByFeatures = event.detail.features;
+      this.sliceByBins = event.detail.bins;
+    };
+    this.facetingControl.contextName = SliceModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   @computed
   private get createButtonEnabled() {
@@ -229,20 +245,13 @@ export class SliceModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.sliceByFeatures = event.detail.features;
-      this.sliceByBins = event.detail.bins;
-    };
-
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>
         ${this.renderCreate()}
         <div class="row-container" >
-          <faceting-control @facets-change=${facetsChange}
-                            contextName=${SliceModule.title}>
-          </faceting-control>
+          ${this.facetingControl}
         </div>
         ${this.renderSliceSelector()}
       </div>
