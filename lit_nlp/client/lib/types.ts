@@ -187,7 +187,7 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
 /**
  * Element of GeneratedTextCandidates and ReferenceTexts fields.
  */
-export type GeneratedTextCandidate = [text: string, score: number | null];
+export type GeneratedTextCandidate = [string, number | null];
 
 /**
  * Info about individual classifications including computed properties.
