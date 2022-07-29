@@ -19,9 +19,8 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
+import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -29,12 +28,12 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface ProjectorOptions {
   displayName: string;
@@ -70,9 +69,13 @@ const SPRITE_THUMBNAIL_SIZE = 48;
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
   static override title = 'Embeddings';
-  static override template = () => {
-    return html`<embeddings-module></embeddings-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <embeddings-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </embeddings-module>`;
+      };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -532,7 +535,7 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  override render() {
+  override renderImpl() {
     // check the type of the labels.
     const domain = this.colorService.selectedColorOption.scale.domain();
     const sequentialScale = typeof domain[0] === 'number';

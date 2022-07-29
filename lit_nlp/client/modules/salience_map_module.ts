@@ -22,24 +22,24 @@
 import '../elements/checkbox';
 import '../elements/spinner';
 
+import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {FieldMatcher, LitName, LitTypeOfFieldMatcher, MultiFieldMatcher, Salience} from '../lib/lit_types';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusData, FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
 
 import {styles} from './salience_map_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Results for calls to fetch salience.
@@ -83,9 +83,9 @@ export class SalienceMapModule extends LitModule {
   static override title = 'Salience Maps';
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
-  static override template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model: string, selectionServiceIndex: number, shouldReact: number) => {
     return html`<salience-map-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></salience-map-module>`;
+        selectionServiceIndex} .shouldReact=${shouldReact}></salience-map-module>`;
   };
 
   private readonly focusService = app.getService(FocusService);
@@ -416,7 +416,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>

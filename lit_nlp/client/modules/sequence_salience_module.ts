@@ -47,12 +47,11 @@ export class SequenceSalienceModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <sequence-salience-module model=${model}
-       selectionServiceIndex=${selectionServiceIndex}>
-      </sequence-salience-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <sequence-salience-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </sequence-salience-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -424,7 +423,7 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const clearStickyFocus = () => {
       if (this.focusState?.sticky) {
         this.focusState = undefined; /* clear focus */

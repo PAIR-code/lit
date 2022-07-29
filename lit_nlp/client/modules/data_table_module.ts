@@ -43,9 +43,11 @@ import {styles} from './data_table_module.css';
 @customElement('data-table-module')
 export class DataTableModule extends LitModule {
   static override title = 'Data Table';
-  static override template = () => {
-    return html`<data-table-module></data-table-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+      <data-table-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </data-table-module>`;
   static override numCols = 4;
   static override get styles() {
     return [sharedStyles, styles];
@@ -414,7 +416,7 @@ export class DataTableModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>

@@ -49,16 +49,18 @@ export class DocumentationModule extends LitModule {
   static override numCols = 3;
   static override duplicateForModelComparison = false;
 
-  static override template = () => {
-    return html`<documentation-module></documentation-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+      <documentation-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </documentation-module>`;
 
   @computed
   get markdownString() {
     return getTemplateStringFromMarkdown(this.appState.metadata.inlineDoc!);
   }
 
-  override render() {
+  override renderImpl() {
     return html`<div class="wrapper">${this.markdownString}</div>`;
   }
 

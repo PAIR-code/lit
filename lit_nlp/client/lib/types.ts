@@ -283,7 +283,8 @@ export type ServiceUser = object;
 export interface LitModuleClass {
   title: string;
   template:
-      (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
+      (modelName: string, selectionServiceIndex: number,
+       shouldReact: number) => TemplateResult;
   shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;
