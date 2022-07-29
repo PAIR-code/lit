@@ -19,15 +19,11 @@ import {ModelInfoMap, Spec} from '../../client/lib/types';
 export class PotatoModule extends LitModule {
   static override title = 'Potato';
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-            <potato-module model=${model} .shouldReact=${shouldReact}
-                           selectionServiceIndex=${selectionServiceIndex}>
-            </potato-module>`;
-      };
+  static override template = () => {
+    return html`<potato-module></potato-module>`;
+  };
 
-  override renderImpl() {
+  override render() {
     const style = styleMap({'width': '100%', 'height': '100%'});
     // clang-format off
     return html`
@@ -37,8 +33,7 @@ export class PotatoModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(
-      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

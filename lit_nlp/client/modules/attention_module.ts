@@ -47,13 +47,10 @@ export class AttentionModule extends LitModule {
   static override title = 'Attention';
   static override numCols = 3;
   static override duplicateForExampleComparison = true;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-      <attention-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </attention-module>`;
-      };
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<attention-module model=${model} selectionServiceIndex=${
+        selectionServiceIndex}></attention-module>`;
+  };
 
   static override get styles() {
     const styles = css`
@@ -114,7 +111,7 @@ export class AttentionModule extends LitModule {
     }
   }
 
-  override renderImpl() {
+  override render() {
     if (!this.preds) return;
 
     // Scrolling inside this module is done inside the module-results-area div.

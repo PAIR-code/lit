@@ -85,11 +85,14 @@ interface VisToggles {
 export class SalienceClusteringModule extends LitModule {
   static override title = 'Salience Clustering Results';
   static override numCols = 1;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <salience-clustering-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </salience-clustering-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    // clang-format off
+    return html`
+        <salience-clustering-module
+            model=${model} selectionServiceIndex=${selectionServiceIndex}>
+        </salience-clustering-module>`;
+    // clang format on
+  };
 
   private readonly dataService = app.getService(DataService);
   private runCount: number = 0;
@@ -450,7 +453,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   }
 
-  override renderImpl() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

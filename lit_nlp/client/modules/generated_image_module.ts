@@ -34,11 +34,13 @@ export class GeneratedImageModule extends LitModule {
   static override title = 'Generated Images';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <generated-image-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </generated-image-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`
+      <generated-image-module model=${model}
+                              selectionServiceIndex=${selectionServiceIndex}>
+      </generated-image-module>`;
+  };
+
 
   static supportedTypes: LitName[] = ['ImageBytes'];
 
@@ -105,7 +107,7 @@ export class GeneratedImageModule extends LitModule {
     // clang-format on
   }
 
-  override renderImpl() {
+  override render() {
     const {output} = this.appState.getModelSpec(this.model);
     // clang-format off
     return html`

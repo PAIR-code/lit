@@ -49,17 +49,13 @@ export class ColorModule extends LitModule {
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-      <color-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </color-module>`;
-      };
+  static override template = () => {
+    return html`<color-module></color-module>`;
+  };
 
   private readonly colorService = app.getService(ColorService);
 
-  override renderImpl() {
+  override render() {
     const options = this.colorService.colorableOptions;
     const htmlOptions = options.map((option, optionIndex) => {
       const selected =

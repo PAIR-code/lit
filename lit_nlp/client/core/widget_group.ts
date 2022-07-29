@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-// tslint:disable:no-new-decorators
 import '../elements/checkbox';
 import '../elements/spinner';
 import '@material/mwc-icon-button-toggle';
@@ -26,7 +25,6 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
-import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -61,7 +59,6 @@ export class WidgetGroup extends ReactiveElement {
   @property({type: Boolean, reflect: true}) minimized = false;
   @property({type: Boolean, reflect: true}) maximized = false;
   @property({type: Boolean, reflect: true}) dragging = false;
-  @observable @property({type: Boolean, reflect: true}) visible = false;
   @property({type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
@@ -223,18 +220,18 @@ export class WidgetGroup extends ReactiveElement {
       config: RenderConfig, styles: {[key: string]: string},
       showSubtitle: boolean) {
     const moduleType = config.moduleType;
-    const modelName = config.modelName || 'unused';
-    const selectionServiceIndex = config.selectionServiceIndex || 0;
-    const shouldReact = this.visible && !this.minimized;
+    const modelName = config.modelName;
+    const selectionServiceIndex = config.selectionServiceIndex;
+
     let subtitle = modelName ?? '';
     /**
      * If defined, modules show "Selected" for 0 and "Pinned" for 1,
      * If undefined, modules do not show selectionService related info in their
      * titles (when compare examples mode is disabled)."
      */
-    if (moduleType.duplicateForExampleComparison) {
+    if (typeof selectionServiceIndex !== 'undefined' && moduleType.duplicateForExampleComparison) {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
-          selectionServiceIndex ? 'Pinned' : 'Selected'}`);
+        selectionServiceIndex ? 'Pinned' : 'Selected'}`);
     }
     // Track scolling changes to the widget and request a rerender.
     const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
@@ -255,8 +252,7 @@ export class WidgetGroup extends ReactiveElement {
         widgetScrollTop=${this.widgetScrollTop}
         style=${styleMap(styles)}
       >
-        ${moduleType.template(modelName, selectionServiceIndex,
-          shouldReact ? 1 : 0)}
+        ${moduleType.template(modelName, selectionServiceIndex)}
       </lit-widget>
     `;
     // clang-format on

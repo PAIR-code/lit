@@ -89,11 +89,9 @@ export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
   static override numCols = 10;
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <generator-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </generator-module>`;
+  static override template = () => {
+    return html`<generator-module></generator-module>`;
+  };
 
   static override duplicateForModelComparison = false;
   private readonly groupService = app.getService(GroupService);
@@ -230,7 +228,7 @@ export class GeneratorModule extends LitModule {
     }
   }
 
-  override renderImpl() {
+  override render() {
     return html`
       <div class="module-container">
         <div class="module-content generator-module-content">

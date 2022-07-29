@@ -98,11 +98,10 @@ export class TrainingDataAttributionModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <tda-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </tda-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<tda-module model=${model} selectionServiceIndex=${
+        selectionServiceIndex}></tda-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -395,7 +394,7 @@ export class TrainingDataAttributionModule extends LitModule {
     // clang-format on
   }
 
-  override renderImpl() {
+  override render() {
     return html`
       <div class="module-container">
         <div class="module-content tda-module-content">

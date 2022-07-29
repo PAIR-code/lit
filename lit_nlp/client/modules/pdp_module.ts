@@ -52,11 +52,11 @@ export class PdpModule extends LitModule {
   static override title = 'Partial Dependence Plots';
   static override duplicateForExampleComparison = true;
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <pdp-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </pdp-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<pdp-module model=${model}
+                            selectionServiceIndex=${selectionServiceIndex}>
+                </pdp-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -230,7 +230,7 @@ export class PdpModule extends LitModule {
     // clang-format on
   }
 
-  override renderImpl() {
+  override render() {
     return html`${Array.from(this.plotVisibility.keys()).map(
         feat => this.renderPlotHolder(feat))}`;
   }
