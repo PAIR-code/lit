@@ -120,7 +120,6 @@ class LitApp(object):
         'generators': generator_info,
         'interpreters': interpreter_info,
         'layouts': self._layouts,
-        'littypes': types.all_littypes(),
         # Global configuration
         'demoMode': self._demo_mode,
         'defaultLayout': self._default_layout,
@@ -208,7 +207,9 @@ class LitApp(object):
     ret = [utils.filter_by_keys(p, ret_keys.__contains__) for p in preds]
     return ret
 
-  def _annotate_new_data(self, data, dataset_name: Optional[Text] = None,
+  def _annotate_new_data(self,
+                         data,
+                         dataset_name: Optional[Text] = None,
                          **unused_kw) -> List[IndexedInput]:
     """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
@@ -291,7 +292,8 @@ class LitApp(object):
       return annotated_dataset.examples
 
     annotated_generated = [
-        annotate_generated(generated) for generated in all_generated]
+        annotate_generated(generated) for generated in all_generated
+    ]
 
     # Add metadata.
     all_generated_indexed: List[List[IndexedInput]] = [
@@ -362,8 +364,8 @@ class LitApp(object):
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
 
-  def _run_annotators(
-      self, dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
+  def _run_annotators(self,
+                      dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
     datapoints = [dict(ex) for ex in dataset.examples]
     annotated_spec = dict(dataset.spec())
     for annotator in self._annotators:
@@ -521,9 +523,9 @@ class LitApp(object):
         'pca': projection.ProjectionManager(pca.PCAModel),
         'umap': projection.ProjectionManager(umap.UmapModel),
     }
-    self._interpreters = dict(
-        **self._interpreters, **prediction_analysis_interpreters,
-        **embedding_based_interpreters)
+    self._interpreters = dict(**self._interpreters,
+                              **prediction_analysis_interpreters,
+                              **embedding_based_interpreters)
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()

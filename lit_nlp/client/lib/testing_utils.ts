@@ -183,9 +183,6 @@ export const mockMetadata: LitMetadata = {
     'umap': emptySpec(),
   },
   'layouts': {},
-  'littypes': {
-    'Scalar': createLitType('Scalar'),
-  },
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': undefined

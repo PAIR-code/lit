@@ -172,7 +172,6 @@ export function deserializeLitTypesInLitMetadata(metadata: LitMetadata):
         deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
   }
 
-  metadata.littypes = deserializeLitTypesInSpec(metadata.littypes);
   return metadata;
 }
 

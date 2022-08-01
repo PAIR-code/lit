@@ -77,19 +77,6 @@ class LitType(metaclass=abc.ABCMeta):
     del d["__mro__"]
     return cls(**d)
 
-  # TODO(b/162269499): remove this once we have a proper implementation of
-  # these types on the frontend.
-  @classmethod
-  def cls_to_json(cls) -> JsonDict:
-    """Serialize class info to JSON."""
-    d = {}
-    d["__class__"] = "type"
-    d["__name__"] = cls.__name__
-    # All parent classes, from method resolution order (mro).
-    # Use this to check inheritance on the frontend.
-    d["__mro__"] = [a.__name__ for a in cls.mro()]
-    return d
-
 
 Spec = Dict[Text, LitType]
 
@@ -116,25 +103,6 @@ def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
     new_value = _remap_leaf(v, keymap)
     ret[new_key] = new_value
   return ret
-
-
-# TODO(b/162269499): remove this once we have a proper implementation of
-# these types on the frontend.
-def all_littypes(ignore_private=True):
-  """Return json of class info for all LitType classes."""
-
-  def all_subclasses(cls):
-    # pylint: disable=g-complex-comprehension
-    types_set = set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
-    # pylint: enable=g-complex-comprehension
-    return list(types_set)
-
-  classes = all_subclasses(LitType)
-  if ignore_private:
-    classes = [c for c in classes if not c.__name__.startswith("_")]
-
-  return {cls.__name__: cls.cls_to_json() for cls in classes}
 
 
 ##
