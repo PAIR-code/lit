@@ -224,15 +224,22 @@ class LIME(lit_components.Interpreter):
     return all_results
 
   def config_spec(self) -> types.Spec:
-    matcher_types = ['MulticlassPreds', 'SparseMultilabelPreds',
-                     'RegressionScore']
+    matcher_types = [
+        'MulticlassPreds', 'SparseMultilabelPreds', 'RegressionScore'
+    ]
     return {
-        TARGET_HEAD_KEY: types.FieldMatcher(spec='output', types=matcher_types),
-        CLASS_KEY: types.TextSegment(default='-1'),
-        MASK_KEY: types.TextSegment(default='[MASK]'),
-        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
-        NUM_SAMPLES_KEY: types.TextSegment(default='256'),
-        SEED_KEY: types.TextSegment(default=''),
+        TARGET_HEAD_KEY:
+            types.SingleFieldMatcher(spec='output', types=matcher_types),
+        CLASS_KEY:
+            types.TextSegment(default='-1'),
+        MASK_KEY:
+            types.TextSegment(default='[MASK]'),
+        KERNEL_WIDTH_KEY:
+            types.TextSegment(default='256'),
+        NUM_SAMPLES_KEY:
+            types.TextSegment(default='256'),
+        SEED_KEY:
+            types.TextSegment(default=''),
     }
 
   def is_compatible(self, model: lit_model.Model):

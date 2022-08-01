@@ -32,7 +32,7 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FieldMatcher, LitName, LitTypeOfFieldMatcher, MultiFieldMatcher, Salience} from '../lib/lit_types';
+import {LitName, FieldMatcher, Salience} from '../lib/lit_types';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
@@ -369,11 +369,9 @@ export class SalienceMapModule extends LitModule {
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher ||
-            fieldSpec instanceof MultiFieldMatcher) {
-          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
-          fieldMatcher.vocab =
-              this.appState.getSpecKeysFromFieldMatcher(fieldMatcher, this.model);
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab =
+              this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
         }
       }
       return html`

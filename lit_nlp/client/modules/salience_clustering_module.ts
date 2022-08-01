@@ -27,7 +27,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FieldMatcher, LitTypeOfFieldMatcher, MultiFieldMatcher} from '../lib/lit_types';
+import {FieldMatcher} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {createLitType, findSpecKeys} from '../lib/utils';
@@ -386,11 +386,9 @@ export class SalienceClusteringModule extends LitModule {
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher ||
-            fieldSpec instanceof MultiFieldMatcher) {
-          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
-          fieldMatcher.vocab = this.appState.getSpecKeysFromFieldMatcher(
-              fieldMatcher, this.model);
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldSpec, this.model);
         }
       }
       if (Object.keys(clonedSpec).length === 0) {

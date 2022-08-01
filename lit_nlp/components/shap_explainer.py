@@ -79,7 +79,7 @@ class TabularShapExplainer(lit_components.Interpreter):
   def config_spec(self) -> types.Spec:
     return {
         EXPLAIN_KEY:
-            types.FieldMatcher(
+            types.SingleFieldMatcher(
                 spec='output',
                 types=[
                     'MulticlassPreds', 'RegressionScore', 'Scalar',
