@@ -526,7 +526,7 @@ export class SequenceSalience extends Salience {
  * A boolean value.
  */
 @registered
-export class Boolean extends LitType {
+export class BooleanLitType extends LitType {
   override default : boolean = false;
 }
 

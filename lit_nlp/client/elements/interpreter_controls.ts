@@ -24,7 +24,7 @@ import {customElement, property} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {CategoryLabel, FieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, FieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
@@ -203,7 +203,7 @@ export class InterpreterControls extends ReactiveElement {
         </div>
       `;
       // clang-format on
-    } else if (isLitSubtype(controlType, ['Boolean'])) {
+    } else if (controlType instanceof BooleanLitType) {
       // Render a checkbox.
       const toggleVal = () => {
         const val = !!this.settings[name];

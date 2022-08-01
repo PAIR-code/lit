@@ -489,7 +489,7 @@ class SequenceSalience(Salience):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class Boolean(LitType):
+class BooleanLitType(LitType):
   """Boolean value."""
   default: bool = False
 
@@ -517,3 +517,11 @@ class InfluentialExamples(LitType):
 
 
 # LINT.ThenChange(../client/lib/lit_types.ts)
+
+# Type aliases for backend use.
+# `Boolean` and `String` are existing datatypes in TypeScript, so `Boolean` and
+# `String` LitTypes are serialized and instantiated as `BooleanLitType` and
+# `StringLitType`, respectively, to avoid collisions with language features on
+# the front-end.
+Boolean = BooleanLitType
+String = StringLitType

@@ -24,10 +24,9 @@ import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
-
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {ListLitType, LitTypeWithVocab, SparseMultilabel, StringLitType} from '../lib/lit_types';
+import {BooleanLitType, EdgeLabels, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SpanLabels, SparseMultilabel, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -552,15 +551,15 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
-    } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
+    } else if (fieldSpec instanceof SpanLabels) {
       renderInput = renderSpanLabelsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
+    } else if (fieldSpec instanceof EdgeLabels) {
       renderInput = renderEdgeLabelsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+    } else if (fieldSpec instanceof MultiSegmentAnnotations) {
       renderInput = renderMultiSegmentAnnotationsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+    } else if (fieldSpec instanceof ImageBytes) {
       renderInput = renderImage;
-    } else if (isLitSubtype(fieldSpec, 'Boolean')) {
+    } else if (fieldSpec instanceof BooleanLitType) {
       renderInput = renderBoolean;
     } else {
       entryContentClasses['entry-content-long'] = true;

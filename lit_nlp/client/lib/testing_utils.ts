@@ -157,7 +157,7 @@ export const mockMetadata: LitMetadata = {
         'sex': createLitType('CategoryLabel', {'vocab': ['female', 'male']}),
         'species': createLitType(
             'CategoryLabel', {'vocab': ['Adelie', 'Chinstrap', 'Gentoo']}),
-        'isAlive': createLitType('Boolean', {'required': false})
+        'isAlive': createLitType('BooleanLitType', {'required': false})
       }
     }
   },

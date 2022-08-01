@@ -178,8 +178,9 @@ export class DataService extends LitService {
             source);
         if (predSpec.parent != null) {
           this.addColumnFromList(
-              correctness, data, key, correctnessName, createLitType('Boolean'),
-              source, () => null, BINARY_NEG_POS);
+              correctness, data, key, correctnessName,
+              createLitType('BooleanLitType'), source, () => null,
+              BINARY_NEG_POS);
         }
       }
     }

@@ -28,10 +28,10 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, DataTable, TableData} from '../elements/table';
-import {LitType, LitTypeWithVocab} from '../lib/lit_types';
+import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {compareArrays, isLitSubtype} from '../lib/utils';
+import {compareArrays} from '../lib/utils';
 import {DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './data_table_module.css';
@@ -80,8 +80,7 @@ export class DataTableModule extends LitModule {
   get keys(): ColumnHeader[] {
     const createColumnHeader = (name: string, type: LitType) => {
       const header = {name, vocab: (type as LitTypeWithVocab).vocab};
-      // TODO(b/162269499): Rename Boolean to BooleanLitType.
-      if (isLitSubtype(type, 'Boolean')) {
+      if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
       }
       return header;
