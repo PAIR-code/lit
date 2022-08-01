@@ -22,6 +22,7 @@
 import 'jasmine';
 
 import * as litTypes from '../lib/lit_types';
+import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
 
 import * as utils from './utils';
@@ -194,7 +195,6 @@ describe('createLitType test', () => {
 });
 
 describe('deserializeLitTypesInSpec test', () => {
-  // TODO(b/162269499): Add test for deserializeLitTypesInLitMetadata.
   const testSpec = {
     'probabilities': {
       '__class__': 'LitType',
@@ -225,6 +225,15 @@ describe('deserializeLitTypesInSpec test', () => {
         .toBe(true);
   });
 });
+
+describe('deserializeLitTypesInLitMetadata test', () => {
+  it('deserializes lit metadata', () => {
+    const result =
+        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
+    expect(result).toEqual(mockMetadata);
+  });
+});
+
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
     const testType = utils.createLitType('StringLitType');

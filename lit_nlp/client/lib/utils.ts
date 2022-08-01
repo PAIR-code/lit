@@ -29,7 +29,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
-import {FacetMap, LitMetadata, ModelInfoMap, Spec} from './types';
+import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -116,16 +116,11 @@ export function createLitType(
       newType[key] = constructorParams[key];
     } else {
       throw new Error(
-          `Attempted to set unrecognized property ${key} on ${newType}.`);
+          `Attempted to set unrecognized property ${key} on ${typeName}.`);
     }
   }
 
   return newType;
-}
-
-
-interface SerializedSpec {
-  [key: string]: {__name__: string};
 }
 
 /**
@@ -140,11 +135,10 @@ export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec 
   return typedSpec;
 }
 
-
 /**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
-export function deserializeLitTypesInLitMetadata(metadata: LitMetadata):
+export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata) :
     LitMetadata {
   for (const model of Object.keys(metadata.models)) {
     metadata.models[model].spec.input =
