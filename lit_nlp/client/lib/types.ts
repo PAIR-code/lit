@@ -29,6 +29,13 @@ export interface Spec {
   [key: string]: LitType;
 }
 
+/** Serialized Spec data returned from the backend. */
+export interface SerializedSpec {
+  // All LitTypes have a `__name__` field; we deserialize and cast the
+  // LitType before accessing additional fields.
+  [key: string]: {__name__: string};
+}
+
 export interface ComponentInfo {
   configSpec: Spec;
   metaSpec: Spec;
@@ -77,7 +84,6 @@ export interface LitMetadata {
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;
-  littypes: Spec;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
@@ -86,6 +92,14 @@ export interface LitMetadata {
   onboardStartDoc?: string;
   onboardEndDoc?: string;
 }
+
+/**
+ * Serialized LitMetadata returned by the backend.
+ */
+export type SerializedLitMetadata = {
+  // tslint:disable-next-line:no-any
+  [K in keyof LitMetadata]: any;
+};
 
 export interface Input {
   // tslint:disable-next-line:no-any

@@ -28,7 +28,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FieldMatcher} from '../lib/lit_types';
+import {SingleFieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
@@ -214,7 +214,7 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo instanceof FieldMatcher) {
+      if (configInfo instanceof SingleFieldMatcher) {
         if (configInfo.default) {
           defaultCallConfig[configKey] = configInfo.default;
         } else if (configInfo.vocab && configInfo.vocab.length) {
@@ -348,7 +348,7 @@ export class FeatureAttributionModule extends LitModule {
     for (const fieldSpec of Object.values(clonedSpec)) {
       // If the interpreter uses a field matcher, then get the matching field
       // names from the specified spec and use them as the vocab.
-      if (fieldSpec instanceof FieldMatcher) {
+      if (fieldSpec instanceof SingleFieldMatcher) {
         fieldSpec.vocab =
             this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }

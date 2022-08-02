@@ -24,7 +24,7 @@ import {customElement, property} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {CategoryLabel, FieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, SingleFieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {Spec} from '../lib/types';
 import {isLitSubtype} from '../lib/utils';
@@ -113,10 +113,10 @@ export class InterpreterControls extends ReactiveElement {
               fieldSpec.vocab as string[] :
               fieldSpec.default;
         }
-        // FieldMatcher has its vocab set outside of this element.
+        // SingleFieldMatcher has its vocab set outside of this element.
         else if (
             spec[name] instanceof CategoryLabel ||
-            spec[name] instanceof FieldMatcher) {
+            spec[name] instanceof SingleFieldMatcher) {
           const {vocab} = spec[name] as LitTypeWithVocab;
           this.settings[name] =
               vocab != null && vocab.length > 0 ? vocab[0] : '';
@@ -161,7 +161,7 @@ export class InterpreterControls extends ReactiveElement {
       return html`<div class='checkbox-holder'>${renderCheckboxes()}</div>`;
     } else if (
         controlType instanceof CategoryLabel ||
-        controlType instanceof FieldMatcher) {
+        controlType instanceof SingleFieldMatcher) {
       const {vocab} = controlType as LitTypeWithVocab;
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
@@ -203,7 +203,7 @@ export class InterpreterControls extends ReactiveElement {
         </div>
       `;
       // clang-format on
-    } else if (isLitSubtype(controlType, ['Boolean'])) {
+    } else if (controlType instanceof BooleanLitType) {
       // Render a checkbox.
       const toggleVal = () => {
         const val = !!this.settings[name];
