@@ -395,8 +395,9 @@ export class LitModules extends ReactiveElement {
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
         <div class=${classes}>
-          ${this.renderWidgetGroups(configs, tabName, layoutWidths,
-                                    `${idPrefix}-${i}`)}
+          ${
+          this.renderWidgetGroups(
+              configs, tabName, layoutWidths, `${idPrefix}-${i}`, selected)}
         </div>`;
     });
   }
@@ -424,8 +425,9 @@ export class LitModules extends ReactiveElement {
     });
   }
 
-  renderWidgetGroups(configs: RenderConfig[][], section: string,
-                     layoutWidths: LayoutWidths, idPrefix: string) {
+  renderWidgetGroups(
+      configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths,
+      idPrefix: string, visible: boolean) {
     // Recalculate the widget group widths when isMinimized state changes.
     const onMin = () => {
       this.calculatePanelWidths(section, configs, layoutWidths);
@@ -490,7 +492,8 @@ export class LitModules extends ReactiveElement {
       // clang-format off
       return html`
         <lit-widget-group id=${id} .configGroup=${configGroup} .width=${width}
-                          @widget-group-minimized-changed=${onMin}>
+                          @widget-group-minimized-changed=${onMin}
+                          ?visible=${visible}>
         </lit-widget-group>
         ${isLastGroup ? html`` : html`
             <div class="expander" style=${expanderStyles}>

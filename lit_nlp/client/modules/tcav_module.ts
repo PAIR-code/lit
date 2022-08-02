@@ -80,11 +80,11 @@ export class TCAVModule extends LitModule {
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
-  static override template = (model = '') => {
-    return html`
-      <tcav-module model=${model}>
-      </tcav-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <tcav-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </tcav-module>`;
   private readonly sliceService = app.getService(SliceService);
   private readonly dataService = app.getService(DataService);
 
@@ -238,7 +238,7 @@ export class TCAVModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const shouldDisable = () => {
       for (const slice of this.selectedSlices) {
         const examples = this.sliceService.getSliceByName(slice);

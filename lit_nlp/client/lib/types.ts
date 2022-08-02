@@ -201,7 +201,7 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
 /**
  * Element of GeneratedTextCandidates and ReferenceTexts fields.
  */
-export type GeneratedTextCandidate = [text: string, score: number | null];
+export type GeneratedTextCandidate = [string, number | null];
 
 /**
  * Info about individual classifications including computed properties.
@@ -297,7 +297,8 @@ export type ServiceUser = object;
 export interface LitModuleClass {
   title: string;
   template:
-      (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
+      (modelName: string, selectionServiceIndex: number,
+       shouldReact: number) => TemplateResult;
   shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;
