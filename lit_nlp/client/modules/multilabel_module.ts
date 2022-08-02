@@ -49,11 +49,9 @@ export class MultilabelModule extends LitModule {
   static override title = 'Multilabel Results';
   static override duplicateForModelComparison = false;
   static override numCols = 3;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <multilabel-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </multilabel-module>`;
+  static override template = () => {
+    return html`<multilabel-module></multilabel-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -160,7 +158,7 @@ export class MultilabelModule extends LitModule {
     this.resultsInfo = allResults;
   }
 
-  override renderImpl() {
+  override render() {
     const keys = Object.keys(this.resultsInfo);
     return html`
         <div class="top-holder">

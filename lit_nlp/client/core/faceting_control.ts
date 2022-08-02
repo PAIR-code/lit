@@ -54,16 +54,7 @@ export interface FacetsChange {
 
 type FeatureChangeHandler = (event?: Event) => void;
 
-/**
- * Controls for defining faceting behavior.
- *
- * This faceting control should be created using the call
- * `document.createElement('faceting-control')"` or `new FacetingControl()` and
- * stored as a data member of any module that wishes to make use of it, as
- * opposed to being invoked through element templating in a `renderImpl` method
- * call. This is done so that options set in this control aren't reset when a
- * module's render is skipped due to the module being off-screen.
- */
+/** Controls for defining faceting behavior. */
 @customElement('faceting-control')
 export class FacetingControl extends ReactiveElement {
   private readonly featureConfigs = new Map<string, FacetingConfig>();

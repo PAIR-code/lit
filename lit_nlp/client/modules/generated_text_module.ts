@@ -27,7 +27,7 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
-import {LitTypeWithParent, ReferenceScores} from '../lib/lit_types';
+import {LitTypeWithParent, ReferenceScores, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -52,11 +52,12 @@ export class GeneratedTextModule extends LitModule {
   static override title = 'Generated Text';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <generated-text-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </generated-text-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`
+      <generated-text-module model=${model}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </generated-text-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, visStyles, styles];
@@ -186,30 +187,22 @@ export class GeneratedTextModule extends LitModule {
   }
 
   renderOutputGroup(g: OutputGroupKeys) {
-    const candidates =
-        g.generated != null ? this.generatedText[g.generated] : [];
+    const {generated, reference, referenceModelScores: score} = g;
+    const candidates = generated != null ? this.generatedText[generated] : [];
+    const referenceModelScores =
+        score != null ? this.referenceScores[score] : [];
 
-    const referenceFieldName = g.reference;
-    let referenceTexts =
-        referenceFieldName != null ? this.inputData?.[referenceFieldName] : [];
-    // If the reference is a TextSegment, up-cast the single string to the
-    // expected candidate list type GenereatedTextCandidate[].
-    if (referenceFieldName !== undefined) {
-      const spec = this.appState.getModelSpec(this.model).input;
-      if (!isLitSubtype(spec[referenceFieldName], 'ReferenceTexts')) {
-        referenceTexts = [[referenceTexts, null]];
-      }
+    let referenceTexts = reference != null ? this.inputData?.[reference] : [];
+    if (typeof referenceTexts === 'string') {
+      // Convert an individual string into a GenereatedTextCandidate[].
+      referenceTexts = [[referenceTexts, null]];
     }
-
-    const referenceModelScores = g.referenceModelScores != null ?
-        this.referenceScores[g.referenceModelScores] :
-        [];
 
     // clang-format off
     return html`
       <generated-text-vis .fieldName=${g.generated}
                           .candidates=${candidates}
-                          .referenceFieldName=${referenceFieldName}
+                          .referenceFieldName=${reference}
                           .referenceTexts=${referenceTexts}
                           .referenceModelScores=${referenceModelScores}
                           .diffMode=${this.diffMode}
@@ -219,7 +212,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format on
   }
 
-  override renderImpl() {
+  override render() {
     // Create output groups, making sure all fields are represented.
     const scoreFieldSet = new Set<string>(Object.keys(this.referenceScores));
     const outputGroups: OutputGroupKeys[] = [];

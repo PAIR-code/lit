@@ -89,12 +89,9 @@ interface TableHeaderAndData {
 export class MetricsModule extends LitModule {
   static override title = 'Metrics';
   static override numCols = 6;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) =>
-          html`
-  <metrics-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </metrics-module>`;
+  static override template = () => {
+    return html`<metrics-module></metrics-module>`;
+  };
   static override duplicateForModelComparison = false;
 
   static override get styles() {
@@ -105,7 +102,6 @@ export class MetricsModule extends LitModule {
   private readonly groupService = app.getService(GroupService);
   private readonly classificationService =
       app.getService(ClassificationService);
-  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable private selectedFacetBins: NumericFeatureBins = {};
 
@@ -114,19 +110,6 @@ export class MetricsModule extends LitModule {
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
 
-  constructor() {
-    super();
-
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.selectedFacets = event.detail.features;
-      this.selectedFacetBins = event.detail.bins;
-      this.updateAllFacetedMetrics();
-    };
-
-    this.facetingControl.contextName = MetricsModule.title;
-    this.facetingControl.addEventListener(
-        'facets-change', facetsChange as EventListener);
-  }
 
   override firstUpdated() {
     this.react(() => this.appState.currentInputData, entireDataset => {
@@ -347,7 +330,7 @@ export class MetricsModule extends LitModule {
     };
   }
 
-  override renderImpl() {
+  override render() {
     // clang-format off
     return html`
       <div class="module-container">
@@ -381,6 +364,12 @@ export class MetricsModule extends LitModule {
       this.updateSliceMetrics();
     };
 
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets = event.detail.features;
+      this.selectedFacetBins = event.detail.bins;
+      this.updateAllFacetedMetrics();
+    };
+
     // clang-format off
     return html`
       <label class="cb-label">Show slices</label>
@@ -389,7 +378,9 @@ export class MetricsModule extends LitModule {
         @change=${onSlicesCheckboxChecked}
         ?disabled=${slicesDisabled}>
       </lit-checkbox>
-      ${this.facetingControl}
+      <faceting-control @facets-change=${facetsChange}
+                        contextName=${MetricsModule.title}>
+      </faceting-control>
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}
     `;
     // clang-format on

@@ -172,11 +172,10 @@ export class SpanGraphGoldModule extends LitModule {
   static override duplicateForModelComparison = false;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <span-graph-gold-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </span-graph-gold-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-gold-module selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-gold-module>`;
+  };
   static orientation = 'horizontal';
 
   @computed
@@ -199,7 +198,7 @@ export class SpanGraphGoldModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  override renderImpl() {
+  override render() {
     // If more than one model is selected, SpanGraphModule will be offset
     // vertically due to the model name header, while this one won't be.
     // So, add an offset so that the content still aligns when there is a
@@ -235,11 +234,10 @@ export class SpanGraphModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <span-graph-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </span-graph-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-module model=${model} selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-module>`;
+  };
   static orientation = 'horizontal';
 
   @computed
@@ -277,7 +275,7 @@ export class SpanGraphModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  override renderImpl() {
+  override render() {
     return html`
       <div id="pred-group" class='outer-container'>
         ${
@@ -312,11 +310,10 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
   static override duplicateAsRow = true;
   static override orientation = 'vertical';
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <span-graph-gold-module-vertical model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </span-graph-gold-module-vertical>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-gold-module-vertical selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-gold-module-vertical>`;
+  };
 }
 
 /** Model output module class. */
@@ -324,11 +321,11 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
 export class SpanGraphModuleVertical extends SpanGraphModule {
   static override duplicateAsRow = true;
   static override orientation = 'vertical';
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <span-graph-module-vertical model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </span-graph-module-vertical>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<span-graph-module-vertical model=${
+        model} selectionServiceIndex=${
+        selectionServiceIndex}></span-graph-module-vertical>`;
+  };
 }
 
 // tslint:enable:class-as-namespace

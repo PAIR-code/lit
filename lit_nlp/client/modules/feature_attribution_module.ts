@@ -100,18 +100,17 @@ export class FeatureAttributionModule extends LitModule {
     });
   }
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) =>
-          html`
-      <feature-attribution-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </feature-attribution-module>`;
+  static override template(model = '') {
+    // clang-format off
+    return html`<feature-attribution-module model=${model}>
+                </feature-attribution-module>`;
+    // clang format on
+  }
 
   // ---- Instance Properties ----
 
   private readonly groupService = app.getService(GroupService);
   private readonly colorMap = new SignedSalienceCmap();
-  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable private startsOpen?: string;
   @observable private isColored = false;
@@ -124,19 +123,6 @@ export class FeatureAttributionModule extends LitModule {
     'model': this.hasIntrinsicSalience,
     [SELECTION]: false
   };
-
-  constructor() {
-    super();
-
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.features = event.detail.features;
-      this.bins = event.detail.bins;
-    };
-
-    this.facetingControl.contextName = FeatureAttributionModule.title;
-    this.facetingControl.addEventListener(
-        'facets-change', facetsChange as EventListener);
-  }
 
   @computed
   private get facets() {
@@ -312,13 +298,17 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   private renderSecondaryControls() {
-    const change = () => {
-      this.isColored = !this.isColored;
+    const change = () => {this.isColored = !this.isColored;};
+    const updateFacets = (event: CustomEvent<FacetsChange>) => {
+      this.features = event.detail.features;
+      this.bins = event.detail.bins;
     };
 
     // clang-format off
     return html`
-        ${this.facetingControl}
+        <faceting-control @facets-change=${updateFacets}
+                          contextName=${FeatureAttributionModule.title}>
+        </faceting-control>
         <span style="felx: 1 1 auto;"></span>
         <lit-checkbox label="Heatmap" ?checked=${this.isColored}
                       @change=${() => {change();}}>
@@ -428,7 +418,7 @@ export class FeatureAttributionModule extends LitModule {
     this.updateSummaries();
   }
 
-  override renderImpl() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

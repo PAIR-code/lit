@@ -56,12 +56,7 @@ export class ClassificationModule extends LitModule {
   static override duplicateForModelComparison = false;
   static override numCols = 3;
   static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-      <classification-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </classification-module>`;
-      };
+      () => html`<classification-module></classification-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -168,7 +163,7 @@ export class ClassificationModule extends LitModule {
     return labeledPredictions;
   }
 
-  override renderImpl() {
+  override render() {
     // TODO(b/162269499): Check that feature.parent is within the spec.
     const hasGroundTruth = this.appState.currentModels.some(
         model =>

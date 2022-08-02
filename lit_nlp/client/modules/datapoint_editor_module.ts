@@ -46,11 +46,10 @@ type InputConverterFn = (s: string) => string|number|string[]|boolean;
 export class DatapointEditorModule extends LitModule {
   static override title = 'Datapoint Editor';
   static override numCols = 2;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-      <datapoint-editor-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </datapoint-editor-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<datapoint-editor-module selectionServiceIndex=${
+        selectionServiceIndex}></datapoint-editor-module>`;
+  };
 
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
@@ -247,7 +246,7 @@ export class DatapointEditorModule extends LitModule {
     this.editedData = data;
   }
 
-  override renderImpl() {
+  override render() {
     // Scrolling inside this module is done inside a div with ID 'container'.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
