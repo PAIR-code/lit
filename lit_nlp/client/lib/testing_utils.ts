@@ -197,36 +197,64 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'sst_0_micro': {
       'spec': {
         'input': {
-          'passage': {'__name__': 'TextSegment', 'required': true},
-          'passage_tokens':
-              {'__name__': 'Tokens', 'required': false, 'parent': 'passage'}
+          'passage': {
+            '__class__': 'LitType',
+            '__name__': 'TextSegment',
+            'required': true
+          },
+          'passage_tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': false,
+            'parent': 'passage'
+          }
         },
         'output': {
           'probabilities': {
+            '__class__': 'LitType',
             '__name__': 'MulticlassPreds',
             'required': true,
             'vocab': ['0', '1'],
             'null_idx': 0,
             'parent': 'label'
           },
-          'pooled_embs': {'__name__': 'Embeddings', 'required': true},
-          'mean_word_embs': {'__name__': 'Embeddings', 'required': true},
-          'tokens':
-              {'__name__': 'Tokens', 'required': true, 'parent': undefined},
-          'passage_tokens':
-              {'__name__': 'Tokens', 'required': true, 'parent': 'passage'},
+          'pooled_embs': {
+            '__class__': 'LitType',
+            '__name__': 'Embeddings',
+            'required': true
+          },
+          'mean_word_embs': {
+            '__class__': 'LitType',
+            '__name__': 'Embeddings',
+            'required': true
+          },
+          'tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': true,
+            'parent': undefined
+          },
+          'passage_tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': true,
+            'parent': 'passage'
+          },
           'passage_grad': {
+            '__class__': 'LitType',
             '__name__': 'TokenGradients',
             'required': true,
             'align': 'passage_tokens'
           },
           'layer_0/attention': {
+            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
           },
           'layer_1/attention': {
+            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             'required': true,
             'align_in': 'tokens',
@@ -243,36 +271,64 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'sst_1_micro': {
       'spec': {
         'input': {
-          'passage': {'__name__': 'TextSegment', 'required': true},
-          'passage_tokens':
-              {'__name__': 'Tokens', 'required': false, 'parent': 'passage'}
+          'passage': {
+            '__class__': 'LitType',
+            '__name__': 'TextSegment',
+            'required': true
+          },
+          'passage_tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': false,
+            'parent': 'passage'
+          }
         },
         'output': {
           'probabilities': {
+            '__class__': 'LitType',
             '__name__': 'MulticlassPreds',
             'required': true,
             'vocab': ['0', '1'],
             'null_idx': 0,
             'parent': 'label'
           },
-          'pooled_embs': {'__name__': 'Embeddings', 'required': true},
-          'mean_word_embs': {'__name__': 'Embeddings', 'required': true},
-          'tokens':
-              {'__name__': 'Tokens', 'required': true, 'parent': undefined},
-          'passage_tokens':
-              {'__name__': 'Tokens', 'required': true, 'parent': 'passage'},
+          'pooled_embs': {
+            '__class__': 'LitType',
+            '__name__': 'Embeddings',
+            'required': true
+          },
+          'mean_word_embs': {
+            '__class__': 'LitType',
+            '__name__': 'Embeddings',
+            'required': true
+          },
+          'tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': true,
+            'parent': undefined
+          },
+          'passage_tokens': {
+            '__class__': 'LitType',
+            '__name__': 'Tokens',
+            'required': true,
+            'parent': 'passage'
+          },
           'passage_grad': {
+            '__class__': 'LitType',
             '__name__': 'TokenGradients',
             'required': true,
             'align': 'passage_tokens'
           },
           'layer_0/attention': {
+            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
           },
           'layer_1/attention': {
+            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
             'required': true,
             'align_in': 'tokens',
@@ -291,22 +347,34 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'sst_dev': {
       'size': 872,
       'spec': {
-        'passage': {'__name__': 'TextSegment', 'required': true},
-        'label':
-            {'__name__': 'CategoryLabel', 'required': true, 'vocab': ['0', '1']}
+        'passage': {
+          '__class__': 'LitType',
+          '__name__': 'TextSegment',
+          'required': true
+        },
+        'label': {
+          '__class__': 'LitType',
+          '__name__': 'CategoryLabel',
+          'required': true,
+          'vocab': ['0', '1']
+        }
       }
     },
     'color_test': {
       'size': 2,
       'spec': {
-        'testNumFeat0': {'__name__': 'Scalar', 'required': true},
-        'testNumFeat1': {'__name__': 'Scalar', 'required': true},
+        'testNumFeat0':
+            {'__class__': 'LitType', '__name__': 'Scalar', 'required': true},
+        'testNumFeat1':
+            {'__class__': 'LitType', '__name__': 'Scalar', 'required': true},
         'testFeat0': {
+          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['0', '1']
         },
         'testFeat1': {
+          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['a', 'b', 'c']
@@ -316,27 +384,53 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'penguin_dev': {
       'size': 10,
       'spec': {
-        'body_mass_g': {'__name__': 'Scalar', 'step': 1, 'required': true},
-        'culmen_depth_mm': {'__name__': 'Scalar', 'step': 1, 'required': true},
-        'culmen_length_mm': {'__name__': 'Scalar', 'step': 1, 'required': true},
-        'flipper_length_mm':
-            {'__name__': 'Scalar', 'step': 1, 'required': true},
+        'body_mass_g': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          'step': 1,
+          'required': true
+        },
+        'culmen_depth_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          'step': 1,
+          'required': true
+        },
+        'culmen_length_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          'step': 1,
+          'required': true
+        },
+        'flipper_length_mm': {
+          '__class__': 'LitType',
+          '__name__': 'Scalar',
+          'step': 1,
+          'required': true
+        },
         'island': {
+          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['Biscoe', 'Dream', 'Torgersen']
         },
         'sex': {
+          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['female', 'male']
         },
         'species': {
+          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['Adelie', 'Chinstrap', 'Gentoo']
         },
-        'isAlive': {'__name__': 'BooleanLitType', 'required': false}
+        'isAlive': {
+          '__class__': 'LitType',
+          '__name__': 'BooleanLitType',
+          'required': false
+        }
       }
     }
   },
@@ -344,6 +438,7 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'word_replacer': {
       'configSpec': {
         'Substitutions': {
+          '__class__': 'LitType',
           '__name__': 'TextSegment',
           'required': true,
           'default': 'great -> terrible'

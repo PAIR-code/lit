@@ -47,9 +47,17 @@ type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 @registered
 export class LitType {
   // tslint:disable:enforce-name-casing
-  __name__: LitName = 'LitType';
+  __class__: LitClass|'type' = 'LitType';
+  // TODO(b/162269499): Replace this with LitName, when created.
+  // tslint:disable-next-line:no-any
+  __name__: any|undefined;
+  // TODO(b/162269499): __mro__ is included here to temporarily ensure
+  // type equivalence betwen the old `LitType` and new `LitType`.
+  __mro__: string[] = [];
   readonly required: boolean = true;
-  readonly default: unknown;
+  // TODO(b/162269499): Replace this with `unknown` after migration.
+  // tslint:disable-next-line:no-any
+  readonly default: any|undefined = null;
   // If this type is created from an Annotator.
   annotated: boolean = false;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.

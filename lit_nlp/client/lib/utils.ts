@@ -106,8 +106,13 @@ export function createLitType(
   const newType = new (litType as any)();
   newType.__name__ = typeName;
 
+  // Excluded properties are passed through in the Python serialization
+  // of LitTypes and can be ignored by the frontend.
+  const excluded = ['__mro__'];
   for (const key in constructorParams) {
-    if (key in newType) {
+    if (excluded.includes(key)) {
+      continue;
+    } else if (key in newType) {
       newType[key] = constructorParams[key];
     } else {
       throw new Error(
