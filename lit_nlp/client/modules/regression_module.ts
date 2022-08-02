@@ -40,10 +40,11 @@ export class RegressionModule extends LitModule {
   static override title = 'Regression Results';
   static override duplicateForExampleComparison = true;
   static override numCols = 3;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<regression-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></regression-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <regression-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </regression-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -82,7 +83,7 @@ export class RegressionModule extends LitModule {
     this.result = result;
   }
 
-  override render() {
+  override renderImpl() {
     if (this.result == null) {
       return null;
     }

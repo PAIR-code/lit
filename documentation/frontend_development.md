@@ -106,9 +106,10 @@ outlined below:
 @customElement('demo-module')                                                   // (0)
 export class DemoTextModule extends LitModule {
   static override title = 'Demo Module';                                        // (1)
-  static override template = (model = '') => {                                  // (2)
-    return html`<demo-module model=${model}></demo-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>    // (2)
+          html`<demo-module model=${model} .shouldReact=${shouldReact}
+                selectionServiceIndex=${selectionServiceIndex}></demo-module>`;
   static override duplicateForModelComparison = true;                           // (3)
 
   static override get styles() {
@@ -136,7 +137,7 @@ export class DemoTextModule extends LitModule {
     this.pigLatin = results;
   }
 
-  override render() {                                                           // (10)
+  override renderImpl() {                                                       // (10)
     const color = this.colorService.getDatapointColor(
         this.selectionService.primarySelectedInputData);
     return html`
@@ -208,14 +209,14 @@ of the data. Since we're using mobx observables to store and compute our state,
 we do this all in a reactive way.
 
 First, since the `LitModule` base class derives from `MobxLitElement`, any
-observable data that we use in the `render` method automatically triggers a
+observable data that we use in the `renderImpl` method automatically triggers a
 re-render when updated. This is excellent for simple use cases, but what about
 when we want to trigger more complex behavior, such as the asynchronous request
 outlined above?
 
-The pattern that we leverage across the app is as follows: The `render` method
-(10) accesses a private observable `pigLatin` property (6) that, when updated,
-will re-render the template and show the results of the translation
+The pattern that we leverage across the app is as follows: The `renderImpl`
+method (10) accesses a private observable `pigLatin` property (6) that, when
+updated, will re-render the template and show the results of the translation
 automatically. In order to update the `pigLatin` observable, we need to set up a
 bit of machinery. In the lit-element lifecycle method `firstUpdated`, we use a
 helper method `reactImmediately` (7) to set up an explicit reaction to the user
@@ -224,7 +225,10 @@ selecting data. Whatever is returned by the first function (in this case
 second function immediately **and** whenever it changes, allowing us to do
 something whenever the selection changes. Note, another helper method `react` is
 used in the same way as `reactImmediately`, in instances where you don't want to
-immediately invoke the reaction.
+immediately invoke the reaction. Also note that modules should override
+`renderImpl` and not the base `render` method as our `LitModule` base class
+overrides `render` with custom logic which calls our `renderImpl` method for
+modules to perform their rendering in.
 
 We pass the selection to the `getTranslation` method to fetch the data from our
 API service. However rather than awaiting our API request directly, we pass the
@@ -268,11 +272,48 @@ reconciliation of what needs to be updated per render.
     this.drawCanvas(canvas);
   }
 
-  render() {
+  override renderImpl() {
     return html`<canvas></canvas>`;
   }
 ```
 
+### Stateful Child Elements
+
+Some modules may contain stateful child elements, where the element has some
+internal state that can have an effect on the module that contains it. Examples of this include any modules that contain the
+[elements/faceting_control.ts](../lit_nlp/client/elements/faceting_control.ts) element.
+
+With these types of child elements, it's important for the containing module
+to construct them programmatically and store them in a class member variable,
+as opposed to only constructing them in the module's html template
+string returned by the `renderImpl` method. Otherwise they will be destroyed
+and recreated when a module is hidden off-screen and then brought back
+on-screen, leading them to lose whatever state they previously held.
+Below is a snippet of example code to handle these types of elements.
+
+```typescript
+// An example of a LITModule using a stateful child element.
+@customElement('example-module')
+export class ExampleModule extends LitModule {
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      // Do something with the information from the event.
+    };
+    // Set the necessary properties on the faceting-control element.
+    this.facetingControl.contextName = ExampleModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener)
+  }
+
+  override renderImpl() {
+    // Render the faceting-control element.
+    return html`${this.facetingControl}`;
+  }
+```
 ## Style Guide
 
 *   Please disable clang-format on `lit-html` templates and format these

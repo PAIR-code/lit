@@ -197,18 +197,14 @@ describe('createLitType test', () => {
 describe('deserializeLitTypesInSpec test', () => {
   const testSpec = {
     'probabilities': {
-      '__class__': 'LitType',
       '__name__': 'MulticlassPreds',
-      '__mro__': ['MulticlassPreds', 'LitType', 'object'],
       'required': true,
       'vocab': ['0', '1'],
       'null_idx': 0,
       'parent': 'label'
     },
     'pooled_embs': {
-      '__class__': 'LitType',
       '__name__': 'Embeddings',
-      '__mro__': ['Embeddings', 'LitType', 'object'],
       'required': true
     }
   };
