@@ -564,10 +564,10 @@ export class DataTable extends ReactiveElement {
   /** Logic for handling row hover */
   private handleRowMouseEnter(e: MouseEvent, dataIndex: number) {
     if (this.hoverTimeoutId != null) {
-      clearTimeout(this.hoverTimeoutId);
+      window.clearTimeout(this.hoverTimeoutId);
     }
 
-    this.hoverTimeoutId = setTimeout(() => {
+    this.hoverTimeoutId = window.setTimeout(() => {
       this.hoveredIndex = dataIndex;
       if (this.onHover != null) {
         this.onHover(this.hoveredIndex);
@@ -577,10 +577,10 @@ export class DataTable extends ReactiveElement {
 
   private handleRowMouseLeave(e: MouseEvent, dataIndex: number) {
     if (this.hoverTimeoutId != null) {
-      clearTimeout(this.hoverTimeoutId);
+      window.clearTimeout(this.hoverTimeoutId);
     }
 
-    this.hoverTimeoutId = setTimeout(() => {
+    this.hoverTimeoutId = window.setTimeout(() => {
       if (dataIndex === this.hoveredIndex) {
         this.hoveredIndex = null;
       }
