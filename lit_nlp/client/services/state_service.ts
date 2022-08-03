@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {LitType, LitTypeOfFieldMatcher} from '../lib/lit_types';
+import {FieldMatcher, LitType} from '../lib/lit_types';
 import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {createLitType as createLitTypeUtil, findSpecKeys} from '../lib/utils';
 
@@ -238,7 +238,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the spec keys matching the info from the provided FieldMatcher.
    */
-  getSpecKeysFromFieldMatcher(matcher: LitTypeOfFieldMatcher, modelName: string) {
+  getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
       spec = this.currentModelSpecs[modelName].spec.output;

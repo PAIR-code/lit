@@ -66,6 +66,6 @@ class SimilaritySearcher(lit_components.Generator):
   def config_spec(self) -> types.Spec:
     return {
         # Requires an embedding layer specified from a model.
-        'Embedding Field': types.FieldMatcher(
+        'Embedding Field': types.SingleFieldMatcher(
             spec='output', types=['Embeddings'])
     }

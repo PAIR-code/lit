@@ -32,18 +32,19 @@ export class AnnotatedTextGoldModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <annotated-text-gold-module
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <annotated-text-gold-module model=${model} .shouldReact=${shouldReact}
         selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-gold-module>`;
-  };
+      };
 
   static override get styles() {
     return sharedStyles;
   }
 
-  override render() {
+  override renderImpl() {
     const input = this.selectionService.primarySelectedInputData;
     if (!input) return null;
 
@@ -90,12 +91,13 @@ export class AnnotatedTextModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <annotated-text-module model=${model}
-       selectionServiceIndex=${selectionServiceIndex}>
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <annotated-text-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-module>`;
-  };
+      };
 
   static override get styles() {
     return sharedStyles;
@@ -133,7 +135,7 @@ export class AnnotatedTextModule extends LitModule {
     this.currentPreds = results[0] as AnnotationGroups;
   }
 
-  override render() {
+  override renderImpl() {
     if (!this.currentData) return null;
 
     const segmentNames =

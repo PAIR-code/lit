@@ -55,9 +55,13 @@ export class CurvesModule extends LitModule {
   static override title = 'PR/ROC Curves';
   static override numCols = 3;
   static override duplicateForModelComparison = false;
-  static override template = () => {
-    return html`<curves-module></curves-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+  <curves-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </curves-module>`;
+      };
 
   static override get styles() {
     return [
@@ -77,6 +81,18 @@ export class CurvesModule extends LitModule {
   @observable private readonly selectedFacets: string[] = [];
 
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.setFacetInfo(event);
+    };
+    this.facetingControl.contextName = CurvesModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   override firstUpdated() {
 
@@ -319,22 +335,16 @@ export class CurvesModule extends LitModule {
 
   private renderHeader() {
     // Render facet control, predKey dropdown, and positive label dropdown.
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-       this.setFacetInfo(event);
-    };
-
     // clang-format off
     return html`
         ${this.renderPredKeySelect()}
         ${this.renderPositiveLabelSelect()}
-        <faceting-control @facets-change=${facetsChange}
-                          contextName=${CurvesModule.title}>
-        </faceting-control>
+        ${this.facetingControl}
     `;
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const groups = Object.keys(this.groupedCurves);
 
     // clang-format off

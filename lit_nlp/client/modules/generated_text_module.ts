@@ -52,12 +52,11 @@ export class GeneratedTextModule extends LitModule {
   static override title = 'Generated Text';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <generated-text-module model=${model}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </generated-text-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <generated-text-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </generated-text-module>`;
 
   static override get styles() {
     return [sharedStyles, visStyles, styles];
@@ -212,7 +211,7 @@ export class GeneratedTextModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     // Create output groups, making sure all fields are represented.
     const scoreFieldSet = new Set<string>(Object.keys(this.referenceScores));
     const outputGroups: OutputGroupKeys[] = [];

@@ -51,10 +51,13 @@ interface CmatOption {
 @customElement('confusion-matrix-module')
 export class ConfusionMatrixModule extends LitModule {
   static override title = 'Confusion Matrix';
-  static override template = (model = '') => {
-    return html`
-      <confusion-matrix-module model=${model}></confusion-matrix-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+  <confusion-matrix-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </confusion-matrix-module>`;
+      };
   static override numCols = 4;
   static override duplicateForModelComparison = false;
 
@@ -64,6 +67,7 @@ export class ConfusionMatrixModule extends LitModule {
 
   private readonly dataService = app.getService(DataService);
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable verticalColumnLabels = false;
   @observable hideEmptyLabels = false;
@@ -84,6 +88,14 @@ export class ConfusionMatrixModule extends LitModule {
   constructor() {
     super();
     this.setInitialOptions();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.facetFeatures = event.detail.features;
+      this.facetBins = event.detail.bins;
+    };
+    this.facetingControl.contextName = ConfusionMatrixModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
   }
 
   private setInitialOptions() {
@@ -183,7 +195,7 @@ export class ConfusionMatrixModule extends LitModule {
     return options;
   }
 
-  override render() {
+  override renderImpl() {
     const row = this.options[this.selectedRowOption];
     const col = this.options[this.selectedColOption];
 
@@ -221,10 +233,6 @@ export class ConfusionMatrixModule extends LitModule {
     const toggleHideCheckbox = () => {
       this.hideEmptyLabels = !this.hideEmptyLabels;
     };
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.facetFeatures = event.detail.features;
-      this.facetBins = event.detail.bins;
-    };
     // clang-format off
     return html`<div class="matrix-options">
                   <lit-checkbox label="Show matrix for selection"
@@ -259,9 +267,7 @@ export class ConfusionMatrixModule extends LitModule {
                     </select>
                   </div>
                   <div class="spacer"></div>
-                  <faceting-control @facets-change=${facetsChange}
-                                    .contextName=${ConfusionMatrixModule.title}>
-                  </faceting-control>
+                  ${this.facetingControl}
                 </div>`;
     // clang-format on
   }

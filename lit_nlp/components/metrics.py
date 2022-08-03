@@ -16,13 +16,13 @@
 
 import abc
 import collections
-from typing import Any, Callable, cast, Optional, Sequence, Union, Dict, Text
+from typing import Any, Callable, cast, Optional, Sequence, Union, Text, Dict
 
 from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
+from lit_nlp.api import dtypes
 from lit_nlp.api import types
 from lit_nlp.components import classification_results
 import numpy as np
@@ -238,6 +238,7 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
                                            model_outputs, margin_config)
 
+
 class ExactMatchMetrics(SimpleMetrics):
   """Standard regression metrics."""
   def is_field_compatible(self, pred_spec: LitType,
@@ -284,8 +285,6 @@ class RegressionMetrics(SimpleMetrics):
               pred_spec: types.RegressionScore,
               config: Optional[JsonDict] = None) -> dict[str, float]:
     """Compute metric(s) between labels and predictions."""
-    del label_spec
-    del pred_spec
     del config
 
     if not labels or not preds:
@@ -494,10 +493,6 @@ class CorpusBLEU(SimpleMetrics):
     if not labels or not preds:
       return {}
 
-    if any([not isinstance(label, str) for label in labels]):
-      logging.warning("Received non-string labels. Skipping.")
-      return {}
-
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
@@ -538,10 +533,6 @@ class RougeL(SimpleMetrics):
     del config
 
     if not labels or not preds:
-      return {}
-
-    if any([not isinstance(label, str) for label in labels]):
-      logging.warning("Received non-string labels. Skipping.")
       return {}
 
     name_suffix = ''

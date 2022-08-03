@@ -22,6 +22,7 @@
 import 'jasmine';
 
 import * as litTypes from '../lib/lit_types';
+import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
 
 import * as utils from './utils';
@@ -194,21 +195,16 @@ describe('createLitType test', () => {
 });
 
 describe('deserializeLitTypesInSpec test', () => {
-  // TODO(b/162269499): Add test for deserializeLitTypesInLitMetadata.
   const testSpec = {
     'probabilities': {
-      '__class__': 'LitType',
       '__name__': 'MulticlassPreds',
-      '__mro__': ['MulticlassPreds', 'LitType', 'object'],
       'required': true,
       'vocab': ['0', '1'],
       'null_idx': 0,
       'parent': 'label'
     },
     'pooled_embs': {
-      '__class__': 'LitType',
       '__name__': 'Embeddings',
-      '__mro__': ['Embeddings', 'LitType', 'object'],
       'required': true
     }
   };
@@ -225,6 +221,40 @@ describe('deserializeLitTypesInSpec test', () => {
         .toBe(true);
   });
 });
+
+describe('deserializeLitTypesInLitMetadata test', () => {
+  it('deserializes lit metadata', () => {
+    const result =
+        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
+    expect(result).toEqual(mockMetadata);
+  });
+});
+
+describe('cloneSpec test', () => {
+  const testSpec = {
+    'probabilities': utils.createLitType('MulticlassPreds', {
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    })
+  };
+
+  it('deeply copies', () => {
+    const testSpec2 = utils.cloneSpec(testSpec);
+
+    const oldProbs = testSpec['probabilities'] as litTypes.MulticlassPreds;
+    const newProbs = testSpec2['probabilities'] as litTypes.MulticlassPreds;
+
+    newProbs.null_idx = 1;
+    expect(oldProbs.null_idx).toEqual(0);
+    expect(newProbs.null_idx).toEqual(1);
+
+    expect(testSpec2['probabilities'] instanceof litTypes.MulticlassPreds)
+        .toBe(true);
+  });
+});
+
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
     const testType = utils.createLitType('StringLitType');

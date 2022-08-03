@@ -45,9 +45,7 @@ class TyDiModel(lit_model.Model):
           0, answer_start_index : answer_end_index + 1]
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
-          "answers_text": inp['answers_text'],
-          "tokenized_text":tokenized_text,
-
+          "answers_text": inp['answers_text']
       })
     
     return prediction_output

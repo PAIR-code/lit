@@ -27,10 +27,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FieldMatcher, LitTypeOfFieldMatcher, MultiFieldMatcher} from '../lib/lit_types';
+import {FieldMatcher} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {createLitType, findSpecKeys} from '../lib/utils';
+import {CallConfig, IndexedInput, Input, ModelInfoMap} from '../lib/types';
+import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
@@ -85,14 +85,11 @@ interface VisToggles {
 export class SalienceClusteringModule extends LitModule {
   static override title = 'Salience Clustering Results';
   static override numCols = 1;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    // clang-format off
-    return html`
-        <salience-clustering-module
-            model=${model} selectionServiceIndex=${selectionServiceIndex}>
-        </salience-clustering-module>`;
-    // clang format on
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <salience-clustering-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </salience-clustering-module>`;
 
   private readonly dataService = app.getService(DataService);
   private runCount: number = 0;
@@ -385,15 +382,13 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format off
     const renderInterpreterControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher ||
-            fieldSpec instanceof MultiFieldMatcher) {
-          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
-          fieldMatcher.vocab = this.appState.getSpecKeysFromFieldMatcher(
-              fieldMatcher, this.model);
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldSpec, this.model);
         }
       }
       if (Object.keys(clonedSpec).length === 0) {
@@ -453,7 +448,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>
