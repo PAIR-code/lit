@@ -171,7 +171,7 @@ class TopTokens(_StringCandidateList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class URL(TextSegment):
+class URLLitType(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass
 
@@ -516,9 +516,8 @@ class InfluentialExamples(LitType):
 # LINT.ThenChange(../client/lib/lit_types.ts)
 
 # Type aliases for backend use.
-# `Boolean` and `String` are existing datatypes in TypeScript, so `Boolean` and
-# `String` LitTypes are serialized and instantiated as `BooleanLitType` and
-# `StringLitType`, respectively, to avoid collisions with language features on
-# the front-end.
+# The following names are existing datatypes in TypeScript, so we add a
+# `LitType` suffix to avoid collisions with language features on the front-end.
 Boolean = BooleanLitType
 String = StringLitType
+URL = URLLitType

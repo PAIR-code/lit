@@ -144,7 +144,7 @@ export class TopTokens extends _StringCandidateList {
  * TextSegment that should be interpreted as a URL.
  */
 @registered
-export class URL extends TextSegment {
+export class URLLitType extends TextSegment {
 }
 
 /**

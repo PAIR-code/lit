@@ -26,7 +26,7 @@ import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {BooleanLitType, EdgeLabels, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SpanLabels, SparseMultilabel, StringLitType} from '../lib/lit_types';
+import {BooleanLitType, EdgeLabels, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SpanLabels, SparseMultilabel, StringLitType, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -586,7 +586,7 @@ export class DatapointEditorModule extends LitModule {
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
 
     let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
-    if (isLitSubtype(fieldSpec, 'URL')) {
+    if (fieldSpec instanceof URLLitType) {
       headerContent = html`
         <a href=${value as string} target="_blank">
           ${headerContent}
