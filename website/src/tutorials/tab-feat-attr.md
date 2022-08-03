@@ -68,8 +68,8 @@ start the SHAP computation with heatmap enabled.
   dataset. When sampling from the current selection, the sample size can have
   interesting edge cases:
 
-- If the sample size is 0, LIT samples the “sample size” number of data points from the entire dataset.
-- If the sample size is larger than the selection, then LIT computes SHAP for the entire selection and only that selection.
+- If the selection is empty, LIT samples the “sample size” number of data points from the entire dataset.
+- If the sample size is zero or larger than the selection, then LIT computes SHAP for the entire selection and only that selection.
 - If sample size is smaller than the selection, then LIT samples the “sample size” number of data points from the selected inputs."%}
 
 Enabling the heatmap provides a visual indicator of the polarity and strength of
@@ -78,14 +78,15 @@ particular feature and a bluish hue indicates positive attribution. The deeper
 the color the stronger its influence on the predictions.
 
 {% include partials/info-box title: 'Interpreting salience polarity',
-  text: "Intuitively, a positive influence score (attribution) for a training
-example means that if this example was removed from the training dataset, we
-expect a drop in model confidence in predictions on the test set. Similarly,
-a negative score would correspond to an increase in the model's confidence
-in the prediction."%}
+  text: "Salience is always relative to the model’s prediction of one class.
+Intuitively, a positive attribution score for a feature of an example means that
+ if this feature was removed we
+expect a drop in model confidence in the prediction of this class. Similarly,
+removing a feature with a negative score would correspond to an increase in
+the model's confidence in the prediction of this class."%}
 
 SHAP values are computed per feature per example, from which LIT computes the
-mean, min, median, and max values from the analyzed examples. The min and max
+mean, min, median, and max feature values across the examples. The min and max
 values can be used to spot any outliers during analysis. The difference between
 the mean and the median can be used to gain more insights about the
 distribution. All of this enables statistical comparisons and will be enhanced
@@ -96,7 +97,7 @@ Each of the columns in the table can be sorted using the up (ascending) or down
 (descending) arrow symbols in the column headers. The table is sorted in
 ascending alphabetical order of input feature names (field) by default. If there
 are many features in a dataset this space will get crowded, so LIT offers a
-search button for each of the columns to look up a particular feature or value
+filter button for each of the columns to look up a particular feature or value
 directly.
 
 {% include partials/inset-image image: '/assets/images/tab-feat-attr-image-3.png',
@@ -108,7 +109,7 @@ directly.
 {% include partials/inset-image image: '/assets/images/tab-feat-attr-image-5.png',
   caption: 'TODO'%}
 
-#### **Faceting & Binning of numerical features**
+#### **Faceting & Binning of Features**
 
 Simply speaking, facets are subsets of the dataset based on specific feature
 values. We can use facets to explore differences in SHAP values between subsets.
@@ -162,7 +163,7 @@ further.
 
 The Feature Attribution module works well in conjunction with other modules. In
 particular, we are going to look at the Salience Maps module which allows us to
-enhance our analysis. Salience Maps work on one data point at a time whereas we
+enhance our analysis. Salience Maps work on one data point at a time, whereas we
 use the Tabular Feature Attribution usually over a set of data points. And it is
 very likely that these two modules show different information as global average
 behavior is expected to be different from behavior on a single data point.
@@ -189,7 +190,7 @@ same when a single data point is selected.
 
 LIT uses a [complex selection model](https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#datapoint-selections)
 and different modules react to it differently. Salience Maps only care about the
-primary selection (the data point highlighted deep in the data table) in a slice
+primary selection (the data point highlighted in a deep cyan hue in the data table) in a slice
 of elements, whereas Feature Attribution uses the entire list of selected
 elements.
 
@@ -206,7 +207,7 @@ As we can see in this example, where we run both modules on a slice of 5
 elements, the Salience Maps module is only providing its output for the primary
 selection (data point 0), whereas the Tabular Feature Attribution module is
 providing values for the entire selection by enabling the checkbox of “Show
-attributions for selection”. This is interesting because we can use the salience
+attributions for selection”. This allows us to use the salience
 map module as a kind of magnifying glass to focus on any individual example even
 when we are considering a slice of examples in our exploration of the dataset.
 
