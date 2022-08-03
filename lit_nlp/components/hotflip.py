@@ -128,20 +128,19 @@ class HotFlip(lit_components.Generator):
 
   def config_spec(self) -> types.Spec:
     return {
-        NUM_EXAMPLES_KEY:
-            types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
-        MAX_FLIPS_KEY:
-            types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
-        TOKENS_TO_IGNORE_KEY:
-            types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
-        PREDICTION_KEY:
-            types.SingleFieldMatcher(
-                spec="output", types=["MulticlassPreds", "RegressionScore"]),
-        REGRESSION_THRESH_KEY:
-            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
+        NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
+        MAX_FLIPS_KEY: types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
+        TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
+        PREDICTION_KEY: types.FieldMatcher(spec="output",
+                                           types=["MulticlassPreds",
+                                                  "RegressionScore"]),
+        REGRESSION_THRESH_KEY: types.TextSegment(
+            default=str(REGRESSION_THRESH_DEFAULT)),
         FIELDS_TO_HOTFLIP_KEY:
             types.MultiFieldMatcher(
-                spec="input", types=["Tokens"], select_all=True),
+                spec="input",
+                types=["Tokens"],
+                select_all=True),
     }
 
   def _subset_exists(self, cand_set, sets):

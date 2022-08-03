@@ -29,7 +29,7 @@ import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FieldMatcher, LitTypeWithParent} from '../lib/lit_types';
+import {FieldMatcher, LitTypeOfFieldMatcher, LitTypeWithParent, MultiFieldMatcher} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
@@ -98,11 +98,10 @@ export class TrainingDataAttributionModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <tda-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </tda-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<tda-module model=${model} selectionServiceIndex=${
+        selectionServiceIndex}></tda-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -395,7 +394,7 @@ export class TrainingDataAttributionModule extends LitModule {
     // clang-format on
   }
 
-  override renderImpl() {
+  override render() {
     return html`
       <div class="module-container">
         <div class="module-content tda-module-content">
@@ -537,9 +536,11 @@ export class TrainingDataAttributionModule extends LitModule {
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher) {
-          fieldSpec.vocab =
-              this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
+        if (fieldSpec instanceof FieldMatcher ||
+            fieldSpec instanceof MultiFieldMatcher) {
+          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
+          fieldMatcher.vocab =
+              this.appState.getSpecKeysFromFieldMatcher(fieldMatcher, this.model);
         }
       }
       const runDisabled =

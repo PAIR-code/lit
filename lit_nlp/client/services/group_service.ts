@@ -150,8 +150,8 @@ export class GroupService extends LitService {
   @computed
   get booleanFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'BooleanLitType');
-    return names.concat(this.dataService.getColNamesOfType('BooleanLitType'));
+    const names = findSpecKeys(dataSpec, 'Boolean');
+    return names.concat(this.dataService.getColNamesOfType('Boolean'));
   }
 
   /** Get the names of all dense features (boolean, categorical, and numeric) */

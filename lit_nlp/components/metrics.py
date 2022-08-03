@@ -16,11 +16,12 @@
 
 import abc
 import collections
-from typing import Any, Callable, cast, Optional, Sequence, Union
+from typing import Any, Callable, cast, Optional, Sequence, Union, Dict, Text
 
 from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import classification_results
@@ -237,6 +238,35 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
                                            model_outputs, margin_config)
 
+class ExactMatchMetrics(SimpleMetrics):
+  """Standard regression metrics."""
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
+    """Return true if compatible with this field."""
+    return isinstance(pred_spec, types.GeneratedText) and isinstance(parent_spec, types.MultiSegmentAnnotations)
+
+  def compute(self,
+              inputs: Sequence[Sequence[dtypes.AnnotationCluster]],
+              preds: Sequence[JsonDict],
+              label_spec: types.MultiSegmentAnnotations,
+              pred_spec: types.GeneratedText,
+              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+    """Compute metric(s) between labels and predictions."""
+    del config
+    del label_spec
+    del pred_spec
+
+    if not inputs or not preds:
+      return {}
+
+    matches = 0
+    for annotations, pred in zip(inputs, preds):
+      answers = [annotation.label for annotation in annotations]
+      if any(pred == answer for answer in answers):
+        matches += 1
+
+    return {'pct_correct': matches/len(preds) * 100}
+
 
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
@@ -254,6 +284,8 @@ class RegressionMetrics(SimpleMetrics):
               pred_spec: types.RegressionScore,
               config: Optional[JsonDict] = None) -> dict[str, float]:
     """Compute metric(s) between labels and predictions."""
+    del label_spec
+    del pred_spec
     del config
 
     if not labels or not preds:
@@ -462,6 +494,10 @@ class CorpusBLEU(SimpleMetrics):
     if not labels or not preds:
       return {}
 
+    if any([not isinstance(label, str) for label in labels]):
+      logging.warning("Received non-string labels. Skipping.")
+      return {}
+
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
@@ -502,6 +538,10 @@ class RougeL(SimpleMetrics):
     del config
 
     if not labels or not preds:
+      return {}
+
+    if any([not isinstance(label, str) for label in labels]):
+      logging.warning("Received non-string labels. Skipping.")
       return {}
 
     name_suffix = ''

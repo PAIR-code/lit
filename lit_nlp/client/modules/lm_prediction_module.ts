@@ -40,11 +40,10 @@ export class LanguageModelPredictionModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
   static override numCols = 4;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <lm-prediction-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </lm-prediction-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<lm-prediction-module model=${model} selectionServiceIndex=${
+        selectionServiceIndex}></lm-prediction-module>`;
+  };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -227,7 +226,7 @@ export class LanguageModelPredictionModule extends LitModule {
     datapoint.data[textField] = newText;
   }
 
-  override renderImpl() {
+  override render() {
     return html`
       <div class='module-container'>
         ${this.renderControls()}

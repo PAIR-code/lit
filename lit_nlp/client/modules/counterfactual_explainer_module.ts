@@ -68,13 +68,11 @@ export class CounterfactualExplainerModule extends LitModule {
   static override numCols = 10;
   static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-  <counterfactual-explainer-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </counterfactual-explainer-module>`;
-      };
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<counterfactual-explainer-module model=${
+        model} selectionServiceIndex=${
+        selectionServiceIndex}></counterfactual-explainer-module>`;
+  };
 
   @property({type: String}) override model = '';
   @property({type: Number}) override selectionServiceIndex = 0;
@@ -269,7 +267,7 @@ export class CounterfactualExplainerModule extends LitModule {
     `;
   }
 
-  override renderImpl() {
+  override render() {
     const salience = this.state.salience;
     const cmap = this.state.cmap;
 

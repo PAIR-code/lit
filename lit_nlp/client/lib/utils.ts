@@ -29,7 +29,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
-import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
+import {FacetMap, LitMetadata, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -106,16 +106,26 @@ export function createLitType(
   const newType = new (litType as any)();
   newType.__name__ = typeName;
 
+  // Excluded properties are passed through in the Python serialization
+  // of LitTypes and can be ignored by the frontend.
+  const excluded = ['__mro__'];
   for (const key in constructorParams) {
-    if (key in newType) {
+    if (excluded.includes(key)) {
+      continue;
+    } else if (key in newType) {
       newType[key] = constructorParams[key];
     } else {
       throw new Error(
-          `Attempted to set unrecognized property ${key} on ${typeName}.`);
+          `Attempted to set unrecognized property ${key} on ${newType}.`);
     }
   }
 
   return newType;
+}
+
+
+interface SerializedSpec {
+  [key: string]: {__name__: string};
 }
 
 /**
@@ -130,10 +140,11 @@ export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec 
   return typedSpec;
 }
 
+
 /**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
-export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata) :
+export function deserializeLitTypesInLitMetadata(metadata: LitMetadata):
     LitMetadata {
   for (const model of Object.keys(metadata.models)) {
     metadata.models[model].spec.input =
@@ -161,6 +172,7 @@ export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata
         deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
   }
 
+  metadata.littypes = deserializeLitTypesInSpec(metadata.littypes);
   return metadata;
 }
 

@@ -29,13 +29,6 @@ export interface Spec {
   [key: string]: LitType;
 }
 
-/** Serialized Spec data returned from the backend. */
-export interface SerializedSpec {
-  // All LitTypes have a `__name__` field; we deserialize and cast the
-  // LitType before accessing additional fields.
-  [key: string]: {__name__: string};
-}
-
 export interface ComponentInfo {
   configSpec: Spec;
   metaSpec: Spec;
@@ -84,6 +77,7 @@ export interface LitMetadata {
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;
+  littypes: Spec;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
@@ -92,14 +86,6 @@ export interface LitMetadata {
   onboardStartDoc?: string;
   onboardEndDoc?: string;
 }
-
-/**
- * Serialized LitMetadata returned by the backend.
- */
-export type SerializedLitMetadata = {
-  // tslint:disable-next-line:no-any
-  [K in keyof LitMetadata]: any;
-};
 
 export interface Input {
   // tslint:disable-next-line:no-any
@@ -201,7 +187,7 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
 /**
  * Element of GeneratedTextCandidates and ReferenceTexts fields.
  */
-export type GeneratedTextCandidate = [string, number | null];
+export type GeneratedTextCandidate = [text: string, score: number | null];
 
 /**
  * Info about individual classifications including computed properties.
@@ -297,8 +283,7 @@ export type ServiceUser = object;
 export interface LitModuleClass {
   title: string;
   template:
-      (modelName: string, selectionServiceIndex: number,
-       shouldReact: number) => TemplateResult;
+      (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
   shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;

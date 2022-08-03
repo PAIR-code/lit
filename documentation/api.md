@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-07-29' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-19' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -590,12 +590,11 @@ The following [types](#available-types) are supported (see
 *   `Tokens`, which creates an input text box for entry of multiple,
     comma-separated strings which are parsed into a list of strings to be
     supplied to the interpreter.
-*   `SingleFieldMatcher`, which acts like a `CategoryLabel` but where the vocab
-    is automatically populated by the names of fields from the data or model
-    spec. For example, `SingleFieldMatcher(spec='dataset',
-    types=['TextSegment'])` will give a dropdown with the names of all
-    `TextSegment` fields in the dataset.
-*   `MultiFieldMatcher` is similar to `SingleFieldMatcher` except it gives a set of
+*   `FieldMatcher`, which acts like a `CategoryLabel` but where the vocab is
+    automatically populated by the names of fields from the data or model spec.
+    For example, `FieldMatcher(spec='dataset', types=['TextSegment'])` will give
+    a dropdown with the names of all `TextSegment` fields in the dataset.
+*   `MultiFieldMatcher` is similar to `FieldMatcher` except it gives a set of
     checkboxes to select one or more matching field names. The returned value in
     `config` will be a list of string values.
 

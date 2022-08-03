@@ -24,9 +24,10 @@ import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
+
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {BooleanLitType, EdgeLabels, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SpanLabels, SparseMultilabel, StringLitType} from '../lib/lit_types';
+import {ListLitType, LitTypeWithVocab, SparseMultilabel, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -46,11 +47,10 @@ type InputConverterFn = (s: string) => string|number|string[]|boolean;
 export class DatapointEditorModule extends LitModule {
   static override title = 'Datapoint Editor';
   static override numCols = 2;
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-      <datapoint-editor-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </datapoint-editor-module>`;
+  static override template = (model = '', selectionServiceIndex = 0) => {
+    return html`<datapoint-editor-module selectionServiceIndex=${
+        selectionServiceIndex}></datapoint-editor-module>`;
+  };
 
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
@@ -247,7 +247,7 @@ export class DatapointEditorModule extends LitModule {
     this.editedData = data;
   }
 
-  override renderImpl() {
+  override render() {
     // Scrolling inside this module is done inside a div with ID 'container'.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
@@ -551,15 +551,15 @@ export class DatapointEditorModule extends LitModule {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
-    } else if (fieldSpec instanceof SpanLabels) {
+    } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
       renderInput = renderSpanLabelsNonEditable;
-    } else if (fieldSpec instanceof EdgeLabels) {
+    } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
       renderInput = renderEdgeLabelsNonEditable;
-    } else if (fieldSpec instanceof MultiSegmentAnnotations) {
+    } else if (isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
       renderInput = renderMultiSegmentAnnotationsNonEditable;
-    } else if (fieldSpec instanceof ImageBytes) {
+    } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
       renderInput = renderImage;
-    } else if (fieldSpec instanceof BooleanLitType) {
+    } else if (isLitSubtype(fieldSpec, 'Boolean')) {
       renderInput = renderBoolean;
     } else {
       entryContentClasses['entry-content-long'] = true;

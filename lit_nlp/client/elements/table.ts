@@ -40,15 +40,10 @@ import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
 
 import {styles} from './table.css';
 
-/** Function for supplying table entry template result based on row state. */
-export type TemplateResultFn =
-    (isSelected: boolean, isPrimarySelection: boolean,
-     isReferenceSelection: boolean, isFocused: boolean) => TemplateResult;
-
 type SortableTableEntry = string|number;
 /** Wrapper type for sortable custom data table entries */
 export interface SortableTemplateResult {
-  template: TemplateResult|TemplateResultFn;
+  template: TemplateResult;
   value: SortableTableEntry;
 }
 /** Wrapper types for the data supplied to the data table */
@@ -167,10 +162,6 @@ export class DataTable extends ReactiveElement {
   private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
   private hoveredIndex: number|null = null;
-
-  // Timeout to not spam hover events as a mouse moves over the table.
-  private readonly HOVER_TIMEOUT_MS = 3;
-  private hoverTimeoutId: number|null = null;
 
   override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.holder')!;
@@ -563,32 +554,21 @@ export class DataTable extends ReactiveElement {
 
   /** Logic for handling row hover */
   private handleRowMouseEnter(e: MouseEvent, dataIndex: number) {
-    if (this.hoverTimeoutId != null) {
-      clearTimeout(this.hoverTimeoutId);
+    this.hoveredIndex = dataIndex;
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
     }
-
-    this.hoverTimeoutId = setTimeout(() => {
-      this.hoveredIndex = dataIndex;
-      if (this.onHover != null) {
-        this.onHover(this.hoveredIndex);
-      }
-    }, this.HOVER_TIMEOUT_MS);
   }
-
   private handleRowMouseLeave(e: MouseEvent, dataIndex: number) {
-    if (this.hoverTimeoutId != null) {
-      clearTimeout(this.hoverTimeoutId);
+    if (dataIndex === this.hoveredIndex) {
+      this.hoveredIndex = null;
     }
 
-    this.hoverTimeoutId = setTimeout(() => {
-      if (dataIndex === this.hoveredIndex) {
-        this.hoveredIndex = null;
-      }
-
-      if (this.onHover != null) {
-        this.onHover(this.hoveredIndex);
-      }
-    }, this.HOVER_TIMEOUT_MS);
+    if (this.onHover != null) {
+      this.onHover(this.hoveredIndex);
+      return;
+    }
   }
 
   @action
@@ -935,18 +915,9 @@ export class DataTable extends ReactiveElement {
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
         return html`<img class='table-img' src=${d.toString()}>`;
       }
-      if (isTemplateResult(d)) {
-        return d;
-      }
-      if (d.constructor === Object) {
-        let templateResult = null;
-        const t = (d as SortableTemplateResult).template;
-        if (typeof t === 'function') {
-          templateResult = t(
-            isSelected, isPrimarySelection, isReferenceSelection, isFocused);
-        } else {
-          templateResult = t;
-        }
+      if (isTemplateResult(d) || d.constructor === Object) {
+        const templateResult =
+            isTemplateResult(d) ? d : (d as SortableTemplateResult).template;
         return html`${templateResult}`;
       }
 

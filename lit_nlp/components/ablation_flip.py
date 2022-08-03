@@ -197,7 +197,7 @@ class AblationFlip(lit_components.Generator):
         MAX_ABLATIONS_KEY: types.TextSegment(
             default=str(MAX_ABLATIONS_DEFAULT)),
         PREDICTION_KEY:
-            types.SingleFieldMatcher(
+            types.FieldMatcher(
                 spec="output", types=["MulticlassPreds", "RegressionScore"]),
         REGRESSION_THRESH_KEY:
             types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),

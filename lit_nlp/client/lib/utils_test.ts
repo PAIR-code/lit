@@ -22,7 +22,6 @@
 import 'jasmine';
 
 import * as litTypes from '../lib/lit_types';
-import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
 
 import * as utils from './utils';
@@ -195,16 +194,21 @@ describe('createLitType test', () => {
 });
 
 describe('deserializeLitTypesInSpec test', () => {
+  // TODO(b/162269499): Add test for deserializeLitTypesInLitMetadata.
   const testSpec = {
     'probabilities': {
+      '__class__': 'LitType',
       '__name__': 'MulticlassPreds',
+      '__mro__': ['MulticlassPreds', 'LitType', 'object'],
       'required': true,
       'vocab': ['0', '1'],
       'null_idx': 0,
       'parent': 'label'
     },
     'pooled_embs': {
+      '__class__': 'LitType',
       '__name__': 'Embeddings',
+      '__mro__': ['Embeddings', 'LitType', 'object'],
       'required': true
     }
   };
@@ -221,15 +225,6 @@ describe('deserializeLitTypesInSpec test', () => {
         .toBe(true);
   });
 });
-
-describe('deserializeLitTypesInLitMetadata test', () => {
-  it('deserializes lit metadata', () => {
-    const result =
-        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
-    expect(result).toEqual(mockMetadata);
-  });
-});
-
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
     const testType = utils.createLitType('StringLitType');

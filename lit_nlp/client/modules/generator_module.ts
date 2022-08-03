@@ -27,7 +27,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
-import {FieldMatcher, LitName} from '../lib/lit_types';
+import {FieldMatcher, LitName, LitTypeOfFieldMatcher, MultiFieldMatcher} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, formatForDisplay, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {flatten, isLitSubtype} from '../lib/utils';
@@ -89,11 +89,9 @@ export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
   static override numCols = 10;
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <generator-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </generator-module>`;
+  static override template = () => {
+    return html`<generator-module></generator-module>`;
+  };
 
   static override duplicateForModelComparison = false;
   private readonly groupService = app.getService(GroupService);
@@ -230,7 +228,7 @@ export class GeneratorModule extends LitModule {
     }
   }
 
-  override renderImpl() {
+  override render() {
     return html`
       <div class="module-container">
         <div class="module-content generator-module-content">
@@ -458,9 +456,11 @@ export class GeneratorModule extends LitModule {
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher) {
-          fieldSpec.vocab = this.appState.getSpecKeysFromFieldMatcher(
-              fieldSpec, this.modelName);
+        if (fieldSpec instanceof FieldMatcher ||
+            fieldSpec instanceof MultiFieldMatcher) {
+          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
+          fieldMatcher.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldMatcher, this.modelName);
         }
       }
       return html`

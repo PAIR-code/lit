@@ -28,7 +28,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {SingleFieldMatcher} from '../lib/lit_types';
+import {FieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
@@ -100,18 +100,17 @@ export class FeatureAttributionModule extends LitModule {
     });
   }
 
-  static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) =>
-          html`
-      <feature-attribution-module model=${model} .shouldReact=${shouldReact}
-        selectionServiceIndex=${selectionServiceIndex}>
-      </feature-attribution-module>`;
+  static override template(model = '') {
+    // clang-format off
+    return html`<feature-attribution-module model=${model}>
+                </feature-attribution-module>`;
+    // clang format on
+  }
 
   // ---- Instance Properties ----
 
   private readonly groupService = app.getService(GroupService);
   private readonly colorMap = new SignedSalienceCmap();
-  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable private startsOpen?: string;
   @observable private isColored = false;
@@ -124,19 +123,6 @@ export class FeatureAttributionModule extends LitModule {
     'model': this.hasIntrinsicSalience,
     [SELECTION]: false
   };
-
-  constructor() {
-    super();
-
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.features = event.detail.features;
-      this.bins = event.detail.bins;
-    };
-
-    this.facetingControl.contextName = FeatureAttributionModule.title;
-    this.facetingControl.addEventListener(
-        'facets-change', facetsChange as EventListener);
-  }
 
   @computed
   private get facets() {
@@ -228,7 +214,7 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo instanceof SingleFieldMatcher) {
+      if (configInfo instanceof FieldMatcher) {
         if (configInfo.default) {
           defaultCallConfig[configKey] = configInfo.default;
         } else if (configInfo.vocab && configInfo.vocab.length) {
@@ -312,13 +298,17 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   private renderSecondaryControls() {
-    const change = () => {
-      this.isColored = !this.isColored;
+    const change = () => {this.isColored = !this.isColored;};
+    const updateFacets = (event: CustomEvent<FacetsChange>) => {
+      this.features = event.detail.features;
+      this.bins = event.detail.bins;
     };
 
     // clang-format off
     return html`
-        ${this.facetingControl}
+        <faceting-control @facets-change=${updateFacets}
+                          contextName=${FeatureAttributionModule.title}>
+        </faceting-control>
         <span style="felx: 1 1 auto;"></span>
         <lit-checkbox label="Heatmap" ?checked=${this.isColored}
                       @change=${() => {change();}}>
@@ -358,7 +348,7 @@ export class FeatureAttributionModule extends LitModule {
     for (const fieldSpec of Object.values(clonedSpec)) {
       // If the interpreter uses a field matcher, then get the matching field
       // names from the specified spec and use them as the vocab.
-      if (fieldSpec instanceof SingleFieldMatcher) {
+      if (fieldSpec instanceof FieldMatcher) {
         fieldSpec.vocab =
             this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }
@@ -428,7 +418,7 @@ export class FeatureAttributionModule extends LitModule {
     this.updateSummaries();
   }
 
-  override renderImpl() {
+  override render() {
     // clang-format off
     return html`
       <div class='module-container'>

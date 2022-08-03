@@ -305,7 +305,7 @@ class TabularMTC(lit_components.Generator):
             lit_types.Scalar(
                 min_val=1, max_val=10, default=MAX_FLIPS_DEFAULT, step=1),
         PREDICTION_KEY:
-            lit_types.SingleFieldMatcher(
+            lit_types.FieldMatcher(
                 spec='output', types=['MulticlassPreds', 'RegressionScore']),
         REGRESSION_THRESH_KEY:
             lit_types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
