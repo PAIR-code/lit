@@ -131,6 +131,17 @@ export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec 
 }
 
 /**
+ * Returns a deep copy of the given spec.
+ */
+export function cloneSpec(spec: Spec): Spec {
+  const newSpec: Spec = {};
+  for (const [key, fieldSpec] of Object.entries(spec)) {
+    newSpec[key] = createLitType(fieldSpec.__name__, fieldSpec as {});
+  }
+  return newSpec;
+}
+
+/**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
 export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata) :

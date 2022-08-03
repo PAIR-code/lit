@@ -30,7 +30,7 @@ import {TableData, TableEntry} from '../elements/table';
 import {FieldMatcher, LitName} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, formatForDisplay, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {flatten, isLitSubtype} from '../lib/utils';
+import {cloneSpec, flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService, SliceService} from '../services/services';
 
@@ -453,7 +453,7 @@ export class GeneratorModule extends LitModule {
         <div class="generators-panel">
           ${generators.map(genName => {
       const spec = generatorsInfo[genName].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       const description = generatorsInfo[genName].description;
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching

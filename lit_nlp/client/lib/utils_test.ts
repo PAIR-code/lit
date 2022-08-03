@@ -230,6 +230,31 @@ describe('deserializeLitTypesInLitMetadata test', () => {
   });
 });
 
+describe('cloneSpec test', () => {
+  const testSpec = {
+    'probabilities': utils.createLitType('MulticlassPreds', {
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    })
+  };
+
+  it('deeply copies', () => {
+    const testSpec2 = utils.cloneSpec(testSpec);
+
+    const oldProbs = testSpec['probabilities'] as litTypes.MulticlassPreds;
+    const newProbs = testSpec2['probabilities'] as litTypes.MulticlassPreds;
+
+    newProbs.null_idx = 1;
+    expect(oldProbs.null_idx).toEqual(0);
+    expect(newProbs.null_idx).toEqual(1);
+
+    expect(testSpec2['probabilities'] instanceof litTypes.MulticlassPreds)
+        .toBe(true);
+  });
+});
+
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
     const testType = utils.createLitType('StringLitType');

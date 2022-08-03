@@ -31,7 +31,7 @@ import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, ge
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {FieldMatcher, LitTypeWithParent} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {filterToKeys, findSpecKeys} from '../lib/utils';
+import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -532,7 +532,7 @@ export class TrainingDataAttributionModule extends LitModule {
 
     return this.compatibleGenerators.map((genName, i) => {
       const spec = generatorsInfo[genName].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       const description = generatorsInfo[genName].description;
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching

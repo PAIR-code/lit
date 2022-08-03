@@ -29,8 +29,8 @@ import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
 import {FieldMatcher} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {createLitType, findSpecKeys} from '../lib/utils';
+import {CallConfig, IndexedInput, Input, ModelInfoMap} from '../lib/types';
+import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
@@ -382,7 +382,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format off
     const renderInterpreterControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.

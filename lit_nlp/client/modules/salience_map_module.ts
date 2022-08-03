@@ -34,7 +34,7 @@ import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitName, FieldMatcher, Salience} from '../lib/lit_types';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {cloneSpec, findSpecKeys, isLitSubtype} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusData, FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
@@ -365,7 +365,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format off
     const renderMethodControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
