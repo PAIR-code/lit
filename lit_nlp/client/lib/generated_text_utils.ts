@@ -20,7 +20,8 @@
  */
 import difflib from 'difflib';
 
-import {GeneratedTextCandidate, IndexedInput, Input, LitName, Preds, Spec} from './types';
+import {LitName, LitTypeWithParent} from './lit_types';
+import {GeneratedTextCandidate, IndexedInput, Input, Preds, Spec} from './types';
 import {findSpecKeys, isLitSubtype} from './utils';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
@@ -89,7 +90,7 @@ export function getAllReferenceTexts(
   // Search input fields: anything referenced in model's output spec
   const inputReferenceKeys = new Set<string>();
   for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
-    const parent = outputSpec[outKey].parent;
+    const {parent} = outputSpec[outKey] as LitTypeWithParent;
     if (parent && dataSpec[parent]) {
       inputReferenceKeys.add(parent);
     }

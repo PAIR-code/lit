@@ -20,9 +20,9 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
-import {createLitType} from '../lib/lit_types_utils';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
+import {createLitType} from '../lib/utils';
 import {ApiService, AppState, ClassificationService, SettingsService, StatusService} from '../services/services';
 import {ColumnData, DataService} from './data_service';
 

@@ -31,6 +31,7 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {MulticlassPreds} from '../lib/lit_types';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap} from '../services/color_service';
@@ -282,7 +283,8 @@ export class CounterfactualExplainerModule extends LitModule {
       this.selectedPredKey = predKeys[0];
     }
 
-    const predictionLabels = outputSpec[this.selectedPredKey].vocab;
+    const predictionLabels =
+        (outputSpec[this.selectedPredKey] as MulticlassPreds).vocab;
     const classes: number[] =
         (predictionLabels == null) ? [] : range(predictionLabels.length);
     if (!classes.includes(this.selectedClass)) {

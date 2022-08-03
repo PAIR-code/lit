@@ -18,8 +18,9 @@
 import 'jasmine';
 
 import {canonicalizeGenerationResults, getAllOutputTexts, getAllReferenceTexts, getFlatTexts, getTextDiff} from './generated_text_utils';
-import {createLitType} from './lit_types_utils';
-import {Input, LitType, Preds, Spec} from './types';
+import {LitType} from './lit_types';
+import {Input, Preds, Spec} from './types';
+import {createLitType} from './utils';
 
 function textSegmentType(): LitType {
   return createLitType('TextSegment', {

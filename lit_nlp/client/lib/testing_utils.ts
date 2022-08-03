@@ -17,8 +17,8 @@
 
 import 'jasmine';
 
-import {createLitType} from './lit_types_utils';
 import {LitMetadata} from './types';
+import {createLitType} from './utils';
 
 /**
  * Cleans state between tests.

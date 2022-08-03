@@ -27,10 +27,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {createLitType} from '../lib/lit_types_utils';
+import {FieldMatcher, LitTypeOfFieldMatcher, MultiFieldMatcher} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {createLitType, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
@@ -386,14 +386,14 @@ export class SalienceClusteringModule extends LitModule {
     const renderInterpreterControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
       const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-      for (const fieldName of Object.keys(clonedSpec)) {
+      for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName],
-                         ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+        if (fieldSpec instanceof FieldMatcher ||
+            fieldSpec instanceof MultiFieldMatcher) {
+          const fieldMatcher = fieldSpec as LitTypeOfFieldMatcher;
+          fieldMatcher.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldMatcher, this.model);
         }
       }
       if (Object.keys(clonedSpec).length === 0) {

@@ -28,10 +28,10 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {createLitType} from '../lib/lit_types_utils';
+import {MulticlassPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
@@ -142,14 +142,14 @@ export class TCAVModule extends LitModule {
   get predClasses() {
     const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].vocab!;
+    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
     const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].null_idx!;
+    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).null_idx;
   }
 
   override firstUpdated() {

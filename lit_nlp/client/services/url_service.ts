@@ -17,8 +17,8 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, listFieldTypes, ServiceUser, Spec} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
+import {ListLitType} from '../lib/lit_types';
+import {defaultValueByField, IndexedInput, Input, ServiceUser, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
 
@@ -139,7 +139,7 @@ export class UrlService extends LitService {
   private parseDataFieldValue(fieldKey: string, encoded: string, spec: Spec) {
     const fieldSpec = spec[fieldKey];
     // If array type, unpack as an array.
-    if (isLitSubtype(fieldSpec, listFieldTypes)) {
+    if (fieldSpec instanceof ListLitType) {
       return this.urlParseArray(encoded);
     } else {  // String-like.
       return this.urlParseString(encoded) ??
