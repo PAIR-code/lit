@@ -79,11 +79,12 @@ interface IndexedScalars {
 export class ScalarModule extends LitModule {
   static override title = 'Scalars';
   static override numCols = 4;
-  static override template = (model = '') => {
-    return html`
-      <scalar-module model=${model}>
-      </scalar-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <scalar-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </scalar-module>`;
   static maxPlotWidth = 900;
   static minPlotHeight = 100;
   static maxPlotHeight = 220;  // too sparse if taller than this
@@ -513,8 +514,11 @@ export class ScalarModule extends LitModule {
    * Sets up the scatterplot svgs, axes, and point groups.
    */
   private makePlot() {
-    const container = this.shadowRoot!.getElementById('container')!;
-    if (!container.offsetHeight || !container.offsetWidth) {return;}
+    const container = this.shadowRoot!.getElementById('container');
+    if (container == null || !container.offsetHeight ||
+        !container.offsetWidth) {
+      return;
+    }
 
     const scatterplots =
         this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
@@ -743,6 +747,10 @@ export class ScalarModule extends LitModule {
     }
   }
 
+  // Purposely overridding render() as opposed to renderImpl() as scalars are a
+  // special case where the render pass here is just a set up for the containers
+  // and the true rendering happens in reactions, due to the nature of this
+  // module.
   override render() {
     this.numPlotsRendered = 0;
 

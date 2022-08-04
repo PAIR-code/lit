@@ -63,33 +63,14 @@ class LitType(metaclass=abc.ABCMeta):
   def to_json(self) -> JsonDict:
     """Used by serialize.py."""
     d = attr.asdict(self)
-    d["__class__"] = "LitType"
     d["__name__"] = self.__class__.__name__
-    # All parent classes, from method resolution order (mro).
-    # Use this to check inheritance on the frontend.
-    d["__mro__"] = [a.__name__ for a in self.__class__.__mro__]
     return d
 
   @staticmethod
   def from_json(d: JsonDict):
     """Used by serialize.py."""
     cls = globals()[d.pop("__name__")]  # class by name from this module
-    del d["__mro__"]
     return cls(**d)
-
-  # TODO(b/162269499): remove this once we have a proper implementation of
-  # these types on the frontend.
-  @classmethod
-  def cls_to_json(cls) -> JsonDict:
-    """Serialize class info to JSON."""
-    d = {}
-    d["__class__"] = "type"
-    d["__name__"] = cls.__name__
-    # All parent classes, from method resolution order (mro).
-    # Use this to check inheritance on the frontend.
-    d["__mro__"] = [a.__name__ for a in cls.mro()]
-    return d
-
 
 Spec = Dict[Text, LitType]
 
@@ -116,25 +97,6 @@ def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
     new_value = _remap_leaf(v, keymap)
     ret[new_key] = new_value
   return ret
-
-
-# TODO(b/162269499): remove this once we have a proper implementation of
-# these types on the frontend.
-def all_littypes(ignore_private=True):
-  """Return json of class info for all LitType classes."""
-
-  def all_subclasses(cls):
-    # pylint: disable=g-complex-comprehension
-    types_set = set(cls.__subclasses__()).union(
-        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
-    # pylint: enable=g-complex-comprehension
-    return list(types_set)
-
-  classes = all_subclasses(LitType)
-  if ignore_private:
-    classes = [c for c in classes if not c.__name__.startswith("_")]
-
-  return {cls.__name__: cls.cls_to_json() for cls in classes}
 
 
 ##
@@ -184,7 +146,6 @@ class ImageBytesList(ListLitType):
   """A list of strings."""
   default: Sequence[Text] = []
 
-
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringCandidateList(ListLitType):
   """A list of (text, score) tuples."""
@@ -215,7 +176,7 @@ class TopTokens(_StringCandidateList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class URL(TextSegment):
+class URLLitType(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass
 
@@ -467,8 +428,7 @@ class FieldMatcher(LitType):
   """For matching spec fields.
 
   The front-end will perform spec matching and fill in the vocab field
-  accordingly. UI will materialize this to a dropdown-list.
-  Use MultiFieldMatcher when your intent is selecting more than one field in UI.
+  accordingly.
   """
   spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
   types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
@@ -476,17 +436,21 @@ class FieldMatcher(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class MultiFieldMatcher(LitType):
-  """For matching spec fields.
+class SingleFieldMatcher(FieldMatcher):
+  """For matching a single spec field.
 
-  The front-end will perform spec matching and fill in the vocab field
-  accordingly. UI will materialize this to multiple checkboxes. Use this when
-  the user needs to pick more than one field in UI.
+  UI will materialize this to a dropdown-list.
   """
-  spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
-  types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
-  vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+  default: Text = None
 
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MultiFieldMatcher(FieldMatcher):
+  """For matching multiple spec fields.
+
+  UI will materialize this to multiple checkboxes. Use this when the user needs
+  to pick more than one field in UI.
+  """
   default: Sequence[Text] = []  # default names of selected items.
   select_all: bool = False  # Select all by default (overriddes default).
 
@@ -527,7 +491,7 @@ class SequenceSalience(Salience):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class Boolean(LitType):
+class BooleanLitType(LitType):
   """Boolean value."""
   default: bool = False
 
@@ -555,3 +519,10 @@ class InfluentialExamples(LitType):
 
 
 # LINT.ThenChange(../client/lib/lit_types.ts)
+
+# Type aliases for backend use.
+# The following names are existing datatypes in TypeScript, so we add a
+# `LitType` suffix to avoid collisions with language features on the front-end.
+Boolean = BooleanLitType
+String = StringLitType
+URL = URLLitType

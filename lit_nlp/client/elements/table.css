@@ -155,7 +155,7 @@ tbody tr.primary-selected {
 }
 
 tbody tr.focused {
-  background: rgba(255, 0, 0, 0.2);
+  background: var(--lit-mage-200);
   transition-duration: 0.2s;
   transition-property: background-color;
 }

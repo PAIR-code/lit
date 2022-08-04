@@ -11,7 +11,7 @@ class TypesTest(googletest.TestCase):
     self.assertIsInstance(lit_type.default, str)
 
   def test_inherit_parent_default_value(self):
-    lit_type = types.FieldMatcher(spec="dataset", types=["LitType"])
+    lit_type = types.SingleFieldMatcher(spec="dataset", types=["LitType"])
     self.assertIsNone(lit_type.default)
 
   def test_requires_parent_custom_properties(self):

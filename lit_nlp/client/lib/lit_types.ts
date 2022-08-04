@@ -47,17 +47,9 @@ type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 @registered
 export class LitType {
   // tslint:disable:enforce-name-casing
-  __class__: LitClass|'type' = 'LitType';
-  // TODO(b/162269499): Replace this with LitName, when created.
-  // tslint:disable-next-line:no-any
-  __name__: any|undefined;
-  // TODO(b/162269499): __mro__ is included here to temporarily ensure
-  // type equivalence betwen the old `LitType` and new `LitType`.
-  __mro__: string[] = [];
-  readonly required: boolean = true;
-  // TODO(b/162269499): Replace this with `unknown` after migration.
-  // tslint:disable-next-line:no-any
-  readonly default: any|undefined = null;
+  __name__: LitName = 'LitType';
+  required: boolean = true;
+  default: unknown = undefined;
   // If this type is created from an Annotator.
   annotated: boolean = false;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.
@@ -118,13 +110,6 @@ export class ListLitType extends LitType {
 }
 
 /**
- * A list of Image bytes.
- */
-@registered
-export class ImageBytesList extends ListLitType {
-
-}
-/**
  * A list of (text, score) tuples.
  */
 class _StringCandidateList extends ListLitType {
@@ -159,7 +144,7 @@ export class TopTokens extends _StringCandidateList {
  * TextSegment that should be interpreted as a URL.
  */
 @registered
-export class URL extends TextSegment {
+export class URLLitType extends TextSegment {
 }
 
 /**
@@ -444,17 +429,12 @@ export class SparseMultilabelPreds extends _StringCandidateList {
   parent?: string = undefined;
 }
 
-// TODO(b/162269499): Rename FieldMatcher to SingleFieldMatcher.
-/** A type alias for FieldMatcher or MultiFieldMatcher. */
-export type LitTypeOfFieldMatcher = FieldMatcher|MultiFieldMatcher;
 
 /**
  * For matching spec fields.
  *
  * The front-end will perform spec matching and fill in the vocab field
  * accordingly. UI will materialize this to a dropdown-list.
- * Use MultiFieldMatcher when your intent is selecting more than one field in
- * UI.
  */
 @registered
 export class FieldMatcher extends LitType {
@@ -466,21 +446,22 @@ export class FieldMatcher extends LitType {
   vocab?: string[] = undefined;
 }
 
+
 /**
- * For matching spec fields.
- * The front-end will perform spec matching and fill in the vocab field
- * accordingly. UI will materialize this to multiple checkboxes. Use this when
- * the user needs to pick more than one field in UI.
+ * For matching a single spec field.
+ * UI will materialize this to a dropdown-list.
  */
 @registered
-export class MultiFieldMatcher extends LitType {
-  /** Which spec to check, 'dataset', 'input', or 'output'. */
-  spec: string = 'dataset';
-  /** Types of LitType to match in the spec. */
-  types: string|string[] = '';
-  /** Names matched from the spec. */
-  vocab?: string[] = undefined;
+export class SingleFieldMatcher extends FieldMatcher {
+  override default: string = '';
+}
 
+/**
+ * For matching multiple spec fields.
+ * UI will materialize this to multiple checkboxes. Use this when the user needs to pick more than one field in UI.
+ */
+@registered
+export class MultiFieldMatcher extends FieldMatcher {
   /** Default names of selected items. */
   override default: string[] = [];
   /** Select all by default (overrides default). */
@@ -533,7 +514,7 @@ export class SequenceSalience extends Salience {
  * A boolean value.
  */
 @registered
-export class Boolean extends LitType {
+export class BooleanLitType extends LitType {
   override default : boolean = false;
 }
 
