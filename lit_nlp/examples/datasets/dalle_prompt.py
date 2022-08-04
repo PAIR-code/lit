@@ -2,10 +2,10 @@
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-import pandas as pd
 
 class Dalle(lit_dataset.Dataset):
-  """TyDiQA dataset."""
+  """Example prompts dataset for use with Dall-E 
+  and other text-to-image generative models."""
 
   def __init__(self):
 
