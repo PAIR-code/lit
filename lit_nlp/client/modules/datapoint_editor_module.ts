@@ -26,7 +26,7 @@ import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {BooleanLitType, EdgeLabels, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SpanLabels, SparseMultilabel, StringLitType, URLLitType} from '../lib/lit_types';
+import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype} from '../lib/utils';
@@ -97,7 +97,7 @@ export class DatapointEditorModule extends LitModule {
   @computed
   get sparseMultilabelInputKeys(): string[] {
     const spec = this.appState.currentDatasetSpec;
-    return findSpecKeys(spec, 'SparseMultilabel');
+    return findSpecKeys(spec, SparseMultilabel);
   }
 
   private calculateQuantileLengthsForFields(
@@ -528,7 +528,7 @@ export class DatapointEditorModule extends LitModule {
     const renderTokensInput = () => {
       return this.renderTokensInput(
           key, value, handleInputChange,
-          !isLitSubtype(fieldSpec, 'Embeddings'));
+          !(fieldSpec instanceof Embeddings));
     };
 
     let renderInput = renderFreeformInput;  // default: free text
@@ -539,15 +539,15 @@ export class DatapointEditorModule extends LitModule {
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const {vocab} = fieldSpec as LitTypeWithVocab;
-    if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+    if (vocab != null && !(fieldSpec instanceof SparseMultilabel)) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(fieldSpec, [
-                 'Tokens', 'SequenceTags', 'Embeddings', 'SparseMultilabel'
-               ])) {
+    } else if (isLitSubtype(
+                   fieldSpec,
+                   [Tokens, SequenceTags, Embeddings, SparseMultilabel])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
@@ -592,7 +592,7 @@ export class DatapointEditorModule extends LitModule {
           ${headerContent}
           <mwc-icon class="icon-button">open_in_new</mwc-icon>
         </a>`;
-    } else if (isLitSubtype(fieldSpec, 'SearchQuery')) {
+    } else if (fieldSpec instanceof SearchQuery) {
       const params = new URLSearchParams();
       params.set('q', value);
       headerContent = html`

@@ -20,6 +20,7 @@ import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
+import {MultiSegmentAnnotations, TextSegment} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
 
@@ -51,12 +52,12 @@ export class AnnotatedTextGoldModule extends LitModule {
     const dataSpec = this.appState.currentDatasetSpec;
 
     // Text segment fields
-    const segmentNames = findSpecKeys(dataSpec, 'TextSegment');
+    const segmentNames = findSpecKeys(dataSpec, TextSegment);
     const segments: TextSegments = filterToKeys(input.data, segmentNames);
     const segmentSpec = filterToKeys(dataSpec, segmentNames);
 
     // Annotation fields
-    const annotationNames = findSpecKeys(dataSpec, 'MultiSegmentAnnotations');
+    const annotationNames = findSpecKeys(dataSpec, MultiSegmentAnnotations);
     const annotations: AnnotationGroups =
         filterToKeys(input.data, annotationNames);
     const annotationSpec = filterToKeys(dataSpec, annotationNames);
@@ -80,7 +81,7 @@ export class AnnotatedTextGoldModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return findSpecKeys(datasetSpec, 'MultiSegmentAnnotations').length > 0;
+    return findSpecKeys(datasetSpec, MultiSegmentAnnotations).length > 0;
   }
 }
 
@@ -139,7 +140,7 @@ export class AnnotatedTextModule extends LitModule {
     if (!this.currentData) return null;
 
     const segmentNames =
-        findSpecKeys(this.appState.currentDatasetSpec, 'TextSegment');
+        findSpecKeys(this.appState.currentDatasetSpec, TextSegment);
     const segments: TextSegments =
         filterToKeys(this.currentData.data, segmentNames);
     const segmentSpec =
@@ -147,7 +148,7 @@ export class AnnotatedTextModule extends LitModule {
 
     const outputSpec = this.appState.getModelSpec(this.model).output;
     const annotationSpec = filterToKeys(
-        outputSpec, findSpecKeys(outputSpec, 'MultiSegmentAnnotations'));
+        outputSpec, findSpecKeys(outputSpec, MultiSegmentAnnotations));
     // clang-format off
     return html`
       <annotated-text-vis .segments=${segments}
@@ -159,7 +160,7 @@ export class AnnotatedTextModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'MultiSegmentAnnotations');
+    return doesOutputSpecContain(modelSpecs, MultiSegmentAnnotations);
   }
 }
 

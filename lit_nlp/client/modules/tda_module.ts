@@ -29,9 +29,9 @@ import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FieldMatcher, LitTypeWithParent} from '../lib/lit_types';
+import {FieldMatcher, LitTypeWithParent, InfluentialExamples} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
+import {cloneSpec, getTypeNames, filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -199,7 +199,7 @@ export class TrainingDataAttributionModule extends LitModule {
 
   static compatibleGenerators(generatorInfo: ComponentInfoMap): string[] {
     return Object.keys(generatorInfo).filter(name => {
-      return findSpecKeys(generatorInfo[name].metaSpec, 'InfluentialExamples')
+      return findSpecKeys(generatorInfo[name].metaSpec, InfluentialExamples)
                  .length > 0;
     });
   }
@@ -247,7 +247,8 @@ export class TrainingDataAttributionModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset,
+        getTypeNames(GENERATION_TYPES),
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;

@@ -70,7 +70,7 @@ export class RegressionModule extends LitModule {
 
     const result: RegressionResults = {};
     const {output} = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(output, 'RegressionScore');
+    const scoreFields: string[] = findSpecKeys(output, RegressionScore);
     for (const key of scoreFields) {
       const predKey = this.dataService.getColumnName(this.model, key);
       const errorKey = this.dataService.getColumnName(
@@ -92,7 +92,7 @@ export class RegressionModule extends LitModule {
 
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
+    const scoreFields: string[] = findSpecKeys(spec.output, RegressionScore);
 
 
     const rows: TableData[] = [];
@@ -135,7 +135,7 @@ export class RegressionModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'RegressionScore');
+    return doesOutputSpecContain(modelSpecs, RegressionScore);
   }
 }
 

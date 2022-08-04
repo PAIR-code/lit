@@ -141,6 +141,27 @@ describe('arrayContainsSame test', () => {
      });
 });
 
+describe('convert lit types to names tests', () => {
+  it('converts types to names', () => {
+    const types = [litTypes.Scalar, litTypes.StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypeNames(types);
+    expect(result).toEqual(names);
+  });
+
+  it('converts names to types', () => {
+    const testTypes = [litTypes.Scalar, litTypes.StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypes(names);
+    expect(result).toEqual(testTypes);
+    expect(utils.createLitType('StringLitType') instanceof result[1])
+        .toBe(true);
+
+  });
+});
+
 describe('createLitType test', () => {
   it('creates a type as expected', () => {
     const expected = new litTypes.Scalar();
@@ -258,11 +279,8 @@ describe('cloneSpec test', () => {
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
     const testType = utils.createLitType('StringLitType');
-    expect(utils.isLitSubtype(testType, 'StringLitType')).toBe(true);
-    expect(utils.isLitSubtype(testType, ['StringLitType'])).toBe(true);
-    expect(utils.isLitSubtype(testType, ['Scalar'])).toBe(false);
-
-    expect(() => utils.isLitSubtype(testType, ['NotAType'])).toThrowError();
+    expect(utils.isLitSubtype(testType, litTypes.StringLitType)).toBe(true);
+    expect(utils.isLitSubtype(testType, [litTypes.Scalar])).toBe(false);
   });
 
   it('finds a subclass', () => {
@@ -270,10 +288,10 @@ describe('isLitSubtype test', () => {
       'score': utils.createLitType('RegressionScore'),
     };
 
-    expect(utils.isLitSubtype(spec['score'], 'RegressionScore')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'Scalar')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'LitType')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'TextSegment')).toBe(false);
+    expect(utils.isLitSubtype(spec['score'], [litTypes.RegressionScore])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [litTypes.Scalar])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [litTypes.LitType])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [litTypes.TextSegment])).toBe(false);
   });
 });
 
@@ -290,42 +308,34 @@ describe('findSpecKeys test', () => {
 
   it('finds all spec keys that match the specified types', () => {
     // Key is in spec.
-    expect(utils.findSpecKeys(spec, 'RegressionScore')).toEqual([
+    expect(utils.findSpecKeys(spec, litTypes.RegressionScore)).toEqual([
       'score', 'score2'
     ]);
-    expect(utils.findSpecKeys(spec, 'MulticlassPreds')).toEqual([
+    expect(utils.findSpecKeys(spec, [litTypes.MulticlassPreds])).toEqual([
       'probabilities'
     ]);
 
     // Keys are in spec.
     expect(utils.findSpecKeys(spec, [
-      'MulticlassPreds', 'RegressionScore'
+      litTypes.MulticlassPreds, litTypes.RegressionScore
     ])).toEqual(['score', 'probabilities', 'score2']);
-    expect(utils.findSpecKeys(spec, ['GeneratedText'])).toEqual([
+    expect(utils.findSpecKeys(spec, [litTypes.GeneratedText])).toEqual([
       'generated_text'
     ]);
 
     // Key is not in spec.
-    expect(utils.findSpecKeys(spec, ['TokenGradients'])).toEqual([]);
+    expect(utils.findSpecKeys(spec, [litTypes.TokenGradients])).toEqual([]);
   });
 
   it('identifies subclass fields', () => {
-    expect(utils.findSpecKeys(spec, 'LitType')).toEqual(Object.keys(spec));
-    expect(utils.findSpecKeys(spec, 'TextSegment')).toEqual([
+    expect(utils.findSpecKeys(spec, litTypes.LitType)).toEqual(Object.keys(spec));
+    expect(utils.findSpecKeys(spec, [litTypes.TextSegment])).toEqual([
       'segment', 'generated_text'
-    ]);
-    expect(utils.findSpecKeys(spec, 'Scalar')).toEqual([
-      'score', 'score2', 'scalar_foo'
     ]);
   });
 
   it('handles empty spec keys', () => {
     expect(utils.findSpecKeys(spec, [])).toEqual([]);
-  });
-
-  it('handles invalid spec keys', () => {
-    expect(() => utils.findSpecKeys(spec, '')).toThrowError();
-    expect(() => utils.findSpecKeys(spec, 'NotAType')).toThrowError();
   });
 });
 

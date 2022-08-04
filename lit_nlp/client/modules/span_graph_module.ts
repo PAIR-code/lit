@@ -30,9 +30,9 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
-import {LitName, LitTypeWithAlign} from '../lib/lit_types';
+import {EdgeLabels, SequenceTags, SpanLabels, LitTypeTypesList, LitTypeWithAlign, TextSegment, Tokens} from '../lib/lit_types';
 import {EdgeLabel, IndexedInput, Input, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {getTypeNames, findSpecKeys} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
@@ -63,8 +63,8 @@ const moduleStyles = css`
   }
 `;
 
-const supportedPredTypes: LitName[] =
-    ['SequenceTags', 'SpanLabels', 'EdgeLabels'];
+const supportedPredTypes: LitTypeTypesList =
+    [SequenceTags, SpanLabels, EdgeLabels];
 
 /**
  * Convert sequence tags to a list of length-1 span labels.
@@ -84,7 +84,7 @@ function spansToEdges(spans: SpanLabel[]): EdgeLabel[] {
 
 function mapTokenToTags(spec: Spec): FieldNameMultimap {
   const tagKeys = findSpecKeys(spec, supportedPredTypes);
-  const tokenKeys = findSpecKeys(spec, 'Tokens');
+  const tokenKeys = findSpecKeys(spec, Tokens);
 
   // Make a mapping of token keys to one or more tag sets
   const tokenToTags: FieldNameMultimap = {};
@@ -118,10 +118,10 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
       if (edges.length === 0) {
         edges = [];
       }
-      if (isLitSubtype(spec[tagKey], 'SequenceTags')) {
+      if (spec[tagKey] instanceof SequenceTags) {
         edges = tagsToEdges(edges);
         hideBracket = true;
-      } else if (isLitSubtype(spec[tagKey], 'SpanLabels')) {
+      } else if (spec[tagKey] instanceof SpanLabels) {
         edges = spansToEdges(edges);
       }
       annotationLayers.push({name: tagKey, edges, hideBracket});
@@ -129,7 +129,7 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
     // Try to infer tokens from text, if that field is empty.
     let tokens = data[tokenKey];
     if (tokens.length === 0) {
-      const textKey = findSpecKeys(spec, 'TextSegment')[0];
+      const textKey = findSpecKeys(spec, TextSegment)[0];
       tokens = data[textKey].split();
     }
     ret[tokenKey] = {tokens, layers: annotationLayers};
@@ -221,7 +221,7 @@ export class SpanGraphGoldModule extends LitModule {
   // tslint:enable:no-any
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
+    const hasTokens = findSpecKeys(datasetSpec, Tokens).length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
     return (hasTokens && hasSupportedPreds);
@@ -256,7 +256,7 @@ export class SpanGraphModule extends LitModule {
     } else {
       const promise = this.apiService.getPreds(
           [input], this.model, this.appState.currentDataset,
-          ['Tokens'].concat(supportedPredTypes));
+          getTypeNames([Tokens, ...supportedPredTypes]));
 
       const results = await this.loadLatest('getPreds', promise);
       if (!results) return;
@@ -293,7 +293,7 @@ export class SpanGraphModule extends LitModule {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;
-      const hasTokens = findSpecKeys(spec.output, 'Tokens').length > 0;
+      const hasTokens = findSpecKeys(spec.output, Tokens).length > 0;
       const hasSupportedPreds =
           findSpecKeys(spec.output, supportedPredTypes).length > 0;
       if (hasTokens && hasSupportedPreds) {

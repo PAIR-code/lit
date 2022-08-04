@@ -26,6 +26,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
 import {ThresholdChange} from '../elements/threshold_slider';
+import {MulticlassPreds} from '../lib/lit_types';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
@@ -134,7 +135,7 @@ export class ThresholderModule extends LitModule {
   @computed
   private get binaryClassificationKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const classificationKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
+    const classificationKeys = findSpecKeys(outputSpec, MulticlassPreds);
     return classificationKeys.filter(
         key => isBinaryClassification(outputSpec[key]));
   }
@@ -276,9 +277,10 @@ export class ThresholderModule extends LitModule {
         `;
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
-                                 isBinaryClassification);
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    return doesOutputSpecContain(
+        modelSpecs, MulticlassPreds, isBinaryClassification);
   }
 }
 

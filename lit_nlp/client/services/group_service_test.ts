@@ -23,6 +23,7 @@ import {LitApp} from '../core/app';
 import {DataService} from './data_service';
 import {GroupService, FacetingConfig, FacetingMethod} from './group_service';
 import {AppState} from './state_service';
+import {Scalar} from '../lib/lit_types';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
@@ -198,7 +199,7 @@ describe('GroupService test', () => {
 
   it('calculates ranges for all numerical features', () => {
     const dataSpec = appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'Scalar');
+    const names = findSpecKeys(dataSpec, Scalar);
 
     for (const name of names) {
       const range = groupService.numericalFeatureRanges[name];

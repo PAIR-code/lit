@@ -33,7 +33,7 @@ import {ThresholdChange} from '../elements/threshold_slider';
 import {MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin, isLitSubtype} from '../lib/utils';
+import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin} from '../lib/utils';
 import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
 import {FocusData} from '../services/focus_service';
 import {ClassificationService, ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
@@ -146,7 +146,7 @@ export class ScalarModule extends LitModule {
   @computed
   private get classificationKeys() {
     const {output} = this.appState.getModelSpec(this.model);
-    return findSpecKeys(output, 'MulticlassPreds');
+    return findSpecKeys(output, MulticlassPreds);
   }
 
   override firstUpdated() {
@@ -374,7 +374,7 @@ export class ScalarModule extends LitModule {
     let scoreRange = [0, 1];
 
     const {output} = this.appState.getModelSpec(this.model);
-    if (isLitSubtype(output[key], 'Scalar')) {
+    if (output[key] instanceof Scalar) {
       const scalarValues = this.preds.map((pred) => pred.data[key]) as number[];
       scoreRange = [Math.min(...scalarValues), Math.max(...scalarValues)];
       // If the range is 0 (all values are identical, then artificially increase
@@ -860,7 +860,7 @@ export class ScalarModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
-    return doesOutputSpecContain(modelSpecs, ['Scalar', 'MulticlassPreds']);
+    return doesOutputSpecContain(modelSpecs, [Scalar, MulticlassPreds]);
   }
 }
 

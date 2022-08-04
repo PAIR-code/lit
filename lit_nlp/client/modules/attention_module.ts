@@ -284,7 +284,7 @@ export class AttentionModule extends LitModule {
    */
   private renderLayerSelector() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const attnKeys = findSpecKeys(outputSpec, 'AttentionHeads');
+    const attnKeys = findSpecKeys(outputSpec, AttentionHeadsLitType);
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];
     }
@@ -327,7 +327,7 @@ export class AttentionModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
+    return doesOutputSpecContain(modelSpecs, AttentionHeadsLitType);
   }
 }
 

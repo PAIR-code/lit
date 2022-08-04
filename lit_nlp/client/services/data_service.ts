@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
-import {LitName, LitType, MulticlassPreds, RegressionScore} from '../lib/lit_types';
+import {LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -137,7 +137,7 @@ export class DataService extends LitService {
    */
   private async runClassification(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'MulticlassPreds').length === 0) {
+    if (findSpecKeys(output, MulticlassPreds).length === 0) {
       return;
     }
 
@@ -191,7 +191,7 @@ export class DataService extends LitService {
    */
   private async runRegression(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'RegressionScore').length === 0) {
+    if (findSpecKeys(output, RegressionScore).length === 0) {
       return;
     }
 
@@ -239,7 +239,7 @@ export class DataService extends LitService {
    */
   private async runScalarPreds(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'Scalar').length === 0) {
+    if (findSpecKeys(output, Scalar).length === 0) {
       return;
     }
 
@@ -280,8 +280,8 @@ export class DataService extends LitService {
     return Array.from(this.columnHeaders.values());
   }
 
-  getColNamesOfType(typeName: LitName): string[] {
-    return this.cols.filter(col => isLitSubtype(col.dataType, typeName))
+  getColNamesOfType(litTypeType: typeof LitType): string[] {
+    return this.cols.filter(col => isLitSubtype(col.dataType, litTypeType))
                     .map(col => col.name);
   }
 

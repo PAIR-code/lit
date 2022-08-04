@@ -25,6 +25,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {MatrixCell, MatrixSelection} from '../elements/data_matrix';
 import {ReactiveElement} from '../lib/elements';
+import {MulticlassPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {GroupedExamples, IndexedInput, ModelInfoMap} from '../lib/types';
 import {arrayContainsSame, doesOutputSpecContain, facetMapToDictKey} from '../lib/utils';
@@ -273,7 +274,7 @@ export class ConfusionMatrixModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
-    return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
+    return doesOutputSpecContain(modelSpecs, MulticlassPreds);
   }
 }
 
