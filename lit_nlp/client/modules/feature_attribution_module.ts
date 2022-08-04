@@ -28,7 +28,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {SingleFieldMatcher} from '../lib/lit_types';
+import {FeatureSalience as FeatureSalienceLitType, SingleFieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
@@ -88,12 +88,13 @@ export class FeatureAttributionModule extends LitModule {
     return Object.values(modelSpecs).some(modelInfo => {
       // The model directly outputs FeatureSalience
       const hasIntrinsicSalience =
-          findSpecKeys(modelInfo.spec.output, 'FeatureSalience').length > 0;
+          findSpecKeys(modelInfo.spec.output, FeatureSalienceLitType).length >
+          0;
 
       // At least one compatible interpreter outputs FeatureSalience
       const canDeriveSalience = modelInfo.interpreters.some(name => {
         const {metaSpec} = appState.metadata.interpreters[name];
-        return findSpecKeys(metaSpec, 'FeatureSalience').length > 0;
+        return findSpecKeys(metaSpec, FeatureSalienceLitType).length > 0;
       });
 
       return hasIntrinsicSalience || canDeriveSalience;
@@ -148,7 +149,7 @@ export class FeatureAttributionModule extends LitModule {
   private get hasIntrinsicSalience() {
     if (this.appState.metadata.models[this.model]?.spec?.output) {
       return findSpecKeys(this.appState.metadata.models[this.model].spec.output,
-                          'FeatureSalience').length > 0;
+                          FeatureSalienceLitType).length > 0;
     }
     return false;
   }
@@ -157,10 +158,10 @@ export class FeatureAttributionModule extends LitModule {
   private get salienceInterpreters() {
     const {interpreters} = this.appState.metadata.models[this.model];
     return Object.entries(app.getService(AppState).metadata.interpreters)
-                 .filter(([name, i]) =>
-                    interpreters.includes(name) &&
-                    findSpecKeys(i.metaSpec,'FeatureSalience').length > 0)
-                 .map(([name]) => name);
+        .filter(
+            ([name, i]) => interpreters.includes(name) &&
+                findSpecKeys(i.metaSpec, FeatureSalienceLitType).length > 0)
+        .map(([name]) => name);
   }
 
   // ---- Private API ----
@@ -181,7 +182,7 @@ export class FeatureAttributionModule extends LitModule {
     if (results == null) return;
 
     const outputSpec = this.appState.metadata.models[this.model].spec.output;
-    const salienceKeys = findSpecKeys(outputSpec, 'FeatureSalience');
+    const salienceKeys = findSpecKeys(outputSpec, FeatureSalienceLitType);
 
     for (const key of salienceKeys) {
       const summaryName = `Feature: ${key} | Facet: ${facet}`;
@@ -251,7 +252,7 @@ export class FeatureAttributionModule extends LitModule {
     const {metaSpec} = this.appState.metadata.interpreters[name];
     const {output} = this.appState.getModelSpec(this.model);
     const spec = {...metaSpec, ...output};
-    const salienceKeys = findSpecKeys(spec, 'FeatureSalience');
+    const salienceKeys = findSpecKeys(spec, FeatureSalienceLitType);
 
     for (const key of salienceKeys) {
       if (results[0][key] != null) {

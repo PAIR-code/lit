@@ -21,10 +21,10 @@ import {css, html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {GeneratedURL, LitName} from '../lib/lit_types';
+import {GeneratedURL, ImageBytes} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
+import {getTypeNames, doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
 /**
  * A LIT module that renders generated text.
@@ -40,7 +40,7 @@ export class GeneratedImageModule extends LitModule {
     selectionServiceIndex=${selectionServiceIndex}>
   </generated-image-module>`;
 
-  static supportedTypes: LitName[] = ['ImageBytes'];
+  static supportedTypes = [ImageBytes];
 
   static override get styles() {
     const styles = css`
@@ -76,7 +76,7 @@ export class GeneratedImageModule extends LitModule {
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset,
-        [...GeneratedImageModule.supportedTypes, 'GeneratedURL'],
+        getTypeNames([...GeneratedImageModule.supportedTypes, GeneratedURL]),
         'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;

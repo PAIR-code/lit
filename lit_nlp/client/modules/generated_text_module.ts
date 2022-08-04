@@ -27,10 +27,10 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
-import {LitTypeWithParent, ReferenceScores} from '../lib/lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitTypeWithParent, ReferenceScores, ReferenceTexts} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
+import {getTypeNames, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
 
@@ -89,7 +89,7 @@ export class GeneratedTextModule extends LitModule {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
     const refMap = new Map<string, string>();
-    const scoreKeys = findSpecKeys(outputSpec, 'ReferenceScores');
+    const scoreKeys = findSpecKeys(outputSpec, ReferenceScores);
     for (const scoreKey of scoreKeys) {
       const parent = (outputSpec[scoreKey] as ReferenceScores).parent;
       if (parent && dataSpec[parent]) {
@@ -114,7 +114,7 @@ export class GeneratedTextModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, [...GENERATION_TYPES, 'ReferenceScores'],
+        [input], this.model, dataset, getTypeNames([...GENERATION_TYPES, ReferenceScores]),
         'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;
@@ -124,13 +124,13 @@ export class GeneratedTextModule extends LitModule {
     const spec = this.appState.getModelSpec(this.model).output;
     const result = results[0];
     for (const key of Object.keys(result)) {
-      if (isLitSubtype(spec[key], 'GeneratedText')) {
+      if (spec[key] instanceof GeneratedText) {
         this.generatedText[key] = [[result[key], null]];
       }
-      if (isLitSubtype(spec[key], 'GeneratedTextCandidates')) {
+      if (spec[key] instanceof GeneratedTextCandidates) {
         this.generatedText[key] = result[key];
       }
-      if (isLitSubtype(spec[key], 'ReferenceScores')) {
+      if (spec[key] instanceof ReferenceScores) {
         const referenceFieldName = this.referenceScoreFields.get(key);
         if (referenceFieldName != null) {
           this.referenceScores[referenceFieldName] = result[key];
@@ -196,7 +196,7 @@ export class GeneratedTextModule extends LitModule {
     // expected candidate list type GenereatedTextCandidate[].
     if (referenceFieldName !== undefined) {
       const spec = this.appState.getModelSpec(this.model).input;
-      if (!isLitSubtype(spec[referenceFieldName], 'ReferenceTexts')) {
+      if (!(spec[referenceFieldName] instanceof ReferenceTexts)) {
         referenceTexts = [[referenceTexts, null]];
       }
     }

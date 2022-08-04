@@ -28,7 +28,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {MulticlassPreds} from '../lib/lit_types';
+import {Embeddings, Gradients, MulticlassPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
@@ -104,7 +104,7 @@ export class TCAVModule extends LitModule {
 
   @computed
   get gradKeys() {
-    return findSpecKeys(this.modelSpec.output, 'Gradients');
+    return findSpecKeys(this.modelSpec.output, Gradients);
   }
 
   @computed
@@ -140,14 +140,14 @@ export class TCAVModule extends LitModule {
 
   @computed
   get predClasses() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
     return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
     return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).null_idx;
   }
@@ -484,11 +484,8 @@ export class TCAVModule extends LitModule {
       modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // Ensure the models can support TCAV and that the TCAV interpreter is
     // loaded.
-    const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');
-    const supportsGrads = doesOutputSpecContain(modelSpecs, 'Gradients');
-    const multiclassPreds =
-        doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
-    if (!supportsGrads || !supportsEmbs || !multiclassPreds) {
+    if (!doesOutputSpecContain(
+            modelSpecs, [Embeddings, Gradients, MulticlassPreds])) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

@@ -24,10 +24,9 @@ import {customElement, property} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {BooleanLitType, CategoryLabel, SingleFieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, SingleFieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel, Tokens} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {Spec} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';
 
@@ -217,7 +216,7 @@ export class InterpreterControls extends ReactiveElement {
         </lit-checkbox>
       `;
       // clang-format on
-    } else if (isLitSubtype(controlType, ['Tokens'])) {
+    } else if (controlType instanceof Tokens) {
       // Render a text input box and split on commas.
       const value = this.settings[name] as string || '';
       const updateText = (e: Event) => {

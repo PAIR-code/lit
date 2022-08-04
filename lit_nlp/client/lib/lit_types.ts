@@ -40,6 +40,9 @@ export type LitName = typeof registryKeys[number];
 export type LitClass = 'LitType';
 type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
+/** A list of types of LitTypes. */
+export type LitTypeTypesList = Array<typeof LitType>;
+
 /**
  * Data classes used in configuring front-end components to describe
  * input data and model outputs.

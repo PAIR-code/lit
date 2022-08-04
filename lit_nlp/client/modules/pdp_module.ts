@@ -24,9 +24,9 @@ import {until} from 'lit/directives/until';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
-import {LitTypeWithNullIdx, LitTypeWithVocab, MulticlassPreds} from '../lib/lit_types';
+import {CategoryLabel, LitTypeWithNullIdx, LitTypeWithVocab, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ModelInfoMap, Spec} from '../lib/types';
-import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
+import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, setEquals} from '../lib/utils';
 
 import {styles} from './pdp_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -92,7 +92,7 @@ export class PdpModule extends LitModule {
   private async resetPlots(inputSpec: Spec) {
     this.plotVisibility.clear();
     this.plotInfo.clear();
-    const feats = findSpecKeys(inputSpec, ['Scalar', 'CategoryLabel']);
+    const feats = findSpecKeys(inputSpec, [Scalar, CategoryLabel]);
     for (const feat of feats) {
       if (inputSpec[feat].required) {
         this.plotVisibility.set(feat, false);
@@ -116,7 +116,7 @@ export class PdpModule extends LitModule {
     if (!this.plotVisibility.get(feat)) return html``;
 
     const spec = this.appState.getModelSpec(this.model);
-    const isNumeric = isLitSubtype(spec.input[feat], 'Scalar');
+    const isNumeric = spec.input[feat] instanceof Scalar;
 
     // Get plot info if already fetched by front-end, or make call to back-end
     // to calcuate it.
@@ -236,8 +236,8 @@ export class PdpModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['RegressionScore', 'MulticlassPreds'])
-        && doesInputSpecContain(modelSpecs, ['Scalar', 'CategoryLabel'], true);
+    return doesOutputSpecContain(modelSpecs, [RegressionScore, MulticlassPreds])
+        && doesInputSpecContain(modelSpecs, [Scalar, CategoryLabel], true);
   }
 }
 

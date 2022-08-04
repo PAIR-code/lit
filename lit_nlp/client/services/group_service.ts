@@ -24,7 +24,7 @@
 import * as d3 from 'd3';  // Used for creating bins, not visualization.
 import {computed, reaction} from 'mobx';
 
-import {CategoryLabel, LitTypeWithVocab} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, LitTypeWithVocab, Scalar} from '../lib/lit_types';
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
 import {facetMapToDictKey, findSpecKeys, getStepSizeGivenRange, roundToDecimalPlaces} from '../lib/utils';
 
@@ -134,24 +134,24 @@ export class GroupService extends LitService {
   @computed
   get categoricalFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'CategoryLabel');
-    return names.concat(this.dataService.getColNamesOfType('CategoryLabel'));
+    const names = findSpecKeys(dataSpec, CategoryLabel);
+    return names.concat(this.dataService.getColNamesOfType(CategoryLabel));
   }
 
   /** Get the names of the numerical features. */
   @computed
   get numericalFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'Scalar');
-    return names.concat(this.dataService.getColNamesOfType('Scalar'));
+    const names = findSpecKeys(dataSpec, Scalar);
+    return names.concat(this.dataService.getColNamesOfType(Scalar));
   }
 
   /** Get the names of the boolean features. */
   @computed
   get booleanFeatureNames(): string[] {
     const dataSpec = this.appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'BooleanLitType');
-    return names.concat(this.dataService.getColNamesOfType('BooleanLitType'));
+    const names = findSpecKeys(dataSpec, BooleanLitType);
+    return names.concat(this.dataService.getColNamesOfType(BooleanLitType));
   }
 
   /** Get the names of all dense features (boolean, categorical, and numeric) */

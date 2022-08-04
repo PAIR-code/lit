@@ -26,7 +26,7 @@ import {LitModule} from '../core/lit_module';
 import {SortableTemplateResult, TableData, TableEntry} from '../elements/table';
 import {SparseMultilabelPreds} from '../lib/lit_types';
 import {formatBoolean, IndexedInput, ModelInfoMap, NumericResults, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {getTypeNames, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {SelectionService} from '../services/services';
 
 import {styles} from './multilabel_module.css';
@@ -101,10 +101,10 @@ export class MultilabelModule extends LitModule {
 
     // Run predictions on all models.
     const models = this.appState.currentModels;
-    const results = await Promise.all(models.map(async model =>
-      this.apiService.getPreds(
-        datapoints, model, this.appState.currentDataset,
-        ['SparseMultilabelPreds'])));
+    const results = await Promise.all(models.map(
+        async model => this.apiService.getPreds(
+            datapoints, model, this.appState.currentDataset,
+            getTypeNames([SparseMultilabelPreds]))));
     if (results === null) {
       this.resultsInfo = {};
       return;
@@ -114,7 +114,7 @@ export class MultilabelModule extends LitModule {
     this.groundTruthLabels.clear();
     for (const model of models) {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-      const predKeys = findSpecKeys(outputSpec, 'SparseMultilabelPreds');
+      const predKeys = findSpecKeys(outputSpec, SparseMultilabelPreds);
       for (const predKey of predKeys) {
         const labelField =
             (outputSpec[predKey] as SparseMultilabelPreds).parent;
@@ -247,7 +247,7 @@ export class MultilabelModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'SparseMultilabelPreds');
+    return doesOutputSpecContain(modelSpecs, SparseMultilabelPreds);
   }
 }
 

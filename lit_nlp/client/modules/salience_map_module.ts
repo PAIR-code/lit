@@ -32,9 +32,9 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {LitName, FieldMatcher, Salience} from '../lib/lit_types';
+import {FeatureSalience, ImageGradients, FieldMatcher, Salience} from '../lib/lit_types';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {cloneSpec, findSpecKeys, isLitSubtype} from '../lib/utils';
+import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusData, FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
@@ -90,10 +90,6 @@ export class SalienceMapModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
 
-  // Types that contain salience information to display.
-  private static readonly salienceTypes: LitName[] =
-      ['TokenSalience', 'ImageSalience', 'FeatureSalience'];
-
   static override get styles() {
     return [sharedStyles, styles];
   }
@@ -118,8 +114,7 @@ export class SalienceMapModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
-      const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, SalienceMapModule.salienceTypes);
+      const salienceKeys = findSpecKeys(interpreters[key].metaSpec, Salience);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -319,10 +314,10 @@ export class SalienceMapModule extends LitModule {
 
   renderGroup(salience: SalienceResult, spec: Spec, gradKey: string,
               cmap: SalienceCmap) {
-    if (isLitSubtype(spec[gradKey], 'ImageGradients')) {
+    if (spec[gradKey] instanceof ImageGradients) {
       salience = salience as ImageSalienceResult;
       return this.renderImage(salience, gradKey);
-    } else if (isLitSubtype(spec[gradKey], 'FeatureSalience')) {
+    } else if (spec[gradKey] instanceof FeatureSalience) {
       salience = salience as FeatureSalienceResult;
       return this.renderFeatureSalience(salience, gradKey, cmap);
     } else {
@@ -439,8 +434,7 @@ export class SalienceMapModule extends LitModule {
     return Object.values(modelSpecs).some(modelInfo =>
         modelInfo.interpreters.some(name => {
           const interpreter = appState.metadata.interpreters[name];
-          const salienceKeys = findSpecKeys(interpreter.metaSpec,
-                                            SalienceMapModule.salienceTypes);
+          const salienceKeys = findSpecKeys(interpreter.metaSpec, Salience);
           return salienceKeys.length > 0;
         }));
   }

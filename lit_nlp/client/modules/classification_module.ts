@@ -69,7 +69,7 @@ export class ClassificationModule extends LitModule {
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap,
                                       datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
+    return doesOutputSpecContain(modelSpecs, MulticlassPreds);
   }
 
   private readonly dataService = app.getService(DataService);
@@ -127,7 +127,7 @@ export class ClassificationModule extends LitModule {
       LabeledPredictions {
     // currentModelSpecs getter accesses appState.metadata.models before init???
     const {output} = this.appState.currentModelSpecs[model].spec;
-    const multiclassKeys = findSpecKeys(output, 'MulticlassPreds');
+    const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
 
     // Iterate over the multiclass prediction heads

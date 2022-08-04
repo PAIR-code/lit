@@ -20,6 +20,7 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
+import {Scalar, TextSegment} from '../lib/lit_types';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
 import {createLitType} from '../lib/utils';
@@ -143,8 +144,8 @@ describe('DataService test', () => {
     expect(dataService.cols.length).toBe(1);
     expect(dataService.cols[0].key).toBe('featKey');
     expect(dataService.cols[0].name).toBe('newFeat');
-    expect(dataService.getColNamesOfType('Scalar').length).toBe(1);
-    expect(dataService.getColNamesOfType('TextSegment').length).toBe(0);
+    expect(dataService.getColNamesOfType(Scalar).length).toBe(1);
+    expect(dataService.getColNamesOfType(TextSegment).length).toBe(0);
   });
 
   it('has correct column data', () => {

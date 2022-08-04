@@ -179,7 +179,7 @@ export class CurvesModule extends LitModule {
   get predKeyOptions() {
     return this.appState.currentModels.flatMap((modelName: string) => {
       const modelSpec = this.appState.metadata.models[modelName].spec;
-      return findSpecKeys(modelSpec.output, 'MulticlassPreds');
+      return findSpecKeys(modelSpec.output, MulticlassPreds);
     });
   }
 
@@ -367,8 +367,7 @@ export class CurvesModule extends LitModule {
 
   static override shouldDisplayModule(
       modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
-                                 hasParent);
+    return doesOutputSpecContain(modelSpecs, MulticlassPreds, hasParent);
   }
 }
 

@@ -27,7 +27,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FieldMatcher} from '../lib/lit_types';
+import {FieldMatcher, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, Input, ModelInfoMap} from '../lib/types';
 import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
@@ -353,7 +353,7 @@ export class SalienceClusteringModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     for (const key of validInterpreters) {
       const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, ['TokenSalience']);
+          interpreters[key].metaSpec, TokenSalience);
       if (salienceKeys.length !== 0) {
         names.push(key);
       }

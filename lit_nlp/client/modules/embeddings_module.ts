@@ -28,6 +28,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
+import {CategoryLabel, Embeddings, ImageBytes, Scalar, StringLitType, TextSegment} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
@@ -145,11 +146,11 @@ export class EmbeddingsModule extends LitModule {
     const modelOptions: EmbeddingOptions[] =
         this.appState.currentModels.flatMap((modelName: string) => {
           const modelSpec = this.appState.metadata.models[modelName].spec;
-          const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
+          const embKeys = findSpecKeys(modelSpec.output, Embeddings);
           return embKeys.map((fieldName) => ({modelName, fieldName}));
         });
     const datasetOptions =
-        findSpecKeys(this.appState.currentDatasetSpec, 'Embeddings').map(
+        findSpecKeys(this.appState.currentDatasetSpec, Embeddings).map(
             key => ({modelName: '', fieldName: key}));
     return datasetOptions.concat(modelOptions);
   }
@@ -424,11 +425,11 @@ export class EmbeddingsModule extends LitModule {
   private getLabelByFields() {
     return findSpecKeys(
         this.appState.currentDatasetSpec,
-        ['TextSegment', 'Scalar', 'StringLitType', 'CategoryLabel']);
+        [TextSegment, Scalar, StringLitType, CategoryLabel]);
   }
 
   private getImageFields() {
-    return findSpecKeys(this.appState.currentDatasetSpec, 'ImageBytes');
+    return findSpecKeys(this.appState.currentDatasetSpec, ImageBytes);
   }
 
   private computeSpriteMap() {
@@ -698,7 +699,7 @@ export class EmbeddingsModule extends LitModule {
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
-    if (!doesOutputSpecContain(modelSpecs, 'Embeddings')) {
+    if (!doesOutputSpecContain(modelSpecs, Embeddings)) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

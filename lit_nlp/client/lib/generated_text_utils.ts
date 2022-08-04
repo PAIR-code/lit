@@ -20,9 +20,9 @@
  */
 import difflib from 'difflib';
 
-import {LitName, LitTypeWithParent} from './lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent} from './lit_types';
 import {GeneratedTextCandidate, IndexedInput, Input, Preds, Spec} from './types';
-import {findSpecKeys, isLitSubtype} from './utils';
+import {findSpecKeys} from './utils';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
 // difflib declare placeholder - DO NOT REMOVE
@@ -37,8 +37,8 @@ export interface GeneratedTextResult {
 /**
  * Types for sequence generation output
  */
-export const GENERATION_TYPES: LitName[] =
-    ['GeneratedText', 'GeneratedTextCandidates'];
+export const GENERATION_TYPES: LitTypeTypesList =
+    [GeneratedText, GeneratedTextCandidates];
 
 /**
  * Convert generation results, which may contain a mix of types, to a
@@ -48,10 +48,10 @@ export function canonicalizeGenerationResults(
     result: Preds, outputSpec: Spec): GeneratedTextResult {
   const preds: GeneratedTextResult = {};
   for (const key of Object.keys(result)) {
-    if (isLitSubtype(outputSpec[key], 'GeneratedText')) {
+    if (outputSpec[key] instanceof GeneratedText) {
       preds[key] = [[result[key], null]];
     }
-    if (isLitSubtype(outputSpec[key], 'GeneratedTextCandidates')) {
+    if (outputSpec[key] instanceof GeneratedTextCandidates) {
       preds[key] = result[key];
     }
   }
