@@ -21,7 +21,7 @@ import {css, html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {GeneratedURL, ImageBytes} from '../lib/lit_types';
+import {GeneratedURL, ImageBytes, ImageBytesList} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {getTypeNames, doesOutputSpecContain, isLitSubtype} from '../lib/utils';
