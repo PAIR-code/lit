@@ -165,17 +165,16 @@ describe('convert lit types to names tests', () => {
 describe('createLitType test', () => {
   it('creates a type as expected', () => {
     const expected = new Scalar();
-    expected.__name__ = 'Scalar';
     expected.show_in_data_table = false;
 
     const result = utils.createLitType(Scalar);
+    expect(result.name).toEqual('Scalar');
     expect(result).toEqual(expected);
     expect(result instanceof Scalar).toEqual(true);
   });
 
   it('creates with constructor params', () => {
     const expected = new StringLitType();
-    expected.__name__ = 'StringLitType';
     expected.default = 'foo';
     expected.show_in_data_table = true;
 

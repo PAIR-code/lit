@@ -128,18 +128,17 @@ export function createLitType<T>(
     litTypeConstructor: new () => T,
     constructorParams: {[key: string]: unknown} = {}): T {
   const litType = new litTypeConstructor();
+
   // Temporarily make this LitType generic to set properties dynamically.
   // tslint:disable-next-line:no-any
   const genericLitType = litType as any;
-  // TODO(b/162269499): Consider removing __name__ property.
-  genericLitType.__name__ = litTypeConstructor.name;
 
   for (const key in constructorParams) {
     if (key in genericLitType) {
       genericLitType[key] = constructorParams[key];
-    } else {
+    } else if (key !== '__name__') {  // Ignore __name__ property.
       throw new Error(`Attempted to set unrecognized property ${key} on ${
-          genericLitType.__name__}.`);
+          genericLitType.name}.`);
     }
   }
 
@@ -167,7 +166,7 @@ export function cloneSpec(spec: Spec): Spec {
   const newSpec: Spec = {};
   for (const [key, fieldSpec] of Object.entries(spec)) {
     newSpec[key] =
-        createLitType(LIT_TYPES_REGISTRY[fieldSpec.__name__], fieldSpec as {});
+        createLitType(LIT_TYPES_REGISTRY[fieldSpec.name], fieldSpec as {});
   }
   return newSpec;
 }

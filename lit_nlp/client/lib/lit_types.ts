@@ -51,7 +51,10 @@ export type LitTypeTypesList = Array<typeof LitType>;
  */
 @registered
 export class LitType {
-  __name__: LitName = 'LitType';
+  get name(): string {
+    return this.constructor.name;
+  }
+
   required: boolean = true;
   default: unknown = undefined;
   // If this type is created from an Annotator.
