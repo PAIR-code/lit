@@ -1,6 +1,7 @@
 """LIT wrappers for TyDiModel"""
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+import numpy as np
 import transformers
 
 
@@ -43,9 +44,11 @@ class TyDiModel(lit_model.Model):
       answer_end_index = results.end_logits.argmax()
       predict_answer_tokens = tokenized_text.input_ids[
           0, answer_start_index : answer_end_index + 1]
+      
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
-          "answers_text": inp['answers_text']
+          "answers_text": inp['answers_text'],
+          "cls_emb": results.hidden_states[-1][:, 0][0],  # last layer, first token
       })
     
     return prediction_output
@@ -63,4 +66,5 @@ class TyDiModel(lit_model.Model):
   def output_spec(self):
     return {
         "generated_text": lit_types.GeneratedText(parent='answers_text'),
+         "cls_emb": lit_types.Embeddings()
     }

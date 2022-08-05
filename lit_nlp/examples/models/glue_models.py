@@ -326,7 +326,7 @@ class GlueModel(lit_model.Model):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-    return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
+    return self.vocab, self.model.bert.embeddings.weight.numpy()
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
@@ -338,7 +338,7 @@ class GlueModel(lit_model.Model):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-      word_embeddings = self.model.bert.embeddings.word_embeddings
+      word_embeddings = self.model.bert.embeddings.weight
       # <tf.float32>[batch_size, num_tokens, emb_size]
       input_embs = tf.gather(word_embeddings, input_ids)
 
