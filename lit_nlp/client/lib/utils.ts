@@ -95,7 +95,6 @@ export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
 
 /** Returns a list of names corresponding to LitTypes. */
 export function getTypeNames(litTypes: LitTypeTypesList) : LitName[] {
-  // TODO(b/162269499): Update apiService to ingest types directly.
   // TypeScript treats `typeof LitType` as a constructor function.
   // Cast to any to access the name property.
   // tslint:disable-next-line:no-any

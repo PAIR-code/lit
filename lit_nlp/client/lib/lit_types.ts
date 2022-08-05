@@ -56,8 +56,6 @@ export class LitType {
   annotated: boolean = false;
   // TODO(b/162269499): Update to camel case once we've replaced old LitType.
   show_in_data_table: boolean = false;
-
-  // TODO(b/162269499): Add isCompatible functionality.
 }
 
 /** A type alias for LitType with an align property. */
@@ -413,7 +411,6 @@ export class SubwordOffsets extends ListLitType {
 export class SparseMultilabel extends StringList {
   /** Label names. */
   vocab?: string[] = undefined;
-  // TODO(b/162269499) Migrate non-comma separators to custom type.
   /** Separator used for display purposes. */
   separator: string = ',';
 }

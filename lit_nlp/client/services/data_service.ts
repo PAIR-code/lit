@@ -244,7 +244,7 @@ export class DataService extends LitService {
     }
 
     const predsPromise = this.apiService.getPreds(
-        data, model, this.appState.currentDataset, ['Scalar']);
+        data, model, this.appState.currentDataset, [Scalar]);
     const preds = await predsPromise;
 
     // Add scalar results as new column to the data service.

@@ -32,7 +32,7 @@ import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
 import {EdgeLabels, SequenceTags, SpanLabels, LitTypeTypesList, LitTypeWithAlign, TextSegment, Tokens} from '../lib/lit_types';
 import {EdgeLabel, IndexedInput, Input, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
-import {getTypeNames, findSpecKeys} from '../lib/utils';
+import {findSpecKeys} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
@@ -256,7 +256,7 @@ export class SpanGraphModule extends LitModule {
     } else {
       const promise = this.apiService.getPreds(
           [input], this.model, this.appState.currentDataset,
-          getTypeNames([Tokens, ...supportedPredTypes]));
+          [Tokens, ...supportedPredTypes]);
 
       const results = await this.loadLatest('getPreds', promise);
       if (!results) return;

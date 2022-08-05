@@ -26,7 +26,7 @@ import {LitModule} from '../core/lit_module';
 import {SortableTemplateResult, TableData, TableEntry} from '../elements/table';
 import {SparseMultilabelPreds} from '../lib/lit_types';
 import {formatBoolean, IndexedInput, ModelInfoMap, NumericResults, Spec} from '../lib/types';
-import {getTypeNames, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {SelectionService} from '../services/services';
 
 import {styles} from './multilabel_module.css';
@@ -104,7 +104,7 @@ export class MultilabelModule extends LitModule {
     const results = await Promise.all(models.map(
         async model => this.apiService.getPreds(
             datapoints, model, this.appState.currentDataset,
-            getTypeNames([SparseMultilabelPreds]))));
+            [SparseMultilabelPreds])));
     if (results === null) {
       this.resultsInfo = {};
       return;

@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
+import {LitTypeTypesList} from '../lib/lit_types';
 import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
-import {deserializeLitTypesInLitMetadata} from '../lib/utils';
+import {deserializeLitTypesInLitMetadata, getTypeNames} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
@@ -99,13 +100,14 @@ export class ApiService extends LitService {
    */
   getPreds(
       inputs: IndexedInput[], model: string, datasetName: string,
-      requestedTypes: string[], loadMessage?: string): Promise<Preds[]> {
+      requestedTypes: LitTypeTypesList,
+      loadMessage?: string): Promise<Preds[]> {
     loadMessage = loadMessage || 'Fetching predictions';
     return this.queryServer(
         '/get_preds', {
           'model': model,
           'dataset_name': datasetName,
-          'requested_types': requestedTypes.join(','),
+          'requested_types': getTypeNames(requestedTypes).join(','),
         },
         inputs, loadMessage);
   }
