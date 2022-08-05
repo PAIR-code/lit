@@ -31,8 +31,8 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';
+import {EdgeLabel} from '../lib/dtypes';
 import {ReactiveElement} from '../lib/elements';
-import {EdgeLabel} from '../lib/types';
 
 import {styles} from './span_graph_vis_vertical.css';
 

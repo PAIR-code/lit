@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
+// Some class properties are in snake_case to match their Python counterparts.
 // We use _ prefixes to denote private LitTypes, consistent with
 // their Python counterparts.
-// tslint:disable:no-new-decorators class-name
+// tslint:disable:no-new-decorators class-name enforce-name-casing
+
+import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
 
 /**
  * A dictionary of registered LitType names mapped to their constructor.
@@ -28,7 +31,7 @@ function registered(target: new () => LitType) {
   LIT_TYPES_REGISTRY[target.name] = target;
 }
 
-const registryKeys : string[] = Object.keys(LIT_TYPES_REGISTRY);
+const registryKeys: string[] = Object.keys(LIT_TYPES_REGISTRY);
 /**
  * The types of all LitTypes in the registry, e.g.
  * 'StringLitType' | 'TextSegment' ...
@@ -48,13 +51,11 @@ export type LitTypeTypesList = Array<typeof LitType>;
  */
 @registered
 export class LitType {
-  // tslint:disable:enforce-name-casing
   __name__: LitName = 'LitType';
   required: boolean = true;
   default: unknown = undefined;
   // If this type is created from an Annotator.
   annotated: boolean = false;
-  // TODO(b/162269499): Update to camel case once we've replaced old LitType.
   show_in_data_table: boolean = false;
 }
 
@@ -285,6 +286,8 @@ export class SequenceTags extends StringList {
 @registered
 export class SpanLabels extends ListLitType {
   /** Name of Tokens field. **/
+  override default: SpanLabel[] = [];
+
   align: string = '';
   parent?: string = undefined;
 }
@@ -297,6 +300,8 @@ export class SpanLabels extends ListLitType {
  */
 @registered
 export class EdgeLabels extends ListLitType {
+  override default: EdgeLabel[] = [];
+
   /** Name of Tokens field. **/
   align: string = '';
 }
@@ -313,6 +318,8 @@ export class EdgeLabels extends ListLitType {
  */
 @registered
 export class MultiSegmentAnnotations extends ListLitType {
+  override default: AnnotationCluster[] = [];
+
   /** If true, treat as candidate list. */
   exclusive: boolean = false;
   /** If true, don't emphasize in visualization. */
@@ -457,7 +464,8 @@ export class SingleFieldMatcher extends FieldMatcher {
 
 /**
  * For matching multiple spec fields.
- * UI will materialize this to multiple checkboxes. Use this when the user needs to pick more than one field in UI.
+ * UI will materialize this to multiple checkboxes. Use this when the user needs
+ * to pick more than one field in UI.
  */
 @registered
 export class MultiFieldMatcher extends FieldMatcher {
@@ -483,6 +491,7 @@ export class Salience extends LitType {
  */
 @registered
 export class TokenSalience extends Salience {
+  override default: TokenSalienceDType|undefined = undefined;
 }
 
 /**
@@ -490,7 +499,7 @@ export class TokenSalience extends Salience {
  */
 @registered
 export class FeatureSalience extends Salience {
-  // TODO(b/162269499): Add Typescript dtypes so that we can set default types.
+  override default: FeatureSalienceDType|undefined = undefined;
 }
 
 /**
@@ -507,6 +516,7 @@ export class ImageSalience extends Salience {
  */
 @registered
 export class SequenceSalience extends Salience {
+  override default: SequenceSalienceMap|undefined = undefined;
 }
 
 /**
@@ -514,7 +524,7 @@ export class SequenceSalience extends Salience {
  */
 @registered
 export class BooleanLitType extends LitType {
-  override default : boolean = false;
+  override default: boolean = false;
 }
 
 /**
