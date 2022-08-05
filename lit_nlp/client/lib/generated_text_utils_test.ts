@@ -18,29 +18,29 @@
 import 'jasmine';
 
 import {canonicalizeGenerationResults, getAllOutputTexts, getAllReferenceTexts, getFlatTexts, getTextDiff} from './generated_text_utils';
-import {LitType} from './lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitType, ReferenceTexts, TextSegment} from './lit_types';
 import {Input, Preds, Spec} from './types';
 import {createLitType} from './utils';
 
 function textSegmentType(): LitType {
-  return createLitType('TextSegment', {
+  return createLitType(TextSegment, {
     'required': false,
   });
 }
 
 function referenceTextsType(): LitType {
-  return createLitType('ReferenceTexts', {
+  return createLitType(ReferenceTexts, {
     'required': false,
   });
 }
 
 function generatedTextType(parent: string): LitType {
-  return createLitType('GeneratedText', {'required': false, 'parent': parent});
+  return createLitType(GeneratedText, {'required': false, 'parent': parent});
 }
 
 function generatedTextCandidatesType(parent: string): LitType {
   return createLitType(
-      'GeneratedTextCandidates', {'required': false, 'parent': parent});
+      GeneratedTextCandidates, {'required': false, 'parent': parent});
 }
 
 describe('canonicalizeGenerationResults test', () => {

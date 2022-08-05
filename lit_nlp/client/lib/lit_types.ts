@@ -23,13 +23,12 @@
  * A dictionary of registered LitType names mapped to their constructor.
  * LitTypes are added using the @registered decorator.
  */
-export const REGISTRY: {[litType: string]: LitType} = {};
-// tslint:disable-next-line:no-any
-function registered(target: any) {
-  REGISTRY[target.name] = target;
+export const LIT_TYPES_REGISTRY: {[litType: string]: new () => LitType} = {};
+function registered(target: new () => LitType) {
+  LIT_TYPES_REGISTRY[target.name] = target;
 }
 
-const registryKeys : string[] = Object.keys(REGISTRY);
+const registryKeys : string[] = Object.keys(LIT_TYPES_REGISTRY);
 /**
  * The types of all LitTypes in the registry, e.g.
  * 'StringLitType' | 'TextSegment' ...

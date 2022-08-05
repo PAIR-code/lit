@@ -28,7 +28,7 @@ import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
-import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
+import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
 import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
@@ -111,42 +111,52 @@ export function getTypes(litNames: LitName|LitName[]) : any {
     litNames = [litNames];
   }
 
-  return litNames.map(litName => REGISTRY[litName]);
+  return litNames.map(litName => LIT_TYPES_REGISTRY[litName]);
 }
 
 /**
  * Creates and returns a new LitType instance.
- * @param typeName: The name of the desired LitType.
+ * @param litTypeConstructor: A constructor for the LitType instance.
  * @param constructorParams: A dictionary of properties to set on the LitType.
  * For example, {'show_in_data_table': true}.
+ *
+ * We use this helper instead of directly creating a new T(), because this
+ * allows creation of LitTypes dynamically from the metadata returned from the
+ * server via the `/get_info` API, and allows updating class properties on
+ * creation time.
  */
-export function createLitType(
-    typeName: LitName, constructorParams: {[key: string]: unknown} = {}) {
-  const litType = REGISTRY[typeName];
+export function createLitType<T>(
+    litTypeConstructor: new () => T,
+    constructorParams: {[key: string]: unknown} = {}): T {
+  const litType = new litTypeConstructor();
+  // Temporarily make this LitType generic to set properties dynamically.
   // tslint:disable-next-line:no-any
-  const newType = new (litType as any)();
-  newType.__name__ = typeName;
+  const genericLitType = litType as any;
+  // TODO(b/162269499): Consider removing __name__ property.
+  genericLitType.__name__ = litTypeConstructor.name;
 
   for (const key in constructorParams) {
-    if (key in newType) {
-      newType[key] = constructorParams[key];
+    if (key in genericLitType) {
+      genericLitType[key] = constructorParams[key];
     } else {
-      throw new Error(
-          `Attempted to set unrecognized property ${key} on ${typeName}.`);
+      throw new Error(`Attempted to set unrecognized property ${key} on ${
+          genericLitType.__name__}.`);
     }
   }
 
-  return newType;
+  return genericLitType as T;
 }
 
 /**
  * Converts serialized LitTypes within a Spec into LitType instances.
  */
-export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec {
+export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec):
+    Spec {
   const typedSpec: Spec = {};
   for (const key of Object.keys(serializedSpec)) {
-    typedSpec[key] =
-        createLitType(serializedSpec[key].__name__, serializedSpec[key] as {});
+    typedSpec[key] = createLitType(
+        LIT_TYPES_REGISTRY[serializedSpec[key].__name__],
+        serializedSpec[key] as {});
   }
   return typedSpec;
 }
@@ -157,7 +167,8 @@ export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec): Spec 
 export function cloneSpec(spec: Spec): Spec {
   const newSpec: Spec = {};
   for (const [key, fieldSpec] of Object.entries(spec)) {
-    newSpec[key] = createLitType(fieldSpec.__name__, fieldSpec as {});
+    newSpec[key] =
+        createLitType(LIT_TYPES_REGISTRY[fieldSpec.__name__], fieldSpec as {});
   }
   return newSpec;
 }
@@ -165,8 +176,8 @@ export function cloneSpec(spec: Spec): Spec {
 /**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
-export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata) :
-    LitMetadata {
+export function deserializeLitTypesInLitMetadata(
+    metadata: SerializedLitMetadata): LitMetadata {
   for (const model of Object.keys(metadata.models)) {
     metadata.models[model].spec.input =
         deserializeLitTypesInSpec(metadata.models[model].spec.input);

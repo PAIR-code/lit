@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
-import {LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -167,9 +167,9 @@ export class DataService extends LitService {
           (result: ClassificationResults) => result[key].correct);
       const source = `${CLASSIFICATION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
-          scores, data, key, scoreFeatName, createLitType('MulticlassPreds'),
+          scores, data, key, scoreFeatName, createLitType(MulticlassPreds),
           source);
-      const litTypeClassification = createLitType('CategoryLabel');
+      const litTypeClassification = createLitType(CategoryLabel);
       if (output[key] instanceof MulticlassPreds) {
         const predSpec = output[key] as MulticlassPreds;
         litTypeClassification.vocab = predSpec.vocab;
@@ -179,7 +179,7 @@ export class DataService extends LitService {
         if (predSpec.parent != null) {
           this.addColumnFromList(
               correctness, data, key, correctnessName,
-              createLitType('BooleanLitType'), source, () => null,
+              createLitType(BooleanLitType), source, () => null,
               BINARY_NEG_POS);
         }
       }
@@ -218,7 +218,7 @@ export class DataService extends LitService {
           (result: RegressionResults) => result[key].error);
       const sqErrors = regressionResults.map(
           (result: RegressionResults) => result[key].squared_error);
-      const dataType = createLitType('Scalar');
+      const dataType = createLitType(Scalar);
       const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
@@ -255,7 +255,7 @@ export class DataService extends LitService {
     for (const key of scalarKeys) {
       const scoreFeatName = this.getColumnName(model, key);
       const scores = preds.map(pred => pred[key]);
-      const dataType = createLitType('Scalar');
+      const dataType = createLitType(Scalar);
       const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
