@@ -31,7 +31,7 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {MulticlassPreds} from '../lib/lit_types';
+import {TextSegment, MulticlassPreds} from '../lib/lit_types';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {findSpecKeys, range} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap} from '../services/color_service';
@@ -276,7 +276,7 @@ export class CounterfactualExplainerModule extends LitModule {
     // Get a list of prediction keys and the number of classes for the selected
     // prediction key to be displayed as dropdown options.
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const predKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
+    const predKeys = findSpecKeys(outputSpec, MulticlassPreds);
     if (!predKeys.length) {
       return;
     }
@@ -353,8 +353,8 @@ export class CounterfactualExplainerModule extends LitModule {
       const inputSpec = modelSpecs[model].spec.input;
       const outputSpec = modelSpecs[model].spec.output;
 
-      const supportsLemon = (findSpecKeys(inputSpec, 'TextSegment').length) &&
-          (findSpecKeys(outputSpec, 'MulticlassPreds').length);
+      const supportsLemon = (findSpecKeys(inputSpec, TextSegment).length) &&
+          (findSpecKeys(outputSpec, MulticlassPreds).length);
       if (supportsLemon) {
         return true;
       }

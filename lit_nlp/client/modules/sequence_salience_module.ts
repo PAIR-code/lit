@@ -16,7 +16,7 @@ import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, ge
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {sumArray} from '../lib/utils';
+import {getTypeNames, sumArray} from '../lib/utils';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 
 import {styles} from './sequence_salience_module.css';
@@ -130,7 +130,8 @@ export class SequenceSalienceModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset,
+        getTypeNames(GENERATION_TYPES),
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;

@@ -18,9 +18,9 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {FieldMatcher, LitType} from '../lib/lit_types';
+import {FieldMatcher, ImageBytes, LitType} from '../lib/lit_types';
 import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {createLitType as createLitTypeUtil, findSpecKeys} from '../lib/utils';
+import {createLitType as createLitTypeUtil, getTypes, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -100,7 +100,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @computed
   get datasetHasImages(): boolean {
-    return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
+    return findSpecKeys(this.currentDatasetSpec, ImageBytes).length > 0;
   }
 
   // TODO(b/162269499): Call from utilities directly.
@@ -245,7 +245,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.types);
+    return findSpecKeys(spec, getTypes(matcher.types));
   }
 
   //=================================== Generation logic

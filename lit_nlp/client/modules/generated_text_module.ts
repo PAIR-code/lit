@@ -27,10 +27,10 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
-import {LitTypeWithParent, ReferenceScores, StringLitType} from '../lib/lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitTypeWithParent, ReferenceScores, ReferenceTexts} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, isLitSubtype} from '../lib/utils';
+import {getTypeNames, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
 
@@ -89,7 +89,7 @@ export class GeneratedTextModule extends LitModule {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
     const refMap = new Map<string, string>();
-    const scoreKeys = findSpecKeys(outputSpec, 'ReferenceScores');
+    const scoreKeys = findSpecKeys(outputSpec, ReferenceScores);
     for (const scoreKey of scoreKeys) {
       const parent = (outputSpec[scoreKey] as ReferenceScores).parent;
       if (parent && dataSpec[parent]) {
@@ -114,7 +114,7 @@ export class GeneratedTextModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, [...GENERATION_TYPES, 'ReferenceScores'],
+        [input], this.model, dataset, getTypeNames([...GENERATION_TYPES, ReferenceScores]),
         'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;
@@ -124,13 +124,13 @@ export class GeneratedTextModule extends LitModule {
     const spec = this.appState.getModelSpec(this.model).output;
     const result = results[0];
     for (const key of Object.keys(result)) {
-      if (isLitSubtype(spec[key], 'GeneratedText')) {
+      if (spec[key] instanceof GeneratedText) {
         this.generatedText[key] = [[result[key], null]];
       }
-      if (isLitSubtype(spec[key], 'GeneratedTextCandidates')) {
+      if (spec[key] instanceof GeneratedTextCandidates) {
         this.generatedText[key] = result[key];
       }
-      if (isLitSubtype(spec[key], 'ReferenceScores')) {
+      if (spec[key] instanceof ReferenceScores) {
         const referenceFieldName = this.referenceScoreFields.get(key);
         if (referenceFieldName != null) {
           this.referenceScores[referenceFieldName] = result[key];
@@ -186,22 +186,30 @@ export class GeneratedTextModule extends LitModule {
   }
 
   renderOutputGroup(g: OutputGroupKeys) {
-    const {generated, reference, referenceModelScores: score} = g;
-    const candidates = generated != null ? this.generatedText[generated] : [];
-    const referenceModelScores =
-        score != null ? this.referenceScores[score] : [];
+    const candidates =
+        g.generated != null ? this.generatedText[g.generated] : [];
 
-    let referenceTexts = reference != null ? this.inputData?.[reference] : [];
-    if (typeof referenceTexts === 'string') {
-      // Convert an individual string into a GenereatedTextCandidate[].
-      referenceTexts = [[referenceTexts, null]];
+    const referenceFieldName = g.reference;
+    let referenceTexts =
+        referenceFieldName != null ? this.inputData?.[referenceFieldName] : [];
+    // If the reference is a TextSegment, up-cast the single string to the
+    // expected candidate list type GenereatedTextCandidate[].
+    if (referenceFieldName !== undefined) {
+      const spec = this.appState.getModelSpec(this.model).input;
+      if (!(spec[referenceFieldName] instanceof ReferenceTexts)) {
+        referenceTexts = [[referenceTexts, null]];
+      }
     }
+
+    const referenceModelScores = g.referenceModelScores != null ?
+        this.referenceScores[g.referenceModelScores] :
+        [];
 
     // clang-format off
     return html`
       <generated-text-vis .fieldName=${g.generated}
                           .candidates=${candidates}
-                          .referenceFieldName=${reference}
+                          .referenceFieldName=${referenceFieldName}
                           .referenceTexts=${referenceTexts}
                           .referenceModelScores=${referenceModelScores}
                           .diffMode=${this.diffMode}

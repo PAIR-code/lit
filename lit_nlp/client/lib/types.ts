@@ -19,8 +19,10 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {ListLitType, LitName, LitType} from './lit_types';
+import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
+
+
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
@@ -317,7 +319,7 @@ export function defaultValueByField(key: string, spec: Spec) {
     return fieldSpec.default;
   }
   // TODO(lit-dev): remove these and always use the spec default value.
-  if (isLitSubtype(fieldSpec, 'Scalar')) {
+  if (fieldSpec instanceof Scalar) {
     return 0;
   }
 
@@ -325,11 +327,11 @@ export function defaultValueByField(key: string, spec: Spec) {
     return [];
   }
 
-  if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+  if (fieldSpec instanceof ImageBytes) {
     return '';
   }
 
-  const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
+  const stringFieldTypes : LitTypeTypesList = [TextSegment, CategoryLabel];
   if (isLitSubtype(fieldSpec, stringFieldTypes)) {
     return '';
   }
@@ -486,17 +488,17 @@ export function formatForDisplay(
 
   // Handle SpanLabels, if field spec given.
   // TODO(lit-dev): handle more fields this way.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
+  if (fieldSpec != null && fieldSpec instanceof SpanLabels) {
     const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
     return formattedTags.join(', ');
   }
   // Handle EdgeLabels, if field spec given.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
+  if (fieldSpec != null && fieldSpec instanceof EdgeLabels) {
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
     return formattedTags.join(', ');
   }
   // Handle MultiSegmentAnnotations, if field spec given.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+  if (fieldSpec != null && fieldSpec instanceof MultiSegmentAnnotations) {
     const formattedTags =
         (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');

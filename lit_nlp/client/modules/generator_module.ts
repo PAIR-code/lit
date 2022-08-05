@@ -27,7 +27,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
-import {FieldMatcher, LitName} from '../lib/lit_types';
+import {EdgeLabels, FieldMatcher, LitTypeTypesList, SpanLabels} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, formatForDisplay, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {cloneSpec, flatten, isLitSubtype} from '../lib/utils';
@@ -509,7 +509,7 @@ export class GeneratorModule extends LitModule {
     // ideally as part of b/172597999.
     const renderFreeformInput = () => {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
+      const nonEditableSpecs: LitTypeTypesList = [EdgeLabels, SpanLabels];
       const formattedVal = formatForDisplay(value, fieldSpec).toString();
 
       if (isLitSubtype(fieldSpec, nonEditableSpecs)) {

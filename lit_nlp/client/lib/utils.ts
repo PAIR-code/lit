@@ -28,7 +28,7 @@ import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
-import {LitName, LitType, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
+import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, REGISTRY} from './lit_types';
 import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
@@ -91,6 +91,27 @@ export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
     }
   }
   return true;
+}
+
+/** Returns a list of names corresponding to LitTypes. */
+export function getTypeNames(litTypes: LitTypeTypesList) : LitName[] {
+  // TODO(b/162269499): Update apiService to ingest types directly.
+  // TypeScript treats `typeof LitType` as a constructor function.
+  // Cast to any to access the name property.
+  // tslint:disable-next-line:no-any
+  return litTypes.map(t => (t as any).name);
+}
+
+/** Returns a list of LitTypes corresponding to LitNames. */
+// We return the equivalent of LitTypeTypesList, but TypeScript constructor
+// functions do not have the same signature as the types themselves.
+// tslint:disable-next-line:no-any
+export function getTypes(litNames: LitName|LitName[]) : any {
+  if (typeof litNames === 'string') {
+    litNames = [litNames];
+  }
+
+  return litNames.map(litName => REGISTRY[litName]);
 }
 
 /**
@@ -175,24 +196,29 @@ export function deserializeLitTypesInLitMetadata(metadata: SerializedLitMetadata
   return metadata;
 }
 
+type CandidateLitTypeTypesList = (typeof LitType)|LitTypeTypesList;
+
+function wrapSingletonToList<Type>(candidate: Type|Type[]):
+    Type[] {
+  if (!Array.isArray(candidate)) {
+    candidate = [candidate];
+  }
+
+  return candidate;
+}
+
 /**
  * Returns whether the litType is a subtype of any of the typesToFind.
  * @param litType: The LitType to check.
  * @param typesToFind: Either a single or list of parent LitType candidates.
  */
 export function isLitSubtype(
-    litType: LitType, typesToFind: LitName|LitName[]) {
+    litType: LitType, typesToFind: CandidateLitTypeTypesList) {
   if (litType == null) return false;
 
-  if (typeof typesToFind === 'string') {
-    typesToFind = [typesToFind];
-  }
-
-  for (const typeName of typesToFind) {
-    // tslint:disable-next-line:no-any
-    const registryType : any = REGISTRY[typeName];
-
-    if (litType instanceof registryType) {
+  const typesToFindList = wrapSingletonToList(typesToFind);
+  for (const typeName of typesToFindList) {
+    if (litType instanceof typeName) {
       return true;
     }
   }
@@ -206,10 +232,10 @@ export function isLitSubtype(
  * @param typesToFind: Either a single or list of parent LitType candidates.
  */
 export function findSpecKeys(
-    spec: Spec, typesToFind: LitName|LitName[]): string[] {
-  // TODO(b/240199145): Change this implementation to use classes.
+    spec: Spec, typesToFind: CandidateLitTypeTypesList): string[] {
+  const typesToFindList = wrapSingletonToList(typesToFind);
   return Object.keys(spec).filter(
-      key => isLitSubtype(spec[key], typesToFind));
+      key => isLitSubtype(spec[key], typesToFindList));
 }
 
 
@@ -348,7 +374,7 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    models: ModelInfoMap, typesToCheck: CandidateLitTypeTypesList,
     extraCheck?: (litType: LitType) => boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
@@ -376,7 +402,7 @@ export function doesOutputSpecContain(
  * Can be provided a single type string or a list of them.
  */
 export function doesInputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    models: ModelInfoMap, typesToCheck: CandidateLitTypeTypesList,
     checkRequired: boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {

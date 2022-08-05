@@ -24,9 +24,9 @@ import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {Tokens, TokenTopKPreds} from '../lib/lit_types';
+import {TextSegment, Tokens, TokenTopKPreds} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
-import {findMatchingIndices, findSpecKeys, isLitSubtype, replaceNth} from '../lib/utils';
+import {findMatchingIndices, findSpecKeys, replaceNth} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -70,7 +70,7 @@ export class LanguageModelPredictionModule extends LitModule {
   @computed
   private get predKey(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return findSpecKeys(this.modelSpec.output, 'TokenTopKPreds')[0];
+    return findSpecKeys(this.modelSpec.output, TokenTopKPreds)[0];
   }
 
   @computed
@@ -91,7 +91,7 @@ export class LanguageModelPredictionModule extends LitModule {
   private get inputTokensKey(): string|null {
     // Look for an input field matching the output tokens name.
     if (this.modelSpec.input.hasOwnProperty(this.outputTokensKey) &&
-        isLitSubtype(this.modelSpec.input[this.outputTokensKey], 'Tokens')) {
+        this.modelSpec.input[this.outputTokensKey] instanceof Tokens) {
       return this.outputTokensKey;
     }
     return null;
@@ -213,7 +213,7 @@ export class LanguageModelPredictionModule extends LitModule {
                             tokenIndex: number) {
     // This logic ensure that if the token to replace occurs multiple times
     // in the text segment, that the correct instance of the token is replaced.
-    const textField = findSpecKeys(this.modelSpec.input, 'TextSegment')[0];
+    const textField = findSpecKeys(this.modelSpec.input, TextSegment)[0];
     let oldToken = this.tokens[tokenIndex];
     const tokensIndicesMatchingToken = findMatchingIndices(
         this.tokens, oldToken);
@@ -384,10 +384,10 @@ export class LanguageModelPredictionModule extends LitModule {
    * Find available output fields.
    */
   static findTargetFields(outputSpec: Spec): string[] {
-    const candidates = findSpecKeys(outputSpec, 'TokenTopKPreds');
+    const candidates = findSpecKeys(outputSpec, TokenTopKPreds);
     return candidates.filter(k => {
       const align = (outputSpec[k] as TokenTopKPreds).align;
-      return align != null && isLitSubtype(outputSpec[align], 'Tokens');
+      return align != null && (outputSpec[align] instanceof Tokens);
     });
   }
 
