@@ -26,7 +26,7 @@ import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 
 import {getVizColor} from '../lib/colors';
-import {EdgeLabel} from '../lib/types';
+import {EdgeLabel} from '../lib/dtypes';
 
 import {styles} from './span_graph_vis.css';
 

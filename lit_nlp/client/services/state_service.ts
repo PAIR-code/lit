@@ -18,9 +18,9 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {FieldMatcher, ImageBytes, LitType} from '../lib/lit_types';
+import {FieldMatcher, ImageBytes} from '../lib/lit_types';
 import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {createLitType as createLitTypeUtil, getTypes, findSpecKeys} from '../lib/utils';
+import {getTypes, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -101,11 +101,6 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @computed
   get datasetHasImages(): boolean {
     return findSpecKeys(this.currentDatasetSpec, ImageBytes).length > 0;
-  }
-
-  // TODO(b/162269499): Call from utilities directly.
-  createLitType(typeName: string, showInDataTable = true): LitType {
-    return createLitTypeUtil(typeName, {"show_in_data_table": showInDataTable});
   }
 
   @observable

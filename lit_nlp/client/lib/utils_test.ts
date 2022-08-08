@@ -21,7 +21,7 @@
 
 import 'jasmine';
 
-import * as litTypes from '../lib/lit_types';
+import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
 import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
 
@@ -143,7 +143,7 @@ describe('arrayContainsSame test', () => {
 
 describe('convert lit types to names tests', () => {
   it('converts types to names', () => {
-    const types = [litTypes.Scalar, litTypes.StringLitType];
+    const types = [Scalar, StringLitType];
     const names = ['Scalar', 'StringLitType'];
 
     const result = utils.getTypeNames(types);
@@ -151,12 +151,12 @@ describe('convert lit types to names tests', () => {
   });
 
   it('converts names to types', () => {
-    const testTypes = [litTypes.Scalar, litTypes.StringLitType];
+    const testTypes = [Scalar, StringLitType];
     const names = ['Scalar', 'StringLitType'];
 
     const result = utils.getTypes(names);
     expect(result).toEqual(testTypes);
-    expect(utils.createLitType('StringLitType') instanceof result[1])
+    expect(utils.createLitType(StringLitType) instanceof result[1])
         .toBe(true);
 
   });
@@ -164,34 +164,33 @@ describe('convert lit types to names tests', () => {
 
 describe('createLitType test', () => {
   it('creates a type as expected', () => {
-    const expected = new litTypes.Scalar();
-    expected.__name__ = 'Scalar';
+    const expected = new Scalar();
     expected.show_in_data_table = false;
 
-    const result = utils.createLitType('Scalar');
+    const result = utils.createLitType(Scalar);
+    expect(result.name).toEqual('Scalar');
     expect(result).toEqual(expected);
-    expect(result instanceof litTypes.Scalar).toEqual(true);
+    expect(result instanceof Scalar).toEqual(true);
   });
 
   it('creates with constructor params', () => {
-    const expected = new litTypes.StringLitType();
-    expected.__name__ = 'StringLitType';
+    const expected = new StringLitType();
     expected.default = 'foo';
     expected.show_in_data_table = true;
 
     const result = utils.createLitType(
-        'StringLitType', {'show_in_data_table': true, 'default': 'foo'});
+        StringLitType, {'show_in_data_table': true, 'default': 'foo'});
     expect(result).toEqual(expected);
   });
 
   it('creates a modifiable lit type', () => {
-    const result = utils.createLitType('Scalar');
+    const result = utils.createLitType(Scalar);
     result.min_val = 5;
     expect(result.min_val).toEqual(5);
   });
 
   it('handles invalid constructor params', () => {
-    expect(() => utils.createLitType('StringLitType', {
+    expect(() => utils.createLitType(StringLitType, {
       'notAStringParam': true
     })).toThrowError();
   });
@@ -199,19 +198,15 @@ describe('createLitType test', () => {
   it('creates with constructor params and custom properties', () => {
     const vocab = ['vocab1', 'vocab2'];
     const categoryLabel =
-        utils.createLitType('CategoryLabel', {'vocab': vocab});
+        utils.createLitType(CategoryLabel, {'vocab': vocab});
     expect(categoryLabel.vocab).toEqual(vocab);
   });
 
   it('allows modification of custom properties', () => {
     const vocab = ['vocab1', 'vocab2'];
-    const categoryLabel = utils.createLitType('CategoryLabel');
+    const categoryLabel = utils.createLitType(CategoryLabel);
     categoryLabel.vocab = vocab;
     expect(categoryLabel.vocab).toEqual(vocab);
-  });
-
-  it('handles invalid names', () => {
-    expect(() => utils.createLitType('notLitType')).toThrowError();
   });
 });
 
@@ -231,14 +226,14 @@ describe('deserializeLitTypesInSpec test', () => {
   };
 
   it('returns serialized littypes', () => {
-    expect(testSpec['probabilities'] instanceof litTypes.MulticlassPreds)
+    expect(testSpec['probabilities'] instanceof MulticlassPreds)
         .toBe(false);
     const result = utils.deserializeLitTypesInSpec(testSpec);
     expect(result['probabilities'])
         .toEqual(utils.createLitType(
-            'MulticlassPreds',
+            MulticlassPreds,
             {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
-    expect(result['probabilities'] instanceof litTypes.MulticlassPreds)
+    expect(result['probabilities'] instanceof MulticlassPreds)
         .toBe(true);
   });
 });
@@ -253,7 +248,7 @@ describe('deserializeLitTypesInLitMetadata test', () => {
 
 describe('cloneSpec test', () => {
   const testSpec = {
-    'probabilities': utils.createLitType('MulticlassPreds', {
+    'probabilities': utils.createLitType(MulticlassPreds, {
       'required': true,
       'vocab': ['0', '1'],
       'null_idx': 0,
@@ -264,72 +259,72 @@ describe('cloneSpec test', () => {
   it('deeply copies', () => {
     const testSpec2 = utils.cloneSpec(testSpec);
 
-    const oldProbs = testSpec['probabilities'] as litTypes.MulticlassPreds;
-    const newProbs = testSpec2['probabilities'] as litTypes.MulticlassPreds;
+    const oldProbs = testSpec['probabilities'];
+    const newProbs = testSpec2['probabilities'] as MulticlassPreds;
 
     newProbs.null_idx = 1;
     expect(oldProbs.null_idx).toEqual(0);
     expect(newProbs.null_idx).toEqual(1);
 
-    expect(testSpec2['probabilities'] instanceof litTypes.MulticlassPreds)
+    expect(testSpec2['probabilities'] instanceof MulticlassPreds)
         .toBe(true);
   });
 });
 
 describe('isLitSubtype test', () => {
   it('checks is lit subtype', () => {
-    const testType = utils.createLitType('StringLitType');
-    expect(utils.isLitSubtype(testType, litTypes.StringLitType)).toBe(true);
-    expect(utils.isLitSubtype(testType, [litTypes.Scalar])).toBe(false);
+    const testType = utils.createLitType(StringLitType);
+    expect(utils.isLitSubtype(testType, StringLitType)).toBe(true);
+    expect(utils.isLitSubtype(testType, [Scalar])).toBe(false);
   });
 
   it('finds a subclass', () => {
     const spec: Spec = {
-      'score': utils.createLitType('RegressionScore'),
+      'score': utils.createLitType(RegressionScore),
     };
 
-    expect(utils.isLitSubtype(spec['score'], [litTypes.RegressionScore])).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], [litTypes.Scalar])).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], [litTypes.LitType])).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], [litTypes.TextSegment])).toBe(false);
+    expect(utils.isLitSubtype(spec['score'], [RegressionScore])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [Scalar])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [LitType])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [TextSegment])).toBe(false);
   });
 });
 
 describe('findSpecKeys test', () => {
   const spec: Spec = {
-    'score': utils.createLitType('RegressionScore'),
-    'probabilities': utils.createLitType('MulticlassPreds', {'null_idx': 0}),
-    'score2': utils.createLitType('RegressionScore'),
-    'scalar_foo': utils.createLitType('Scalar'),
-    'segment': utils.createLitType('TextSegment'),
+    'score': utils.createLitType(RegressionScore),
+    'probabilities': utils.createLitType(MulticlassPreds, {'null_idx': 0}),
+    'score2': utils.createLitType(RegressionScore),
+    'scalar_foo': utils.createLitType(Scalar),
+    'segment': utils.createLitType(TextSegment),
     'generated_text':
-        utils.createLitType('GeneratedText', {'parent': 'segment'}),
+        utils.createLitType(GeneratedText, {'parent': 'segment'}),
   };
 
   it('finds all spec keys that match the specified types', () => {
     // Key is in spec.
-    expect(utils.findSpecKeys(spec, litTypes.RegressionScore)).toEqual([
+    expect(utils.findSpecKeys(spec, RegressionScore)).toEqual([
       'score', 'score2'
     ]);
-    expect(utils.findSpecKeys(spec, [litTypes.MulticlassPreds])).toEqual([
+    expect(utils.findSpecKeys(spec, [MulticlassPreds])).toEqual([
       'probabilities'
     ]);
 
     // Keys are in spec.
     expect(utils.findSpecKeys(spec, [
-      litTypes.MulticlassPreds, litTypes.RegressionScore
+      MulticlassPreds, RegressionScore
     ])).toEqual(['score', 'probabilities', 'score2']);
-    expect(utils.findSpecKeys(spec, [litTypes.GeneratedText])).toEqual([
+    expect(utils.findSpecKeys(spec, [GeneratedText])).toEqual([
       'generated_text'
     ]);
 
     // Key is not in spec.
-    expect(utils.findSpecKeys(spec, [litTypes.TokenGradients])).toEqual([]);
+    expect(utils.findSpecKeys(spec, [TokenGradients])).toEqual([]);
   });
 
   it('identifies subclass fields', () => {
-    expect(utils.findSpecKeys(spec, litTypes.LitType)).toEqual(Object.keys(spec));
-    expect(utils.findSpecKeys(spec, [litTypes.TextSegment])).toEqual([
+    expect(utils.findSpecKeys(spec, LitType)).toEqual(Object.keys(spec));
+    expect(utils.findSpecKeys(spec, [TextSegment])).toEqual([
       'segment', 'generated_text'
     ]);
   });

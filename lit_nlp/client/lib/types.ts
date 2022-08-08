@@ -19,6 +19,7 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
+import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
 import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 
@@ -148,12 +149,6 @@ export interface TopKResult {
   1: number;
 }
 
-export interface SpanLabel {
-  start: number;  // inclusive
-  end: number;    // exclusive
-  label: string;
-  align?: string;
-}
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
@@ -167,16 +162,6 @@ export function formatSpanLabel(s: SpanLabel): string {
   return formatted.replace(/\ /g, '\u00a0' /* &nbsp; */);
 }
 
-/**
- * Represents a directed edge between two mentions.
- * If span2 is null, interpret as a single span label.
- * See https://arxiv.org/abs/1905.06316 for more on this formalism.
- */
-export interface EdgeLabel {
-  span1: [number, number];   // inclusive, exclusive
-  span2?: [number, number];  // inclusive, exclusive
-  label: string|number;
-}
 export function formatEdgeLabel(e: EdgeLabel): string {
   const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
   const span1Text = formatSpan(e.span1);
@@ -187,14 +172,6 @@ export function formatEdgeLabel(e: EdgeLabel): string {
       /\ /g, '\u00a0' /* &nbsp; */);
 }
 
-/**
- * Represents an annotation and its score, and the segment(s) is spans.
- */
-export interface AnnotationCluster {
-  label: string;
-  score?: number;
-  spans: SpanLabel[];
-}
 /** Formats an AnnotationCluster for textual display, e.g., in the DataTable. */
 export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;

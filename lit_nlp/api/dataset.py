@@ -162,6 +162,10 @@ class Dataset(object):
       examples = list(self.examples)
     return Dataset(examples=examples, base=self)
 
+  def filter(self, predicate: Callable[[JsonDict], bool]):
+    selected_examples = list(filter(predicate, self.examples))
+    return Dataset(examples=selected_examples, base=self)
+
   def shuffle(self, seed=42):
     """Return a new dataset with randomized example order."""
     # random.shuffle will shuffle in-place; use sample to make a new list.

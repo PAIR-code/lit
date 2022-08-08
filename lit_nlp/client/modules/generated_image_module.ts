@@ -24,7 +24,7 @@ import {LitModule} from '../core/lit_module';
 import {GeneratedURL, ImageBytes, ImageBytesList} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {getTypeNames, doesOutputSpecContain, isLitSubtype} from '../lib/utils';
+import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
 /**
  * A LIT module that renders generated text.
@@ -76,7 +76,7 @@ static supportedTypes = [ImageBytes, ImageBytesList];
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset,
-        getTypeNames([...GeneratedImageModule.supportedTypes, GeneratedURL]),
+        [...GeneratedImageModule.supportedTypes, GeneratedURL],
         'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;

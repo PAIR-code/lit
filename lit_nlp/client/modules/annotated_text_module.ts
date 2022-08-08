@@ -127,7 +127,7 @@ export class AnnotatedTextModule extends LitModule {
 
     const promise = this.apiService.getPreds(
         [input], this.model, this.appState.currentDataset,
-        ['MultiSegmentAnnotations'], 'Retrieving annotations');
+        [MultiSegmentAnnotations], 'Retrieving annotations');
     const results = await this.loadLatest('answers', promise);
     if (results === null) return;
 

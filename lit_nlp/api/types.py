@@ -407,7 +407,6 @@ class SubwordOffsets(ListLitType):
 class SparseMultilabel(_StringList):
   """Sparse multi-label represented as a list of strings."""
   vocab: Optional[Sequence[Text]] = None  # label names
-  # TODO(b/162269499) Migrate non-comma separators to custom type.
   separator: Text = ","  # Used for display purposes.
 
 
