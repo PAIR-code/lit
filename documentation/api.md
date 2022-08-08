@@ -576,11 +576,12 @@ which can be useful if
 
 The following [types](#available-types) are supported (see
 [interpreter_controls.ts](../lit_nlp/client/elements/interpreter_controls.ts)):
+
 *   `Scalar`, which creates a slider for setting a numeric option. You can
     specify the `min_val`, `max_val`, `default`, and `step`, values for the
     slider through arguments to the `Scalar` constructor.
-*   `Boolean`, which creates a checkbox, with a `default` value to be set in
-    the constructor.
+*   `Boolean` (`BooleanLitType` in TypeScript), which creates a checkbox, with
+    a `default` value to be set in the constructor.
 *   `CategoryLabel`, which creates a dropdown with options specified in the
     `vocab` argument.
 *   `SparseMultilabel`, which creates a series of checkboxes for each option
@@ -595,9 +596,9 @@ The following [types](#available-types) are supported (see
     spec. For example, `SingleFieldMatcher(spec='dataset',
     types=['TextSegment'])` will give a dropdown with the names of all
     `TextSegment` fields in the dataset.
-*   `MultiFieldMatcher` is similar to `SingleFieldMatcher` except it gives a set of
-    checkboxes to select one or more matching field names. The returned value in
-    `config` will be a list of string values.
+*   `MultiFieldMatcher` is similar to `SingleFieldMatcher` except it gives a set
+    of checkboxes to select one or more matching field names. The returned value
+    in `config` will be a list of string values.
 
 The field matching controls can be useful for selecting one or more fields to
 operate on. For example,to choose which input fields to perturb, or which output
@@ -727,7 +728,9 @@ to provide access to model internals. For a more detailed example, see the
 
 The actual spec types, such as `MulticlassLabel`, are simple dataclasses (built
 using [`attr.s`](https://www.attrs.org/en/stable/). They are defined in Python,
-but are available in the [TypeScript client](client.md) as well.
+but are available in
+[TypeScript](../lit_nlp/client/lib/lit_types.ts) as
+well.
 
 [`utils.find_spec_keys()`](../lit_nlp/lib/utils.py)
 (Python) and
@@ -781,6 +784,10 @@ Values can be plain data, NumPy arrays, or custom dataclasses - see
 [dtypes.py](../lit_nlp/api/dtypes.py) and
 [serialize.py](../lit_nlp/api/serialize.py) for
 further detail.
+
+*Note: Note that `String`, `Boolean` and `URL` types in Python are represented
+as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
+naming collisions with protected TypeScript keywords.*
 
 ### Conventions
 
