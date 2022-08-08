@@ -169,13 +169,14 @@ export class ClassificationModule extends LitModule {
   }
 
   override renderImpl() {
-    // TODO(b/162269499): Check that feature.parent is within the spec.
     const hasGroundTruth = this.appState.currentModels.some(
         model =>
             Object.values(this.appState.currentModelSpecs[model].spec.output)
                 .some(
                     feature => feature instanceof MulticlassPreds &&
-                        feature.parent != null));
+                        feature.parent != null &&
+                        feature.parent in
+                            this.appState.currentModelSpecs[model].spec));
     return html`<div class='module-container'>
       <div class="module-results-area">
         ${

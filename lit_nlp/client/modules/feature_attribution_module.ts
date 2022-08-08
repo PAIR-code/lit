@@ -176,7 +176,8 @@ export class FeatureAttributionModule extends LitModule {
    */
   private async predict(facet: string, data: IndexedInput[]) {
     const promise = this.apiService.getPreds(
-        data, this.model, this.appState.currentDataset, ['FeatureSalience']);
+        data, this.model, this.appState.currentDataset,
+        [FeatureSalienceLitType]);
     const results = await this.loadLatest('predictionScores', promise);
 
     if (results == null) return;

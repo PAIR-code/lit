@@ -359,7 +359,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         ${Object.keys(ospec).map((fieldName: string) => {
           return html`
             <div class='info-line'>
-              ${fieldName} (${ospec[fieldName].__name__})
+              ${fieldName} (${ospec[fieldName].name})
             </div>`;
         })}
       `;
@@ -458,7 +458,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         ${Object.keys(datasetInfo.spec).map((fieldName: string) => {
           return html`
             <div class='info-line'>
-              ${fieldName} (${datasetInfo.spec[fieldName].__name__})
+              ${fieldName} (${datasetInfo.spec[fieldName].name})
             </div>`;
         })}
         <div class='info-group-title'>

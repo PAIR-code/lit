@@ -17,6 +17,7 @@
 
 import 'jasmine';
 
+import {AttentionHeads, BooleanLitType, CategoryLabel, Embeddings, MulticlassPreds, Scalar, TextSegment, TokenGradients, Tokens} from './lit_types';
 import {LitMetadata, SerializedLitMetadata} from './types';
 import {createLitType} from './utils';
 
@@ -56,25 +57,25 @@ export const mockMetadata: LitMetadata = {
     'sst_0_micro': {
       'spec': {
         'input': {
-          'passage': createLitType('TextSegment'),
+          'passage': createLitType(TextSegment),
           'passage_tokens':
-              createLitType('Tokens', {'required': false, 'parent': 'passage'}),
+              createLitType(Tokens, {'required': false, 'parent': 'passage'}),
         },
         'output': {
           'probabilities': createLitType(
-              'MulticlassPreds',
+              MulticlassPreds,
               {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
-          'pooled_embs': createLitType('Embeddings'),
-          'mean_word_embs': createLitType('Embeddings'),
-          'tokens': createLitType('Tokens'),
-          'passage_tokens': createLitType('Tokens', {'parent': 'passage'}),
+          'pooled_embs': createLitType(Embeddings),
+          'mean_word_embs': createLitType(Embeddings),
+          'tokens': createLitType(Tokens),
+          'passage_tokens': createLitType(Tokens, {'parent': 'passage'}),
           'passage_grad':
-              createLitType('TokenGradients', {'align': 'passage_tokens'}),
-          'layer_0/attention': createLitType('AttentionHeads', {
+              createLitType(TokenGradients, {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType(AttentionHeads, {
             'align_in': 'tokens',
             'align_out': 'tokens',
           }),
-          'layer_1/attention': createLitType('AttentionHeads', {
+          'layer_1/attention': createLitType(AttentionHeads, {
             'align_in': 'tokens',
             'align_out': 'tokens',
           }),
@@ -89,25 +90,25 @@ export const mockMetadata: LitMetadata = {
     'sst_1_micro': {
       'spec': {
         'input': {
-          'passage': createLitType('TextSegment'),
+          'passage': createLitType(TextSegment),
           'passage_tokens':
-              createLitType('Tokens', {'required': false, 'parent': 'passage'}),
+              createLitType(Tokens, {'required': false, 'parent': 'passage'}),
         },
         'output': {
           'probabilities': createLitType(
-              'MulticlassPreds',
+              MulticlassPreds,
               {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
-          'pooled_embs': createLitType('Embeddings'),
-          'mean_word_embs': createLitType('Embeddings'),
-          'tokens': createLitType('Tokens'),
-          'passage_tokens': createLitType('Tokens', {'parent': 'passage'}),
+          'pooled_embs': createLitType(Embeddings),
+          'mean_word_embs': createLitType(Embeddings),
+          'tokens': createLitType(Tokens),
+          'passage_tokens': createLitType(Tokens, {'parent': 'passage'}),
           'passage_grad':
-              createLitType('TokenGradients', {'align': 'passage_tokens'}),
-          'layer_0/attention': createLitType('AttentionHeads', {
+              createLitType(TokenGradients, {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType(AttentionHeads, {
             'align_in': 'tokens',
             'align_out': 'tokens',
           }),
-          'layer_1/attention': createLitType('AttentionHeads', {
+          'layer_1/attention': createLitType(AttentionHeads, {
             'align_in': 'tokens',
             'align_out': 'tokens',
           })
@@ -124,47 +125,47 @@ export const mockMetadata: LitMetadata = {
     'sst_dev': {
       'size': 872,
       'spec': {
-        'passage': createLitType('TextSegment'),
-        'label': createLitType('CategoryLabel', {'vocab': ['0', '1']}),
+        'passage': createLitType(TextSegment),
+        'label': createLitType(CategoryLabel, {'vocab': ['0', '1']}),
       }
     },
     'color_test': {
       'size': 2,
       'spec': {
-        'testNumFeat0': createLitType('Scalar'),
-        'testNumFeat1': createLitType('Scalar'),
-        'testFeat0': createLitType('CategoryLabel', {'vocab': ['0', '1']}),
-        'testFeat1': createLitType('CategoryLabel', {'vocab': ['a', 'b', 'c']})
+        'testNumFeat0': createLitType(Scalar),
+        'testNumFeat1': createLitType(Scalar),
+        'testFeat0': createLitType(CategoryLabel, {'vocab': ['0', '1']}),
+        'testFeat1': createLitType(CategoryLabel, {'vocab': ['a', 'b', 'c']})
       }
     },
     'penguin_dev': {
       'size': 10,
       'spec': {
-        'body_mass_g': createLitType('Scalar', {
+        'body_mass_g': createLitType(Scalar, {
           'step': 1,
         }),
-        'culmen_depth_mm': createLitType('Scalar', {
+        'culmen_depth_mm': createLitType(Scalar, {
           'step': 1,
         }),
-        'culmen_length_mm': createLitType('Scalar', {
+        'culmen_length_mm': createLitType(Scalar, {
           'step': 1,
         }),
-        'flipper_length_mm': createLitType('Scalar', {
+        'flipper_length_mm': createLitType(Scalar, {
           'step': 1,
         }),
         'island': createLitType(
-            'CategoryLabel', {'vocab': ['Biscoe', 'Dream', 'Torgersen']}),
-        'sex': createLitType('CategoryLabel', {'vocab': ['female', 'male']}),
+            CategoryLabel, {'vocab': ['Biscoe', 'Dream', 'Torgersen']}),
+        'sex': createLitType(CategoryLabel, {'vocab': ['female', 'male']}),
         'species': createLitType(
-            'CategoryLabel', {'vocab': ['Adelie', 'Chinstrap', 'Gentoo']}),
-        'isAlive': createLitType('BooleanLitType', {'required': false})
+            CategoryLabel, {'vocab': ['Adelie', 'Chinstrap', 'Gentoo']}),
+        'isAlive': createLitType(BooleanLitType, {'required': false})
       }
     }
   },
   'generators': {
     'word_replacer': {
       'configSpec': {
-        'Substitutions': createLitType('TextSegment', {
+        'Substitutions': createLitType(TextSegment, {
           'default': 'great -> terrible'
         }),
       },

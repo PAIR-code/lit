@@ -30,7 +30,7 @@ import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_
 import {GeneratedText, GeneratedTextCandidates, LitTypeWithParent, ReferenceScores, ReferenceTexts, StringLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {getTypeNames, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';
 
@@ -114,7 +114,7 @@ export class GeneratedTextModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, getTypeNames([...GENERATION_TYPES, ReferenceScores]),
+        [input], this.model, dataset, [...GENERATION_TYPES, ReferenceScores],
         'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;

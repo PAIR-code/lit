@@ -28,7 +28,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {Embeddings, Gradients, MulticlassPreds} from '../lib/lit_types';
+import {Embeddings, Gradients, MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
@@ -444,7 +444,7 @@ export class TCAVModule extends LitModule {
             res.config, res.positiveSlice, res.negativeSlice);
         const featName = `TCAV cosine similarity: ${tcavRunName}`;
 
-        const dataType = createLitType('Scalar');
+        const dataType = createLitType(Scalar);
 
         // Function to get value for this new data column when new datapoints
         // are added.

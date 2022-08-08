@@ -27,7 +27,7 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {AttentionHeads as AttentionHeadsLitType} from '../lib/lit_types';
+import {AttentionHeads as AttentionHeadsLitType, Tokens as TokensLitType} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
@@ -101,8 +101,8 @@ export class AttentionModule extends LitModule {
     if (selectedInput === null) return;
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
-        'Fetching attention');
+        [selectedInput], this.model, dataset,
+        [TokensLitType, AttentionHeadsLitType], 'Fetching attention');
     const res = await this.loadLatest('attentionAndTokens', promise);
     if (res === null) return;
     this.preds = res[0];
