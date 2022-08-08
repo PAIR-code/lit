@@ -19,7 +19,7 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
+import {EdgeLabel, SpanLabel} from './dtypes';
 import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 
@@ -172,6 +172,14 @@ export function formatEdgeLabel(e: EdgeLabel): string {
       /\ /g, '\u00a0' /* &nbsp; */);
 }
 
+/**
+ * Represents an annotation and its score, and the segment(s) is spans.
+ */
+ export interface AnnotationCluster {
+  label: string;
+  score?: number;
+  spans: SpanLabel[];
+}
 /** Formats an AnnotationCluster for textual display, e.g., in the DataTable. */
 export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
