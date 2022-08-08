@@ -5,6 +5,8 @@ from typing import Optional
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import image_utils
+import time
+
 from PIL import Image
 import numpy as np
 
@@ -110,10 +112,11 @@ class DalleModel(lit_model.Model):
     gen_top_p:Optional[float]= None
     temperature:Optional[float] = None
     cond_scale:Optional[float] = 10.0
-    
+
     # generate images
-    output = []
+    images = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
+        start = time.process_time()
         # get a new key
         # as per documentation Keys are passed to the model on each device to generate unique inference.
         # if key will be same than it will generate same images
@@ -138,9 +141,10 @@ class DalleModel(lit_model.Model):
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             image_str = image_utils.convert_pil_to_image_str(img)
             output_images.append(image_str)
-        output.append({'images': output_images})
-
-    return output
+            print(time.process_time() - start)
+        images.append({'image': output_images})
+    
+    return images
     
 # {'image': ['data:image/png;base64,']}]
   def input_spec(self):
