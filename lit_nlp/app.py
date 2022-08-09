@@ -51,6 +51,7 @@ from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
+from lit_nlp.lib import ui_state
 from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
 
@@ -128,6 +129,7 @@ class LitApp(object):
         'inlineDoc': self._inline_doc,
         'onboardStartDoc': self._onboard_start_doc,
         'onboardEndDoc': self._onboard_end_doc,
+        'syncState': self.ui_state_tracker is not None,
     }
 
   def _get_model_spec(self, name: Text):
@@ -328,6 +330,16 @@ class LitApp(object):
         model_outputs=model_outputs,
         config=data.get('config'))
 
+  def _push_ui_state(self, data, dataset_name: str, **unused_kw):
+    """Push UI state back to Python."""
+    if self.ui_state_tracker is None:
+      raise RuntimeError('Attempted to push UI state, but that is not enabled '
+                         'for this server.')
+    options = data.get('config', {})
+    self.ui_state_tracker.update_state(data['inputs'],
+                                       self._datasets[dataset_name],
+                                       dataset_name, **options)
+
   def _warm_start(self, rate: float):
     """Warm-up the predictions cache by making some model calls."""
     assert rate >= 0 and rate <= 1
@@ -427,6 +439,7 @@ class LitApp(object):
       inline_doc: Optional[str] = None,
       onboard_start_doc: Optional[str] = None,
       onboard_end_doc: Optional[str] = None,
+      sync_state: bool = False,  # notebook-only; not in server_flags
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -527,6 +540,12 @@ class LitApp(object):
                               **prediction_analysis_interpreters,
                               **embedding_based_interpreters)
 
+    # Component to sync state from TS -> Python. Used in notebooks.
+    if sync_state:
+      self.ui_state_tracker = ui_state.UIStateTracker()
+    else:
+      self.ui_state_tracker = None
+
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
 
@@ -562,6 +581,7 @@ class LitApp(object):
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
         '/annotate_new_data': self._annotate_new_data,
+        '/push_ui_state': self._push_ui_state,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,

@@ -100,6 +100,8 @@ class LitWidget(object):
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
     app_flags['warm_start'] = 1
+    app_flags['sync_state'] = True
+
     layouts = dict(layouts or {})
     if 'notebook' not in layouts:
       layouts['notebook'] = LIT_NOTEBOOK_LAYOUT
@@ -114,6 +116,10 @@ class LitWidget(object):
 
     if render:
       self.render()
+
+  @property
+  def ui_state(self):
+    return self._server.app.ui_state_tracker.state
 
   def stop(self):
     """Stop the LIT server."""

@@ -210,6 +210,20 @@ export class ApiService extends LitService {
   }
 
   /**
+   * Push UI state to the server.
+   * @param selection current selection
+   * @param datasetName dataset being used,
+   * @param config additional params to pass to UIStateTracker.update_state()
+   */
+  pushState(
+      selection: IndexedInput[], datasetName: string, config?: CallConfig) {
+    const loadMessage = 'Syncing UI state.';
+    return this.queryServer(
+        '/push_ui_state', {'dataset_name': datasetName}, selection, loadMessage,
+        config);
+  }
+
+  /**
    * Send a standard request to the server.
    * @param endpoint server endpoint, like /get_preds
    * @param params query params
