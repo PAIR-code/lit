@@ -193,10 +193,10 @@ class GlueModel(lit_model.Model):
 
     # Tokens for each segment, individually.
     slicer_a, slicer_b = self._segment_slicers(output["tokens"])
+    print(slicer_a)
     output["tokens_" + self.config.text_a_name] = output["tokens"][slicer_a]
     if self.config.text_b_name:
       output["tokens_" + self.config.text_b_name] = output["tokens"][slicer_b]
-
     # Embeddings for each segment, individually.
     output["input_embs_" + self.config.text_a_name] = (
         output["input_embs"][slicer_a])
@@ -219,7 +219,6 @@ class GlueModel(lit_model.Model):
 
     # Gradients for the CLS token.
     output["cls_grad"] = output["input_emb_grad"][0]
-
     # Remove "input_emb_grad" since it's not in the output spec.
     del output["input_emb_grad"]
 
