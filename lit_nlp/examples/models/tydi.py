@@ -28,24 +28,6 @@ class TyDiModel(lit_model.Model):
     self.model = model or FlaxBertForQuestionAnswering.from_pretrained(
         model_name)
 
-  def _question_gradient_generator(self, question: List[str]):
-    tokenized_text = self.tokenizer(question, return_tensors="jax", padding=True)
-    question_output = self.model(
-          **tokenized_text, output_attentions=True, output_hidden_states=True)
-    tokens = np.asarray(tokenized_text['input_ids'])
-    output = {}
-    output["tokens"] = self.tokenizer.convert_ids_to_tokens(tokens[0])
-    return output["tokens"], question_output.hidden_states[-1][0]
-  
-  def _answer_gradient_generator(self, context: List[str]):
-    tokenized_text = self.tokenizer(context, return_tensors="jax", padding=True)
-    answer_output = self.model(
-          **tokenized_text, output_attentions=True, output_hidden_states=True)
-    tokens = np.asarray(tokenized_text['input_ids'])
-    output = {}
-    output["tokens"] = self.tokenizer.convert_ids_to_tokens(tokens[0])
-    return output["tokens"], answer_output.hidden_states[-1][0]
-  
   def _segment_slicers(self, tokens: List[str]):
     try:
       split_point = tokens.index(self.tokenizer.sep_token)
@@ -53,7 +35,7 @@ class TyDiModel(lit_model.Model):
       split_point = len(tokens) - 1
     slicer_question = slice(1, split_point)  # start after [CLS]
     slicer_answer = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
-    return slicer_question, slicer_answer
+    return slicer_question, slicer_answer, split_point
 
   def max_minibatch_size(self) -> int:
     return 8
@@ -84,13 +66,16 @@ class TyDiModel(lit_model.Model):
       # slicer_a, slicer_b = self._segment_slicers(output["tokens"])
       # output["tokens_question"] = output["tokens"][slicer_a]
       # output["input_emb_grad"] = question_output.hidden_states[-1][0]
-      result_tokens = np.asarray(tokenized_text['input_ids'])
-      output = {}
-      output['tokens'] = self.tokenizer.convert_ids_to_tokens(result_tokens[0])
-      slicer_question, slicer_answer = self._segment_slicers(output["tokens"])
+      tokens = np.asarray(tokenized_text['input_ids'])
+      total_tokens = self.tokenizer.convert_ids_to_tokens(tokens[0])
+      slicer_question, slicer_answer, split_point = self._segment_slicers(total_tokens)
+      all_hidden_state = results.hidden_states[-1][0]
+      question_tokens = total_tokens[1:split_point]
+      print(total_tokens[:split_point])
+      question_hidden_state = all_hidden_state[1:split_point]
+      answer_tokens = total_tokens[split_point+1:len(tokens[0]) - 1]
+      anser_hidden_state = all_hidden_state[split_point+1:len(tokens[0]) - 1]
 
-      q_tokens, q_hidden_states = self._question_gradient_generator(inp['question'])
-      a_tokens, a_hidden_states = self._question_gradient_generator(inp['context'])
       # print(q_tokens[slicer_question])
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
@@ -98,10 +83,10 @@ class TyDiModel(lit_model.Model):
           "cls_emb": results.hidden_states[-1][:, 0][0],  # last layer, first token,
           # "tokens_question" : output["tokens"][slicer_a],
           # "token_grad_question" : output["input_emb_grad"][slicer_a],
-          "tokens_question": q_tokens[slicer_question],
-          "token_grad_question": q_hidden_states[slicer_question],
-          "tokens_answer": a_tokens[slicer_answer],
-          "token_grad_answer": a_hidden_states[slicer_answer],
+          "tokens_question": question_tokens[slicer_question],
+          "token_grad_question": question_hidden_state[slicer_question],
+          "tokens_answer": answer_tokens[slicer_answer],
+          "token_grad_answer": anser_hidden_state[slicer_answer]
       })
   
     return prediction_output
