@@ -73,7 +73,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   models = {}
   for model_name_or_path in _MODELS.value:
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=1)
+    models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=2)
  
   datasets = {
       "Dalle_prompt": dalle_prompt.Dalle(),

@@ -142,8 +142,10 @@ class DalleModel(lit_model.Model):
             image_str = image_utils.convert_pil_to_image_str(img)
             output_images.append(image_str)
             print(time.process_time() - start)
-        images.append({'image': output_images})
-    
+
+        if i == self.n_predictions:
+            images.append({'image': output_images})
+
     return images
     
 # {'image': ['data:image/png;base64,']}]
@@ -157,5 +159,5 @@ class DalleModel(lit_model.Model):
     return {
         "image": lit_types.ImageBytesList()
     }
-    
   
+# ]}, {'image': ['data:image/png;base64,
