@@ -44,6 +44,8 @@ dependencies:
         - Jinja2
         - stanza
         - shap==0.37.0
+        - tqdm
         - jax
         - jaxlib
         - flax
+

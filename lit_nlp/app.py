@@ -19,7 +19,7 @@ import glob
 import os
 import random
 import time
-from typing import Optional, Text, List, Mapping, Sequence, Union
+from typing import Optional, Mapping, Sequence, Union, Callable, Iterable
 
 from absl import logging
 
@@ -51,8 +51,10 @@ from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
+from lit_nlp.lib import ui_state
 from lit_nlp.lib import utils
 from lit_nlp.lib import wsgi_app
+import tqdm
 
 JsonDict = types.JsonDict
 Input = types.Input
@@ -60,6 +62,8 @@ IndexedInput = types.IndexedInput
 
 # Export this symbol, for access from demo.py
 PredsCache = caching.PredsCache
+
+ProgressIndicator = Callable[[Iterable], Iterable]
 
 
 class LitApp(object):
@@ -128,9 +132,10 @@ class LitApp(object):
         'inlineDoc': self._inline_doc,
         'onboardStartDoc': self._onboard_start_doc,
         'onboardEndDoc': self._onboard_end_doc,
+        'syncState': self.ui_state_tracker is not None,
     }
 
-  def _get_model_spec(self, name: Text):
+  def _get_model_spec(self, name: str):
     return self._info['models'][name]['spec']
 
   def _get_info(self, unused_data, **unused_kw):
@@ -138,7 +143,7 @@ class LitApp(object):
     return self._info
 
   def _reconstitute_inputs(self, inputs: Sequence[Union[IndexedInput, str]],
-                           dataset_name: str) -> List[IndexedInput]:
+                           dataset_name: str) -> list[IndexedInput]:
     """Reconstitute any inputs sent as references (bare IDs)."""
     index = self._datasets[dataset_name].index
     # TODO(b/178228238): set up proper debug logging and hide this by default.
@@ -148,20 +153,14 @@ class LitApp(object):
         num_aliased, len(inputs), dataset_name)
     return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
 
-  def _predict(self, inputs: List[JsonDict], model_name: Text,
-               dataset_name: Optional[Text]):
-    """Run model predictions."""
-    return list(self._models[model_name].predict_with_metadata(
-        inputs, dataset_name=dataset_name))
-
-  def _save_datapoints(self, data, dataset_name: Text, path: Text, **unused_kw):
+  def _save_datapoints(self, data, dataset_name: str, path: str, **unused_kw):
     """Save datapoints to disk."""
     if self._demo_mode:
       logging.warn('Attempted to save datapoints in demo mode.')
       return None
     return self._datasets[dataset_name].save(data['inputs'], path)
 
-  def _load_datapoints(self, unused_data, dataset_name: Text, path: Text,
+  def _load_datapoints(self, unused_data, dataset_name: str, path: str,
                        **unused_kw):
     """Load datapoints from disk."""
     if self._demo_mode:
@@ -172,22 +171,26 @@ class LitApp(object):
 
   def _get_preds(self,
                  data,
-                 model: Text,
-                 dataset_name: Optional[Text] = None,
-                 requested_types: Text = 'LitType',
-                 **unused_kw):
+                 model: str,
+                 dataset_name: Optional[str] = None,
+                 requested_types: Optional[str] = None,
+                 **kw):
     """Get model predictions.
 
     Args:
       data: data payload, containing 'inputs' field
       model: name of the model to run
       dataset_name: name of the active dataset
-      requested_types: optional, comma-separated list of types to return
+      requested_types: optional, comma-separated list of type names to return
+      **kw: additional args passed to model.predict_with_metadata()
 
     Returns:
-      List[JsonDict] containing requested fields of model predictions
+      list[JsonDict] containing requested fields of model predictions
     """
-    preds = self._predict(data['inputs'], model, dataset_name)
+    preds = list(self._models[model].predict_with_metadata(
+        data['inputs'], dataset_name=dataset_name, **kw))
+    if not requested_types:
+      return preds
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']
@@ -209,8 +212,8 @@ class LitApp(object):
 
   def _annotate_new_data(self,
                          data,
-                         dataset_name: Optional[Text] = None,
-                         **unused_kw) -> List[IndexedInput]:
+                         dataset_name: Optional[str] = None,
+                         **unused_kw) -> list[IndexedInput]:
     """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
     assert dataset_name is not None, 'No dataset specified.'
@@ -231,15 +234,15 @@ class LitApp(object):
 
   def _get_dataset(self,
                    unused_data,
-                   dataset_name: Optional[Text] = None,
-                   **unused_kw):
+                   dataset_name: Optional[str] = None,
+                   **unused_kw) -> list[IndexedInput]:
     """Attempt to get dataset, or override with a specific path."""
     return self._datasets[dataset_name].indexed_examples
 
   def _create_dataset(self,
                       unused_data,
-                      dataset_name: Optional[Text] = None,
-                      dataset_path: Optional[Text] = None,
+                      dataset_name: Optional[str] = None,
+                      dataset_path: Optional[str] = None,
                       **unused_kw):
     """Create dataset from a path, updating and returning the metadata."""
 
@@ -256,8 +259,8 @@ class LitApp(object):
 
   def _create_model(self,
                     unused_data,
-                    model_name: Optional[Text] = None,
-                    model_path: Optional[Text] = None,
+                    model_name: Optional[str] = None,
+                    model_path: Optional[str] = None,
                     **unused_kw):
     """Create model from a path, updating and returning the metadata."""
 
@@ -274,14 +277,14 @@ class LitApp(object):
     else:
       return None
 
-  def _get_generated(self, data, model: Text, dataset_name: Text,
-                     generator: Text, **unused_kw):
+  def _get_generated(self, data, model: str, dataset_name: str, generator: str,
+                     **unused_kw):
     """Generate new datapoints based on the request."""
     generator_name = generator
     generator: lit_components.Generator = self._generators[generator_name]
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: List[List[Input]] = generator.run_with_metadata(
+    all_generated: list[list[Input]] = generator.run_with_metadata(
         data['inputs'], self._models[model], dataset, config=data.get('config'))
 
     # Annotate datapoints
@@ -296,7 +299,7 @@ class LitApp(object):
     ]
 
     # Add metadata.
-    all_generated_indexed: List[List[IndexedInput]] = [
+    all_generated_indexed: list[list[IndexedInput]] = [
         dataset.index_inputs(generated) for generated in annotated_generated
     ]
     for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
@@ -308,14 +311,16 @@ class LitApp(object):
         })
     return all_generated_indexed
 
-  def _get_interpretations(self, data, model: Text, dataset_name: Text,
-                           interpreter: Text, **unused_kw):
+  def _get_interpretations(self, data, model: str, dataset_name: str,
+                           interpreter: str, **unused_kw):
     """Run an interpretation component."""
     interpreter = self._interpreters[interpreter]
-    # Pre-compute using self._predict, which looks for cached results.
+    # Get model preds before the interpreter call. Usually these are cached.
+    # TODO(lit-dev): see if we can remove this path and just allow interpreters
+    # to call the model directly.
     if model:
       assert model in self._models, f"Model '{model}' is not a valid model."
-      model_outputs = self._predict(data['inputs'], model, dataset_name)
+      model_outputs = self._get_preds(data, model, dataset_name)
       model = self._models[model]
     else:
       model_outputs = None
@@ -328,23 +333,38 @@ class LitApp(object):
         model_outputs=model_outputs,
         config=data.get('config'))
 
-  def _warm_start(self, rate: float):
+  def _push_ui_state(self, data, dataset_name: str, **unused_kw):
+    """Push UI state back to Python."""
+    if self.ui_state_tracker is None:
+      raise RuntimeError('Attempted to push UI state, but that is not enabled '
+                         'for this server.')
+    options = data.get('config', {})
+    self.ui_state_tracker.update_state(data['inputs'],
+                                       self._datasets[dataset_name],
+                                       dataset_name, **options)
+
+  def _warm_start(self,
+                  rate: float,
+                  progress_indicator: Optional[ProgressIndicator] = None):
     """Warm-up the predictions cache by making some model calls."""
     assert rate >= 0 and rate <= 1
     for model, model_info in self._info['models'].items():
       for dataset_name in model_info['datasets']:
         logging.info("Warm-start of model '%s' on dataset '%s'", model,
                      dataset_name)
-        full_dataset = self._get_dataset([], dataset_name)
+        all_examples: list[IndexedInput] = self._get_dataset([], dataset_name)
         if rate < 1:
-          dataset = random.sample(full_dataset, int(len(full_dataset) * rate))
+          examples = random.sample(all_examples, int(len(all_examples) * rate))
           logging.info('Partial warm-start: running on %d/%d examples.',
-                       len(dataset), len(full_dataset))
+                       len(examples), len(all_examples))
         else:
-          dataset = full_dataset
-        _ = self._get_preds({'inputs': dataset}, model, dataset_name)
+          examples = all_examples
+        _ = self._get_preds({'inputs': examples},
+                            model,
+                            dataset_name,
+                            progress_indicator=progress_indicator)
 
-  def _warm_projections(self, interpreters: List[Text]):
+  def _warm_projections(self, interpreters: list[str]):
     """Pre-compute UMAP/PCA projections with default arguments."""
     for model, model_info in self._info['models'].items():
       for dataset_name in model_info['datasets']:
@@ -408,17 +428,19 @@ class LitApp(object):
 
   def __init__(
       self,
-      models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_dataset.Dataset],
-      generators: Optional[Mapping[Text, lit_components.Generator]] = None,
-      interpreters: Optional[Mapping[Text, lit_components.Interpreter]] = None,
-      annotators: Optional[List[lit_components.Annotator]] = None,
+      models: Mapping[str, lit_model.Model],
+      datasets: Mapping[str, lit_dataset.Dataset],
+      generators: Optional[Mapping[str, lit_components.Generator]] = None,
+      interpreters: Optional[Mapping[str, lit_components.Interpreter]] = None,
+      annotators: Optional[list[lit_components.Annotator]] = None,
       layouts: Optional[layout.LitComponentLayouts] = None,
       # General server config; see server_flags.py.
-      data_dir: Optional[Text] = None,
+      data_dir: Optional[str] = None,
       warm_start: float = 0.0,
+      warm_start_progress_indicator: Optional[ProgressIndicator] = tqdm
+      .tqdm,  # not in server_flags
       warm_projections: bool = False,
-      client_root: Optional[Text] = None,
+      client_root: Optional[str] = None,
       demo_mode: bool = False,
       default_layout: Optional[str] = None,
       canonical_url: Optional[str] = None,
@@ -427,6 +449,7 @@ class LitApp(object):
       inline_doc: Optional[str] = None,
       onboard_start_doc: Optional[str] = None,
       onboard_end_doc: Optional[str] = None,
+      sync_state: bool = False,  # notebook-only; not in server_flags
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -454,6 +477,8 @@ class LitApp(object):
     }
 
     self._datasets = dict(datasets)
+    # TODO(b/202210900): get rid of this, just dynamically create the empty
+    # dataset on the frontend.
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
 
     self._annotators = annotators or []
@@ -528,6 +553,12 @@ class LitApp(object):
                               **prediction_analysis_interpreters,
                               **embedding_based_interpreters)
 
+    # Component to sync state from TS -> Python. Used in notebooks.
+    if sync_state:
+      self.ui_state_tracker = ui_state.UIStateTracker()
+    else:
+      self.ui_state_tracker = None
+
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
 
@@ -540,7 +571,8 @@ class LitApp(object):
       warm_start = 1.0
 
     if warm_start > 0:
-      self._warm_start(rate=warm_start)
+      self._warm_start(
+          rate=warm_start, progress_indicator=warm_start_progress_indicator)
       self.save_cache()
       if warm_start >= 1:
         warm_projections = True
@@ -563,6 +595,7 @@ class LitApp(object):
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
         '/annotate_new_data': self._annotate_new_data,
+        '/push_ui_state': self._push_ui_state,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,

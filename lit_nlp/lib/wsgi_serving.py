@@ -78,6 +78,10 @@ class NotebookWsgiServer(object):
     self.can_act_as_model_server = False
 
   @property
+  def app(self):
+    return self._app
+
+  @property
   def port(self):
     """Returns the current port or error if the server is not started.
 
