@@ -304,6 +304,29 @@ To enable this method, your model should, as part of the
     be arrays of shape `<float>[num_tokens, emb_dim]` representing the gradient
     $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
     $\hat{y}$.
+ 
+
+The model should have an optional input of type `TokenEmbeddings` with the same name as the output `TokenEmbeddings` field (see type system conventions), which will be used to compute the normalized dot product described above.
+
+An example spec would look like:
+
+```python
+def output_spec(self) -> lit_types.Spec:
+    return {
+        # ...
+        "tokens": lit_types.Tokens(),
+        "token_grads": lit_types.TokenGradients(align="tokens", grad_for="token_embs"),
+        "token_embs": lit_types.TokenEmbeddings(align="tokens")
+        # ...
+    }
+    
+def input_spec(self) -> lit_types.Spec:
+    return {
+        # ...
+        "token_embs": lit_types.TokenEmbeddings(align="tokens", required=False)
+        # ...
+    }
+```
 
 As with grad-norm, the model should return embeddings and gradients as NumPy
 arrays. The LIT `GradientDotInput` component will compute the dot products and
