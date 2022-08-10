@@ -1,7 +1,7 @@
 """LIT wrappers for TyDiModel"""
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from typing import Optional, Dict, List
+from typing import List
 import numpy as np
 import transformers
 
@@ -57,7 +57,7 @@ class TyDiModel(lit_model.Model):
 
     Takes question & context from the dataset tokenizes &
     predicts answer.
-    
+
     """
     prediction_output = []
 
