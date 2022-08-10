@@ -259,8 +259,9 @@ soon. Available methods include:
 ### Gradient Norm
 
 This is a simple method, in which salience scores are proportional to the L2
-norm of the gradient, i.e. the score for token $$i$$ is $$ S(i) \propto
-||\nabla_{x_i} \hat{y}||_2 $$.
+norm of the gradient, i.e. the score for token $i$ is:
+
+$$S(i) \propto ||\nabla_{x_i} \hat{y}||_2$$
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -270,12 +271,12 @@ To enable this method, your model should, as part of the
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`). Values should be arrays
     of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
-    $$\hat{y}$$.
+    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
+    $\hat{y}$.
 
 Because LIT is framework-agnostic, the model code is responsible for performing
 the gradient computation and returning the result as a NumPy array. The choice
-of $$\hat{y}$$ is up to the developer; typically for regression/scoring this is
+of $\hat{y}$ is up to the developer; typically for regression/scoring this is
 the raw score and for classification this is the score of the predicted (argmax)
 class.
 
