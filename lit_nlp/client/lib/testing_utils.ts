@@ -165,9 +165,8 @@ export const mockMetadata: LitMetadata = {
   'generators': {
     'word_replacer': {
       'configSpec': {
-        'Substitutions': createLitType(TextSegment, {
-          'default': 'great -> terrible'
-        }),
+        'Substitutions':
+            createLitType(TextSegment, {'default': 'great -> terrible'}),
       },
       'metaSpec': {}
     },
@@ -186,7 +185,8 @@ export const mockMetadata: LitMetadata = {
   'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
-  'canonicalURL': undefined
+  'canonicalURL': undefined,
+  'syncState': false
 };
 
 /**
@@ -367,5 +367,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
   'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
-  'canonicalURL': undefined
+  'canonicalURL': undefined,
+  'syncState': false
 };

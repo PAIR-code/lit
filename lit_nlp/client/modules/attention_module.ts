@@ -46,6 +46,7 @@ type AttentionHeads = number[][][];
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
   static override numCols = 3;
+  static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {

@@ -44,6 +44,7 @@ dependencies:
         - Jinja2
         - stanza
         - shap==0.37.0
+        - tqdm
         - jax
         - jaxlib
         - flax
@@ -51,3 +52,4 @@ dependencies:
         - git+https://github.com/patil-suraj/vqgan-jax.git
         - ipython
         - ipywidgets
+

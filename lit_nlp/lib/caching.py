@@ -19,7 +19,7 @@ import hashlib
 import os
 import pickle
 import threading
-from typing import Text, Optional, Union, Any, List, Tuple
+from typing import Any, Callable, Iterable, Optional, Union
 
 from absl import logging
 
@@ -31,9 +31,11 @@ JsonDict = types.JsonDict
 Input = types.Input
 IndexedInput = types.IndexedInput
 
+ProgressIndicator = Callable[[Iterable], Iterable]
+
 # Compound keys: (dataset_name, example_id)
 # None is used as a sentinel to skip the cache.
-CacheKey = Union[Tuple[Text, Text], None]
+CacheKey = Union[tuple[str, str], None]
 
 # The keys to the prediction locks are frozen sets of CacheKeys.
 PredLockKey = frozenset[CacheKey]
@@ -43,7 +45,7 @@ PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS: CacheKey = (
     "NO_CONCURRENT_PREDICTION", "")
 
 
-def input_hash(example: JsonDict) -> Text:
+def input_hash(example: JsonDict) -> str:
   """Create stable hash of an input example."""
   json_str = serialize.to_json(
       example, simple=True, sort_keys=True).encode("utf-8")
@@ -83,7 +85,7 @@ class PredsCache(object):
       return None
     return self._d.get(key, None)
 
-  def info(self) -> Text:
+  def info(self) -> str:
     """Print some info, for logging."""
     return str(len(self._d))
 
@@ -162,8 +164,8 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   def __init__(self,
                model: lit_model.Model,
-               name: Text,
-               cache_dir: Optional[Text] = None):
+               name: str,
+               cache_dir: Optional[str] = None):
     """Wrap a model to add caching.
 
     Args:
@@ -209,8 +211,8 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   ##
   # For internal use
-  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict],
-                                  dataset_name: Text):
+  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict],
+                                  dataset_name: str):
     """For use with UMAP and other preprocessing transforms."""
     outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
@@ -242,10 +244,12 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     with self._cache.lock:
       return [self._cache.get(input_key) for input_key in input_keys]
 
-  def _predict_with_metadata(self,
-                             indexed_inputs: List[JsonDict],
-                             dataset_name: Optional[Text] = None,
-                             **kw) -> List[JsonDict]:
+  def _predict_with_metadata(
+      self,
+      indexed_inputs: list[JsonDict],
+      dataset_name: Optional[str] = None,
+      progress_indicator: Optional[ProgressIndicator] = lambda x: x,
+      **kw) -> list[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     # TODO(lit-dev): consider moving this to example level
     # (null keys skip cache), and removing this codepath.
@@ -278,7 +282,8 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       return results
 
     with self._cache.get_pred_lock(input_keys):
-      model_preds = list(self.wrapped.predict_with_metadata(misses))
+      model_preds = list(
+          self.wrapped.predict_with_metadata(progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
       assert len(model_preds) == len(
           misses

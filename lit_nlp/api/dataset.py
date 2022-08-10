@@ -218,6 +218,18 @@ class IndexedDataset(Dataset):
       self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}
 
+  @property
+  def slice(self):
+    """Syntactic sugar, allows .slice[i:j] to return a new IndexedDataset."""
+
+    def _slicer(slice_obj):
+      return IndexedDataset(
+          indexed_examples=self.indexed_examples[slice_obj],
+          id_fn=self.id_fn,
+          base=self)
+
+    return SliceWrapper(_slicer)
+
   @classmethod
   def index_all(cls, datasets: Mapping[str, Dataset], id_fn: IdFnType):
     """Convenience function to convert a dict of datasets."""

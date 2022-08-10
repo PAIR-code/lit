@@ -94,6 +94,7 @@ export interface LitMetadata {
   inlineDoc?: string;
   onboardStartDoc?: string;
   onboardEndDoc?: string;
+  syncState: boolean;
 }
 
 /**
