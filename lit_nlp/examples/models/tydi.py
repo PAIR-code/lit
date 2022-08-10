@@ -29,64 +29,65 @@ class TyDiModel(lit_model.Model):
         model_name)
 
   def _segment_slicers(self, tokens: List[str]):
+    """Slicers along the tokens dimension for each segment.
+
+    For tokens ['[CLS]', a0, a1, ..., '[SEP]', b0, b1, ..., '[SEP]'],
+    we want to get the slices [a0, a1, ...] and [b0, b1, ...]
+
+    Args:
+      tokens: <string>[num_tokens], including special tokens
+
+    Returns:
+      (slicer_a, slicer_b), slice objects
+    """
     try:
       split_point = tokens.index(self.tokenizer.sep_token)
     except ValueError:
       split_point = len(tokens) - 1
     slicer_question = slice(1, split_point)  # start after [CLS]
-    slicer_answer = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
-    return slicer_question, slicer_answer, split_point
+    slicer_context = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
+    return slicer_question, slicer_context
 
   def max_minibatch_size(self) -> int:
     return 8
 
 
   def predict_minibatch(self, inputs):
-    """Predict on a single minibatch of examples."""
+    """Predict on a single minibatch of examples.
+
+    Takes question & context from the dataset tokenizes &
+    predicts answer.
+    
+    """
     prediction_output = []
 
     for inp in inputs:
       tokenized_text = self.tokenizer(
           inp['question'], inp['context'], return_tensors="jax", padding=True)
       results = self.model(
-          **tokenized_text, output_attentions=True, output_hidden_states=True)
+          **tokenized_text, output_hidden_states=True)
       answer_start_index = results.start_logits.argmax()
       answer_end_index = results.end_logits.argmax()
       predict_answer_tokens = tokenized_text.input_ids[
           0, answer_start_index : answer_end_index + 1]
 
-      # tokenized_text_question =self.tokenizer(inp['question'], return_tensors="jax", padding=True)
-      # question_output = self.model(
-      #     **tokenized_text_question, output_attentions=True, output_hidden_states=True)
-      # tokens = np.asarray(tokenized_text_question['input_ids'])
-      # output ={}
-      # output["tokens"] = self.tokenizer.convert_ids_to_tokens(tokens[0])
-
-      # # Tokens for each segment, individually.
-      # slicer_a, slicer_b = self._segment_slicers(output["tokens"])
-      # output["tokens_question"] = output["tokens"][slicer_a]
-      # output["input_emb_grad"] = question_output.hidden_states[-1][0]
+      # get id's for question & context
       tokens = np.asarray(tokenized_text['input_ids'])
+      #convert id's to tokens
       total_tokens = self.tokenizer.convert_ids_to_tokens(tokens[0])
-      slicer_question, slicer_answer, split_point = self._segment_slicers(total_tokens)
+      #split by question & context
+      slicer_question, slicer_context = self._segment_slicers(total_tokens)
+      #get embeddings
       all_hidden_state = results.hidden_states[-1][0]
-      question_tokens = total_tokens[1:split_point]
-      print(total_tokens[:split_point])
-      question_hidden_state = all_hidden_state[1:split_point]
-      answer_tokens = total_tokens[split_point+1:len(tokens[0]) - 1]
-      anser_hidden_state = all_hidden_state[split_point+1:len(tokens[0]) - 1]
-
-      # print(q_tokens[slicer_question])
+      
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
           "answers_text": inp['answers_text'],
           "cls_emb": results.hidden_states[-1][:, 0][0],  # last layer, first token,
-          # "tokens_question" : output["tokens"][slicer_a],
-          # "token_grad_question" : output["input_emb_grad"][slicer_a],
-          "tokens_question": question_tokens[slicer_question],
-          "token_grad_question": question_hidden_state[slicer_question],
-          "tokens_answer": answer_tokens[slicer_answer],
-          "token_grad_answer": anser_hidden_state[slicer_answer]
+          "tokens_question": total_tokens[slicer_question],
+          "token_grad_question": all_hidden_state[slicer_question],
+          "tokens_answer": total_tokens[slicer_context],
+          "token_grad_answer": all_hidden_state[slicer_context]
       })
   
     return prediction_output

@@ -193,7 +193,7 @@ class GlueModel(lit_model.Model):
 
     # Tokens for each segment, individually.
     slicer_a, slicer_b = self._segment_slicers(output["tokens"])
-    print(slicer_a)
+   
     output["tokens_" + self.config.text_a_name] = output["tokens"][slicer_a]
     if self.config.text_b_name:
       output["tokens_" + self.config.text_b_name] = output["tokens"][slicer_b]
