@@ -81,6 +81,7 @@ class DalleModel(lit_model.Model):
     def p_generate(
         tokenized_prompt, key, params, top_k, top_p, temperature, condition_scale
     ):
+        print(tokenized_prompt)
         return self.dalle_bert_model.generate(
             **tokenized_prompt,
             prng_key=key,
@@ -105,18 +106,21 @@ class DalleModel(lit_model.Model):
     processor = DalleBartProcessor.from_pretrained(self.model, revision=self.dalle_commit_id)
     tokenized_prompts = processor(prompts)
     tokenized_prompt = replicate(tokenized_prompts)
-
     
     # We can customize generation parameters ( https://huggingface.co/blog/how-to-generate)
     gen_top_k:Optional[int]  = None
     gen_top_p:Optional[float]= None
     temperature:Optional[float] = None
     cond_scale:Optional[float] = 10.0
-
+    dataset_len = len(prompts)
+    image_generated = dataset_len*self.n_predictions
+    print(dataset_len)
+    print(image_generated)
     # generate images
-    images = []
+    final_output = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
         start = time.process_time()
+        print(i)
         # get a new key
         # as per documentation Keys are passed to the model on each device to generate unique inference.
         # if key will be same than it will generate same images
@@ -143,10 +147,16 @@ class DalleModel(lit_model.Model):
             output_images.append(image_str)
             print(time.process_time() - start)
 
-        if i == self.n_predictions:
-            images.append({'image': output_images})
+    for i in range(0,len(output_images),int(image_generated/dataset_len)):
+        if dataset_len == 1:
+            final_output.append({'image': output_images})
+            print(final_output)
+            return final_output
+        else:
+            final_output.append({'image': output_images[i:i+int(image_generated/dataset_len)]})
+            
 
-    return images
+    return final_output
     
 # {'image': ['data:image/png;base64,']}]
   def input_spec(self):
@@ -160,4 +170,4 @@ class DalleModel(lit_model.Model):
         "image": lit_types.ImageBytesList()
     }
   
-# ]}, {'image': ['data:image/png;base64,
+# ]}, {'image': ['data:image/png;base64, -> # {'image': ['data:image/png;base64','data:image/png;base64'
