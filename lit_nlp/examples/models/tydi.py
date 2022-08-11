@@ -1,6 +1,7 @@
 """LIT wrappers for TyDiModel"""
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.datasets import question_answering
 from typing import List
 import numpy as np
 import transformers
@@ -14,9 +15,6 @@ JsonDict = lit_types.JsonDict
 
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset ."""
-
-  TYDI_LANG_VOCAB = ['english','bengali', 'russian', 'telugu','swahili',
-                    'korean','indonesian','arabic','finnish']
                   
   def __init__(self,
               model_name: str,
@@ -99,7 +97,7 @@ class TyDiModel(lit_model.Model):
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(required=False,vocab=self.TYDI_LANG_VOCAB),
+        "language": lit_types.CategoryLabel(required=False, vocab=question_answering.TYDI_LANG_VOCAB),
 
     }
 
@@ -110,8 +108,8 @@ class TyDiModel(lit_model.Model):
          "tokens_question": lit_types.Tokens(parent='question'),
          "tokens_answer": lit_types.Tokens(parent='question'),
          "token_grad_question" : lit_types.TokenGradients(
-          align="tokens_question"),
+              align="tokens_question"),
           "token_grad_answer" : lit_types.TokenGradients(
-          align="tokens_answer")
+              align="tokens_answer")
 
     }

@@ -16,7 +16,7 @@
 
 import abc
 import collections
-from typing import Any, Callable, cast, Optional, Sequence, Union, Text, Dict
+from typing import Any, Callable, cast, Optional, Sequence, Union
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -251,7 +251,7 @@ class ExactMatchMetrics(SimpleMetrics):
               preds: Sequence[JsonDict],
               label_spec: types.MultiSegmentAnnotations,
               pred_spec: types.GeneratedText,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+              config: Optional[JsonDict] = None) -> dict[str, float]:
     """Compute metric(s) between labels and predictions."""
     del config
     del label_spec

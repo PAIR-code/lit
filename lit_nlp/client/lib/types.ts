@@ -19,7 +19,7 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {EdgeLabel, SpanLabel} from './dtypes';
+import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
 import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 

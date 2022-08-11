@@ -58,27 +58,23 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
     models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
+
+max_examples: int = _MAX_EXAMPLES.value
+  dataset_defs: list[tuple[str, str]] = [
+      ("TyDiQA-Multilingual", "validation"),
+      ("TyDiQA-English", "validation-en"),
+      ("TyDiQA-Finnish", "validation-fi"),
+      ("TyDiQA-Arabic", "validation-ar"),
+      ("TyDiQA-Bengali", "validation-bn"),
+      ("TyDiQA-Indonesian", "validation-id"),
+      ("TyDiQA-Korean", "validation-ko"),
+      ("TyDiQA-Russian", "validation-ru"),
+      ("TyDiQA-Swahili", "validation-sw"),
+      ("TyDiQA-Telugu", "validation-te"),
+  ]
   datasets = {
-      "TyDiQA-Multilingual": question_answering.TyDiQA(
-        split="validation", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-English": question_answering.TyDiQA(
-        split="validation-en", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Finnish": question_answering.TyDiQA(
-        split="validation-fi", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Arabic": question_answering.TyDiQA(
-        split="validation-ar", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Bengali": question_answering.TyDiQA(
-        split="validation-bn", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Indonesian": question_answering.TyDiQA(
-        split="validation-id", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Korean": question_answering.TyDiQA(
-        split="validation-ko", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Russian": question_answering.TyDiQA(
-        split="validation-ru", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Swahili": question_answering.TyDiQA(
-        split="validation-sw", max_examples=_MAX_EXAMPLES.value),
-      "TyDiQA-Telugu": question_answering.TyDiQA(
-        split="validation-te", max_examples=_MAX_EXAMPLES.value)
+      name: question_answering.TyDiQA(split=split, max_examples=max_examples)
+      for name, split in dataset_defs
   }
 
   generators = {"word_replacer": word_replacer.WordReplacer()}

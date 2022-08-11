@@ -7,11 +7,11 @@ import re
 import tensorflow_datasets as tfds
 
 
+TYDI_LANG_VOCAB = ['english','bengali', 'russian', 'telugu','swahili',
+    'korean','indonesian','arabic','finnish']
+
 class TyDiQA(lit_dataset.Dataset):
   """TyDiQA dataset."""
-
-  TYDI_LANG_VOCAB = ['english','bengali', 'russian', 'telugu','swahili',
-                    'korean','indonesian','arabic','finnish']
   
   def __init__(self, split: str, max_examples=-1):
     
@@ -49,5 +49,5 @@ class TyDiQA(lit_dataset.Dataset):
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(required=False, vocab=self.TYDI_LANG_VOCAB)
+        "language": lit_types.CategoryLabel(required=False, vocab=TYDI_LANG_VOCAB)
     }
