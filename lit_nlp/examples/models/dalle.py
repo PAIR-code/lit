@@ -118,6 +118,7 @@ class DalleModel(lit_model.Model):
     print(image_generated)
     # generate images
     final_output = []
+    output_images = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
         start = time.process_time()
         print(i)
@@ -140,7 +141,6 @@ class DalleModel(lit_model.Model):
         # decode images
         decoded_images = p_decode(encoded_images, self.vqgan_params)
         decoded_images = decoded_images.clip(0.0, 1.0).reshape((-1, 256, 256, 3))
-        output_images = []
         for decoded_img in decoded_images:
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             image_str = image_utils.convert_pil_to_image_str(img)
@@ -150,9 +150,9 @@ class DalleModel(lit_model.Model):
     for i in range(0,len(output_images),int(image_generated/dataset_len)):
         if dataset_len == 1:
             final_output.append({'image': output_images})
-            print(final_output)
             return final_output
         else:
+            print(final_output)
             final_output.append({'image': output_images[i:i+int(image_generated/dataset_len)]})
             
 
