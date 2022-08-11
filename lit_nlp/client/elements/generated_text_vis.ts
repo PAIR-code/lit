@@ -21,10 +21,11 @@ import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
+import {AnnotationCluster} from '../lib/dtypes';
 import {ReactiveElement} from '../lib/elements';
 import {DiffMode, getTextDiff, TextDiff} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {AnnotationCluster, GeneratedTextCandidate} from '../lib/types';
+import {GeneratedTextCandidate} from '../lib/types';
 
 import {styles} from './generated_text_vis.css';
 
