@@ -32,7 +32,6 @@ const GLOB_OPTIONS = {
  */
 module.exports = (env = {}) => {
   const isProd = !!env.production;
-  const isDev = !isProd;
   console.log('⭐️ Packing web...', env);
 
   const buildStr = env.build || '';
@@ -90,8 +89,8 @@ module.exports = (env = {}) => {
   });
 
   return {
-    mode: isDev ? 'development' : 'production',
-    devtool: isDev ? 'inline-source-map' : 'none',
+    mode: 'development',
+    devtool: 'source-map',
     module: {
       rules: [
         {
@@ -131,7 +130,7 @@ module.exports = (env = {}) => {
       }),
       new FileManagerPlugin(fileManagerParams)
     ],
-    watch: isDev,
+    watch: !isProd,
   };
 };
 
