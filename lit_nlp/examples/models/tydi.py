@@ -61,7 +61,7 @@ class TyDiModel(lit_model.Model):
 
     for inp in inputs:
       tokenized_text = self.tokenizer(
-          inp['question'], inp['context'], return_tensors="jax", padding=True)
+          inp["question"], inp["context"], return_tensors="jax", padding=True)
       results = self.model(
           **tokenized_text, output_hidden_states=True)
       answer_start_index = results.start_logits.argmax()
@@ -70,22 +70,29 @@ class TyDiModel(lit_model.Model):
           0, answer_start_index : answer_end_index + 1]
 
       # get id's for question & context
-      tokens = np.asarray(tokenized_text['input_ids'])
+      tokens = np.asarray(tokenized_text["input_ids"])
       #convert id's to tokens
       total_tokens = self.tokenizer.convert_ids_to_tokens(tokens[0])
       #split by question & context
       slicer_question, slicer_context = self._segment_slicers(total_tokens)
       #get embeddings
-      all_hidden_state = results.hidden_states[-1][0]
-      
+      embeddings = results.hidden_states[0][0]
+      #gradient
+      gradient = results.hidden_states[-1][0]
+
+      # print(embeddings[slicer_question])
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
-          "answers_text": inp['answers_text'],
+          "answers_text": inp["answers_text"],
           "cls_emb": results.hidden_states[-1][:, 0][0],  # last layer, first token,
           "tokens_question": total_tokens[slicer_question],
-          "token_grad_question": all_hidden_state[slicer_question],
-          "tokens_answer": total_tokens[slicer_context],
-          "token_grad_answer": all_hidden_state[slicer_context]
+          "tokens_context": total_tokens[slicer_context],
+          "grad_class": None,
+          "tokens_embs_question": np.asarray(embeddings[slicer_question]),
+          "token_grad_context": np.asarray(embeddings[slicer_context]),
+
+          "tokens_grad_question": np.asarray(gradient[slicer_question]),
+          "tokens_embs_context": np.asarray(gradient[slicer_context])
       })
   
     return prediction_output
@@ -103,13 +110,16 @@ class TyDiModel(lit_model.Model):
 
   def output_spec(self):
     return {
-        "generated_text": lit_types.GeneratedText(parent='answers_text'),
+        "generated_text": lit_types.GeneratedText(parent="answers_text"),
          "cls_emb": lit_types.Embeddings(),
-         "tokens_question": lit_types.Tokens(parent='question'),
-         "tokens_answer": lit_types.Tokens(parent='question'),
-         "token_grad_question" : lit_types.TokenGradients(
-              align="tokens_question"),
-          "token_grad_answer" : lit_types.TokenGradients(
-              align="tokens_answer")
+         "tokens_question": lit_types.Tokens(parent="question"),
+         "tokens_embs_question": lit_types.TokenEmbeddings(align="tokens_question"),
+         "tokens_grad_question" : lit_types.TokenGradients(
+              align="tokens_question", grad_for="tokens_embs_question"),
+
+         "tokens_context": lit_types.Tokens(parent="question"),
+         "tokens_embs_context": lit_types.TokenEmbeddings(align="tokens_context"),
+          "token_grad_context" : lit_types.TokenGradients(
+              align="tokens_context", grad_for="tokens_embs_context")
 
     }

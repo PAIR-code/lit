@@ -59,7 +59,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name = os.path.basename(model_name_or_path)
     models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
 
-max_examples: int = _MAX_EXAMPLES.value
+  max_examples: int = _MAX_EXAMPLES.value
   dataset_defs: list[tuple[str, str]] = [
       ("TyDiQA-Multilingual", "validation"),
       ("TyDiQA-English", "validation-en"),
