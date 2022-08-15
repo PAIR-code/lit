@@ -39,6 +39,7 @@
   /* Fill available up to outer margin, if supported. */
   width: -moz-available;
   width: -webkit-fill-available;
+  border-radius: 3px;
 }
 
 .token-box {
@@ -136,7 +137,13 @@ select.dropdown {
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
-  margin: 8px;
+  margin: 4px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.entry-edited {
+  background: var(--lit-bric-50);
 }
 
 /* right-align content, particularly dropdowns */
@@ -165,6 +172,7 @@ textarea {
   font-family: 'Roboto', sans;
   line-height: 18px;
   color: var(--lit-gray-800);
+  background-color: unset;
 }
 
 .span-label {
