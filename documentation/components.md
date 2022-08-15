@@ -339,7 +339,7 @@ needed for grad-dot-input, and also to *accept* modified embeddings as input.
 *   The model should have an additional field ("grad_class", below) which is
     used to pin the gradients to a particular target class. This is necessary
     because we want to integrate gradients with respect to a single target
-    $$\hat{y}$$, but the argmax prediction may change over the integration path.
+    $\hat{y}$, but the argmax prediction may change over the integration path.
     This field can be any type, though for classification models it is typically
     a `CategoryLabel`. The value of this on the original input (usually, the
     argmax class) is stored and fed back in to the model during integration.
