@@ -22,7 +22,7 @@ import transformers
 import flax
 import flax.training.common_utils
 import tqdm.notebook
-
+import flax.training.common_utils
 
 DalleBart = dalle_mini.DalleBart
 DalleBartProcessor = dalle_mini.DalleBartProcessor
@@ -31,18 +31,16 @@ CLIPProcessor = transformers.CLIPProcessor
 FlaxCLIPModel = transformers.FlaxCLIPModel
 shard_prng_key = flax.training.common_utils.shard_prng_key
 trange = tqdm.notebook.trange
-
+shard = flax.training.common_utils.shard
 replicate = flax.jax_utils.replicate
 JsonDict = lit_types.JsonDict
 
 class DalleModel(lit_model.Model):
   """Image to Text Model"""
 
- 
-
   def __init__(self,
-              model_name:str,
-              predictions:int):
+               model_name:str,
+               predictions:int):
     super().__init__()
 
     # small model -> dalle-mini/dalle-mini/mini-1:v0  
@@ -50,13 +48,13 @@ class DalleModel(lit_model.Model):
     self.model = model_name
     self.n_predictions = predictions
     
-    # Load VQGAN
-    # VQGAN model
-    
+    # Load Models
+    # VQGAN model   
     vqgan_repo = "dalle-mini/vqgan_imagenet_f16_16384"
     vqgan_commit_id = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
     self.dalle_commit_id = None
-    
+
+    # load model
     self.dalle_bert_model, params = DalleBart.from_pretrained(
         self.model, revision=self.dalle_commit_id, dtype=jnp.float16, _do_init=False
     )
@@ -67,16 +65,27 @@ class DalleModel(lit_model.Model):
     self.params = replicate(params)
     self.vqgan_params = replicate(vqgan_params)
 
+    # Another CLIP model to generate CLIP score
+    clip_repo = "openai/clip-vit-base-patch32"
+    clip_commit_id = None
+
+    # Load CLIP
+    self.clip, clip_params = FlaxCLIPModel.from_pretrained(
+        clip_repo, revision=clip_commit_id, dtype=jnp.float16, _do_init=False
+    )
+
+    self.clip_processor = CLIPProcessor.from_pretrained(clip_repo, revision=clip_commit_id)
+    self.clip_params = replicate(clip_params)
+
     
-  ##
   # LIT API implementation
   def max_minibatch_size(self) -> int:
     return 8
 
   def predict_minibatch(self, inputs):
     """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini"""
-    
-    # model inference
+
+     # model inference
     @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(3, 4, 5, 6))
     def p_generate(
         tokenized_prompt, key, params, top_k, top_p, temperature, condition_scale
@@ -97,6 +106,12 @@ class DalleModel(lit_model.Model):
     def p_decode(indices, params):
         return self.vqgan.decode_code(indices, params=params)
     
+    # score images
+    @partial(jax.pmap, axis_name="batch")
+    def p_clip(inputs, params):
+        logits = self.clip(params=params, **inputs).logits_per_image
+        return logits
+
     # create a random key
     seed = random.randint(0, 2**32 - 1)
     key = jax.random.PRNGKey(seed)
@@ -112,16 +127,13 @@ class DalleModel(lit_model.Model):
     gen_top_p:Optional[float]= None
     temperature:Optional[float] = None
     cond_scale:Optional[float] = 10.0
-    dataset_len = len(prompts)
-    image_generated = dataset_len*self.n_predictions
-    print(dataset_len)
-    print(image_generated)
+  
     # generate images
-    final_output = []
-    output_images = []
+    images = []
+    pil_images = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
         start = time.process_time()
-        print(i)
+
         # get a new key
         # as per documentation Keys are passed to the model on each device to generate unique inference.
         # if key will be same than it will generate same images
@@ -143,20 +155,46 @@ class DalleModel(lit_model.Model):
         decoded_images = decoded_images.clip(0.0, 1.0).reshape((-1, 256, 256, 3))
         for decoded_img in decoded_images:
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
+            # need pil format images too to generate CLIP score
+            pil_images.append(img)
             image_str = image_utils.convert_pil_to_image_str(img)
-            output_images.append(image_str)
-            print(time.process_time() - start)
+            images.append(image_str)
+            # Output image process time
+            print(f'Image time: {time.process_time() - start}')
 
-    for i in range(0,len(output_images),int(image_generated/dataset_len)):
-        if dataset_len == 1:
-            final_output.append({'image': output_images})
-            return final_output
-        else:
-            print(final_output)
-            final_output.append({'image': output_images[i:i+int(image_generated/dataset_len)]})
-            
+    # get CLIP scores
+    clip_inputs = self.clip_processor(
+        text=prompts * jax.device_count(),
+        images=pil_images,
+        return_tensors="np",
+        padding="max_length",
+        max_length=77,
+        truncation=True,
+    ).data
+    logits = p_clip(shard(clip_inputs), self.clip_params)
 
-    return final_output
+    # organize images and CLIP score per prompt
+    p = len(prompts)
+    logits = np.asarray([logits[:, i::p, i] for i in range(p)]).squeeze()
+    final_images =[]
+    clip_scpre = []
+    images_per_prompt = []
+    for i, prompt in enumerate(prompts):
+        print(f"Prompt: {prompt}\n")        
+        for idx in logits[i].argsort()[::-1]:
+            images_per_prompt.append(images[idx * p + i])
+            # Genereates CLIP score it needs more than one prompt to run hense the condition
+            print(f"Score: {jnp.asarray(logits[i][idx], dtype=jnp.float32):.2f}\n")
+            clip_scpre.append(jnp.asarray(logits[i][idx], dtype=jnp.float32))
+        final_images.append({
+            'image': images_per_prompt,
+            'clip_scpre': clip_scpre
+            })
+        images_per_prompt = []
+        clip_scpre = []
+
+    # return ImageBytes Array
+    return final_images
     
 # {'image': ['data:image/png;base64,']}]
   def input_spec(self):
@@ -167,7 +205,8 @@ class DalleModel(lit_model.Model):
   def output_spec(self):
     # returns only one image for now
     return {
-        "image": lit_types.ImageBytesList()
+        "image": lit_types.ImageBytesList(),
+        "clip_scpre": lit_types.GeneratedTextCandidates(parent="prompt"),
     }
   
 # ]}, {'image': ['data:image/png;base64, -> # {'image': ['data:image/png;base64','data:image/png;base64'

@@ -26,7 +26,7 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 # Right now removed large model and added just small one so it loads faster when debugging
-# large model -> "dalle-mini/dalle-mini/mega-1-fp16:latest"
+# large model -> "dalle-mini/dalle-mini/mega-1-fp16:latest", dalle-mini/dalle-mini/mini-1:v0
 _MODELS = flags.DEFINE_list(
     "models", ["dalle-mini/dalle-mini/mini-1:v0"],
     "Models to load")
