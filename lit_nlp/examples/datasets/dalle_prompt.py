@@ -9,9 +9,8 @@ class Dalle(lit_dataset.Dataset):
 
   def __init__(self):
 
-    # just keeping one prompt for testing for time being
     prompt = ["starbucks in the hobbit shire",
-              # "trail cam footage of gollum eating watermelon",
+              "trail cam footage of gollum eating watermelon",
               "two cats in hazmat suit"]
     
     # populate this with data records

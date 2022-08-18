@@ -43,12 +43,11 @@ class DalleModel(lit_model.Model):
                predictions:int):
     super().__init__()
 
-    # small model -> dalle-mini/dalle-mini/mini-1:v0  
-    # larger one:"dalle-mini/dalle-mini/mega-1-fp16:latest"
     self.model = model_name
     self.n_predictions = predictions
     
     # Load Models
+
     # VQGAN model   
     vqgan_repo = "dalle-mini/vqgan_imagenet_f16_16384"
     vqgan_commit_id = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
@@ -65,7 +64,8 @@ class DalleModel(lit_model.Model):
     self.params = replicate(params)
     self.vqgan_params = replicate(vqgan_params)
 
-    # Another CLIP model to generate CLIP score
+    # CLIP model to generate CLIP score
+    # Scores how accurate generated image is
     clip_repo = "openai/clip-vit-base-patch32"
     clip_commit_id = None
 
@@ -90,7 +90,6 @@ class DalleModel(lit_model.Model):
     def p_generate(
         tokenized_prompt, key, params, top_k, top_p, temperature, condition_scale
     ):
-        print(tokenized_prompt)
         return self.dalle_bert_model.generate(
             **tokenized_prompt,
             prng_key=key,
@@ -128,15 +127,16 @@ class DalleModel(lit_model.Model):
     temperature:Optional[float] = None
     cond_scale:Optional[float] = 10.0
   
-    # generate images
+    # images has all generated ImageByste
+    # pil_images has images in pil format for clip score
     images = []
     pil_images = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
         start = time.process_time()
 
         # get a new key
-        # as per documentation Keys are passed to the model on each device to generate unique inference.
-        # if key will be same than it will generate same images
+        # keys are passed to the model on each device to generate unique inference.
+        # if key will be same than it won't be uniquw
         key, subkey = jax.random.split(key)
         # generate images
         encoded_images = p_generate(
@@ -157,6 +157,7 @@ class DalleModel(lit_model.Model):
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             # need pil format images too to generate CLIP score
             pil_images.append(img)
+            # convert to image bystes
             image_str = image_utils.convert_pil_to_image_str(img)
             images.append(image_str)
             # Output image process time
@@ -171,49 +172,61 @@ class DalleModel(lit_model.Model):
         max_length=77,
         truncation=True,
     ).data
+    # array containing clip score for all images
     logits = p_clip(shard(clip_inputs), self.clip_params)
-
-    # organize images and CLIP score per prompt
     p = len(prompts)
     logits = np.asarray([logits[:, i::p, i] for i in range(p)]).squeeze()
+
+    # organize images and CLIP score per prompt
+    # till now our our images[] contains data like this: 
+    # [prompt1_prediction_1, prompt2_prediction_1, prompt1_prediction_2, prompt2_prediction_2]
+    # Below structure changes it to: [{'image': [prompt1_prediction_1,prompt1_prediction_2]}]
+    # and also adds clip score to check image accuracy 
     final_images =[]
+
     clip_score = []
     images_per_prompt = []
     for i, prompt in enumerate(prompts):
         print(f"Prompt: {prompt}\n")
+
+        # if clip score is only for one prompt than logits shape is 1
+        # if prompt is more than one than logits shape is not 1
         if len(logits[i].argsort()[::-1]) == 1:
             my_loop = [0]*self.n_predictions
         else:
-            my_loop = logits[i].argsort()[::-1]    
+            my_loop = logits[i].argsort()[::-1]
+        
+        # Add images as per prompt [prompt1_prediction_1,prompt1_prediction_2]
+        # and also add clip_score
         for idx in range(len(my_loop)):
             images_per_prompt.append(images[idx * p + i])
-            # Genereates CLIP score it needs more than one prompt to run hense the condition
-            # print(f"Score: {jnp.asarray(logits[i][idx], dtype=jnp.float32):.2f}\n")
+            # Append CLIP score depending on prompt size hence the condition
             if len(np.shape(logits)) == 1:
                 clip_score.append((str(logits[idx]), None))
             else:
                 clip_score.append((str(logits[i][idx]), None))
+        # Append to final List[Dict]
         final_images.append({
             'image': images_per_prompt,
             'clip_score': clip_score
             })
+        # Reset images & clip score for new prompt
         images_per_prompt = []
         clip_score = []
 
-    # return ImageBytes Array
+    
     return final_images
     
-# {'image': ['data:image/png;base64,']}]
+
   def input_spec(self):
     return {
         "prompt": lit_types.TextSegment(),
     }
 
   def output_spec(self):
-    # returns only one image for now
     return {
         "image": lit_types.ImageBytesList(),
+        #Wanted to add it in metrics but was getting too complicated, couldn't think anything better sorry :)
         "clip_score": lit_types.GeneratedTextCandidates(parent="prompt"),
     }
   
-# ]}, {'image': ['data:image/png;base64, -> # {'image': ['data:image/png;base64','data:image/png;base64'
