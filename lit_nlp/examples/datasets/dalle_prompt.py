@@ -9,7 +9,7 @@ class Dalle(lit_dataset.Dataset):
 
   def __init__(self):
 
-    prompt = ["starbucks in the hobbit shire",
+    prompt = ["a pikachu that looks lika a pug",
               "trail cam footage of gollum eating watermelon",
               "two cats in hazmat suit"]
     
