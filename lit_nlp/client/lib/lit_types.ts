@@ -114,7 +114,7 @@ export class ListLitType extends LitType {
 }
 
 /**
- * A list of ImageBystes.
+ * A list of ImageBytes.
  */
  @registered
  export class ImageBytesList extends ListLitType {

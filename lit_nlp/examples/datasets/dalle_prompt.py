@@ -9,9 +9,11 @@ class Dalle(lit_dataset.Dataset):
 
   def __init__(self):
 
-    prompt = ["a pikachu that looks lika a pug",
-              "trail cam footage of gollum eating watermelon",
-              "two cats in hazmat suit"]
+    prompt = ["A pikachu that looks lika a pug",
+              "Trail cam footage of gollum eating watermelon",
+              "Two cats in hazmat suit",
+              "Pixar coronavirus movie",
+              "Darth Vader in Soviet space propaganda poster",]
     
     # populate this with data records
     for phrase in prompt:

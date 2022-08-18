@@ -1,4 +1,4 @@
-r"""Example dalle demo loading a custom model.
+r"""Example for dalle demo model.
 
 To run locally with a small number of examples:
   python -m lit_nlp.examples.dalle_demo \
@@ -31,7 +31,7 @@ _MODELS = flags.DEFINE_list(
     "Models to load")
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 3,
+    "max_examples", 5,
     "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
 )
 
@@ -67,12 +67,12 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
-  ##
+
   # Load models, according to the --models flag.
   models = {}
   for model_name_or_path in _MODELS.value:
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=3)
+    models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=6)
  
   datasets = {
       "Dalle_prompt": dalle_prompt.Dalle(),

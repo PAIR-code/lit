@@ -208,8 +208,8 @@ class DalleModel(lit_model.Model):
                 clip_score.append((str(logits[i][idx]), None))
         # Append to final List[Dict]
         final_images.append({
-            'image': images_per_prompt,
-            'clip_score': clip_score
+            "image": images_per_prompt,
+            "clip_score": clip_score
             })
         # Reset images & clip score for new prompt
         images_per_prompt = []
@@ -227,7 +227,6 @@ class DalleModel(lit_model.Model):
   def output_spec(self):
     return {
         "image": lit_types.ImageBytesList(),
-        #Wanted to add it in metrics but was getting too complicated, couldn't think anything better sorry :)
         "clip_score": lit_types.GeneratedTextCandidates(parent="prompt"),
     }
   
