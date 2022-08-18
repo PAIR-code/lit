@@ -31,7 +31,7 @@ the Explanations tab in the bottom half of this demo and it supports four
 different methods for the GLUE model under test (with other models it might
 support a different number of these methods) -
 [Grad L2 Norm](https://aclanthology.org/P18-1032/),
-[Grad &dot; Input](https://arxiv.org/abs/1412.6815),
+[Grad · Input](https://arxiv.org/abs/1412.6815),
 [Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG)
 and [LIME](https://arxiv.org/pdf/1602.04938v3.pdf).
 
@@ -57,9 +57,9 @@ it is currently the only black-box method LIT supports for text data.
 
 If your model does output gradients, then you can choose among three methods:
 [Grad L2 Norm](https://aclanthology.org/P18-1032/),
-[Grad &dot; Input](https://arxiv.org/abs/1412.6815), and
+[Grad · Input](https://arxiv.org/abs/1412.6815), and
 [Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG).
-Grad L2 Norm and Grad &dot; Input are easy to use and fast to compute, but can suffer from gradient
+Grad L2 Norm and Grad · Input are easy to use and fast to compute, but can suffer from gradient
 saturation. IG addresses the gradient saturation issue in the Grad methods
 (described in detail below), but requires that the model output both gradients
 and embeddings, is much more expensive to compute, and requires parameterization
@@ -75,7 +75,7 @@ counterfactual examples that test those hypotheses.
 
 All methods calculate salience, but there are subtle differences in their
 approaches towards calculating a salience score for each token. Grad L2 Norm
-only produces absolute salience scores while other methods like Grad &dot; Input
+only produces absolute salience scores while other methods like Grad · Input
 (and also Integrated Gradients and LIME) produce signed values, leading to an
 improved interpretation of whether a token has positive or negative influence on
 the prediction.
@@ -101,7 +101,7 @@ positive.
 
 [Gradient saturation](https://towardsdatascience.com/the-vanishing-gradient-problem-69bf08b15484)
 is a potential problem for all of the Gradient based methods, such as [Grad L2 Norm](https://aclanthology.org/P18-1032/)
-and [Grad &dot; Input](https://arxiv.org/abs/1412.6815), that we need to look out
+and [Grad · Input](https://arxiv.org/abs/1412.6815), that we need to look out
 for. Essentially if the model learning saturates for a particular token, then
 its gradient goes to zero and appears to have zero salience. At the same time,
 some tokens actually have a zero salience score, because they do not affect the
@@ -185,12 +185,12 @@ model on the classification task.
 
 First, let’s refer back to our heuristic for choosing appropriate methods.
 Because `sst2-tiny` does not have a LSTM architecture, we shouldn’t rely too much
-on Grad &dot; Input. So, we are left with Grad L2 Norm, Integrated Gradients and
+on Grad · Input. So, we are left with Grad L2 Norm, Integrated Gradients and
 LIME to base our decisions on.
 
 To gain some confidence in our heuristic, we look for examples where Grad &dot;
 Input performs poorly compared to the other methods. There are quite a few in
-the dataset, for example the sentence below where Grad &dot; Input predicts
+the dataset, for example the sentence below where Grad · Input predicts
 completely opposite salience scores to its counterparts.
 
 {% include partials/inset-image image: '/assets/images/text-salience-image-10.png',
