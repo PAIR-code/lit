@@ -66,7 +66,7 @@ export class ColorLegend extends ReactiveElement {
   private labelMarginRight: number = 2;
 
   private boxWidth: number = 13;
-  private boxMargin: number = 5;
+  private boxMargin: number = 2;
 
   private selectedColorLabelWidth: number = 46;
   private iconWidth: number = 16;
@@ -171,11 +171,10 @@ export class ColorLegend extends ReactiveElement {
     const domain = this.scale.domain();
     const hideLegend =
         domain.length === 1 && domain[0].toString().toLowerCase() === 'all';
-    const style = styleMap({'width': `${this.legendWidth}px`});
 
     // clang-format off
     return html`
-        <div class="legend-container" style=${style}>
+        <div class="legend-container">
           <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
           <div class="color-label" title=${this.selectedColorName}
             name="color-name">
@@ -198,11 +197,9 @@ export class ColorLegend extends ReactiveElement {
     const maxValue = numDomain ? Math.max(...numDomain) : 0;
     const domain = linearSpace(minValue, maxValue, this.numBlocks || 5);
 
-    const style = styleMap({'width': `${this.legendWidth}px`});
-
     // clang-format off
     return html`
-        <div class="legend-container" style=${style}>
+        <div class="legend-container">
           <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
           <div class="color-label" title=${this.selectedColorName}
             name="color-name">

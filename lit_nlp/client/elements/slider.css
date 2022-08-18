@@ -2,6 +2,7 @@
 input[type='range'].slider {
   -webkit-appearance: none;
   max-width: calc(100% - 4px);
+  min-width: 50px;
   background: var(--lit-neutral-400);
   border-radius: 4px;
   background-image: linear-gradient(var(--lit-cyea-400), var(--lit-cyea-400));
