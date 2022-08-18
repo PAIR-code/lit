@@ -157,10 +157,10 @@ class DalleModel(lit_model.Model):
             img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
             # need pil format images too to generate CLIP score
             pil_images.append(img)
-            # convert to image bystes
+            # convert to ImageBytes
             image_str = image_utils.convert_pil_to_image_str(img)
             images.append(image_str)
-            # Output image process time
+            # Output image process time just for debugging
             print(f'Image time: {time.process_time() - start}')
 
     # get CLIP scores
@@ -172,9 +172,9 @@ class DalleModel(lit_model.Model):
         max_length=77,
         truncation=True,
     ).data
+
     # array containing clip score for all images
     logits = p_clip(shard(clip_inputs), self.clip_params)
-    p = len(prompts)
     logits = np.asarray([logits[:, i::p, i] for i in range(p)]).squeeze()
 
     # organize images and CLIP score per prompt
@@ -183,9 +183,9 @@ class DalleModel(lit_model.Model):
     # Below structure changes it to: [{'image': [prompt1_prediction_1,prompt1_prediction_2]}]
     # and also adds clip score to check image accuracy 
     final_images =[]
-
     clip_score = []
     images_per_prompt = []
+    p = len(prompts)
     for i, prompt in enumerate(prompts):
         print(f"Prompt: {prompt}\n")
 
