@@ -48,12 +48,12 @@ class DalleModel(lit_model.Model):
     
     # Load Models
 
-    # VQGAN model   
+    # vqgan model   
     vqgan_repo = "dalle-mini/vqgan_imagenet_f16_16384"
     vqgan_commit_id = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
     self.dalle_commit_id = None
 
-    # load model
+    # dalle model
     self.dalle_bert_model, params = DalleBart.from_pretrained(
         self.model, revision=self.dalle_commit_id, dtype=jnp.float16, _do_init=False
     )
