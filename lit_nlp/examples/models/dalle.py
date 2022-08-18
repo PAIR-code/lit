@@ -174,6 +174,7 @@ class DalleModel(lit_model.Model):
     ).data
 
     # array containing clip score for all images
+    p = len(prompts)
     logits = p_clip(shard(clip_inputs), self.clip_params)
     logits = np.asarray([logits[:, i::p, i] for i in range(p)]).squeeze()
 
@@ -185,7 +186,7 @@ class DalleModel(lit_model.Model):
     final_images =[]
     clip_score = []
     images_per_prompt = []
-    p = len(prompts)
+
     for i, prompt in enumerate(prompts):
         print(f"Prompt: {prompt}\n")
 
