@@ -21,18 +21,19 @@ takeaways: "Learn how to use salience maps for text data in LIT."
 Or, run your own with [`examples/glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
 
 LIT enables users to analyze individual predictions for text input using
-salience maps, for which  gradient-based and/or blackbox methods are available.
+salience maps, for which gradient-based and/or blackbox methods are available.
 In this tutorial, we will explore how to use salience maps to analyze a text
 classifier in the [Classification and Regression models demo](https://pair-code.github.io/lit/demos/glue.html)
 from the LIT website, and
 how these findings can support counterfactual analysis using LIT’s generators,
 such as Hotflip, to test hypotheses. The Salience Maps module can be found under
 the Explanations tab in the bottom half of this demo and it supports four
-different methods - Grad L2 Norm, Grad 
-[Grad L2 Norm](https://aclanthology.org/P18-1032/), 
-[Grad &dot; Input](https://arxiv.org/abs/1412.6815), and 
-[Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG). 
-Grad L2 Norm and Grad &dot; Input, Integrated Gradients and LIME.
+different methods for the GLUE model under test (with other models it might
+support a different number of these methods) -
+[Grad L2 Norm](https://aclanthology.org/P18-1032/),
+[Grad &dot; Input](https://arxiv.org/abs/1412.6815),
+[Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG)
+and [LIME](https://arxiv.org/pdf/1602.04938v3.pdf).
 
 ### Heuristics : Which salience method for which task?
 
@@ -55,9 +56,9 @@ blackbox), [LIME](https://arxiv.org/pdf/1602.04938v3.pdf) is your only choice as
 it is currently the only black-box method LIT supports for text data.
 
 If your model does output gradients, then you can choose among three methods:
-[Grad L2 Norm](https://aclanthology.org/P18-1032/), 
-[Grad &dot; Input](https://arxiv.org/abs/1412.6815), and 
-[Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG). 
+[Grad L2 Norm](https://aclanthology.org/P18-1032/),
+[Grad &dot; Input](https://arxiv.org/abs/1412.6815), and
+[Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG).
 Grad L2 Norm and Grad &dot; Input are easy to use and fast to compute, but can suffer from gradient
 saturation. IG addresses the gradient saturation issue in the Grad methods
 (described in detail below), but requires that the model output both gradients
@@ -134,10 +135,10 @@ dropping out or masking tokens, and training a local linear model to reconstruct
 the original model's predictions. The weights of this linear model are treated
 as the salience values.
 
-LIME has two limitations, compared to gradient-based methods: 
+LIME has two limitations, compared to gradient-based methods:
 
 1.  it can be slow as it requires many evaluations of the model, and
-2.  it can be noisy on longer inputs where there are more tokens to ablate. 
+2.  it can be noisy on longer inputs where there are more tokens to ablate.
 
 We can increase **_the number of samples to be used for LIME_**
 within LIT to counter the potential noisiness, however
@@ -220,9 +221,13 @@ might change this. Would it make the model give more or less importance to other
 tokens or the tokens we replaced? Would it change the model prediction
 confidence scores?
 
-To do this, we generate a counterfactual example for this sentence by using the
-word replacer to replace “actress” with “actor” and “her” with “his”. If our
-model is predicting a negative sentiment due to sexist influences towards
+To do this, we generate a counterfactual example using the Datapoint
+Editor which is located right beside the Data Table in the UI,
+changing "actress" with "actor" and "her" with "his" after selecting our
+datapoint of interest. An alternative to this approach is to use the Word
+replacer under the Counterfactuals tab in the bottom half of the LIT app to
+achieve the same task. If our model is predicting a negative sentiment
+due to sexist influences towards
 “actress” or “her”, then the hypothesis is that it should show opposite
 sentiments if we flip those key tokens.
 
@@ -248,7 +253,9 @@ To create the counterfactuals, we can simply use the Datapoint Editor which is
 located right beside the Data Table in the UI. We can just select our data point
 of interest (data point 6), and then replace the words we are interested in with
 the respective substitutes. Then we assign a `label` to the newly created sentence
-and add it to our data. An alternative to this approach is to use the Word
+and add it to our data. For this particular example, we are assigning 0 when
+"tedious" appears and 1 when "exciting" appears in the sentence.
+An alternative to this approach is to use the Word
 replacer under the Counterfactuals tab in the bottom half of the LIT app to
 achieve the same task.
 
@@ -265,7 +272,7 @@ module between the pinned and the selected examples.
 
 When we replace “sometimes” with “often”, it gets a negative score of almost
 equal magnitude (reversing polarity) from LIME which makes sense, because
-“often” makes the next work in the sentence more impactful, linguistically. The model
+“often” makes the next word in the sentence more impactful, linguistically. The model
 prediction doesn’t change either, and this new review is still classified as
 having a negative sentiment.
 
@@ -324,5 +331,7 @@ sense of their language model’s predictions. This diverse array of built-in
 techniques can be used in combination with other LIT modules like
 counterfactuals to support robust exploration of a model's behavior, as
 illustrated in this tutorial. And as always, LIT strives to
-enable users to add their own salience interpreters to allow for a wider variety
+enable users to
+[add their own salience interpreters](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components)
+to allow for a wider variety
 of use cases beyond these default capabilities!
