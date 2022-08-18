@@ -177,21 +177,21 @@ class DalleModel(lit_model.Model):
     p = len(prompts)
     logits = np.asarray([logits[:, i::p, i] for i in range(p)]).squeeze()
     final_images =[]
-    clip_scpre = []
+    clip_score = []
     images_per_prompt = []
     for i, prompt in enumerate(prompts):
         print(f"Prompt: {prompt}\n")        
         for idx in logits[i].argsort()[::-1]:
             images_per_prompt.append(images[idx * p + i])
             # Genereates CLIP score it needs more than one prompt to run hense the condition
-            print(f"Score: {jnp.asarray(logits[i][idx], dtype=jnp.float32):.2f}\n")
-            clip_scpre.append(jnp.asarray(logits[i][idx], dtype=jnp.float32))
+            # print(f"Score: {jnp.asarray(logits[i][idx], dtype=jnp.float32):.2f}\n")
+            clip_score.append((str(logits[i][idx]), None))
         final_images.append({
             'image': images_per_prompt,
-            'clip_scpre': clip_scpre
+            'clip_score': clip_score
             })
         images_per_prompt = []
-        clip_scpre = []
+        clip_score = []
 
     # return ImageBytes Array
     return final_images
@@ -206,7 +206,7 @@ class DalleModel(lit_model.Model):
     # returns only one image for now
     return {
         "image": lit_types.ImageBytesList(),
-        "clip_scpre": lit_types.GeneratedTextCandidates(parent="prompt"),
+        "clip_score": lit_types.GeneratedTextCandidates(parent="prompt"),
     }
   
 # ]}, {'image': ['data:image/png;base64, -> # {'image': ['data:image/png;base64','data:image/png;base64'
