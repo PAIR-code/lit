@@ -136,7 +136,7 @@ class DalleModel(lit_model.Model):
 
         # get a new key
         # keys are passed to the model on each device to generate unique inference.
-        # if key will be same than it won't be uniquw
+        # if key will be same than it won't be unique
         key, subkey = jax.random.split(key)
         # generate images
         encoded_images = p_generate(
