@@ -180,12 +180,19 @@ class DalleModel(lit_model.Model):
     clip_score = []
     images_per_prompt = []
     for i, prompt in enumerate(prompts):
-        print(f"Prompt: {prompt}\n")        
-        for idx in logits[i].argsort()[::-1]:
+        print(f"Prompt: {prompt}\n")
+        if len(logits[i].argsort()[::-1]) == 1:
+            my_loop = [0]*self.n_predictions
+        else:
+            my_loop = logits[i].argsort()[::-1]    
+        for idx in range(len(my_loop)):
             images_per_prompt.append(images[idx * p + i])
             # Genereates CLIP score it needs more than one prompt to run hense the condition
             # print(f"Score: {jnp.asarray(logits[i][idx], dtype=jnp.float32):.2f}\n")
-            clip_score.append((str(logits[i][idx]), None))
+            if len(np.shape(logits)) == 1:
+                clip_score.append((str(logits[idx]), None))
+            else:
+                clip_score.append((str(logits[i][idx]), None))
         final_images.append({
             'image': images_per_prompt,
             'clip_score': clip_score
