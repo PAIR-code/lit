@@ -11,7 +11,7 @@ class Dalle(lit_dataset.Dataset):
 
     prompt = ["A pikachu that looks lika a pug",
               "Trail cam footage of gollum eating watermelon",
-              "Two cats in hazmat suit",
+              "An astronaut riding a horse in a photorealistic style",
               "Pixar coronavirus movie",
               "Darth Vader in Soviet space propaganda poster",]
     
