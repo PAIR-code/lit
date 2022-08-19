@@ -60,7 +60,7 @@ The Feature Attribution module shows up in the bottom right of the demo within t
 To get started with the module, we set sample size to a small value, 10, and
 start the SHAP computation with heatmap enabled.
 
-{% include partials/info-box title: 'Filtering out incomplete data points',
+{% include partials/info-box title: 'Edge cases for the sample size button',
   text: "Kernel SHAP computes feature importance relative to a pseudo-random
   sample of the dataset. The sample size is set with the slider, and the samples
   are drawn from either the current selection (i.e., a subset of the data that
