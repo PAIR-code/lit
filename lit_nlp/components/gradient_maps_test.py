@@ -20,6 +20,10 @@ from lit_nlp.components import gradient_maps
 from lit_nlp.lib import testing_utils
 import numpy as np
 
+CLASS_KEY = gradient_maps.CLASS_KEY
+INTERPOLATION_KEY = gradient_maps.INTERPOLATION_KEY
+NORMALIZATION_KEY = gradient_maps.NORMALIZATION_KEY
+
 
 class GradientMapsTest(absltest.TestCase):
 
@@ -68,6 +72,44 @@ class GradientMapsTest(absltest.TestCase):
     target = np.array([[[0], [1]], [[0.5], [0.5]], [[1], [0]]])
     np.testing.assert_almost_equal(result, target)
     np.testing.assert_almost_equal(result, target)
+
+  def test_ig_init_args(self):
+    test_config = {
+        CLASS_KEY: 'test_class_key',
+        INTERPOLATION_KEY: 50,
+        NORMALIZATION_KEY: False,
+    }
+
+    ig_default = gradient_maps.IntegratedGradients()
+    ig_autorun = gradient_maps.IntegratedGradients(autorun=True)
+    ig_config = gradient_maps.IntegratedGradients(config=test_config)
+    ig_all = gradient_maps.IntegratedGradients(autorun=True, config=test_config)
+
+    self.assertFalse(ig_default.meta_spec()['saliency'].autorun)
+    self.assertEqual(ig_default.config_spec()[CLASS_KEY].default, '')
+    self.assertEqual(ig_default.config_spec()[INTERPOLATION_KEY].default, 30)
+    self.assertTrue(ig_default.config_spec()[NORMALIZATION_KEY].default)
+
+    self.assertTrue(ig_autorun.meta_spec()['saliency'].autorun)
+    self.assertEqual(ig_autorun.config_spec()[CLASS_KEY].default, '')
+    self.assertEqual(ig_autorun.config_spec()[INTERPOLATION_KEY].default, 30)
+    self.assertTrue(ig_autorun.config_spec()[NORMALIZATION_KEY].default)
+
+    self.assertFalse(ig_config.meta_spec()['saliency'].autorun)
+    self.assertEqual(ig_config.config_spec()[CLASS_KEY].default,
+                     test_config[CLASS_KEY])
+    self.assertEqual(ig_config.config_spec()[INTERPOLATION_KEY].default,
+                     test_config[INTERPOLATION_KEY])
+    self.assertEqual(ig_config.config_spec()[NORMALIZATION_KEY].default,
+                     test_config[NORMALIZATION_KEY])
+
+    self.assertTrue(ig_all.meta_spec()['saliency'].autorun)
+    self.assertEqual(ig_config.config_spec()[CLASS_KEY].default,
+                     test_config[CLASS_KEY])
+    self.assertEqual(ig_config.config_spec()[INTERPOLATION_KEY].default,
+                     test_config[INTERPOLATION_KEY])
+    self.assertEqual(ig_config.config_spec()[NORMALIZATION_KEY].default,
+                     test_config[NORMALIZATION_KEY])
 
 
 if __name__ == '__main__':

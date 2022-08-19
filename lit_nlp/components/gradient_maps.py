@@ -200,6 +200,10 @@ class IntegratedGradients(lit_components.Interpreter):
         label for all integral steps, since the argmax prediction may change.
   """
 
+  def __init__(self, autorun: bool = False, config: Optional[JsonDict] = None):
+    self._autorun = autorun
+    self._config = config if config else {}
+
   def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
     # Find TokenGradients fields
     grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
@@ -412,12 +416,16 @@ class IntegratedGradients(lit_components.Interpreter):
   def config_spec(self) -> types.Spec:
     return {
         CLASS_KEY:
-            types.TextSegment(default=''),
+            types.TextSegment(default=self._config.get(CLASS_KEY, '')),
         NORMALIZATION_KEY:
-            types.Boolean(default=True),
+            types.Boolean(default=self._config.get(NORMALIZATION_KEY, True)),
         INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=100, default=30, step=1)
+            types.Scalar(
+                min_val=5,
+                max_val=100,
+                default=self._config.get(INTERPOLATION_KEY, 30),
+                step=1)
     }
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}

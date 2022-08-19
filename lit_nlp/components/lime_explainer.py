@@ -137,8 +137,9 @@ def get_class_to_explain(provided_class_to_explain: int, model: Any,
 class LIME(lit_components.Interpreter):
   """Local Interpretable Model-agnostic Explanations (LIME)."""
 
-  def __init__(self):
-    pass
+  def __init__(self, autorun: bool = False, config: Optional[JsonDict] = None):
+    self._autorun: bool = autorun
+    self._config: JsonDict = config if config else {}
 
   def run(
       self,
@@ -231,15 +232,16 @@ class LIME(lit_components.Interpreter):
         TARGET_HEAD_KEY:
             types.SingleFieldMatcher(spec='output', types=matcher_types),
         CLASS_KEY:
-            types.TextSegment(default='-1'),
+            types.TextSegment(default=self._config.get(CLASS_KEY, '-1')),
         MASK_KEY:
-            types.TextSegment(default='[MASK]'),
+            types.TextSegment(default=self._config.get(MASK_KEY, '[MASK]')),
         KERNEL_WIDTH_KEY:
-            types.TextSegment(default='256'),
+            types.TextSegment(
+                default=self._config.get(KERNEL_WIDTH_KEY, '256')),
         NUM_SAMPLES_KEY:
-            types.TextSegment(default='256'),
+            types.TextSegment(default=self._config.get(NUM_SAMPLES_KEY, '256')),
         SEED_KEY:
-            types.TextSegment(default=''),
+            types.TextSegment(default=self._config.get(CLASS_KEY, '')),
     }
 
   def is_compatible(self, model: lit_model.Model):
@@ -251,4 +253,4 @@ class LIME(lit_components.Interpreter):
     return len(text_keys) and len(pred_keys)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}
