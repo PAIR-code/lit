@@ -1,6 +1,6 @@
 # Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-31' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-13' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -37,8 +37,6 @@ Check out the [API documentation](./api.md#adding-models-and-data) for more, and
 the [demos directory](./demos.md) for a wealth of examples. The
 [components guide](./components.md) also gives a good overview of the different
 features that are available, and how to enable them for your model.
-
-Also, join https://groups.google.com/g/lit-annoucements to receive announcements and updates on new LIT features.
 
 ## Using LIT in notebooks <!-- DO NOT REMOVE {#colab} -->
 

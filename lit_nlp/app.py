@@ -28,27 +28,7 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import layout
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
-from lit_nlp.components import ablation_flip
-from lit_nlp.components import classification_results
-from lit_nlp.components import curves
-from lit_nlp.components import gradient_maps
-from lit_nlp.components import hotflip
-from lit_nlp.components import lemon_explainer
-from lit_nlp.components import lime_explainer
-from lit_nlp.components import metrics
-from lit_nlp.components import model_salience
-from lit_nlp.components import nearest_neighbors
-from lit_nlp.components import pca
-from lit_nlp.components import pdp
-from lit_nlp.components import projection
-from lit_nlp.components import regression_results
-from lit_nlp.components import salience_clustering
-from lit_nlp.components import scrambler
-from lit_nlp.components import shap_explainer
-from lit_nlp.components import tcav
-from lit_nlp.components import thresholder
-from lit_nlp.components import umap
-from lit_nlp.components import word_replacer
+from lit_nlp.components import core
 from lit_nlp.lib import caching
 from lit_nlp.lib import serialize
 from lit_nlp.lib import ui_state
@@ -492,66 +472,17 @@ class LitApp(object):
     self._datasets = lit_dataset.IndexedDataset.index_all(
         self._datasets, caching.input_hash)
 
+    # Generator initialization
     if generators is not None:
       self._generators = generators
     else:
-      self._generators = {
-          'Ablation Flip': ablation_flip.AblationFlip(),
-          'Hotflip': hotflip.HotFlip(),
-          'Scrambler': scrambler.Scrambler(),
-          'Word Replacer': word_replacer.WordReplacer(),
-      }
+      self._generators = core.default_generators()
 
+    # Interpreter initialization
     if interpreters is not None:
       self._interpreters = interpreters
-
     else:
-      metrics_group = lit_components.ComponentGroup({
-          'regression': metrics.RegressionMetrics(),
-          'multiclass': metrics.MulticlassMetrics(),
-          'paired': metrics.MulticlassPairedMetrics(),
-          'bleu': metrics.CorpusBLEU(),
-          'rouge': metrics.RougeL(),
-          'exactmatch': metrics.ExactMatchMetrics(),
-      })
-      gradient_map_interpreters = {
-          'Grad L2 Norm': gradient_maps.GradientNorm(),
-          'Grad ⋅ Input': gradient_maps.GradientDotInput(),
-          'Integrated Gradients': gradient_maps.IntegratedGradients(),
-          'LIME': lime_explainer.LIME(),
-      }
-      # pyformat: disable
-      self._interpreters: dict[str, lit_components.Interpreter] = {
-          'Model-provided salience': model_salience.ModelSalience(self._models),
-          'counterfactual explainer': lemon_explainer.LEMON(),
-          'tcav': tcav.TCAV(),
-          'curves': curves.CurvesInterpreter(),
-          'thresholder': thresholder.Thresholder(),
-          'metrics': metrics_group,
-          'pdp': pdp.PdpInterpreter(),
-          'Salience Clustering': salience_clustering.SalienceClustering(
-              gradient_map_interpreters),
-          'Tabular SHAP': shap_explainer.TabularShapExplainer(),
-      }
-      # pyformat: enable
-      self._interpreters.update(gradient_map_interpreters)
-
-    # Ensure the prediction analysis interpreters are included.
-    prediction_analysis_interpreters = {
-        'classification': classification_results.ClassificationInterpreter(),
-        'regression': regression_results.RegressionInterpreter(),
-    }
-    # Ensure the embedding-based interpreters are included.
-    embedding_based_interpreters = {
-        'nearest neighbors': nearest_neighbors.NearestNeighbors(),
-        # Embedding projectors expose a standard interface, but get special
-        # handling so we can precompute the projections if requested.
-        'pca': projection.ProjectionManager(pca.PCAModel),
-        'umap': projection.ProjectionManager(umap.UmapModel),
-    }
-    self._interpreters = dict(**self._interpreters,
-                              **prediction_analysis_interpreters,
-                              **embedding_based_interpreters)
+      self._interpreters = core.default_interpreters(self._models)
 
     # Component to sync state from TS -> Python. Used in notebooks.
     if sync_state:

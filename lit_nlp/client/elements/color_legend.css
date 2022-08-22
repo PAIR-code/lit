@@ -4,6 +4,7 @@
   align-items: center;
   height: 30px;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .legend-line {
@@ -15,7 +16,9 @@
 .legend-box {
   width: 13px;
   height: 13px;
-  margin: 5px;
+  margin: 2px;
+  border: 1px solid gray;
+  border-radius: 1px;
 }
 
 .legend-label {
@@ -56,4 +59,3 @@
   vertical-align: middle;
   margin: 0;
 }
-
