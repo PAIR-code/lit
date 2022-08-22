@@ -137,8 +137,29 @@ def get_class_to_explain(provided_class_to_explain: int, model: Any,
 class LIME(lit_components.Interpreter):
   """Local Interpretable Model-agnostic Explanations (LIME)."""
 
-  def __init__(self):
-    pass
+  def __init__(self,
+               autorun: bool = False,
+               class_index: int = -1,
+               kernel_width: int = 256,
+               mask_token: str = '[MASK]',
+               num_samples: int = 256,
+               seed: Optional[int] = None):
+    """Cretaes an IntegratedGradients interpreter.
+
+    Args:
+      autorun: Determines if this intepreter should run automatically.
+      class_index: Index of the class to explain in the vocabulary.
+      kernel_width: Size of the kernel.
+      mask_token: Mask token from the tokenizer
+      num_samples: Number of samples to take.
+      seed: A seed value for the random seed.
+    """
+    self._autorun: bool = autorun
+    self._class_index: str = str(class_index)
+    self._kernel_width: str = str(kernel_width)
+    self._mask_token: str = mask_token
+    self._num_samples: str = str(num_samples)
+    self._seed: str = str(seed) if seed is not None else ''
 
   def run(
       self,
@@ -230,16 +251,11 @@ class LIME(lit_components.Interpreter):
     return {
         TARGET_HEAD_KEY:
             types.SingleFieldMatcher(spec='output', types=matcher_types),
-        CLASS_KEY:
-            types.TextSegment(default='-1'),
-        MASK_KEY:
-            types.TextSegment(default='[MASK]'),
-        KERNEL_WIDTH_KEY:
-            types.TextSegment(default='256'),
-        NUM_SAMPLES_KEY:
-            types.TextSegment(default='256'),
-        SEED_KEY:
-            types.TextSegment(default=''),
+        CLASS_KEY: types.TextSegment(default=self._class_index),
+        MASK_KEY: types.TextSegment(default=self._mask_token),
+        KERNEL_WIDTH_KEY: types.TextSegment(default=self._kernel_width),
+        NUM_SAMPLES_KEY: types.TextSegment(default=self._num_samples),
+        SEED_KEY: types.TextSegment(default=self._seed),
     }
 
   def is_compatible(self, model: lit_model.Model):
@@ -251,4 +267,4 @@ class LIME(lit_components.Interpreter):
     return len(text_keys) and len(pred_keys)
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}

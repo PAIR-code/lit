@@ -200,6 +200,24 @@ class IntegratedGradients(lit_components.Interpreter):
         label for all integral steps, since the argmax prediction may change.
   """
 
+  def __init__(self,
+               autorun: bool = False,
+               class_key: str = '',
+               interpolation_steps: int = 30,
+               normalize: bool = True):
+    """Cretaes an IntegratedGradients interpreter.
+
+    Args:
+      autorun: Determines if this intepreter should run automatically.
+      class_key: The class to explain.
+      interpolation_steps: The number of steps to interpolate.
+      normalize: Flag to enable/disable normalization.
+    """
+    self._autorun: bool = autorun
+    self._class_key: str = class_key
+    self._interpolation_steps: int = interpolation_steps
+    self._normalize: bool = normalize
+
   def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
     # Find TokenGradients fields
     grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
@@ -376,13 +394,17 @@ class IntegratedGradients(lit_components.Interpreter):
           config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
     """Run this component, given a model and input(s)."""
     config = config or {}
-    class_to_explain = config.get(CLASS_KEY,
-                                  self.config_spec()[CLASS_KEY].default)
-    interpolation_steps = int(
-        config.get(INTERPOLATION_KEY,
-                   self.config_spec()[INTERPOLATION_KEY].default))
-    normalization = config.get(NORMALIZATION_KEY,
-                               self.config_spec()[NORMALIZATION_KEY].default)
+    class_to_explain = config.get(CLASS_KEY, self._class_key)
+
+    try:
+      interpolation_steps = int(config.get(INTERPOLATION_KEY,
+                                           self._interpolation_steps))
+    except ValueError as parse_error:
+      raise RuntimeError(
+          'Failed to parse interpolation steps'
+          f'from "{config[INTERPOLATION_KEY]}".') from parse_error
+
+    normalization = config.get(NORMALIZATION_KEY, self._normalize)
 
     # Find gradient fields to interpret
     input_spec = model.input_spec()
@@ -411,13 +433,15 @@ class IntegratedGradients(lit_components.Interpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        CLASS_KEY:
-            types.TextSegment(default=''),
-        NORMALIZATION_KEY:
-            types.Boolean(default=True),
+        CLASS_KEY: types.TextSegment(default=self._class_key),
+        NORMALIZATION_KEY: types.Boolean(default=self._normalize),
         INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=100, default=30, step=1)
+            types.Scalar(
+                min_val=5,
+                max_val=100,
+                default=self._interpolation_steps,
+                step=1)
     }
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}
