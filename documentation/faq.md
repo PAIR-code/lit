@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-12' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-13' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 

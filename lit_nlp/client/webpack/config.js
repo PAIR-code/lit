@@ -32,25 +32,24 @@ const GLOB_OPTIONS = {
  */
 module.exports = (env = {}) => {
   const isProd = !!env.production;
-  const isDev = !isProd;
-  console.log('⭐️ Packing web...', env);
+  console.log('Packing 🔥LIT for the web...', env);
 
   const buildStr = env.build || '';
   const toBuild = buildStr.split(',').filter(x => x.length > 0);
 
   /**
-  * File groups to include in the build.
-  */
+   * File groups to include in the build.
+   */
   const core = glob.sync(resolveDir('../core/**/*.ts'), GLOB_OPTIONS);
   const elements = glob.sync(resolveDir('../elements/**/*.ts'), GLOB_OPTIONS);
   const lib = glob.sync(resolveDir('../lib/**/*.ts'), GLOB_OPTIONS);
   const modules = glob.sync(resolveDir('../modules/**/*.ts'), GLOB_OPTIONS);
   const services = glob.sync(resolveDir('../services/**/*.ts'), GLOB_OPTIONS);
 
-  /**
-  * Make the default entry and FileManagerPlugin params objects, which will
-  * determine which output bundles to build and where to move them to
-  */
+   /**
+    * Make the default entry and FileManagerPlugin params objects, which will
+    * determine which output bundles to build and where to move them to
+    */
   const entry = {
     default: [
       resolveDir('../main.ts'),
@@ -74,7 +73,10 @@ module.exports = (env = {}) => {
   toBuild.forEach(path => {
     const splitPath = path.split('/');
     const moduleName = splitPath[splitPath.length -1];
-    entry[moduleName] = resolveDir(`../../${path}/main.ts`);
+    entry[moduleName] = [
+      ...entry.default,
+      ...glob.sync(resolveDir(`../../${path}/**/*.ts`), GLOB_OPTIONS)
+    ];
 
     fileManagerParams.onEnd.copy.push({
       source: resolveDir('../static'),
@@ -90,8 +92,8 @@ module.exports = (env = {}) => {
   });
 
   return {
-    mode: isDev ? 'development' : 'production',
-    devtool: isDev ? 'inline-source-map' : 'none',
+    mode: 'development',
+    devtool: 'source-map',
     module: {
       rules: [
         {
@@ -131,7 +133,7 @@ module.exports = (env = {}) => {
       }),
       new FileManagerPlugin(fileManagerParams)
     ],
-    watch: isDev,
+    watch: !isProd,
   };
 };
 

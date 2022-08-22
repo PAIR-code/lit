@@ -33,7 +33,9 @@ export abstract class SalienceCmap {
    * An RGB interpolated color scale for one of the continuous LAB ramps from
    * VizColor, which have been linearized.
    */
-  protected colorScale: d3.ScaleSequential<string>;
+  protected myColorScale: d3.ScaleSequential<string>;
+
+  get colorScale() { return this.myColorScale; }
 
   // Exponent for computing luminance values from salience scores.
   // A higher value gives higher contrast for small (close to 0) salience
@@ -41,7 +43,7 @@ export abstract class SalienceCmap {
   // See https://en.wikipedia.org/wiki/Gamma_correction
   constructor(protected gamma: number = 1.0,
               protected domain: [number, number] = [0, 1]) {
-    this.colorScale = d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
+    this.myColorScale = d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
   }
 
   /**
@@ -54,7 +56,7 @@ export abstract class SalienceCmap {
 
   /** Clamps the value of d to the color scale's domain */
   clamp(d: number): number {
-    const [min, max] = this.colorScale.domain();
+    const [min, max] = this.myColorScale.domain();
     return Math.max(min, Math.min(max, d));
   }
 
@@ -75,7 +77,7 @@ export abstract class SalienceCmap {
 /** Color map for unsigned (positive) salience maps. */
 export class UnsignedSalienceCmap extends SalienceCmap {
   bgCmap(d: number): string {
-    return this.colorScale(this.lightness(d));
+    return this.myColorScale(this.lightness(d));
   }
 }
 
@@ -83,12 +85,12 @@ export class UnsignedSalienceCmap extends SalienceCmap {
 export class SignedSalienceCmap extends SalienceCmap {
   constructor(gamma: number = 1.0, domain: [number, number] = [-1, 1]) {
     super(gamma, domain);
-    this.colorScale = d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
+    this.myColorScale = d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
   }
 
   bgCmap(d: number): string {
     const direction = d < 0 ? -1 : 1;
-    return this.colorScale(this.lightness(d) * direction);
+    return this.myColorScale(this.lightness(d) * direction);
   }
 }
 

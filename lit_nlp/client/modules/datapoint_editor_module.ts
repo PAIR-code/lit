@@ -68,8 +68,34 @@ export class DatapointEditorModule extends LitModule {
   protected addButtonText = 'Add';
   protected showAddAndCompare = true;
 
-  @observable editedData: Input = {};
-  @observable datapointEdited: boolean = false;
+  @computed
+  get emptyDatapoint(): Input {
+    const data: Input = {};
+    const spec = this.appState.currentDatasetSpec;
+    for (const key of this.appState.currentInputDataKeys) {
+      data[key] = defaultValueByField(key, spec);
+    }
+    return data;
+  }
+
+  @computed
+  get baseData(): Input {
+    const input = this.selectionService.primarySelectedInputData;
+    return input == null ? this.emptyDatapoint : input.data;
+  }
+
+  @observable dataEdits: Input = {};
+
+  @computed
+  get editedData(): Input {
+    return Object.assign({}, this.baseData, this.dataEdits);
+  }
+
+  @computed
+  get datapointEdited(): boolean {
+    return Object.keys(this.dataEdits).length > 0;
+  }
+
   @observable inputHeights: {[name: string]: string} = {};
   @observable maximizedImageFields = new Set<string>();
   @observable editingTokenIndex = -1;
@@ -166,11 +192,10 @@ export class DatapointEditorModule extends LitModule {
       });
     });
 
-    const getSelectedData = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(getSelectedData, selectedData => {
-      this.resetEditedData(selectedData == null ? null : selectedData.data);
-    });
+    this.reactImmediately(
+        () => this.selectionService.primarySelectedInputData, unusedData => {
+          this.resetEditedData();
+        });
   }
 
   override updated() {
@@ -231,21 +256,9 @@ export class DatapointEditorModule extends LitModule {
     }
   }
 
-  private resetEditedData(selectedInputData: Input|null) {
-    this.datapointEdited = false;
+  private resetEditedData() {
     this.editingTokenIndex = -1;
-    const data: Input = {};
-
-    // If no datapoint is selected, then show an empty datapoint to fill in.
-    const keys = selectedInputData == null ?
-        this.appState.currentInputDataKeys :
-        Object.keys(selectedInputData);
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of keys) {
-      data[key] = selectedInputData == null ? defaultValueByField(key, spec) :
-                                              selectedInputData[key];
-    }
-    this.editedData = data;
+    this.dataEdits = {};
   }
 
   override renderImpl() {
@@ -257,7 +270,7 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div class='module-container'>
         <div class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
-          ${this.renderEditText()}
+          ${this.renderEditableFields()}
         </div>
         <div class="module-footer">
           ${this.renderButtons()}
@@ -266,28 +279,11 @@ export class DatapointEditorModule extends LitModule {
     `;
   }
 
-  /**
-   * Returns false if any of the required model inputs are blank.
-   */
-  @computed
-  private get allRequiredInputsFilledOut() {
-    const keys = Object.keys(this.editedData);
-    let allRequiredInputsFilledOut = true;
-    for (let i = 0; i < keys.length; i++) {
-      if (this.appState.currentModelRequiredInputSpecKeys.includes(keys[i]) &&
-          this.editedData[keys[i]] === '') {
-        allRequiredInputsFilledOut = false;
-        break;
-      }
-    }
-    return allRequiredInputsFilledOut;
-  }
-
   renderButtons() {
-    const makeEnabled = this.datapointEdited && this.allRequiredInputsFilledOut;
+    const makeEnabled = this.datapointEdited;
     const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
-    const clearEnabled = !!this.selectionService.primarySelectedInputData;
+    const clearEnabled = this.selectionService.primarySelectedInputData != null;
 
     const onClickNew = async () => {
       const datum: IndexedInput = {
@@ -315,10 +311,7 @@ export class DatapointEditorModule extends LitModule {
       app.getService(SelectionService).selectIds(newIds);
     };
     const onClickReset = () => {
-      this.resetEditedData(
-          this.selectionService.primarySelectedInputData == null ?
-              null :
-              this.selectionService.primarySelectedInputData.data);
+      this.resetEditedData();
     };
     const onClickClear = () => {
       this.selectionService.selectIds([]);
@@ -359,47 +352,47 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  renderEditText() {
+  renderEditableFields() {
     const keys = Object.keys(this.appState.currentDatasetSpec);
-    const editable = true;
     // clang-format off
     return html`
       <div id="edit-table">
        ${keys.map(
-            (key) => this.renderEntry(key, this.editedData[key], editable))}
+            key => this.renderEntry(key, this.editedData[key]))}
       </div>
     `;
     // clang-format on
   }
 
   // tslint:disable-next-line:no-any
-  renderEntry(key: string, value: any, editable: boolean) {
+  renderEntry(key: string, value: any) {
     const handleInputChange =
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
-          this.datapointEdited = true;
           // tslint:disable-next-line:no-any
-          this.editedData[key] = converterFn((e as any).target.value as string);
+          const value = converterFn((e as any).target.value as string);
+          if (value === this.baseData[key]) {
+            delete this.dataEdits[key];
+          } else {
+            this.dataEdits[key] = value;
+          }
         };
 
-    // For categorical outputs, render a dropdown.
+    // For categorical fields, render a dropdown.
     const renderCategoricalInput = (catVals: string[]) => {
       // Note that the first option is blank (so that the dropdown is blank when
       // no point is selected), and disabled (so that datapoints can only have
       // valid values).
+      // clang-format off
       return html`
-      <select class="dropdown"
-        @change=${handleInputChange}>
-        <option value="" selected></option>
-        ${catVals.map(val => {
-        return html`
-            <option
-              value="${val}"
-              ?selected=${val === value}
-              >
-              ${val}
-            </option>`;
-      })}
-      </select>`;
+        <select class="dropdown"
+          @change=${handleInputChange} .value=${value}>
+          <option value="" ?selected=${"" === value}></option>
+          ${catVals.map(val => html`
+            <option value="${val}" ?selected=${val === value}>${val}</option>
+          `)}
+        </select>
+      `;
+      // clang-format on
     };
 
     // Render an image.
@@ -424,9 +417,12 @@ export class DatapointEditorModule extends LitModule {
         }
         const reader = new FileReader();
         reader.addEventListener('load', () => {
-          const result = reader.result as string;
-          this.datapointEdited = true;
-          this.editedData[key] = result;
+          const value = reader.result as string;
+          if (value === this.baseData[key]) {
+            delete this.dataEdits[key];
+          } else {
+            this.dataEdits[key] = value;
+          }
         });
         reader.readAsDataURL(file);
         inputElem.value = '';
@@ -464,15 +460,14 @@ export class DatapointEditorModule extends LitModule {
     const renderFreeformInput = () => {
       return html`
       <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}
-        ?readonly="${!editable}">${value}</textarea>`;
+          handleInputChange}>${value}</textarea>`;
     };
 
     // Render a single-line text input.
     const renderShortformInput = () => {
       return html`
       <input type="text" class="input-short" @input=${handleInputChange}
-        ?readonly="${!editable}" .value=${value}></input>`;
+        .value=${value}></input>`;
     };
 
     // Render a single-line text input, and convert entered value to a number.
@@ -482,7 +477,7 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`
       <input type="text" class="input-short" @input=${handleNumberInput}
-        ?readonly="${!editable}" .value=${value}></input>`;
+        .value=${value}></input>`;
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
@@ -604,11 +599,14 @@ export class DatapointEditorModule extends LitModule {
         </a>`;
     }
 
+    const entryClasses = classMap(
+        {'entry': true, 'entry-edited': this.dataEdits[key] !== undefined});
+
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
     return html`
-      <div class="entry"
+      <div class=${entryClasses}
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >

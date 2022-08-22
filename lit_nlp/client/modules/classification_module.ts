@@ -176,7 +176,7 @@ export class ClassificationModule extends LitModule {
                     feature => feature instanceof MulticlassPreds &&
                         feature.parent != null &&
                         feature.parent in
-                            this.appState.currentModelSpecs[model].spec));
+                            this.appState.currentModelSpecs[model].spec.input));
     return html`<div class='module-container'>
       <div class="module-results-area">
         ${

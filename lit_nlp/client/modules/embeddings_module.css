@@ -17,9 +17,7 @@
   overflow: hidden;
 }
 
-.module-footer {
-  justify-content: space-between;
-}
+.module-footer > * { min-width: 0; }
 
 .selected-nearest-button:disabled {
   pointer-events: auto;
