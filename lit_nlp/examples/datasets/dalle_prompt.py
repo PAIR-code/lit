@@ -22,7 +22,7 @@ class Dalle(lit_dataset.Dataset):
       })
 
   def spec(self) -> lit_types.Spec:
-    """Dataset spec, which should match the model"s input_spec()."""
+    """Dataset spec"""
     return {
         "prompt": lit_types.TextSegment(),
     }

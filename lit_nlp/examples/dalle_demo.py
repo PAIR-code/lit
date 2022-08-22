@@ -40,19 +40,23 @@ modules = layout.LitModuleName
 DALLE_LAYOUT = layout.LitCanonicalLayout(
     upper={
         "Main": [
+            modules.DataTableModule,
             modules.DatapointEditorModule,
             modules.SliceModule,
         ]
     },
     lower={
         "Predictions": [
-            # only generated images for now
-            modules. GeneratedImageModule,
+            modules.GeneratedImageModule,
+            modules.GeneratedTextModule,
         ],
     },
     description="Custom layout for Text to Image models.",
 )
 CUSTOM_LAYOUTS = {"DALLE_LAYOUT": DALLE_LAYOUT}
+
+# You can also change this via URL param e.g. localhost:5432/?layout=default
+FLAGS.set_default("default_layout", "DALLE_LAYOUT")
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   FLAGS.set_default("server_type", "external")
@@ -72,6 +76,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   models = {}
   for model_name_or_path in _MODELS.value:
     model_name = os.path.basename(model_name_or_path)
+    # set number of images to generate
     models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=6)
  
   datasets = {
