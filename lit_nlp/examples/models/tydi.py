@@ -80,7 +80,6 @@ class TyDiModel(lit_model.Model):
       #gradient
       gradient = results.hidden_states[-1][0]
 
-      # print(embeddings[slicer_question])
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
           "answers_text": inp["answers_text"],
@@ -90,7 +89,6 @@ class TyDiModel(lit_model.Model):
           "grad_class": None,
           "tokens_embs_question": np.asarray(embeddings[slicer_question]),
           "token_grad_context": np.asarray(embeddings[slicer_context]),
-
           "tokens_grad_question": np.asarray(gradient[slicer_question]),
           "tokens_embs_context": np.asarray(gradient[slicer_context])
       })
@@ -116,7 +114,6 @@ class TyDiModel(lit_model.Model):
          "tokens_embs_question": lit_types.TokenEmbeddings(align="tokens_question"),
          "tokens_grad_question" : lit_types.TokenGradients(
               align="tokens_question", grad_for="tokens_embs_question"),
-
          "tokens_context": lit_types.Tokens(parent="question"),
          "tokens_embs_context": lit_types.TokenEmbeddings(align="tokens_context"),
           "token_grad_context" : lit_types.TokenGradients(

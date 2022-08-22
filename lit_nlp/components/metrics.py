@@ -240,7 +240,7 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
 
 
 class ExactMatchMetrics(SimpleMetrics):
-  """Standard regression metrics."""
+  """Exact Match metrics."""
   def is_field_compatible(self, pred_spec: LitType,
                           parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""

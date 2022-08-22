@@ -43,7 +43,7 @@ class TyDiQA(lit_dataset.Dataset):
       })
 
   def spec(self) -> lit_types.Spec:
-    """Dataset spec, which should match the model"s input_spec()."""
+    """Dataset spec"""
     return {
         "title":lit_types.TextSegment(),
         "context": lit_types.TextSegment(),
