@@ -81,6 +81,7 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'paired': metrics.MulticlassPairedMetrics(),
       'bleu': metrics.CorpusBLEU(),
       'rouge': metrics.RougeL(),
+      'exactmatch': metrics.ExactMatchMetrics(),
   })
   # Ensure the prediction analysis interpreters are included.
   prediction_analysis_interpreters: dict[str, Interpreter] = {
