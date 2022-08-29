@@ -10,15 +10,13 @@ class dalle_mini_validation_test(absltest.TestCase):
 
   """Test that model classes conform to the expected spec."""
   
-  def validate_dalle_mini_model(self,model: lit_model.Model) -> lit_model.Model:
+  def validate_dalle_mini_model(self,model: lit_model.Model):
     """Validate that a given model looks like a dalle mini model.
     Args:
       model: a LIT model
-    Returns:
-      model: the same model
     Raises:
-      AssertionError: if the model's spec does not match that expected for a dalle mini
-      model.
+      AssertionError: if the model's spec does not match that expected for a
+          dalle mini model.
     """
     # Check inputs
     ispec = model.input_spec()
