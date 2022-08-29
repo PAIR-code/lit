@@ -31,9 +31,10 @@ import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FeatureSalience, ImageGradients, FieldMatcher, Salience} from '../lib/lit_types';
-import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {FeatureSalience, ImageGradients, ImageSalience, FieldMatcher, Salience} from '../lib/lit_types';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec, D3Scale} from '../lib/types';
 import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusData, FocusService} from '../services/focus_service';
@@ -89,6 +90,11 @@ export class SalienceMapModule extends LitModule {
   };
 
   private readonly focusService = app.getService(FocusService);
+  private isRenderImage = false;
+  private hasSignedSalience = false;
+  private hasUnsignedSalience = false;
+  private signedScale = {};
+  private unSignedScale = {};
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -120,6 +126,33 @@ export class SalienceMapModule extends LitModule {
       }
       const salienceSpecInfo =
           interpreters[key].metaSpec[salienceKeys[0]] as Salience;
+
+      if (salienceSpecInfo instanceof ImageSalience) {
+        this.isRenderImage = true;
+      }
+
+      // determine whether we need to show signedSalience or unSignedSalience
+      this.hasSignedSalience = this.hasSignedSalience ||
+          !!salienceSpecInfo.signed;
+      this.hasUnsignedSalience = this.hasUnsignedSalience ||
+          !(!!salienceSpecInfo.signed);
+
+      if (this.hasSignedSalience &&
+          Object.keys(this.signedScale).length === 0) {
+        const colorMap = new SignedSalienceCmap(/* gamma */ 4.0);
+        const scale = (val: number) => colorMap.bgCmap(val);
+        scale.domain = () => colorMap.colorScale.domain();
+        this.signedScale = scale;
+      }
+
+      if (this.hasUnsignedSalience &&
+          Object.keys(this.unSignedScale).length === 0) {
+        const colorMap = new UnsignedSalienceCmap(/* gamma */ 4.0);
+        const scale = (val: number) => colorMap.bgCmap(val);
+        scale.domain = () => colorMap.colorScale.domain();
+        this.unSignedScale = scale;
+      }
+
       state[key] = {
         autorun: !!salienceSpecInfo.autorun,
         isLoading: false,
@@ -258,6 +291,30 @@ export class SalienceMapModule extends LitModule {
       salience: ImageSalienceResult, gradKey: string) {
     const salienceImage = salience[gradKey];
     return html`<img src='${salienceImage}'></img>`;
+  }
+
+  renderColorLegend(colorName: string, scale: D3Scale, numBlocks: number) {
+    const style = styleMap({'margin-right': '15px'});
+    return html`
+        <div style=${style}>
+          <color-legend legendType=${LegendType.SEQUENTIAL}
+            selectedColorName=${colorName}
+            .scale=${scale}
+            numBlocks=${numBlocks}>
+          </color-legend>
+        </div>`;
+  }
+
+  renderFooter() {
+    return html`
+      <div class="module-footer">
+        ${this.hasSignedSalience
+          ? this.renderColorLegend("Signed", this.signedScale as D3Scale, 7)
+          : null}
+        ${this.hasUnsignedSalience
+          ? this.renderColorLegend("Unsigned", this.unSignedScale as D3Scale, 5)
+          : null}
+      </div>`;
   }
 
   // TODO(lit-dev): consider moving this to a standalone viz class.
@@ -419,6 +476,7 @@ export class SalienceMapModule extends LitModule {
         <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
           ${this.renderTable()}
         </div>
+        ${this.isRenderImage ? null : this.renderFooter()}
       </div>
     `;
     // clang-format on
