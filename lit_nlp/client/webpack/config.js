@@ -19,6 +19,7 @@ const glob = require('glob');
 const path = require('path');
 const webpack = require('webpack');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
+const TerserPlugin = require("terser-webpack-plugin");
 
 const GLOB_OPTIONS = {
   ignore: ['**/*test.ts', '**/*test.js', '**/testing_utils.ts']
@@ -109,7 +110,7 @@ module.exports = (env = {}) => {
   }
 
   return {
-    mode: 'development',
+    mode: isProd ? 'production' : 'development',
     devtool: 'source-map',
     module: {
       rules: [
@@ -134,6 +135,19 @@ module.exports = (env = {}) => {
           loader: resolveDir('./lit-css-loader.js'),
         },
       ],
+    },
+    optimization: {
+      minimize: isProd,
+      minimizer: [
+        new TerserPlugin({
+          cache: true,
+          parallel: true,
+          sourceMap: true,
+          terserOptions: {
+            keep_classnames: true   // Required for LIT_TYPES_REGISTRY to work
+          }
+        })
+      ]
     },
     resolve: {
       modules: ['node_modules'],
