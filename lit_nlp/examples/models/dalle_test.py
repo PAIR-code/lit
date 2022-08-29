@@ -22,20 +22,17 @@ class dalle_mini_validation_test(absltest.TestCase):
     """
     # Check inputs
     ispec = model.input_spec()
-    assert "prompt" in ispec
-    assert isinstance(ispec["prompt"], lit_types.TextSegment)
+    self.assertIn("prompt", ispec)
+    self.assertIsInstance(ispec["prompt"], lit_types.TextSegment)
 
     # Check outputs
     ospec = model.output_spec()
-    assert "image" in ospec
-    assert isinstance(
-        ospec["image"],
-        (lit_types.ImageBytesList))
-    assert "clip_score" in ospec
-    assert isinstance(
-        ospec["clip_score"],
-        (lit_types.GeneratedTextCandidates))
-    assert ospec["clip_score"].parent == "prompt"
+    self.assertIn("image", ospec)
+    self.assertIsInstance(ospec["image"], lit_types.ImageBytesList)
+    self.assertIn("clip_score", ospec)
+    self.assertIsInstance(ospec["clip_score"],
+                          lit_types.GeneratedTextCandidates)
+    self.assertEqual(ospec["clip_score"].parent, "prompt")
 
 
 
