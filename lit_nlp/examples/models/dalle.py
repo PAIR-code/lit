@@ -1,42 +1,48 @@
 """Dalle model based on https://github.com/borisdayma/dalle-mini."""
 
-from typing import Optional
-
-from lit_nlp.api import model as lit_model
-from lit_nlp.api import types as lit_types
-from lit_nlp.lib import image_utils
-import time
-
-from PIL import Image
-import numpy as np
-
-import jax
-import  jax.numpy as jnp
-from functools import partial
-import random
 # Load models & tokenizer
 import dalle_mini 
 import vqgan_jax
 import vqgan_jax.modeling_flax_vqgan
 import transformers
+
+# Import flax and other jax required modules
 import flax
 import flax.training.common_utils
-import tqdm.notebook
-import flax.training.common_utils
+from functools import partial
+import jax
+import  jax.numpy as jnp
+import random
 
+# Get LIT api & other modules
+from lit_nlp.api import model as lit_model
+from lit_nlp.api import types as lit_types
+from lit_nlp.lib import image_utils
+import numpy as np
+from PIL import Image
+import time
+import tqdm.notebook
+from typing import Optional
+
+# DalleBart, VQModel & CLIP to generate Score
+CLIPProcessor = transformers.CLIPProcessor
 DalleBart = dalle_mini.DalleBart
 DalleBartProcessor = dalle_mini.DalleBartProcessor
-VQModel = vqgan_jax.modeling_flax_vqgan.VQModel
-CLIPProcessor = transformers.CLIPProcessor
 FlaxCLIPModel = transformers.FlaxCLIPModel
+VQModel = vqgan_jax.modeling_flax_vqgan.VQModel
+
+# Some other functions
+JsonDict = lit_types.JsonDict
+replicate = flax.jax_utils.replicate
+shard = flax.training.common_utils.shard
 shard_prng_key = flax.training.common_utils.shard_prng_key
 trange = tqdm.notebook.trange
-shard = flax.training.common_utils.shard
-replicate = flax.jax_utils.replicate
-JsonDict = lit_types.JsonDict
+
+
+
 
 class DalleModel(lit_model.Model):
-  """Image to Text Model"""
+  """Text to Image"""
 
   def __init__(self,
                model_name:str,
