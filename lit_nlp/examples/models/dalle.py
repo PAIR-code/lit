@@ -119,7 +119,7 @@ class DalleModel(lit_model.Model):
     such that it includes the CLIP score along with the generated images.
     """
 
-     # model inference
+    # model inference
     @partial(jax.pmap, axis_name="batch")
     def p_generate(
         tokenized_prompt, key, params, top_k:Optional[int] = None, top_p:Optional[float] = None, 
