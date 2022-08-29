@@ -37,12 +37,11 @@ class dalle_mini_validation_test(absltest.TestCase):
         (lit_types.GeneratedTextCandidates))
     assert ospec["clip_score"].parent == "prompt"
 
-    return model
 
 
   def test_DalleModel(self):
     model = dalle.DalleModel("dalle-mini/dalle-mini/mini-1:v0", predictions=6)
-    model = self.validate_dalle_mini_model(model)  # uses asserts internally
+    self.validate_dalle_mini_model(model)  # uses asserts internally
 
 
 

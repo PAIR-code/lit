@@ -79,10 +79,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # set number of images to generate
     models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=6)
  
-  datasets = {
-      "Dalle_prompt": dalle_prompt.Dalle(),
-
-  }
+  datasets = {"Dalle_prompt": dalle_prompt.Dalle()}
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
