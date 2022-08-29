@@ -51,14 +51,14 @@ class DalleModel(lit_model.Model):
   VQGAN is the generative image model, supposed to generate 
   new images. BART on the other hand is sequence to sequence
   auto encoder used to reconstruct input text. 
-  
-  To understand Dalle-mini:
-  BART enchoder is fed with the prompt(Image to generate text).
+
+  To understand why this model loads three different model:
+  BART enchoder is fed with the prompt(text from which image is generated).
   Then BART decoder is sampled multiple times to generate candidates.
   Each candidate is passed to VQGAN which generates images.
 
-  CLIP is another model by openai, which takes in which takes in
-  image and prompt and tell how well they match by generating a score.
+  CLIP is another model by openai, which takes in image and prompt 
+  and tell how well they match by generating a score.
   """
 
   def __init__(self,
