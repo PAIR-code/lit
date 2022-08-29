@@ -75,7 +75,7 @@ class DalleModel(lit_model.Model):
     self.n_predictions = predictions
 
     # Load Dalle model
-    self.dalle_bert_model, params = DalleBart.from_pretrained(
+    self.dalle_bart_model, params = DalleBart.from_pretrained(
         self.model, revision=mode_revision, dtype=jnp.float16, _do_init=False
     )
     self.processor = DalleBartProcessor.from_pretrained(self.model, revision=mode_revision)
@@ -106,7 +106,7 @@ class DalleModel(lit_model.Model):
     Three models are required for prediction and it's in the following stages:
 
     1) First the prompt(text from which image is generated) is fed into 
-    BART encoder model (dalle_bert_model) then the BART decoder is sampled 
+    BART encoder model (dalle_bart_model) then the BART decoder is sampled 
     multiple times to generate candidates.
 
     2) Each candidate is passed to VQGAN which generates images. The generated 
@@ -125,7 +125,7 @@ class DalleModel(lit_model.Model):
         tokenized_prompt, key, params, top_k:Optional[int] = None, top_p:Optional[float] = None, 
         temperature:Optional[float] = None, condition_scale:float = 10.0
     ):
-        return self.dalle_bert_model.generate(
+        return self.dalle_bart_model.generate(
             **tokenized_prompt,
             prng_key=key,
             params=params,
