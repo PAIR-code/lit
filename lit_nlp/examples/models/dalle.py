@@ -43,21 +43,21 @@ trange = tqdm.notebook.trange
 class DalleModel(lit_model.Model):
   """Text to Image Dalle Mini model
 
-  The model consists of few already known work connected in
+  The model consists of a few already known works connected in
   an interesting way to generate images from the text.
 
   This includes VQGAN, BART & CLIP.
 
   VQGAN is the generative image model, supposed to generate 
-  new images. BART on the other hand is sequence to sequence
+  new images. BART on the other hand is a sequence-to-sequence
   auto encoder used to reconstruct input text. 
 
-  To understand why this model loads three different model:
-  BART enchoder is fed with the prompt(text from which image is generated).
+  To understand why this class loads three different models:
+  BART encoder is fed with the prompt(text from which image is generated).
   Then BART decoder is sampled multiple times to generate candidates.
   Each candidate is passed to VQGAN which generates images.
 
-  CLIP is another model by openai, which takes in image and prompt 
+  CLIP is another model by openai, which takes in an image and a prompt 
   and tell how well they match by generating a score.
   """
 
@@ -101,7 +101,23 @@ class DalleModel(lit_model.Model):
     return 8
 
   def predict_minibatch(self, inputs):
-    """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini"""
+    """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini
+    
+    Three models are required for prediction and it's in the following stages:
+
+    1) First the prompt(text from which image is generated) is fed into 
+    BART encoder model (dalle_bert_model) then the BART decoder is sampled 
+    multiple times to generate candidates.
+
+    2) Each candidate is passed to VQGAN which generates images. The generated 
+    images are stored in two arrays. One images[], which contains images in ImageBytes
+    format second pil_images[] which contains the same images in PIL format which is used
+    to generate CLIP score using the CLIP model.
+
+    3) CLIP is another model by openai, which takes in an image and a prompt and tells 
+    how well they match by generating a score. At the last, the final output is formated
+    such that it includes the CLIP score along with the generated images.
+    """
 
      # model inference
     @partial(jax.pmap, axis_name="batch")
