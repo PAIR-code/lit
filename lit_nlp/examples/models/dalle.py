@@ -52,7 +52,8 @@ class DalleModel(lit_model.Model):
   new images. BART on the other hand is a sequence-to-sequence
   auto encoder used to reconstruct input text. 
 
-  To understand why this class loads three different models:
+  To understand why this class loads three different models need
+  to understand how dalle-mini works:
   BART encoder is fed with the prompt(text from which image is generated).
   Then BART decoder is sampled multiple times to generate candidates.
   Each candidate is passed to VQGAN which generates images.
@@ -207,16 +208,22 @@ class DalleModel(lit_model.Model):
     clip_score = []
     images_per_prompt = []
 
+    # Add images as per prompt [prompt1_prediction_1,prompt1_prediction_2]
+    # and also add clip_score
     for i in range(p):
-        # Add images as per prompt [prompt1_prediction_1,prompt1_prediction_2]
-        # and also add clip_score
-        clip_prompts = logits[i].argsort()[::-1]
-        my_loop = [0]*self.n_predictions if len(clip_prompts) == 1 else clip_prompts
+        # logits shape is different if prediction is only 1, vs more than one
+        clip_prompts = logits if logits.ndim == 0 else logits[i].argsort()[::-1] 
+        my_loop = [0]*self.n_predictions if logits.ndim == 0 or len(clip_prompts) == 1 else clip_prompts
         for idx in range(len(my_loop)):
             images_per_prompt.append(images[idx * p + i])
-            # Append CLIP score depending on prompt size hence the condition
-            if len(np.shape(logits)) == 1:
+            # Append CLIP score depending on size hence the condition
+            # if only 1 n_predictions & 1 prompt
+            if logits.ndim == 0:
+                clip_score.append((str(logits), None))
+            #if more than 1 n_predictions but only one prompt
+            elif len(np.shape(logits)) == 1:
                 clip_score.append((str(logits[idx]), None))
+            # multiple prompts
             else:
                 clip_score.append((str(logits[i][idx]), None))
         # Append to final List[Dict]
