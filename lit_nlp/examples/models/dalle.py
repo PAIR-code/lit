@@ -2,9 +2,9 @@
 
 # Load models & tokenizer
 import dalle_mini 
+import transformers
 import vqgan_jax
 import vqgan_jax.modeling_flax_vqgan
-import transformers
 
 # Import flax and other jax required modules
 import flax
@@ -20,7 +20,6 @@ from lit_nlp.api import types as lit_types
 from lit_nlp.lib import image_utils
 import numpy as np
 from PIL import Image
-import time
 import tqdm.notebook
 from typing import Optional
 
@@ -48,7 +47,7 @@ class DalleModel(lit_model.Model):
   an interesting way to generate images from the text.
 
   This includes VQGAN, BART & CLIP.
-  
+
   VQGAN is the generative image model, supposed to generate 
   new images. BART on the other hand is sequence to sequence
   auto encoder used to reconstruct input text. To understand
@@ -72,13 +71,14 @@ class DalleModel(lit_model.Model):
                clip_revision: Optional[str] = None):
     super().__init__()
 
+    self.model = model_name
     self.n_predictions = predictions
 
     # Load Dalle model
     self.dalle_bert_model, params = DalleBart.from_pretrained(
-        model, revision=mode_revision, dtype=jnp.float16, _do_init=False
+        self.model, revision=mode_revision, dtype=jnp.float16, _do_init=False
     )
-    self.processor = DalleBartProcessor.from_pretrained(self.model, revision=self.dalle_commit_id)
+    self.processor = DalleBartProcessor.from_pretrained(self.model, revision=mode_revision)
 
     # Load the VQGan model
     self.vqgan, vqgan_params = VQModel.from_pretrained(
@@ -104,9 +104,10 @@ class DalleModel(lit_model.Model):
     """Model prediction based on code pipeline in doc https://github.com/borisdayma/dalle-mini"""
 
      # model inference
-    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(3, 4, 5, 6))
+    @partial(jax.pmap, axis_name="batch")
     def p_generate(
-        tokenized_prompt, key, params, top_k, top_p, temperature, condition_scale
+        tokenized_prompt, key, params, top_k:Optional[int] = None, top_p:Optional[float] = None, 
+        temperature:Optional[float] = None, condition_scale:float = 10.0
     ):
         return self.dalle_bert_model.generate(
             **tokenized_prompt,
@@ -135,37 +136,24 @@ class DalleModel(lit_model.Model):
     
     prompts = [ex["prompt"] for ex in inputs]
 
-    processor = DalleBartProcessor.from_pretrained(self.model, revision=self.dalle_commit_id)
-    tokenized_prompts = processor(prompts)
+    tokenized_prompts = self.processor(prompts)
     tokenized_prompt = replicate(tokenized_prompts)
     
-    # We can customize generation parameters ( https://huggingface.co/blog/how-to-generate)
-    gen_top_k:Optional[int]  = None
-    gen_top_p:Optional[float]= None
-    temperature:Optional[float] = None
-    cond_scale:Optional[float] = 10.0
   
     # images has all generated ImageByste
     # pil_images has images in pil format for clip score
     images = []
     pil_images = []
     for i in trange(max(self.n_predictions // jax.device_count(), 1)):
-        start = time.process_time()
-
         # get a new key
         # keys are passed to the model on each device to generate unique inference.
         # if key will be same than it won't be unique
         key, subkey = jax.random.split(key)
         # generate images
-        encoded_images = p_generate(
-            tokenized_prompt,
-            shard_prng_key(subkey),
-            self.params,
-            gen_top_k,
-            gen_top_p,
-            temperature,
-            cond_scale,
-        )
+        encoded_images = p_generate(tokenized_prompt,
+                                    shard_prng_key(subkey),
+                                    self.params)
+
         # remove BOS
         encoded_images = encoded_images.sequences[..., 1:]
         # decode images
@@ -178,8 +166,6 @@ class DalleModel(lit_model.Model):
             # convert to ImageBytes
             image_str = image_utils.convert_pil_to_image_str(img)
             images.append(image_str)
-            # Output image process time just for debugging
-            print(f'Image time: {time.process_time() - start}')
 
     # get CLIP scores
     clip_inputs = self.clip_processor(
@@ -205,18 +191,11 @@ class DalleModel(lit_model.Model):
     clip_score = []
     images_per_prompt = []
 
-    for i, prompt in enumerate(prompts):
-        print(f"Prompt: {prompt}\n")
-
-        # if clip score is only for one prompt than logits shape is 1
-        # if prompt is more than one than logits shape is not 1
-        if len(logits[i].argsort()[::-1]) == 1:
-            my_loop = [0]*self.n_predictions
-        else:
-            my_loop = logits[i].argsort()[::-1]
-        
+    for i in range(p):
         # Add images as per prompt [prompt1_prediction_1,prompt1_prediction_2]
         # and also add clip_score
+        clip_prompts = logits[i].argsort()[::-1]
+        my_loop = [0]*self.n_predictions if len(clip_prompts) == 1 else clip_prompts
         for idx in range(len(my_loop)):
             images_per_prompt.append(images[idx * p + i])
             # Append CLIP score depending on prompt size hence the condition
@@ -228,7 +207,7 @@ class DalleModel(lit_model.Model):
         final_images.append({
             "image": images_per_prompt,
             "clip_score": clip_score
-            })
+        })
         # Reset images & clip score for new prompt
         images_per_prompt = []
         clip_score = []
