@@ -31,15 +31,11 @@ const GLOB_OPTIONS = {
  * @return {!object} WebPack config definition.
  */
 module.exports = (env = {}) => {
-  const isProd = !!env.production;
   console.log('Packing 🔥LIT for the web...', env);
+  const isProd = !!env.production;
+  const buildDirsStr = env.build || '';
 
-  const buildStr = env.build || '';
-  const toBuild = buildStr.split(',').filter(x => x.length > 0);
-
-  /**
-   * File groups to include in the build.
-   */
+  // File groups to include in the default build entry.
   const core = glob.sync(resolveDir('../core/**/*.ts'), GLOB_OPTIONS);
   const elements = glob.sync(resolveDir('../elements/**/*.ts'), GLOB_OPTIONS);
   const lib = glob.sync(resolveDir('../lib/**/*.ts'), GLOB_OPTIONS);
@@ -47,8 +43,8 @@ module.exports = (env = {}) => {
   const services = glob.sync(resolveDir('../services/**/*.ts'), GLOB_OPTIONS);
 
    /**
-    * Make the default entry and FileManagerPlugin params objects, which will
-    * determine which output bundles to build and where to move them to
+    * The [entry points](https://v4.webpack.js.org/concepts/entry-points/) to
+    * build, including the core LIT app bundle, `default`.
     */
   const entry = {
     default: [
@@ -60,6 +56,11 @@ module.exports = (env = {}) => {
       ...services,
     ],
   };
+
+  /**
+   * The FileManagerPlugin params, which sepcify how to handle the generted
+   * bundles for each path in the `env.build` flag, described below.
+   */
   const fileManagerParams = {
     onEnd: {
       copy: [{
@@ -70,9 +71,24 @@ module.exports = (env = {}) => {
     },
   };
 
-  toBuild.forEach(path => {
-    const splitPath = path.split('/');
-    const moduleName = splitPath[splitPath.length -1];
+  // LIT's build commands (`yarn build`, `yarn watch`) accept an `env.build`
+  // flag containing a comma-separated list of directories.
+  //
+  // Directories are asusmed to be relative paths from the `lit_nlp` directory,
+  // hence the `desitnation` resolutions with the `../../` prefix below.
+  //
+  // A WebPack `entry` is added for each directory in the `env.build` flag,
+  // using the paths in the `default` entry as a baseline and adding any paths
+  // that match the glob `../../${path}/**/*.ts`. This is how LIT supports
+  // adding demo-specific custom modules.
+  //
+  // WebPack outputs the all bundles into the `lit_nlp/client/build` directory.
+  // FileManagerPlugin rules are added to 1) copy LIT's static assets into the
+  // build path, 2) move the generated JS bundle into the build path, and 3)
+  // delete the WebPack directory for the build path.
+  for (const path of buildDirsStr.split(',').filter(p => p.length > 0)) {
+    const [moduleName] = path.split('/').slice(-1);
+
     entry[moduleName] = [
       ...entry.default,
       ...glob.sync(resolveDir(`../../${path}/**/*.ts`), GLOB_OPTIONS)
@@ -82,6 +98,7 @@ module.exports = (env = {}) => {
       source: resolveDir('../static'),
       destination: resolveDir(`../../${path}/build/static`)
     });
+
     fileManagerParams.onEnd.move.push({
       source: resolveDir(`../build/${moduleName}/main.js`),
       destination: resolveDir(`../../${path}/build/main.js`)
@@ -89,7 +106,7 @@ module.exports = (env = {}) => {
 
     fileManagerParams.onEnd.delete = fileManagerParams.onEnd.delete || [];
     fileManagerParams.onEnd.delete.push(resolveDir(`../build/${moduleName}`));
-  });
+  }
 
   return {
     mode: 'development',
