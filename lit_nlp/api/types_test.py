@@ -1,10 +1,10 @@
 """Tests for types."""
 
+from absl.testing import absltest
 from lit_nlp.api import types
-from google3.testing.pybase import googletest
 
 
-class TypesTest(googletest.TestCase):
+class TypesTest(absltest.TestCase):
 
   def test_inherit_parent_default_type(self):
     lit_type = types.StringLitType()
@@ -30,4 +30,4 @@ class TypesTest(googletest.TestCase):
 
 
 if __name__ == "__main__":
-  googletest.main()
+  absltest.main()
