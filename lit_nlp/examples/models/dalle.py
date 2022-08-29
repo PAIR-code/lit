@@ -63,42 +63,36 @@ class DalleModel(lit_model.Model):
   """
 
   def __init__(self,
-               model_name:str,
-               predictions:int):
+               model_name: str,
+               predictions: int = 1,
+               mode_revision: Optional[str] = None,
+               vqgan_repo: str = "dalle-mini/vqgan_imagenet_f16_16384",
+               vqgan_revision: str = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9",
+               clip_repo: str = "openai/clip-vit-base-patch32",
+               clip_revision: Optional[str] = None):
     super().__init__()
 
-    self.model = model_name
     self.n_predictions = predictions
-    
-    # Load Models
 
-    # vqgan model   
-    vqgan_repo = "dalle-mini/vqgan_imagenet_f16_16384"
-    vqgan_commit_id = "e93a26e7707683d349bf5d5c41c5b0ef69b677a9"
-    self.dalle_commit_id = None
-
-    # dalle model
+    # Load Dalle model
     self.dalle_bert_model, params = DalleBart.from_pretrained(
-        self.model, revision=self.dalle_commit_id, dtype=jnp.float16, _do_init=False
+        model, revision=mode_revision, dtype=jnp.float16, _do_init=False
     )
+    self.processor = DalleBartProcessor.from_pretrained(self.model, revision=self.dalle_commit_id)
+
+    # Load the VQGan model
     self.vqgan, vqgan_params = VQModel.from_pretrained(
-        vqgan_repo, revision=vqgan_commit_id, _do_init=False
+        vqgan_repo, revision=vqgan_revision, _do_init=False
     )
-    
     self.params = replicate(params)
     self.vqgan_params = replicate(vqgan_params)
 
-    # CLIP model to generate CLIP score
+    # Load CLIP model to generate CLIP score
     # Scores how accurate generated image is
-    clip_repo = "openai/clip-vit-base-patch32"
-    clip_commit_id = None
-
-    # Load CLIP
     self.clip, clip_params = FlaxCLIPModel.from_pretrained(
-        clip_repo, revision=clip_commit_id, dtype=jnp.float16, _do_init=False
+        clip_repo, revision=clip_revision, dtype=jnp.float16, _do_init=False
     )
-
-    self.clip_processor = CLIPProcessor.from_pretrained(clip_repo, revision=clip_commit_id)
+    self.clip_processor = CLIPProcessor.from_pretrained(clip_repo, revision=clip_revision)
     self.clip_params = replicate(clip_params)
 
     
