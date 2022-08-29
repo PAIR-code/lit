@@ -50,9 +50,9 @@ class DalleModel(lit_model.Model):
 
   VQGAN is the generative image model, supposed to generate 
   new images. BART on the other hand is sequence to sequence
-  auto encoder used to reconstruct input text. To understand
-  Dalle-mini:
-
+  auto encoder used to reconstruct input text. 
+  
+  To understand Dalle-mini:
   BART enchoder is fed with the prompt(Image to generate text).
   Then BART decoder is sampled multiple times to generate candidates.
   Each candidate is passed to VQGAN which generates images.
