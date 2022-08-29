@@ -211,19 +211,16 @@ class DalleModel(lit_model.Model):
     # Add images as per prompt [prompt1_prediction_1,prompt1_prediction_2]
     # and also add clip_score
     for i in range(p):
-        # logits shape is different if prediction is only 1, vs more than one
+        # logits shape is different if n_predictions is only 1, vs more than one
         clip_prompts = logits if logits.ndim == 0 else logits[i].argsort()[::-1] 
         my_loop = [0]*self.n_predictions if logits.ndim == 0 or len(clip_prompts) == 1 else clip_prompts
         for idx in range(len(my_loop)):
             images_per_prompt.append(images[idx * p + i])
             # Append CLIP score depending on size hence the condition
-            # if only 1 n_predictions & 1 prompt
             if logits.ndim == 0:
                 clip_score.append((str(logits), None))
-            #if more than 1 n_predictions but only one prompt
             elif len(np.shape(logits)) == 1:
                 clip_score.append((str(logits[idx]), None))
-            # multiple prompts
             else:
                 clip_score.append((str(logits[i][idx]), None))
         # Append to final List[Dict]
