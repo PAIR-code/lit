@@ -143,7 +143,7 @@ class ListLitType(LitType):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ImageBytesList(ListLitType):
-  """A list of strings."""
+  """A list of ImageBytes"""
   default: Sequence[Any] = []
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
