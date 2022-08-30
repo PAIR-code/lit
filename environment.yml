@@ -31,7 +31,7 @@ dependencies:
         - sacrebleu
         - numba==0.53.1
         - umap-learn==0.5.1
-        - transformers==4.1.1
+        - transformers==4.20.0
         - sentencepiece
         - google-cloud-translate
         - portpicker
