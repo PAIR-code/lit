@@ -2,10 +2,9 @@
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.datasets import question_answering
-from typing import List
 import numpy as np
 import transformers
-
+from typing import List
 
 
 BertTokenizer = transformers.BertTokenizer
@@ -14,7 +13,7 @@ JsonDict = lit_types.JsonDict
 
 
 class TyDiModel(lit_model.Model):
-  """Question Answering Jax model based on TyDiQA Dataset ."""
+  """Question Answering Jax model based on TyDiQA Dataset"""
                   
   def __init__(self,
               model_name: str,

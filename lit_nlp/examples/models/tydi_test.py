@@ -15,34 +15,28 @@ class TyDiValidationTest(absltest.TestCase):
     Args:
       model: a LIT model
 
-    Returns:
-      model: the same model
-
     Raises:
       AssertionError: if the model's spec does not match that expected for a TyDi
       model.
     """
     # Check inputs
     ispec = model.input_spec()
-    assert "context" in ispec
-    assert isinstance(ispec["context"], lit_types.TextSegment)
+    self.assertIn("context", ispec)
+    self.assertIsInstance(ispec["context"], lit_types.TextSegment)
     if "answers_text" in ispec:
-      assert isinstance(ispec["answers_text"], lit_types.MultiSegmentAnnotations)
+      self.assertIsInstance(ispec["answers_text"], lit_types.MultiSegmentAnnotations)
 
     # Check outputs
     ospec = model.output_spec()
-    assert "generated_text" in ospec
-    assert isinstance(
-        ospec["generated_text"],
-        (lit_types.GeneratedText))
-    assert ospec["generated_text"].parent == "answers_text"
+    self.assertIn("generated_text", ospec)
+    self.assertIsInstance(ospec["generated_text"], lit_types.GeneratedText)
+    self.assertEqual(ospec["generated_text"].parent, "answers_text")
 
-    return model
 
 
   def test_TyDimodel(self):
     model = tydi.TyDiModel("TyDiModel", model="dummy", tokenizer="dummy")
-    model = self.validate_TyDiModel(model)  # uses asserts internally
+    self.validate_TyDiModel(model)  # uses asserts internally
 
 
 
