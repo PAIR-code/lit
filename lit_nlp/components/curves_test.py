@@ -16,6 +16,7 @@
 
 from typing import List, NamedTuple, Text, Tuple
 from absl.testing import absltest
+from absl.testing import parameterized
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -28,9 +29,12 @@ from lit_nlp.lib import caching
 # Labels used in the test dataset.
 COLORS = ['red', 'green', 'blue']
 
+Curve = list[tuple[float, float]]
+Model = lit_model.Model
+
 
 class TestDataEntry(NamedTuple):
-  prediction: Tuple[float, float, float]
+  prediction: tuple[float, float, float]
   label: Text
 
 
@@ -41,7 +45,7 @@ TEST_DATA = {
 }
 
 
-class TestModel(lit_model.Model):
+class TestModel(Model):
   """A test model for the interpreter that uses 'TEST_DATA' as model output."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -71,7 +75,7 @@ class TestModel(lit_model.Model):
     return output
 
 
-class IncompatiblePredictionTestModel(lit_model.Model):
+class IncompatiblePredictionTestModel(Model):
   """A model with unsupported output type."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -87,7 +91,7 @@ class IncompatiblePredictionTestModel(lit_model.Model):
     return []
 
 
-class NoParentTestModel(lit_model.Model):
+class NoParentTestModel(Model):
   """A model that doesn't specify the ground truth field in the dataset."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -120,7 +124,7 @@ class TestDataset(lit_dataset.Dataset):
     return data
 
 
-class CurvesInterpreterTest(absltest.TestCase):
+class CurvesInterpreterTest(parameterized.TestCase):
   """Tests CurvesInterpreter."""
 
   def setUp(self):
@@ -128,14 +132,14 @@ class CurvesInterpreterTest(absltest.TestCase):
     self.dataset = lit_dataset.IndexedDataset(
         base=TestDataset(), id_fn=caching.input_hash)
     self.model = TestModel()
+    self.ci = curves.CurvesInterpreter()
 
   def test_label_not_in_config(self):
     """The interpreter throws an error if the config doesn't have Label."""
-    ci = curves.CurvesInterpreter()
     with self.assertRaisesRegex(
         ValueError, 'The config \'Label\' field should contain the positive'
         ' class label.'):
-      ci.run_with_metadata(
+      self.ci.run_with_metadata(
           indexed_inputs=self.dataset.indexed_examples,
           model=self.model,
           dataset=self.dataset,
@@ -146,78 +150,53 @@ class CurvesInterpreterTest(absltest.TestCase):
 
     The interpreter throws an error if the name of the output is absent.
     """
-    ci = curves.CurvesInterpreter()
     with self.assertRaisesRegex(
         ValueError, 'The config \'Prediction field\' should contain'):
-      ci.run_with_metadata(
+      self.ci.run_with_metadata(
           indexed_inputs=self.dataset.indexed_examples,
           model=self.model,
           dataset=self.dataset,
           config={'Label': 'red'})
 
-  def test_interpreter_honors_user_selected_label(self):
+  @parameterized.named_parameters(
+      ('red', 'red', [(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 1.0)],
+       [(2 / 3, 1.0), (0.5, 0.5), (1.0, 0.5), (1.0, 0.0)]),
+      ('blue', 'blue', [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
+       [(1.0, 1.0), (1.0, 0.0)]))
+  def test_interpreter_honors_user_selected_label(
+      self, label: str, exp_roc: Curve, exp_pr: Curve):
     """Tests a happy scenario when a user doesn't specify the class label."""
-    ci = curves.CurvesInterpreter()
-    self.assertTrue(ci.is_compatible(self.model))
-
-    # Test the curve data for 'red' label.
-    curves_data = ci.run_with_metadata(
+    curves_data = self.ci.run_with_metadata(
         indexed_inputs=self.dataset.indexed_examples,
         model=self.model,
         dataset=self.dataset,
-        config={
-            'Label': 'red',
-            'Prediction field': 'pred'
-        })
+        config={'Label': label, 'Prediction field': 'pred'})
     self.assertIn('roc_data', curves_data)
     self.assertIn('pr_data', curves_data)
-    roc_data = curves_data['roc_data']
-    self.assertEqual(roc_data, [(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 1.0)])
-    pr_data = curves_data['pr_data']
-    self.assertEqual(pr_data, [(2 / 3, 1.0), (0.5, 0.5), (1.0, 0.5),
-                               (1.0, 0.0)])
-
-    # Test the curve data for 'blue' label.
-    curves_data = ci.run_with_metadata(
-        indexed_inputs=self.dataset.indexed_examples,
-        model=self.model,
-        dataset=self.dataset,
-        config={
-            'Label': 'blue',
-            'Prediction field': 'pred'
-        })
-    self.assertIn('roc_data', curves_data)
-    self.assertIn('pr_data', curves_data)
-    roc_data = curves_data['roc_data']
-    self.assertEqual(roc_data, [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)])
-    pr_data = curves_data['pr_data']
-    self.assertEqual(pr_data, [(1.0, 1.0), (1.0, 0.0)])
+    self.assertEqual(curves_data['roc_data'], exp_roc)
+    self.assertEqual(curves_data['pr_data'], exp_pr)
 
   def test_config_spec(self):
     """Tests that the interpreter config has correct fields of correct type."""
-    ci = curves.CurvesInterpreter()
-    spec = ci.config_spec()
+    spec = self.ci.config_spec()
     self.assertIn('Label', spec)
     self.assertIsInstance(spec['Label'], lit_types.CategoryLabel)
 
   def test_meta_spec(self):
     """Tests that the interpreter meta has correct fields of correct type."""
-    ci = curves.CurvesInterpreter()
-    spec = ci.meta_spec()
+    spec = self.ci.meta_spec()
     self.assertIn('roc_data', spec)
     self.assertIsInstance(spec['roc_data'], lit_types.CurveDataPoints)
     self.assertIn('pr_data', spec)
     self.assertIsInstance(spec['pr_data'], lit_types.CurveDataPoints)
 
-  def test_incompatible_model_prediction(self):
+  @parameterized.named_parameters(
+      ('valid', TestModel(), True),
+      ('no_multiclass_pred', IncompatiblePredictionTestModel(), False),
+      ('no_parent', NoParentTestModel(), False))
+  def test_model_compatibility(self, model: Model, exp_is_compat: bool):
     """A model is incompatible if prediction is not MulticlassPreds."""
-    ci = curves.CurvesInterpreter()
-    self.assertFalse(ci.is_compatible(IncompatiblePredictionTestModel()))
-
-  def test_no_parent_in_model_spec(self):
-    """A model is incompatible if there is no reference to the parent."""
-    ci = curves.CurvesInterpreter()
-    self.assertFalse(ci.is_compatible(NoParentTestModel()))
+    self.assertEqual(self.ci.is_compatible(model), exp_is_compat)
 
 
 if __name__ == '__main__':
