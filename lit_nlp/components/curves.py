@@ -22,7 +22,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils as lit_utils
 import numpy as np
-import sklearn.metrics as metrics
+from sklearn import metrics
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
@@ -45,7 +45,7 @@ class CurvesInterpreter(lit_components.Interpreter):
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[List[JsonDict]] = None,
+                        model_outputs: Optional[Sequence[JsonDict]] = None,
                         config: Optional[JsonDict] = None):
 
     if (not config) or (TARGET_LABEL_KEY not in config):
