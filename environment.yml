@@ -45,7 +45,6 @@ dependencies:
         - shap==0.37.0
         - tqdm==4.64.0
         - gunicorn==20.1.0
-        - tqdm
         - jax
         - jaxlib
         - flax
