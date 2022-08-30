@@ -48,11 +48,12 @@ class SimilaritySearcher(lit_components.Generator):
         model_name, dataset_name, embedding_name, embedding, num_neighbors=25)
     return similar_examples
 
-  def generate(self,
-               example: JsonDict,
-               model: lit_model.Model,
-               dataset: lit_dataset.IndexedDataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+  def generate(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
+      self,
+      example: JsonDict,
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      config: Optional[JsonDict] = None) -> List[JsonDict]:
     """Find similar examples for an example/model/dataset."""
     model_name = config['model_name']
     dataset_name = config['dataset_name']

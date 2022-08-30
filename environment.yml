@@ -19,7 +19,7 @@ dependencies:
     - numpy
     - scipy
     - pandas
-    - scikit-learn
+    - scikit-learn=1.0.2
     - gunicorn
     - pip
     - pip:

@@ -70,6 +70,8 @@ config.page_title = config_dict.placeholder(str)
 # Whether the LIT instance is a development demo.
 config.development_demo = False
 
+import os
+import pathlib
 config.client_root = os.path.join(
         pathlib.Path(__file__).parent.absolute(), 'client', 'build',
         'default')
