@@ -32,7 +32,7 @@ jobs:
     name: Build and test (${{ matrix.python-version }})
     strategy:
       matrix:
-        python-version: ["3.7"]
+        python-version: ["3.9"]
     defaults:
       run:
         shell: bash -l {0}

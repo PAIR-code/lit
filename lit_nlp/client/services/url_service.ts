@@ -18,7 +18,7 @@
 import {autorun} from 'mobx';
 
 import {ListLitType} from '../lib/lit_types';
-import {defaultValueByField, IndexedInput, Input, ServiceUser, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, ServiceUser, Spec, LitCanonicalLayout, LitMetadata} from '../lib/types';
 
 import {LitService} from './lit_service';
 
@@ -63,6 +63,8 @@ export interface StateObservedByUrlService {
   annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
   documentationOpen: boolean;
+  layouts: {[name: string]: LitCanonicalLayout};
+  metadata: LitMetadata;
 }
 
 /**
@@ -247,6 +249,11 @@ export class UrlService extends LitService {
     autorun(() => {
       const urlParams = new URLSearchParams();
 
+      // Check if layoutName is valid. If not, set it to the default layout
+      if (!(appState.layoutName in appState.layouts)) {
+        console.log("Invalid value for layout param:", appState.layoutName);
+        appState.layoutName = appState.metadata.defaultLayout;
+      }
       // Syncing app state
       this.setUrlParam(urlParams, SELECTED_MODELS_KEY, appState.currentModels);
 
