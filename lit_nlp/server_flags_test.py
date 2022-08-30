@@ -8,7 +8,7 @@ from lit_nlp import server_flags
 FLAGS = flags.FLAGS
 
 
-def get_flags_for_module(module):
+def _get_flags_for_module(module):
   """Get all of the flags defined in the specified module.
 
   This is very slow, but should be authoritative - so we use it in a test and
@@ -29,6 +29,10 @@ def get_flags_for_module(module):
 
 class ServerFlagsTest(absltest.TestCase):
 
+  def setUp(self):
+    super(ServerFlagsTest, self).setUp()
+    FLAGS(['server_flags_test'])
+
   def test_matches_server_config(self):
     """Check that server_config and server_flags match."""
     server_config_dict = server_config.get_flags().to_dict()
@@ -37,7 +41,7 @@ class ServerFlagsTest(absltest.TestCase):
 
   def test_gets_all_flags(self):
     """Check that SERVER_FLAGS captures all the flags in server_flags.py."""
-    all_server_flags = get_flags_for_module(server_flags)
+    all_server_flags = _get_flags_for_module(server_flags)
     server_flags_dict = server_flags.get_flags()
     self.assertEqual(server_flags_dict, all_server_flags)
 
