@@ -5,11 +5,13 @@ from lit_nlp.examples.models import dalle
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 
-
+class dallemodelfortest(dalle.DalleModel):
+  def __init__(self, *unused_args, **unused_kw_args):
+      pass
 class dalle_mini_validation_test(absltest.TestCase):
 
   """Test that model classes conform to the expected spec."""
-  
+
   def validate_dalle_mini_model(self,model: lit_model.Model):
     """Validate that a given model looks like a dalle mini model.
     Args:
@@ -35,7 +37,7 @@ class dalle_mini_validation_test(absltest.TestCase):
 
 
   def test_DalleModel(self):
-    model = dalle.DalleModel("dalle-mini/dalle-mini/mini-1:v0", predictions=6)
+    model = dallemodelfortest()
     self.validate_dalle_mini_model(model)  # uses asserts internally
 
 
