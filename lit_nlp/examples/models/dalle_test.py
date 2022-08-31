@@ -6,6 +6,9 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 
 class dallemodelfortest(dalle.DalleModel):
+  """The model requires an API to dwnload hence it won't pass test
+  that's why took this approach.
+  """
   def __init__(self, *unused_args, **unused_kw_args):
       pass
 class dalle_mini_validation_test(absltest.TestCase):
