@@ -36,7 +36,7 @@ import {action, computed, observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
-import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
+import {isNumber, median, numberRangeFnFromString} from '../lib/utils';
 
 import {styles} from './table.css';
 
@@ -667,10 +667,6 @@ export class DataTable extends ReactiveElement {
       this.pageNum = newPageNum;
     };
     const lastPage = () => {this.pageNum = this.totalPages - 1;};
-    const randomPage = () => {
-      const newPageNum = randInt(0, this.totalPages);
-      this.pageNum = newPageNum;
-    };
 
     const pageDisplayNum = this.pageNum + 1;
     const firstPageButtonClasses = {
@@ -707,10 +703,6 @@ export class DataTable extends ReactiveElement {
             <mwc-icon class=${classMap(lastPageButtonClasses)}
               @click=${lastPage}>
               last_page
-            </mwc-icon>
-            <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              @click=${randomPage}>
-              casino
             </mwc-icon>
           </div>
         </td>

@@ -315,7 +315,6 @@ export class LitMainToolbar extends MobxLitElement {
     if (primaryId == null) return;
 
     const displayedPrimaryId = shortenId(primaryId);
-    const primaryIndex = this.appState.indicesById.get(primaryId);
 
     const selectedIndex =
         this.selectionService.selectedIds.findIndex(id => id === primaryId);
@@ -329,22 +328,21 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <div id='primary-selection-status' class='selection-status-group'>
-        (${numSelected > 1 ? html`
+        ${numSelected > 1 ? html`
           <mwc-icon class='icon-button' id='select-prev'
             @click=${() => {selectOffset(-1);}}>
             chevron_left
           </mwc-icon>
         ` : null}
         <span id='primary-text'>
-          primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
-          ... [<span class='monospace'>${primaryIndex}</span>]
+          Datapoint ID:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
         </span>
         ${numSelected > 1 ? html`
           <mwc-icon class='icon-button' id='select-next'
             @click=${() => {selectOffset(1);}}>
             chevron_right
           </mwc-icon>
-        ` : null})
+        ` : null}
       </div>
     `;
     // clang-format on
@@ -437,7 +435,8 @@ export class LitMainToolbar extends MobxLitElement {
     };
     // clang-format off
     return html`
-      <mwc-icon class=${iconClass} id='star-button' @click=${starOnClick}>
+      <mwc-icon class=${iconClass} id='star-button' @click=${
+        starOnClick} title="Add to starred slice">
         ${highlightStar ? 'star' : 'star_border'}
       </mwc-icon>`;
     // clang-format on
