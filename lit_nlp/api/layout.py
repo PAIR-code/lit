@@ -35,7 +35,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   AnnotatedTextGoldModule = 'annotated-text-gold-module'
   AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
-  ColorModule = 'color-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
   CounterfactualExplainerModule = 'counterfactual-explainer-module'
   CurvesModule = 'curves-module'
@@ -154,7 +153,6 @@ DEFAULT_MAIN_GROUP = (
     modules.DataTableModule,
     modules.DatapointEditorModule,
     modules.SliceModule,
-    modules.ColorModule,
 )
 
 ##
