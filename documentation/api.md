@@ -327,7 +327,6 @@ LM_LAYOUT = layout.LitCanonicalLayout(
             modules.DataTableModule,
             modules.DatapointEditorModule,
             modules.SliceModule,
-            modules.ColorModule,
         ]
     },
     lower={

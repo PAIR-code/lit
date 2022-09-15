@@ -103,7 +103,6 @@ WINOGENDER_LAYOUT = layout.LitComponentLayout(
             modules.DataTableModule,
             modules.DatapointEditorModule,
             modules.SliceModule,
-            modules.ColorModule,
         ],
         "Predictions": [
             modules.SpanGraphGoldModule,
