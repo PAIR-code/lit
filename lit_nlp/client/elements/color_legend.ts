@@ -143,22 +143,48 @@ export class ColorLegend extends ReactiveElement {
      }
   }
 
+  // TODO(b/237418328): Add a custom tooltip for a faster display time.
   /**
    * Render individual color block and the associated Label
    * Hide the labels if it's a squential legendType or
    * a categorical legendType which width exceeds legendWidth
    */
-  private renderLegendBlock(val: string|number) {
+   private renderLegendBlock(val: string|number) {
     const background = this.scale(val);
     const style = styleMap({'background': background});
-    const hideLabels = this.legendType === LegendType.SEQUENTIAL ||
-        this.fullLegendWidth > this.legendWidth;
+    const hideLabels = this.fullLegendWidth > this.legendWidth;
 
     // clang-format off
     return html`
       <div class='legend-line'>
         <div class='legend-box' title=${val} style=${style}></div>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  /**
+   * Render color blocks for sequential values.
+   * When hovering over the blocks, a range of mapping values will be displayed
+   * @param {string|number} startVal - the min value of a range
+   * @param {string|number} endVal - the max value of a range
+   * @param {string|number} colorVal - for coloring the block
+   * @param {boolean} includeMax - whether to include the max value in a range
+   */
+  private renderSequentialBlock(startVal: string|number, endVal: number|string,
+    colorVal: string|number, includeMax: boolean = false) {
+    const title = startVal === endVal ? startVal :
+            includeMax ? `[${startVal}, ${endVal}]`
+                       : `[${startVal}, ${endVal})`;
+    const background = this.scale(colorVal);
+    const style = styleMap({'background': background});
+
+    // TODO(b/237418328): Add a custom tooltip for a faster display time.
+    // clang-format off
+    return html`
+      <div class='legend-line'>
+        <div class='legend-box' title=${title} style=${style}></div>
       </div>
     `;
     // clang-format on
@@ -192,10 +218,14 @@ export class ColorLegend extends ReactiveElement {
    * Render color legend for sequential legend type
    */
   private renderSequentialLegend() {
-    const numDomain = this.scale.domain() as number[];
-    const minValue = numDomain ? Math.min(...numDomain) : 0;
-    const maxValue = numDomain ? Math.max(...numDomain) : 0;
-    const domain = linearSpace(minValue, maxValue, this.numBlocks || 5);
+    const [minValue, maxValue] = this.scale.domain() as [number, number];
+    const blocks = 7;
+    const domain = linearSpace(minValue, maxValue, blocks);
+    let curMin = minValue;
+    let rangeUnit = (maxValue - minValue) / blocks;
+    // round it to an integer if the value is greater than or equal to 5
+    rangeUnit = rangeUnit >= 5 ? Math.round(rangeUnit) : rangeUnit;
+
 
     // clang-format off
     return html`
@@ -206,10 +236,18 @@ export class ColorLegend extends ReactiveElement {
             ${this.selectedColorName}
           </div>
           <div class='legend-label'>${this.toStringValue(minValue)}</div>
-          ${domain
-            ? domain.map((val: number) =>
-                this.renderLegendBlock(this.toStringValue(val)))
-            : null}
+          ${domain.map((colorVal: number) => {
+            if (colorVal !== minValue) {
+              curMin += rangeUnit;
+            }
+
+            return this.renderSequentialBlock(
+              this.toStringValue(curMin),
+              this.toStringValue(
+                colorVal === maxValue ? maxValue : curMin + rangeUnit),
+              this.toStringValue(colorVal),
+              colorVal === maxValue);
+          })}
           <div class='legend-label'>${this.toStringValue(maxValue)}</div>
         </div>
         `;
