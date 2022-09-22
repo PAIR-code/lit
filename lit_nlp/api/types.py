@@ -25,17 +25,30 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
-from typing import Any, Dict, NewType, Optional, Sequence, Text, Union
+from typing import Any, NewType, Optional, Sequence, TypedDict, Union
 
 import attr
 from lit_nlp.api import dtypes
 
-JsonDict = Dict[Text, Any]
-Input = JsonDict  # TODO(lit-dev): stronger typing using NewType
-IndexedInput = NewType("IndexedInput", JsonDict)  # has keys: id, data, meta
-ExampleId = Text
+JsonDict = dict[str, Any]
+Input = NewType("Input", JsonDict)
+ExampleId = NewType("ExampleId", str)
 ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
 TokenTopKPredsList = Sequence[ScoredTextCandidates]
+
+
+class InputMetadata(TypedDict):
+  added: Optional[bool]
+  # pylint: disable=invalid-name
+  parentId: Optional[ExampleId]   # Named to match TypeScript data structure
+  # pylint: enable=invalid-name
+  source: Optional[str]
+
+
+class IndexedInput(TypedDict):
+  data: Input
+  id: ExampleId
+  meta: InputMetadata
 
 
 ##
@@ -72,14 +85,14 @@ class LitType(metaclass=abc.ABCMeta):
     cls = globals()[d.pop("__name__")]  # class by name from this module
     return cls(**d)
 
-Spec = Dict[Text, LitType]
+Spec = dict[str, LitType]
 
 # Attributes that should be treated as a reference to other fields.
 FIELD_REF_ATTRIBUTES = frozenset(
     {"parent", "align", "align_in", "align_out", "grad_for"})
 
 
-def _remap_leaf(leaf: LitType, keymap: Dict[str, str]) -> LitType:
+def _remap_leaf(leaf: LitType, keymap: dict[str, str]) -> LitType:
   """Remap any field references on a LitType."""
   d = attr.asdict(leaf)  # mutable
   d = {
@@ -89,7 +102,7 @@ def _remap_leaf(leaf: LitType, keymap: Dict[str, str]) -> LitType:
   return leaf.__class__(**d)
 
 
-def remap_spec(spec: Spec, keymap: Dict[str, str]) -> Spec:
+def remap_spec(spec: Spec, keymap: dict[str, str]) -> Spec:
   """Rename fields in a spec, with a best-effort to also remap field references."""
   ret = {}
   for k, v in spec.items():
@@ -113,7 +126,7 @@ class StringLitType(LitType):
   Mainly used for string inputs that have special formatting, and should only
   be edited manually.
   """
-  default: Text = ""
+  default: str = ""
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -151,7 +164,7 @@ class _StringCandidateList(ListLitType):
 class GeneratedTextCandidates(_StringCandidateList):
   """Multiple candidates for GeneratedText."""
   # Name of a TextSegment field to evaluate against
-  parent: Optional[Text] = None
+  parent: Optional[str] = None
 
   @staticmethod
   def top_text(value: ScoredTextCandidates) -> str:
@@ -179,7 +192,7 @@ class URLLitType(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedURL(TextSegment):
   """A URL that was generated as part of a model prediction."""
-  align: Optional[Text] = None  # name of a field in the model output
+  align: Optional[str] = None  # name of a field in the model output
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -191,18 +204,18 @@ class SearchQuery(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringList(ListLitType):
   """A list of strings."""
-  default: Sequence[Text] = []
+  default: Sequence[str] = []
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(_StringList):
   """Tokenized text."""
-  default: Sequence[Text] = attr.Factory(list)
+  default: Sequence[str] = attr.Factory(list)
   # Name of a TextSegment field from the input
   # TODO(b/167617375): should we use 'align' here?
-  parent: Optional[Text] = None
-  mask_token: Optional[Text] = None  # optional mask token for input
-  token_prefix: Optional[Text] = "##"  # optional prefix used in tokens
+  parent: Optional[str] = None
+  mask_token: Optional[str] = None  # optional mask token for input
+  token_prefix: Optional[str] = "##"  # optional prefix used in tokens
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -213,8 +226,8 @@ class TokenTopKPreds(ListLitType):
   """
   default: Sequence[ScoredTextCandidates] = None
 
-  align: Text = None  # name of a Tokens field in the model output
-  parent: Optional[Text] = None
+  align: str = None  # name of a Tokens field in the model output
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -230,7 +243,7 @@ class Scalar(LitType):
 class RegressionScore(Scalar):
   """Regression score, a single float."""
   # name of a Scalar or RegressionScore field in input
-  parent: Optional[Text] = None
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -239,7 +252,7 @@ class ReferenceScores(ListLitType):
   default: Sequence[float] = None
 
   # name of a TextSegment or ReferenceTexts field in the input
-  parent: Optional[Text] = None
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -247,7 +260,7 @@ class CategoryLabel(StringLitType):
   """Category or class label, a single string."""
   # Optional vocabulary to specify allowed values.
   # If omitted, any value is accepted.
-  vocab: Optional[Sequence[Text]] = None  # label names
+  vocab: Optional[Sequence[str]] = None  # label names
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -261,9 +274,9 @@ class MulticlassPreds(_Tensor1D):
   """Multiclass predicted probabilities, as <float>[num_labels]."""
   # Vocabulary is required here for decoding model output.
   # Usually this will match the vocabulary in the corresponding label field.
-  vocab: Sequence[Text]  # label names
+  vocab: Sequence[str]  # label names
   null_idx: Optional[int] = None  # vocab index of negative (null) label
-  parent: Optional[Text] = None  # CategoryLabel field in input
+  parent: Optional[str] = None  # CategoryLabel field in input
   autosort: Optional[bool] = False  # Enable automatic sorting
 
   @property
@@ -277,7 +290,7 @@ class SequenceTags(_StringList):
 
   The data should be a list of string labels, one for each token.
   """
-  align: Text  # name of Tokens field
+  align: str  # name of Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -288,9 +301,8 @@ class SpanLabels(ListLitType):
   sentence, and may overlap with each other.
   """
   default: Sequence[dtypes.SpanLabel] = None
-
-  align: Text  # name of Tokens field
-  parent: Optional[Text] = None
+  align: str  # name of Tokens field
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -304,8 +316,7 @@ class EdgeLabels(ListLitType):
   details.
   """
   default: Sequence[dtypes.EdgeLabel] = None
-
-  align: Text  # name of Tokens field
+  align: str  # name of Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -323,7 +334,6 @@ class MultiSegmentAnnotations(ListLitType):
   Make this configurable, if some spans need to refer to tokens instead.
   """
   default: Sequence[dtypes.AnnotationCluster] = None
-
   exclusive: bool = False  # if true, treat as candidate list
   background: bool = False  # if true, don't emphasize in visualization
 
@@ -341,11 +351,11 @@ class Embeddings(_Tensor1D):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _GradientsBase(_Tensor1D):
   """Shared gradient attributes."""
-  align: Optional[Text] = None  # name of a Tokens field
-  grad_for: Optional[Text] = None  # name of Embeddings field
+  align: Optional[str] = None  # name of a Tokens field
+  grad_for: Optional[str] = None  # name of Embeddings field
   # Name of the field in the input that can be used to specify the target class
   # for the gradients.
-  grad_target_field_key: Optional[Text] = None
+  grad_target_field_key: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -357,13 +367,13 @@ class Gradients(_GradientsBase):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _InfluenceEncodings(_Tensor1D):
   """A single vector of <float>[enc_dim]."""
-  grad_target: Optional[Text] = None  # class for computing gradients (string)
+  grad_target: Optional[str] = None  # class for computing gradients (string)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(_Tensor1D):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
-  align: Optional[Text] = None  # name of a Tokens field
+  align: Optional[str] = None  # name of a Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -382,8 +392,8 @@ class ImageGradients(_GradientsBase):
 class AttentionHeads(_Tensor1D):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
   # input and output Tokens fields; for self-attention these can be the same
-  align_in: Text
-  align_out: Text
+  align_in: str
+  align_out: str
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -393,16 +403,15 @@ class SubwordOffsets(ListLitType):
   offsets[i] should be the index of the first wordpiece for input token i.
   """
   default: Sequence[int] = None
-
-  align_in: Text  # name of field in data spec
-  align_out: Text  # name of field in model output spec
+  align_in: str  # name of field in data spec
+  align_out: str  # name of field in model output spec
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SparseMultilabel(_StringList):
   """Sparse multi-label represented as a list of strings."""
-  vocab: Optional[Sequence[Text]] = None  # label names
-  separator: Text = ","  # Used for display purposes.
+  vocab: Optional[Sequence[str]] = None  # label names
+  separator: str = ","  # Used for display purposes.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -412,9 +421,8 @@ class SparseMultilabelPreds(_StringCandidateList):
   The tuples are of the label and the score.
   """
   default: ScoredTextCandidates = None
-
-  vocab: Optional[Sequence[Text]] = None  # label names
-  parent: Optional[Text] = None
+  vocab: Optional[Sequence[str]] = None  # label names
+  parent: Optional[str] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -424,9 +432,9 @@ class FieldMatcher(LitType):
   The front-end will perform spec matching and fill in the vocab field
   accordingly.
   """
-  spec: Text  # which spec to check, 'dataset', 'input', or 'output'.
-  types: Union[Text, Sequence[Text]]  # types of LitType to match in the spec.
-  vocab: Optional[Sequence[Text]] = None  # names matched from the spec.
+  spec: str  # which spec to check, 'dataset', 'input', or 'output'.
+  types: Union[str, Sequence[str]]  # types of LitType to match in the spec.
+  vocab: Optional[Sequence[str]] = None  # names matched from the spec.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -435,7 +443,7 @@ class SingleFieldMatcher(FieldMatcher):
 
   UI will materialize this to a dropdown-list.
   """
-  default: Text = None
+  default: str = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -445,7 +453,7 @@ class MultiFieldMatcher(FieldMatcher):
   UI will materialize this to multiple checkboxes. Use this when the user needs
   to pick more than one field in UI.
   """
-  default: Sequence[Text] = []  # default names of selected items.
+  default: Sequence[str] = []  # default names of selected items.
   select_all: bool = False  # Select all by default (overriddes default).
 
 

@@ -32,7 +32,7 @@ class SimilaritySearcher(lit_components.Generator):
   def __init__(self, indexer: index.Indexer):
     self.index = indexer
 
-  def _get_embedding(self, example: JsonDict, model: lit_model.Model,
+  def _get_embedding(self, example: types.Input, model: lit_model.Model,
                      dataset: lit_dataset.IndexedDataset, embedding_name: str,
                      dataset_name: str):
     """Calls the model on the example to get the embedding."""
@@ -50,7 +50,7 @@ class SimilaritySearcher(lit_components.Generator):
 
   def generate(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
       self,
-      example: JsonDict,
+      example: types.Input,
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
       config: Optional[JsonDict] = None) -> List[JsonDict]:

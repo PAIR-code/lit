@@ -250,14 +250,41 @@ class RegressionMetrics(SimpleMetrics):
   def compute(self,
               labels: Sequence[float],
               preds: Sequence[float],
-              label_spec: types.Scalar,
-              pred_spec: types.RegressionScore,
+              label_spec: LitType,
+              pred_spec: LitType,
               config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
+    """Compute the MSE and Pearson's & Spearman's R for regression predictions.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted regression scores, aligned with `labels`.
+      label_spec: A Scalar spec for the model's label field.
+      pred_spec: A RegressionScore spec for the model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the mean squared error (key=`mse`), Pearson's R
+      (key=`pearsonr`) and Spearmean's R (key=`spearmanr`) for each prediction.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `label_spec` is not a `Scalar` or `pred_spec` is not a
+        `RegressionScore`. Note overriding the type information in the method
+        signature will produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del config
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(label_spec, types.Scalar):
+      raise TypeError('label_spec must be a Scalar, received '
+                      f'{type(label_spec).__name__}')
+
+    if not isinstance(pred_spec, types.RegressionScore):
+      raise TypeError('pred_spec must be a RegressionScore, received '
+                      f'{type(pred_spec).__name__}')
 
     mse = sklearn_metrics.mean_squared_error(labels, preds)
     if len(labels) < 2:  # Check if only one point selected.
@@ -335,16 +362,39 @@ class MulticlassMetricsImpl(SimpleMetrics):
   def compute(self,
               labels: Sequence[str],
               preds: Sequence[np.ndarray],
-              label_spec: types.CategoryLabel,
-              pred_spec: types.MulticlassPreds,
+              label_spec: LitType,
+              pred_spec: LitType,
               config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
+    """Compute standard metrics for multiclass predictions.
+
+    Args:
+      labels: Ground truth class for each prediction.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from super class
+      pred_spec: A MulticlassPreds spec for the model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the `accuracy`, `precission`, `recall`, `f1`, `auc`,
+      `aucpr`, and `num_missing_labels` scores for the provided predictions.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     # TODO(lit-dev): compare on strings instead of converting to indices?
     # This should be more robust to skew in label sets.
     del label_spec  # Unused; get vocab from pred_spec.
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
 
     label_idxs = [
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
@@ -399,10 +449,31 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       labels: Sequence[Any],
       preds: Sequence[Any],
       label_spec: LitType,
-      pred_spec: types.MulticlassPreds,
+      pred_spec: LitType,
       indices: Sequence[types.ExampleId],
       metas: Sequence[JsonDict],
       config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute standard paired metrics for multiclass predictions.
+
+    Args:
+      labels: Unused list of ground truth values from the super class.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from the super class.
+      pred_spec: A MulticlassPreds spec for the model's prediction field.
+      indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
+      metas: The metadata for each Input, aligned with `preds` and `labels`.
+      config: Optional margins for computing classification results.
+
+    Returns:
+      A dict containing the `num_pairs`, `swap_rate`, and `mean_jsd` values for
+      the provided `preds`. If `num_pairs` is 0, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del labels  # Unused; we only care about preds.
     del label_spec  # Unused; we only care about preds.
 
@@ -412,6 +483,10 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
     ret['num_pairs'] = len(pairs)
     if ret['num_pairs'] == 0:
       return {}
+
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
 
     pred_idxs = classification_results.get_classifications(
         preds, pred_spec, config)
@@ -441,7 +516,7 @@ class CorpusBLEU(SimpleMetrics):
   BLEU_SMOOTHING_VAL = 0.1
 
   def is_field_compatible(self, pred_spec: LitType,
-                          parent_spec: LitType) -> bool:
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
     is_pred_comaptible = isinstance(
         pred_spec, (types.GeneratedText, types.GeneratedTextCandidates))
@@ -451,16 +526,42 @@ class CorpusBLEU(SimpleMetrics):
   def compute(self,
               labels: Sequence[str],
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
-              label_spec: types.TextSegment,
-              pred_spec: Union[types.GeneratedText,
-                               types.GeneratedTextCandidates],
+              label_spec: LitType,
+              pred_spec: LitType,
               config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
+    """Compute CorpusBLEU score using the SacreBLEU library.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted values, aligned with `labels`.
+      label_spec: Unused field spec from super class.
+      pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
+        model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the CorpusBLEU score for each prediction, stored in the
+      `corpus_bleu` key if `pred_spec` is `GeneratedText` or the
+      `corpus_bleu@1` key if `pred_spec` is `GeneratedTextCandidates`.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `GeneratedText`/`GeneratedTextCandidates`.
+        Note overriding the type information in the method signature will
+        produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del label_spec
     del config
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(pred_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates)):
+      raise TypeError('pred_spec must be a GeneratedText or '
+                      'GeneratedTextCandidates, received '
+                      f'{type(pred_spec).__name__}')
 
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
@@ -493,16 +594,42 @@ class RougeL(SimpleMetrics):
   def compute(self,
               labels: Sequence[str],
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
-              label_spec: types.TextSegment,
-              pred_spec: Union[types.GeneratedText,
-                               types.GeneratedTextCandidates],
+              label_spec: LitType,
+              pred_spec: LitType,
               config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
+    """Compute the RougeL score using the RougeScorer library.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted values, aligned with `labels`.
+      label_spec: Unused field spec from super class.
+      pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
+        model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the RougeL score for each prediction, stored in the
+      `rougeL` key if `pred_spec` is `GeneratedText` or the `rougeL@1` key if
+      `pred_spec` is `GeneratedTextCandidates`. If `preds` or `labels` are
+      empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `GeneratedText`/`GeneratedTextCandidates`.
+        Note overriding the type information in the method signature will
+        produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del label_spec
     del config
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(pred_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates)):
+      raise TypeError('pred_spec must be a GeneratedText or '
+                      'GeneratedTextCandidates, received '
+                      f'{type(pred_spec).__name__}')
 
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
@@ -538,7 +665,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     return ret
 
   def is_field_compatible(self, pred_spec: LitType,
-                          parent_spec: LitType) -> bool:
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if binary classification with ground truth."""
     if not (isinstance(pred_spec, types.MulticlassPreds) and
             isinstance(parent_spec, types.CategoryLabel)):
@@ -549,14 +676,37 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
   def compute(self,
               labels: Sequence[str],
               preds: Sequence[np.ndarray],
-              label_spec: types.CategoryLabel,
-              pred_spec: types.MulticlassPreds,
+              label_spec: LitType,
+              pred_spec: LitType,
               config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
+    """Compute binary classification metrics using Scikit-Learn.
+
+    Args:
+      labels: Ground truth class label for each prediction.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from the super class.
+      pred_spec: A `MulticlassPreds` spec for the model's prediction field.
+      config: Optional margins for computing classification results.
+
+    Returns:
+      A dict containing the true negative (`TN`), false positive (`FP`), false
+      negative (`FN`), and true positive (`TN`) scores. If `labels` or `preds`
+      is empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del label_spec  # Unused; get vocab from pred_spec.
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
 
     label_idxs = [
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1

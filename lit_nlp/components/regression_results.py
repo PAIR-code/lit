@@ -14,7 +14,7 @@
 # ==============================================================================
 """An interpreter for analyzing regression results."""
 
-from typing import Optional
+from typing import cast, Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -52,14 +52,14 @@ class RegressionInterpreter(lit_components.Interpreter):
     for i, inp in enumerate(inputs):
       input_result: dict[str, dtypes.RegressionResult] = {}
       for key in supported_keys:
+        field_spec = cast(types.RegressionScore, output_spec[key])
         score = model_outputs[i][key]
         error = None
         sq_error = None
         # If there is ground truth information, calculate error and squared
         # error.
-        if (output_spec[key].parent and
-            output_spec[key].parent in inp):
-          ground_truth = inp[output_spec[key].parent]
+        if (field_spec.parent and field_spec.parent in inp):
+          ground_truth = inp[field_spec.parent]
           error = score - ground_truth
           sq_error = error * error
 
