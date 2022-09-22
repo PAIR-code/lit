@@ -130,7 +130,6 @@ export class LineChart extends ReactiveElement {
         .attr("stroke", 'var(--lit-cyea-400)');
 
     const mousemove = () => {
-      console.log(d3.mouse(this));
       const xLocation = d3.mouse(this)[0] - this.margin;
       const x0 = x.invert(xLocation);
       const bisect = d3.bisect(data.map(data => data[0]), x0);

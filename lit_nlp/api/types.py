@@ -278,6 +278,7 @@ class MulticlassPreds(_Tensor1D):
   null_idx: Optional[int] = None  # vocab index of negative (null) label
   parent: Optional[str] = None  # CategoryLabel field in input
   autosort: Optional[bool] = False  # Enable automatic sorting
+  threshold: Optional[float] = None  # binary threshold, used to compute margin
 
   @property
   def num_labels(self):

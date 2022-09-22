@@ -264,6 +264,8 @@ export class MulticlassPreds extends _Tensor1D {
   parent?: string = undefined;
   /** Enable automatic sorting. */
   autosort?: boolean = false;
+  /** Binary threshold, used to compute margin. */
+  threshold?: number = undefined;
 
   get num_labels() {
     return this.vocab.length;

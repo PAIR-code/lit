@@ -293,20 +293,15 @@ export function handleEnterKey(e: KeyboardEvent, callback: () => void) {
  *  Converts the margin value to the threshold for binary classification.
  */
 export function getThresholdFromMargin(margin: number) {
-  if (margin == null) {
-    return .5;
-  }
-  return margin === 0 ? .5 : 1 / (1 + Math.exp(-margin));
+  return !margin ? .5 : 1 / (1 + Math.exp(-margin));
 }
 
 /**
  *  Converts the threshold value for binary classification to the margin.
  */
 export function getMarginFromThreshold(threshold: number) {
-  const margin = threshold !== 1 ?
-      (threshold !== 0 ? Math.log(threshold / (1 - threshold)) : -5) :
-      5;
-  return margin;
+  return threshold === 1 ?  5 :
+         threshold === 0 ? -5 : Math.log(threshold / (1 - threshold));
 }
 
 /**
@@ -485,7 +480,7 @@ export function copyToClipboard(value: string) {
  * NPWS will make copy/pasting from the table behave strangely.
  */
 export function chunkWords(sent: string) {
-  const chunkWord = (word: string) => {
+  function chunkWord (word: string) {
     const maxLen = 15;
     const chunks: string[] = [];
     for (let i=0; i<word.length; i+=maxLen) {
@@ -494,7 +489,7 @@ export function chunkWords(sent: string) {
     // This is not an empty string, it is a non-printing space.
     const zeroWidthSpace = '​';
     return chunks.join(zeroWidthSpace);
-  };
+  }
   return sent.split(' ').map(word => chunkWord(word)).join(' ');
 }
 
