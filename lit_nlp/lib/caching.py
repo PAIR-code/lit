@@ -75,7 +75,7 @@ class PickleCacheLoader(object):
           "Please remove %s and try again.", self._cache_path)
     except IOError:
       logging.error("Failed loading cache at %s.", self._cache_path)
-    return data
+    return data  # pytype: disable=name-error  # py310-upgrade
 
 
 class PredsCache(object):
