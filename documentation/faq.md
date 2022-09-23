@@ -13,8 +13,8 @@ couple caveats:
 
 *   LIT expects predictions to be available on the whole dataset when the UI
     loads. This can take a while if you have a lot of examples or a larger model
-    like BERT. In this case, you can pass `warm_start=1.0` to the server (or use
-    `--warm_start=1.0`) to warm up the cache on server load.
+    like BERT. In this case, you can pass `lit_warm_start=1.0` to the server (or
+    use `--lit_warm_start=1.0`) to warm up the cache on server load.
 
 *   If you're using the embedding projector - i.e. if your model returns any
     `Embeddings` fields to visualize - this runs in the browser using WebGL (via

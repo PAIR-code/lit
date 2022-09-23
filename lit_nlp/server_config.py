@@ -48,7 +48,7 @@ config.data_dir = ''
 # If 1, will run all (model, dataset) on startup to populate the cache.
 # If fractional, will only warm-start on a sample of each dataset,
 # for development purposes.
-config.warm_start = 0.0
+config.lit_warm_start = 0.0
 
 # If true, will precompute server-side embedding projections such as PCA.
 config.warm_projections = False

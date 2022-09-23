@@ -105,7 +105,7 @@ class LitWidget(object):
     app_flags['server_type'] = 'notebook'
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
-    app_flags['warm_start'] = 1
+    app_flags['lit_warm_start'] = 1
     app_flags['warm_start_progress_indicator'] = progress_indicator
     app_flags['sync_state'] = True
 

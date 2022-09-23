@@ -56,7 +56,7 @@ _SERVER_FLAGS = (
         'Directory to store/lookup persisted data used by server, '
         'such as cached predictions. If empty, will cache in-memory only.'),
     flags.DEFINE_float(
-        'warm_start', 0.0,
+        'lit_warm_start', 0.0,
         'If 1, will run all (model, dataset) on startup to populate the cache. '
         'If fractional, will only warm-start on a sample of each dataset, '
         'for development purposes.'),

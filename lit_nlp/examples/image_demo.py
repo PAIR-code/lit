@@ -22,7 +22,7 @@ from lit_nlp.examples.models import mobilenet
 FLAGS = flags.FLAGS
 
 FLAGS.set_default('development_demo', True)
-FLAGS.set_default('warm_start', 1)
+FLAGS.set_default('lit_warm_start', 1)
 FLAGS.set_default('default_layout', 'demo_layout')
 FLAGS.set_default('page_title', 'LIT Image Demo')
 

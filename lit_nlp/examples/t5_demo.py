@@ -8,7 +8,7 @@ To run locally with a small number of examples:
 To run using the nearest-neighbor lookup index (warning, this will take a while
 to load):
   python -m lit_nlp.examples.t5_demo \
-      --alsologtostderr --port=5432 --warm_start 1.0 \
+      --alsologtostderr --port=5432 --lit_warm_start 1.0 \
       --use_indexer --initialize_index --data_dir=/tmp/t5_index
 
 Then navigate to localhost:5432 to access the demo UI.

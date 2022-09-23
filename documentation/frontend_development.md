@@ -383,9 +383,9 @@ details.
 You can use the `--data_dir` flag (see
 [`server_flags.py`](../lit_nlp/server_flags.py) to
 save the predictions cache to disk, and automatically reload it on a subsequent
-run. In conjunction with `--warm_start`, you can use this to avoid re-running
-inference during development - though if you modify the model at all, you should
-be sure to remove any stale cache files.
+run. In conjunction with `--lit_warm_start`, you can use this to avoid
+re-running inference during development - though if you modify the model at all,
+you should be sure to remove any stale cache files.
 
 ## Custom Client / Modules
 
