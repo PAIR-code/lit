@@ -27,14 +27,14 @@ import {html} from 'lit';
 import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
-import {observable} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {FeatureSalience, ImageGradients, ImageSalience, FieldMatcher, Salience} from '../lib/lit_types';
-import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec, D3Scale} from '../lib/types';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusData, FocusService} from '../services/focus_service';
@@ -93,11 +93,20 @@ export class SalienceMapModule extends LitModule {
   private isRenderImage = false;
   private hasSignedSalience = false;
   private hasUnsignedSalience = false;
-  private signedScale = {};
-  private unSignedScale = {};
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  // For color legend
+  @observable private cmapGamma: number = 2.0;
+  @computed
+  get signedCmap() {
+      return new SignedSalienceCmap(/* gamma */ this.cmapGamma);
+  }
+  @computed
+  get unsignedCmap() {
+      return new UnsignedSalienceCmap(/* gamma */ this.cmapGamma);
   }
 
   // TODO: We may want the keys to be configurable through the UI at some point,
@@ -137,29 +146,13 @@ export class SalienceMapModule extends LitModule {
       this.hasUnsignedSalience = this.hasUnsignedSalience ||
           !(!!salienceSpecInfo.signed);
 
-      if (this.hasSignedSalience &&
-          Object.keys(this.signedScale).length === 0) {
-        const colorMap = new SignedSalienceCmap(/* gamma */ 4.0);
-        const scale = (val: number) => colorMap.bgCmap(val);
-        scale.domain = () => colorMap.colorScale.domain();
-        this.signedScale = scale;
-      }
-
-      if (this.hasUnsignedSalience &&
-          Object.keys(this.unSignedScale).length === 0) {
-        const colorMap = new UnsignedSalienceCmap(/* gamma */ 4.0);
-        const scale = (val: number) => colorMap.bgCmap(val);
-        scale.domain = () => colorMap.colorScale.domain();
-        this.unSignedScale = scale;
-      }
-
       state[key] = {
         autorun: !!salienceSpecInfo.autorun,
         isLoading: false,
         salience: {},
         cmap: !!salienceSpecInfo.signed ?
-            new SignedSalienceCmap(/* gamma */ 4.0) :
-            new UnsignedSalienceCmap(/* gamma */ 4.0),
+            this.signedCmap :
+            this.unsignedCmap,
       };
     }
     this.state = state;
@@ -293,7 +286,12 @@ export class SalienceMapModule extends LitModule {
     return html`<img src='${salienceImage}'></img>`;
   }
 
-  renderColorLegend(colorName: string, scale: D3Scale, numBlocks: number) {
+  renderColorLegend(colorName: string, colorMap: SalienceCmap,
+    numBlocks: number) {
+
+    function scale(val: number) { return colorMap.bgCmap(val); }
+    scale.domain = () => colorMap.colorScale.domain();
+
     const style = styleMap({'margin-right': '15px'});
     return html`
         <div style=${style}>
@@ -305,15 +303,51 @@ export class SalienceMapModule extends LitModule {
         </div>`;
   }
 
+  // TODO(b/242164240): Refactor the code once we decide how to address
+  // the contrast problem.
+  renderSlider() {
+    const onChangeGamma = (e: Event) => {
+      this.cmapGamma = Number((e.target as HTMLInputElement).value);
+
+      // Update the cmap values in state
+      const interpreters = this.appState.metadata.interpreters;
+      const validInterpreters =
+        this.appState.metadata.models[this.model].interpreters;
+      for (const key of validInterpreters) {
+        const salienceKeys = findSpecKeys(interpreters[key].metaSpec, Salience);
+        if (salienceKeys.length === 0) {
+          continue;
+        }
+        const salienceSpecInfo =
+          interpreters[key].metaSpec[salienceKeys[0]] as Salience;
+        this.state[key].cmap = !!salienceSpecInfo.signed ?
+          this.signedCmap :
+          this.unsignedCmap;
+      }
+    };
+
+    // reuse the slider from the squence salience module
+    return html`
+      <label for="gamma-slider"
+        title="Gamma correction to increase visibility of low salience tokens">
+        Gamma:
+      </label>
+      <lit-slider min="0.25" max="6" step="0.25"
+        val="${this.cmapGamma}" .onInput=${onChangeGamma}></lit-slider>
+      <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>`;
+  }
+
   renderFooter() {
     return html`
       <div class="module-footer">
         ${this.hasSignedSalience
-          ? this.renderColorLegend("Signed", this.signedScale as D3Scale, 7)
+          ? this.renderColorLegend("Signed", this.signedCmap, 7)
           : null}
         ${this.hasUnsignedSalience
-          ? this.renderColorLegend("Unsigned", this.unSignedScale as D3Scale, 5)
+          ? this.renderColorLegend("Unsigned", this.unsignedCmap, 5)
           : null}
+        ${this.hasSignedSalience || this.hasUnsignedSalience
+          ? this.renderSlider() : null}
       </div>`;
   }
 
