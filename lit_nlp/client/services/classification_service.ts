@@ -25,6 +25,7 @@ import {getMarginFromThreshold} from '../lib/utils';
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
 
+/** Identifier for the default facet. */
 const GLOBAL_FACET = '';
 
 /**

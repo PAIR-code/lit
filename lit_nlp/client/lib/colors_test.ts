@@ -31,7 +31,8 @@ import {
   CATEGORICAL_NORMAL,
   CYEA_DISCRETE, MAGE_DISCRETE, CYEA_CONTINUOUS, MAGE_CONTINUOUS,
   DIVERGING_4, DIVERGING_5, DIVERGING_6,
-  labBrandColors, labVizColors
+  labBrandColors, labVizColors,
+  colorToRGB
 } from './colors';
 
 const STANDARD_COLOR_VALUE_NAMES: ColorValue[] = [ '50', '500', '600', '700' ];
@@ -318,5 +319,55 @@ describe('Pre-baked Colors, Palettes, and Ramps Test', () => {
     expect(mageCyeaLAB.length).toEqual(256);
     expect(mageCyeaLAB[0]).toEqual('rgb(71, 0, 70)');
     expect(mageCyeaLAB[mageCyeaLAB.length - 1]).toEqual('rgb(4, 30, 53)');
+  });
+});
+
+describe('colorToRGB', () => {
+  it('parses CSS color strings to RGB objects', () => {
+    const colors = [
+      '#abc',                 // Valid 3-digit hex-color with hash
+      '#2ca25f',              // Valid 6-digit hex-color with hash
+      'steelblue',            // Valid named color
+      'rgb(255, 255, 255)',   // Valid RGB for white
+    ];
+
+    for (const color of colors) {
+      expect(colorToRGB(color)).toBeDefined();
+      expect(colorToRGB(color).opacity).toBe(1);
+    }
+  });
+
+  it('sets the opacity for parsed color strings', () => {
+    const colors = [
+      '#abc',                 // Valid 3-digit hex-color with hash
+      '#2ca25f',              // Valid 6-digit hex-color with hash
+      'steelblue',            // Valid named color
+      'rgb(255, 255, 255)',   // Valid RGB for white
+    ];
+
+    const alphas = [0, 0.5, 1];
+
+    for (const color of colors) {
+      for (const alpha of alphas) {
+        expect(colorToRGB(color, alpha).opacity).toBe(alpha);
+      }
+    }
+  });
+
+  it('throws a RangeError if parsing an invalid string', () => {
+    const colors = [
+      '#00',          // Invalid 2-digit hex-color with hash
+      '#0000000',     // Invalid 7-digit hex-color with hash
+      '#000000000',   // Invalid 9-digit hex-color with hash
+      'cyea-700',     // Invalid characters in hex-color without hash
+    ];
+
+    function getError (color: string) {
+      return new RangeError(`Invalid CSS color '${color}'`);
+    }
+
+    for (const color of colors) {
+      expect(() => colorToRGB(color)).toThrow(getError(color));
+    }
   });
 });

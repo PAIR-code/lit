@@ -20,8 +20,9 @@ import '../elements/expansion_panel';
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
-import {html, svg} from 'lit';
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
+import {Scene, Selection, SpriteView} from 'megaplot';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
@@ -30,30 +31,33 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {ThresholdChange} from '../elements/threshold_slider';
+import {colorToRGB, getBrandColor} from '../lib/colors';
 import {MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {D3Selection, formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, ModelSpec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin} from '../lib/utils';
 import {CalculatedColumnType, CLASSIFICATION_SOURCE_PREFIX, REGRESSION_SOURCE_PREFIX, SCALAR_SOURCE_PREFIX} from '../services/data_service';
-import {FocusData} from '../services/focus_service';
 import {ClassificationService, ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
 import {styles} from './scalar_module.css';
 
-/**
- * The maximum number of scatterplots to render on page load.
- */
+/** The maximum number of scatterplots to render on page load. */
 export const MAX_DEFAULT_PLOTS = 2;
 
-/**
- * Stores the d3 brush and the selected group that the brush is called on; used
- * to clear brush selections when the selected data changes.
- */
-interface BrushObject {
-  // tslint:disable-next-line:no-any
-  brush: d3.BrushBehavior<any>;
-  selection: D3Selection;
-}
+const CANVAS_PADDING = 8;
+const DEFAULT_BORDER_WIDTH = 2;
+const DEFAULT_LINE_COLOR = '#cccccc';
+const DEFAULT_SCENE_PARAMS = {defaultTransitionTimeMs: 0};
+const RGBA_CYEA_700 = colorToRGB(getBrandColor('cyea', '700').color);
+const RGBA_MAGE_400 = colorToRGB(getBrandColor('mage', '400').color);
+const RGBA_MAGE_700 = colorToRGB(getBrandColor('mage', '700').color);
+const RGBA_WHITE = colorToRGB('white');
+const SPRITE_SIZE_LG = 12 + DEFAULT_BORDER_WIDTH;
+const SPRITE_SIZE_MD = 10 + DEFAULT_BORDER_WIDTH;
+const SPRITE_SIZE_SM = 8 + DEFAULT_BORDER_WIDTH;
+const X_LABELS_PADDING = 12;
+const Y_LABELS_PADDING = 40;
+
 
 /** Indexed scalars for an id, inclusive of model input and output scalars. */
 interface IndexedScalars {
@@ -70,6 +74,22 @@ interface IndexedScalars {
     // not handled appropriately.
     [key: string]: number | number[] | undefined
   };
+  rngY: number;
+}
+
+interface PlotInfo {
+  hidden: boolean;
+  /** The prediction key in output spec. */
+  key: string;
+  /** The label of interest in the vocab. */
+  label?: string;
+  /** A MegaPlot Selection that binds all data to the Scene. */
+  points?: Selection<IndexedScalars>;
+  /** The MegaPlot Scene into which the scatterplot is rendered. */
+  scene?: Scene;
+  xScale?: d3.ScaleLinear<number, number>;
+  yScale?: d3.ScaleLinear<number, number>;
+  brush?: d3.BrushBehavior<d3.UnspecifiedGeneric>;
 }
 
 /**
@@ -81,25 +101,16 @@ export class ScalarModule extends LitModule {
   static override numCols = 4;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>
-          html`
-  <scalar-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </scalar-module>`;
-  static maxPlotWidth = 900;
-  static minPlotHeight = 100;
-  static maxPlotHeight = 220;  // too sparse if taller than this
-  static plotTopMargin = 6;
-  static plotBottomMargin = 20;
-  static plotLeftMargin = 32;
-  static xLabelOffsetY = 30;
-  static yLabelOffsetY = -25;
-  static zeroLineColor = '#cccccc';
+          html`<scalar-module model=${model} .shouldReact=${shouldReact}
+                selectionServiceIndex=${selectionServiceIndex}>
+              </scalar-module>`;
 
   static override get styles() {
-    return [
-      sharedStyles,
-      styles,
-    ];
+    return [sharedStyles, styles];
+  }
+
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
+    return doesOutputSpecContain(modelSpecs, [Scalar, MulticlassPreds]);
   }
 
   private readonly colorService = app.getService(ColorService);
@@ -111,24 +122,18 @@ export class ScalarModule extends LitModule {
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
 
-  private readonly inputIDToIndex = new Map();
-  private readonly resizeObserver = new ResizeObserver(() => {this.resize();});
-  private numPlotsRendered = 0;
-  private legendWidth = 150;
+  private readonly plots = new Map<string, PlotInfo>();
+  private readonly resizeObserver =
+      new ResizeObserver(() => {this.resizePlots();});
 
-  // Stores a BrushObject for each scatterplot that's drawn (in the case that
-  // there are multiple pred keys).
-  private readonly brushObjects: BrushObject[] = [];
-
-  @observable private readonly isPlotHidden = new Map();
+  private numPlotsRendered: number = 0;
   @observable private preds: IndexedScalars[] = [];
-  @observable private plotWidth = ScalarModule.maxPlotWidth;
-  @observable private plotHeight = ScalarModule.minPlotHeight;
-  private readonly plotTranslation: string =
-      `translate(${ScalarModule.plotLeftMargin},${ScalarModule.plotTopMargin})`;
 
-  @computed
-  private get scalarColumnsToPlot() {
+  @computed get datasetSize(): number {
+    return this.appState.metadata.datasets[this.appState.currentDataset].size;
+  }
+
+  @computed private get scalarColumnsToPlot() {
     return this.groupService.numericalFeatureNames.filter(feat => {
       const col = this.dataService.getColumnInfo(feat);
       if (col == null) {
@@ -143,203 +148,45 @@ export class ScalarModule extends LitModule {
     });
   }
 
-  @computed
-  private get classificationKeys() {
+  @computed private get classificationKeys() {
     const {output} = this.appState.getModelSpec(this.model);
     return findSpecKeys(output, MulticlassPreds);
+  }
+
+  private containerSelector(id: string) {
+    return `div.scatterplot[data-id="${id}"]`;
   }
 
   override firstUpdated() {
     const getDataChanges = () => [
       this.appState.currentInputData,
+      // TODO(b/156100081): Reacting to this.dataService.dataVals incurs a
+      // pretty substantial reaction overhead penalty at 100k datapoints. This
+      // would be better if we observed changes to the number of columns/rows in
+      // the DataService instead.
       this.dataService.dataVals,
       this.scalarColumnsToPlot
     ];
     this.reactImmediately(getDataChanges, () => {
+      for (const info of this.plots.values()) {info.points?.clear();}
       this.updatePredictions(this.appState.currentInputData);
     });
 
-    const getSelectedInputData = () => this.selectionService.selectedInputData;
-    this.reactImmediately(getSelectedInputData, selectedInputData => {
-      if (selectedInputData != null) {
-        // Clears the brush selection on all scatterplots.
-        this.clearBrushes();
-        // Clears previous selection and highlights the selected points.
-        this.updateGeneralSelection(selectedInputData);
-      }
-    });
-
-    const getPrimarySelectedInputData = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(
-        getPrimarySelectedInputData, primarySelectedInputData => {
-          // Clears previous primary selection and highlights the primary
-          // selected point.
-          this.updatePrimarySelection(primarySelectedInputData);
-        });
-
-    const getMarginSettings = () =>
-        this.classificationService.allMarginSettings;
-    this.reactImmediately(getMarginSettings, () => {
-      this.updateThreshold();
-      // Update colors of datapoints as they may be based on predicted label.
-      this.updateColors();
-    });
-
-    const getCompareEnabled = () =>
-        this.pinnedSelectionService.primarySelectedInputData;
-    this.reactImmediately(getCompareEnabled, () => {
-      const pinned = this.pinnedSelectionService.primarySelectedInputData;
-      this.updateReferenceSelection(pinned);
-    });
-
-    const getSelectedColorOption = () => this.colorService.selectedColorOption;
-    this.reactImmediately(getSelectedColorOption, () => {
-      this.updateColors();
-    });
-
-    this.react(() => this.focusService.focusData, focusData => {
-      this.updateHoveredPoint(focusData);
-    });
-
-    this.react(() => this.preds, () => {
-      this.makePlot();
-      this.updatePlotData();
-    });
+    const rebindChanges = () => [
+      this.colorService.selectedColorOption,
+      this.preds,
+      this.selectionService.selectedIds,
+      this.selectionService.primarySelectedId,
+      this.pinnedSelectionService.primarySelectedId,
+      this.focusService.focusData?.datapointId
+    ];
+    this.react(rebindChanges, () => {this.updatePlots();});
 
     const container = this.shadowRoot!.getElementById('container')!;
     this.resizeObserver.observe(container);
   }
 
-  private resize() {
-    const footer =
-        this.shadowRoot!.querySelector<HTMLElement>('.module-footer');
-    this.legendWidth = footer?.clientWidth || 150;
-
-    this.makePlot();
-    this.updatePlotData();
-  }
-
-  /*
-   * Clears the brush selection on all scatterplots.
-   */
-  private clearBrushes() {
-    for (const brushObject of this.brushObjects) {
-      brushObject.selection.call(brushObject.brush.move, null);
-    }
-  }
-
-  /**
-   * Updates the colors of datapoints to match color service settings.
-   */
-  private updateColors() {
-    const scatterplots =
-        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
-
-    for (const scatterplot of scatterplots) {
-      this.updateAllScatterplotColors(scatterplot);
-    }
-  }
-
-  /**
-   * Updates the scatterplot with the new selection.
-   */
-  private updateGeneralSelection(selectedInputData: IndexedInput[]) {
-    this.updateCallouts(selectedInputData, '#overlay', 'selected-point', true);
-  }
-
-  /**
-   * Updates the scatterplot with the new primary selection.
-   */
-  private updatePrimarySelection(primarySelectedInputData: IndexedInput|null) {
-    const selectedInputData: IndexedInput[] = [];
-    if (primarySelectedInputData !== null) {
-      selectedInputData.push(primarySelectedInputData);
-    }
-    this.updateCallouts(
-        selectedInputData, '#primaryOverlay', 'primary-selected-point', true);
-  }
-
-  /**
-   * Updates the scatterplot with the new hovered selection.
-   */
-  private updateHoveredPoint(focusData: FocusData|null) {
-    let hoveredData: IndexedInput[] = [];
-    if (focusData !== null) {
-      hoveredData = this.appState.getExamplesById([focusData.datapointId]);
-    }
-    this.updateCallouts(
-        hoveredData, '#hoverOverlay', 'hovered-point', false);
-  }
-
-  /**
-   * Updates the scatterplot with the new reference selection.
-   */
-  private updateReferenceSelection(referenceInputData: IndexedInput|null) {
-    const references: IndexedInput[] =
-        referenceInputData ? [referenceInputData] : [];
-    this.updateCallouts(
-        references, '#referenceOverlay', 'reference-point', true);
-  }
-
-  /**
-   * Clears the previous callouts on the scatterplot and highlights new
-   * called-out point(s). Callouts refers to points with special rendering,
-   * such as selected or hovered points.
-   */
-  private updateCallouts(
-      inputData: IndexedInput[], groupID: string, styleClass: string,
-      detectHover: boolean) {
-    const providedIndices =
-        inputData.map(input => this.inputIDToIndex.get(input.id));
-    const scatterplotClass =
-        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
-
-    for (const scatterplot of scatterplotClass) {
-      const circles =
-          d3.select(scatterplot).select('#dataPoints').selectAll('circle');
-      const providedDatapoints: string[][] = [];
-
-      circles.each((d, i, e) => {
-        if (providedIndices.includes(i)) {
-          const circle = d3.select(e[i]);
-          const props = [
-            circle.attr('cx'),
-            circle.attr('cy'),
-            circle.style('fill'),
-            circle.attr('data-id')
-          ];
-          providedDatapoints.push(props);
-        }
-      });
-
-      // Select and clear overlay.
-      const overlay = d3.select(scatterplot).select(groupID);
-      overlay.selectAll('circle').remove();
-
-      // Add provided datapoints.
-      const overlayCircles = overlay.selectAll('circle')
-          .data(providedDatapoints)
-          .enter()
-          .append('circle')
-          .attr('cx', d => Number(d[0]))
-          .attr('cy', d => Number(d[1]))
-          .attr('data-id', d => d[3])
-          .classed(styleClass, true)
-          .style('fill', d => d[2]);
-
-      // Add the appropriate event listeners.
-      if (detectHover) {
-        overlayCircles.on('mouseenter', d => {
-          this.focusService.setFocusedDatapoint(d[3]);
-        });
-      } else {
-        overlayCircles.on('click', d => {
-          this.selectionService.setPrimarySelection(d[3]);
-        });
-      }
-    }
-  }
+  override updated() {this.updatePlots();}
 
   /**
    * Get predictions from the backend for all input data and display by
@@ -348,9 +195,12 @@ export class ScalarModule extends LitModule {
   private async updatePredictions(currentInputData?: IndexedInput[]) {
     if (currentInputData == null) {return;}
 
+    // tslint:disable-next-line:no-any ban-module-namespace-object-escape
+    const rng = seedrandom('lit');
     const preds: IndexedScalars[] = [];
+
     for (const {id} of currentInputData) {
-      const pred: IndexedScalars = {id, data: {}};
+      const pred: IndexedScalars = {id, data: {}, rngY: rng()};
       for (const key of this.classificationKeys) {
         const column = this.dataService.getColumnName(this.model, key);
         pred.data[key] = this.dataService.getVal(id, column);
@@ -387,37 +237,23 @@ export class ScalarModule extends LitModule {
       scoreRange = this.groupService.numericalFeatureRanges[key];
     }
 
-    return d3.scaleLinear().domain(scoreRange).range([
-      0, this.plotWidth - ScalarModule.plotLeftMargin * 1.5
-    ]);
+    return d3.scaleLinear().domain(scoreRange).range([0, 1]);
   }
 
   /**
    * Returns the scale function for the scatter plot's y axis.
    */
-  private getYScale(column: string) {
-    const scale = d3.scaleLinear().domain([0, 1]).range([
-      this.plotHeight - ScalarModule.plotBottomMargin -
-          ScalarModule.plotTopMargin,
-      ScalarModule.plotTopMargin
-    ]);
+  private getYScale(key: string, isRegression: boolean, errorColumn: string) {
+    const scale = d3.scaleLinear().domain([0, 1]).range([0, 1]);
 
-    const colInfo = this.dataService.getColumnInfo(column);
-    if (colInfo == null || column.includes(CalculatedColumnType.ERROR)) {
-      return scale;  // Input field or a regression error field.
-    }
-
-    const errorName = this.dataService.getColumnName(
-        this.model, colInfo.key, CalculatedColumnType.ERROR);
-    const errFeatInfo = this.dataService.getColumnInfo(errorName);
-    if (errFeatInfo == null) {return scale;}  // Non-regression output field
-
-    const values = this.dataService.getColumn(errorName);
-    const range = d3.extent(values);
-    if (range != null && !range.some(isNaN)) {
-      // Make the domain symmetric around 0
-      const largest = Math.max(...(range as number[]).map(Math.abs));
-      scale.domain([-largest, largest]);
+    if (isRegression) {
+      const values = this.dataService.getColumn(errorColumn);
+      const range = d3.extent(values);
+      if (range != null && !range.some(isNaN)) {
+        // Make the domain symmetric around 0
+        const largest = Math.max(...(range as number[]).map(Math.abs));
+        scale.domain([-largest, largest]);
+      }
     }
 
     return scale;   // Regression output field
@@ -438,312 +274,234 @@ export class ScalarModule extends LitModule {
     return preds.data[key] as number | undefined;
   }
 
-  /**
-   * Re-renders threshold bar at the new threshold value and updates datapoint
-   * colors.
-   */
-  private updateThreshold() {
-    // Get classification threshold.
-    const margins = this.classificationService.marginSettings[this.model] || {};
+  /** Sets up the scatterplot using MegaPlot (points) and D3 (axes). */
+  private setupPlot(info: PlotInfo, container: HTMLElement) {
+    const {key, label} = info;
+    const axesDiv = container.querySelector<HTMLDivElement>('.axes')!;
+    const sceneDiv = container.querySelector<HTMLDivElement>('.scene')!;
+    const {width, height} = sceneDiv.getBoundingClientRect();
 
-    const scatterplotClass =
-        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
+    // Clear any existing content
+    axesDiv.textContent = '';
+    sceneDiv.textContent = '';
 
-    for (const scatterplot of scatterplotClass) {
-      const {'key': key} = scatterplot.dataset;
-      if (key == null || !this.classificationKeys.includes(key)) continue;
+    // Determine if this is a RegressionScore column
+    const errorColName = `${key}:${CalculatedColumnType.ERROR}`;
+    const errFeatInfo = this.dataService.getColumnInfo(errorColName);
+    const isRegression = errFeatInfo != null &&
+        errFeatInfo.source.includes(REGRESSION_SOURCE_PREFIX);
 
-      // Don't render the threshold for regression or multiclass models.
-      const {output} = this.appState.getModelSpec(this.model);
+    // X and Y scales and accessors
+    const xScale = info.xScale =
+        this.getXScale(key).range([0, width - 2 * CANVAS_PADDING]);
+    const yScale = info.yScale =
+        this.getYScale(key, isRegression, errorColName).range(
+          [CANVAS_PADDING, height - CANVAS_PADDING]);
 
-      if (output[key] instanceof Scalar ||
-          (output[key] as MulticlassPreds).vocab?.length !== 2) {
-        continue;
-      }
+    // Add the axes with D3
+    d3.select(axesDiv).style('width', width).style('height', height);
+    const axesSVG = d3.select(axesDiv).append<SVGSVGElement>('svg')
+                      .style('width', width + Y_LABELS_PADDING)
+                      .style('height', height + X_LABELS_PADDING);
 
-      // If there is no margin set for the entire dataset (empty string) facet
-      // name, then do not draw a threshold on the plot.
-      if (margins[key] == null || margins[key][''] == null) continue;
+    axesSVG.append('g')
+           .attr('id', 'xAxis')
+           .attr('transform', `translate(40, ${height - CANVAS_PADDING})`)
+           .call(d3.axisBottom(info.xScale));
 
-      const threshold = getThresholdFromMargin(margins[key][''].margin);
-      const thresholdSelection = d3.select(scatterplot).select('#threshold');
-      thresholdSelection.selectAll('line').remove();
+    axesSVG.append('g')
+           .attr('id', 'yAxis')
+           .attr('transform', `translate(40, 0)`)
+           .call(d3.axisLeft(info.yScale).ticks(isRegression ? 5 : 0 ));
 
-      const x = this.getXScale(key)(threshold);
-      const [minY, maxY] = this.getYScale(key).range();
+    const lines = axesSVG.append('g')
+                         .attr('id', 'lines')
+                         .attr('transform', `translate(40, 0)`);
 
-      // Create threshold marker.
-      thresholdSelection.append('line')
-          .attr('x1', x)
-          .attr('y1', minY)
-          .attr('x2', x)
-          .attr('y2', maxY)
-          .style('stroke', 'black');
+    const [xMin, xMax] = info.xScale.range();
+    const [yMin, yMax] = info.yScale.range();
+
+    if (isRegression) {
+      const halfHeight = (yMax - yMin) / 2 + yMin;
+      lines.append('line')
+           .attr('id', 'regression-line')
+           .attr('x1', xMin)
+           .attr('y1', halfHeight)
+           .attr('x2', xMax)
+           .attr('y2', halfHeight)
+           .style('stroke', DEFAULT_LINE_COLOR);
     }
-  }
 
-  /**
-   * Updates datapoint colors on a given scatterplot element to the current
-   * color service settings.
-   */
-  private updateAllScatterplotColors(scatterplot: SVGGElement) {
-    this.updateScatterplotColors(scatterplot, '#dataPoints');
-    this.updateScatterplotColors(scatterplot, '#overlay');
-    this.updateScatterplotColors(scatterplot, '#referenceOverlay');
-    this.updateScatterplotColors(scatterplot, '#primaryOverlay');
-  }
+    const fieldSpec = this.appState.getModelSpec(this.model).output[key];
+    if (fieldSpec instanceof MulticlassPreds && fieldSpec.null_idx != null &&
+        fieldSpec.vocab.length !== 2) {
+      const margin = this.classificationService.getMargin(this.model, key);
+      const threshold = xScale(getThresholdFromMargin(margin));
+      lines.append('line')
+            .attr('id', 'threshold-line')
+            .attr('x1', threshold)
+            .attr('y1', yMin)
+            .attr('x2', threshold)
+            .attr('y2', yMax)
+            .style('stroke', DEFAULT_LINE_COLOR);
+    }
 
-  /**
-   * Updates datapoint colors for a given scatterplot group to the current color
-   * service settings.
-   */
-  private updateScatterplotColors(scatterplot: SVGGElement, groupID: string) {
-    const dataPoints = d3.select(scatterplot).select(groupID);
-    // Update point colors.
-    dataPoints.selectAll('circle').style('fill', (d, i, e) => {
-      // The #overlay and #primaryOverlay groups use a string[4] where the last
-      // element is the id, everything else stores the id in the data-id
-      const id = Array.isArray(d) ? d[d.length - 1] :
-                                    d3.select(e[i]).attr('data-id');
-      const indexedInput = this.appState.getCurrentInputDataById(id);
-      return this.colorService.getDatapointColor(indexedInput);
+    const brush = info.brush = isRegression ? d3.brush() : d3.brushX();
+    const brushGroup = axesSVG.append('g')
+        .attr('id', 'brushGroup')
+        .attr('transform', `translate(40, 0)`)
+        .on('mouseenter', () => {this.focusService.clearFocus();});
+
+    brush.extent([[xMin, 0], [xMax, yMax + X_LABELS_PADDING]])
+        .on('start end', () => {
+          const bounds = d3.event.selection;
+          if (!d3.event.sourceEvent || !bounds?.length) return;
+
+          const hasYDimension = Array.isArray(bounds[0]);
+          const [x, x2] = (hasYDimension ? [bounds[0][0], bounds[1][0]] :
+                                           bounds) as number[];
+          const [y, y2] = (hasYDimension ? [bounds[0][1], bounds[1][1]] :
+                                           [yMin, yMax]) as number[];
+
+          // Clear selection if brush size is imperceptible along either axis
+          if (x2 - x < window.devicePixelRatio ||
+              y2 - y < window.devicePixelRatio) {
+            this.selectionService.selectIds([]);
+          } else {
+            const ids = info.points?.hitTest(
+                {x, y, width: (x2 - x), height: (y2 - y)}).map((p) => p.id);
+            if (ids != null) this.selectionService.selectIds(ids);
+          }
+
+          brushGroup.call(brush.move, null);
+        });
+
+    brushGroup.call(brush);
+
+    // Render the scatterplot with MegaPlot
+    info.scene = new Scene({
+      container: sceneDiv,
+      desiredSpriteCapacity: this.datasetSize,
+      ...DEFAULT_SCENE_PARAMS
     });
+    info.scene.scale.x = 1;
+    info.scene.scale.y = 1;
+    info.scene.offset.x = CANVAS_PADDING;
+    info.scene.offset.y = height;
+
+    info.points = info.scene.createSelection<IndexedScalars>()
+        .onExit((sprite: SpriteView) => {sprite.SizePixel = 0;})
+        .onBind((sprite: SpriteView, pred: IndexedScalars) => {
+          const modelSpec = this.appState.getModelSpec(this.model);
+
+          // TODO(b/243566359): Normalizing position values in Megaplot's world
+          // coordinates (i.e.,the range [-.5, .5]) would make zooming easy.
+          const xValue = this.getValue(pred, modelSpec, key, label || '');
+          const xScaledValue = xValue != null ? xScale(xValue) : NaN;
+          sprite.PositionWorldX = isNaN(xScaledValue) ? 0 : xScaledValue;
+
+          const yValue = isRegression ?
+              this.dataService.getVal(pred.id, errorColName) : pred.rngY;
+          const yPosition = yValue != null ? yScale(yValue) : NaN;
+          sprite.PositionWorldY = isNaN(yPosition) ? yMax : yPosition;
+
+          const isHovered =
+              this.focusService.focusData?.datapointId === pred.id;
+          const isPinned =
+              this.pinnedSelectionService.primarySelectedId === pred.id;
+          const isPrimary =
+              this.selectionService.primarySelectedId === pred.id;
+          const isSelected =
+              this.selectionService.selectedIds.includes(pred.id) &&
+              !(isHovered || isPinned || isPrimary);
+          const isSpecial = isHovered || isPinned || isPrimary || isSelected;
+
+          const indexedInput = this.appState.getCurrentInputDataById(pred.id);
+          const colorString = this.colorService.getDatapointColor(indexedInput);
+          const color = colorToRGB(colorString);
+          sprite.BorderRadiusPixel = DEFAULT_BORDER_WIDTH;
+          sprite.BorderColor = isHovered ? RGBA_MAGE_400 :
+                               isPinned ? RGBA_MAGE_700 :
+                               isPrimary ? RGBA_CYEA_700 :
+                               isSelected ? RGBA_WHITE : color;
+          sprite.BorderColorOpacity = isSpecial ? 1 : 0.25;
+          sprite.FillColor =  (isHovered || isPinned) ? RGBA_MAGE_400 : color;
+          sprite.FillColorOpacity = isSpecial ? 1 : 0.25;
+          sprite.OrderZ = !isSpecial ? 0 : isHovered ? 1 : isSelected ? .5 : .8;
+          sprite.Sides = 1;
+          sprite.SizeWorld = !isSpecial ? SPRITE_SIZE_SM :
+                              isSelected ? SPRITE_SIZE_MD : SPRITE_SIZE_LG;
+        });
   }
 
-  /**
-   * Sets up the scatterplot svgs, axes, and point groups.
-   */
-  private makePlot() {
-    const container = this.shadowRoot!.getElementById('container');
-    if (container == null || !container.offsetHeight ||
-        !container.offsetWidth) {
-      return;
+  /** Binds the predictions to the available MegaPlot Selection and Scene. */
+  private updatePlots() {
+    for (const [id, info] of this.plots.entries()) {
+      const container = this.renderRoot.querySelector<HTMLDivElement>(
+          this.containerSelector(id));
+      const {hidden, scene} = info;
+      // Don't render/update if hidden or no container
+      if (hidden || container == null) continue;
+      const {width, height} = container.getBoundingClientRect();
+      // Don't render/update if container is invisible
+      if (width === 0 || height === 0) continue;
+      if (scene == null) this.setupPlot(info, container);
+      const {points} = info;
+      if (points != null) points.bind(this.preds);
     }
+  }
 
-    const scatterplots =
-        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
-    if (scatterplots.length < 1) {return;}
+  /** Updates the Megaplot Scenes and D3 axes for each plot in this module. */
+  private resizePlots() {
+    // All Scalars plots are the same height (100px), so the only axis that can
+    // be resized is the X axis.
+    for (const [id, info] of this.plots.entries()) {
+      const container = this.renderRoot.querySelector<HTMLDivElement>(
+          this.containerSelector(id));
+      if (container == null || info.hidden) continue;
 
-    this.plotHeight = 100;
-    this.plotWidth =
-        container.offsetWidth - ScalarModule.plotLeftMargin * 1.5;
+      const {xScale, yScale, brush, scene, key, points} = info;
+      if (xScale == null || yScale == null || brush == null || scene == null ||
+          key == null || points == null) continue;
 
-    for (const scatterplot of scatterplots) {
-      const {'key': key} = scatterplot.dataset;
-      if (key == null) {continue;}
+      // Update the xScale range  width of div.axes
+      const sceneDiv = container.querySelector<HTMLDivElement>('.scene')!;
+      const {width} = sceneDiv.getBoundingClientRect();
 
-      const selected = d3.select(scatterplot)
-                         .attr('width', this.plotWidth)
-                         .attr('height', this.plotHeight);
-      selected.selectAll('*').remove();
+      xScale.range([0, width - 2 * CANVAS_PADDING]);
+      const [xMin, xMax] = xScale.range();
+      const yMax = yScale.range()[1];
 
-      const ids = [
-          'threshold', 'dataPoints', 'overlay', 'primaryOverlay',
-          'referenceOverlay', 'hoverOverlay'];
+      // Then update the SVG components -- axes, threshold line, regression line
+      const axesDiv = container.querySelector<HTMLDivElement>('.axes')!;
+      const axesSVG = d3.select(axesDiv).select<SVGSVGElement>('svg');
+      axesSVG.style('width', width + Y_LABELS_PADDING);
+      axesSVG.select<SVGGElement>('g#xAxis').call(d3.axisBottom(xScale));
+      const lines = axesSVG.select<SVGGElement>('g#lines');
 
-      for (const id of ids) {
-        selected.append('g')
-            .attr('id', id)
-            .attr('transform', this.plotTranslation);
+      const regressionLine = lines.select<SVGLineElement>('#regression-line');
+      if (!regressionLine.empty()) {
+        regressionLine.attr('x1', xMin).attr('x2', xMax);
       }
 
-      this.updateAllScatterplotColors(scatterplot);
-    }
-
-    this.updateThreshold();
-  }
-
-  /**
-   * Sets up brush and updates datapoints to reflect the current scalars.
-   */
-  private updatePlotData() {
-    const scatterplots =
-        this.shadowRoot!.querySelectorAll<SVGSVGElement>('.scatterplot');
-
-    for (const scatterplot of scatterplots) {
-      const {'key': key, 'label': label} = scatterplot.dataset;
-      if (key == null || label == null) {return;}
-
-      const spec = this.appState.getModelSpec(this.model);
-      const errorFeatName = `${key}:${CalculatedColumnType.ERROR}`;
-      const errFeatInfo = this.dataService.getColumnInfo(errorFeatName);
-      const hasRegressionGroundTruth =
-          errFeatInfo?.source.includes(REGRESSION_SOURCE_PREFIX) &&
-          !key.includes(CalculatedColumnType.ERROR);
-      const errFeatCol = this.dataService.getColumn(errorFeatName);
-      const yRange = hasRegressionGroundTruth ? d3.extent(errFeatCol) : null;
-
-      const selected = d3.select(scatterplot);
-
-      // Remove axes and brush groups before rerendering with current data.
-      selected.select('#xAxis').remove();
-      selected.select('#yAxis').remove();
-      selected.select('#brushGroup').remove();
-
-      const xScale = this.getXScale(key);
-      const yScale = this.getYScale(key);
-
-      const yAxisHeight = this.plotHeight - ScalarModule.plotBottomMargin;
-      const xAxisTranslation =
-          `translate(${ScalarModule.plotLeftMargin},${yAxisHeight})`;
-
-      // Create axes.
-      selected.append('g')
-          .attr('id', 'xAxis')
-          .attr('transform', xAxisTranslation)
-          .call(d3.axisBottom(xScale));
-
-      const axisGenerator = d3.axisLeft(yScale);
-      const numTicks = hasRegressionGroundTruth ? 5 : 0;
-      axisGenerator.ticks(numTicks);
-
-      selected.append('g')
-          .attr('id', 'yAxis')
-          .attr('transform', this.plotTranslation)
-          .call(axisGenerator);
-
-      // Add labels and lines for regression plots
-      if (hasRegressionGroundTruth) {
-        const errorTextY = ScalarModule.plotTopMargin + this.plotHeight / 2 +
-                           ScalarModule.yLabelOffsetY;
-
-        // Add axis label
-        selected.append('text')
-          .attr('transform', `translate(0,${errorTextY}) rotate(270)`)
-          .style('text-anchor', 'middle')
-          .text('error');
-
-        // Create zero line at y = 0
-        if (yRange != null && yRange[0] < 0 && yRange[1] > 0) {
-          const halfHeight =
-                (this.plotHeight - ScalarModule.plotBottomMargin) / 2 +
-                ScalarModule.plotTopMargin;
-          selected.append('line')
-              .attr('x1', ScalarModule.plotLeftMargin)
-              .attr('y1', halfHeight)
-              .attr('x2', xScale.range()[1] + ScalarModule.plotLeftMargin)
-              .attr('y2', halfHeight)
-              .style('stroke', ScalarModule.zeroLineColor);
-        }
+      const thresholdLine = lines.select<SVGLineElement>('#threshold-line');
+      if (!thresholdLine.empty()) {
+        const margin = this.classificationService.getMargin(this.model, key);
+        const threshold = xScale(getThresholdFromMargin(margin));
+        thresholdLine.attr('x1', threshold).attr('x2', threshold);
+        console.log(`updated threshold line for ${id}`);
       }
 
-      // Create a 2D brush for regression keys (since both axes are meaningful)
-      // and a 1D brush for multiclass preds keys.
-      const newBrush = hasRegressionGroundTruth ? d3.brush() : d3.brushX();
-      newBrush
-          .extent([
-            [0, ScalarModule.plotTopMargin],
-            [
-              this.plotWidth - ScalarModule.plotLeftMargin,
-              this.plotHeight - ScalarModule.plotBottomMargin
-            ]
-          ])
-          .on('start end', () => {
-            if (!d3.event.sourceEvent) {
-              return;
-            }
-            this.selectBrushedPoints(scatterplot);
-          });
+      brush.extent([[xMin, 0], [xMax, yMax + X_LABELS_PADDING]]);
 
-      const brushGroup = selected.append('g')
-          .attr('id', 'brushGroup')
-          .attr('transform', `translate(${ScalarModule.plotLeftMargin},0)`)
-          .on('mouseenter', () => { this.focusService.clearFocus(); })
-          .call(newBrush);
-
-      // Store brush and selection group to be used for clearing the brush.
-      this.brushObjects.push({brush: newBrush, selection: brushGroup});
-
-
-      /**
-       * Random number generator for jitter Y positions.
-       *
-       * Seeded random number generators produce the same value on sequential
-       * calls to `.seedrandom()` across instances initialized with the same
-       * seed, in this case the string `'lit'`. We use this to maintain stable Y
-       * axis positions in and across jiter plots (i.e., plots of non-regression
-       * scalars), when `.updatePlotData()` is called, e.g., after a resize, so
-       * we cannot move this to a module constant.
-       */
-      // tslint:disable-next-line:no-any ban-module-namespace-object-escape
-      const rng = seedrandom('lit');
-
-      const dataPoints = selected.select('#dataPoints');
-      dataPoints.selectAll('circle').remove();
-
-      // Raise point groups to be in front of the d3.brush.
-      dataPoints.raise();
-      selected.select('#overlay').raise();
-      selected.select('#referenceOverlay').raise();
-      selected.select('#primaryOverlay').raise();
-      selected.select('#hoverOverlay').raise();
-      // Create scatterplot circles.
-      dataPoints.selectAll('circle')
-          .data(this.preds)
-          .enter()
-          .append('circle')
-          .attr('cx', d => {
-            // This value can be undefined if an async call originating in
-            // DataService has not returned, so we put these points 8px off the
-            // right side of the plot
-            const rawVal = this.getValue(d, spec, key, label);
-            return rawVal == null ? xScale.range()[1] + 8 : xScale(rawVal);
-          })
-          .attr('cy', d => {
-            // If a regression use the error value, else use a random number
-            const rawVal = hasRegressionGroundTruth ?
-                this.dataService.getVal(d.id, errorFeatName) : rng();
-            const scaledVal = yScale(rawVal);
-            return scaledVal;
-          })
-          .attr('data-id', (d, i) => {
-            // Store the inputID as a data attribute on the circle.
-            this.inputIDToIndex.set(d.id, i);
-            return d.id;
-          })
-          .style('fill', d => {
-            const indexedInput = this.appState.getCurrentInputDataById(d.id);
-            return this.colorService.getDatapointColor(indexedInput);
-          })
-          .classed('point', true)
-          .on('mouseenter', d => {
-            this.focusService.setFocusedDatapoint(d.id);
-          });
-    }
-
-    this.updateGeneralSelection(this.selectionService.selectedInputData);
-    this.updatePrimarySelection(
-        this.selectionService.primarySelectedInputData);
-    this.updateReferenceSelection(
-        this.pinnedSelectionService.primarySelectedInputData);
-  }
-
-  private selectBrushedPoints(scatterplot: SVGGElement) {
-    const bounds = d3.event.selection;
-    if (bounds != null && bounds.length > 0) {
-      const ids: string[] = [];
-      const hasYDimension = (typeof bounds[0]) !== 'number';
-      const boundsX = hasYDimension ? [bounds[0][0], bounds[1][0]] : bounds;
-      const boundsY = hasYDimension ? [bounds[0][1], bounds[1][1]] : null;
-
-      d3.select(scatterplot)
-          .select('#dataPoints')
-          .selectAll('circle')
-          .each((d, i, e) => {
-            const x = +d3.select(e[i]).attr('cx');
-            if (x < boundsX[0] || x > boundsX[1]) {
-              return;
-            }
-            if (hasYDimension && boundsY != null) {
-              const y = +d3.select(e[i]).attr('cy');
-              if (y < boundsY[0] || y > boundsY[1]) {
-                return;
-              }
-            }
-            const id = d3.select(e[i]).attr('data-id');
-            ids.push(id);
-          });
-      this.selectionService.selectIds(ids);
+      // Finally, update the Megaplot scene
+      const {x, y} = scene.offset;
+      scene.resize(scene.offset);
+      scene.offset.x = x;
+      scene.offset.y = y;
+      // TODO(b/243566359): If positions are normalized in Megaplot's world
+      // coordinates we can set scene.scale instead of re-binding.
+      points.bind(this.preds);
     }
   }
 
@@ -753,11 +511,10 @@ export class ScalarModule extends LitModule {
   // module.
   override render() {
     this.numPlotsRendered = 0;
-
-    const domain = this.colorService.selectedColorOption.scale.domain();
-    const sequentialScale = typeof domain[0] === 'number';
-    const legendType =
-        sequentialScale ? LegendType.SEQUENTIAL: LegendType.CATEGORICAL;
+    const colorOption = this.colorService.selectedColorOption;
+    const domain = colorOption.scale.domain();
+    const legendType = typeof domain[0] === 'number' ? LegendType.SEQUENTIAL :
+                                                       LegendType.CATEGORICAL;
 
     // clang-format off
     return html`<div class="module-container">
@@ -769,20 +526,19 @@ export class ScalarModule extends LitModule {
         </div>
       </div>
       <div class="module-footer">
-        <color-legend legendType=${legendType}
-          legendWidth=${this.legendWidth}
-          selectedColorName=${this.colorService.selectedColorOption.name}
-          .scale=${this.colorService.selectedColorOption.scale}>
+        <color-legend legendType=${legendType} .scale=${colorOption.scale}
+          selectedColorName=${colorOption.name}>
         </color-legend>
       </div>
     </div>`;
     // clang-format on
   }
 
-  renderClassificationGroup(key: string) {
+  private renderClassificationGroup(key: string) {
     const spec = this.appState.getModelSpec(this.model);
-    const {vocab, null_idx} = spec.output[key] as MulticlassPreds;
-    if (vocab == null) return;
+    const fieldSpec = spec.output[key];
+    if (!(fieldSpec instanceof MulticlassPreds)) return;
+    const {vocab, null_idx} = fieldSpec;
 
     // In the binary classification case, only render one plot that
     // displays the positive class.
@@ -792,75 +548,97 @@ export class ScalarModule extends LitModule {
 
     // Otherwise, return one plot per label in the multiclass case.
     // clang-format off
-    return html`
-        ${null_idx != null ? this.renderMarginSlider(key) : null}
-        ${vocab.map(label => this.renderPlot(key, label))}`;
+    return html`${vocab.map(label => this.renderPlot(key, label))}
+                ${null_idx != null ? this.renderMarginSlider(key) : null}`;
     // clang-format on
   }
 
-  renderPlot(key: string, label: string) {
-    const collapseByDefault = this.numPlotsRendered >= MAX_DEFAULT_PLOTS;
-    this.numPlotsRendered++;
+  private renderPlot(key: string, label: string) {
+    this.numPlotsRendered += 1;
+    const id = label ? `${key}:${label}` : key;
+    const {primarySelectedId} = this.selectionService;
+    const primaryPreds = this.preds.find(pred => pred.id === primarySelectedId);
 
-    const axisTitle = label ? `${key}:${label}` : key;
-    let selectedValue = '';
-    if (this.selectionService.primarySelectedId != null) {
-      const selectedIndex = this.appState.getIndexById(
-          this.selectionService.primarySelectedId);
-      if (selectedIndex != null && selectedIndex < this.preds.length &&
-          this.preds[selectedIndex] != null) {
-        const spec = this.appState.getModelSpec(this.model);
-        const displayVal = formatForDisplay(
-            this.getValue(this.preds[selectedIndex], spec, key, label));
-        selectedValue = `Value: ${displayVal}`;
-      }
+    let selectedValue;
+    if (primaryPreds != null) {
+      const modelSpec = this.appState.getModelSpec(this.model);
+      const primaryValue =
+          this.getValue(primaryPreds, modelSpec, key, label);
+      selectedValue = `Value: ${formatForDisplay(primaryValue)}`;
     }
 
-    const plotLabel =
-        `${axisTitle}${selectedValue ? ` - ${selectedValue}` : ''}`;
+    const plotLabel = `${id}${selectedValue ? ` - ${selectedValue}` : ''}`;
 
-    const toggleCollapse = () => {
-      const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
-          collapseByDefault : this.isPlotHidden.get(axisTitle);
-      this.isPlotHidden.set(axisTitle, !isHidden);
+    if (!this.plots.has(id)) {
+      const hidden = this.numPlotsRendered > MAX_DEFAULT_PLOTS;
+      this.plots.set(id, {key, label, hidden});
+    }
+    const info = this.plots.get(id)!;
+
+    /**
+     * Rebases a MouseEvent's X and Y coordinates to be relative to the origin
+     * of the `div.scene` associated with this plot.
+     *
+     * Megaplot expects coordinates sent to `.hitTest()` to be defined in the
+     * coordinate system of the canvas element it creates. Since the `clientX`
+     * and `clientY` properties of a `MouseEvent` are relative to the DOM
+     * content, we need to rebase them so they are coordinates in the canvas's
+     * coordinate system, i.e., relative to `div.scene`'s `top` and `left` as
+     * the canvas fills its parent.
+     */
+    const rebase = (event: Pick<MouseEvent, 'clientX' | 'clientY'>) => {
+      const {clientX, clientY} = event;
+      const selector = `div.scatterplot[data-id="${id}"] div.scene`;
+      const scene = this.renderRoot.querySelector<HTMLDivElement>(selector);
+      const {top, left} = scene!.getBoundingClientRect();
+      return {x: clientX - left, y: clientY - top};
     };
-    // This plot's value in isPlotHidden gets set in toggleCollapse and is null
-    // before the user opens/closes it for the first time. This uses the
-    // collapseByDefault setting if isPlotHidden hasn't been set yet.
-    const isHidden = (this.isPlotHidden.get(axisTitle) == null) ?
-        collapseByDefault : this.isPlotHidden.get(axisTitle);
+
+    const select = (event: MouseEvent) => {
+      const {x, y} = rebase(event);
+      const selected = info.points?.hitTest({x, y});
+      if (selected?.length) {
+        this.selectionService.setPrimarySelection(selected[0].id);
+      }
+    };
+
+    const hover = (event: MouseEvent) => {
+      const {x, y} = rebase(event);
+      const hovered = info.points?.hitTest({x, y});
+      if (hovered?.length) {
+        this.focusService.setFocusedDatapoint(hovered[0].id);
+      } else {
+        this.focusService.clearFocus();
+      }
+    };
+
+    const toggleHidden = () => {
+      info.hidden = !info.hidden;
+      if (!info.scene) this.requestUpdate();
+    };
 
     // clang-format off
-    return html`
-        <div class='plot-holder'>
-          <expansion-panel .label=${plotLabel} ?expanded=${!isHidden}
-                            padLeft padRight
-                            @expansion-toggle=${toggleCollapse}>
-            ${isHidden ? null : html`
-            <div class='scatterplot-background'>
-              ${svg`<svg class='scatterplot' data-key='${key}'
-                      data-label='${label}'>
-                    </svg>`}
-            </div>`}
-          </expansion-panel>
-        </div>`;
+    return html`<div class='plot-holder'>
+      <expansion-panel  .label=${plotLabel} ?expanded=${!info.hidden}
+                        @expansion-toggle=${toggleHidden}>
+        <div  class="scatterplot" data-id=${id} @mousemove=${hover}
+              @click=${select}>
+          <div class="scene"></div>
+          <div class="axes"></div>
+        </div>
+      </expansion-panel>
+    </div>`;
     // clang-format on
   }
 
-  renderMarginSlider(key: string) {
+  private renderMarginSlider(key: string) {
     const margin = this.classificationService.getMargin(this.model, key);
     const callback = (e: CustomEvent<ThresholdChange>) => {
-      this.classificationService.setMargin(
-          this.model, key, e.detail.margin);
+      this.classificationService.setMargin(this.model, key, e.detail.margin);
     };
-    return html`<threshold-slider .margin=${margin} label=${key}
-                  ?isThreshold=${false} ?showControls=${true}
-                  @threshold-changed=${callback}>
-                </threshold-slider>`;
-  }
-
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
-    return doesOutputSpecContain(modelSpecs, [Scalar, MulticlassPreds]);
+    return html`<threshold-slider label=${key} ?isThreshold=${false}
+      .margin=${margin} ?showControls=${true} @threshold-changed=${callback}>
+    </threshold-slider>`;
   }
 }
 

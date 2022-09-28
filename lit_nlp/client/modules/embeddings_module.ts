@@ -298,7 +298,7 @@ export class EmbeddingsModule extends LitModule {
     this.legendWidth =
         scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
     if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL.resize();
+      this.scatterGL?.resize();
     }
   }
 
