@@ -29,6 +29,7 @@ import os
 import pathlib
 
 from absl import flags
+from lit_nlp.lib import flag_helpers
 
 FLAGS = flags.FLAGS
 
@@ -80,6 +81,14 @@ _SERVER_FLAGS = (
     flags.DEFINE_bool(
         'development_demo', False, 'If true, signifies this LIT '
         'instance is a development demo.'),
+    flags.DEFINE_enum_class(
+        'validate', None, flag_helpers.ValidationMode,
+        'If not None or "off", will validate the datasets and model outputs '
+        'according to the value set. By default, validation is disabled.'),
+    flags.DEFINE_bool(
+        'report_all', False,
+        'If true, and validate is true, will report every issue in validation '
+        'as opposed to just the first.'),
 
     flags.DEFINE_string(
         'client_root',

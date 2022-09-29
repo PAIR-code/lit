@@ -243,7 +243,7 @@ export class CategoryLabel extends StringLitType {
 /**
  * A tensor type.
  */
-class _Tensor1D extends LitType {
+class _Tensor extends LitType {
   override default: number[] = [];
 }
 
@@ -252,7 +252,7 @@ class _Tensor1D extends LitType {
  * Multiclass predicted probabilities, as <float>[num_labels].
  */
 @registered
-export class MulticlassPreds extends _Tensor1D {
+export class MulticlassPreds extends _Tensor {
   /**
    * Vocabulary is required here for decoding model output.
    * Usually this will match the vocabulary in the corresponding label field.
@@ -335,13 +335,13 @@ export class MultiSegmentAnnotations extends ListLitType {
  * Embeddings or model activations, as fixed-length <float>[emb_dim].
  */
 @registered
-export class Embeddings extends _Tensor1D {
+export class Embeddings extends _Tensor {
 }
 
 /**
  * Shared gradient attributes.
  */
-class _GradientsBase extends _Tensor1D {
+class _GradientsBase extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
   /** Name of Embeddings field. */
@@ -363,7 +363,7 @@ export class Gradients extends _GradientsBase {
 /**
  * A single vector of <float>[enc_dim].
  */
-class _InfluenceEncodings extends _Tensor1D {
+class _InfluenceEncodings extends _Tensor {
   /** Class for computing gradients (string). */
   grad_target?: string = undefined;
 }
@@ -372,7 +372,7 @@ class _InfluenceEncodings extends _Tensor1D {
  * Per-token embeddings, as <float>[num_tokens, emb_dim].
  */
 @registered
-export class TokenEmbeddings extends _Tensor1D {
+export class TokenEmbeddings extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
 }
@@ -395,7 +395,7 @@ export class ImageGradients extends _GradientsBase {
  * One or more attention heads, as <float>[num_heads, num_tokens, num_tokens].
  */
 @registered
-export class AttentionHeads extends _Tensor1D {
+export class AttentionHeads extends _Tensor {
   // Input and output Tokens fields; for self-attention these can
   // be the same.
   align_in: string = '';

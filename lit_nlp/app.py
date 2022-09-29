@@ -16,6 +16,7 @@
 
 import functools
 import glob
+import math
 import os
 import random
 import time
@@ -30,9 +31,11 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import core
 from lit_nlp.lib import caching
+from lit_nlp.lib import flag_helpers
 from lit_nlp.lib import serialize
 from lit_nlp.lib import ui_state
 from lit_nlp.lib import utils
+from lit_nlp.lib import validation
 from lit_nlp.lib import wsgi_app
 import tqdm
 
@@ -323,6 +326,33 @@ class LitApp(object):
                                        self._datasets[dataset_name],
                                        dataset_name, **options)
 
+  def _validate(self, validate: Optional[flag_helpers.ValidationMode],
+                report_all: bool):
+    """Validate all datasets and models loaded for proper setup."""
+    if validate is None or validate == flag_helpers.ValidationMode.OFF:
+      return
+
+    datasets_to_validate = {}
+    for dataset in self._datasets:
+      if validate == flag_helpers.ValidationMode.ALL:
+        datasets_to_validate[dataset] = self._datasets[dataset]
+      elif validate == flag_helpers.ValidationMode.FIRST:
+        datasets_to_validate[dataset] = self._datasets[dataset].slice[:1]
+      elif validate == flag_helpers.ValidationMode.SAMPLE:
+        sample_size = math.ceil(len(self._datasets[dataset]) * 0.05)
+        datasets_to_validate[dataset] = self._datasets[dataset].sample(
+            sample_size)
+    for dataset in datasets_to_validate:
+      logging.info("Validating dataset '%s'", dataset)
+      validation.validate_dataset(
+          datasets_to_validate[dataset], report_all)
+    for model, model_info in self._info['models'].items():
+      for dataset_name in model_info['datasets']:
+        logging.info("Validating model '%s' on dataset '%s'", model,
+                     dataset_name)
+        validation.validate_model(
+            self._models[model], datasets_to_validate[dataset_name], report_all)
+
   def _warm_start(self,
                   rate: float,
                   progress_indicator: Optional[ProgressIndicator] = None):
@@ -430,6 +460,8 @@ class LitApp(object):
       onboard_start_doc: Optional[str] = None,
       onboard_end_doc: Optional[str] = None,
       sync_state: bool = False,  # notebook-only; not in server_flags
+      validate: Optional[flag_helpers.ValidationMode] = None,
+      report_all: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -492,6 +524,9 @@ class LitApp(object):
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
+
+    # Validate datasets and models if specified.
+    self._validate(validate, report_all)
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:

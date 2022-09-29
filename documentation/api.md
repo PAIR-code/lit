@@ -70,6 +70,26 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 For pre-built `demo.py` examples, check out
 https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples
 
+### Validating Models and Data
+
+Datasets and models can optionally be validated by LIT to ensure that dataset
+examples match their spec and that model output values match their spec.
+This can be very helpful during development of new model and dataset wrappers
+to ensure correct behavior in LIT.
+
+At LIT server startup, the `validate` runtime flag can be used to enable
+validation.
+Setting the flag to `first` will validate the first example in each dataset for
+correctly typed values and validate it with each model it is compatible with, to
+ensure that the model outputs are also correctly typed. Setting it to `sample`
+will validate against a sample of 5% of each dataset. Setting it to `all` will
+validate all examples in all datasets. By default, no validation is performed,
+to enable quick startup.
+
+Additionally, if using LIT datasets and models outside of the LIT server,
+validation can be called directly through the
+[`validation`](../lit_nlp/lib/validation.py) module.
+
 ## Datasets
 
 Datasets ([`Dataset`](../lit_nlp/api/dataset.py)) are
