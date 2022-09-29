@@ -89,7 +89,7 @@ interface PlotInfo {
   scene?: Scene;
   xScale?: d3.ScaleLinear<number, number>;
   yScale?: d3.ScaleLinear<number, number>;
-  brush?: d3.BrushBehavior<d3.UnspecifiedGeneric>;
+  brush?: d3.BrushBehavior<unknown>;
 }
 
 /**
