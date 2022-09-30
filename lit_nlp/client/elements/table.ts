@@ -508,9 +508,6 @@ export class DataTable extends ReactiveElement {
     }
     //  Rather complicated logic for handling shift-click
     else if (e.shiftKey) {
-      // Prevent selecting text on shift-click
-      e.preventDefault();
-
       const isWithinSpan = this.isRowWithinShiftSelectionSpan(rowIndex);
       const startIndex = this.shiftSelectionStartIndex;
       const endIndex = this.shiftSelectionEndIndex;
@@ -929,6 +926,11 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, dataIndex);
     };
 
+    // Prevent text highlighting on shift-clicks.
+    function mouseDown(e: MouseEvent) {
+      e.preventDefault();
+    }
+
     const formatCellContents = (d: TableEntry) => {
       if (d == null) return null;
 
@@ -965,7 +967,7 @@ export class DataTable extends ReactiveElement {
     // clang-format off
     return html`
       <tr class="${rowClass}" @click=${onClick} @mouseenter=${mouseEnter}
-        @mouseleave=${mouseLeave}>
+        @mouseleave=${mouseLeave} @mousedown=${mouseDown}>
         ${data.rowData.map((d, i) =>
             html`<td style=${cellStyles}><div class=${cellClasses[i]}>${
               formatCellContents(d)
