@@ -1,7 +1,11 @@
 .description {
   font-size: 8pt;
   color: rgb(60, 64, 67);
-  padding-top: 10px;
+}
+
+/* Reduce excess whitespace after markdown-formatted descriptions */
+.description > p:last-child {
+  margin-block-end: 0.25em;
 }
 
 .header {

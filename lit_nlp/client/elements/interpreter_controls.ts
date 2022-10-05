@@ -26,6 +26,7 @@ import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 import {BooleanLitType, CategoryLabel, SingleFieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel, Tokens} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getTemplateStringFromMarkdown} from '../lib/utils';
 import {Spec} from '../lib/types';
 
 import {styles} from './interpreter_controls.css';
@@ -73,10 +74,12 @@ export class InterpreterControls extends ReactiveElement {
     const expandable =
         Object.keys(this.spec).length > 0 || this.description.length > 0;
 
+    const descriptionHTML = getTemplateStringFromMarkdown(this.description);
+
     // clang-format off
     const content = html`
         <div class="content">
-          <div class="description">${this.description}</div>
+          <div class="description">${descriptionHTML}</div>
           ${this.renderControls()}
           <div class="buttons-holder">
             <button class="filled-button" @click=${apply}

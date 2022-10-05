@@ -72,7 +72,7 @@ class AblationFlip(lit_components.Generator):
   prediction flip.
 
   The number of model predictions made by this generator is upper-bounded by
-  <number of tokens> + 2**MAX_ABLATABLE_TOKENS. Since MAX_ABLATABLE_TOKENS is a
+  number of tokens + 2^MAX_ABLATABLE_TOKENS. Since MAX_ABLATABLE_TOKENS is a
   constant, effectively this generator makes O(n) model predictions, where n is
   the total number of tokens across all input fields.
   """
