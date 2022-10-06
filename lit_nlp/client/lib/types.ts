@@ -20,7 +20,7 @@ import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
 import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
-import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
+import {CategoryLabel, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
 
 
@@ -481,6 +481,11 @@ export function formatForDisplay(
         (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');
   }
+  // Handle Embeddings, if field spec given
+  if (fieldSpec != null && fieldSpec instanceof Embeddings) {
+    return input ? `<float>[${input.length}]` : '';
+  }
+
   const formatNumber = (item: number) =>
       Number.isInteger(item) ? item : Number(item.toFixed(4));
 

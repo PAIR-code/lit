@@ -112,10 +112,10 @@ export class DatapointEditorModule extends LitModule {
       if (this.groupService.categoricalFeatureNames.includes(key)) continue;
       if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Skip fields with value type string[]
+      // Skip fields with value type string[] or number[]
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      const isListField = fieldSpec instanceof ListLitType;
-      if (isListField) continue;
+      if (fieldSpec instanceof ListLitType) continue;
+      if (fieldSpec instanceof Embeddings) continue;
       dataTextKeys.push(key);
     }
     return dataTextKeys;
@@ -145,8 +145,8 @@ export class DatapointEditorModule extends LitModule {
           Object.values(s).join(separator).length;
       }
       else {
-            throw new Error(
-              `Attempted to convert unrecognized type to string: ${key}.`);
+        throw new Error(`Attempted to convert field ${
+            key} of unrecognized type to string.`);
         }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
@@ -481,7 +481,7 @@ export class DatapointEditorModule extends LitModule {
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
-        html`<div class="span-label">${formatSpanLabel(d)}</div>`;
+        html`<div class="monospace-label">${formatSpanLabel(d)}</div>`;
 
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
@@ -491,7 +491,7 @@ export class DatapointEditorModule extends LitModule {
     // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
-        return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
+        return html`<div class="monospace-label">${formatEdgeLabel(d)}</div>`;
       };
       return html`<div>${
           value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
@@ -507,6 +507,17 @@ export class DatapointEditorModule extends LitModule {
       return html`<div class="multi-segment-annotation">${
           value ? (value as AnnotationCluster[]).map(renderLabel) : ''}</div>`;
     };
+
+    // Non-editable render for embeddings fields.
+    // We technically can use the token editor for these, but it is very
+    // unwieldy.
+    function renderEmbeddingsNonEditable() {
+      // clang-format off
+      return html`<div class="monospace-label">
+        ${value ? html`&lt;float&gt;[${value.length}]` : null}
+      </div>`;
+      // clang-format on
+    }
 
     // For boolean values, render a checkbox.
     const renderBoolean = () => {
@@ -542,11 +553,12 @@ export class DatapointEditorModule extends LitModule {
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
     } else if (isLitSubtype(
-                   fieldSpec,
-                   [Tokens, SequenceTags, Embeddings, SparseMultilabel])) {
+                   fieldSpec, [Tokens, SequenceTags, SparseMultilabel])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
+    } else if (fieldSpec instanceof Embeddings) {
+      renderInput = renderEmbeddingsNonEditable;
     } else if (fieldSpec instanceof SpanLabels) {
       renderInput = renderSpanLabelsNonEditable;
     } else if (fieldSpec instanceof EdgeLabels) {

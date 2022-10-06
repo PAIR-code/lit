@@ -175,11 +175,7 @@ textarea {
   background-color: unset;
 }
 
-.span-label {
-  font-family: Monospace;
-}
-
-.edge-label {
+.monospace-label {
   font-family: Monospace;
 }
 
