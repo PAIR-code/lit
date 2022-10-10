@@ -697,6 +697,9 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Check if there are Embeddings in the input data.
+    if (findSpecKeys(datasetSpec, Embeddings).length > 0) return true;
+
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
     if (!doesOutputSpecContain(modelSpecs, Embeddings)) {
