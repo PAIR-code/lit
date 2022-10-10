@@ -27,7 +27,7 @@ should be rendered.
 import abc
 import math
 import numbers
-from typing import Any, NewType, Optional, Sequence, TypedDict, Union
+from typing import Any, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
 from lit_nlp.api import dtypes
@@ -190,6 +190,24 @@ class ImageBytes(LitType):
   def validate_input(self, value, spec: Spec, example: Input):
     if not isinstance(value, str) or not value.startswith("data:image"):
       raise ValueError(f"{value} is not an encoded image string.")
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class JPEGBytes(ImageBytes):
+  """As ImageBytes, but assumed to be in jpeg format."""
+
+  def validate_input(self, value, spec: Spec, example: Input):
+    if not isinstance(value, str) or not value.startswith("data:image/jpg"):
+      raise ValueError(f"{value} is not an encoded JPEG image string.")
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class PNGBytes(ImageBytes):
+  """As ImageBytes, but assumed to be in png format."""
+
+  def validate_input(self, value, spec: Spec, example: Input):
+    if not isinstance(value, str) or not value.startswith("data:image/png"):
+      raise ValueError(f"{value} is not an encoded PNG image string.")
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -841,3 +859,9 @@ class InfluentialExamples(LitType):
 Boolean = BooleanLitType
 String = StringLitType
 URL = URLLitType
+
+
+def get_type_by_name(typename: str) -> Type[LitType]:
+  cls = globals()[typename]
+  assert issubclass(cls, LitType)
+  return cls

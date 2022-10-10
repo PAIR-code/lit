@@ -116,6 +116,10 @@ export class DatapointEditorModule extends LitModule {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       if (fieldSpec instanceof ListLitType) continue;
       if (fieldSpec instanceof Embeddings) continue;
+
+      // Skip image fields
+      if (fieldSpec instanceof ImageBytes) continue;
+
       dataTextKeys.push(key);
     }
     return dataTextKeys;

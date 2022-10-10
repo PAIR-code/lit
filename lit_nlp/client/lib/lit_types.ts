@@ -96,6 +96,22 @@ export class TextSegment extends StringLitType {
 export class ImageBytes extends LitType {
 }
 
+/**
+ * A JPEG image, as an encoded base64 ascii string
+ * (starts with 'data:image/jpg...').
+ */
+@registered
+export class JPEGBytes extends ImageBytes {
+}
+
+/**
+ * A PNG image, as an encoded base64 ascii string
+ * (starts with 'data:image/png...').
+ */
+@registered
+export class PNGBytes extends ImageBytes {
+}
+
 
 /**
  * Generated (untokenized) text.
