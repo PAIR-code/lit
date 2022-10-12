@@ -46,6 +46,7 @@ export class UrlConfiguration {
   /** Path to load a new dataset from, on pageload. */
   newDatasetPath?: string;
   documentationOpen?: boolean;
+  colorBy?: string;
 }
 
 /**
@@ -88,6 +89,14 @@ export interface SelectionObservedByUrlService {
   selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
+/**
+ * Interface describing how the ColorService is synced to the URL service
+ */
+ export interface ColorObservedByUrlService {
+  selectedColorOptionName: string;
+  setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
+ }
+
 const SELECTED_TAB_UPPER_KEY = 'upper_tab';
 const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
@@ -101,6 +110,7 @@ const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
 /** Path to load a new dataset from, on pageload. */
 const NEW_DATASET_PATH = 'new_dataset_path';
+const COLOR_BY_KEY = 'color_by';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -193,6 +203,8 @@ export class UrlService extends LitService {
               `Warning, data index ${dataIndex} is set more than once.`);
         }
         urlConfiguration.dataFields[dataIndex][fieldKey] = value;
+      } else if (key === COLOR_BY_KEY) {
+        urlConfiguration.colorBy = this.urlParseString(value);
       }
     }
     return urlConfiguration;
@@ -231,10 +243,12 @@ export class UrlService extends LitService {
       appState: StateObservedByUrlService,
       modulesService: ModulesObservedByUrlService,
       selectionService: SelectionObservedByUrlService,
-      pinnedSelectionService: SelectionObservedByUrlService) {
+      pinnedSelectionService: SelectionObservedByUrlService,
+      colorService: ColorObservedByUrlService) {
     const urlConfiguration = this.getConfigurationFromUrl();
     appState.setUrlConfiguration(urlConfiguration);
     modulesService.setUrlConfiguration(urlConfiguration);
+    colorService.setUrlConfiguration(urlConfiguration);
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
     selectionService.selectIds(urlSelectedIds, this);
@@ -290,6 +304,9 @@ export class UrlService extends LitService {
           urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
       this.setUrlParam(
           urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
+
+      this.setUrlParam(urlParams, COLOR_BY_KEY,
+          colorService.selectedColorOptionName);
 
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;

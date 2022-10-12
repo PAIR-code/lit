@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';
-import {computed, observable, reaction} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {CATEGORICAL_NORMAL, CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, DEFAULT, MULTIHUE_CONTINUOUS} from '../lib/colors';
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
@@ -25,7 +25,7 @@ import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
 import {DataService} from './data_service';
 import {GroupService} from './group_service';
 import {LitService} from './lit_service';
-import {AppState} from './state_service';
+import {ColorObservedByUrlService, UrlConfiguration} from './url_service';
 
 /** Color map for salience maps. */
 export abstract class SalienceCmap {
@@ -97,15 +97,12 @@ export class SignedSalienceCmap extends SalienceCmap {
 /**
  * A singleton class that handles all coloring options.
  */
-export class ColorService extends LitService {
+export class ColorService extends LitService implements
+    ColorObservedByUrlService {
   constructor(
-      private readonly appState: AppState,
       private readonly groupService: GroupService,
       private readonly dataService: DataService) {
     super();
-    reaction(() => this.appState.currentModels, currentModels => {
-      this.reset();
-    });
   }
 
   private readonly defaultColor = DEFAULT;
@@ -118,7 +115,11 @@ export class ColorService extends LitService {
 
   // Name of selected feature to color datapoints by, or default not coloring by
   // features.
-  @observable selectedColorOption = this.defaultOption;
+  @observable mySelectedColorOption = this.defaultOption;
+  // It's used for the url service. When urlService.syncStateToUrl is invoked,
+  // colorableOptions are not available. There, this variable is used to
+  // preserve the url param value entered by users.
+  @observable selectedColorOptionName: string = '';
 
   // All variables that affect color settings, so clients can listen for when
   // they may need to rerender.
@@ -127,6 +128,19 @@ export class ColorService extends LitService {
     return [
       this.selectedColorOption,
     ];
+  }
+
+  // Return the selectedColorOption based on the selectedColorOptionName
+  @computed
+  get selectedColorOption() {
+    if (this.colorableOptions.length === 0 ||
+        this.selectedColorOptionName.length === 0) {
+      return this.defaultOption;
+    } else {
+      const options = this.colorableOptions.filter(
+          option => option.name === this.selectedColorOptionName);
+      return options.length ? options[0] : this.defaultOption;
+    }
   }
 
   @computed
@@ -192,10 +206,8 @@ export class ColorService extends LitService {
     return this.selectedColorOption.scale(val) || this.defaultColor;
   }
 
-  /**
-   * Reset stored info. Used when active models change.
-   */
-  reset() {
-    this.selectedColorOption = this.defaultOption;
+  // Set color option based on the URL configuration
+  setUrlConfiguration(urlConfiguration: UrlConfiguration) {
+    this.selectedColorOptionName = urlConfiguration.colorBy ?? '';
   }
 }

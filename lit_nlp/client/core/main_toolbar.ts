@@ -161,7 +161,7 @@ export class LitMainMenu extends MobxLitElement {
         displayIcon: isSelected,
         menu: [],
         onClick: () => {
-          this.colorService.selectedColorOption = option;
+          this.colorService.selectedColorOptionName = option.name;
         },
         disabled: false,
       };
