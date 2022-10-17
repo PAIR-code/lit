@@ -18,9 +18,10 @@
 import {autorun} from 'mobx';
 
 import {ListLitType} from '../lib/lit_types';
-import {defaultValueByField, IndexedInput, Input, ServiceUser, Spec, LitCanonicalLayout, LitMetadata} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitMetadata, ServiceUser, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
+import {ApiService} from './services';
 
 /**
  * Interface for reading/storing app configuration from/to the URL.
@@ -47,6 +48,7 @@ export class UrlConfiguration {
   newDatasetPath?: string;
   documentationOpen?: boolean;
   colorBy?: string;
+  savedDatapointsId?: string;
 }
 
 /**
@@ -111,6 +113,7 @@ const DATA_FIELDS_KEY_SUBSTRING = 'data';
 /** Path to load a new dataset from, on pageload. */
 const NEW_DATASET_PATH = 'new_dataset_path';
 const COLOR_BY_KEY = 'color_by';
+const SAVED_DATAPOINTS_ID = 'saved_datapoints_id';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -128,6 +131,10 @@ const parseDataFieldKey = (key: string) => {
  * a url.
  */
 export class UrlService extends LitService {
+  constructor(private readonly apiService: ApiService) {
+    super();
+  }
+
   /** Parse arrays in a url param, filtering out empty strings */
   private urlParseArray(encoded: string) {
     if (encoded == null) {
@@ -186,6 +193,8 @@ export class UrlService extends LitService {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
         urlConfiguration.newDatasetPath = this.urlParseString(value);
+      } else if (key === SAVED_DATAPOINTS_ID) {
+        urlConfiguration.savedDatapointsId = this.urlParseString(value);
       } else if (key.startsWith(DATA_FIELDS_KEY_SUBSTRING)) {
         const {fieldKey, dataIndex}: {fieldKey: string, dataIndex: number} =
             parseDataFieldKey(key);
@@ -359,6 +368,13 @@ export class UrlService extends LitService {
       if (id !== undefined) {
         selectionService.setPrimarySelection(id, this);
       }
+    }
+
+    if (urlConfiguration.savedDatapointsId != null) {
+      const dataResponse = await this.apiService.fetchNewData(
+          urlConfiguration.savedDatapointsId);
+      appState.commitNewDatapoints(dataResponse);
+      selectionService.selectIds(dataResponse.map((d) => d.id), this);
     }
   }
 }

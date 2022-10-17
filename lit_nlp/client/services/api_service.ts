@@ -153,6 +153,14 @@ export class ApiService extends LitService {
         inputs);
   }
 
+  fetchNewData(savedDatapointsId: string): Promise<IndexedInput[]> {
+    return this.queryServer<IndexedInput[]>(
+        '/fetch_new_data', {
+          'saved_datapoints_id': savedDatapointsId,
+        },
+        []);
+  }
+
   /**
    * Calls the server to run an interpretation component.
    * @param inputs inputs to run on

@@ -18,8 +18,8 @@ import itertools
 import queue
 import threading
 import time
-
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
+import uuid
 import numpy as np
 
 T = TypeVar('T')
@@ -181,6 +181,11 @@ def coerce_real(vals: np.ndarray, limit=0.0001):
   assert np.all(np.imag(vals) < limit), (
       'Array contains imaginary part out of acceptable limits.')
   return np.real(vals)
+
+
+def get_uuid():
+  """Return a randomly-generated UUID hex string."""
+  return uuid.uuid4().hex
 
 
 class TaskQueue(queue.Queue):

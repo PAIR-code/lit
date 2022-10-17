@@ -215,6 +215,50 @@ class LitApp(object):
 
     return data['inputs']
 
+  def _post_new_data(
+      self, data, dataset_name: Optional[str] = None,
+      **unused_kw) -> dict[str, str]:
+    """Save datapoints provided, after annotatation, for later retrieval.
+
+    Args:
+      data: JsonDict of datapoints to add, in dict under key 'inputs', per
+        format for other requests.
+      dataset_name: Dataset containing the format of data to add, necessary for
+        proper datapoint annotation.
+
+    Returns:
+      A dict of two URLs (minus the root of the webserver). 'load' value is
+      for loading LIT with those datapoints. 'remove' value is for removing
+      those new datapoints from this server after they have been loaded, if
+      desired.
+    """
+    assert 'inputs' in data, 'Data dict does not contain "inputs" field'
+    data_with_metadata = [
+        {'data': d,
+         'meta': {'added': True, 'source': 'POST', 'parentId': None}}
+        for d in data['inputs']]
+    annotation_input = {'inputs': data_with_metadata}
+    annotated_data = self._annotate_new_data(annotation_input, dataset_name)
+    datapoints_id = utils.get_uuid()
+    with self._saved_datapoints_lock:
+      self._saved_datapoints[datapoints_id] = annotated_data
+    return {
+        'load': f'?saved_datapoints_id={datapoints_id}',
+        'remove': f'/remove_new_data?saved_datapoints_id={datapoints_id}'}
+
+  def _fetch_new_data(self, unused_data, saved_datapoints_id: str, **unused_kw):
+    with self._saved_datapoints_lock:
+      assert saved_datapoints_id in self._saved_datapoints, (
+          'No saved data with ID %s' % saved_datapoints_id)
+      return self._saved_datapoints[saved_datapoints_id]
+
+  def _remove_new_data(
+      self, unused_data, saved_datapoints_id: str, **unused_kw):
+    with self._saved_datapoints_lock:
+      assert saved_datapoints_id in self._saved_datapoints, (
+          'No saved data with ID %s' % saved_datapoints_id)
+      del self._saved_datapoints[saved_datapoints_id]
+
   def _get_dataset(self,
                    unused_data,
                    dataset_name: Optional[str] = None,
@@ -495,6 +539,9 @@ class LitApp(object):
 
     self._annotators = annotators or []
 
+    self._saved_datapoints = {}
+    self._saved_datapoints_lock = threading.Lock()
+
     # Run annotation on each dataset, creating an annotated dataset and
     # replace the datasets with the annotated versions.
     for ds_key, ds in self._datasets.items():
@@ -561,7 +608,9 @@ class LitApp(object):
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
         '/annotate_new_data': self._annotate_new_data,
-        '/push_ui_state': self._push_ui_state,
+        '/post_new_data': self._post_new_data,
+        '/fetch_new_data': self._fetch_new_data,
+        '/remove_new_data': self._remove_new_data,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,

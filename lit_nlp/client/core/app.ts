@@ -146,7 +146,7 @@ export class LitApp {
     const statusService = new StatusService();
     const apiService = new ApiService(statusService);
     const modulesService = new ModulesService();
-    const urlService = new UrlService();
+    const urlService = new UrlService(apiService);
     const appState = new AppState(apiService, statusService);
     const selectionService = new SelectionService(appState);
     const pinnedSelectionService = new SelectionService(appState);
