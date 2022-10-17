@@ -447,6 +447,10 @@ export class LitMainToolbar extends MobxLitElement {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
     };
+    const selectAll = () => {
+      const allIds = this.appState.currentInputData.map(example => example.id);
+      this.selectionService.selectIds(allIds);
+    };
     const numSelected = this.selectionService.selectedIds.length;
     const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
@@ -504,12 +508,16 @@ export class LitMainToolbar extends MobxLitElement {
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
         ${this.renderStarButton(numSelected)}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
+        <button id="select-all" class="hairline-button xl"
+          @click=${selectAll}>
+          Select all
+        </button>
+        ${this.renderLuckyButton()}
         <button id="clear-selection" class="hairline-button xl"
           @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
         </button>
-        ${this.renderLuckyButton()}
       </div>
     </div>
     `;

@@ -610,6 +610,11 @@ export class DataTable extends ReactiveElement {
     return this.sortName === undefined && this.columnFilterInfo.size === 0;
   }
 
+  @computed
+  get isFiltered() {
+    return this.columnFilterInfo.size !== 0;
+  }
+
   resetView() {
     this.columnFilterInfo.clear();
     this.sortName = undefined;    // reset to input ordering

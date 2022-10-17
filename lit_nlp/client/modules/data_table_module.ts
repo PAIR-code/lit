@@ -370,7 +370,7 @@ export class DataTableModule extends LitModule {
       this.table!.resetView();
     };
 
-    const onClickSelectAll = () => {
+    const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
     };
 
@@ -393,8 +393,9 @@ export class DataTableModule extends LitModule {
           ?disabled="${this.table?.isDefaultView ?? true}">
           Reset view
         </button>
-        <button class='hairline-button' @click=${onClickSelectAll}>
-          Select all
+        <button class='hairline-button' @click=${onClickSelectFiltered}
+          ?disabled="${!this.table?.isFiltered ?? true}">
+          Select filtered
         </button>
         <button class='hairline-button' @click=${onToggleShowColumn}>
           Columns&nbsp;
