@@ -24,7 +24,6 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
-import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
@@ -493,30 +492,6 @@ export function chunkWords(sent: string) {
   return sent.split(' ').map(word => chunkWord(word)).join(' ');
 }
 
-/**
- * Converts any URLs into clickable links.
- * TODO(lit-dev): write unit tests for this.
- */
-export function linkifyUrls(
-    text: string,
-    target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
-  const ret: Array<string|TemplateResult> = [];  // return segments
-  let lastIndex = 0;  // index of last character added to return segments
-  // Find urls and make them real links.
-  // Similar to gmail and other apps, this assumes terminal punctuation is
-  // not part of the url.
-  const matcher = /https?:\/\/[^\s]+[^.?!\s]/g;
-  const formatLink = (url: string) =>
-      html`<a href=${url} target=${target}>${url}</a>`;
-  for (const match of text.matchAll(matcher)) {
-    ret.push(text.slice(lastIndex, match.index));
-    lastIndex = match.index! + match[0].length;
-    ret.push(formatLink(text.slice(match.index, lastIndex)));
-  }
-  ret.push(text.slice(lastIndex, text.length));
-  return html`${ret}`;
-}
-
 const CANVAS = document.createElement('canvas');
 /**
  * Computes the width of a string given a CSS font specifier. If the
@@ -589,7 +564,18 @@ export function getStepSizeGivenRange(range: number) {
 
 /** Convert a markdown string into an HTML template for rendering. */
 export function getTemplateStringFromMarkdown(markdown: string) {
-  const htmlStr = marked(markdown);
+
+  // Render Markdown with link target _blank
+  // See https://github.com/markedjs/marked/issues/144
+  // and https://github.com/markedjs/marked/issues/655
+  const renderer = new marked.Renderer();
+  renderer.link = (href, title, text) => {
+    const linkHtml =
+        marked.Renderer.prototype.link.call(renderer, href, title, text);
+    return linkHtml.replace('<a', '<a target=\'_blank\' ');
+  };
+  const htmlStr = marked(markdown, {renderer});
+
   return unsafeHTML(htmlStr);
 }
 

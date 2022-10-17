@@ -153,7 +153,8 @@ export class ToolbarComponent extends MobxLitElement {
           <button class=${classMap(classes)} title="${name}"
             @click=${updateModelSelection}>
             <span class='material-icon'>${icon}</span>
-            &nbsp;${name}
+            &nbsp;
+            <span class='headline-button-text' title=${name}>${name}</span>
           </button>
         `;
         // clang-format on
@@ -170,12 +171,15 @@ export class ToolbarComponent extends MobxLitElement {
       // clang-format on
     } else {
       // Otherwise, give a regular button that opens the models menu.
+      const buttonText = this.appState.currentModels.join(', ');
       // clang-format off
       return html`
         <button class='headline-button' title="Select model(s)"
           @click=${() => { this.jumpToSettingsTab("Models"); }}>
           <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;${this.appState.currentModels.join(', ')}&nbsp;
+          &nbsp;
+          <span class='headline-button-text' title=${buttonText}>${buttonText}</span>
+          &nbsp;
           <span class='material-icon'>arrow_drop_down</span>
         </button>
       `;
@@ -184,13 +188,16 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   renderDatasetInfo() {
+    const buttonText = datasetDisplayName(this.appState.currentDataset);
     // clang-format off
     return html`
       <div class='vertical-separator'></div>
       <button class='headline-button' title="Select dataset"
         @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
         <span class='material-icon'>storage</span>
-        &nbsp;${datasetDisplayName(this.appState.currentDataset)}&nbsp;
+        &nbsp;
+        <span class='headline-button-text' title=${buttonText}>${buttonText}</span>
+        &nbsp;
         <span class='material-icon'>arrow_drop_down</span>
       </button>
     `;
@@ -223,7 +230,8 @@ export class ToolbarComponent extends MobxLitElement {
           <button class=${classMap(classes)} title=${title}
             @click=${updateLayoutSelection}>
             <span class=${iconClass}>view_compact</span>
-            &nbsp;${name}
+            &nbsp;
+            <span class='headline-button-text' title=${name}>${name}</span>
           </button>
         `;
         // clang-format on
@@ -238,7 +246,9 @@ export class ToolbarComponent extends MobxLitElement {
         <button class='headline-button' title="Select UI layout."
           @click=${() => { this.jumpToSettingsTab("Layout"); }}>
           <span class='material-icon'>view_compact</span>
-          &nbsp;${currentLayout}&nbsp;
+          &nbsp;
+          <span class='headline-button-text' title=${currentLayout}>${currentLayout}</span>
+          &nbsp;
           <span class='material-icon'>arrow_drop_down</span>
         </button>
       `;
