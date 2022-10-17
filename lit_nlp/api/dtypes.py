@@ -101,8 +101,8 @@ class AnnotationCluster(DataTuple):
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class TokenSalience(DataTuple):
   """Dataclass for a salience map over tokens."""
-  tokens: List[str]
-  salience: List[float]  # parallel to tokens
+  tokens: Sequence[str]
+  salience: Sequence[float]  # parallel to tokens
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

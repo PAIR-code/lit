@@ -16,7 +16,7 @@
 
 import copy
 import functools
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -163,12 +163,12 @@ class LIME(lit_components.Interpreter):
 
   def run(
       self,
-      inputs: List[JsonDict],
+      inputs: list[JsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
-      model_outputs: Optional[List[JsonDict]] = None,
+      model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None,
-  ) -> Optional[List[JsonDict]]:
+  ) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))  # update and return
@@ -216,9 +216,6 @@ class LIME(lit_components.Interpreter):
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
         input_string = input_[text_key]
-        if not input_string:
-          logging.info('Could not explain empty string for %s', text_key)
-          continue
         logging.info('Explaining: %s', input_string)
 
         # Perturbs the input string, gets model predictions, fits linear model.
@@ -238,7 +235,7 @@ class LIME(lit_components.Interpreter):
         scores = explanation.feature_importance
         # TODO(lit-dev): Move score normalization to the UI.
         scores = citrus_util.normalize_scores(scores)
-        result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
+        result[text_key] = dtypes.TokenSalience(explanation.features, scores)
 
       all_results.append(result)
 
