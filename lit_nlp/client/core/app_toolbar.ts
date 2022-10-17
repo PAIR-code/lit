@@ -284,7 +284,7 @@ export class ToolbarComponent extends MobxLitElement {
       <button class='headline-button unbordered' title="Copy link to this page"
         @click=${this.onClickCopyLink}>
         <span class='material-icon'>link</span>
-        &nbsp;Share
+        &nbsp;Copy Link
       </button>
     `;
     // clang-format on
