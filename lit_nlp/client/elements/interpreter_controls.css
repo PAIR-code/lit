@@ -30,7 +30,7 @@
 }
 
 .content {
-  padding: 0 8px;
+  padding-left: 8px;
   overflow: hidden;
   transition: max-height 0.2s ease-out;
   box-sizing: border-box;
@@ -99,4 +99,5 @@
 
 .slider-value {
   min-width: 2em;
+  text-align: right;
 }
