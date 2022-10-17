@@ -119,9 +119,17 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get pinnedInputData(): IndexedInput[] {
+    return this.appState.currentInputData.filter((inputData) => {
+      return this.referenceSelectionService.primarySelectedId === inputData.id;
+    });
+  }
+
+  @computed
   get filteredData(): IndexedInput[] {
-    return this.onlyShowSelected ? this.selectionService.selectedInputData :
-                                   this.appState.currentInputData;
+    return this.onlyShowSelected ?
+        this.selectionService.selectedInputData.concat(this.pinnedInputData) :
+        this.appState.currentInputData;
   }
 
   @computed
