@@ -80,13 +80,11 @@ export class DataTableModule extends LitModule {
   // Column names from the current data for the data table.
   @computed
   get keys(): ColumnHeader[] {
-    const createColumnHeader = (name: string, type: LitType) => {
+    function createColumnHeader(name: string, type: LitType) {
       const header = {name, vocab: (type as LitTypeWithVocab).vocab};
-      if (type instanceof BooleanLitType) {
-        header.vocab = ['✔', ' '];
-      }
+      if (type instanceof BooleanLitType) {header.vocab = ['✔', ' '];}
       return header;
-    };
+    }
 
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
@@ -236,9 +234,8 @@ export class DataTableModule extends LitModule {
       // Provide a template function for the 'index' column so that the
       // rendering can be based on the selection/hover state of the datapoint
       // represented by the row.
-      const templateFn =
-          (isSelected: boolean, isPrimarySelection: boolean,
-           isReferenceSelection: boolean, isFocused: boolean) => {
+      function templateFn(isSelected: boolean, isPrimarySelection: boolean,
+                          isReferenceSelection: boolean, isFocused: boolean) {
             const indexHolderDivStyle = styleMap({
               'display': 'flex',
               'flex-direction': 'row-reverse',
@@ -250,7 +247,7 @@ export class DataTableModule extends LitModule {
             });
             // Render the pin button next to the index if datapoint is pinned,
             // selected, or hovered.
-            const renderPin = () => {
+            function renderPin() {
               const iconClass = classMap({
                 'icon-button': true,
                 'cyea': true,
@@ -263,13 +260,13 @@ export class DataTableModule extends LitModule {
                 </mwc-icon>`;
               }
               return null;
-            };
+            }
             return html`
             <div style="${indexHolderDivStyle}">
               <div style="${indexDivStyle}">${index}</div>
               ${renderPin()}
             </div>`;
-          };
+          }
       const indexEntry = {template: templateFn, value: index};
       return [indexEntry, ...dataEntry];
     });
@@ -384,8 +381,15 @@ export class DataTableModule extends LitModule {
 
     // clang-format off
     return html`
+      <button class='hairline-button' @click=${onToggleShowColumn}>
+        <span class='material-icon-outlined'>view_column</span>
+        &nbsp;Columns&nbsp;
+        <span class='material-icon'>
+          ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
+        </span>
+      </button>
       <div class='switch-container' @click=${onClickSwitch}>
-        <div>Hide unselected</div>
+        <div>Show only selected</div>
         <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
       </div>
       <div id="toolbar-buttons">
@@ -396,12 +400,6 @@ export class DataTableModule extends LitModule {
         <button class='hairline-button' @click=${onClickSelectFiltered}
           ?disabled="${!this.table?.isFiltered ?? true}">
           Select filtered
-        </button>
-        <button class='hairline-button' @click=${onToggleShowColumn}>
-          Columns&nbsp;
-          <span class='material-icon'>
-            ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
-          </span>
         </button>
       </div>
       ${this.renderColumnDropdown()}

@@ -751,15 +751,9 @@ export class DataTable extends ReactiveElement {
       const searchValues = this.columnFilterInfo.get(title)?.values;
       const hasSearchValues =
           searchValues && searchValues.length > 0 && searchValues[0].length > 0;
-      if (hasSearchValues ||
-          (this.showColumnMenu && this.columnMenuName === title)) {
-        return true;
-      }
-      return false;
+      const {showColumnMenu, columnMenuName} = this;
+      return hasSearchValues || (showColumnMenu && columnMenuName === title);
     };
-
-    const menuButtonStyle =
-        styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
 
     const handleMenuButton = (e: Event) => {
       e.stopPropagation();
@@ -786,6 +780,11 @@ export class DataTable extends ReactiveElement {
     const isDownActive = this.sortName === title && !this.sortAscending;
     const isDownInactive = this.sortName === title && this.sortAscending;
 
+    const arrowStyle =
+        styleMap((isDownActive || isUpActive) ? {'display': 'block'} : {});
+    const menuButtonStyle = styleMap(isSearchActive() ?
+        {'display': 'block', 'outline': 'auto'} : {});
+
     const upArrowClasses = classMap({
       arrow: true,
       up: true,
@@ -810,11 +809,15 @@ export class DataTable extends ReactiveElement {
               ${this.searchEnabled ? html`
                 <div class="menu-button-container">
                   <mwc-icon class="menu-button" style=${menuButtonStyle}
-                   @click=${handleMenuButton}>filter_list</mwc-icon>
+                   @click=${handleMenuButton}>filter_alt</mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}>
-                <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
-                <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+                <mwc-icon class=${upArrowClasses} style=${arrowStyle}>
+                  arrow_drop_up
+                </mwc-icon>
+                <mwc-icon class=${downArrowClasses} style=${arrowStyle}>
+                  arrow_drop_down
+                </mwc-icon>
               </div>
             </div>
           </div>
@@ -842,7 +845,7 @@ export class DataTable extends ReactiveElement {
       // field with different behavior for string columns vs numeric columns.
       const handleSearchChange = (e: KeyboardEvent) => {
         const searchQuery = (e.target as HTMLInputElement)?.value || '';
-        const fn = (col: SortableTableEntry) => {
+        function fn(col: SortableTableEntry) {
           if (typeof col === 'string') {
             // String columns use a reg ex search.
             return col.search(new RegExp(searchQuery)) !== -1;
@@ -853,10 +856,9 @@ export class DataTable extends ReactiveElement {
           } else {
             return false;
           }
-        };
+        }
         this.columnFilterInfo.set(header.name, {fn, values: [searchQuery]});
       };
-
 
       const searchText = this.columnFilterInfo.has(header.name) ?
           this.columnFilterInfo.get(header.name)!.values[0] :
@@ -936,7 +938,7 @@ export class DataTable extends ReactiveElement {
       e.preventDefault();
     }
 
-    const formatCellContents = (d: TableEntry) => {
+    function formatCellContents(d: TableEntry) {
       if (d == null) return null;
 
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
@@ -963,7 +965,7 @@ export class DataTable extends ReactiveElement {
       return html`
           <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
       // clang-format on
-    };
+    }
 
     const cellClasses = this.columnHeaders.map(
         h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));

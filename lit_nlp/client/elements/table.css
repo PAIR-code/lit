@@ -1,7 +1,7 @@
 :host {
-  --table-header-height: 40px;
-  --table-footer-height: 26px;
-  --table-cell-padding: 4px 8px;
+  --table-header-height: 24px;
+  --table-footer-height: 20px;
+  --table-cell-padding: 2px 8px;
 }
 
 .holder {
@@ -35,7 +35,7 @@
 }
 
 .holder table > thead > th {
-  font-weight: 400;
+  font-weight: 700;
   color: #04394b;
   border-bottom: solid 1px #dadce0;
 }
@@ -78,9 +78,10 @@
 }
 
 .arrow {
+  display: none;
   position: absolute;
   --mdc-icon-size: 24px;
-  color: rgba(0,0,0,0.1);
+  color: var(--lit-neutral-300);
   left: -4px;
 }
 
@@ -93,11 +94,11 @@
 }
 
 .arrow.active {
-  color: var(--app-dark-color);
+  color: var(--lit-neutral-800);
 }
 
 .arrow.inactive {
-  color: rgba(0,0,0,0);
+  color: var(--lit-neutral-300);
 }
 
 .menu-button-container {
@@ -107,9 +108,20 @@
   padding-left: 4px;
 }
 
+.column-header:hover {
+  padding-right: 0;
+}
+
+.column-header:hover .arrow-container > .arrow,
+.column-header:hover .menu-button-container > .menu-button {
+  display: block;
+}
+
 .menu-button {
+  display: none;
   --mdc-icon-size: 16px;
   margin-top: 2px;
+  outline: 'none';
 }
 
 .menu-button:hover {
@@ -131,6 +143,10 @@
 /**
  * Body styles
  */
+tbody tr {
+  height: 20px;
+}
+
 tbody tr:hover {
   background: var(--lit-mage-200);
   cursor: pointer;
