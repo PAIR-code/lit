@@ -18,13 +18,13 @@
 // tslint:disable:no-new-decorators
 
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement, query} from 'lit/decorators';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, TableData} from '../elements/table';
+import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
@@ -113,6 +113,7 @@ export class MetricsModule extends LitModule {
   @observable private facetBySlice: boolean = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
+  @query('#metrics-table') private readonly table?: DataTable;
 
   constructor() {
     super();
@@ -143,13 +144,21 @@ export class MetricsModule extends LitModule {
         }
       });
       if (this.selectionService.lastUser === this) {
+        // If selection made through this module, no need to show a separate
+        // "selection" row in the metrics table, as the selected row will
+        // be highlighted to indicate that it is selected.
         return;
+      } else if (this.table != null) {
+        // If selection changed outside of this module, clear the highlight in
+        // the metrics table.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
       }
       if (this.selectionService.selectedInputData.length > 0) {
-        this.addMetrics(this.selectionService.selectedInputData,
-                        Source.SELECTION);
-        this.updateFacetedMetrics(this.selectionService.selectedInputData,
-                                  true);
+        // If a selection is made outside of this module,, then calculate a row
+        // in the metrics table for the selection.
+        this.addMetrics(
+            this.selectionService.selectedInputData, Source.SELECTION);
       }
     });
     this.react(() => this.classificationService.allMarginSettings, margins => {
@@ -248,7 +257,6 @@ export class MetricsModule extends LitModule {
     });
     // Get the intersectional feature bins.
     if (this.selectedFacets.length > 0) {
-      this.updateFacetedMetrics(this.selectionService.selectedInputData, true);
       this.updateFacetedMetrics(this.appState.currentInputData, false);
     }
   }
@@ -363,13 +371,43 @@ export class MetricsModule extends LitModule {
   }
 
   renderTable() {
-    // TODO(b/180903904): Add onSelect behavior to rows for selection.
+    const onSelect = (idxs: number[]) => {
+      if (this.table == null) {
+        return;
+      }
+      const primaryId = this.table.primarySelectedIndex;
+      if (primaryId < 0) {
+        this.selectionService.selectIds([], this);
+        this.table.selectedIndices = [];
+        return;
+      }
+      const mapEntry = Object.values(this.metricsMap)[primaryId];
+      const ids = mapEntry.exampleIds;
+      // If the metrics table row selected isn't the row indicating the current
+      // selection, then change the datapoints selection to the ones represented
+      // by that row.
+      if (mapEntry.source !== Source.SELECTION) {
+        this.selectionService.selectIds(ids, this);
+        this.table.selectedIndices = [primaryId];
+      } else {
+        // Don't highlight the row of the selected datapoint if this is clicked
+        // as it has no effect.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
+      }
+    };
+    // clang-format off
     return html`
-      <lit-data-table
+      <lit-data-table id="metrics-table"
         .columnNames=${this.tableData.header}
         .data=${this.tableData.data}
+        selectionEnabled
+        .onSelect=${(idxs: number[]) => {
+          onSelect(idxs);
+        }}
       ></lit-data-table>
     `;
+    // clang-format on
   }
 
   renderFacetSelector() {
