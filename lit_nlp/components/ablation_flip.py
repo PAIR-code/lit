@@ -31,7 +31,7 @@ This generator builds on ideas from the following paper.
 import collections
 import copy
 import itertools
-from typing import Iterator, List, Optional, Text, Tuple
+from typing import Iterator, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -39,6 +39,7 @@ from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import cf_utils
+from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
 Spec = types.Spec
@@ -91,11 +92,11 @@ class AblationFlip(lit_components.Generator):
 
   def _gen_ablation_idxs(
       self,
-      loo_scores: List[Tuple[str, int, float]],
+      loo_scores: list[tuple[str, int, float]],
       max_ablations: int,
       orig_regression_score: Optional[float] = None,
       regression_thresh: Optional[float] = None
-  ) -> Iterator[Tuple[Tuple[str, int], ...]]:
+  ) -> Iterator[tuple[tuple[str, int], ...]]:
     """Generates sets of token positions that are eligible for ablation."""
 
     # Order tokens by their leave-one-out ablation scores. (Note that these
@@ -133,7 +134,7 @@ class AblationFlip(lit_components.Generator):
   def _create_cf(self,
                  example: JsonDict,
                  input_spec: Spec,
-                 ablation_idxs: List[Tuple[str, int]]) -> JsonDict:
+                 ablation_idxs: list[tuple[str, int]]) -> JsonDict:
     # Build a dictionary mapping input fields to the token idxs to be ablated
     # from that field.
     ablation_idxs_per_field = collections.defaultdict(list)
@@ -174,8 +175,8 @@ class AblationFlip(lit_components.Generator):
       input_spec: Spec,
       output_spec: Spec,
       orig_output: JsonDict,
-      pred_key: Text,
-      fields_to_ablate: List[str]) -> List[Tuple[str, int, float]]:
+      pred_key: str,
+      fields_to_ablate: list[str]) -> list[tuple[str, int, float]]:
     # Returns a list of triples: field, token_idx and leave-one-out score.
     ret = []
     for field in input_spec.keys():
@@ -190,6 +191,13 @@ class AblationFlip(lit_components.Generator):
             cf_output, orig_output, output_spec, pred_key)
         ret.append((field, i, loo_score))
     return ret
+
+  def is_compatible(self, model: lit_model.Model) -> bool:
+    supported_inputs = (types.SparseMultilabel, types.TextSegment, types.URL)
+    supported_preds = (types.MulticlassPreds, types.RegressionScore)
+    input_fields = utils.find_spec_keys(model.input_spec(), supported_inputs)
+    output_fields = utils.find_spec_keys(model.output_spec(), supported_preds)
+    return (bool(input_fields) and bool(output_fields))
 
   def config_spec(self) -> types.Spec:
     return {
@@ -212,7 +220,7 @@ class AblationFlip(lit_components.Generator):
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Identify minimal sets of token albations that alter the prediction."""
     del dataset  # Unused.
 
