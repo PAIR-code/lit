@@ -273,20 +273,9 @@ export class DataTableModule extends LitModule {
   }
 
   override firstUpdated() {
-    const getCurrentModels = () => this.appState.currentModels;
-    this.react(getCurrentModels, currentModels => {
-      this.updateColumns();
-    });
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.react(getCurrentDataset, currentDataset => {
-      this.updateColumns();
-    });
-    const getKeys = () => this.keys;
-    this.react(getKeys, keys => {
-      this.updateColumns();
-    });
-
-    this.updateColumns();
+    const updateColsChange = () => [
+        this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.reactImmediately(updateColsChange, () => {this.updateColumns();});
   }
 
   private updateColumns() {

@@ -157,7 +157,9 @@ export class DataTable extends ReactiveElement {
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.adjustEntriesIfHeightChanged();
+  });
   private needsEntriesPerPageRecompute = true;
   private lastContainerHeight = 0;
 
@@ -174,9 +176,6 @@ export class DataTable extends ReactiveElement {
 
   override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.holder')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.adjustEntriesIfHeightChanged();
-    });
     this.resizeObserver.observe(container);
 
     // If inputs changed, re-sort data based on the new inputs.
@@ -186,15 +185,14 @@ export class DataTable extends ReactiveElement {
     });
 
     // Reset page number if invalid on change in total pages.
-    const triggerPageChange = () => this.totalPages;
-    this.reactImmediately(triggerPageChange, () => {
+    this.reactImmediately(() => this.totalPages, () => {
       const isPageOverflow = this.pageNum >= this.totalPages;
+      if (isPageOverflow) {this.pageNum = 0;}
+
       const lastIndexOnPage = this.entriesPerPage * (this.pageNum + 1);
       const isHoveredInvisible =
           this.hoveredIndex != null && this.hoveredIndex > lastIndexOnPage;
-      if (isPageOverflow || isHoveredInvisible) {
-        this.pageNum = 0;
-      }
+      if (isHoveredInvisible) {this.hoveredIndex = null;}
     });
   }
 
@@ -257,6 +255,14 @@ export class DataTable extends ReactiveElement {
     let i = 0;
     const rows: NodeListOf<HTMLElement> =
         this.shadowRoot!.querySelectorAll('tbody > tr.lit-data-table-row');
+
+    // This function computes entriesPerPage assuming that the current page is
+    // full of rows that it can use to compute entriesPerPage based on the
+    // available page height. The only time that isn't true is if the user is
+    // one the last page of results, in which case computing a new
+    // entriesPerPage value may result in an incorrect computation, so bail out.
+    if (rows.length < this.entriesPerPage) {return;}
+
     while (height < availableHeight && i < rows.length) {
       height += rows[i].getBoundingClientRect().height;
       i += 1;
@@ -659,22 +665,13 @@ export class DataTable extends ReactiveElement {
       return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
     };
 
+    const changePage = (offset: number) => {
+      this.pageNum = modPageNumber(this.pageNum + offset);
+    };
     const firstPage = () => {this.pageNum = 0;};
-    const nextPage = () => {
-      const newPageNum = modPageNumber(this.pageNum + 1);
-      this.pageNum = newPageNum;
-    };
-    const prevPage = () => {
-      const newPageNum = modPageNumber(this.pageNum - 1);
-      this.pageNum = newPageNum;
-    };
     const lastPage = () => {this.pageNum = this.totalPages - 1;};
-    const randomPage = () => {
-      const newPageNum = randInt(0, this.totalPages);
-      this.pageNum = newPageNum;
-    };
+    const randomPage = () => {this.pageNum = randInt(0, this.totalPages);};
 
-    const pageDisplayNum = this.pageNum + 1;
     const firstPageButtonClasses = {
       'icon-button': true,
       'disabled': this.pageNum === 0
@@ -694,16 +691,16 @@ export class DataTable extends ReactiveElement {
               first_page
             </mwc-icon>
             <mwc-icon class='icon-button'
-              @click=${prevPage}>
+              @click=${() => {changePage(-1);}}>
               chevron_left
             </mwc-icon>
             <div>
              Page
-             <span class="current-page-num">${pageDisplayNum}</span>
+             <span class="current-page-num">${this.pageNum + 1}</span>
              of ${this.totalPages}
             </div>
             <mwc-icon class='icon-button'
-               @click=${nextPage}>
+               @click=${() => {changePage(1);}}>
               chevron_right
             </mwc-icon>
             <mwc-icon class=${classMap(lastPageButtonClasses)}
