@@ -275,6 +275,7 @@ class LitApp(object):
 
     assert dataset_name is not None, 'No dataset specified.'
     assert dataset_path is not None, 'No dataset path specified.'
+
     new_dataset = self._datasets[dataset_name].load(dataset_path)
     if new_dataset is not None:
       new_dataset_name = dataset_name + '-' + os.path.basename(dataset_path)
@@ -282,6 +283,7 @@ class LitApp(object):
       self._info = self._build_metadata()
       return (self._info, new_dataset_name)
     else:
+      logging.error('Not able to load: %s', dataset_name)
       return None
 
   def _create_model(self,
