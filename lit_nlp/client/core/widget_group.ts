@@ -146,14 +146,15 @@ export class WidgetGroup extends ReactiveElement {
     return html`
       <div class=header>
         <div class="title" @click=${onTitleClick}>${title}</div>
-        ${this.minimized || configGroup.length < 2 ?
-          null :
-          [renderDirectionControl(), renderScrollSyncControl()]
-        }
-        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${this.minimized ? 'maximize' : 'minimize'}
+        ${this.minimized || configGroup.length < 2 ? null : [
+          renderDirectionControl(), renderScrollSyncControl()
+        ]}
+        <mwc-icon class="icon-button min-button" @click=${onMinClick}
+          title=${this.minimized ? 'Expand' : 'Collapse'}>
+          ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
+        <mwc-icon class="icon-button" @click=${onMaxClick}
+          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
