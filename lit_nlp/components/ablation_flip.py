@@ -45,10 +45,12 @@ JsonDict = types.JsonDict
 Spec = types.Spec
 
 PREDICTION_KEY = "Prediction key"
-NUM_EXAMPLES_KEY = "Number of examples"
+NUM_EXAMPLES_KEY = "Max number of counterfacuals to generate"
 NUM_EXAMPLES_DEFAULT = 10
-MAX_ABLATIONS_KEY = "Maximum number of token ablations"
+MAX_ABLATIONS_KEY = "Max number of token ablations"
 MAX_ABLATIONS_DEFAULT = 5
+TOKENS_TO_IGNORE_KEY = "Comma-separated list of tokens to never flip"
+TOKENS_TO_IGNORE_DEFAULT = []
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 1.0
 FIELDS_TO_ABLATE_KEY = "Fields to ablate"
@@ -82,6 +84,20 @@ class AblationFlip(lit_components.Generator):
     # TODO(ataly): Use a more sophisticated tokenizer and detokenizer.
     self.tokenize = str.split
     self.detokenize = " ".join
+
+  def description(self) -> str:
+    # TODO(lit-dev): Find way to have newlines in the string and have it be
+    # displayed correctly on the front-end.
+    return """Removes minimal tokens (based on whitespace) to cause a model to
+      return a different prediction.\n\nIn the
+      case of classification models, the returned counterfactuals are guaranteed
+      to have a different prediction class as the original example. In the case
+      of regression models, the returned counterfactuals are guaranteed to be on
+      the opposite side of a user-provided threshold as the original example.
+      \n\nCan fail to produce counterfactuals if there is no set of ablations
+      within the scope of the configuration options that cause significant model
+      prediction changes.
+    """
 
   def _subset_exists(self, cand_set, sets):
     """Checks whether a subset of 'cand_set' exists in 'sets'."""
@@ -176,20 +192,25 @@ class AblationFlip(lit_components.Generator):
       output_spec: Spec,
       orig_output: JsonDict,
       pred_key: str,
-      fields_to_ablate: list[str]) -> list[tuple[str, int, float]]:
+      fields_to_ablate: list[str],
+      tokens_to_ignore: list[str]) -> list[tuple[str, int, float]]:
     # Returns a list of triples: field, token_idx and leave-one-out score.
     ret = []
     for field in input_spec.keys():
       if field not in example or field not in fields_to_ablate:
         continue
       tokens = self._get_tokens(example, input_spec, field)
-      cfs = [self._create_cf(example, input_spec, [(field, i)])
-             for i in range(len(tokens))]
+      idxs, tokens_to_ablate = zip(
+          *[(i, token) for (i, token) in enumerate(tokens)
+            if token not in tokens_to_ignore])
+      cfs = [
+          self._create_cf(example, input_spec, [(field, idxs[i])])
+          for i in range(len(tokens_to_ablate))]
       cf_outputs = model.predict(cfs)
       for i, cf_output in enumerate(cf_outputs):
         loo_score = cf_utils.prediction_difference(
             cf_output, orig_output, output_spec, pred_key)
-        ret.append((field, i, loo_score))
+        ret.append((field, idxs[i], loo_score))
     return ret
 
   def is_compatible(self, model: lit_model.Model) -> bool:
@@ -204,6 +225,8 @@ class AblationFlip(lit_components.Generator):
         NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
         MAX_ABLATIONS_KEY: types.TextSegment(
             default=str(MAX_ABLATIONS_DEFAULT)),
+        TOKENS_TO_IGNORE_KEY:
+            types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
         PREDICTION_KEY:
             types.SingleFieldMatcher(
                 spec="output", types=["MulticlassPreds", "RegressionScore"]),
@@ -227,6 +250,8 @@ class AblationFlip(lit_components.Generator):
     config = config or {}
     num_examples = int(config.get(NUM_EXAMPLES_KEY, NUM_EXAMPLES_DEFAULT))
     max_ablations = int(config.get(MAX_ABLATIONS_KEY, MAX_ABLATIONS_DEFAULT))
+    tokens_to_ignore = config.get(TOKENS_TO_IGNORE_KEY,
+                                  TOKENS_TO_IGNORE_DEFAULT)
     assert model is not None, "Please provide a model for this generator."
 
     input_spec = model.input_spec()
@@ -254,7 +279,7 @@ class AblationFlip(lit_components.Generator):
     orig_output = list(model.predict([example]))[0]
     loo_scores = self._generate_leave_one_out_ablation_score(
         example, model, input_spec, output_spec, orig_output, pred_key,
-        fields_to_ablate)
+        fields_to_ablate, tokens_to_ignore)
 
     if isinstance(output_spec[pred_key], types.RegressionScore):
       ablation_idxs_generator = self._gen_ablation_idxs(

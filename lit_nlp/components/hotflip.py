@@ -50,16 +50,16 @@ JsonDict = types.JsonDict
 Spec = types.Spec
 
 PREDICTION_KEY = "Prediction key"
-NUM_EXAMPLES_KEY = "Number of examples"
+NUM_EXAMPLES_KEY = "Max number of counterfactuals to generate"
 NUM_EXAMPLES_DEFAULT = 5
-MAX_FLIPS_KEY = "Maximum number of token flips"
+MAX_FLIPS_KEY = "Max number of token flips"
 MAX_FLIPS_DEFAULT = 3
-TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
+TOKENS_TO_IGNORE_KEY = "Comma-separated list of tokens to never flip"
 TOKENS_TO_IGNORE_DEFAULT = []
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 0.0
 MAX_FLIPPABLE_TOKENS = 10
-FIELDS_TO_HOTFLIP_KEY = "Fields to hotflip"
+FIELDS_TO_HOTFLIP_KEY = "Fields to flip tokens in"
 
 
 class HotFlip(lit_components.Generator):
@@ -79,6 +79,20 @@ class HotFlip(lit_components.Generator):
   no strict subset of the applied token perturbations would have resulted in a
   prediction flip.
   """
+
+  def description(self) -> str:
+    # TODO(lit-dev): Find way to have newlines in the string and have it be
+    # displayed correctly on the front-end.
+    return """Uses token-wise gradients to find minimal tokens changes that
+      cause the model to return a different prediction.\n\nIn the
+      case of classification models, the returned counterfactuals are guaranteed
+      to have a different prediction class as the original example. In the case
+      of regression models, the returned counterfactuals are guaranteed to be on
+      the opposite side of a user-provided threshold as the original example.
+      \n\nCan fail to produce counterfactuals if there is no set of token
+      changes within the scope of the configuration options that cause
+      significant model prediction changes.
+    """
 
   def is_compatible(self, model: lit_model.Model) -> bool:
     """Returns true if the given model is compatible with HotFlip."""

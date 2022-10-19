@@ -100,6 +100,18 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
         self.ablation_flip.generate(ex, self.classification_model, None,
                                     self.classification_config), 2)
 
+  def test_ablation_flip_tokens_to_ignore(self):
+    ex = {'sentence': 'this long movie was terrible'}
+    self.classification_config[ablation_flip.NUM_EXAMPLES_KEY] = 1
+    self.classification_config[ablation_flip.TOKENS_TO_IGNORE_KEY] = [
+        'terrible']
+    self.classification_config[ablation_flip.FIELDS_TO_ABLATE_KEY] = [
+        'sentence'
+    ]
+    self.assertEmpty(
+        self.ablation_flip.generate(ex, self.classification_model, None,
+                                    self.classification_config))
+
   def test_ablation_flip_num_ex_multi_input(self):
     ex = {'sentence1': 'this long movie is terrible',
           'sentence2': 'this short movie is great'}
