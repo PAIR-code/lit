@@ -146,14 +146,15 @@ export class WidgetGroup extends ReactiveElement {
     return html`
       <div class=header>
         <div class="title" @click=${onTitleClick}>${title}</div>
-        ${this.minimized || configGroup.length < 2 ?
-          null :
-          [renderDirectionControl(), renderScrollSyncControl()]
-        }
-        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${this.minimized ? 'maximize' : 'minimize'}
+        ${this.minimized || configGroup.length < 2 ? null : [
+          renderDirectionControl(), renderScrollSyncControl()
+        ]}
+        <mwc-icon class="icon-button min-button" @click=${onMinClick}
+          title=${this.minimized ? 'Expand' : 'Collapse'}>
+          ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
+        <mwc-icon class="icon-button" @click=${onMaxClick}
+          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
@@ -272,8 +273,7 @@ export class WidgetGroup extends ReactiveElement {
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
     const event = new CustomEvent<WidgetMinimizedChange>(
-        'widget-group-minimized-changed',
-        {detail: {isMinimized}});
+        'widget-group-minimized-changed', {detail: {isMinimized}});
     this.dispatchEvent(event);
   }
 }
@@ -286,12 +286,12 @@ export class WidgetGroup extends ReactiveElement {
  */
 @customElement('lit-widget')
 export class LitWidget extends MobxLitElement {
-  @property({ type: String }) displayTitle = '';
-  @property({ type: String }) subtitle = '';
-  @property({ type: Boolean }) isLoading = false;
-  @property({ type: Boolean }) highlight = false;
-  @property({ type: Number }) widgetScrollTop = 0;
-  @property({ type: Number }) widgetScrollLeft = 0;
+  @property({type: String}) displayTitle = '';
+  @property({type: String}) subtitle = '';
+  @property({type: Boolean}) isLoading = false;
+  @property({type: Boolean}) highlight = false;
+  @property({type: Number}) widgetScrollTop = 0;
+  @property({type: Number}) widgetScrollLeft = 0;
 
   static override get styles() {
     return [sharedStyles, widgetStyles];
@@ -306,8 +306,8 @@ export class LitWidget extends MobxLitElement {
     // If a module contains an element with the SCROLL_SYNC_CSS_CLASS, then
     // scroll it appropriately and set its onscroll listener to bubble-up scroll
     // events to the parent LitWidgetGroup.
-    const scrollElems = module.shadowRoot!.querySelectorAll(
-        `.${SCROLL_SYNC_CSS_CLASS}`);
+    const scrollElems =
+        module.shadowRoot!.querySelectorAll(`.${SCROLL_SYNC_CSS_CLASS}`);
     if (scrollElems.length > 0) {
       for (const scrollElement of scrollElems as NodeListOf<HTMLElement>) {
         scrollElement.scrollTop = this.widgetScrollTop;
@@ -317,9 +317,8 @@ export class LitWidget extends MobxLitElement {
         // the widget group for sync'ing between duplicated widgets.
         const scrollCallback = () => {
           const {scrollLeft, scrollTop} = scrollElement;
-          const event = new CustomEvent<WidgetScroll>('widget-scroll', {
-            detail: {scrollTop, scrollLeft}
-          });
+          const event = new CustomEvent<WidgetScroll>(
+              'widget-scroll', {detail: {scrollTop, scrollLeft}});
           this.dispatchEvent(event);
         };
         module.onSyncScroll = scrollCallback;
@@ -388,10 +387,10 @@ export class LitWidget extends MobxLitElement {
   renderHeader() {
     return html`
     <div class=header>
-      ${this.highlight ?
-        html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
-        html`<div class="pin-spacer"></div>`
-      }
+      ${
+        this.highlight ?
+            html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
+            html`<div class="pin-spacer"></div>`}
       <span class="subtitle">${this.subtitle}</span>
     </div>
     `;
