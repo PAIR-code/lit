@@ -85,11 +85,6 @@ export class LitMainMenu extends MobxLitElement {
 
   // Returns items for the select menu.
   getSelectItems() {
-    const selectRandomDatapoint = () => {
-      const nextIndex = randInt(0, this.appState.currentInputData.length);
-      const nextId = this.appState.currentInputData[nextIndex].id;
-      this.selectionService.selectIds([nextId]);
-    };
     const selectAllRelatedCallback = () => {
       this.selectRelated();
     };
@@ -99,26 +94,15 @@ export class LitMainMenu extends MobxLitElement {
     const selectAllChildrenCallback = () => {
       this.selectionService.selectIds([...this.findAllChildren()]);
     };
-    const selectNone = () => {
-      this.selectionService.selectIds([]);
-    };
     const noAction = () => {};
 
     const hasParents = this.findAllParents().length > 1;
     const hasChildren = this.findAllChildren().length > 1;
     const hasRelatives = hasParents || hasChildren;
-    const pointSelected = this.selectionService.selectedIds.length > 0;
 
     return [
       {
-        itemText: 'Random',
-        displayIcon: false,
-        menu: [],
-        onClick: selectRandomDatapoint,
-        disabled: false,
-      },
-      {
-        itemText: 'All related',
+        itemText: 'Parents and children',
         displayIcon: false,
         menu: [],
         onClick: hasRelatives ? selectAllRelatedCallback :
@@ -141,13 +125,6 @@ export class LitMainMenu extends MobxLitElement {
       },
       this.getSliceItem(),
       // TODO(lit-dev): Add find siblings option.
-      {
-        itemText: 'Clear selection',
-        displayIcon: false,
-        menu: [],
-        onClick: selectNone,
-        disabled: !pointSelected,
-      },
     ];
   }
 
