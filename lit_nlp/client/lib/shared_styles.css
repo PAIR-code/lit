@@ -339,7 +339,7 @@ mwc-textfield {
   border-color: #098591;
 }
 
-.token-chip-label:hover {
+.token-chip-label:not(:only-child):hover {
   background: #e4f7fb;
 }
 
