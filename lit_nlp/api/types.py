@@ -186,6 +186,7 @@ class TextSegment(StringLitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ImageBytes(LitType):
   """An image, an encoded base64 ascii string (starts with 'data:image...')."""
+  resize: bool = False  # Whether to resize image so it stresses bandwidth less.
 
   def validate_input(self, value, spec: Spec, example: Input):
     if not isinstance(value, str) or not value.startswith("data:image"):
