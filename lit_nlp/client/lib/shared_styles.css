@@ -458,11 +458,10 @@ mwc-textfield {
  * adds a large backdrop and extra whitespace.
  */
 .icon-button {
-  height: 20px;
-  width: 20px;
-  min-width: 20px;
-  --mdc-icon-size: 20px;
-  padding: 0x 2px 0px 2px;
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
   cursor: pointer;
   user-select: none;
   color: var(--lit-neutral-700);
