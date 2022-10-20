@@ -66,6 +66,7 @@ export class DataTableModule extends LitModule {
   @observable searchText = '';
 
   // Module options / configuration state
+  @observable private onlyShowGenerated: boolean = false;
   @observable private onlyShowSelected: boolean = false;
   @observable private columnDropdownVisible: boolean = false;
 
@@ -125,9 +126,10 @@ export class DataTableModule extends LitModule {
 
   @computed
   get filteredData(): IndexedInput[] {
-    return this.onlyShowSelected ?
+    const data: IndexedInput[] = this.onlyShowSelected ?
         this.selectionService.selectedInputData.concat(this.pinnedInputData) :
         this.appState.currentInputData;
+    return this.onlyShowGenerated ? data.filter((d) => d.meta.added) : data;
   }
 
   @computed
@@ -352,9 +354,7 @@ export class DataTableModule extends LitModule {
   }
 
   renderControls() {
-    const onClickResetView = () => {
-      this.table!.resetView();
-    };
+    const onClickResetView = () => {this.table?.resetView();};
 
     const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
@@ -362,10 +362,6 @@ export class DataTableModule extends LitModule {
 
     const onToggleShowColumn = () => {
       this.columnDropdownVisible = !this.columnDropdownVisible;
-    };
-
-    const onClickSwitch = () => {
-      this.onlyShowSelected = !this.onlyShowSelected;
     };
 
     // clang-format off
@@ -377,9 +373,17 @@ export class DataTableModule extends LitModule {
           ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
         </span>
       </button>
-      <div class='switch-container' @click=${onClickSwitch}>
-        <div>Show only selected</div>
-        <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+      <div class="toggles-row">
+        <div class='switch-container'
+            @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
+          <div>Show only selected</div>
+          <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+        </div>
+        <div class='switch-container'
+            @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
+          <div>Show only generated</div>
+          <mwc-switch .checked=${this.onlyShowGenerated}></mwc-switch>
+        </div>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}

@@ -23,3 +23,9 @@
   max-height: calc(100% - 48px);
   overflow: auto;
 }
+
+.toggles-row {
+  display: flex;
+  flex-direction: row;
+  column-gap: 16px;
+}
