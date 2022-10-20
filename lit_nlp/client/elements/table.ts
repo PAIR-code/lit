@@ -708,7 +708,7 @@ export class DataTable extends ReactiveElement {
               last_page
             </mwc-icon>
             <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              @click=${randomPage}>
+              title="Go to a random page" @click=${randomPage}>
               casino
             </mwc-icon>
           </div>
