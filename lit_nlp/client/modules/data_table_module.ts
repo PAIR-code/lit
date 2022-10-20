@@ -32,7 +32,8 @@ import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays} from '../lib/utils';
-import {DataService, FocusService, SelectionService} from '../services/services';
+import {DataService, FocusService, SelectionService, SliceService} from '../services/services';
+import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
 
@@ -59,6 +60,7 @@ export class DataTableModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
+  private readonly sliceService = app.getService(SliceService);
   private readonly referenceSelectionService =
       app.getService(SelectionService, 'pinned');
 
@@ -83,7 +85,9 @@ export class DataTableModule extends LitModule {
   get keys(): ColumnHeader[] {
     function createColumnHeader(name: string, type: LitType) {
       const header = {name, vocab: (type as LitTypeWithVocab).vocab};
-      if (type instanceof BooleanLitType) {header.vocab = ['✔', ' '];}
+      if (type instanceof BooleanLitType) {
+        header.vocab = ['✔', ' '];
+      }
       return header;
     }
 
@@ -187,6 +191,15 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get starredIndices(): number[] {
+    const starredIds = this.sliceService.getSliceByName(STARRED_SLICE_NAME);
+    if (starredIds) {
+      return starredIds.map(sid => this.indexOfId(sid));
+    }
+    return [];
+  }
+
+  @computed
   get focusedIndex(): number {
     // Set focused index if a datapoint is focused according to the focus
     // service. If the focusData is null then nothing is focused. If focusData
@@ -209,6 +222,20 @@ export class DataTableModule extends LitModule {
     return ancestorIds.map((id) => this.appState.indicesById.get(id)!)
         .reverse();
   }
+
+  private isStarred(id: string|null): boolean {
+    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
+  }
+
+  private toggleStarred(id: string|null) {
+    if (id == null) return;
+    if (this.isStarred(id)) {
+      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [id]);
+    } else {
+      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [id]);
+    }
+  }
+
 
   // TODO(lit-dev): figure out why this updates so many times;
   // it gets run _four_ times every time a new datapoint is added.
@@ -233,51 +260,79 @@ export class DataTableModule extends LitModule {
         event.stopPropagation();
       };
 
+      const starClick = (event: Event) => {
+        this.toggleStarred(d.id);
+        event.stopPropagation();
+        event.preventDefault();
+      };
+
       // Provide a template function for the 'index' column so that the
       // rendering can be based on the selection/hover state of the datapoint
       // represented by the row.
-      function templateFn(isSelected: boolean, isPrimarySelection: boolean,
-                          isReferenceSelection: boolean, isFocused: boolean) {
-            const indexHolderDivStyle = styleMap({
-              'display': 'flex',
-              'flex-direction': 'row-reverse',
-              'justify-content': 'space-between',
-              'width': '100%'
+      function templateFn(
+          isSelected: boolean, isPrimarySelection: boolean,
+          isReferenceSelection: boolean, isFocused: boolean,
+          isStarred: boolean) {
+        const indexHolderDivStyle = styleMap({
+          'display': 'flex',
+          'justify-content': 'space-between',
+          'width': '100%'
+        });
+        const indexDivStyle = styleMap({
+          'text-align': 'right',
+        });
+        // Render the action button next to the index if datapoint is selected,
+        // hovered, or active (pinned, starred).
+        function renderActionButtons() {
+          function getActionStyle(isActive: boolean) {
+            return styleMap({
+              'visibility': isPrimarySelection || isFocused || isActive ?
+                  'visible' :
+                  'hidden',
             });
-            const indexDivStyle = styleMap({
-              'text-align': 'right',
-            });
-            // Render the pin button next to the index if datapoint is pinned,
-            // selected, or hovered.
-            function renderPin() {
-              const iconClass = classMap({
-                'icon-button': true,
-                'cyea': true,
-                'mdi-outlined': !isReferenceSelection,
-              });
-              if (isReferenceSelection || isPrimarySelection || isFocused) {
-                return html`
-                <mwc-icon class="${iconClass}" @click=${pinClick}>
-                    push_pin
-                </mwc-icon>`;
-              }
-              return null;
-            }
-            return html`
-            <div style="${indexHolderDivStyle}">
-              <div style="${indexDivStyle}">${index}</div>
-              ${renderPin()}
-            </div>`;
           }
+
+          function getActionClass(isActive: boolean) {
+            return classMap({
+              'icon-button': true,
+              'cyea': true,
+              'mdi-outlined': !isActive,
+            });
+          }
+
+          return html`
+              <mwc-icon style="${
+              getActionStyle(isReferenceSelection)}" class="${
+              getActionClass(isReferenceSelection)}" @click=${pinClick}
+                title=${
+              isReferenceSelection ? 'Pin datapoint' : 'Unpin datapoint'}>
+                push_pin
+              </mwc-icon>
+              <mwc-icon style="${getActionStyle(isStarred)}" class="${
+              getActionClass(isStarred)}" @click=${starClick}
+                title=${
+              isStarred ? 'Remove from starred slice' :
+                          'Add to starred slice'}>
+                ${isStarred ? 'star' : 'star_border'}
+              </mwc-icon>`;
+        }
+        return html`
+            <div style="${indexHolderDivStyle}">
+              ${renderActionButtons()}
+              <div style="${indexDivStyle}">${index}</div>
+            </div>`;
+      }
       const indexEntry = {template: templateFn, value: index};
       return [indexEntry, ...dataEntry];
     });
   }
 
   override firstUpdated() {
-    const updateColsChange = () => [
-        this.appState.currentModels, this.appState.currentDataset, this.keys];
-    this.reactImmediately(updateColsChange, () => {this.updateColumns();});
+    const updateColsChange = () =>
+        [this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.reactImmediately(updateColsChange, () => {
+      this.updateColumns();
+    });
   }
 
   private updateColumns() {
@@ -412,6 +467,7 @@ export class DataTableModule extends LitModule {
         .selectedIndices=${this.selectedRowIndices}
         .primarySelectedIndex=${this.primarySelectedIndex}
         .referenceSelectedIndex=${this.referenceSelectedIndex}
+        .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}

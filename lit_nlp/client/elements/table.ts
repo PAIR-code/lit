@@ -43,7 +43,8 @@ import {styles} from './table.css';
 /** Function for supplying table entry template result based on row state. */
 export type TemplateResultFn =
     (isSelected: boolean, isPrimarySelection: boolean,
-     isReferenceSelection: boolean, isFocused: boolean) => TemplateResult;
+     isReferenceSelection: boolean, isFocused: boolean, isStarred: boolean) =>
+        TemplateResult;
 
 type SortableTableEntry = string|number;
 /** Wrapper type for sortable custom data table entries */
@@ -122,6 +123,7 @@ export class DataTable extends ReactiveElement {
   @observable.struct @property({type: Array})
       columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) selectedIndices: number[] = [];
+  @observable.struct @property({type: Array}) starredIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
@@ -912,6 +914,7 @@ export class DataTable extends ReactiveElement {
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
     const isFocused = this.focusedIndex === dataIndex;
+    const isStarred = this.starredIndices.indexOf(dataIndex) !== -1;
     const rowClass = classMap({
       'lit-data-table-row': true,
       'selected': isSelected,
@@ -949,7 +952,11 @@ export class DataTable extends ReactiveElement {
         const t = (d as SortableTemplateResult).template;
         if (typeof t === 'function') {
           templateResult = t(
-            isSelected, isPrimarySelection, isReferenceSelection, isFocused);
+            isSelected,
+            isPrimarySelection,
+            isReferenceSelection,
+            isFocused,
+            isStarred);
         } else {
           templateResult = t;
         }

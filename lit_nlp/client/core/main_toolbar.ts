@@ -33,7 +33,6 @@ import {MenuItem} from '../elements/menu';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
-import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {app} from './app';
 import {styles} from './main_toolbar.css';
@@ -222,7 +221,6 @@ export class LitMainToolbar extends MobxLitElement {
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
   private readonly selectionService = app.getService(SelectionService);
-  private readonly sliceService = app.getService(SliceService);
 
   /**
    * ID pairs, as [child, parent], from current selection or the whole dataset.
@@ -232,20 +230,6 @@ export class LitMainToolbar extends MobxLitElement {
     const data = this.selectionService.selectedOrAllInputData;
     return data.filter(d => d.meta['parentId'])
         .map(d => [d.id, d.meta['parentId']!]);
-  }
-
-  private isStarred(id: string|null): boolean {
-    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
-  }
-
-  private toggleStarred() {
-    const primaryId = this.selectionService.primarySelectedId;
-    if (primaryId == null) return;
-    if (this.isStarred(primaryId)) {
-      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [primaryId]);
-    } else {
-      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [primaryId]);
-    }
   }
 
   /**
@@ -425,24 +409,6 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-  renderStarButton(numSelected: number) {
-    const highlightStar =
-        this.isStarred(this.selectionService.primarySelectedId);
-
-    const disabled = numSelected === 0;
-    const iconClass = classMap({'icon-button': true, 'disabled': disabled});
-
-    const starOnClick = () => {
-      this.toggleStarred();
-    };
-    // clang-format off
-    return html`
-      <mwc-icon class=${iconClass} id='star-button' @click=${starOnClick}>
-        ${highlightStar ? 'star' : 'star_border'}
-      </mwc-icon>`;
-    // clang-format on
-  }
-
   override render() {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
@@ -506,7 +472,6 @@ export class LitMainToolbar extends MobxLitElement {
       </div>
       <div id='right-container'>
         ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
-        ${this.renderStarButton(numSelected)}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
         <button id="select-all" class="hairline-button xl"
           @click=${selectAll}>
