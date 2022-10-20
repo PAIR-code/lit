@@ -513,6 +513,7 @@ export class DataTable extends ReactiveElement {
         selectedIndices.add(dataIndex);
       }
       this.setShiftSelectionSpan(rowIndex, rowIndex);
+      this.setPrimarySelectedIndex(rowIndex);
     }
     //  Rather complicated logic for handling shift-click
     else if (e.shiftKey) {
@@ -540,6 +541,8 @@ export class DataTable extends ReactiveElement {
           this.shiftSpanAnchor = SpanAnchor.END;
         }
       }
+
+      this.setPrimarySelectedIndex(rowIndex);
     }
     // Otherwise, simply select/deselect the index.
     else {
