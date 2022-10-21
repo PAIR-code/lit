@@ -165,7 +165,9 @@
   --lit-bold-label-color: var(--lit-majtonal-nv-800);
   --lit-light-label-color: var(--lit-majtonal-nv-600);
 
-  --lit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  --lit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14),
+                    0 3px 1px -2px rgba(0, 0, 0, .2),
+                    0 1px 5px 0 rgba(0, 0, 0, .12);
 }
 
 button {
@@ -561,7 +563,7 @@ mwc-icon.mdi-outlined {
 
 .module-footer {
   align-items: center;
-  border-top: 1px solid #dadce0;
+  border-top: 1px solid var(--viz-color-grey-1);
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -574,7 +576,7 @@ mwc-icon.mdi-outlined {
 
 /** Status text in a module footer. **/
 .module-status {
-  color: #3c4043;
+  color: var(--lit-neutral-800);
   font-style: italic;
   font-weight: normal;
   margin: 0 0.5em;
@@ -616,10 +618,9 @@ mwc-icon.outlined {
   --mdc-icon-font: "Material Icons Outlined";
 }
 
+/* TODO(b/254783802): consolidate this with <popup-container> */
 .popup-container {
   background: white;
   border: 1px solid var(--lit-neutral-600);
-  box-shadow: rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-              rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-              rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+  box-shadow: var(--lit-box-shadow);
 }

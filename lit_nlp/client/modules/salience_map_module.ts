@@ -19,21 +19,21 @@
  * LIT module for salience maps, such as gradients or LIME.
  */
 
-import '../elements/checkbox';
 import '../elements/spinner';
+import '../elements/popup_container';
 
 import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
+import {InterpreterClick} from '../elements/interpreter_controls';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FeatureSalience, ImageGradients, ImageSalience, FieldMatcher, Salience} from '../lib/lit_types';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
@@ -426,77 +426,95 @@ export class SalienceMapModule extends LitModule {
     `;
   }
 
-  renderControls() {
-    return Object.keys(this.state).map(name => {
-      const toggleAutorun = () => {
-        this.state[name].autorun = !this.state[name].autorun;
-      };
-      // clang-format off
-      return html`<lit-checkbox label=${name} @change=${toggleAutorun}
-                                ?checked=${this.state[name].autorun}>
-                  </lit-checkbox>`;
-      // clang-format on
-    });
+  private controlsApplyCallback(event: CustomEvent<InterpreterClick>) {
+    const name = event.detail.name;
+    this.state[name].config = event.detail.settings;
+    this.runInterpreter(name);
   }
 
-  renderTable() {
-    const controlsApplyCallback = (event: Event) => {
-      // tslint:disable-next-line:no-any
-      const name =  (event as any).detail.name;
-      // tslint:disable-next-line:no-any
-      this.state[name].config = (event as any).detail.settings;
-      this.runInterpreter(name);
-    };
+  private renderMethodControls(name: string) {
+    const spec = this.appState.metadata.interpreters[name].configSpec;
+    // Don't render controls if there aren't any.
+    if (Object.keys(spec).length === 0) return null;
 
-    // clang-format off
-    const renderMethodControls = (name: string) => {
-      const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = cloneSpec(spec);
-      for (const fieldSpec of Object.values(clonedSpec)) {
-        // If the generator uses a field matcher, then get the matching
-        // field names from the specified spec and use them as the vocab.
-        if (fieldSpec instanceof FieldMatcher) {
-          fieldSpec.vocab =
-              this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
-        }
+    const clonedSpec = cloneSpec(spec);
+    for (const fieldSpec of Object.values(clonedSpec)) {
+      // If the generator uses a field matcher, then get the matching
+      // field names from the specified spec and use them as the vocab.
+      if (fieldSpec instanceof FieldMatcher) {
+        fieldSpec.vocab =
+            this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }
-      return html`
+    }
+
+    const description =
+        this.appState.metadata.interpreters[name].description ?? name;
+    const descriptionPreview = description.split('\n')[0];
+
+    // Right-anchor the controls popup.
+    const popupStyle = styleMap({'--popup-right': '0'});
+    // The "control" slot in <popup-container> renders in-place and uses the
+    // given template as a toggle control for the popup.
+    // This allows control state to remain inside <popup-container>, freeing
+    // us from having to keep track of another set of booleans here.
+    // clang-format off
+    return html`
+      <popup-container style=${popupStyle}>
+        <div class="controls-toggle" slot="toggle-anchor">
+          <mwc-icon class='icon-button'>settings</mwc-icon>
+        </div>
+        <div class="controls-panel">
           <lit-interpreter-controls .spec=${clonedSpec} .name=${name}
-                                    @interpreter-click=${controlsApplyCallback}>
-          </lit-interpreter-controls>`;
+                      .description=${descriptionPreview}
+                      noexpand opened
+                      @interpreter-click=${this.controlsApplyCallback}>
+          </lit-interpreter-controls>
+        </div>
+      </popup-container>`;
+    // clang-format on
+  }
+
+  renderMethodRow(name: string) {
+    // TODO(b/217724273): figure out a more elegant way to handle
+    // variable-named output fields with metaSpec.
+    const {output} = this.appState.getModelSpec(this.model);
+    const {metaSpec} = this.appState.metadata.interpreters[name];
+    const spec = {...metaSpec, ...output};
+    const salience = this.state[name].salience;
+    const description =
+        this.appState.metadata.interpreters[name].description ?? name;
+
+    const toggleAutorun = () => {
+      this.state[name].autorun = !this.state[name].autorun;
     };
 
+    const salienceContent = Object.keys(salience).map(
+        gradKey =>
+            this.renderGroup(salience, spec, gradKey, this.state[name].cmap));
+
+    // The "bar-content" slot in <expansion-panel> renders inline between
+    // the label and the expander toggle.
+    // clang-format off
     return html`
-      <table>
-        ${Object.keys(this.state).map(name => {
-          if (!this.state[name].autorun) {
-            return null;
-          }
-          // TODO(b/217724273): figure out a more elegant way to handle
-          // variable-named output fields with metaSpec.
-          const {output} = this.appState.getModelSpec(this.model);
-          const {metaSpec} = this.appState.metadata.interpreters[name];
-          const spec = {...metaSpec, ...output};
-          const salience = this.state[name].salience;
-          const description =
-              this.appState.metadata.interpreters[name].description ?? name;
-          return html`
-            <tr class='method-row'>
-              <th class='group-label' title=${description}>
-                ${renderMethodControls(name)}
-              </th>
-              <td class=${classMap({'group-container': true,
-                                    'loading': this.state[name].isLoading})}>
-                ${Object.keys(salience).map(gradKey =>
-                    this.renderGroup(salience, spec, gradKey,
-                                     this.state[name].cmap))}
-                ${this.state[name].isLoading ? this.renderSpinner() : null}
-              </td>
-            </tr>
-          `;
-        })}
-      </table>
-    `;
+      <div class='method-row'>
+        <expansion-panel .label=${name} ?expanded=${this.state[name].autorun}
+                         .description=${description}
+                          @expansion-toggle=${toggleAutorun}>
+          <div slot="bar-content">
+            ${this.renderMethodControls(name)}
+          </div>
+          <div class='method-row-contents'>
+            <div class='method-results'>
+              ${this.selectionService.primarySelectedInputData != null ?
+                salienceContent : html`
+                <span class='salience-placeholder'>
+                  Select a datapoint to see ${name} attributions.
+                </span>`}
+              ${this.state[name].isLoading ? this.renderSpinner() : null}
+            </div>
+          </div>
+        </expansion-panel>
+      </div>`;
     // clang-format on
   }
 
@@ -504,11 +522,8 @@ export class SalienceMapModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar'>
-          ${this.renderControls()}
-        </div>
         <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
-          ${this.renderTable()}
+          ${Object.keys(this.state).map(name => this.renderMethodRow(name))}
         </div>
         ${this.isRenderImage ? null : this.renderFooter()}
       </div>

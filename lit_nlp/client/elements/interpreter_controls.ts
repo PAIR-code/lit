@@ -52,6 +52,7 @@ export class InterpreterControls extends ReactiveElement {
   @observable @property({type: String}) applyButtonText = 'Apply';
   @property({type: Boolean, reflect: true}) applyButtonDisabled = false;
   @observable settings: InterpreterSettings = {};
+  @property({type: Boolean, reflect: true}) noexpand = false;
   @property({type: Boolean, reflect: true}) opened = false;
 
   static override get styles() {
@@ -70,8 +71,10 @@ export class InterpreterControls extends ReactiveElement {
       this.dispatchEvent(event);
     };
 
-    const expandable =
-        Object.keys(this.spec).length > 0 || this.description.length > 0;
+    // TODO(b/254775471): revisit this logic, remove need for noexpand
+    // in favor of an explicit 'expandable' attribute.
+    const expandable = !this.noexpand &&
+        (Object.keys(this.spec).length > 0 || this.description.length > 0);
 
     const descriptionHTML = getTemplateStringFromMarkdown(this.description);
 
