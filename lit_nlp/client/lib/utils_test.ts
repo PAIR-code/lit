@@ -390,18 +390,6 @@ describe('getThresholdFromMargin test', () => {
   });
 });
 
-describe('shortenID test', () => {
-  it('Shortens an id to 6 characters, for display', () => {
-    expect(utils.shortenId('b6ea684bec7bb1d4b9f2736b749c3030'))
-        .toEqual('b6ea68');
-    expect(utils.shortenId('924d4976b4ac56d053ed956671652892'))
-        .toEqual('924d49');
-  });
-  it('Behaves correctly for null input', () => {
-    expect(utils.shortenId(null)).toEqual(undefined);
-  });
-});
-
 describe('isNumber test', () => {
   it('Returns true for normal numbers', () => {
     expect(utils.isNumber(4)).toEqual(true);

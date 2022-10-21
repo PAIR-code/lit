@@ -304,16 +304,6 @@ export function getMarginFromThreshold(threshold: number) {
 }
 
 /**
- * Shortens the id of an input data to be displayed in the UI.
- */
-export function shortenId(id: string|null) {
-  if (id == null) {
-    return;
-  }
-  return id.substring(0, 6);
-}
-
-/**
  * Return true for finite numbers.
  * Also coerces numbers in string form (e.g., "2")
  */
