@@ -60,14 +60,6 @@
   writing-mode: vertical-lr;
 }
 
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-  --mdc-icon-button-size: 24px;
-}
-
 .delete-cell {
   display: flex;
   justify-content: flex-end

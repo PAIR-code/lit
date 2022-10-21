@@ -237,17 +237,6 @@ tbody td {
   min-width: 16px;
 }
 
-/**
- * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
- * adds a large backdrop and extra whitespace.
- */
-.icon-button:hover {
-  color: var(--lit-neutral-900);
-}
-.button-extra-margin {
-  margin-left: 4px;
-}
-
 .checkbox-holder{
   padding: 4px;
 }

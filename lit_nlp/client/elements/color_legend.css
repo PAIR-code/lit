@@ -44,18 +44,3 @@
   white-space: nowrap;
   color: var(--lit-neutral-800);
 }
-
-.palette-icon {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  user-select: none;
-  color: var(--lit-neutral-700);
-}
-
-.icon-outlined {
-  font-family: 'Material Icons Outlined';
-  vertical-align: middle;
-  margin: 0;
-}

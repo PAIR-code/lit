@@ -118,7 +118,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button direction-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon direction-toggle"
           title="Toggle layout direction"
           onIcon="view_week" offIcon="table_rows"
           ?on="${this.duplicateAsRow}"
@@ -133,7 +133,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button scroll-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon scroll-toggle"
           title="Toggle scroll sync"
           onIcon="sync" offIcon="sync_disabled"
           ?on="${this.syncScrolling}"
@@ -149,11 +149,11 @@ export class WidgetGroup extends ReactiveElement {
         ${this.minimized || configGroup.length < 2 ? null : [
           renderDirectionControl(), renderScrollSyncControl()
         ]}
-        <mwc-icon class="icon-button min-button" @click=${onMinClick}
+        <mwc-icon class="icon-button large-icon min-button" @click=${onMinClick}
           title=${this.minimized ? 'Expand' : 'Collapse'}>
           ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick}
+        <mwc-icon class="icon-button large-icon " @click=${onMaxClick}
           title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>

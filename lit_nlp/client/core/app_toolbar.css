@@ -36,19 +36,8 @@
   margin-left: 8px;
 }
 
-.icon-button {
-  height: 20px;
-  width: 20px;
-  min-width: 20px;
-  --mdc-icon-size: 20px;
-  padding: 0x 2px 0px 2px;
-  cursor: pointer;
+icon-margin {
   margin: 0pt 2pt;
-  color: var(--lit-neutral-100);
-}
-
-.icon-button:hover {
-  color: var(--lit-neutral-400);
 }
 
 .status-emoji {

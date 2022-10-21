@@ -17,17 +17,16 @@
 
 // tslint:disable:no-new-decorators
 import './checkbox';
-import '@material/mwc-icon';
 
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {BooleanLitType, CategoryLabel, SingleFieldMatcher, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SparseMultilabel, Tokens} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SingleFieldMatcher, SparseMultilabel, Tokens} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {getTemplateStringFromMarkdown} from '../lib/utils';
 import {Spec} from '../lib/types';
+import {getTemplateStringFromMarkdown} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';
 

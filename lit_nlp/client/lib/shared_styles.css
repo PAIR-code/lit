@@ -453,6 +453,15 @@ mwc-textfield {
   color: var(--lit-cyea-500);
 }
 
+.icon {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  user-select: none;
+  color: var(--lit-neutral-700);
+}
+
 /**
  * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
  * adds a large backdrop and extra whitespace.
@@ -487,6 +496,30 @@ mwc-icon.mdi-outlined {
 
 .span-outlined {
   font-family: "Material Icons Outlined";
+}
+
+.icon-button.large-icon {
+  height: 20px;
+  width: 20px;
+  min-width: 20px;
+  --mdc-icon-size: 20px;
+  padding: 0x 2px 0px 2px;
+}
+
+.icon-button.white-icon {
+  color: var(--lit-neutral-100);
+}
+
+.icon-button.white-icon:hover {
+  color: var(--lit-neutral-400);
+}
+
+.icon-button.cyea-icon {
+  color: var(--lit-cyea-800);
+}
+
+.icon-button.cyea-icon:hover {
+  color: var(--lit-cyea-600);
 }
 
 /**

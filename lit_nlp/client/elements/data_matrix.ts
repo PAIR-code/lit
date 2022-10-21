@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
-import '@material/mwc-icon-button-toggle';
-// tslint:disable:no-new-decorators
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
 import {html, LitElement} from 'lit';
+// tslint:disable:no-new-decorators
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
-import {styles} from './data_matrix.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
+
 import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+
+import {styles} from './data_matrix.css';
 
 
 // Custom color ramp for the Data Matrix
@@ -249,13 +251,11 @@ export class DataMatrix extends LitElement {
 
     // clang-format off
     return html`
-      <mwc-icon-button-toggle class="icon-button"
+      <mwc-icon class="icon-button"
         title="Rotate column labels"
-        onIcon="text_rotate_up" offIcon="text_rotation_none"
-        ?on="${this.verticalColumnLabels}"
-        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}"
-        @icon-button-toggle-change="${toggleVerticalColumnLabels}">
-      </mwc-icon-button-toggle>
+        @click="${toggleVerticalColumnLabels}">
+        ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
+      </mwc-icon>
     `;
     // clang-format on
   }

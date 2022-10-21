@@ -17,6 +17,8 @@
 
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
 import {html, TemplateResult} from 'lit';

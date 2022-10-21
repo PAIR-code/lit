@@ -201,7 +201,7 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
         <div class="legend-container">
-          <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
+          <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
           <div class="color-label" title=${this.selectedColorName}
             name="color-name">
             ${this.selectedColorName}
@@ -230,7 +230,7 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
         <div class="legend-container">
-          <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
+          <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
           <div class="color-label" title=${this.selectedColorName}
             name="color-name">
             ${this.selectedColorName}

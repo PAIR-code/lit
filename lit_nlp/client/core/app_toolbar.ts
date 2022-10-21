@@ -265,7 +265,7 @@ export class ToolbarComponent extends MobxLitElement {
       ${this.renderLayoutInfo()}
       <div class='vertical-separator'></div>
       <div title="Configure models, dataset, and UI." id="config">
-        <mwc-icon class="icon-button"
+        <mwc-icon class="icon-button large-icon white-icon icon-margin"
           @click=${this.toggleGlobalSettings}>
           settings
         </mwc-icon>
@@ -284,7 +284,7 @@ export class ToolbarComponent extends MobxLitElement {
     // clang-format off
     const docButton = this.appState.metadata != null ?
         html`
-          <mwc-icon class="icon-button"
+          <mwc-icon class="icon-button large-icon white-icon icon-margin"
             title="Documentation"
             @click=${this.toggleDocumentation}>
             help_outline
