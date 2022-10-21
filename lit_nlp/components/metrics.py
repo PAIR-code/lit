@@ -16,7 +16,8 @@
 
 import abc
 import collections
-from typing import Any, Callable, cast, Optional, Sequence, Union
+import enum
+from typing import Any, Callable, Optional, Sequence, Union, cast
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -36,6 +37,21 @@ JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 LitType = types.LitType
 Spec = types.Spec
+
+
+class BestValue(enum.Enum):
+  HIGHEST = 'highest'
+  LOWEST = 'lowest'
+  NONE = 'none'
+  ZERO = 'zero'
+
+
+_BEST_VALUE_VOCAB = [str(bv.value) for bv in BestValue]
+
+
+def _get_best_value_spec(
+    dflt: BestValue = BestValue.NONE) -> types.CategoryLabel:
+  return types.CategoryLabel(default=str(dflt), vocab=_BEST_VALUE_VOCAB)
 
 
 def map_pred_keys(
@@ -194,6 +210,9 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
     """Return true if compatible with this field."""
     return self._metrics.is_field_compatible(pred_spec, parent_spec)
 
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return self._metrics.meta_spec()
+
   def run(self,
           inputs: list[JsonDict],
           model: lit_model.Model,
@@ -246,6 +265,13 @@ class RegressionMetrics(SimpleMetrics):
     """Return true if compatible with this field."""
     del parent_spec
     return isinstance(pred_spec, types.RegressionScore)
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'mse': _get_best_value_spec(BestValue.ZERO),
+        'pearsonr': _get_best_value_spec(),
+        'spearmanr': _get_best_value_spec()
+    }
 
   def compute(self,
               labels: Sequence[float],
@@ -358,6 +384,17 @@ class MulticlassMetricsImpl(SimpleMetrics):
     """Return true if compatible with this field."""
     del parent_spec
     return isinstance(pred_spec, types.MulticlassPreds)
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'accuracy': _get_best_value_spec(BestValue.HIGHEST),
+        'precision': _get_best_value_spec(BestValue.HIGHEST),
+        'recall': _get_best_value_spec(BestValue.HIGHEST),
+        'f1': _get_best_value_spec(BestValue.HIGHEST),
+        'auc': _get_best_value_spec(BestValue.HIGHEST),
+        'aucpr': _get_best_value_spec(BestValue.HIGHEST),
+        'num_missing_labels': _get_best_value_spec(BestValue.ZERO),
+    }
 
   def compute(self,
               labels: Sequence[str],
@@ -523,6 +560,12 @@ class CorpusBLEU(SimpleMetrics):
     is_parent_compatible = isinstance(parent_spec, types.StringLitType)
     return is_pred_comaptible and is_parent_compatible
 
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'corpus_bleu': _get_best_value_spec(BestValue.HIGHEST),
+        'corpus_bleu@1': _get_best_value_spec(BestValue.HIGHEST)
+    }
+
   def compute(self,
               labels: Sequence[str],
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
@@ -590,6 +633,12 @@ class RougeL(SimpleMetrics):
         pred_spec, (types.GeneratedText, types.GeneratedTextCandidates))
     is_parent_compatible = isinstance(parent_spec, types.StringLitType)
     return is_pred_comaptible and is_parent_compatible
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'rougeL': _get_best_value_spec(BestValue.HIGHEST),
+        'rougeL@1': _get_best_value_spec(BestValue.HIGHEST)
+    }
 
   def compute(self,
               labels: Sequence[str],
@@ -663,6 +712,14 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     ret['FN'] = matrix[1][0]
     ret['TP'] = matrix[1][1]
     return ret
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'FN': _get_best_value_spec(BestValue.ZERO),
+        'FP': _get_best_value_spec(BestValue.ZERO),
+        'TN': _get_best_value_spec(BestValue.HIGHEST),
+        'TP': _get_best_value_spec(BestValue.HIGHEST),
+    }
 
   def is_field_compatible(self, pred_spec: LitType,
                           parent_spec: Optional[LitType]) -> bool:

@@ -26,6 +26,7 @@
 
 .header-cell {
   cursor: pointer;
+  font-weight: normal;
   padding: 2px 4px;
 }
 

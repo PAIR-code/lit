@@ -17,8 +17,9 @@
 
 // tslint:disable:no-new-decorators
 
-import {html} from 'lit';
+import {css, html} from 'lit';
 import {customElement, query} from 'lit/decorators';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -30,7 +31,12 @@ import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/typ
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
-import {styles} from './metrics_module.css';
+enum BestValue {
+  HIGHEST = 'highest',
+  LOWEST = 'lowest',
+  NONE = 'none',
+  ZERO = 'zero',
+}
 
 // Each entry from the server.
 interface MetricsResponse {
@@ -98,7 +104,15 @@ export class MetricsModule extends LitModule {
   static override duplicateForModelComparison = false;
 
   static override get styles() {
-    return [sharedStyles, styles];
+    return [sharedStyles, css`
+      .cb-label {margin: 4pt;}
+
+      .checkbox-holder {
+        display: flex;
+        justify-content: space-between;
+        margin-right: 4pt;
+      }
+    `];
   }
 
   private readonly sliceService = app.getService(SliceService);
@@ -299,34 +313,45 @@ export class MetricsModule extends LitModule {
   /** Convert the metricsMap information into table data for display. */
   @computed
   get tableData(): TableHeaderAndData {
-    const tableRows = [] as TableData[];
-    const allMetricNames = new Set<string>();
+    const {metaSpec} = this.appState.metadata.interpreters['metrics'];
+    if (metaSpec == null) return {'header': [], 'data': []};
+
+    const tableRows: TableData[] = [];
+    const metricBests = new Map<string, number>();
+    function getMetricKey(t: string, n: string) {return `${t}: ${n}`;}
+
     Object.values(this.metricsMap).forEach(row => {
-      Object.keys(row.headMetrics).forEach(metricsType => {
-        const metricsValues = row.headMetrics[metricsType];
-        Object.keys(metricsValues).forEach(metricName => {
-          allMetricNames.add(`${metricsType}: ${metricName}`);
+      Object.entries(row.headMetrics).forEach(([metricsT, metricsV]) => {
+        Object.entries(metricsV).forEach(([name, val]) => {
+          const key = getMetricKey(metricsT, name);
+          const max = metricBests.get(key)!;
+          const bestCase = metaSpec[key]?.default;
+
+          if (bestCase != null && (!metricBests.has(key) ||
+              (bestCase === BestValue.HIGHEST && max < val) ||
+              (bestCase === BestValue.LOWEST && max > val) ||
+              (bestCase === BestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
+            metricBests.set(key, bestCase === BestValue.NONE ? Infinity : val);
+          }
         });
       });
     });
 
-    const metricNames = [...allMetricNames];
+    const metricNames = [...metricBests.keys()];
 
     for (const row of Object.values(this.metricsMap)) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
-        if (row.headMetrics[metricsType] == null) {
-          return '-';
-        }
-        const num = row.headMetrics[metricsType][metricName];
-        if (num == null) {
-          return '-';
-        }
+        if (row.headMetrics[metricsType] == null) {return '-';}
+
+        const raw = row.headMetrics[metricsType][metricName];
+        if (raw == null) {return '-';}
+        const isBest = raw === metricBests.get(metricKey);
         // If the metric is not a whole number, then round to 3 decimal places.
-        if (typeof num === 'number' && num % 1 !== 0) {
-          return num.toFixed(3);
-        }
-        return num;
+        const value = typeof raw === 'number' && !Number.isInteger(raw) ?
+            raw.toFixed(3) : raw;
+        const styles = styleMap({'font-weight': isBest ? 'bold' : 'normal'});
+        return html`<span style=${styles}>${value}</span>`;
       });
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {

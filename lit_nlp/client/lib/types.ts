@@ -164,7 +164,7 @@ export function formatSpanLabel(s: SpanLabel): string {
 }
 
 export function formatEdgeLabel(e: EdgeLabel): string {
-  const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
+  function formatSpan (s: [number, number]) {return `[${s[0]}, ${s[1]})`;}
   const span1Text = formatSpan(e.span1);
   const span2Text = e.span2 ? ' ← ' + formatSpan(e.span2) : '';
   // Add non-breaking control chars to keep this on one line
@@ -486,8 +486,9 @@ export function formatForDisplay(
     return input ? `<float>[${input.length}]` : '';
   }
 
-  const formatNumber = (item: number) =>
-      Number.isInteger(item) ? item : Number(item.toFixed(4));
+  function formatNumber(item: number) {
+    return Number.isInteger(item) ? item : Number(item.toFixed(4));
+  }
 
   // Generic data, based on type of input.
   if (Array.isArray(input)) {
