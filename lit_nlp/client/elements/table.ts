@@ -158,6 +158,9 @@ export class DataTable extends ReactiveElement {
   private readonly columnFilterInfo = new Map<string, ColumnFilterInfo>();
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
+  // Default to updating the page number when primary selection is changed.
+  @observable private updatePageFromPrimary = true;
+  @observable private justChangedPage = false;
 
   private readonly resizeObserver = new ResizeObserver(() => {
     this.adjustEntriesIfHeightChanged();
@@ -642,6 +645,19 @@ export class DataTable extends ReactiveElement {
     // in the row render method
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
+    if (!this.justChangedPage && this.primarySelectedIndex > -1) {
+      this.pageNum = Math.floor(this.primarySelectedIndex / this.entriesPerPage);
+    } else if (this.justChangedPage) {
+      // If the page just changed, we update page based on page navigation, not
+      // on the location of the primary selection.
+      this.updatePageFromPrimary = false;
+    } else if (!this.updatePageFromPrimary) {
+      // If we've made it here, the page has been recalculated based on the
+      // page navigation. Reset variables.
+      this.justChangedPage = false;
+      this.updatePageFromPrimary = true;
+    }
+
     // clang-format off
     return html`<div class="holder">
       <table class=${classMap({'paginated': this.paginationEnabled})}>
@@ -670,12 +686,14 @@ export class DataTable extends ReactiveElement {
       return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
     };
 
-    const changePage = (offset: number) => {
+    const offsetPage = (offset: number) => {
+      this.justChangedPage = true;
       this.pageNum = modPageNumber(this.pageNum + offset);
     };
-    const firstPage = () => {this.pageNum = 0;};
-    const lastPage = () => {this.pageNum = this.totalPages - 1;};
-    const randomPage = () => {this.pageNum = randInt(0, this.totalPages);};
+    const goToPage = (pageNum: number) => {
+      this.justChangedPage = true;
+      this.pageNum = pageNum;
+    };
 
     const firstPageButtonClasses = {
       'icon-button': true,
@@ -692,11 +710,11 @@ export class DataTable extends ReactiveElement {
         <td colspan=${this.columnNames.length}>
           <div class="footer">
             <mwc-icon class=${classMap(firstPageButtonClasses)}
-              @click=${firstPage}>
+              @click=${() => {goToPage(0);}}>
               first_page
             </mwc-icon>
             <mwc-icon class='icon-button'
-              @click=${() => {changePage(-1);}}>
+              @click=${() => {offsetPage(-1);}}>
               chevron_left
             </mwc-icon>
             <div>
@@ -705,15 +723,16 @@ export class DataTable extends ReactiveElement {
              of ${this.totalPages}
             </div>
             <mwc-icon class='icon-button'
-               @click=${() => {changePage(1);}}>
+               @click=${() => {offsetPage(1);}}>
               chevron_right
             </mwc-icon>
             <mwc-icon class=${classMap(lastPageButtonClasses)}
-              @click=${lastPage}>
+              @click=${() => {goToPage(this.totalPages - 1);}}>
               last_page
             </mwc-icon>
             <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              title="Go to a random page" @click=${randomPage}>
+              title="Go to a random page" @click=${
+                () => {goToPage(randInt(0, this.totalPages));}}>
               casino
             </mwc-icon>
           </div>

@@ -24,14 +24,14 @@ import '@material/mwc-switch';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
+import {compareArrays, flatten, randInt} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
 
 import {app} from './app';
@@ -298,9 +298,7 @@ export class LitMainToolbar extends MobxLitElement {
     const primaryId = this.selectionService.primarySelectedId;
     if (primaryId == null) return;
 
-    const displayedPrimaryId = shortenId(primaryId);
     const primaryIndex = this.appState.indicesById.get(primaryId);
-
     const selectedIndex =
         this.selectionService.selectedIds.findIndex(id => id === primaryId);
     // Set the primary selection to the previous (-1) or next (1) example in the
@@ -310,25 +308,24 @@ export class LitMainToolbar extends MobxLitElement {
       const nextId = this.selectionService.selectedIds[nextIndex];
       this.selectionService.setPrimarySelection(nextId);
     };
+
+    const arrowsDisabled = numSelected < 2;
+    const iconClass =
+        classMap({'icon-button': true, 'disabled': arrowsDisabled});
     // clang-format off
     return html`
       <div id='primary-selection-status' class='selection-status-group'>
-        (${numSelected > 1 ? html`
-          <mwc-icon class='icon-button' id='select-prev'
-            @click=${() => {selectOffset(-1);}}>
+          <mwc-icon class=${iconClass} id='select-prev'
+            @click=${arrowsDisabled ? null: () => {selectOffset(-1);}}>
             chevron_left
           </mwc-icon>
-        ` : null}
-        <span id='primary-text'>
-          primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
-          ... [<span class='monospace'>${primaryIndex}</span>]
-        </span>
-        ${numSelected > 1 ? html`
-          <mwc-icon class='icon-button' id='select-next'
-            @click=${() => {selectOffset(1);}}>
+          <div id='primary-text'>
+            primary <span class='monospace'>[${primaryIndex}]</span>
+          </div>
+          <mwc-icon class=${iconClass} id='select-next'
+            @click=${arrowsDisabled ? null:() => {selectOffset(1);}}>
             chevron_right
           </mwc-icon>
-        ` : null})
       </div>
     `;
     // clang-format on
@@ -420,8 +417,8 @@ export class LitMainToolbar extends MobxLitElement {
     const numSelected = this.selectionService.selectedIds.length;
     const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
-    const primaryIndex = primaryId == null ? -1 :
-        this.appState.indicesById.get(primaryId)!;
+    const primaryIndex =
+        primaryId == null ? -1 : this.appState.indicesById.get(primaryId)!;
 
     const updatePinnedDatapoint = () => {
       if (this.pinnedSelectionService.primarySelectedId) {
@@ -442,10 +439,10 @@ export class LitMainToolbar extends MobxLitElement {
 
     const title = this.appState.compareExamplesEnabled ?
         `Unpin datapoint ${pinnedIndex}` :
-        primaryId == null ?
-            "Pin selected datapoint" : `Pin datapoint ${primaryIndex}`;
-    const pinDisabled = !this.appState.compareExamplesEnabled &&
-        primaryId == null;
+        primaryId == null ? 'Pin selected datapoint' :
+                            `Pin datapoint ${primaryIndex}`;
+    const pinDisabled =
+        !this.appState.compareExamplesEnabled && primaryId == null;
     const pinClasses = classMap({
       'material-icon': true,
       'span-outlined': !this.appState.compareExamplesEnabled
@@ -471,7 +468,8 @@ export class LitMainToolbar extends MobxLitElement {
         ${this.renderPairControls()}
       </div>
       <div id='right-container'>
-        ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
+        ${primaryId !== null && numSelected >= 1 ?
+          this.renderPrimarySelectControls() :  null}
         ${this.renderSelectionDisplay(numSelected, numTotal)}
         <button id="select-all" class="hairline-button xl"
           @click=${selectAll}>
