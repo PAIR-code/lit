@@ -178,7 +178,7 @@ export class ToolbarComponent extends MobxLitElement {
           @click=${() => { this.jumpToSettingsTab("Models"); }}>
           <span class='material-icon-outlined'>smart_toy</span>
           &nbsp;
-          <span class='headline-button-text' title=${buttonText}>${buttonText}</span>
+          <span class='headline-button-text'>${buttonText}</span>
           &nbsp;
           <span class='material-icon'>arrow_drop_down</span>
         </button>
@@ -196,7 +196,7 @@ export class ToolbarComponent extends MobxLitElement {
         @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
         <span class='material-icon'>storage</span>
         &nbsp;
-        <span class='headline-button-text' title=${buttonText}>${buttonText}</span>
+        <span class='headline-button-text'>${buttonText}</span>
         &nbsp;
         <span class='material-icon'>arrow_drop_down</span>
       </button>
@@ -224,14 +224,13 @@ export class ToolbarComponent extends MobxLitElement {
           this.settingsService.updateSettings({'layoutName': name});
           this.requestUpdate();
         };
-        const title = `Change layout to ${name}`;
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title=${title}
+          <button class=${classMap(classes)} title='Select ${name} layout'
             @click=${updateLayoutSelection}>
             <span class=${iconClass}>view_compact</span>
             &nbsp;
-            <span class='headline-button-text' title=${name}>${name}</span>
+            <span class='headline-button-text'>${name}</span>
           </button>
         `;
         // clang-format on

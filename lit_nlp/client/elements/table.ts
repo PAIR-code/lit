@@ -811,13 +811,17 @@ export class DataTable extends ReactiveElement {
               ${this.searchEnabled ? html`
                 <div class="menu-button-container">
                   <mwc-icon class="menu-button" style=${menuButtonStyle}
-                   @click=${handleMenuButton}>filter_alt</mwc-icon>
+                   title="Filter" @click=${handleMenuButton}>
+                   filter_alt
+                  </mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}>
-                <mwc-icon class=${upArrowClasses} style=${arrowStyle}>
+                <mwc-icon class=${upArrowClasses} style=${arrowStyle}
+                  title="Sort (ascending)">
                   arrow_drop_up
                 </mwc-icon>
-                <mwc-icon class=${downArrowClasses} style=${arrowStyle}>
+                <mwc-icon class=${downArrowClasses} style=${arrowStyle}
+                  title="Sort (descending)">
                   arrow_drop_down
                 </mwc-icon>
               </div>
