@@ -20,20 +20,19 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
 import {css, html, svg} from 'lit';
+import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {getBrandColor} from '../lib/colors';
 import {AttentionHeads as AttentionHeadsLitType, Tokens as TokensLitType} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
-
-import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {getBrandColor} from '../lib/colors';
 
 type Tokens = string[];
 // <float>[num_heads, num_tokens, num_tokens]
@@ -89,35 +88,35 @@ export class AttentionModule extends LitModule {
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
   override firstUpdated() {
-    const getSelectedInput = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(getSelectedInput, selectedInput => {
-      this.updateSelection(selectedInput);
+    const getAttnInputs = () =>
+        [this.selectionService.primarySelectedInputData, this.selectedLayer];
+    this.reactImmediately(getAttnInputs, (selectedInput, selectedLayer) => {
+      this.updateSelection(
+          this.selectionService.primarySelectedInputData, this.selectedLayer!);
     });
   }
 
-  private async updateSelection(selectedInput: IndexedInput|null) {
+  private async updateSelection(
+      selectedInput: IndexedInput|null, layer: string) {
     this.preds = undefined;  // clear previous results
 
     if (selectedInput === null) return;
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [selectedInput], this.model, dataset,
-        [TokensLitType, AttentionHeadsLitType], 'Fetching attention');
+        [selectedInput], this.model, dataset, [TokensLitType], [layer],
+        'Fetching attention');
     const res = await this.loadLatest('attentionAndTokens', promise);
     if (res === null) return;
     this.preds = res[0];
     // Make sure head selection is valid.
-    const numHeadsPerLayer = this.preds[this.selectedLayer!] != null ?
-        this.preds[this.selectedLayer!].length : 0;
+    const numHeadsPerLayer =
+        this.preds[layer] != null ? this.preds[layer].length : 0;
     if (this.selectedHeadIndex >= numHeadsPerLayer) {
       this.selectedHeadIndex = 0;
     }
   }
 
   override renderImpl() {
-    if (!this.preds) return;
-
     // Scrolling inside this module is done inside the module-results-area div.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
@@ -131,7 +130,7 @@ export class AttentionModule extends LitModule {
           ${this.renderHeadSelector()}
         </div>
         <div class='module-results-area padded-container ${SCROLL_SYNC_CSS_CLASS}'>
-          ${this.renderAttnHead()}
+          ${this.preds != null ? this.renderAttnHead(): null}
         </div>
       </div>
     `;
@@ -289,13 +288,19 @@ export class AttentionModule extends LitModule {
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];
     }
+    if (this.preds == null) {
+      return;
+    }
     const onchange = (e: Event) => {
       this.selectedLayer = (e.target as HTMLSelectElement).value;
     };
     // clang-format off
     return html`
       <select class="dropdown" @change=${onchange}>
-        ${attnKeys.map(key => html`<option value=${key}>${key}</option>`)}
+        ${attnKeys.map(key =>
+          html`<option value=${key} ?selected=${key === this.selectedLayer}>
+                 ${key}
+               </option>`)}
       </select>
     `;
     // clang-format on
@@ -316,6 +321,9 @@ export class AttentionModule extends LitModule {
       });
       return html`<div class=${classes} @click=${handleClick}>${i}</div>`;
     };
+    if (this.preds == null || this.preds[this.selectedLayer!] == null) {
+      return;
+    }
     const numHeadsPerLayer = this.preds![this.selectedLayer!].length;
     const numHeadsPerLayerRange =
         Array.from({length: numHeadsPerLayer}, (x: string, i: number) => i);

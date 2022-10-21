@@ -96,18 +96,21 @@ export class ApiService extends LitService {
    * @param model model to query
    * @param datasetName current dataset (for caching)
    * @param requestedTypes datatypes to request
+   * @param requestedFields optional fields to request
    * @param loadMessage optional loading message to display in toolbar
    */
   getPreds(
       inputs: IndexedInput[], model: string, datasetName: string,
-      requestedTypes: LitTypeTypesList,
+      requestedTypes: LitTypeTypesList, requestedFields?: string[],
       loadMessage?: string): Promise<Preds[]> {
     loadMessage = loadMessage || 'Fetching predictions';
+    requestedFields = requestedFields || [];
     return this.queryServer(
         '/get_preds', {
           'model': model,
           'dataset_name': datasetName,
           'requested_types': getTypeNames(requestedTypes).join(','),
+          'requested_fields': requestedFields.join(','),
         },
         inputs, loadMessage);
   }

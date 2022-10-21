@@ -157,6 +157,7 @@ class LitApp(object):
                  model: str,
                  dataset_name: Optional[str] = None,
                  requested_types: Optional[str] = None,
+                 requested_fields: Optional[str] = None,
                  **kw):
     """Get model predictions.
 
@@ -165,6 +166,8 @@ class LitApp(object):
       model: name of the model to run
       dataset_name: name of the active dataset
       requested_types: optional, comma-separated list of type names to return
+      requested_fields: optional, comma-separated list of field names to return
+        in addition to the ones returned due to 'requested_types'.
       **kw: additional args passed to model.predict_with_metadata()
 
     Returns:
@@ -172,20 +175,21 @@ class LitApp(object):
     """
     preds = list(self._models[model].predict_with_metadata(
         data['inputs'], dataset_name=dataset_name, **kw))
-    if not requested_types:
+    if not requested_types and not requested_fields:
       return preds
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']
-    requested_types = requested_types.split(',')
-    logging.info('Requested types: %s', str(requested_types))
-    ret_keys = []
+    requested_types = requested_types.split(',') if requested_types else []
+    requested_fields = requested_fields.split(',') if requested_fields else []
+    logging.info('Requested types: %s, fields: %s', str(requested_types),
+                 str(requested_fields))
     for t_name in requested_types:
       t_class = getattr(types, t_name, None)
-      assert issubclass(
-          t_class, types.LitType), f"Class '{t_name}' is not a valid LitType."
-      ret_keys.extend(utils.find_spec_keys(output_spec, t_class))
-    ret_keys = set(ret_keys)  # de-dupe
+      if not issubclass(t_class, types.LitType):
+        raise TypeError(f"Class '{t_name}' is not a valid LitType.")
+      requested_fields.extend(utils.find_spec_keys(output_spec, t_class))
+    ret_keys = set(requested_fields)  # de-dupe
 
     # Return selected keys.
     logging.info('Will return keys: %s', str(ret_keys))
