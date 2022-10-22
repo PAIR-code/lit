@@ -275,6 +275,8 @@ export class DataTableModule extends LitModule {
           isStarred: boolean) {
         const indexHolderDivStyle = styleMap({
           'display': 'flex',
+          // Render in reverse so that the index value position stays constant.
+          'flex-direction': 'row-reverse',
           'justify-content': 'space-between',
           'width': '100%'
         });
@@ -287,7 +289,7 @@ export class DataTableModule extends LitModule {
           function getActionStyle(isActive: boolean) {
             return styleMap({
               'visibility': isPrimarySelection || isFocused || isActive ?
-                  'visible' :
+                  'default' :
                   'hidden',
             });
           }
@@ -300,26 +302,28 @@ export class DataTableModule extends LitModule {
             });
           }
 
-          return html`
-              <mwc-icon style="${
-              getActionStyle(isReferenceSelection)}" class="${
-              getActionClass(isReferenceSelection)}" @click=${pinClick}
-                title=${
-              isReferenceSelection ? 'Pin datapoint' : 'Unpin datapoint'}>
-                push_pin
-              </mwc-icon>
-              <mwc-icon style="${getActionStyle(isStarred)}" class="${
-              getActionClass(isStarred)}" @click=${starClick}
-                title=${
-              isStarred ? 'Remove from starred slice' :
-                          'Add to starred slice'}>
+          if (isPrimarySelection || isFocused || isReferenceSelection ||
+              isStarred) {
+            return html`
+              <mwc-icon style="${getActionStyle(isStarred)}" @click=${starClick}
+                class="${getActionClass(isStarred)}" title=${isStarred ?
+                  'Remove from starred slice' : 'Add to starred slice'}>
                 ${isStarred ? 'star' : 'star_border'}
+              </mwc-icon>
+              <mwc-icon style="${getActionStyle(isReferenceSelection)}"
+                class="${getActionClass(isReferenceSelection)}"
+                @click=${pinClick}
+                title=${isReferenceSelection ? 'Pin datapoint' :
+                  'Unpin datapoint'}>
+                push_pin
               </mwc-icon>`;
+          }
+          return null;
         }
         return html`
             <div style="${indexHolderDivStyle}">
-              ${renderActionButtons()}
               <div style="${indexDivStyle}">${index}</div>
+              ${renderActionButtons()}
             </div>`;
       }
       const indexEntry = {template: templateFn, value: index};
