@@ -20,7 +20,7 @@
 // their Python counterparts.
 // tslint:disable:no-new-decorators class-name enforce-name-casing
 
-import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
+import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, ScoredTextCandidates, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
 
 /**
  * A dictionary of registered LitType names mapped to their constructor.
@@ -40,7 +40,6 @@ export type LitName = typeof registryKeys[number];
 
 /** A type alias for the LitType class. */
 export type LitClass = 'LitType';
-type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
 /** A list of types of LitTypes. */
 export type LitTypeTypesList = Array<typeof LitType>;

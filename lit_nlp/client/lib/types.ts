@@ -19,10 +19,9 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
-import {CategoryLabel, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
+import {AnnotationCluster, EdgeLabel, ScoredTextCandidate, ScoredTextCandidates, SpanLabel} from './dtypes';
+import {CategoryLabel, EdgeLabels, Embeddings, GeneratedTextCandidates, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
-
 
 
 // tslint:disable-next-line:no-any
@@ -150,6 +149,16 @@ export interface TopKResult {
   1: number;
 }
 
+function isGeneratedTextCandidate(input: unknown): boolean {
+  return Array.isArray(input) && input.length === 2 &&
+         typeof input[0] === 'string' &&
+         (input[1] == null || typeof input[1] === 'number');
+}
+
+function formatNumber (item: number) {
+  return Number.isInteger(item) ? item : Number(item.toFixed(3));
+}
+
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
@@ -178,10 +187,18 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
 }
 
-/**
- * Element of GeneratedTextCandidates and ReferenceTexts fields.
- */
-export type GeneratedTextCandidate = [string, number | null];
+export function formatScoredTextCandidate([t, s]: ScoredTextCandidate): string {
+  return `${t}${typeof s === 'number' ? ` (${formatNumber(s)})` : ''}`;
+}
+
+export function formatScoredTextCandidates(stc: ScoredTextCandidates): string {
+  return stc.map(formatScoredTextCandidate).join('\n\n');
+}
+
+export function formatScoredTextCandidatesList(
+    list: ScoredTextCandidates[]): string {
+  return list.map(formatScoredTextCandidates).join('\n\n');
+}
 
 /**
  * Info about individual classifications including computed properties.
@@ -459,63 +476,59 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
  */
+// TODO(b/252788334): Long text can make columns look weird, especially when a
+// GeneratedTextCandidates field is in the Spec.
 export function formatForDisplay(
-    // tslint:disable-next-line:no-any
-    input: any, fieldSpec?: LitType, limitWords?: boolean): string|number {
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): string|number {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
   // TODO(lit-dev): handle more fields this way.
-  if (fieldSpec != null && fieldSpec instanceof SpanLabels) {
+  if (fieldSpec instanceof SpanLabels) {
     const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
     return formattedTags.join(', ');
   }
   // Handle EdgeLabels, if field spec given.
-  if (fieldSpec != null && fieldSpec instanceof EdgeLabels) {
+  if (fieldSpec instanceof EdgeLabels) {
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
     return formattedTags.join(', ');
   }
   // Handle MultiSegmentAnnotations, if field spec given.
-  if (fieldSpec != null && fieldSpec instanceof MultiSegmentAnnotations) {
+  if (fieldSpec instanceof MultiSegmentAnnotations) {
     const formattedTags =
         (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');
   }
   // Handle Embeddings, if field spec given
-  if (fieldSpec != null && fieldSpec instanceof Embeddings) {
-    return input ? `<float>[${input.length}]` : '';
+  if (fieldSpec instanceof Embeddings) {
+    return Array.isArray(input) ? `<float>[${input.length}]` : '';
   }
-
-  function formatNumber(item: number) {
-    return Number.isInteger(item) ? item : Number(item.toFixed(4));
+  if (fieldSpec instanceof GeneratedTextCandidates) {
+    return formatScoredTextCandidatesList(input as ScoredTextCandidates[]);
   }
 
   // Generic data, based on type of input.
   if (Array.isArray(input)) {
+    if (isGeneratedTextCandidate(input)) {
+      return formatScoredTextCandidate(input as ScoredTextCandidate);
+    }
+
+    if (Array.isArray(input[0]) && isGeneratedTextCandidate(input[0])) {
+      return formatScoredTextCandidates(input as ScoredTextCandidates);
+    }
+
     const strings = input.map((item) => {
-      if (typeof item === 'number') {
-        return formatNumber(item);
-      }
-      if (limitWords) {
-        return chunkWords(item);
-      }
+      if (typeof item === 'number') {return formatNumber(item);}
+      if (limitWords) {return chunkWords(item);}
       return `${item}`;
     });
     return `${strings.join(', ')}`;
   }
 
-  if (typeof input === 'boolean') {
-    return formatBoolean(input);
-  }
-
-  if (typeof input === 'number') {
-    return formatNumber(input);
-  }
-
+  if (typeof input === 'boolean') {return formatBoolean(input);}
+  if (typeof input === 'number') {return formatNumber(input);}
   // Fallback: just coerce to string.
-  if (limitWords) {
-    return chunkWords(input);
-  }
+  if (limitWords) {return chunkWords(input as string);}
   return `${input}`;
 }
 

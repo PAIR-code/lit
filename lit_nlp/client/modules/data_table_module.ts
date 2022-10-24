@@ -305,9 +305,16 @@ export class DataTableModule extends LitModule {
           if (isPrimarySelection || isFocused || isReferenceSelection ||
               isStarred) {
             return html`
+              <mwc-icon style="${getActionStyle(isReferenceSelection)}"
+                class="${getActionClass(isReferenceSelection)}"
+                @click=${pinClick}
+                title=${`${isReferenceSelection ? 'Pin' : 'Unpin'} datapoint`}>
+                push_pin
+              </mwc-icon>
               <mwc-icon style="${getActionStyle(isStarred)}" @click=${starClick}
-                class="${getActionClass(isStarred)}" title=${isStarred ?
-                  'Remove from starred slice' : 'Add to starred slice'}>
+                class="${getActionClass(isStarred)}"
+                title=${isStarred ? 'Remove from starred slice' :
+                                    'Add to starred slice'}>
                 ${isStarred ? 'star' : 'star_border'}
               </mwc-icon>
               <mwc-icon style="${getActionStyle(isReferenceSelection)}"
@@ -320,12 +327,14 @@ export class DataTableModule extends LitModule {
           }
           return null;
         }
+
         return html`
             <div style="${indexHolderDivStyle}">
               <div style="${indexDivStyle}">${index}</div>
               ${renderActionButtons()}
             </div>`;
       }
+
       const indexEntry = {template: templateFn, value: index};
       return [indexEntry, ...dataEntry];
     });

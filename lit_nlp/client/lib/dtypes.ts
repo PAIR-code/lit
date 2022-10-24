@@ -67,3 +67,9 @@ export interface SequenceSalienceMap extends DataTuple {
   tokens_out: string[];
   salience: number[][];
 }
+
+/** A tuple of text and its score. */
+export type ScoredTextCandidate = [text: string, score: number|null];
+
+/** A list of (text, score) tuples. */
+export type ScoredTextCandidates = ScoredTextCandidate[];
