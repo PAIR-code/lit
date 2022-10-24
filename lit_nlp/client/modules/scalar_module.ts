@@ -389,49 +389,53 @@ export class ScalarModule extends LitModule {
     info.scene.offset.x = CANVAS_PADDING;
     info.scene.offset.y = height;
 
+    const pointBindFunction = (sprite: SpriteView, pred: IndexedScalars) => {
+      const modelSpec = this.appState.getModelSpec(this.model);
+
+      // TODO(b/243566359): Normalizing position values in Megaplot's world
+      // coordinates (i.e.,the range [-.5, .5]) would make zooming easy.
+      const xValue = this.getValue(pred, modelSpec, key, label || '');
+      const xScaledValue = xValue != null ? xScale(xValue) : NaN;
+      sprite.PositionWorldX = isNaN(xScaledValue) ? 0 : xScaledValue;
+
+      const yValue = isRegression ?
+          this.dataService.getVal(pred.id, errorColName) : pred.rngY;
+      const yPosition = yValue != null ? yScale(yValue) : NaN;
+      sprite.PositionWorldY = isNaN(yPosition) ? yMax : yPosition;
+
+      const isHovered =
+          this.focusService.focusData?.datapointId === pred.id;
+      const isPinned =
+          this.pinnedSelectionService.primarySelectedId === pred.id;
+      const isPrimary =
+          this.selectionService.primarySelectedId === pred.id;
+      const isSelected =
+          this.selectionService.selectedIds.includes(pred.id) &&
+          !(isHovered || isPinned || isPrimary);
+      const isSpecial = isHovered || isPinned || isPrimary || isSelected;
+
+      const indexedInput = this.appState.getCurrentInputDataById(pred.id);
+      const colorString = this.colorService.getDatapointColor(indexedInput);
+      const color = colorToRGB(colorString);
+      sprite.BorderRadiusPixel = DEFAULT_BORDER_WIDTH;
+      sprite.BorderColor = isHovered ? RGBA_MAGE_400 :
+                           isPinned ? RGBA_MAGE_700 :
+                           isPrimary ? RGBA_CYEA_700 :
+                           isSelected ? RGBA_WHITE : color;
+      sprite.BorderColorOpacity = isSpecial ? 1 : 0.25;
+      sprite.FillColor =  (isHovered || isPinned) ? RGBA_MAGE_400 : color;
+      sprite.FillColorOpacity = isSpecial ? 1 : 0.25;
+      sprite.OrderZ = !isSpecial ? 0 : isHovered ? 1 : isSelected ? .5 : .8;
+      sprite.Sides = 1;
+      sprite.SizeWorld = !isSpecial ? SPRITE_SIZE_SM :
+                          isSelected ? SPRITE_SIZE_MD : SPRITE_SIZE_LG;
+    };
+
     info.points = info.scene.createSelection<IndexedScalars>()
         .onExit((sprite: SpriteView) => {sprite.SizePixel = 0;})
-        .onBind((sprite: SpriteView, pred: IndexedScalars) => {
-          const modelSpec = this.appState.getModelSpec(this.model);
-
-          // TODO(b/243566359): Normalizing position values in Megaplot's world
-          // coordinates (i.e.,the range [-.5, .5]) would make zooming easy.
-          const xValue = this.getValue(pred, modelSpec, key, label || '');
-          const xScaledValue = xValue != null ? xScale(xValue) : NaN;
-          sprite.PositionWorldX = isNaN(xScaledValue) ? 0 : xScaledValue;
-
-          const yValue = isRegression ?
-              this.dataService.getVal(pred.id, errorColName) : pred.rngY;
-          const yPosition = yValue != null ? yScale(yValue) : NaN;
-          sprite.PositionWorldY = isNaN(yPosition) ? yMax : yPosition;
-
-          const isHovered =
-              this.focusService.focusData?.datapointId === pred.id;
-          const isPinned =
-              this.pinnedSelectionService.primarySelectedId === pred.id;
-          const isPrimary =
-              this.selectionService.primarySelectedId === pred.id;
-          const isSelected =
-              this.selectionService.selectedIds.includes(pred.id) &&
-              !(isHovered || isPinned || isPrimary);
-          const isSpecial = isHovered || isPinned || isPrimary || isSelected;
-
-          const indexedInput = this.appState.getCurrentInputDataById(pred.id);
-          const colorString = this.colorService.getDatapointColor(indexedInput);
-          const color = colorToRGB(colorString);
-          sprite.BorderRadiusPixel = DEFAULT_BORDER_WIDTH;
-          sprite.BorderColor = isHovered ? RGBA_MAGE_400 :
-                               isPinned ? RGBA_MAGE_700 :
-                               isPrimary ? RGBA_CYEA_700 :
-                               isSelected ? RGBA_WHITE : color;
-          sprite.BorderColorOpacity = isSpecial ? 1 : 0.25;
-          sprite.FillColor =  (isHovered || isPinned) ? RGBA_MAGE_400 : color;
-          sprite.FillColorOpacity = isSpecial ? 1 : 0.25;
-          sprite.OrderZ = !isSpecial ? 0 : isHovered ? 1 : isSelected ? .5 : .8;
-          sprite.Sides = 1;
-          sprite.SizeWorld = !isSpecial ? SPRITE_SIZE_SM :
-                              isSelected ? SPRITE_SIZE_MD : SPRITE_SIZE_LG;
-        });
+        .onInit(pointBindFunction)
+        .onEnter(pointBindFunction)
+        .onUpdate(pointBindFunction);
   }
 
   /** Binds the predictions to the available MegaPlot Selection and Scene. */
