@@ -275,13 +275,17 @@ export class DataTableModule extends LitModule {
           isStarred: boolean) {
         const indexHolderDivStyle = styleMap({
           'display': 'flex',
-          // Render in reverse so that the index value position stays constant.
-          'flex-direction': 'row-reverse',
           'justify-content': 'space-between',
           'width': '100%'
         });
+        const indexButtonsDivStyle = styleMap({
+          'display': 'flex',
+          'flex-direction': 'row',
+          'column-gap': '8px',
+        });
         const indexDivStyle = styleMap({
           'text-align': 'right',
+          'flex': '1',
         });
         // Render the action button next to the index if datapoint is selected,
         // hovered, or active (pinned, starred).
@@ -316,13 +320,6 @@ export class DataTableModule extends LitModule {
                 title=${isStarred ? 'Remove from starred slice' :
                                     'Add to starred slice'}>
                 ${isStarred ? 'star' : 'star_border'}
-              </mwc-icon>
-              <mwc-icon style="${getActionStyle(isReferenceSelection)}"
-                class="${getActionClass(isReferenceSelection)}"
-                @click=${pinClick}
-                title=${isReferenceSelection ? 'Pin datapoint' :
-                  'Unpin datapoint'}>
-                push_pin
               </mwc-icon>`;
           }
           return null;
@@ -330,8 +327,10 @@ export class DataTableModule extends LitModule {
 
         return html`
             <div style="${indexHolderDivStyle}">
+              <div style=${indexButtonsDivStyle}>
+               ${renderActionButtons()}
+              </div>
               <div style="${indexDivStyle}">${index}</div>
-              ${renderActionButtons()}
             </div>`;
       }
 
