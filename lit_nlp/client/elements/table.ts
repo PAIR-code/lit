@@ -940,10 +940,12 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, dataIndex);
     };
 
-    // Prevent text highlighting on shift-clicks.
-    function mouseDown(e: MouseEvent) {
-      e.preventDefault();
-    }
+    // Prevent text highlighting when using shift+click to select rows.
+    const mouseDown = (e: MouseEvent) => {
+      if (e.shiftKey && this.selectionEnabled) {
+        e.preventDefault();
+      }
+    };
 
     function formatCellContents(d: TableEntry) {
       if (d == null) return null;
