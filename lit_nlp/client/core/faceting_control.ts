@@ -17,31 +17,22 @@
  * limitations under the License.
  */
 
+import '../elements/popup_container';
 import '../elements/slider';
+
+import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement, property} from 'lit/decorators';
-import {styleMap, StyleInfo} from 'lit/directives/style-map';
 import {classMap} from 'lit/directives/class-map';
-import {html, TemplateResult} from 'lit';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getStepSizeGivenRange} from '../lib/utils';
 import {FacetingConfig, FacetingMethod, GroupService, NumericFeatureBins} from '../services/group_service';
 
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './faceting_control.css';
-
-const ELEMENT_VISIBLE: StyleInfo = {
-  display: 'flex',
-  visibility: 'visible'
-};
-
-const ELEMENT_HIDDEN: StyleInfo = {
-  display: 'none',
-  visibility: 'hidden'
-};
 
 const DEFAULT_QUANTILE = 4;
 const DEFAULT_BIN_LIMIT = 100;
@@ -69,7 +60,6 @@ export class FacetingControl extends ReactiveElement {
   private readonly featureConfigs = new Map<string, FacetingConfig>();
   private readonly discreteCount = new Map<string, number>();
 
-  @observable private expanded = false;
   @observable private hasExcessBins = false;
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
@@ -125,10 +115,6 @@ export class FacetingControl extends ReactiveElement {
     }
   }
 
-  private toggleExpanded() {
-    this.expanded = !this.expanded;
-  }
-
   private updateBins() {
     const configs: FacetingConfig[] = this.features
         .filter(f => this.groupService.numericalFeatureNames.includes(f))
@@ -157,27 +143,9 @@ export class FacetingControl extends ReactiveElement {
     }
   }
 
-  protected clickToClose(event: MouseEvent) {
-    const path = event.composedPath();
-    if (!path.some(elem => elem instanceof FacetingControl)) {
-      this.expanded = false;
-    }
-  }
-
   override firstUpdated() {
     const numericFeatures = () => this.groupService.denseFeatureNames;
     this.reactImmediately(numericFeatures, () => {this.reset();});
-
-    const onBodyClick = (event: MouseEvent) => {this.clickToClose(event);};
-    this.reactImmediately(() => this.expanded, () => {
-      if (this.expanded) {
-        document.body.addEventListener(
-          'click', onBodyClick, {passive: true, capture: true});
-      } else {
-        document.body.removeEventListener(
-          'click', onBodyClick, {capture: true});
-      }
-    });
   }
 
   /**
@@ -349,48 +317,43 @@ export class FacetingControl extends ReactiveElement {
   }
 
   override render() {
-    const configPanelStyles = styleMap(this.expanded ? ELEMENT_VISIBLE :
-                                                       ELEMENT_HIDDEN);
-
     const facetsList = this.features.length ?
       `${this.features.join(', ')} (${
          this.groupService.numIntersectionsLabel(this.bins, this.features)})` :
       'None';
 
     const forContext = this.contextName ? ` for ${this.contextName}` : '';
-    const title =
-        `${this.expanded ? 'Hide' :
-                           'Show'} the faceting configuration${forContext}`;
+    const title = `Faceting configuration${forContext}`;
 
     const activeFacetsClass = classMap({
       'active-facets': true,
       'disabled': this.disabled
     });
 
-    const closeButtonClick = () => {this.expanded = false;};
-
     // clang-format off
     return html`
-      <div class="faceting-info">
-        <button class="hairline-button" title=${title}
-                ?disabled=${this.disabled} @click=${this.toggleExpanded}>
-          <span class="material-icon">dashboard</span>
-          Facets
-        </button>
-        <span class=${activeFacetsClass}>: ${facetsList}</span>
-        <div class="config-panel popup-container" style=${configPanelStyles}>
+      <popup-container>
+        <div class="faceting-info" slot='toggle-anchor'>
+          <button class="hairline-button" title=${title}
+                  ?disabled=${this.disabled}>
+            <span class="material-icon">dashboard</span>
+            Facets
+          </button>
+          <div class=${activeFacetsClass}
+           @click=${(e: Event) => { e.stopPropagation(); }}>
+            : ${facetsList}
+          </div>
+        </div>
+        <div class='config-panel'>
           <div class="panel-header">
             <span class="panel-label">Faceting Config${forContext}</span>
             <span class="choice-limit">(Limit ${this.binLimit} bins ${
               this.choiceLimit != null ? `, ${this.choiceLimit} features` : ''
             })</span>
-            <mwc-icon class="icon-button min-button" @click=${closeButtonClick}>
-              close
-            </mwc-icon>
           </div>
           <div class="panel-options">${this.renderFeatureOptions()}</div>
         </div>
-      </div>`;
+      </popup-container>`;
     // clang-format on
   }
 }
