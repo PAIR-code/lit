@@ -26,11 +26,6 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './popup_container.css';
 
-/** Custom expansion event interface for ExpansionPanel */
-export interface PopupToggle {
-  isExpanded: boolean;
-}
-
 /**
  * Popup controls container, anchored by a clickable toggle.
  *
@@ -55,6 +50,22 @@ export interface PopupToggle {
  *    </div>
  *  </popup-container>
  *
+ * If you want to have different control elements (such as filled/outlined or
+ * up/down arrows) when the panel is open vs. closed, you can use the
+ * 'toggle-anchor-open' and 'toggle-anchor-closed' slots instead:
+ *
+ *  <popup-container style=${popupStyle}>
+ *    <div slot="toggle-anchor-closed">
+ *      <mwc-icon>expand_more</mwc-icon>
+ *    </div>
+ *    <div slot="toggle-anchor-open">
+ *      <mwc-icon>expand_less</mwc-icon>
+ *    </div>
+ *    <div>
+ *      // Content goes here
+ *    </div>
+ *  </popup-container>
+ *
  * TODO(b/254786211): add DOM and behavioral tests for this element.
  */
 @customElement('popup-container')
@@ -67,13 +78,9 @@ export class PopupContainer extends ReactiveElement {
 
   toggle() {
     this.expanded = !this.expanded;
-    const event = new CustomEvent<PopupToggle>(
-        'popup-toggle', {detail: {isExpanded: this.expanded}});
-    this.dispatchEvent(event);
   }
 
   private renderPopup() {
-    if (!this.expanded) return null;
     // clang-format off
     return html`
       <div class='popup-outer-holder'>
@@ -86,12 +93,16 @@ export class PopupContainer extends ReactiveElement {
   }
 
   override render() {
+    // Show one or the other, depending on state.
+    const openClosedSlotName =
+        this.expanded ? 'toggle-anchor-open' : 'toggle-anchor-closed';
     // clang-format off
     return html`
         <div class='popup-toggle-anchor' @click=${() => { this.toggle(); }}>
           <slot name="toggle-anchor"></slot>
+          <slot name=${openClosedSlotName}></slot>
         </div>
-        ${this.renderPopup()}
+        ${this.expanded ? this.renderPopup() : null}
     `;
     // clang-format off
   }

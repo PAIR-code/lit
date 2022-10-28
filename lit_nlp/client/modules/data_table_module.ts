@@ -18,6 +18,7 @@
 // tslint:disable:no-new-decorators
 import '@material/mwc-switch';
 import '../elements/checkbox';
+import '../elements/popup_container';
 
 import {html} from 'lit';
 import {customElement, query} from 'lit/decorators';
@@ -70,7 +71,6 @@ export class DataTableModule extends LitModule {
   // Module options / configuration state
   @observable private onlyShowGenerated: boolean = false;
   @observable private onlyShowSelected: boolean = false;
-  @observable private columnDropdownVisible: boolean = false;
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -399,7 +399,8 @@ export class DataTableModule extends LitModule {
     // clang-format off
     return html`
       <div>
-        <lit-checkbox label=${key} ?checked=${checked}
+        <lit-checkbox class='column-select'
+         label=${key} ?checked=${checked}
                       @change=${toggleChecked}>
         </lit-checkbox>
       </div>
@@ -409,13 +410,24 @@ export class DataTableModule extends LitModule {
 
   renderColumnDropdown() {
     const names = [...this.columnVisibility.keys()].filter(c => c !== 'index');
-    const classes =
-        this.columnDropdownVisible ? 'column-dropdown' : 'column-dropdown-hide';
+
     // clang-format off
     return html`
-      <div class='${classes} popup-container'>
-        ${names.map(key => this.renderDropdownItem(key))}
-      </div>
+      <popup-container class='column-dropdown-container'>
+        <button class='hairline-button' slot='toggle-anchor-closed'>
+          <span class='material-icon-outlined'>view_column</span>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_more</span>
+        </button>
+        <button class='hairline-button' slot='toggle-anchor-open'>
+          <span class='material-icon-outlined'>view_column</span>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_less</span>
+        </button>
+        <div class='column-dropdown'>
+          ${names.map(key => this.renderDropdownItem(key))}
+        </div>
+      </popup-container>
     `;
     // clang-format on
   }
@@ -427,19 +439,9 @@ export class DataTableModule extends LitModule {
       this.onSelect(this.table!.getVisibleDataIdxs());
     };
 
-    const onToggleShowColumn = () => {
-      this.columnDropdownVisible = !this.columnDropdownVisible;
-    };
-
     // clang-format off
     return html`
-      <button class='hairline-button' @click=${onToggleShowColumn}>
-        <span class='material-icon-outlined'>view_column</span>
-        &nbsp;Columns&nbsp;
-        <span class='material-icon'>
-          ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
-        </span>
-      </button>
+      ${this.renderColumnDropdown()}
       <div class="toggles-row">
         <div class='switch-container'
             @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
@@ -462,7 +464,6 @@ export class DataTableModule extends LitModule {
           Select filtered
         </button>
       </div>
-      ${this.renderColumnDropdown()}
     `;
     // clang-format on
   }

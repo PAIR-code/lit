@@ -5,27 +5,25 @@
 #toolbar-buttons{
   display: flex;
   flex-direction: row;
-}
-
-/* Column settings */
-.column-dropdown-hide {
-  display:none;
-}
-
-/* TODO(b/173445400): align this with rest of UI spec */
-.column-dropdown {
-  top: 32px;
-  left: 4px;
-  padding: 10px;
-  position: absolute;
-  visibility: visible;
-  z-index: 1000;
-  max-height: calc(100% - 48px);
-  overflow: auto;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .toggles-row {
   display: flex;
   flex-direction: row;
   column-gap: 16px;
+}
+
+popup-container.column-dropdown-container {
+  --popup-top: 4px;
+}
+
+.column-dropdown-container > .hairline-button {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+lit-checkbox.column-select {
+  --lit-checkbox-label-white-space: nowrap;
 }
