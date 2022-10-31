@@ -48,6 +48,9 @@
   font-size: 18pt;
   line-height: 24pt;
   padding: 12pt;
+  display:flex;
+  align-items:center;
+  column-gap: 4;
 }
 
 #sidebar {

@@ -165,7 +165,16 @@ export class GlobalSettingsComponent extends MobxLitElement {
         <div id="overlay" class=${hiddenClassMap}
          @click=${() => { this.close(); }}></div>
         <div id="global-settings" class=${hiddenClassMap}>
-        <div id="title-bar">Configure LIT</div>
+        <div id="title-bar">
+          Configure LIT
+          <a target='_blank'
+            href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
+          <span class="large-help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+          </a>
+        </div>
         <div id="holder">
           <div id="sidebar">
             ${this.renderTabs()}

@@ -55,6 +55,8 @@ interface CalculatedMarginsPerField {
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
   static override title = 'Binary Classifier Thresholds';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#binary-classification-thresholds';
   static override numCols = 3;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>

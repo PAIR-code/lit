@@ -52,6 +52,8 @@ interface CmatOption {
 @customElement('confusion-matrix-module')
 export class ConfusionMatrixModule extends LitModule {
   static override title = 'Confusion Matrix';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#confusion-matrix';
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
         return html`

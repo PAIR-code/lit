@@ -302,6 +302,7 @@ export interface LitModuleClass {
   duplicateAsRow: boolean;
   numCols: number;
   collapseByDefault: boolean;
+  referenceURL: string;
 }
 
 /**

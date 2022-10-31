@@ -524,6 +524,23 @@ mwc-icon.mdi-outlined {
   color: var(--lit-cyea-600);
 }
 
+.large-help-icon{
+  position: relative;
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  margin: auto;
+}
+
+.help-icon{
+  cursor: pointer;
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-size: 12px;
+}
+
 /**
  * Main container to use inside modules.
  * If this contains a .module-toolbar and a .module-results-area,

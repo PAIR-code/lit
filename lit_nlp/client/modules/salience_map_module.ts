@@ -82,6 +82,8 @@ interface InterpreterState {
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
   static override title = 'Salience Maps';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#token-based-salience';
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
   static override template = (model: string, selectionServiceIndex: number, shouldReact: number) => {

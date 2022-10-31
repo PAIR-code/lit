@@ -87,10 +87,26 @@ export class WidgetGroup extends ReactiveElement {
   }
 
   /**
+   * Renders the reference URL.
+   */
+  renderReferenceURL(referenceURL: string) {
+    return html`
+         <a href=${referenceURL} style=${styleMap({'text-decoration': 'none'})}
+          target='_blank'>
+          <span class="help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+         </a>
+      `;
+  }
+
+  /**
    * Renders the header, including the minimize/maximize logic.
    */
   renderHeader(configGroup: RenderConfig[]) {
     const title = configGroup[0].moduleType.title;
+    const referenceURL = configGroup[0].moduleType.referenceURL;
 
     // Maximization.
     const onMaxClick = () => {
@@ -145,7 +161,11 @@ export class WidgetGroup extends ReactiveElement {
     // clang-format off
     return html`
       <div class=header>
-        <div class="title" @click=${onTitleClick}>${title}</div>
+        <div class="title" @click=${onTitleClick}>
+          ${title}
+          ${!this.minimized && referenceURL !== '' ?
+            this.renderReferenceURL(referenceURL) : null}
+        </div>
         ${this.minimized || configGroup.length < 2 ? null : [
           renderDirectionControl(), renderScrollSyncControl()
         ]}

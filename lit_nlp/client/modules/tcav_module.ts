@@ -77,6 +77,8 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#tcav';
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 

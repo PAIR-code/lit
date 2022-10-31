@@ -98,6 +98,8 @@ interface PlotInfo {
 @customElement('scalar-module')
 export class ScalarModule extends LitModule {
   static override title = 'Scalars';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#scalar-plots';
   static override numCols = 4;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>
