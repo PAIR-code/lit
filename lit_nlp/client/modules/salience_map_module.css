@@ -1,3 +1,10 @@
+.color-legend-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 16px;
+}
+
 .group-label {
   text-align: start;
   vertical-align: baseline;

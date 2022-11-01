@@ -26,6 +26,7 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
 import {FeatureSalience as FeatureSalienceLitType, SingleFieldMatcher} from '../lib/lit_types';
@@ -41,6 +42,11 @@ import {styles} from './feature_attribution_module.css';
 
 const ALL_DATA = 'Entire Dataset';
 const SELECTION = 'Selection';
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
 
 interface AttributionStats {
   min: number;
@@ -431,6 +437,9 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   override renderImpl() {
+    const scale = (val: number) => this.colorMap.bgCmap(val);
+    scale.domain = () => this.colorMap.colorScale.domain();
+
     // clang-format off
     return html`
       <div class='module-container'>
@@ -465,6 +474,17 @@ export class FeatureAttributionModule extends LitModule {
                   html`<lit-spinner size=${24} color="var(--lit-cyea-400)">
                        </lit-spinner>`: null}
             </div>
+          </div>
+        </div>
+        <div class="module-footer">
+          <div class="color-legend-container">
+            <color-legend selectedColorName="Salience" .scale=${scale}
+                legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
+            </color-legend>
+            <mwc-icon class="icon material-icon-outlined"
+                      title=${LEGEND_INFO_TITLE_SIGNED}>
+              info_outline
+            </mwc-icon>
           </div>
         </div>
       </div>`;

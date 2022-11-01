@@ -75,6 +75,17 @@ interface InterpreterState {
   config?: CallConfig;
 }
 
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
+
+const LEGEND_INFO_TITLE_UNSIGNED =
+    "Salience is relative to the model's prediction of a class. A larger " +
+    "score (more purple) for a token means that token was more influential " +
+    "on the model's prediction of that class.";
+
 /**
  * A LIT module that displays gradient attribution scores for each token in the
  * selected inputs.
@@ -294,14 +305,18 @@ export class SalienceMapModule extends LitModule {
     function scale(val: number) { return colorMap.bgCmap(val); }
     scale.domain = () => colorMap.colorScale.domain();
 
-    const style = styleMap({'margin-right': '15px'});
     return html`
-        <div style=${style}>
+        <div class="color-legend-container">
           <color-legend legendType=${LegendType.SEQUENTIAL}
             selectedColorName=${colorName}
             .scale=${scale}
             numBlocks=${numBlocks}>
           </color-legend>
+          <mwc-icon class="icon material-icon-outlined"
+                title=${colorName === 'Signed' ? LEGEND_INFO_TITLE_SIGNED :
+                                                 LEGEND_INFO_TITLE_UNSIGNED}>
+            info_outline
+          </mwc-icon>
         </div>`;
   }
 
@@ -331,7 +346,7 @@ export class SalienceMapModule extends LitModule {
     // reuse the slider from the squence salience module
     return html`
       <label for="gamma-slider"
-        title="Gamma correction to increase visibility of low salience tokens">
+        title="A larger gamma value makes lower salience tokens more visibile">
         Gamma:
       </label>
       <lit-slider min="0.25" max="6" step="0.25"

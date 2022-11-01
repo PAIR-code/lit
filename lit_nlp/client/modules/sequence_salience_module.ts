@@ -41,6 +41,17 @@ enum ColorScalingMode {
   MAX_GLOBAL = 'max_global',
 }
 
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
+
+const LEGEND_INFO_TITLE_UNSIGNED =
+    "Salience is relative to the model's prediction of a class. A larger " +
+    "score (more purple) for a token means that token was more influential " +
+    "on the model's prediction of that class.";
+
 /** LIT module for model output. */
 @customElement('sequence-salience-module')
 export class SequenceSalienceModule extends LitModule {
@@ -228,8 +239,8 @@ export class SequenceSalienceModule extends LitModule {
     // Hide values for unimportant tokens, based on current colormap scale.
     // 1 - lightness is roughly how dark the token highlighting will be;
     // 0.05 is an arbitrary threshold that seems to work well.
-    const showNumber = (val: number) => 1 - cmap.lightness(val) > 0.05;
-    const displayVal = (val: number) => val.toFixed(3);
+    function showNumber(val: number) {return 1 - cmap.lightness(val) > 0.05;}
+    function displayVal(val: number) {return val.toFixed(3);}
     // TODO(b/204887716, b/173469699): improve layout density?
     // Try to strip leading zeros to save some space? Can do down to 24px width
     // with this, but need to handle negatives.
@@ -365,18 +376,24 @@ export class SequenceSalienceModule extends LitModule {
   renderColorLegend() {
     const cmap = this.cmap;
     const isSigned = (cmap instanceof SignedSalienceCmap);
-    const scale = (val: number) => cmap.bgCmap(val);
+    function scale(val: number) {return cmap.bgCmap(val);}
     scale.domain = () => cmap.colorScale.domain();
     const labelName = "Token Salience";
 
     // clang-format off
-    return html`
-        <color-legend legendType=${LegendType.SEQUENTIAL}
-          selectedColorName=${labelName}
-          ?alignRight=${true}
-          .scale=${scale}
-          numBlocks=${isSigned ? 7 : 5}>
-        </color-legend>`;
+    return html`<div class="color-legend-container">
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        selectedColorName=${labelName}
+        ?alignRight=${true}
+        .scale=${scale}
+        numBlocks=${isSigned ? 7 : 5}>
+      </color-legend>
+      <mwc-icon class="icon material-icon-outlined"
+                title=${isSigned ? LEGEND_INFO_TITLE_SIGNED :
+                                   LEGEND_INFO_TITLE_UNSIGNED}>
+        info_outline
+      </mwc-icon>
+    </div>`;
     // clang-format on
   }
 
