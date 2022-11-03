@@ -44,7 +44,6 @@ def main(_):
           'Main': [
               modules.DataTableModule,
               modules.DatapointEditorModule,
-              modules.SliceModule,
           ],
           'Predictions': [modules.ClassificationModule, modules.ScalarModule],
           'Explanations': [

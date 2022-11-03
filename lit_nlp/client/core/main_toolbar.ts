@@ -19,6 +19,8 @@
  * LIT App selection controls toolbar
  */
 
+ import '../elements/popup_container';
+
 import '@material/mwc-icon';
 import '@material/mwc-switch';
 
@@ -27,6 +29,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
+import {styleMap} from 'lit/directives/style-map';
 import {computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
@@ -333,6 +336,32 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
+  // Render a Slices button to show the Slice Editor
+  renderSlices() {
+    // Left-anchor the Slice Editor popup.
+    const popupStyle = styleMap({'--popup-top': '4px'});
+    // clang-format off
+    return html`
+    <popup-container style=${popupStyle}>
+      <button class='hairline-button xl' slot='toggle-anchor-closed'>
+        <span class='material-icon-outlined'>dataset</span>
+        &nbsp;Slices&nbsp;
+        <span class='material-icon'>expand_more</span>
+      </button>
+      <button class='hairline-button xl' slot='toggle-anchor-open'>
+          <span class='material-icon-outlined'>dataset</span>
+          &nbsp;Slices&nbsp;
+          <span class='material-icon'>expand_less</span>
+        </button>
+      <div class='slice-container'>
+        <lit-slice-module model="unused" shouldReact=1 selectionServiceIndex=0>
+        </lit-slice-module>
+      </div>
+    </popup-container>
+    `;
+    // clang-format on
+  }
+
   /**
    * Pair controls. Assumes reference is showing parent, main showing child.
    */
@@ -460,6 +489,7 @@ export class LitMainToolbar extends MobxLitElement {
     <div class='toolbar main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
+        ${this.renderSlices()}
         <button class="${buttonClasses}" title=${title}
                 ?disabled=${pinDisabled} @click=${updatePinnedDatapoint}>
           <div class="pin-button-content">

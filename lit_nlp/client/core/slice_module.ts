@@ -17,12 +17,12 @@
 
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/app';
-import {LitModule} from '../core/lit_module';
+import {app} from './app';
+import {LitModule} from './lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
