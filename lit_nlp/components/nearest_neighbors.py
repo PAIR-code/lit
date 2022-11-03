@@ -15,12 +15,13 @@
 """Finds the k nearest neighbors to an input embedding."""
 
 
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
+from lit_nlp.lib import utils
 import numpy as np
 from scipy.spatial import distance
 
@@ -47,13 +48,19 @@ class NearestNeighbors(lit_components.Interpreter):
           for a layer
   """
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    dataset_embs = utils.spec_contains(dataset.spec(), types.Embeddings)
+    model_out_embs = utils.spec_contains(model.output_spec(), types.Embeddings)
+    return dataset_embs or model_out_embs
+
   def run_with_metadata(
       self,
       indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[List[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Finds the nearest neighbors of the example specified in the config.
 
     Args:
@@ -69,33 +76,52 @@ class NearestNeighbors(lit_components.Interpreter):
           'use_input': [Optional boolean if the embedding comes from input data]
         }
 
+    Raises:
+      KeyError: Cannot find the embedding field in the relevant spec
+      TypeError: `config` argument not provided
+      ValueError: indexed_inputs requires exactly one input
+
     Returns:
       A JsonDict containing the a list of num_neighbors nearest neighbors,
       where each has the example id and distance from the main example.
     """
-    config = NearestNeighborsConfig(**config)
+    if not config:
+      raise TypeError('config must be provided')
 
-    if config.use_input:
+    nnconf = NearestNeighborsConfig(**(config or {}))
+
+    # TODO(lit-dev): Add support for selecting nearest neighbors of a set.
+    if len(indexed_inputs) != 1:
+      raise ValueError('indexed_inputs must contain exactly 1 example, found '
+                       f'{len(indexed_inputs)}.')
+
+    if nnconf.use_input:
+      if not dataset.spec().get(nnconf.embedding_name):
+        raise KeyError('Could not find embeddings field, '
+                       f'{nnconf.embedding_name} in dataset spec')
       # If using input values, then treat inputs as outputs instead of running
       # the model.
       dataset_outputs = [inp['data'] for inp in dataset.indexed_examples]
       example_outputs = [inp['data'] for inp in indexed_inputs]
     else:
-      dataset_outputs = list(model.predict_with_metadata(
-          dataset.indexed_examples, dataset_name=config.dataset_name))
-      example_outputs = list(model.predict_with_metadata(
-          indexed_inputs, dataset_name=config.dataset_name))
-    # TODO(lit-dev): Add support for selecting nearest neighbors of a set.
-    if len(example_outputs) != 1:
-      raise ValueError('More than one selected example was passed in.')
+      if not model.output_spec().get(nnconf.embedding_name):
+        raise KeyError('Could not find embeddings field, '
+                       f'{nnconf.embedding_name} in model output spec')
+      dataset_outputs = list(
+          model.predict_with_metadata(
+              dataset.indexed_examples, dataset_name=nnconf.dataset_name))
+      example_outputs = list(
+          model.predict_with_metadata(
+              indexed_inputs, dataset_name=nnconf.dataset_name))
+
     example_output = example_outputs[0]
 
     # <float32>[emb_size]
-    dataset_embs = [output[config.embedding_name] for output in dataset_outputs]
-    example_embs = [example_output[config.embedding_name]]
+    dataset_embs = [output[nnconf.embedding_name] for output in dataset_outputs]
+    example_embs = [example_output[nnconf.embedding_name]]
     distances = distance.cdist(example_embs, dataset_embs)[0]
     sorted_indices = np.argsort(distances)
-    k = config.num_neighbors
+    k = nnconf.num_neighbors
     k_nearest_neighbors = [
         {'id': dataset.indexed_examples[original_index]['id'],
          'nn_distance': distances[original_index]

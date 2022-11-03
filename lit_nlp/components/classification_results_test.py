@@ -15,24 +15,29 @@
 """Tests for lit_nlp.components.classification_results."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes
+from lit_nlp.api import model as lit_model
 from lit_nlp.components import classification_results
 from lit_nlp.lib import testing_utils
 import numpy as np
 
 
-class ClassificationResultsTest(absltest.TestCase):
+class ClassificationResultsTest(parameterized.TestCase):
 
   def setUp(self):
     super(ClassificationResultsTest, self).setUp()
     self.interpreter = classification_results.ClassificationInterpreter()
 
-  def test_is_compatible(self):
-    self.assertTrue(self.interpreter.is_compatible(
-        testing_utils.TestModelClassification()))
-    self.assertFalse(self.interpreter.is_compatible(
-        testing_utils.TestRegressionModel({})))
+  @parameterized.named_parameters(
+      ('classification', testing_utils.TestModelClassification(), True),
+      ('regression', testing_utils.TestRegressionModel({}), False),
+  )
+  def test_is_compatible(self, model: lit_model.Model, epxected: bool):
+    compat = self.interpreter.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, epxected)
 
   def test_no_label(self):
     dataset = lit_dataset.Dataset(None, None)

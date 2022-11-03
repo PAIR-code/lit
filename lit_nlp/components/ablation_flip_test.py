@@ -18,6 +18,7 @@ from typing import Callable
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
@@ -71,7 +72,8 @@ class AblationFlipTest(parameterized.TestCase):
                                        input_spec: types.Spec,
                                        exp: bool):
     model = model_ctr(input_spec)
-    compatible = self.ablation_flip.is_compatible(model)
+    compatible = self.ablation_flip.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
     self.assertEqual(compatible, exp)
 
 if __name__ == '__main__':

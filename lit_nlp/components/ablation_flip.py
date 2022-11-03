@@ -213,12 +213,14 @@ class AblationFlip(lit_components.Generator):
         ret.append((field, idxs[i], loo_score))
     return ret
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by AblationFlip
     supported_inputs = (types.SparseMultilabel, types.TextSegment, types.URL)
     supported_preds = (types.MulticlassPreds, types.RegressionScore)
-    input_fields = utils.find_spec_keys(model.input_spec(), supported_inputs)
-    output_fields = utils.find_spec_keys(model.output_spec(), supported_preds)
-    return (bool(input_fields) and bool(output_fields))
+    valid_inputs = utils.spec_contains(model.input_spec(), supported_inputs)
+    valid_outputs = utils.spec_contains(model.output_spec(), supported_preds)
+    return valid_inputs and valid_outputs
 
   def config_spec(self) -> types.Spec:
     return {

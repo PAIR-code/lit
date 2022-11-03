@@ -94,8 +94,10 @@ class HotFlip(lit_components.Generator):
       significant model prediction changes.
     """
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
     """Returns true if the given model is compatible with HotFlip."""
+    del dataset  # Unused by HotFlip
     get_embedding_table = getattr(model, "get_embedding_table", None)
     if not callable(get_embedding_table):
       return False

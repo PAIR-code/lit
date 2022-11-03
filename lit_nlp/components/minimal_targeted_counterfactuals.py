@@ -62,7 +62,7 @@ References:
 """
 
 import collections
-from typing import Any, cast, Optional, Tuple
+from typing import Any, cast, Optional
 from absl import logging
 
 from lit_nlp.api import components as lit_components
@@ -120,6 +120,20 @@ class TabularMTC(lit_components.Generator):
   # either the corresponding standard deviation for a scalar feature or the
   # probability for a categorical feature.
   _datasets_stats: dict[str, dict[str, float]] = {}
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    supported_input_types = (lit_types.Boolean, lit_types.CategoryLabel,
+                             lit_types.Scalar)
+    dataset_fields = set(
+        utils.find_spec_keys(dataset.spec(), supported_input_types))
+    model_in_fields = set(
+        utils.find_spec_keys(model.input_spec(), supported_input_types))
+    model_out_fields = utils.spec_contains(
+        model.output_spec(),
+        (lit_types.MulticlassPreds, lit_types.RegressionScore))
+    intersection = dataset_fields.intersection(model_in_fields)
+    return bool(intersection) and model_out_fields
 
   def generate(self,
                example: JsonDict,
@@ -455,7 +469,7 @@ class TabularMTC(lit_components.Generator):
                cf_example: JsonDict,
                orig_output: JsonDict,
                pred_key: str,
-               regression_thresh: Optional[float] = None) -> Tuple[bool, Any]:
+               regression_thresh: Optional[float] = None) -> tuple[bool, Any]:
 
     cf_output = list(model.predict([cf_example]))[0]
     feature_predicted_value = cf_output[pred_key]
@@ -523,7 +537,7 @@ class TabularMTC(lit_components.Generator):
       dataset: lit_dataset.Dataset,
       dataset_name: str,
       model: Optional[lit_model.Model] = None,
-      field_names: Optional[list[str]] = None) -> Tuple[float, list[str]]:
+      field_names: Optional[list[str]] = None) -> tuple[float, list[str]]:
     """Calculates L1 distance between two input examples.
 
     Only categorical and scalar example features are considered. For categorical

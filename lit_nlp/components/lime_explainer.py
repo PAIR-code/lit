@@ -33,6 +33,9 @@ import numpy as np
 JsonDict = types.JsonDict
 Spec = types.Spec
 
+_SUPPORTED_PRED_TYPES = (types.MulticlassPreds, types.RegressionScore,
+                         types.SparseMultilabelPreds)
+
 TARGET_HEAD_KEY = 'Output field to explain'
 CLASS_KEY = 'Class index to explain'
 KERNEL_WIDTH_KEY = 'Kernel width'
@@ -191,10 +194,7 @@ class LIME(lit_components.Interpreter):
     logging.info('Found text fields for LIME attribution: %s', str(text_keys))
 
     # Find the key of output probabilities field(s).
-    pred_keys = utils.find_spec_keys(
-        model.output_spec(),
-        (types.MulticlassPreds, types.RegressionScore,
-         types.SparseMultilabelPreds))
+    pred_keys = utils.find_spec_keys(model.output_spec(), _SUPPORTED_PRED_TYPES)
     if not pred_keys:
       logging.warning('LIME did not find any supported output fields.')
       return None
@@ -255,13 +255,12 @@ class LIME(lit_components.Interpreter):
         SEED_KEY: types.TextSegment(default=self._seed),
     }
 
-  def is_compatible(self, model: lit_model.Model):
-    text_keys = utils.find_spec_keys(model.input_spec(), types.TextSegment)
-    pred_keys = utils.find_spec_keys(
-        model.output_spec(),
-        (types.MulticlassPreds, types.RegressionScore,
-         types.SparseMultilabelPreds))
-    return len(text_keys) and len(pred_keys)
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model
+    text_keys = utils.spec_contains(model.input_spec(), types.TextSegment)
+    pred_keys = utils.spec_contains(model.output_spec(), _SUPPORTED_PRED_TYPES)
+    return text_keys and pred_keys
 
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}

@@ -14,7 +14,7 @@
 # ==============================================================================
 """An interpreters for generating data for ROC and PR curves."""
 
-from typing import cast, List, Optional, Sequence, Text
+from typing import cast, Optional, Sequence
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -98,11 +98,15 @@ class CurvesInterpreter(lit_components.Interpreter):
     # Create and return the result.
     return {ROC_DATA: roc_data, PR_DATA: pr_data}
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    # A model is compatible if it is a classification model and has
-    # reference to the ground truth in the dataset.
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    """True if using a classification model and dataset has ground truth."""
     output_spec = model.output_spec()
-    return True if self._find_supported_pred_keys(output_spec) else False
+    supported_keys = self._find_supported_pred_keys(output_spec)
+    has_parents = all(
+        cast(types.MulticlassPreds, output_spec[key]).parent in dataset.spec()
+        for key in supported_keys)
+    return bool(supported_keys) and has_parents
 
   def config_spec(self) -> types.Spec:
     # If a model is a multiclass classifier, a user can specify which
@@ -113,7 +117,7 @@ class CurvesInterpreter(lit_components.Interpreter):
   def meta_spec(self) -> types.Spec:
     return {ROC_DATA: types.CurveDataPoints(), PR_DATA: types.CurveDataPoints()}
 
-  def _find_supported_pred_keys(self, output_spec: types.Spec) -> List[Text]:
+  def _find_supported_pred_keys(self, output_spec: types.Spec) -> list[str]:
     """Returns the list of supported prediction keys in the model output.
 
     Args:

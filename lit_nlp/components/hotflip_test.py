@@ -18,6 +18,7 @@ from typing import Optional
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.components import hotflip
@@ -206,7 +207,8 @@ class HotflipTest(parameterized.TestCase):
       ('regression_no_tokens', _REGRESSION_NO_TOKENS, False),
   )
   def test_is_compatible(self, model: lit_model.Model, expected_compat: bool):
-    compat = self.hotflip.is_compatible(model)
+    compat = self.hotflip.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
     self.assertEqual(expected_compat, compat)
 
   @parameterized.named_parameters(

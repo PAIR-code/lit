@@ -52,11 +52,13 @@ class TestRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return 0.0 regression values for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:
@@ -83,11 +85,13 @@ class TestIdentityRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return input value for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:

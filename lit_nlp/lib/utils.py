@@ -53,6 +53,11 @@ def filter_by_keys(d: Dict[K, V], predicate: Callable[[K], bool]) -> Dict[K, V]:
   return {k: v for k, v in d.items() if predicate(k)}
 
 
+def spec_contains(d: dict[str, Any], types) -> bool:
+  """Returns true if the spec contains any field with one of these types."""
+  return bool(find_spec_keys(d, types))
+
+
 def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
   """Return a (shallow) copy of d with some fields renamed.
 

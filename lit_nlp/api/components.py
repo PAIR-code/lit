@@ -61,9 +61,10 @@ class Interpreter(metaclass=abc.ABCMeta):
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
 
-  def is_compatible(self, model: lit_model.Model):
-    """Return if interpreter is compatible with the given model."""
-    del model
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    """Return if interpreter is compatible with the dataset and model."""
+    del dataset, model  # Unused in base class
     return True
 
   def config_spec(self) -> types.Spec:
@@ -97,8 +98,8 @@ class ComponentGroup(Interpreter):
   def __init__(self, subcomponents: dict[str, Interpreter]):
     self._subcomponents = subcomponents
 
-  def meta_spec(self) -> dict[str, types.LitType]:
-    spec: dict[str, types.LitType] = {}
+  def meta_spec(self) -> types.Spec:
+    spec: types.Spec = {}
     for component_name, component in self._subcomponents.items():
       for field_name, field_spec in component.meta_spec().items():
         spec[f'{component_name}: {field_name}'] = field_spec

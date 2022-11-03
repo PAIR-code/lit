@@ -129,9 +129,10 @@ class ClassificationInterpreter(lit_components.Interpreter):
       results.append(input_result)
     return results
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    output_spec = model.output_spec()
-    return True if self._find_supported_pred_keys(output_spec) else False
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused during model classification
+    return lit_utils.spec_contains(model.output_spec(), types.MulticlassPreds)
 
   def _find_supported_pred_keys(self, output_spec: types.Spec) -> list[str]:
     return lit_utils.find_spec_keys(output_spec, types.MulticlassPreds)

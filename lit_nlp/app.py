@@ -57,23 +57,40 @@ class LitApp(object):
     model_info = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
-      info = {}
-      info['spec'] = {'input': mspec.input, 'output': mspec.output}
+      info = {
+          'description': m.description(),
+          'spec': {
+              'input': mspec.input,
+              'output': mspec.output
+          }
+      }
+
       # List compatible datasets.
       info['datasets'] = [
-          dname for dname, ds in self._datasets.items()
-          if mspec.is_compatible_with_dataset(ds.spec())
+          name for name, dataset in self._datasets.items()
+          if mspec.is_compatible_with_dataset(dataset.spec())
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
-      info['generators'] = [
-          name for name, gen in self._generators.items() if gen.is_compatible(m)
-      ]
-      info['interpreters'] = [
-          name for name, interp in self._interpreters.items()
-          if interp.is_compatible(m)
-      ]
-      info['description'] = m.description()
+
+      compat_gens: set[str] = set()
+      compat_interps: set[str] = set()
+
+      for d in info['datasets']:
+        dataset: lit_dataset.Dataset = self._datasets[d]
+        compat_gens.update([
+            name for name, gen in self._generators.items()
+            if gen.is_compatible(model=m, dataset=dataset)
+        ])
+        compat_interps.update([
+            name for name, interp in self._interpreters.items()
+            if interp.is_compatible(model=m, dataset=dataset)
+        ])
+
+      info['generators'] = [name for name in self._generators.keys()
+                            if name in compat_gens]
+      info['interpreters'] = [name for name in self._interpreters.keys()
+                              if name in compat_interps]
       model_info[name] = info
 
     dataset_info = {}
@@ -139,7 +156,7 @@ class LitApp(object):
   def _save_datapoints(self, data, dataset_name: str, path: str, **unused_kw):
     """Save datapoints to disk."""
     if self._demo_mode:
-      logging.warn('Attempted to save datapoints in demo mode.')
+      logging.warning('Attempted to save datapoints in demo mode.')
       return None
     return self._datasets[dataset_name].save(data['inputs'], path)
 
@@ -147,7 +164,7 @@ class LitApp(object):
                        **unused_kw):
     """Load datapoints from disk."""
     if self._demo_mode:
-      logging.warn('Attempted to load datapoints in demo mode.')
+      logging.warning('Attempted to load datapoints in demo mode.')
       return None
     dataset = self._datasets[dataset_name].load(path)
     return dataset.indexed_examples
@@ -538,7 +555,7 @@ class LitApp(object):
         for name, model in models.items()
     }
 
-    self._datasets = dict(datasets)
+    self._datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
     # TODO(b/202210900): get rid of this, just dynamically create the empty
     # dataset on the frontend.
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)

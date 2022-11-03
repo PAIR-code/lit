@@ -196,7 +196,7 @@ class CurvesInterpreterTest(parameterized.TestCase):
       ('no_parent', NoParentTestModel(), False))
   def test_model_compatibility(self, model: Model, exp_is_compat: bool):
     """A model is incompatible if prediction is not MulticlassPreds."""
-    self.assertEqual(self.ci.is_compatible(model), exp_is_compat)
+    self.assertEqual(self.ci.is_compatible(model, TestDataset()), exp_is_compat)
 
 
 if __name__ == '__main__':

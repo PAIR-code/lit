@@ -14,8 +14,12 @@
 # ==============================================================================
 """Tests for lit_nlp.components.metrics."""
 
+from typing import Optional
+
 from absl.testing import absltest
 from absl.testing import parameterized
+from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import metrics
 from lit_nlp.lib import testing_utils
@@ -26,11 +30,13 @@ DUMMY_MODEL = testing_utils.TestModelBatched()
 
 class RegressionMetricsTest(parameterized.TestCase):
 
-  def test_is_compatible(self):
+  @parameterized.named_parameters(('with model', DUMMY_MODEL),
+                                  ('without model', None))
+  def test_is_compatible(self, model: Optional[lit_model.Model]):
     """Always false to prevent use as explainer."""
     regression_metrics = metrics.RegressionMetrics()
-    self.assertFalse(regression_metrics.is_compatible(DUMMY_MODEL))
-    self.assertFalse(regression_metrics.is_compatible(None))
+    self.assertFalse(regression_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
   @parameterized.named_parameters(
       ('regression', types.RegressionScore(), None, True),
@@ -51,7 +57,7 @@ class RegressionMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 0,
         'pearsonr': 1.0,
-        'spearmanr': 1.0
+        'spearmanr': 1.0,
     })
 
   def test_compute_some_incorrect(self):
@@ -63,7 +69,7 @@ class RegressionMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 2.885,
         'pearsonr': 0.96566,
-        'spearmanr': 1.0
+        'spearmanr': 1.0,
     })
 
   def test_compute_all_incorrect(self):
@@ -76,7 +82,7 @@ class RegressionMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mse': 47.0,
         'pearsonr': 0.79559,
-        'spearmanr': 0.799999
+        'spearmanr': 0.799999,
     })
 
   def test_compute_empty_labels(self):
@@ -89,11 +95,13 @@ class RegressionMetricsTest(parameterized.TestCase):
 
 class MulticlassMetricsTest(parameterized.TestCase):
 
-  def test_is_compatible(self):
+  @parameterized.named_parameters(('with model', DUMMY_MODEL),
+                                  ('without model', None))
+  def test_is_compatible(self, model: Optional[lit_model.Model]):
     """Always false to prevent use as explainer."""
     multiclass_metrics = metrics.MulticlassMetrics()
-    self.assertFalse(multiclass_metrics.is_compatible(DUMMY_MODEL))
-    self.assertFalse(multiclass_metrics.is_compatible(None))
+    self.assertFalse(multiclass_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
   @parameterized.named_parameters(
       ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
@@ -116,7 +124,7 @@ class MulticlassMetricsTest(parameterized.TestCase):
         'accuracy': 1.0,
         'f1': 1.0,
         'precision': 1.0,
-        'recall': 1.0
+        'recall': 1.0,
     })
 
   def test_compute_some_incorrect(self):
@@ -131,7 +139,7 @@ class MulticlassMetricsTest(parameterized.TestCase):
         'accuracy': 0.5,
         'f1': 0.57143,
         'precision': 0.5,
-        'recall': 0.66667
+        'recall': 0.66667,
     })
 
   def test_compute_all_incorrect(self):
@@ -146,7 +154,7 @@ class MulticlassMetricsTest(parameterized.TestCase):
         'accuracy': 0.0,
         'f1': 0.0,
         'precision': 0.0,
-        'recall': 0.0
+        'recall': 0.0,
     })
 
   def test_compute_no_null_index(self):
@@ -174,7 +182,7 @@ class MulticlassMetricsTest(parameterized.TestCase):
             'aucpr': 1.0,
             'f1': 1.0,
             'precision': 1.0,
-            'recall': 1.0
+            'recall': 1.0,
         })
 
   def test_compute_almost_correct_single_class_with_null_idx_0(self):
@@ -192,7 +200,7 @@ class MulticlassMetricsTest(parameterized.TestCase):
             'aucpr': 1.0,
             'f1': 0.66667,
             'precision': 1.0,
-            'recall': 0.5
+            'recall': 0.5,
         })
 
   def test_compute_almost_correct_multiclass(self):
@@ -222,11 +230,13 @@ class MulticlassMetricsTest(parameterized.TestCase):
 
 class MulticlassPairedMetricsTest(parameterized.TestCase):
 
-  def test_is_compatible(self):
+  @parameterized.named_parameters(('with model', DUMMY_MODEL),
+                                  ('without model', None))
+  def test_is_compatible(self, model: Optional[lit_model.Model]):
     """Always false to prevent use as explainer."""
     multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
-    self.assertFalse(multiclass_paired_metrics.is_compatible(DUMMY_MODEL))
-    self.assertFalse(multiclass_paired_metrics.is_compatible(None))
+    self.assertFalse(multiclass_paired_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
   @parameterized.named_parameters(
       ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
@@ -252,7 +262,7 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.0,
         'num_pairs': 2,
-        'swap_rate': 0.0
+        'swap_rate': 0.0,
     })
 
     # One swap.
@@ -263,7 +273,7 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.34657,
         'num_pairs': 2,
-        'swap_rate': 0.5
+        'swap_rate': 0.5,
     })
 
     # Two swaps.
@@ -274,7 +284,7 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.69315,
         'num_pairs': 2,
-        'swap_rate': 1.0
+        'swap_rate': 1.0,
     })
 
     # Two swaps, no null index.
@@ -285,7 +295,7 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {
         'mean_jsd': 0.69315,
         'num_pairs': 2,
-        'swap_rate': 1.0
+        'swap_rate': 1.0,
     })
 
     # Empty predictions, indices, and meta.
@@ -297,11 +307,13 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
 
 class CorpusBLEUTest(parameterized.TestCase):
 
-  def test_is_compatible(self):
+  @parameterized.named_parameters(('with model', DUMMY_MODEL),
+                                  ('without model', None))
+  def test_is_compatible(self, model: Optional[lit_model.Model]):
     """Always false to prevent use as explainer."""
     bleu_metrics = metrics.CorpusBLEU()
-    self.assertFalse(bleu_metrics.is_compatible(DUMMY_MODEL))
-    self.assertFalse(bleu_metrics.is_compatible(None))
+    self.assertFalse(bleu_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
   @parameterized.named_parameters(
       ('generated text + str', types.GeneratedText(), types.StringLitType(),
@@ -368,11 +380,13 @@ class CorpusBLEUTest(parameterized.TestCase):
 
 class RougeLTest(parameterized.TestCase):
 
-  def test_is_compatible(self):
+  @parameterized.named_parameters(('with model', DUMMY_MODEL),
+                                  ('without model', None))
+  def test_is_compatible(self, model: Optional[lit_model.Model]):
     """Always false to prevent use as explainer."""
     rouge_metrics = metrics.RougeL()
-    self.assertFalse(rouge_metrics.is_compatible(DUMMY_MODEL))
-    self.assertFalse(rouge_metrics.is_compatible(None))
+    self.assertFalse(rouge_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
   @parameterized.named_parameters(
       ('generated text + str', types.GeneratedText(), types.StringLitType(),

@@ -227,8 +227,9 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   ##
   # For internal use
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict],
-                                  dataset_name: str):
+  def fit_transform_with_metadata(self,
+                                  indexed_inputs: list[JsonDict],
+                                  dataset_name: str = ""):
     """For use with UMAP and other preprocessing transforms."""
     outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
@@ -301,9 +302,10 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       model_preds = list(
           self.wrapped.predict_with_metadata(progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
-      assert len(model_preds) == len(
-          misses
-      ), f"Received {len(model_preds)} predictions, which does not match {len(misses)}, the number of inputs."
+
+      if len(model_preds) != len(misses):
+        raise ValueError(f"Received {len(model_preds)} predictions, which does "
+                         f"not match {len(misses)}, the number of inputs.")
 
       # Merge results back into the output list.
       with self._cache.lock:

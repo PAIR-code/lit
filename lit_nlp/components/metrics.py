@@ -84,8 +84,10 @@ def nan_to_none(metrics: dict[str, float]) -> dict[str, Optional[float]]:
 class SimpleMetrics(lit_components.Interpreter):
   """Base class for simple metrics, which should render in the main metrics table."""
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
     """Metrics should always return false for Model-level compatibility."""
+    del model, dataset  # TODO(b/254832560): Use these once metrics get promoted
     return False
 
   @abc.abstractmethod
@@ -201,8 +203,10 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
   def __init__(self, metrics: SimpleMetrics):
     self._metrics = metrics
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
     """Metrics should always return false for Model-level compatibility."""
+    del model, dataset  # TODO(b/254832560): Use these once metrics get promoted
     return False
 
   def is_field_compatible(self, pred_spec: LitType,
