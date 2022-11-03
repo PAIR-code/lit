@@ -15,7 +15,7 @@
 """Base classes for LIT backend components."""
 import abc
 import inspect
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -23,6 +23,7 @@ from lit_nlp.api import types
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
+MetricsDict = dict[str, float]
 
 
 class Interpreter(metaclass=abc.ABCMeta):
@@ -171,6 +172,80 @@ class Generator(Interpreter):
                config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Return a list of generated examples."""
     pass
+
+
+class Metrics(Interpreter):
+  """Base class for LIT metrics components."""
+
+  # Required methods implementations from Interpreter base class
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    """True if the model and dataset support metric computation."""
+    for pred_spec in model.output_spec().values():
+      parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
+      parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)
+      if self.is_field_compatible(pred_spec, parent_spec):
+        return True
+    return False
+
+  def meta_spec(self):
+    """A dict of MetricResults defining the metrics computed by this class."""
+    raise NotImplementedError('Subclass should define its own meta spec.')
+
+  def run(
+      self,
+      inputs: Sequence[JsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None) -> list[JsonDict]:
+    raise NotImplementedError(
+        'Subclass should implement its own run using compute.')
+
+  def run_with_metadata(
+      self,
+      indexed_inputs: Sequence[IndexedInput],
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None) -> list[JsonDict]:
+    inputs = [inp['data'] for inp in indexed_inputs]
+    return self.run(inputs, model, dataset, model_outputs, config)
+
+  # New methods introduced by this subclass
+
+  def is_field_compatible(
+      self,
+      pred_spec: types.LitType,
+      parent_spec: Optional[types.LitType]) -> bool:
+    """True if compatible with the prediction field and its parent."""
+    del pred_spec, parent_spec  # Unused in base class
+    raise NotImplementedError('Subclass should implement field compatibility.')
+
+  def compute(
+      self,
+      labels: Sequence[Any],
+      preds: Sequence[Any],
+      label_spec: types.LitType,
+      pred_spec: types.LitType,
+      config: Optional[JsonDict] = None) -> MetricsDict:
+    """Compute metric(s) given labels and predictions."""
+    raise NotImplementedError('Subclass should implement this, or override '
+                              'compute_with_metadata() directly.')
+
+  def compute_with_metadata(
+      self,
+      labels: Sequence[Any],
+      preds: Sequence[Any],
+      label_spec: types.LitType,
+      pred_spec: types.LitType,
+      indices: Sequence[types.ExampleId],
+      metas: Sequence[JsonDict],
+      config: Optional[JsonDict] = None) -> MetricsDict:
+    """As compute(), but with access to indices and metadata."""
+    del indices, metas  # unused by Metrics base class
+    return self.compute(labels, preds, label_spec, pred_spec, config)
 
 
 class Annotator(metaclass=abc.ABCMeta):

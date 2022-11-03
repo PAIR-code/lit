@@ -14,8 +14,6 @@
 # ==============================================================================
 """Tests for lit_nlp.components.metrics."""
 
-from typing import Optional
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
@@ -25,18 +23,39 @@ from lit_nlp.components import metrics
 from lit_nlp.lib import testing_utils
 
 LitType = types.LitType
-DUMMY_MODEL = testing_utils.TestModelBatched()
+
+
+class TestGenTextModel(lit_model.Model):
+
+  def input_spec(self) -> types.Spec:
+    return {'input': types.TextSegment()}
+
+  def output_spec(self) -> types.Spec:
+    return {'output': types.GeneratedText(parent='input')}
+
+  def predict_minibatch(self,
+                        inputs: list[types.JsonDict]) -> list[types.JsonDict]:
+    return [{'output': 'test_output'}] * len(inputs)
+
+
+_CLASSIFICATION_MODEL = testing_utils.TestModelClassification()
+_GENERATED_TEXT_MODEL = TestGenTextModel()
+_REGRESSION_MODEL = testing_utils.TestIdentityRegressionModel()
 
 
 class RegressionMetricsTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(('with model', DUMMY_MODEL),
-                                  ('without model', None))
-  def test_is_compatible(self, model: Optional[lit_model.Model]):
+  @parameterized.named_parameters(
+      ('cls_model', _CLASSIFICATION_MODEL, False),
+      ('gen_text_model', _GENERATED_TEXT_MODEL, False),
+      ('reg_model', _REGRESSION_MODEL, True),
+  )
+  def test_is_compatible(self, model: lit_model.Model, expected: bool):
     """Always false to prevent use as explainer."""
     regression_metrics = metrics.RegressionMetrics()
-    self.assertFalse(regression_metrics.is_compatible(
-        model, lit_dataset.NoneDataset({'test': model})))
+    compat = regression_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
 
   @parameterized.named_parameters(
       ('regression', types.RegressionScore(), None, True),
@@ -95,13 +114,17 @@ class RegressionMetricsTest(parameterized.TestCase):
 
 class MulticlassMetricsTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(('with model', DUMMY_MODEL),
-                                  ('without model', None))
-  def test_is_compatible(self, model: Optional[lit_model.Model]):
+  @parameterized.named_parameters(
+      ('cls_model', _CLASSIFICATION_MODEL, True),
+      ('reg_model', _REGRESSION_MODEL, False),
+      ('gen_text_model', _GENERATED_TEXT_MODEL, False),
+  )
+  def test_is_compatible(self, model: lit_model.Model, expected: bool):
     """Always false to prevent use as explainer."""
     multiclass_metrics = metrics.MulticlassMetrics()
-    self.assertFalse(multiclass_metrics.is_compatible(
-        model, lit_dataset.NoneDataset({'test': model})))
+    compat = multiclass_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
 
   @parameterized.named_parameters(
       ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
@@ -230,13 +253,17 @@ class MulticlassMetricsTest(parameterized.TestCase):
 
 class MulticlassPairedMetricsTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(('with model', DUMMY_MODEL),
-                                  ('without model', None))
-  def test_is_compatible(self, model: Optional[lit_model.Model]):
+  @parameterized.named_parameters(
+      ('cls_model', _CLASSIFICATION_MODEL, True),
+      ('reg_model', _REGRESSION_MODEL, False),
+      ('gen_text_model', _GENERATED_TEXT_MODEL, False),
+  )
+  def test_is_compatible(self, model: lit_model.Model, expected: bool):
     """Always false to prevent use as explainer."""
     multiclass_paired_metrics = metrics.MulticlassPairedMetrics()
-    self.assertFalse(multiclass_paired_metrics.is_compatible(
-        model, lit_dataset.NoneDataset({'test': model})))
+    compat = multiclass_paired_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
 
   @parameterized.named_parameters(
       ('multiclass', types.MulticlassPreds(vocab=['']), None, True),
@@ -307,13 +334,17 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
 
 class CorpusBLEUTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(('with model', DUMMY_MODEL),
-                                  ('without model', None))
-  def test_is_compatible(self, model: Optional[lit_model.Model]):
+  @parameterized.named_parameters(
+      ('cls_model', _CLASSIFICATION_MODEL, False),
+      ('reg_model', _REGRESSION_MODEL, False),
+      ('gen_text_model', _GENERATED_TEXT_MODEL, True),
+  )
+  def test_is_compatible(self, model: lit_model.Model, expected: bool):
     """Always false to prevent use as explainer."""
     bleu_metrics = metrics.CorpusBLEU()
-    self.assertFalse(bleu_metrics.is_compatible(
-        model, lit_dataset.NoneDataset({'test': model})))
+    compat = bleu_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
 
   @parameterized.named_parameters(
       ('generated text + str', types.GeneratedText(), types.StringLitType(),
@@ -380,13 +411,17 @@ class CorpusBLEUTest(parameterized.TestCase):
 
 class RougeLTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(('with model', DUMMY_MODEL),
-                                  ('without model', None))
-  def test_is_compatible(self, model: Optional[lit_model.Model]):
+  @parameterized.named_parameters(
+      ('cls_model', _CLASSIFICATION_MODEL, False),
+      ('reg_model', _REGRESSION_MODEL, False),
+      ('gen_text_model', _GENERATED_TEXT_MODEL, True),
+  )
+  def test_is_compatible(self, model: lit_model.Model, expected: bool):
     """Always false to prevent use as explainer."""
     rouge_metrics = metrics.RougeL()
-    self.assertFalse(rouge_metrics.is_compatible(
-        model, lit_dataset.NoneDataset({'test': model})))
+    compat = rouge_metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
 
   @parameterized.named_parameters(
       ('generated text + str', types.GeneratedText(), types.StringLitType(),

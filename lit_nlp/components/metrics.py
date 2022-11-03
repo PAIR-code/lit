@@ -14,7 +14,6 @@
 # ==============================================================================
 """Metric component and implementations."""
 
-import abc
 import collections
 import enum
 from typing import Any, Callable, Optional, Sequence, Union, cast
@@ -81,46 +80,11 @@ def nan_to_none(metrics: dict[str, float]) -> dict[str, Optional[float]]:
   return {k: (v if not np.isnan(v) else None) for k, v in metrics.items()}
 
 
-class SimpleMetrics(lit_components.Interpreter):
-  """Base class for simple metrics, which should render in the main metrics table."""
-
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
-    """Metrics should always return false for Model-level compatibility."""
-    del model, dataset  # TODO(b/254832560): Use these once metrics get promoted
-    return False
-
-  @abc.abstractmethod
-  def is_field_compatible(self, pred_spec: LitType,
-                          parent_spec: Optional[LitType]) -> bool:
-    """Returns true if compatible with the predicted field and its parent."""
-    pass
-
-  def compute(self,
-              labels: Sequence[Any],
-              preds: Sequence[Any],
-              label_spec: LitType,
-              pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
-    raise NotImplementedError(
-        'Subclass should implement this, or override compute_with_metadata() directly.'
-    )
-
-  def compute_with_metadata(
-      self,
-      labels: Sequence[Any],
-      preds: Sequence[Any],
-      label_spec: LitType,
-      pred_spec: LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> dict[str, float]:
-    """As compute(), but has access to indices and metadata."""
-    return self.compute(labels, preds, label_spec, pred_spec, config)
+class SimpleMetrics(lit_components.Metrics):
+  """Base class for built-in metrics rendered in the main metrics table."""
 
   def run(self,
-          inputs: list[JsonDict],
+          inputs: Sequence[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
           model_outputs: Optional[list[JsonDict]] = None,
@@ -206,8 +170,7 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
     """Metrics should always return false for Model-level compatibility."""
-    del model, dataset  # TODO(b/254832560): Use these once metrics get promoted
-    return False
+    return self._metrics.is_compatible(model, dataset)
 
   def is_field_compatible(self, pred_spec: LitType,
                           parent_spec: Optional[LitType]) -> bool:
@@ -463,6 +426,13 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
   mean JSD between model(d) and model(d') as a "soft" measure of the response of
   the model to the perturbations.
   """
+
+  def meta_spec(self) -> types.Spec:
+    return {
+        'num_pairs': _get_best_value_spec(),
+        'swap_rate': _get_best_value_spec(BestValue.ZERO),
+        'mean_jsd': _get_best_value_spec(BestValue.HIGHEST),
+    }
 
   def is_field_compatible(self, pred_spec: LitType,
                           parent_spec: Optional[LitType]) -> bool:
