@@ -569,3 +569,19 @@ export class CurveDataPoints extends LitType {
 @registered
 export class InfluentialExamples extends LitType {
 }
+
+/** The method to use to determine the best value for a Metric. */
+export enum MetricBestValue {
+  HIGHEST = "highest",
+  LOWEST = "lowest",
+  NONE = "none",
+  ZERO = "zero",
+}
+
+/** Score returned from the computation of a Metric. */
+@registered
+export class MetricResult extends LitType {
+  override default: number = 0;
+  description: string = '';
+  best_value: MetricBestValue = MetricBestValue.NONE;
+}

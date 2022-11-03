@@ -15,7 +15,6 @@
 """Metric component and implementations."""
 
 import collections
-import enum
 from typing import Any, Callable, Optional, Sequence, Union, cast
 
 from absl import logging
@@ -36,21 +35,6 @@ JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
 LitType = types.LitType
 Spec = types.Spec
-
-
-class BestValue(enum.Enum):
-  HIGHEST = 'highest'
-  LOWEST = 'lowest'
-  NONE = 'none'
-  ZERO = 'zero'
-
-
-_BEST_VALUE_VOCAB = [str(bv.value) for bv in BestValue]
-
-
-def _get_best_value_spec(
-    dflt: BestValue = BestValue.NONE) -> types.CategoryLabel:
-  return types.CategoryLabel(default=str(dflt), vocab=_BEST_VALUE_VOCAB)
 
 
 def map_pred_keys(
@@ -235,9 +219,22 @@ class RegressionMetrics(SimpleMetrics):
 
   def meta_spec(self) -> dict[str, types.LitType]:
     return {
-        'mse': _get_best_value_spec(BestValue.ZERO),
-        'pearsonr': _get_best_value_spec(),
-        'spearmanr': _get_best_value_spec()
+        'mse': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='Mean squared error: Estimates the mean of the '
+                        'square of the differences between the estimated value '
+                        'and the actual value. Closer to 0 is better.'),
+        'pearsonr': types.MetricResult(
+            description="Pearson's R: Measures the linear correlation between "
+                        "the estimated value and the actual value. Values "
+                        "closer to 1 indicate a strong positive correlation "
+                        "and values closee to -1 indicate a strong negative "
+                        "correlation."),
+        'spearmanr': types.MetricResult(
+            description="Spearman's Rho: Measures the rank correlation between "
+                        "the estimated and actual values. Values closer to 1 "
+                        "indicate a strong positive correlation and values "
+                        "closer to -1 indicate a strong negative correlation."),
     }
 
   def compute(self,
@@ -354,13 +351,34 @@ class MulticlassMetricsImpl(SimpleMetrics):
 
   def meta_spec(self) -> dict[str, types.LitType]:
     return {
-        'accuracy': _get_best_value_spec(BestValue.HIGHEST),
-        'precision': _get_best_value_spec(BestValue.HIGHEST),
-        'recall': _get_best_value_spec(BestValue.HIGHEST),
-        'f1': _get_best_value_spec(BestValue.HIGHEST),
-        'auc': _get_best_value_spec(BestValue.HIGHEST),
-        'aucpr': _get_best_value_spec(BestValue.HIGHEST),
-        'num_missing_labels': _get_best_value_spec(BestValue.ZERO),
+        'accuracy': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct labels predicted by the '
+                        'model. Closer to 1 is better.'),
+        'precision': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct predictions for this class '
+                        'out of all predictions of this class. Closer to 1 is '
+                        'better.'),
+        'recall': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct predictions for this class '
+                        'out of all datapoints in this class. Closer to 1 is '
+                        'better.'),
+        'f1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The performance of the model as the harmonic mean of '
+                        'precision and recall. Closer to 1 is better.'),
+        'auc': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='Area under the ROC curve. Closer to 1 is better.'),
+        'aucpr': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='Area under the PR curve. Closer to 1 is better.'),
+        'num_missing_labels': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of predictions that did not have ground '
+                        'truth labels. Closer to 0 is better.'),
     }
 
   def compute(self,
@@ -429,9 +447,17 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
 
   def meta_spec(self) -> types.Spec:
     return {
-        'num_pairs': _get_best_value_spec(),
-        'swap_rate': _get_best_value_spec(BestValue.ZERO),
-        'mean_jsd': _get_best_value_spec(BestValue.HIGHEST),
+        'num_pairs': types.MetricResult(
+            description='The number of pairs found/analyzed.'),
+        'swap_rate': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The proportion of time the prediction differs between '
+                        'the pair of examples. Closer to 0 is better.'),
+        'mean_jsd': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='Mean Jensen-Shannon distance measures the similarity '
+                        'between two probability distributions. Closer to 0 is '
+                        'better.'),
     }
 
   def is_field_compatible(self, pred_spec: LitType,
@@ -503,8 +529,8 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
         preds, pred_spec, config)
 
     # 'swapped' just means the prediction changed.
-    is_swapped = [(pred_idxs[i] == pred_idxs[j]) for i, j in pairs]
-    ret['swap_rate'] = 1 - np.mean(is_swapped)
+    is_swapped = [(pred_idxs[i] != pred_idxs[j]) for i, j in pairs]
+    ret['swap_rate'] = np.mean(is_swapped)
 
     # Jensen-Shannon divergence, as a soft measure of prediction change.
     jsds = [
@@ -536,8 +562,15 @@ class CorpusBLEU(SimpleMetrics):
 
   def meta_spec(self) -> dict[str, types.LitType]:
     return {
-        'corpus_bleu': _get_best_value_spec(BestValue.HIGHEST),
-        'corpus_bleu@1': _get_best_value_spec(BestValue.HIGHEST)
+        'corpus_bleu': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='BLEU score, a measure of text quality, over an entire '
+                        'corpus. Closer to 1 is better.'),
+        'corpus_bleu@1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='BLEU score, a measure of text quality, over an entire '
+                        'corpus for the top predicted candidate. Closer to 1 '
+                        'is better.'),
     }
 
   def compute(self,
@@ -610,8 +643,16 @@ class RougeL(SimpleMetrics):
 
   def meta_spec(self) -> dict[str, types.LitType]:
     return {
-        'rougeL': _get_best_value_spec(BestValue.HIGHEST),
-        'rougeL@1': _get_best_value_spec(BestValue.HIGHEST)
+        'rougeL': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='ROUGE score, a measure of text quality, for the '
+                        'longest common subsequence in the text. Closer to 1 '
+                        'is better.'),
+        'rougeL@1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='ROUGE score, a measure of text quality, for the '
+                        'longest common subsequence in the text for the top '
+                        'predicted candidate. Closer to 1 is better.')
     }
 
   def compute(self,
@@ -689,10 +730,22 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
 
   def meta_spec(self) -> dict[str, types.LitType]:
     return {
-        'FN': _get_best_value_spec(BestValue.ZERO),
-        'FP': _get_best_value_spec(BestValue.ZERO),
-        'TN': _get_best_value_spec(BestValue.HIGHEST),
-        'TP': _get_best_value_spec(BestValue.HIGHEST),
+        'FN': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of false negatives predicted by the model. '
+                        'Closer to 0 is better.'),
+        'FP': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of false positives predicted by the model. '
+                        'Closer to 0 is better.'),
+        'TN': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The number of true negatives predicted by the model. '
+                        'Higher is better.'),
+        'TP': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The number of true positives predicted by the model. '
+                        'Hugher is better.'),
     }
 
   def is_field_compatible(self, pred_spec: LitType,

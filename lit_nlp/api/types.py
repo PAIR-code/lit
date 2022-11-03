@@ -25,6 +25,7 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
+import enum
 import math
 import numbers
 from typing import Any, NewType, Optional, Sequence, Type, TypedDict, Union
@@ -677,7 +678,7 @@ class TokenEmbeddings(_Tensor):
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenGradients(_GradientsBase):
-  """Gradients with respect to per-token inputs, as <float>[num_tokens, emb_dim]."""
+  """Gradients for per-token inputs, as <float>[num_tokens, emb_dim]."""
 
   def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
                       input_spec: Spec, dataset_spec: Spec,
@@ -849,6 +850,23 @@ class InfluentialExamples(LitType):
   This describes a generator component; values are Sequence[Sequence[JsonDict]].
   """
   pass
+
+
+@enum.unique
+class MetricBestValue(dtypes.EnumSerializableAsValues, enum.Enum):
+  """The method to use to determine the best value for a Metric."""
+  HIGHEST = "highest"
+  LOWEST = "lowest"
+  NONE = "none"
+  ZERO = "zero"
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class MetricResult(LitType):
+  """Score returned from the computation of a Metric."""
+  default: float = 0
+  description: str = ""
+  best_value: MetricBestValue = MetricBestValue.NONE
 
 
 # LINT.ThenChange(../client/lib/lit_types.ts)

@@ -26,17 +26,11 @@ import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, DataTable, TableData} from '../elements/table';
+import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-enum BestValue {
-  HIGHEST = 'highest',
-  LOWEST = 'lowest',
-  NONE = 'none',
-  ZERO = 'zero',
-}
 
 // Each entry from the server.
 interface MetricsResponse {
@@ -325,13 +319,16 @@ export class MetricsModule extends LitModule {
         Object.entries(metricsV).forEach(([name, val]) => {
           const key = getMetricKey(metricsT, name);
           const max = metricBests.get(key)!;
-          const bestCase = metaSpec[key]?.default;
+          const spec = metaSpec[key];
+          if (!(spec instanceof MetricResult)) return;
+          const bestCase = spec.best_value;
 
           if (bestCase != null && (!metricBests.has(key) ||
-              (bestCase === BestValue.HIGHEST && max < val) ||
-              (bestCase === BestValue.LOWEST && max > val) ||
-              (bestCase === BestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
-            metricBests.set(key, bestCase === BestValue.NONE ? Infinity : val);
+              (bestCase === MetricBestValue.HIGHEST && max < val) ||
+              (bestCase === MetricBestValue.LOWEST && max > val) ||
+              (bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
+            metricBests.set(key,
+                            bestCase === MetricBestValue.NONE ? Infinity : val);
           }
         });
       });
@@ -369,7 +366,10 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      return {name, rightAlign: true};
+      const spec = metaSpec[name] as MetricResult;
+      return {name, rightAlign: true, html: html`
+        <div class="header-text" title=${spec.description}>${name}</div>`
+      };
     });
 
     return {
