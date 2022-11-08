@@ -634,6 +634,7 @@ class LitApp(object):
         '/post_new_data': self._post_new_data,
         '/fetch_new_data': self._fetch_new_data,
         '/remove_new_data': self._remove_new_data,
+        '/push_ui_state': self._push_ui_state,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,
