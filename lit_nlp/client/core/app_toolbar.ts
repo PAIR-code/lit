@@ -33,7 +33,6 @@ import {classMap} from 'lit/directives/class-map';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';
-import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
 import {app} from './app';
@@ -274,9 +273,7 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   onClickCopyLink() {
-    const urlBase =
-        (this.appState.metadata.canonicalURL || window.location.host);
-    copyToClipboard(urlBase + window.location.search);
+    navigator.clipboard.writeText(this.appState.getBestURL());
   }
 
   renderRightCorner() {

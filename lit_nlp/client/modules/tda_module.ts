@@ -483,6 +483,7 @@ export class TrainingDataAttributionModule extends LitModule {
         <lit-data-table class="table"
             .columnNames=${Object.keys(rows[0])}
             .data=${rows}
+            exportEnabled
         ></lit-data-table>
       </div>
     `;

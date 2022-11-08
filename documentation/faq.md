@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-13' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -107,13 +107,17 @@ but using `data0`, `data1`, `data2`, e.g. `data0_<fieldname>=<value>`.
 
 ### Downloading or exporting data
 
-There is currently limited support for this via the settings (⚙️) menu. Click
-the "Dataset" tab and enter a path to save to. This is done server-side, so be
-sure the path is accessible to the server process.
+Currently, there are three ways to export data from the LIT UI:
 
-In the future, we hope to make this workflow more robust, including more control
-over data format, as well as browser-based uploads and downloads of the examples
-(such as from csv files or Google Sheets).
+-   In the Data Table, you can copy or download the current view in CSV format -
+    see [the UI guide](./ui_guide.md#data-table) for more details.
+-   In the "Dataset" tab of the settings (⚙️) menu, you can enter a path to save
+    data to. Data is pushed to the server and written by the server backend, so
+    be sure the path is writable.
+
+-   If using LIT in a Colab or other notebook environment, you can access the
+    current selection from another cell using `widget.ui_state.primary`,
+    `widget.ui_state.selection`, and `widget.ui_state.pinned`.
 
 ### Loading data from the UI
 

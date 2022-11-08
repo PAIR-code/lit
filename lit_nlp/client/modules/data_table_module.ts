@@ -488,6 +488,7 @@ export class DataTableModule extends LitModule {
         searchEnabled
         selectionEnabled
         paginationEnabled
+        exportEnabled
       ></lit-data-table>
     `;
     // clang-format on

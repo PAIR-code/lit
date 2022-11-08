@@ -641,3 +641,7 @@ mwc-icon.outlined {
   border: 1px solid var(--lit-neutral-600);
   box-shadow: var(--lit-box-shadow);
 }
+
+.nowrap {
+  white-space: nowrap;
+}

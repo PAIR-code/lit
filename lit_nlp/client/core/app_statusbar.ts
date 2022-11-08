@@ -25,13 +25,13 @@ import './global_settings';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {StatusService} from '../services/services';
+import {AppState, StatusService} from '../services/services';
 
 import {app} from './app';
 import {styles} from './app_statusbar.css';
@@ -45,6 +45,7 @@ export class StatusbarComponent extends MobxLitElement {
     return [sharedStyles, styles];
   }
 
+  private readonly appState = app.getService(AppState);
   private readonly statusService = app.getService(StatusService);
   @observable private renderFullMessages = false;
 
@@ -87,10 +88,21 @@ export class StatusbarComponent extends MobxLitElement {
     `;
   }
 
-  renderPopup() {
+  renderPopupControls() {
     const close = () => {
       this.renderFullMessages = false;
     };
+
+    // clang-format off
+    return html`
+      <button class='hairline-button' @click=${() => {close();}}>
+        Close
+      </button>
+    `;
+    // clang-format on
+  }
+
+  renderPopup() {
     // clang-format off
     return html`
       <div class='modal-container'>
@@ -102,9 +114,7 @@ export class StatusbarComponent extends MobxLitElement {
                 message => html`<div class="error-message">${message}</div>`)}
           </div>
           <div class='close-button-holder'>
-            <button class='hairline-button' @click=${() => {close();}}>
-              Close
-            </button>
+            ${this.renderPopupControls()}
           </div>
         </div>
       </div>`;

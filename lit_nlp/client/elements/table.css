@@ -18,7 +18,7 @@
   z-index: 0;
 }
 
-.holder table.paginated {
+.holder table.has-footer {
   height: 100%;
   min-height: 100%;
 }
@@ -229,6 +229,21 @@ tbody td {
 
   display: flex;
   flex-direction: row;
+}
+
+.footer-spacer {
+  flex: 1;
+}
+
+popup-container.download-popup {
+  --popup-bottom: 28px;
+  --popup-right: 0;
+}
+
+.download-popup-controls {
+  display: flex;
+  align-items: center;
+  column-gap: 4px;
 }
 
 .current-page-num {

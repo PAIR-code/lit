@@ -447,20 +447,6 @@ export function roundToDecimalPlaces(num: number, places: number) {
 }
 
 /**
- * Copies a value to the user's clipboard.
- */
-export function copyToClipboard(value: string) {
-  const tempInput = document.createElement("input");
-  tempInput.value = value;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  // TODO(b/240439975): Resolve deprecated execCommand.
-  // tslint:disable:deprecation
-  document.execCommand("copy");
-  document.body.removeChild(tempInput);
-}
-
-/**
  * Processes a sentence so that no word exceeds a certain length by
  * chunking a long word into shorter pieces. This is useful when rendering
  * a table-- normally a table will stretch to fit the entire word length

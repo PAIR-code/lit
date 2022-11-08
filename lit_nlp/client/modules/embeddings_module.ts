@@ -569,7 +569,7 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
+            <mwc-icon class="icon-button mdi-outlined"
               title="Reset view"
               @click=${onClickReset}>view_in_ar</mwc-icon>
           </div>

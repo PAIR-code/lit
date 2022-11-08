@@ -1,6 +1,6 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
 
 This is a user guide for the Language Interpretability Tool (LIT) UI.
 
@@ -248,7 +248,7 @@ header row. All columns that have filters set on them have their search button
 outlined. Clicking the **"x"** button in the search box for a column will clear
 that column's filter.
 
-The **"only show selected"** checkbox toggles the data table to only show the
+The **"show only selected"** checkbox toggles the data table to only show the
 datapoints that are currently selected.
 
 The **"reset view"** button returns the data table to its standard, default
@@ -268,6 +268,15 @@ left side of the datapoint's table entry when the datapoint is hovered over or
 selected. A pinned datapoint can be unpinned by clicking on its pin icon again.
 
 ![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
+
+You can also export data to CSV using the copy or download buttons in the bottom
+right:
+
+![LIT data table](./images/lit-datatable-export.png "LIT data table export controls")<!-- DO NOT REMOVE {width="400"} -->
+
+This will export all data in the current table view. To export only the
+selection, use the "Show only selected" toggle. To include additional
+columns such as model predictions, enable them from the "Columns" dropdown.
 
 ### Datapoint Editor
 

@@ -24,6 +24,7 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
 import './checkbox';
+import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
@@ -32,12 +33,14 @@ import {isTemplateResult} from 'lit/directive-helpers';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {action, computed, observable} from 'mobx';
+import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
 
+import {PopupContainer} from './popup_container';
 import {styles} from './table.css';
 
 /** Function for supplying table entry template result based on row state. */
@@ -134,6 +137,7 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) selectionEnabled: boolean = false;
   @observable @property({type: Boolean}) searchEnabled: boolean = false;
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
+  @observable @property({type: Boolean}) exportEnabled: boolean = false;
 
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
@@ -158,6 +162,8 @@ export class DataTable extends ReactiveElement {
   private readonly columnFilterInfo = new Map<string, ColumnFilterInfo>();
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
+
+  @property({type: String}) downloadFilename: string = 'data.csv';
 
   private readonly resizeObserver = new ResizeObserver(() => {
     this.adjustEntriesIfHeightChanged();
@@ -427,6 +433,18 @@ export class DataTable extends ReactiveElement {
     return this.getSortedData(this.rowFilteredData);
   }
 
+  getArrayData(): SortableTableEntry[][] {
+    // displayData is the visible data for all pages.
+    return this.displayData.map(
+        (row: TableRowInternal) => row.rowData.map(this.getSortableEntry));
+  }
+
+  getCSVContent(): string {
+    return papa.unparse(
+        {fields: this.columnStrings, data: this.getArrayData()},
+        {newline: '\r\n'});
+  }
+
   @computed
   get totalPages(): number {
     return Math.ceil(this.displayData.length / this.entriesPerPage);
@@ -452,8 +470,14 @@ export class DataTable extends ReactiveElement {
   }
 
   @computed
+  get isPaginated(): boolean {
+    return this.paginationEnabled &&
+        (this.displayData.length > this.entriesPerPage);
+  }
+
+  @computed
   get hasFooter(): boolean {
-    return this.displayData.length > this.entriesPerPage;
+    return this.isPaginated || this.exportEnabled;
   }
 
   private setShiftSelectionSpan(startIndex: number, endIndex: number) {
@@ -644,14 +668,14 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`<div class="holder">
-      <table class=${classMap({'paginated': this.paginationEnabled})}>
+      <table class=${classMap({'has-footer': this.hasFooter})}>
         <thead>
           ${this.columnHeaders.map((c, i) =>
               this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
         </thead>
         <tbody>
           ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-          ${this.paginationEnabled ? this.fillerRows : null}
+          ${this.hasFooter ? this.fillerRows : null}
         </tbody>
         <tfoot>
           ${this.renderFooter()}
@@ -661,9 +685,7 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
-  renderFooter() {
-    if (!this.hasFooter) {return null;}
-
+  renderPaginationControls() {
     // Use this modulo function so that if pageNum is negative (when
     // decrementing pages), the modulo returns the expected positive value.
     const modPageNumber = (pageNum: number) => {
@@ -673,9 +695,15 @@ export class DataTable extends ReactiveElement {
     const changePage = (offset: number) => {
       this.pageNum = modPageNumber(this.pageNum + offset);
     };
-    const firstPage = () => {this.pageNum = 0;};
-    const lastPage = () => {this.pageNum = this.totalPages - 1;};
-    const randomPage = () => {this.pageNum = randInt(0, this.totalPages);};
+    const firstPage = () => {
+      this.pageNum = 0;
+    };
+    const lastPage = () => {
+      this.pageNum = this.totalPages - 1;
+    };
+    const randomPage = () => {
+      this.pageNum = randInt(0, this.totalPages);
+    };
 
     const firstPageButtonClasses = {
       'icon-button': true,
@@ -688,34 +716,101 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
+      <mwc-icon class=${classMap(firstPageButtonClasses)}
+        @click=${firstPage}>
+        first_page
+      </mwc-icon>
+      <mwc-icon class='icon-button'
+        @click=${() => {changePage(-1);}}>
+        chevron_left
+      </mwc-icon>
+      <div>
+       Page
+       <span class="current-page-num">${this.pageNum + 1}</span>
+       of ${this.totalPages}
+      </div>
+      <mwc-icon class='icon-button'
+         @click=${() => {changePage(1);}}>
+        chevron_right
+      </mwc-icon>
+      <mwc-icon class=${classMap(lastPageButtonClasses)}
+        @click=${lastPage}>
+        last_page
+      </mwc-icon>
+      <mwc-icon class='icon-button mdi-outlined'
+        title="Go to a random page" @click=${randomPage}>
+        casino
+      </mwc-icon>
+    `;
+    // clang-format on
+  }
+
+  renderExportControls() {
+    const copyCSV = () => {
+      const csvContent = this.getCSVContent();
+      navigator.clipboard.writeText(csvContent);
+    };
+
+    const downloadCSV = () => {
+      const csvContent = this.getCSVContent();
+      const blob = new Blob([csvContent], {type: 'text/csv'});
+      const a = window.document.createElement('a');
+      a.href = window.URL.createObjectURL(blob);
+      a.download = this.downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      const controls: PopupContainer =
+          this.shadowRoot!.querySelector('popup-container.download-popup')!;
+      controls.expanded = false;
+    };
+
+    const updateFilename = (e: Event) => {
+      // tslint:disable-next-line:no-any
+      this.downloadFilename = (e as any).target.value as string;
+    };
+
+    function onEnter(e: KeyboardEvent) {
+      if (e.key === 'Enter') downloadCSV();
+    }
+
+    // clang-format off
+    return html`
+      <mwc-icon class='icon-button'
+        title="Copy ${this.displayData.length} rows as CSV"
+        @click=${copyCSV}>
+        file_copy
+      </mwc-icon>
+      <popup-container class='download-popup'>
+        <mwc-icon class='icon-button' slot='toggle-anchor'
+          title="Download ${this.displayData.length} rows as CSV">
+          file_download
+        </mwc-icon>
+        <div class='download-popup-controls'>
+          <label for="filename">Filename</label>
+          <input type="text" name="filename" value=${this.downloadFilename}
+           @input=${updateFilename} @keydown=${onEnter}>
+          <button class='filled-button nowrap' @click=${downloadCSV}
+            ?disabled=${!this.downloadFilename}>
+            Download ${this.displayData.length} rows
+          </button>
+        </div>
+      </popup-container>
+    `;
+    // clang-format on
+  }
+
+  renderFooter() {
+    if (!this.hasFooter) return null;
+
+    // clang-format off
+    return html`
       <tr>
         <td colspan=${this.columnNames.length}>
           <div class="footer">
-            <mwc-icon class=${classMap(firstPageButtonClasses)}
-              @click=${firstPage}>
-              first_page
-            </mwc-icon>
-            <mwc-icon class='icon-button'
-              @click=${() => {changePage(-1);}}>
-              chevron_left
-            </mwc-icon>
-            <div>
-             Page
-             <span class="current-page-num">${this.pageNum + 1}</span>
-             of ${this.totalPages}
-            </div>
-            <mwc-icon class='icon-button'
-               @click=${() => {changePage(1);}}>
-              chevron_right
-            </mwc-icon>
-            <mwc-icon class=${classMap(lastPageButtonClasses)}
-              @click=${lastPage}>
-              last_page
-            </mwc-icon>
-            <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              title="Go to a random page" @click=${randomPage}>
-              casino
-            </mwc-icon>
+            ${this.isPaginated ? this.renderPaginationControls() : null}
+            <div class='footer-spacer'></div>
+            ${this.exportEnabled ? this.renderExportControls() : null}
           </div>
         </td>
       </tr>`;
