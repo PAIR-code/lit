@@ -32,7 +32,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
-import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience} from '../lib/lit_types';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {cloneSpec, findSpecKeys} from '../lib/utils';
@@ -63,6 +63,10 @@ interface FeatureSalienceResult {
 
 type SalienceResult = TokenSalienceResult | ImageSalienceResult |
                       FeatureSalienceResult;
+
+// Notably, not SequenceSalience as that is handled by a different module.
+const SUPPORTED_SALIENCE_TYPES =
+    [TokenSalience, FeatureSalience, ImageSalience];
 
 /**
  * UI status for each interpreter.
@@ -142,7 +146,8 @@ export class SalienceMapModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
-      const salienceKeys = findSpecKeys(interpreters[key].metaSpec, Salience);
+      const salienceKeys =
+          findSpecKeys(interpreters[key].metaSpec, SUPPORTED_SALIENCE_TYPES);
       if (salienceKeys.length === 0) {
         continue;
       }
@@ -558,7 +563,8 @@ export class SalienceMapModule extends LitModule {
     return Object.values(modelSpecs).some(modelInfo =>
         modelInfo.interpreters.some(name => {
           const interpreter = appState.metadata.interpreters[name];
-          const salienceKeys = findSpecKeys(interpreter.metaSpec, Salience);
+          const salienceKeys =
+              findSpecKeys(interpreter.metaSpec, SUPPORTED_SALIENCE_TYPES);
           return salienceKeys.length > 0;
         }));
   }
