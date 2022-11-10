@@ -107,4 +107,5 @@ def default_metrics() -> ComponentGroup:
       'paired': metrics.MulticlassPairedMetrics(),
       'bleu': metrics.CorpusBLEU(),
       'rouge': metrics.RougeL(),
+      'exactmatch': metrics.ExactMatchMetrics(),
   })

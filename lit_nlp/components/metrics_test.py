@@ -14,10 +14,11 @@
 # ==============================================================================
 """Tests for lit_nlp.components.metrics."""
 
-from typing import Optional
+from typing import Optional, Union
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import dtypes
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import metrics
@@ -39,8 +40,27 @@ class TestGenTextModel(lit_model.Model):
     return [{'output': 'test_output'}] * len(inputs)
 
 
+class TestGenTextCandsModel(lit_model.Model):
+
+  def input_spec(self) -> types.Spec:
+    return {
+        'input': types.TextSegment(),
+        'label': types.MultiSegmentAnnotations(),
+    }
+
+  def output_spec(self) -> types.Spec:
+    return {'output': types.GeneratedTextCandidates(parent='input')}
+
+  def predict_minibatch(self,
+                        inputs: list[types.JsonDict]) -> list[types.JsonDict]:
+    return [
+        {'output': [('gen_text one', 0.8), ('gen_text two', 0.3)]}
+    ] * len(inputs)
+
+
 _CLASSIFICATION_MODEL = testing_utils.TestModelClassification()
 _GENERATED_TEXT_MODEL = TestGenTextModel()
+_GEN_TEXT_CANDS_MODEL = TestGenTextCandsModel()
 _REGRESSION_MODEL = testing_utils.TestIdentityRegressionModel()
 
 
@@ -418,6 +438,269 @@ class RougeLTest(parameterized.TestCase):
     result = self.metrics.compute(labels, preds, types.TextSegment(),
                                   types.GeneratedTextCandidates())
     testing_utils.assert_deep_almost_equal(self, result, {'rougeL@1': 1.0})
+
+
+_MULTI_SEG_ANNOTATION_LABELS = [
+    [dtypes.AnnotationCluster(label='one', spans=[])],
+    [dtypes.AnnotationCluster(label='two', spans=[])],
+]
+
+
+class ExactMatchTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.metrics = metrics.ExactMatchMetrics()
+
+  def test_meta_spec(self):
+    meta_spec = self.metrics.meta_spec()
+    self.assertLen(meta_spec, 2)
+    self.assertIn('exactmatch', meta_spec)
+    self.assertIn('exactmatch@1', meta_spec)
+    for spec in meta_spec.values():
+      self.assertIsInstance(spec, types.MetricResult)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='classification',
+          model=_CLASSIFICATION_MODEL,
+          expected=False,
+      ),
+      dict(
+          testcase_name='regression',
+          model=_REGRESSION_MODEL,
+          expected=False,
+      ),
+      dict(
+          testcase_name='gen_text',
+          model=_GENERATED_TEXT_MODEL,
+          expected=True,
+      ),
+      dict(
+          testcase_name='gen_text_cands',
+          model=_GEN_TEXT_CANDS_MODEL,
+          expected=True,
+      ),
+  )
+  def test_is_compatible(self, model: LitType, expected: bool):
+    compat = self.metrics.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, expected)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='gentext_multi_segment_annotations',
+          pred=types.GeneratedText(),
+          parent=types.MultiSegmentAnnotations(),
+          expected=True,
+      ),
+      dict(
+          testcase_name='gentext_text',
+          pred=types.GeneratedText(),
+          parent=types.TextSegment(),
+          expected=True,
+      ),
+      dict(
+          testcase_name='gencands_multi_segment_annotations',
+          pred=types.GeneratedTextCandidates(),
+          parent=types.MultiSegmentAnnotations(),
+          expected=True,
+      ),
+      dict(
+          testcase_name='gencands_text',
+          pred=types.GeneratedTextCandidates(),
+          parent=types.TextSegment(),
+          expected=True,
+      ),
+      dict(
+          testcase_name='gentext_scalar',
+          pred=types.GeneratedText(),
+          parent=types.Scalar(),
+          expected=False,
+      ),
+      dict(
+          testcase_name='gencands_scalar',
+          pred=types.GeneratedTextCandidates(),
+          parent=types.Scalar(),
+          expected=False,
+      ),
+      dict(
+          testcase_name='text_text',
+          pred=types.TextSegment(),
+          parent=types.TextSegment(),
+          expected=False,
+      ),
+      dict(
+          testcase_name='text_scalar',
+          pred=types.TextSegment(),
+          parent=types.Scalar(),
+          expected=False,
+      ),
+  )
+  def test_is_field_compatible(self,
+                               pred: LitType,
+                               parent: LitType,
+                               expected: bool):
+    self.assertEqual(self.metrics.is_field_compatible(pred, parent), expected)
+
+  @parameterized.named_parameters(
+      # Without labels or preds, it should return an empty dict
+      dict(
+          testcase_name='no_labels',
+          labels=[],
+          preds=['one', 'two'],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedText(),
+          expected={},
+      ),
+      dict(
+          testcase_name='no_preds',
+          labels=['one', 'two'],
+          preds=[],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedText(),
+          expected={},
+      ),
+      # Tests for all, some, and none correct w/ MultiSegmentAnnotations labels
+      dict(
+          testcase_name='correct_multi_segment_annotations_gentext',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=['one', 'two'],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 1.0},
+      ),
+      dict(
+          testcase_name='correct_multi_segment_annotations_gencands',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=[[('one', None)], [('two', None)]],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 1.0},
+      ),
+      dict(
+          testcase_name='some_multi_segment_annotations_gentext',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=['one', 'four'],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 0.5},
+      ),
+      dict(
+          testcase_name='some_multi_segment_annotations_gencands',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=[[('one', None)], [('four', None)]],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 0.5},
+      ),
+      dict(
+          testcase_name='none_multi_segment_annotations_gentext',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=['three', 'four'],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 0.0},
+      ),
+      dict(
+          testcase_name='none_multi_segment_annotations_gencands',
+          labels=_MULTI_SEG_ANNOTATION_LABELS,
+          preds=[[('three', None)], [('four', None)]],
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 0.0},
+      ),
+      # Tests for all, some, and none correct w/ TextSegment labels
+      dict(
+          testcase_name='correct_text_gentext',
+          labels=['one', 'two'],
+          preds=['one', 'two'],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 1.0},
+      ),
+      dict(
+          testcase_name='correct_text_gencands',
+          labels=['one', 'two'],
+          preds=[[('one', None)], [('two', None)]],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 1.0},
+      ),
+      dict(
+          testcase_name='some_text_gentext',
+          labels=['one', 'two'],
+          preds=['one', 'four'],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 0.5},
+      ),
+      dict(
+          testcase_name='some_text_gencands',
+          labels=['one', 'two'],
+          preds=[[('one', None)], [('four', None)]],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 0.5},
+      ),
+      dict(
+          testcase_name='none_text_gentext',
+          labels=['one', 'two'],
+          preds=['three', 'four'],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedText(),
+          expected={'exactmatch': 0.0},
+      ),
+      dict(
+          testcase_name='none_text_gencands',
+          labels=['one', 'two'],
+          preds=[[('three', None)], [('four', None)]],
+          label_spec=types.TextSegment(),
+          preds_spec=types.GeneratedTextCandidates(),
+          expected={'exactmatch@1': 0.0},
+      ),
+  )
+  def test_compute(self,
+                   labels: Union[list[str],
+                                 list[list[dtypes.AnnotationCluster]]],
+                   preds,
+                   label_spec: Union[types.MultiSegmentAnnotations,
+                                     types.TextSegment],
+                   preds_spec: Union[types.GeneratedText,
+                                     types.GeneratedTextCandidates],
+                   expected: dict[str, float]):
+    result = self.metrics.compute(labels, preds, label_spec, preds_spec)
+    testing_utils.assert_deep_almost_equal(self, result, expected)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='invalid_labels_gentext',
+          label_spec=types.Scalar(),
+          preds_spec=types.GeneratedText(),
+      ),
+      dict(
+          testcase_name='invalid_labels_gentextcandidates',
+          label_spec=types.Scalar(),
+          preds_spec=types.GeneratedTextCandidates(),
+      ),
+      dict(
+          testcase_name='invalid_preds_text',
+          label_spec=types.TextSegment(),
+          preds_spec=types.Scalar(),
+      ),
+      dict(
+          testcase_name='invalid_preds_multi_segment_annotations',
+          label_spec=types.MultiSegmentAnnotations(),
+          preds_spec=types.Scalar(),
+      ),
+  )
+  def test_compute_spec_exceptions(self,
+                                   label_spec: types.LitType,
+                                   preds_spec: types.LitType):
+    inputs = ['one', 'two', 'three']
+    preds = ['one', 'two', 'three']
+    with self.assertRaises(TypeError):
+      self.metrics.compute(inputs, preds, label_spec, preds_spec)
 
 
 if __name__ == '__main__':
