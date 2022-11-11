@@ -19,3 +19,8 @@
   margin-left: 32px;
   cursor: crosshair;
 }
+
+#regression-line,
+#threshold-line {
+  stroke-width: 2px;
+}
