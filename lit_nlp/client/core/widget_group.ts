@@ -87,10 +87,26 @@ export class WidgetGroup extends ReactiveElement {
   }
 
   /**
+   * Renders the reference URL.
+   */
+  renderReferenceURL(referenceURL: string) {
+    return html`
+         <a href=${referenceURL} style=${styleMap({'text-decoration': 'none'})}
+          target='_blank'>
+          <span class="help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+         </a>
+      `;
+  }
+
+  /**
    * Renders the header, including the minimize/maximize logic.
    */
   renderHeader(configGroup: RenderConfig[]) {
     const title = configGroup[0].moduleType.title;
+    const referenceURL = configGroup[0].moduleType.referenceURL;
 
     // Maximization.
     const onMaxClick = () => {
@@ -118,7 +134,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button direction-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon direction-toggle"
           title="Toggle layout direction"
           onIcon="view_week" offIcon="table_rows"
           ?on="${this.duplicateAsRow}"
@@ -133,7 +149,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button scroll-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon scroll-toggle"
           title="Toggle scroll sync"
           onIcon="sync" offIcon="sync_disabled"
           ?on="${this.syncScrolling}"
@@ -145,15 +161,20 @@ export class WidgetGroup extends ReactiveElement {
     // clang-format off
     return html`
       <div class=header>
-        <div class="title" @click=${onTitleClick}>${title}</div>
-        ${this.minimized || configGroup.length < 2 ?
-          null :
-          [renderDirectionControl(), renderScrollSyncControl()]
-        }
-        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${this.minimized ? 'maximize' : 'minimize'}
+        <div class="title" @click=${onTitleClick}>
+          ${title}
+          ${!this.minimized && referenceURL !== '' ?
+            this.renderReferenceURL(referenceURL) : null}
+        </div>
+        ${this.minimized || configGroup.length < 2 ? null : [
+          renderDirectionControl(), renderScrollSyncControl()
+        ]}
+        <mwc-icon class="icon-button large-icon min-button" @click=${onMinClick}
+          title=${this.minimized ? 'Expand' : 'Collapse'}>
+          ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
+        <mwc-icon class="icon-button large-icon " @click=${onMaxClick}
+          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;

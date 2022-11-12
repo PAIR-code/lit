@@ -12,6 +12,7 @@ from absl import flags
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
+from lit_nlp.components import classification_results
 from lit_nlp.components import image_gradient_maps
 
 from lit_nlp.examples.datasets import imagenette
@@ -43,8 +44,6 @@ def main(_):
           'Main': [
               modules.DataTableModule,
               modules.DatapointEditorModule,
-              modules.SliceModule,
-              modules.ColorModule,
           ],
           'Predictions': [modules.ClassificationModule, modules.ScalarModule],
           'Explanations': [
@@ -56,6 +55,7 @@ def main(_):
   datasets = {'imagenette': imagenette.ImagenetteDataset()}
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
+      'classification': classification_results.ClassificationInterpreter(),
       'Grad': image_gradient_maps.VanillaGradients(),
       'Integrated Gradients': image_gradient_maps.IntegratedGradients(),
       'Blur IG': image_gradient_maps.BlurIG(),

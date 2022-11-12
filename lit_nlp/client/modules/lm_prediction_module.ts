@@ -137,7 +137,7 @@ export class LanguageModelPredictionModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, [Tokens, TokenTopKPreds],
+        [input], this.model, dataset, [Tokens, TokenTopKPreds], [],
         'Loading tokens');
     const results = await this.loadLatest('modelPreds', promise);
     if (results === null) return;

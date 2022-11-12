@@ -258,8 +258,9 @@ class ModelWrapper(Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
-    return self.wrapped.predict(inputs, **kw)
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict(inputs, *args, **kw)
 
   # NOTE: if a subclass modifies predict(), it should also override this to
   # call the custom predict() method - otherwise this will delegate to the
@@ -312,7 +313,8 @@ class BatchedRemoteModel(Model):
     self._max_qps = max_qps
     self._pool = multiprocessing.pool.ThreadPool(max_concurrent_requests)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *unused_args,
+              **unused_kwargs) -> Iterator[JsonDict]:
     batches = utils.batch_iterator(
         inputs, max_batch_size=self.max_minibatch_size())
     batches = utils.rate_limit(batches, self._max_qps)

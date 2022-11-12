@@ -24,7 +24,7 @@ import {computed, observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 import {DiffMode, getTextDiff, TextDiff} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {GeneratedTextCandidate} from '../lib/types';
+import {ScoredTextCandidates} from '../lib/dtypes';
 
 import {styles} from './generated_text_vis.css';
 
@@ -35,9 +35,9 @@ export class GeneratedTextVis extends ReactiveElement {
   @observable @property({type: String}) fieldName?: string;
   @observable
   @property({type: Array})
-  candidates: GeneratedTextCandidate[] = [];
+  candidates: ScoredTextCandidates = [];
   @observable @property({type: String}) referenceFieldName?: string;
-  @observable @property({type: Array}) referenceTexts: GeneratedTextCandidate[] = [];
+  @observable @property({type: Array}) referenceTexts: ScoredTextCandidates = [];
   // Optional model scores for the target texts.
   @observable @property({type: Array}) referenceModelScores: number[] = [];
 

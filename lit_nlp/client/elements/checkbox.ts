@@ -37,6 +37,7 @@ export class LitCheckbox extends LitElement {
     return css`
       :host {
         outline: none;
+        --lit-checkbox-label-white-space: normal;
       }
 
       .wrapper {
@@ -58,6 +59,7 @@ export class LitCheckbox extends LitElement {
 
       .checkbox-label {
         cursor: pointer;
+        white-space: var(--lit-checkbox-label-white-space);
       }
     `;
   }

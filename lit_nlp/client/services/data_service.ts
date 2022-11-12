@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
-import {BooleanLitType, CategoryLabel, LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -60,6 +60,10 @@ export type ColumnData = Map<string, ValueType>;
 
 /** Column source prefix for columns from the classification interpreter. */
 export const CLASSIFICATION_SOURCE_PREFIX = 'Classification';
+/** Column source prefix for columns from GeneratedText model outputs. */
+export const GEN_TEXT_SOURCE_PREFIX = 'GeneratedText';
+/** Column source prefix for columns from GeneratedTextCandidates outputs. */
+export const GEN_TEXT_CANDS_SOURCE_PREFIX = 'GeneratedTextCandidates';
 /** Column source prefix for columns from the regression interpreter. */
 export const REGRESSION_SOURCE_PREFIX = 'Regression';
 /** Column source prefix for columns from scalar model outputs. */
@@ -87,7 +91,7 @@ export class DataService extends LitService {
 
     // Run classification interpreter when the inputs or margins change.
     const getClassificationInputs = () =>
-        [this.appState.currentInputData,
+        [this.appState.currentInputData, this.appState.currentModels,
          this.classificationService.allMarginSettings];
     reaction(getClassificationInputs, () => {
       if (this.appState.currentInputData == null ||
@@ -101,10 +105,10 @@ export class DataService extends LitService {
       }
     }, {fireImmediately: true});
 
-    // Run regression interpreter when necessary.
-    const getRegressionInputs =
+    // Run other preiction interpreters when necessary.
+    const getPredictionInputs =
         () => [this.appState.currentInputData, this.appState.currentModels];
-    reaction(getRegressionInputs, () => {
+    reaction(getPredictionInputs, () => {
       if (this.appState.currentInputData == null ||
           this.appState.currentInputData.length === 0 ||
           this.appState.currentModels.length === 0 ||
@@ -113,6 +117,7 @@ export class DataService extends LitService {
         return;
       }
       for (const model of this.appState.currentModels) {
+        this.runGeneratedTextPreds(model, this.appState.currentInputData);
         this.runRegression(model, this.appState.currentInputData);
         this.runScalarPreds(model, this.appState.currentInputData);
       }
@@ -183,6 +188,30 @@ export class DataService extends LitService {
               BINARY_NEG_POS);
         }
       }
+    }
+  }
+
+  private async runGeneratedTextPreds(model: string, data: IndexedInput[]) {
+    const genTextTypes = [GeneratedText, GeneratedTextCandidates];
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    if (findSpecKeys(output, genTextTypes).length === 0) {return;}
+
+    const predsPromise = this.apiService.getPreds(
+      data, model, this.appState.currentDataset, genTextTypes);
+    const preds = await predsPromise;
+    if (preds == null || preds.length === 0) {return;}
+
+    const genTextKeys = Object.keys(preds[0]);
+    for (const key of genTextKeys) {
+      const isGenText = output[key] instanceof GeneratedText;
+      const genTextFeatureName = this.getColumnName(model, key);
+      const genText = preds.map((p) => p[key]);
+      const dataType =  isGenText ? createLitType(GeneratedText) :
+                                    createLitType(GeneratedTextCandidates);
+      const source =  `${isGenText ? GEN_TEXT_SOURCE_PREFIX :
+                                     GEN_TEXT_CANDS_SOURCE_PREFIX}:${model}`;
+      this.addColumnFromList(
+          genText, data, key, genTextFeatureName, dataType, source);
     }
   }
 

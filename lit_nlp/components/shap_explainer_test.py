@@ -16,29 +16,43 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from lit_nlp.api import dataset
-from lit_nlp.api import model
-from lit_nlp.api import types
+from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import model as lit_model
+from lit_nlp.api import types as lit_types
 from lit_nlp.components import shap_explainer
 from lit_nlp.lib import testing_utils
 
 
-class EmptyModel(model.Model):
+_BAD_DATASET = lit_dataset.Dataset(
+    spec={
+        'segment': lit_types.TextSegment(),
+        'scalar': lit_types.Scalar(required=False),
+        'grad_class': lit_types.CategoryLabel(vocab=['0', '1'], required=False)
+    },
+    examples=[])
 
-  def input_spec(self) -> types.Spec:
+_GOOD_DATASET = lit_dataset.Dataset(
+    spec={'val': lit_types.Scalar()}, examples=[{
+        'val': 0.8675309
+    }] * 10)
+
+
+class EmptyModel(lit_model.Model):
+
+  def input_spec(self) -> lit_types.Spec:
     return {}
 
-  def output_spec(self) -> types.Spec:
+  def output_spec(self) -> lit_types.Spec:
     return {}
 
   def predict_minibatch(self, inputs, **kw):
     return None
 
 
-class SparseMultilabelModel(testing_utils.TestIdentityRegressionModel):
+class SparseMultilabelModel(testing_utils.TestModelClassification):
 
-  def output_spec(self) -> types.Spec:
-    return {'preds': types.SparseMultilabelPreds()}
+  def output_spec(self) -> lit_types.Spec:
+    return {'preds': lit_types.SparseMultilabelPreds()}
 
   def predict_minibatch(self, inputs, **kw):
     self.predict(inputs, **kw)
@@ -51,63 +65,65 @@ class TabularShapExplainerTest(parameterized.TestCase):
 
   def setUp(self):
     super(TabularShapExplainerTest, self).setUp()
-    self.classifier_model = testing_utils.TestModelClassification()
-    self.dataset = dataset.Dataset(
-        spec=self.classifier_model.input_spec(),
-        examples=[{'score': 0.8675309}] * 10)
-    self.empty_model = EmptyModel()
+    self.dataset = _GOOD_DATASET
     self.regression_model = testing_utils.TestIdentityRegressionModel()
     self.shap = shap_explainer.TabularShapExplainer()
     self.sparse_model = SparseMultilabelModel()
 
-  def test_compatibility(self):
-    # Empty input and output specs
-    self.assertFalse(self.shap.is_compatible(self.empty_model))
-    # Contains input types that are not Scalar or CategoryLabel
-    self.assertFalse(self.shap.is_compatible(self.classifier_model))
-    # Good input and output spec
-    self.assertTrue(self.shap.is_compatible(self.regression_model))
-    self.assertTrue(self.shap.is_compatible(self.sparse_model))
+  @parameterized.named_parameters(
+      # Empty model always fails
+      ('empty_model_bad_dataset', EmptyModel(), _BAD_DATASET, False),
+      ('empty_model_good_dataset', EmptyModel(), _GOOD_DATASET, False),
+      # Classification model never matches dataset
+      ('cls_model_bad_dataset', testing_utils.TestModelClassification(),
+       _BAD_DATASET, False),
+      ('cls_model_good_dataset', testing_utils.TestModelClassification(),
+       _GOOD_DATASET, False),
+      # Incompatible dataset and model inut specs
+      ('reg_model_bad_dataset', testing_utils.TestIdentityRegressionModel(),
+       _BAD_DATASET, False),
+      # Compatible dataset and model
+      ('reg_model_good_dataset', testing_utils.TestIdentityRegressionModel(),
+       _GOOD_DATASET, True),
+      # Sparse model never matches dataset
+      ('sparse_model_bad_dataset', SparseMultilabelModel(), _BAD_DATASET, False
+      ),
+      ('sparse_model_good_dataset', SparseMultilabelModel(), _GOOD_DATASET,
+       False),
+  )
+  def test_compatibility(self, model: lit_model.Model,
+                         dataset: lit_dataset.Dataset, expected: bool):
+    self.assertEqual(self.shap.is_compatible(model, dataset), expected)
 
   def test_valid_run(self):
     regress_salience = self.shap.run(
         self.dataset.examples,
         self.regression_model,
         self.dataset,
-        config={'Prediction key': 'score'})
-    sparse_salience = self.shap.run(
-        self.dataset.examples,
-        self.sparse_model,
-        self.dataset,
-        config={'Prediction key': 'preds'})
+        config={shap_explainer.EXPLAIN_KEY: 'score'})
     self.assertEqual(len(self.dataset), len(regress_salience))
-    self.assertEqual(len(self.dataset), len(sparse_salience))
 
-  def test_run_without_pred_key(self):
-    for cfg in (None, {}, {'Prediction key': None}, {'Prediction key': ''}):
-      for mdl in (self.regression_model, self.sparse_model):
-        self.assertIsNone(self.shap.run([], mdl, {}, config=cfg))
+  @parameterized.named_parameters(
+      ('none', None),
+      ('empty_dict', {}),
+      ('empty_pred_key', {shap_explainer.EXPLAIN_KEY: ''}),
+      ('none_pred_key', {shap_explainer.EXPLAIN_KEY: None}),
+  )
+  def test_config(self, config: dict[str, str]):
+    self.assertIsNone(
+        self.shap.run([], self.regression_model, _GOOD_DATASET, config=config))
 
   def test_run_with_sample_size(self):
-    regress_salience = self.shap.run(
+    salience = self.shap.run(
         self.dataset.examples,
         self.regression_model,
         self.dataset,
         config={
-            'Prediction key': 'score',
-            'Sample size': 3
+            shap_explainer.EXPLAIN_KEY: 'score',
+            shap_explainer.SAMPLE_KEY: 3
         })
-    sparse_salience = self.shap.run(
-        self.dataset.examples,
-        self.sparse_model,
-        self.dataset,
-        config={
-            'Prediction key': 'preds',
-            'Sample size': 3
-        })
-    for salience in (regress_salience, sparse_salience):
-      self.assertNotEqual(len(self.dataset), len(salience))
-      self.assertLen(salience, 3)
+    self.assertNotEqual(len(self.dataset), len(salience))
+    self.assertLen(salience, 3)
 
 
 if __name__ == '__main__':

@@ -16,8 +16,10 @@
 
 import functools
 import glob
+import math
 import os
 import random
+import threading
 import time
 from typing import Optional, Mapping, Sequence, Union, Callable, Iterable
 
@@ -30,9 +32,11 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import core
 from lit_nlp.lib import caching
+from lit_nlp.lib import flag_helpers
 from lit_nlp.lib import serialize
 from lit_nlp.lib import ui_state
 from lit_nlp.lib import utils
+from lit_nlp.lib import validation
 from lit_nlp.lib import wsgi_app
 import tqdm
 
@@ -54,23 +58,40 @@ class LitApp(object):
     model_info = {}
     for name, m in self._models.items():
       mspec: lit_model.ModelSpec = m.spec()
-      info = {}
-      info['spec'] = {'input': mspec.input, 'output': mspec.output}
+      info = {
+          'description': m.description(),
+          'spec': {
+              'input': mspec.input,
+              'output': mspec.output
+          }
+      }
+
       # List compatible datasets.
       info['datasets'] = [
-          dname for dname, ds in self._datasets.items()
-          if mspec.is_compatible_with_dataset(ds.spec())
+          name for name, dataset in self._datasets.items()
+          if mspec.is_compatible_with_dataset(dataset.spec())
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
-      info['generators'] = [
-          name for name, gen in self._generators.items() if gen.is_compatible(m)
-      ]
-      info['interpreters'] = [
-          name for name, interp in self._interpreters.items()
-          if interp.is_compatible(m)
-      ]
-      info['description'] = m.description()
+
+      compat_gens: set[str] = set()
+      compat_interps: set[str] = set()
+
+      for d in info['datasets']:
+        dataset: lit_dataset.Dataset = self._datasets[d]
+        compat_gens.update([
+            name for name, gen in self._generators.items()
+            if gen.is_compatible(model=m, dataset=dataset)
+        ])
+        compat_interps.update([
+            name for name, interp in self._interpreters.items()
+            if interp.is_compatible(model=m, dataset=dataset)
+        ])
+
+      info['generators'] = [name for name in self._generators.keys()
+                            if name in compat_gens]
+      info['interpreters'] = [name for name in self._interpreters.keys()
+                              if name in compat_interps]
       model_info[name] = info
 
     dataset_info = {}
@@ -136,7 +157,7 @@ class LitApp(object):
   def _save_datapoints(self, data, dataset_name: str, path: str, **unused_kw):
     """Save datapoints to disk."""
     if self._demo_mode:
-      logging.warn('Attempted to save datapoints in demo mode.')
+      logging.warning('Attempted to save datapoints in demo mode.')
       return None
     return self._datasets[dataset_name].save(data['inputs'], path)
 
@@ -144,7 +165,7 @@ class LitApp(object):
                        **unused_kw):
     """Load datapoints from disk."""
     if self._demo_mode:
-      logging.warn('Attempted to load datapoints in demo mode.')
+      logging.warning('Attempted to load datapoints in demo mode.')
       return None
     dataset = self._datasets[dataset_name].load(path)
     return dataset.indexed_examples
@@ -154,6 +175,7 @@ class LitApp(object):
                  model: str,
                  dataset_name: Optional[str] = None,
                  requested_types: Optional[str] = None,
+                 requested_fields: Optional[str] = None,
                  **kw):
     """Get model predictions.
 
@@ -162,6 +184,8 @@ class LitApp(object):
       model: name of the model to run
       dataset_name: name of the active dataset
       requested_types: optional, comma-separated list of type names to return
+      requested_fields: optional, comma-separated list of field names to return
+        in addition to the ones returned due to 'requested_types'.
       **kw: additional args passed to model.predict_with_metadata()
 
     Returns:
@@ -169,20 +193,21 @@ class LitApp(object):
     """
     preds = list(self._models[model].predict_with_metadata(
         data['inputs'], dataset_name=dataset_name, **kw))
-    if not requested_types:
+    if not requested_types and not requested_fields:
       return preds
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']
-    requested_types = requested_types.split(',')
-    logging.info('Requested types: %s', str(requested_types))
-    ret_keys = []
+    requested_types = requested_types.split(',') if requested_types else []
+    requested_fields = requested_fields.split(',') if requested_fields else []
+    logging.info('Requested types: %s, fields: %s', str(requested_types),
+                 str(requested_fields))
     for t_name in requested_types:
       t_class = getattr(types, t_name, None)
-      assert issubclass(
-          t_class, types.LitType), f"Class '{t_name}' is not a valid LitType."
-      ret_keys.extend(utils.find_spec_keys(output_spec, t_class))
-    ret_keys = set(ret_keys)  # de-dupe
+      if not issubclass(t_class, types.LitType):
+        raise TypeError(f"Class '{t_name}' is not a valid LitType.")
+      requested_fields.extend(utils.find_spec_keys(output_spec, t_class))
+    ret_keys = set(requested_fields)  # de-dupe
 
     # Return selected keys.
     logging.info('Will return keys: %s', str(ret_keys))
@@ -212,6 +237,50 @@ class LitApp(object):
 
     return data['inputs']
 
+  def _post_new_data(
+      self, data, dataset_name: Optional[str] = None,
+      **unused_kw) -> dict[str, str]:
+    """Save datapoints provided, after annotatation, for later retrieval.
+
+    Args:
+      data: JsonDict of datapoints to add, in dict under key 'inputs', per
+        format for other requests.
+      dataset_name: Dataset containing the format of data to add, necessary for
+        proper datapoint annotation.
+
+    Returns:
+      A dict of two URLs (minus the root of the webserver). 'load' value is
+      for loading LIT with those datapoints. 'remove' value is for removing
+      those new datapoints from this server after they have been loaded, if
+      desired.
+    """
+    assert 'inputs' in data, 'Data dict does not contain "inputs" field'
+    data_with_metadata = [
+        {'data': d,
+         'meta': {'added': True, 'source': 'POST', 'parentId': None}}
+        for d in data['inputs']]
+    annotation_input = {'inputs': data_with_metadata}
+    annotated_data = self._annotate_new_data(annotation_input, dataset_name)
+    datapoints_id = utils.get_uuid()
+    with self._saved_datapoints_lock:
+      self._saved_datapoints[datapoints_id] = annotated_data
+    return {
+        'load': f'?saved_datapoints_id={datapoints_id}',
+        'remove': f'/remove_new_data?saved_datapoints_id={datapoints_id}'}
+
+  def _fetch_new_data(self, unused_data, saved_datapoints_id: str, **unused_kw):
+    with self._saved_datapoints_lock:
+      assert saved_datapoints_id in self._saved_datapoints, (
+          'No saved data with ID %s' % saved_datapoints_id)
+      return self._saved_datapoints[saved_datapoints_id]
+
+  def _remove_new_data(
+      self, unused_data, saved_datapoints_id: str, **unused_kw):
+    with self._saved_datapoints_lock:
+      assert saved_datapoints_id in self._saved_datapoints, (
+          'No saved data with ID %s' % saved_datapoints_id)
+      del self._saved_datapoints[saved_datapoints_id]
+
   def _get_dataset(self,
                    unused_data,
                    dataset_name: Optional[str] = None,
@@ -228,6 +297,7 @@ class LitApp(object):
 
     assert dataset_name is not None, 'No dataset specified.'
     assert dataset_path is not None, 'No dataset path specified.'
+
     new_dataset = self._datasets[dataset_name].load(dataset_path)
     if new_dataset is not None:
       new_dataset_name = dataset_name + '-' + os.path.basename(dataset_path)
@@ -235,6 +305,7 @@ class LitApp(object):
       self._info = self._build_metadata()
       return (self._info, new_dataset_name)
     else:
+      logging.error('Not able to load: %s', dataset_name)
       return None
 
   def _create_model(self,
@@ -322,6 +393,33 @@ class LitApp(object):
     self.ui_state_tracker.update_state(data['inputs'],
                                        self._datasets[dataset_name],
                                        dataset_name, **options)
+
+  def _validate(self, validate: Optional[flag_helpers.ValidationMode],
+                report_all: bool):
+    """Validate all datasets and models loaded for proper setup."""
+    if validate is None or validate == flag_helpers.ValidationMode.OFF:
+      return
+
+    datasets_to_validate = {}
+    for dataset in self._datasets:
+      if validate == flag_helpers.ValidationMode.ALL:
+        datasets_to_validate[dataset] = self._datasets[dataset]
+      elif validate == flag_helpers.ValidationMode.FIRST:
+        datasets_to_validate[dataset] = self._datasets[dataset].slice[:1]
+      elif validate == flag_helpers.ValidationMode.SAMPLE:
+        sample_size = math.ceil(len(self._datasets[dataset]) * 0.05)
+        datasets_to_validate[dataset] = self._datasets[dataset].sample(
+            sample_size)
+    for dataset in datasets_to_validate:
+      logging.info("Validating dataset '%s'", dataset)
+      validation.validate_dataset(
+          datasets_to_validate[dataset], report_all)
+    for model, model_info in self._info['models'].items():
+      for dataset_name in model_info['datasets']:
+        logging.info("Validating model '%s' on dataset '%s'", model,
+                     dataset_name)
+        validation.validate_model(
+            self._models[model], datasets_to_validate[dataset_name], report_all)
 
   def _warm_start(self,
                   rate: float,
@@ -430,6 +528,8 @@ class LitApp(object):
       onboard_start_doc: Optional[str] = None,
       onboard_end_doc: Optional[str] = None,
       sync_state: bool = False,  # notebook-only; not in server_flags
+      validate: Optional[flag_helpers.ValidationMode] = None,
+      report_all: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -456,12 +556,15 @@ class LitApp(object):
         for name, model in models.items()
     }
 
-    self._datasets = dict(datasets)
+    self._datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
     # TODO(b/202210900): get rid of this, just dynamically create the empty
     # dataset on the frontend.
     self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
 
     self._annotators = annotators or []
+
+    self._saved_datapoints = {}
+    self._saved_datapoints_lock = threading.Lock()
 
     # Run annotation on each dataset, creating an annotated dataset and
     # replace the datasets with the annotated versions.
@@ -492,6 +595,9 @@ class LitApp(object):
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
+
+    # Validate datasets and models if specified.
+    self._validate(validate, report_all)
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:
@@ -526,6 +632,9 @@ class LitApp(object):
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
         '/annotate_new_data': self._annotate_new_data,
+        '/post_new_data': self._post_new_data,
+        '/fetch_new_data': self._fetch_new_data,
+        '/remove_new_data': self._remove_new_data,
         '/push_ui_state': self._push_ui_state,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,

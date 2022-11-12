@@ -76,7 +76,7 @@ export class GeneratedImageModule extends LitModule {
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset,
-        [...GeneratedImageModule.supportedTypes, GeneratedURL],
+        [...GeneratedImageModule.supportedTypes, GeneratedURL], [],
         'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;

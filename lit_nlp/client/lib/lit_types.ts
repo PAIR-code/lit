@@ -20,7 +20,7 @@
 // their Python counterparts.
 // tslint:disable:no-new-decorators class-name enforce-name-casing
 
-import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
+import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, ScoredTextCandidates, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
 
 /**
  * A dictionary of registered LitType names mapped to their constructor.
@@ -40,7 +40,6 @@ export type LitName = typeof registryKeys[number];
 
 /** A type alias for the LitType class. */
 export type LitClass = 'LitType';
-type ScoredTextCandidates = Array<[text: string, score: number|null]>;
 
 /** A list of types of LitTypes. */
 export type LitTypeTypesList = Array<typeof LitType>;
@@ -94,6 +93,22 @@ export class TextSegment extends StringLitType {
  */
 @registered
 export class ImageBytes extends LitType {
+}
+
+/**
+ * A JPEG image, as an encoded base64 ascii string
+ * (starts with 'data:image/jpg...').
+ */
+@registered
+export class JPEGBytes extends ImageBytes {
+}
+
+/**
+ * A PNG image, as an encoded base64 ascii string
+ * (starts with 'data:image/png...').
+ */
+@registered
+export class PNGBytes extends ImageBytes {
 }
 
 
@@ -243,7 +258,7 @@ export class CategoryLabel extends StringLitType {
 /**
  * A tensor type.
  */
-class _Tensor1D extends LitType {
+class _Tensor extends LitType {
   override default: number[] = [];
 }
 
@@ -252,7 +267,7 @@ class _Tensor1D extends LitType {
  * Multiclass predicted probabilities, as <float>[num_labels].
  */
 @registered
-export class MulticlassPreds extends _Tensor1D {
+export class MulticlassPreds extends _Tensor {
   /**
    * Vocabulary is required here for decoding model output.
    * Usually this will match the vocabulary in the corresponding label field.
@@ -264,6 +279,8 @@ export class MulticlassPreds extends _Tensor1D {
   parent?: string = undefined;
   /** Enable automatic sorting. */
   autosort?: boolean = false;
+  /** Binary threshold, used to compute margin. */
+  threshold?: number = undefined;
 
   get num_labels() {
     return this.vocab.length;
@@ -333,13 +350,13 @@ export class MultiSegmentAnnotations extends ListLitType {
  * Embeddings or model activations, as fixed-length <float>[emb_dim].
  */
 @registered
-export class Embeddings extends _Tensor1D {
+export class Embeddings extends _Tensor {
 }
 
 /**
  * Shared gradient attributes.
  */
-class _GradientsBase extends _Tensor1D {
+class _GradientsBase extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
   /** Name of Embeddings field. */
@@ -361,7 +378,7 @@ export class Gradients extends _GradientsBase {
 /**
  * A single vector of <float>[enc_dim].
  */
-class _InfluenceEncodings extends _Tensor1D {
+class _InfluenceEncodings extends _Tensor {
   /** Class for computing gradients (string). */
   grad_target?: string = undefined;
 }
@@ -370,7 +387,7 @@ class _InfluenceEncodings extends _Tensor1D {
  * Per-token embeddings, as <float>[num_tokens, emb_dim].
  */
 @registered
-export class TokenEmbeddings extends _Tensor1D {
+export class TokenEmbeddings extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
 }
@@ -393,7 +410,7 @@ export class ImageGradients extends _GradientsBase {
  * One or more attention heads, as <float>[num_heads, num_tokens, num_tokens].
  */
 @registered
-export class AttentionHeads extends _Tensor1D {
+export class AttentionHeads extends _Tensor {
   // Input and output Tokens fields; for self-attention these can
   // be the same.
   align_in: string = '';
@@ -551,4 +568,20 @@ export class CurveDataPoints extends LitType {
  */
 @registered
 export class InfluentialExamples extends LitType {
+}
+
+/** The method to use to determine the best value for a Metric. */
+export enum MetricBestValue {
+  HIGHEST = "highest",
+  LOWEST = "lowest",
+  NONE = "none",
+  ZERO = "zero",
+}
+
+/** Score returned from the computation of a Metric. */
+@registered
+export class MetricResult extends LitType {
+  override default: number = 0;
+  description: string = '';
+  best_value: MetricBestValue = MetricBestValue.NONE;
 }

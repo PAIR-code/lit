@@ -116,7 +116,7 @@ module.exports = (env = {}) => {
       rules: [
         {
           test: /(\.ts$|\.js$)/,
-          exclude: [/node_modules/, '/test.ts$/', '/umap_worker/'],
+          exclude: [/node_modules/, '/test.ts$/'],
           use: [
             {
               loader: 'ts-loader',

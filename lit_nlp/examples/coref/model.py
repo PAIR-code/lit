@@ -131,5 +131,5 @@ class FrozenEncoderCoref(lit_model.Model):
             lit_types.EdgeLabels(align='tokens'),
         'pred_answer':
             lit_types.MulticlassPreds(
-                vocab=winogender.ANSWER_VOCAB, parent='answer'),
+                required=False, vocab=winogender.ANSWER_VOCAB, parent='answer'),
     }

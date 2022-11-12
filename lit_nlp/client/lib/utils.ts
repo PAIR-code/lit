@@ -24,7 +24,6 @@
 
 import * as d3 from 'd3';  // Used for array helpers.
 
-import {html, TemplateResult} from 'lit';
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
@@ -293,30 +292,15 @@ export function handleEnterKey(e: KeyboardEvent, callback: () => void) {
  *  Converts the margin value to the threshold for binary classification.
  */
 export function getThresholdFromMargin(margin: number) {
-  if (margin == null) {
-    return .5;
-  }
-  return margin === 0 ? .5 : 1 / (1 + Math.exp(-margin));
+  return !margin ? .5 : 1 / (1 + Math.exp(-margin));
 }
 
 /**
  *  Converts the threshold value for binary classification to the margin.
  */
 export function getMarginFromThreshold(threshold: number) {
-  const margin = threshold !== 1 ?
-      (threshold !== 0 ? Math.log(threshold / (1 - threshold)) : -5) :
-      5;
-  return margin;
-}
-
-/**
- * Shortens the id of an input data to be displayed in the UI.
- */
-export function shortenId(id: string|null) {
-  if (id == null) {
-    return;
-  }
-  return id.substring(0, 6);
+  return threshold === 1 ?  5 :
+         threshold === 0 ? -5 : Math.log(threshold / (1 - threshold));
 }
 
 /**
@@ -463,20 +447,6 @@ export function roundToDecimalPlaces(num: number, places: number) {
 }
 
 /**
- * Copies a value to the user's clipboard.
- */
-export function copyToClipboard(value: string) {
-  const tempInput = document.createElement("input");
-  tempInput.value = value;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  // TODO(b/240439975): Resolve deprecated execCommand.
-  // tslint:disable:deprecation
-  document.execCommand("copy");
-  document.body.removeChild(tempInput);
-}
-
-/**
  * Processes a sentence so that no word exceeds a certain length by
  * chunking a long word into shorter pieces. This is useful when rendering
  * a table-- normally a table will stretch to fit the entire word length
@@ -485,7 +455,7 @@ export function copyToClipboard(value: string) {
  * NPWS will make copy/pasting from the table behave strangely.
  */
 export function chunkWords(sent: string) {
-  const chunkWord = (word: string) => {
+  function chunkWord (word: string) {
     const maxLen = 15;
     const chunks: string[] = [];
     for (let i=0; i<word.length; i+=maxLen) {
@@ -494,32 +464,8 @@ export function chunkWords(sent: string) {
     // This is not an empty string, it is a non-printing space.
     const zeroWidthSpace = '​';
     return chunks.join(zeroWidthSpace);
-  };
-  return sent.split(' ').map(word => chunkWord(word)).join(' ');
-}
-
-/**
- * Converts any URLs into clickable links.
- * TODO(lit-dev): write unit tests for this.
- */
-export function linkifyUrls(
-    text: string,
-    target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
-  const ret: Array<string|TemplateResult> = [];  // return segments
-  let lastIndex = 0;  // index of last character added to return segments
-  // Find urls and make them real links.
-  // Similar to gmail and other apps, this assumes terminal punctuation is
-  // not part of the url.
-  const matcher = /https?:\/\/[^\s]+[^.?!\s]/g;
-  const formatLink = (url: string) =>
-      html`<a href=${url} target=${target}>${url}</a>`;
-  for (const match of text.matchAll(matcher)) {
-    ret.push(text.slice(lastIndex, match.index));
-    lastIndex = match.index! + match[0].length;
-    ret.push(formatLink(text.slice(match.index, lastIndex)));
   }
-  ret.push(text.slice(lastIndex, text.length));
-  return html`${ret}`;
+  return sent.split(' ').map(word => chunkWord(word)).join(' ');
 }
 
 const CANVAS = document.createElement('canvas');
@@ -594,7 +540,18 @@ export function getStepSizeGivenRange(range: number) {
 
 /** Convert a markdown string into an HTML template for rendering. */
 export function getTemplateStringFromMarkdown(markdown: string) {
-  const htmlStr = marked(markdown);
+
+  // Render Markdown with link target _blank
+  // See https://github.com/markedjs/marked/issues/144
+  // and https://github.com/markedjs/marked/issues/655
+  const renderer = new marked.Renderer();
+  renderer.link = (href, title, text) => {
+    const linkHtml =
+        marked.Renderer.prototype.link.call(renderer, href, title, text);
+    return linkHtml.replace('<a', '<a target=\'_blank\' ');
+  };
+  const htmlStr = marked(markdown, {renderer});
+
   return unsafeHTML(htmlStr);
 }
 

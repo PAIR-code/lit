@@ -18,9 +18,10 @@
 import {autorun} from 'mobx';
 
 import {ListLitType} from '../lib/lit_types';
-import {defaultValueByField, IndexedInput, Input, ServiceUser, Spec, LitCanonicalLayout, LitMetadata} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitMetadata, ServiceUser, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
+import {ApiService} from './services';
 
 /**
  * Interface for reading/storing app configuration from/to the URL.
@@ -46,6 +47,8 @@ export class UrlConfiguration {
   /** Path to load a new dataset from, on pageload. */
   newDatasetPath?: string;
   documentationOpen?: boolean;
+  colorBy?: string;
+  savedDatapointsId?: string;
 }
 
 /**
@@ -88,6 +91,14 @@ export interface SelectionObservedByUrlService {
   selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
+/**
+ * Interface describing how the ColorService is synced to the URL service
+ */
+ export interface ColorObservedByUrlService {
+  selectedColorOptionName: string;
+  setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
+ }
+
 const SELECTED_TAB_UPPER_KEY = 'upper_tab';
 const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
@@ -101,6 +112,8 @@ const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
 /** Path to load a new dataset from, on pageload. */
 const NEW_DATASET_PATH = 'new_dataset_path';
+const COLOR_BY_KEY = 'color_by';
+const SAVED_DATAPOINTS_ID = 'saved_datapoints_id';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -118,6 +131,10 @@ const parseDataFieldKey = (key: string) => {
  * a url.
  */
 export class UrlService extends LitService {
+  constructor(private readonly apiService: ApiService) {
+    super();
+  }
+
   /** Parse arrays in a url param, filtering out empty strings */
   private urlParseArray(encoded: string) {
     if (encoded == null) {
@@ -176,6 +193,8 @@ export class UrlService extends LitService {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
         urlConfiguration.newDatasetPath = this.urlParseString(value);
+      } else if (key === SAVED_DATAPOINTS_ID) {
+        urlConfiguration.savedDatapointsId = this.urlParseString(value);
       } else if (key.startsWith(DATA_FIELDS_KEY_SUBSTRING)) {
         const {fieldKey, dataIndex}: {fieldKey: string, dataIndex: number} =
             parseDataFieldKey(key);
@@ -193,6 +212,8 @@ export class UrlService extends LitService {
               `Warning, data index ${dataIndex} is set more than once.`);
         }
         urlConfiguration.dataFields[dataIndex][fieldKey] = value;
+      } else if (key === COLOR_BY_KEY) {
+        urlConfiguration.colorBy = this.urlParseString(value);
       }
     }
     return urlConfiguration;
@@ -231,10 +252,12 @@ export class UrlService extends LitService {
       appState: StateObservedByUrlService,
       modulesService: ModulesObservedByUrlService,
       selectionService: SelectionObservedByUrlService,
-      pinnedSelectionService: SelectionObservedByUrlService) {
+      pinnedSelectionService: SelectionObservedByUrlService,
+      colorService: ColorObservedByUrlService) {
     const urlConfiguration = this.getConfigurationFromUrl();
     appState.setUrlConfiguration(urlConfiguration);
     modulesService.setUrlConfiguration(urlConfiguration);
+    colorService.setUrlConfiguration(urlConfiguration);
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
     selectionService.selectIds(urlSelectedIds, this);
@@ -291,6 +314,9 @@ export class UrlService extends LitService {
       this.setUrlParam(
           urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
 
+      this.setUrlParam(urlParams, COLOR_BY_KEY,
+          colorService.selectedColorOptionName);
+
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
         window.history.replaceState({}, '', newUrl);
@@ -342,6 +368,13 @@ export class UrlService extends LitService {
       if (id !== undefined) {
         selectionService.setPrimarySelection(id, this);
       }
+    }
+
+    if (urlConfiguration.savedDatapointsId != null) {
+      const dataResponse = await this.apiService.fetchNewData(
+          urlConfiguration.savedDatapointsId);
+      appState.commitNewDatapoints(dataResponse);
+      selectionService.selectIds(dataResponse.map((d) => d.id), this);
     }
   }
 }

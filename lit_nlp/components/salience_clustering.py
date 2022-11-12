@@ -14,7 +14,7 @@
 # ==============================================================================
 """kmeans clustering of salience weights."""
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -45,7 +45,7 @@ REUSE_CLUSTERING = 'reuse_clustering'
 class SalienceClustering(lit_components.Interpreter):
   """Salience map clustering."""
 
-  def __init__(self, salience_mappers: Dict[str, lit_components.Interpreter]):
+  def __init__(self, salience_mappers: dict[str, lit_components.Interpreter]):
     self.salience_mappers = salience_mappers
     self.kmeans = {}
     self.vocab_lookup = {}
@@ -53,7 +53,7 @@ class SalienceClustering(lit_components.Interpreter):
 
   def _build_vocab(
       self,
-      token_saliencies: List[JsonDict]) -> Tuple[Dict[str, int], List[str]]:
+      token_saliencies: list[JsonDict]) -> tuple[dict[str, int], list[str]]:
     """Build a vocabulary from the given token saliencies.
 
     This creates a mapping from word type to index in the vocabulary taken from
@@ -82,7 +82,7 @@ class SalienceClustering(lit_components.Interpreter):
     return vocab_lookup, vocab
 
   def _convert_to_bow_vector(self, token_weights: JsonDict,
-                             vocab_lookup: Dict[str, int]) -> np.ndarray:
+                             vocab_lookup: dict[str, int]) -> np.ndarray:
     """Converts the given variable length-vector into a fixed-length vector.
 
     This function creates a zero vector of the length of the vocabulary and
@@ -104,8 +104,8 @@ class SalienceClustering(lit_components.Interpreter):
     return vocab_vector
 
   def _compute_fixed_length_representation(
-      self, token_saliencies: List[JsonDict],
-      vocab_lookup: Dict[str, int]) -> List[Dict[str, np.ndarray]]:
+      self, token_saliencies: list[JsonDict],
+      vocab_lookup: dict[str, int]) -> list[dict[str, np.ndarray]]:
     """Compute a fixed-length representation from the variable-length salience.
 
     The representation is a simple vocabulary vector with salience weights as
@@ -145,10 +145,10 @@ class SalienceClustering(lit_components.Interpreter):
     return representations
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
+          model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     """Run this component, given a model and input(s)."""
     raise NotImplementedError(
@@ -159,7 +159,7 @@ class SalienceClustering(lit_components.Interpreter):
       indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[List[JsonDict]] = None,
+      model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[JsonDict]:
     """Run this component, given a model and input(s).
 
@@ -183,14 +183,31 @@ class SalienceClustering(lit_components.Interpreter):
         `TOP_TOKEN_KEY`: Top tokens are the tokens that have highest mean
           salience over all examples. They are sorted according to their
           salience.
+
+    Raises:
+      RuntimeError: Salience interpreter incompatible with model and dataset
+      TypeError: config is not provided
+      ValueError: config["Salience Mapper"] is not provided
     """
-    config = config or {}
+
+    if not config:
+      raise TypeError('config must be provided')
+
+    salience_key: Optional[str] = config.get(SALIENCE_MAPPER_KEY)
+    if not salience_key:
+      raise ValueError(f'config[{SALIENCE_MAPPER_KEY}] must be provided')
+
+    salience_interpreter: Optional[
+        lit_components.Interpreter] = self.salience_mappers.get(salience_key)
+    if not (salience_interpreter and
+            salience_interpreter.is_compatible(model=model, dataset=dataset)):
+      raise RuntimeError(f'Requested interpreter, {salience_key}, is '
+                         'incompatible with model and/or dataset.')
+
     # If no specific inputs provided, use the entire dataset.
     inputs_to_use = indexed_inputs or dataset.examples
-    token_saliencies = self.salience_mappers[
-        config[SALIENCE_MAPPER_KEY]].run_with_metadata(inputs_to_use, model,
-                                                       dataset, model_outputs,
-                                                       config)
+    token_saliencies = salience_interpreter.run_with_metadata(
+        inputs_to_use, model, dataset, model_outputs, config)
 
     if not token_saliencies:
       return None
@@ -261,6 +278,12 @@ class SalienceClustering(lit_components.Interpreter):
         REPRESENTATION_KEY: salience_field_to_representations,
         TOP_TOKEN_KEY: salience_field_to_top_tokens,
     }
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    return any(
+        interp.is_compatible(model=model, dataset=dataset)
+        for interp in self.salience_mappers.values())
 
   def config_spec(self) -> types.Spec:
     return {

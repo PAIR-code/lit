@@ -75,13 +75,6 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'Integrated Gradients': gradient_maps.IntegratedGradients(),
       'LIME': lime_explainer.LIME(),
   }
-  metrics_group: ComponentGroup = ComponentGroup({
-      'regression': metrics.RegressionMetrics(),
-      'multiclass': metrics.MulticlassMetrics(),
-      'paired': metrics.MulticlassPairedMetrics(),
-      'bleu': metrics.CorpusBLEU(),
-      'rouge': metrics.RougeL(),
-  })
   # Ensure the prediction analysis interpreters are included.
   prediction_analysis_interpreters: dict[str, Interpreter] = {
       'classification': classification_results.ClassificationInterpreter(),
@@ -94,7 +87,7 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'tcav': tcav.TCAV(),
       'curves': curves.CurvesInterpreter(),
       'thresholder': thresholder.Thresholder(),
-      'metrics': metrics_group,
+      'metrics': default_metrics(),
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
           gradient_map_interpreters),
@@ -105,3 +98,14 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
                       **prediction_analysis_interpreters,
                       **embedding_based_interpreters)
   return interpreters
+
+
+def default_metrics() -> ComponentGroup:
+  return ComponentGroup({
+      'regression': metrics.RegressionMetrics(),
+      'multiclass': metrics.MulticlassMetrics(),
+      'paired': metrics.MulticlassPairedMetrics(),
+      'bleu': metrics.CorpusBLEU(),
+      'rouge': metrics.RougeL(),
+      'exactmatch': metrics.ExactMatchMetrics(),
+  })

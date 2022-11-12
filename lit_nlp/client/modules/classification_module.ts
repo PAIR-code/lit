@@ -34,6 +34,8 @@ import {DataService, SelectionService} from '../services/services';
 
 import {styles} from './classification_module.css';
 
+const SPARSE_MODE_THRESHOLD = 0.01;
+
 interface DisplayInfo {
   value: number;
   isTruth: boolean;
@@ -52,6 +54,8 @@ interface LabeledPredictions {
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
   static override title = 'Classification Results';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#classification';
   static override duplicateForExampleComparison = false;
   static override duplicateForModelComparison = false;
   static override numCols = 3;
@@ -76,14 +80,15 @@ export class ClassificationModule extends LitModule {
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
 
+  @observable private sparseMode = false;
   @observable private labeledPredictions: LabeledPredictions = {};
 
   override firstUpdated() {
-    const getSelectionChanges = () =>
-        [this.appState.compareExamplesEnabled, this.appState.currentModels,
-         this.pinnedSelectionService.primarySelectedInputData,
-         this.selectionService.primarySelectedInputData,
-         this.dataService.dataVals];
+    const getSelectionChanges = () => [
+      this.appState.compareExamplesEnabled, this.appState.currentModels,
+      this.pinnedSelectionService.primarySelectedInputData, this.sparseMode,
+      this.selectionService.primarySelectedInputData, this.dataService.dataVals
+    ];
     this.reactImmediately(getSelectionChanges, () => {this.updateSelection();});
   }
 
@@ -150,18 +155,30 @@ export class ClassificationModule extends LitModule {
         const label = labels[i];
 
         // Map the predctions for each example into DisplayInfo objects
-        const rowPreds = scores.map((score, j): DisplayInfo => {
+        const rowPreds = [];
+
+        for (let j = 0; j < scores.length; j++) {
+          const score = scores[j];
+
+          // Only push null scores if not in sparseMode
           if (score == null) {
-            return {value: 0, isPredicted: false, isTruth: false};
+            if (!this.sparseMode) {
+              rowPreds.push({value: 0, isPredicted: false, isTruth: false});
+            }
+            continue;
           }
+
           const value = score[i];
           const isPredicted = label === predictedClasses[j];
           const {data} = inputs[j];
           const isTruth = (parent != null && data[parent] === labels[i]);
-          return {value, isPredicted, isTruth};
-        });
+          // Push values if not in sparseMode or if above threshold
+          if (!this.sparseMode || value >= SPARSE_MODE_THRESHOLD) {
+            rowPreds.push({value, isPredicted, isTruth});
+          }
+        }
 
-        labeledPredictions[topLevelKey][label] = rowPreds;
+        if (rowPreds.length) labeledPredictions[topLevelKey][label] = rowPreds;
       }
     }
 
@@ -169,14 +186,20 @@ export class ClassificationModule extends LitModule {
   }
 
   override renderImpl() {
-    const hasGroundTruth = this.appState.currentModels.some(
-        model =>
+    const clsFieldSpecs =
+        this.appState.currentModels.flatMap((model) =>
             Object.values(this.appState.currentModelSpecs[model].spec.output)
-                .some(
-                    feature => feature instanceof MulticlassPreds &&
-                        feature.parent != null &&
-                        feature.parent in
-                            this.appState.currentModelSpecs[model].spec.input));
+                  .filter(
+                    (fieldSpec) => fieldSpec instanceof MulticlassPreds
+                  ) as MulticlassPreds[]);
+
+    const hasGroundTruth = clsFieldSpecs.some((fs) =>
+        fs.parent != null && fs.parent in this.appState.currentDatasetSpec);
+
+    const allowSparseMode = clsFieldSpecs.some((fs) => fs.vocab.length > 10);
+
+    const onClickSwitch = () => {this.sparseMode = !this.sparseMode;};
+
     return html`<div class='module-container'>
       <div class="module-results-area">
         ${
@@ -185,14 +208,19 @@ export class ClassificationModule extends LitModule {
               const featureTable =
                   this.renderFeatureTable(labelRow, hasGroundTruth);
               return arr.length === 1 ? featureTable : html`
-                      <expansion-panel .label=${fieldName} expanded>
-                        ${featureTable}
-                      </expansion-panel>`;
+                  <expansion-panel .label=${fieldName} expanded>
+                    ${featureTable}
+                  </expansion-panel>`;
             })}
       </div>
       <div class="module-footer">
         <annotated-score-bar-legend ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar-legend>
+        ${allowSparseMode ? html`
+            <div class='switch-container' @click=${onClickSwitch}>
+              <div>Only show classes above ${SPARSE_MODE_THRESHOLD}</div>
+              <mwc-switch .checked=${this.sparseMode}></mwc-switch>
+            </div>` : null}
       </div>
     </div>`;
   }

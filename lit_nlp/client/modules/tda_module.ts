@@ -247,7 +247,7 @@ export class TrainingDataAttributionModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES, [],
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;
@@ -483,6 +483,7 @@ export class TrainingDataAttributionModule extends LitModule {
         <lit-data-table class="table"
             .columnNames=${Object.keys(rows[0])}
             .data=${rows}
+            exportEnabled
         ></lit-data-table>
       </div>
     `;

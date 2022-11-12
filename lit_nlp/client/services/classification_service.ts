@@ -20,10 +20,12 @@ import {action, computed, observable, reaction} from 'mobx';
 
 import {MulticlassPreds} from '../lib/lit_types';
 import {FacetedData, GroupedExamples, Spec} from '../lib/types';
+import {getMarginFromThreshold} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
 
+/** Identifier for the default facet. */
 const GLOBAL_FACET = '';
 
 /**
@@ -80,9 +82,11 @@ export class ClassificationService extends LitService {
     }, {fireImmediately: true});
   }
 
-  // Returns all margin settings for use as a reaction input function when
-  // setting up observers.
-  // TODO(lit-team): Remove need for this intermediate object (b/156100081)
+  /**
+   * Returns all margin settings for use as a reaction input function when
+   * setting up observers.
+   */
+  // TODO(b/156100081): Remove need for this intermediate object
   @computed
   get allMarginSettings(): number[] {
     const res: number[] = [];
@@ -106,10 +110,17 @@ export class ClassificationService extends LitService {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
-    this.marginSettings[model][fieldName] = {};
-    for (const group of Object.values(groupedExamples)) {
-      this.marginSettings[model][fieldName][group.displayName!] =
-          {facetData: group, margin: 0};
+    if (this.marginSettings[model][fieldName] == null) {
+      this.marginSettings[model][fieldName] = {};
+    }
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    const fieldSpec = output[fieldName];
+    if (!(fieldSpec instanceof MulticlassPreds)) return;
+    const margin = fieldSpec.threshold != null ?
+        getMarginFromThreshold(fieldSpec.threshold) : 0;
+    for (const facetData of Object.values(groupedExamples)) {
+      this.marginSettings[model][fieldName][facetData.displayName!] =
+          {facetData, margin};
     }
   }
 
@@ -120,20 +131,20 @@ export class ClassificationService extends LitService {
     for (const [model, output] of Object.entries(modelOutputSpecMap)) {
       marginSettings[model] = {};
       for (const [fieldName, fieldSpec] of Object.entries(output)) {
-        if (fieldSpec instanceof MulticlassPreds &&
-            fieldSpec.null_idx != null && fieldSpec.vocab != null) {
-          marginSettings[model][fieldName] = {};
+        if (!(fieldSpec instanceof MulticlassPreds) ||
+            fieldSpec.null_idx == null || !fieldSpec.vocab.length) continue;
 
-          if (model in this.marginSettings &&
-              this.marginSettings[model][fieldName] != null) {
-            // Reset all facets to margin = 0.
-            const facets = Object.keys(this.marginSettings[model][fieldName]);
-            for (const key of facets) {
-              marginSettings[model][fieldName][key] = {margin: 0};
-            }
-          }
+        const margin = fieldSpec.threshold != null ?
+            getMarginFromThreshold(fieldSpec.threshold) : 0;
+        marginSettings[model][fieldName] = {[GLOBAL_FACET]: {margin}};
 
-          marginSettings[model][fieldName][GLOBAL_FACET] = {margin: 0};
+        if (this.marginSettings[model] == null ||
+            this.marginSettings[model][fieldName] == null) continue;
+
+        const facets = Object.keys(this.marginSettings[model][fieldName]);
+        for (const facet of facets) {
+          const {facetData} = this.marginSettings[model][fieldName][facet];
+          marginSettings[model][fieldName][facet] = {facetData, margin};
         }
       }
     }
@@ -142,28 +153,28 @@ export class ClassificationService extends LitService {
   }
 
   @action
-  setMargin(model: string, fieldName: string, value: number,
-            facet?: FacetedData) {
+  setMargin(model: string, fieldName: string, margin: number,
+            facetData?: FacetedData) {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
     if (this.marginSettings[model][fieldName] == null) {
       this.marginSettings[model][fieldName] = {};
     }
-    if (facet == null) {
+    if (facetData == null) {
       // If no facet provided, then update the facet for the entire dataset
       // if one exists, otherwise update all facets with the provided margin.
       if (GLOBAL_FACET in this.marginSettings[model][fieldName]) {
         this.marginSettings[model][fieldName][GLOBAL_FACET] =
-            {facetData: facet, margin: value};
+            {facetData, margin};
       } else {
         for (const key of Object.keys(this.marginSettings[model][fieldName])) {
-          this.marginSettings[model][fieldName][key].margin = value;
+          this.marginSettings[model][fieldName][key].margin = margin;
         }
       }
     } else {
-      this.marginSettings[model][fieldName][facet.displayName!] =
-          {facetData: facet, margin: value};
+      this.marginSettings[model][fieldName][facetData.displayName!] =
+          {facetData, margin};
     }
   }
 
@@ -172,16 +183,13 @@ export class ClassificationService extends LitService {
         this.marginSettings[model][fieldName] == null) {
       return 0;
     }
+    const fieldMargins = this.marginSettings[model][fieldName];
     if (facet == null) {
-      if (this.marginSettings[model][fieldName][GLOBAL_FACET] == null) {
-        return 0;
-      }
-      return this.marginSettings[model][fieldName][GLOBAL_FACET].margin;
+      return fieldMargins[GLOBAL_FACET]?.margin || 0;
+    } else if (facet.displayName != null) {
+      return fieldMargins[facet.displayName]?.margin || 0;
     } else {
-      if (this.marginSettings[model][fieldName][facet.displayName!] == null) {
-        return 0;
-      }
-      return this.marginSettings[model][fieldName][facet.displayName!].margin;
+      return 0;
     }
   }
 }

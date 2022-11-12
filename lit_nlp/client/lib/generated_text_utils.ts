@@ -20,8 +20,9 @@
  */
 import difflib from 'difflib';
 
+import {ScoredTextCandidates} from './dtypes';
 import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent} from './lit_types';
-import {GeneratedTextCandidate, IndexedInput, Input, Preds, Spec} from './types';
+import {IndexedInput, Input, Preds, Spec} from './types';
 import {findSpecKeys} from './utils';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
@@ -31,7 +32,7 @@ import {findSpecKeys} from './utils';
  * Preds type for text generation.
  */
 export interface GeneratedTextResult {
-  [outputFieldName: string]: GeneratedTextCandidate[];
+  [outputFieldName: string]: ScoredTextCandidates;
 }
 
 /**

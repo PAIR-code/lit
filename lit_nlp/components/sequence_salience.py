@@ -1,5 +1,5 @@
 """Interpreter components for seq2seq salience."""
-from typing import Dict, List, Optional
+from typing import Optional
 
 import Levenshtein  # TEMPORARY; for dummy salience
 from lit_nlp.api import components
@@ -12,20 +12,19 @@ import numpy as np  # TEMPORARY; for dummy salience
 
 JsonDict = types.JsonDict
 
+_SUPPORTED_OUTPUTS = (types.GeneratedText, types.GeneratedTextCandidates)
+
 
 class DummySequenceSalience(components.Interpreter):
   """Dummy-valued seq2seq salience, for testing."""
 
-  def find_fields(self, model: lit_model.Model) -> Dict[str, List[str]]:
+  def find_fields(self, model: lit_model.Model) -> dict[str, list[str]]:
     src_fields = utils.find_spec_keys(model.input_spec(), types.TextSegment)
-    gen_fields = utils.find_spec_keys(
-        model.output_spec(),
-        (types.GeneratedText, types.GeneratedTextCandidates))
+    gen_fields = utils.find_spec_keys(model.output_spec(), _SUPPORTED_OUTPUTS)
     return {f: src_fields for f in gen_fields}
 
-  @staticmethod
-  def dummy_sequence_salience(source_tokens: List[str],
-                              target_tokens: List[str]):
+  def _dummy_sequence_salience(
+      self, source_tokens: list[str], target_tokens: list[str]):
     """Compute salience matrix based on Levenshtein similarity."""
     all_input_tokens = source_tokens + target_tokens
     smat = np.zeros([len(target_tokens), len(all_input_tokens)])
@@ -36,8 +35,8 @@ class DummySequenceSalience(components.Interpreter):
 
   def _run_single(
       self, ex: JsonDict, mo: JsonDict,
-      field_map: Dict[str, str]) -> Dict[str, dtypes.SequenceSalienceMap]:
-    result = {}  # Dict[target_field name -> interpretations]
+      field_map: dict[str, str]) -> dict[str, dtypes.SequenceSalienceMap]:
+    result = {}  # dict[target_field name -> interpretations]
     for (target_field, source_fields) in field_map.items():
       source_tokens = []
       for sf in source_fields:
@@ -48,17 +47,17 @@ class DummySequenceSalience(components.Interpreter):
         target = target[0][0]  # text for first candidate
       target_tokens = target.split()
 
-      salience = self.dummy_sequence_salience(source_tokens, target_tokens)
+      salience = self._dummy_sequence_salience(source_tokens, target_tokens)
       result[target_field] = dtypes.SequenceSalienceMap(source_tokens,
                                                         target_tokens, salience)
     return result
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     del dataset
     del config
 
@@ -74,9 +73,12 @@ class DummySequenceSalience(components.Interpreter):
         for ex, mo in zip(inputs, model_outputs)
     ]
 
-  # TODO(lit-dev): make this fn able to access the dataset as well?
-  def is_compatible(self, model: lit_model.Model):
-    return len(self.find_fields(model))
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model.
+    has_inputs = utils.spec_contains(model.input_spec(), types.TextSegment)
+    has_outputs = utils.spec_contains(model.output_spec(), _SUPPORTED_OUTPUTS)
+    return has_inputs and has_outputs
 
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.SequenceSalience(autorun=True, signed=False)}

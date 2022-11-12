@@ -21,8 +21,6 @@
 
 // tslint:disable:no-new-decorators
 
-import '@material/mwc-icon';
-
 import {property} from 'lit/decorators';
 import {customElement} from 'lit/decorators';
 import { html} from 'lit';

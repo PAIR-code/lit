@@ -24,6 +24,7 @@
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
 import './checkbox';
+import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
@@ -32,18 +33,21 @@ import {isTemplateResult} from 'lit/directive-helpers';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {action, computed, observable} from 'mobx';
+import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
 
+import {PopupContainer} from './popup_container';
 import {styles} from './table.css';
 
 /** Function for supplying table entry template result based on row state. */
 export type TemplateResultFn =
     (isSelected: boolean, isPrimarySelection: boolean,
-     isReferenceSelection: boolean, isFocused: boolean) => TemplateResult;
+     isReferenceSelection: boolean, isFocused: boolean, isStarred: boolean) =>
+        TemplateResult;
 
 type SortableTableEntry = string|number;
 /** Wrapper type for sortable custom data table entries */
@@ -122,6 +126,7 @@ export class DataTable extends ReactiveElement {
   @observable.struct @property({type: Array})
       columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) selectedIndices: number[] = [];
+  @observable.struct @property({type: Array}) starredIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
@@ -132,6 +137,7 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) selectionEnabled: boolean = false;
   @observable @property({type: Boolean}) searchEnabled: boolean = false;
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
+  @observable @property({type: Boolean}) exportEnabled: boolean = false;
 
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
@@ -157,7 +163,11 @@ export class DataTable extends ReactiveElement {
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
-  private resizeObserver!: ResizeObserver;
+  @property({type: String}) downloadFilename: string = 'data.csv';
+
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.adjustEntriesIfHeightChanged();
+  });
   private needsEntriesPerPageRecompute = true;
   private lastContainerHeight = 0;
 
@@ -174,9 +184,6 @@ export class DataTable extends ReactiveElement {
 
   override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.holder')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.adjustEntriesIfHeightChanged();
-    });
     this.resizeObserver.observe(container);
 
     // If inputs changed, re-sort data based on the new inputs.
@@ -186,15 +193,14 @@ export class DataTable extends ReactiveElement {
     });
 
     // Reset page number if invalid on change in total pages.
-    const triggerPageChange = () => this.totalPages;
-    this.reactImmediately(triggerPageChange, () => {
+    this.reactImmediately(() => this.totalPages, () => {
       const isPageOverflow = this.pageNum >= this.totalPages;
+      if (isPageOverflow) {this.pageNum = 0;}
+
       const lastIndexOnPage = this.entriesPerPage * (this.pageNum + 1);
       const isHoveredInvisible =
           this.hoveredIndex != null && this.hoveredIndex > lastIndexOnPage;
-      if (isPageOverflow || isHoveredInvisible) {
-        this.pageNum = 0;
-      }
+      if (isHoveredInvisible) {this.hoveredIndex = null;}
     });
   }
 
@@ -257,6 +263,14 @@ export class DataTable extends ReactiveElement {
     let i = 0;
     const rows: NodeListOf<HTMLElement> =
         this.shadowRoot!.querySelectorAll('tbody > tr.lit-data-table-row');
+
+    // This function computes entriesPerPage assuming that the current page is
+    // full of rows that it can use to compute entriesPerPage based on the
+    // available page height. The only time that isn't true is if the user is
+    // one the last page of results, in which case computing a new
+    // entriesPerPage value may result in an incorrect computation, so bail out.
+    if (rows.length < this.entriesPerPage) {return;}
+
     while (height < availableHeight && i < rows.length) {
       height += rows[i].getBoundingClientRect().height;
       i += 1;
@@ -419,6 +433,18 @@ export class DataTable extends ReactiveElement {
     return this.getSortedData(this.rowFilteredData);
   }
 
+  getArrayData(): SortableTableEntry[][] {
+    // displayData is the visible data for all pages.
+    return this.displayData.map(
+        (row: TableRowInternal) => row.rowData.map(this.getSortableEntry));
+  }
+
+  getCSVContent(): string {
+    return papa.unparse(
+        {fields: this.columnStrings, data: this.getArrayData()},
+        {newline: '\r\n'});
+  }
+
   @computed
   get totalPages(): number {
     return Math.ceil(this.displayData.length / this.entriesPerPage);
@@ -444,8 +470,14 @@ export class DataTable extends ReactiveElement {
   }
 
   @computed
+  get isPaginated(): boolean {
+    return this.paginationEnabled &&
+        (this.displayData.length > this.entriesPerPage);
+  }
+
+  @computed
   get hasFooter(): boolean {
-    return this.displayData.length > this.entriesPerPage;
+    return this.isPaginated || this.exportEnabled;
   }
 
   private setShiftSelectionSpan(startIndex: number, endIndex: number) {
@@ -505,12 +537,10 @@ export class DataTable extends ReactiveElement {
         selectedIndices.add(dataIndex);
       }
       this.setShiftSelectionSpan(rowIndex, rowIndex);
+      this.setPrimarySelectedIndex(rowIndex);
     }
     //  Rather complicated logic for handling shift-click
     else if (e.shiftKey) {
-      // Prevent selecting text on shift-click
-      e.preventDefault();
-
       const isWithinSpan = this.isRowWithinShiftSelectionSpan(rowIndex);
       const startIndex = this.shiftSelectionStartIndex;
       const endIndex = this.shiftSelectionEndIndex;
@@ -535,6 +565,8 @@ export class DataTable extends ReactiveElement {
           this.shiftSpanAnchor = SpanAnchor.END;
         }
       }
+
+      this.setPrimarySelectedIndex(rowIndex);
     }
     // Otherwise, simply select/deselect the index.
     else {
@@ -613,6 +645,11 @@ export class DataTable extends ReactiveElement {
     return this.sortName === undefined && this.columnFilterInfo.size === 0;
   }
 
+  @computed
+  get isFiltered() {
+    return this.columnFilterInfo.size !== 0;
+  }
+
   resetView() {
     this.columnFilterInfo.clear();
     this.sortName = undefined;    // reset to input ordering
@@ -631,14 +668,14 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`<div class="holder">
-      <table class=${classMap({'paginated': this.paginationEnabled})}>
+      <table class=${classMap({'has-footer': this.hasFooter})}>
         <thead>
           ${this.columnHeaders.map((c, i) =>
               this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
         </thead>
         <tbody>
           ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-          ${this.paginationEnabled ? this.fillerRows : null}
+          ${this.hasFooter ? this.fillerRows : null}
         </tbody>
         <tfoot>
           ${this.renderFooter()}
@@ -648,31 +685,26 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
-  renderFooter() {
-    if (!this.hasFooter) {return null;}
-
+  renderPaginationControls() {
     // Use this modulo function so that if pageNum is negative (when
     // decrementing pages), the modulo returns the expected positive value.
     const modPageNumber = (pageNum: number) => {
       return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
     };
 
-    const firstPage = () => {this.pageNum = 0;};
-    const nextPage = () => {
-      const newPageNum = modPageNumber(this.pageNum + 1);
-      this.pageNum = newPageNum;
+    const changePage = (offset: number) => {
+      this.pageNum = modPageNumber(this.pageNum + offset);
     };
-    const prevPage = () => {
-      const newPageNum = modPageNumber(this.pageNum - 1);
-      this.pageNum = newPageNum;
+    const firstPage = () => {
+      this.pageNum = 0;
     };
-    const lastPage = () => {this.pageNum = this.totalPages - 1;};
+    const lastPage = () => {
+      this.pageNum = this.totalPages - 1;
+    };
     const randomPage = () => {
-      const newPageNum = randInt(0, this.totalPages);
-      this.pageNum = newPageNum;
+      this.pageNum = randInt(0, this.totalPages);
     };
 
-    const pageDisplayNum = this.pageNum + 1;
     const firstPageButtonClasses = {
       'icon-button': true,
       'disabled': this.pageNum === 0
@@ -684,34 +716,101 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
+      <mwc-icon class=${classMap(firstPageButtonClasses)}
+        @click=${firstPage}>
+        first_page
+      </mwc-icon>
+      <mwc-icon class='icon-button'
+        @click=${() => {changePage(-1);}}>
+        chevron_left
+      </mwc-icon>
+      <div>
+       Page
+       <span class="current-page-num">${this.pageNum + 1}</span>
+       of ${this.totalPages}
+      </div>
+      <mwc-icon class='icon-button'
+         @click=${() => {changePage(1);}}>
+        chevron_right
+      </mwc-icon>
+      <mwc-icon class=${classMap(lastPageButtonClasses)}
+        @click=${lastPage}>
+        last_page
+      </mwc-icon>
+      <mwc-icon class='icon-button mdi-outlined'
+        title="Go to a random page" @click=${randomPage}>
+        casino
+      </mwc-icon>
+    `;
+    // clang-format on
+  }
+
+  renderExportControls() {
+    const copyCSV = () => {
+      const csvContent = this.getCSVContent();
+      navigator.clipboard.writeText(csvContent);
+    };
+
+    const downloadCSV = () => {
+      const csvContent = this.getCSVContent();
+      const blob = new Blob([csvContent], {type: 'text/csv'});
+      const a = window.document.createElement('a');
+      a.href = window.URL.createObjectURL(blob);
+      a.download = this.downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      const controls: PopupContainer =
+          this.shadowRoot!.querySelector('popup-container.download-popup')!;
+      controls.expanded = false;
+    };
+
+    const updateFilename = (e: Event) => {
+      // tslint:disable-next-line:no-any
+      this.downloadFilename = (e as any).target.value as string;
+    };
+
+    function onEnter(e: KeyboardEvent) {
+      if (e.key === 'Enter') downloadCSV();
+    }
+
+    // clang-format off
+    return html`
+      <mwc-icon class='icon-button'
+        title="Copy ${this.displayData.length} rows as CSV"
+        @click=${copyCSV}>
+        file_copy
+      </mwc-icon>
+      <popup-container class='download-popup'>
+        <mwc-icon class='icon-button' slot='toggle-anchor'
+          title="Download ${this.displayData.length} rows as CSV">
+          file_download
+        </mwc-icon>
+        <div class='download-popup-controls'>
+          <label for="filename">Filename</label>
+          <input type="text" name="filename" value=${this.downloadFilename}
+           @input=${updateFilename} @keydown=${onEnter}>
+          <button class='filled-button nowrap' @click=${downloadCSV}
+            ?disabled=${!this.downloadFilename}>
+            Download ${this.displayData.length} rows
+          </button>
+        </div>
+      </popup-container>
+    `;
+    // clang-format on
+  }
+
+  renderFooter() {
+    if (!this.hasFooter) return null;
+
+    // clang-format off
+    return html`
       <tr>
         <td colspan=${this.columnNames.length}>
           <div class="footer">
-            <mwc-icon class=${classMap(firstPageButtonClasses)}
-              @click=${firstPage}>
-              first_page
-            </mwc-icon>
-            <mwc-icon class='icon-button'
-              @click=${prevPage}>
-              chevron_left
-            </mwc-icon>
-            <div>
-             Page
-             <span class="current-page-num">${pageDisplayNum}</span>
-             of ${this.totalPages}
-            </div>
-            <mwc-icon class='icon-button'
-               @click=${nextPage}>
-              chevron_right
-            </mwc-icon>
-            <mwc-icon class=${classMap(lastPageButtonClasses)}
-              @click=${lastPage}>
-              last_page
-            </mwc-icon>
-            <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              @click=${randomPage}>
-              casino
-            </mwc-icon>
+            ${this.isPaginated ? this.renderPaginationControls() : null}
+            <div class='footer-spacer'></div>
+            ${this.exportEnabled ? this.renderExportControls() : null}
           </div>
         </td>
       </tr>`;
@@ -749,15 +848,9 @@ export class DataTable extends ReactiveElement {
       const searchValues = this.columnFilterInfo.get(title)?.values;
       const hasSearchValues =
           searchValues && searchValues.length > 0 && searchValues[0].length > 0;
-      if (hasSearchValues ||
-          (this.showColumnMenu && this.columnMenuName === title)) {
-        return true;
-      }
-      return false;
+      const {showColumnMenu, columnMenuName} = this;
+      return hasSearchValues || (showColumnMenu && columnMenuName === title);
     };
-
-    const menuButtonStyle =
-        styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
 
     const handleMenuButton = (e: Event) => {
       e.stopPropagation();
@@ -784,6 +877,11 @@ export class DataTable extends ReactiveElement {
     const isDownActive = this.sortName === title && !this.sortAscending;
     const isDownInactive = this.sortName === title && this.sortAscending;
 
+    const arrowStyle =
+        styleMap((isDownActive || isUpActive) ? {'display': 'block'} : {});
+    const menuButtonStyle = styleMap(isSearchActive() ?
+        {'display': 'block', 'outline': 'auto'} : {});
+
     const upArrowClasses = classMap({
       arrow: true,
       up: true,
@@ -808,11 +906,19 @@ export class DataTable extends ReactiveElement {
               ${this.searchEnabled ? html`
                 <div class="menu-button-container">
                   <mwc-icon class="menu-button" style=${menuButtonStyle}
-                   @click=${handleMenuButton}>filter_list</mwc-icon>
+                   title="Filter" @click=${handleMenuButton}>
+                   filter_alt
+                  </mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}>
-                <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
-                <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+                <mwc-icon class=${upArrowClasses} style=${arrowStyle}
+                  title="Sort (ascending)">
+                  arrow_drop_up
+                </mwc-icon>
+                <mwc-icon class=${downArrowClasses} style=${arrowStyle}
+                  title="Sort (descending)">
+                  arrow_drop_down
+                </mwc-icon>
               </div>
             </div>
           </div>
@@ -840,7 +946,7 @@ export class DataTable extends ReactiveElement {
       // field with different behavior for string columns vs numeric columns.
       const handleSearchChange = (e: KeyboardEvent) => {
         const searchQuery = (e.target as HTMLInputElement)?.value || '';
-        const fn = (col: SortableTableEntry) => {
+        function fn(col: SortableTableEntry) {
           if (typeof col === 'string') {
             // String columns use a reg ex search.
             return col.search(new RegExp(searchQuery)) !== -1;
@@ -851,10 +957,9 @@ export class DataTable extends ReactiveElement {
           } else {
             return false;
           }
-        };
+        }
         this.columnFilterInfo.set(header.name, {fn, values: [searchQuery]});
       };
-
 
       const searchText = this.columnFilterInfo.has(header.name) ?
           this.columnFilterInfo.get(header.name)!.values[0] :
@@ -911,6 +1016,7 @@ export class DataTable extends ReactiveElement {
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
     const isFocused = this.focusedIndex === dataIndex;
+    const isStarred = this.starredIndices.indexOf(dataIndex) !== -1;
     const rowClass = classMap({
       'lit-data-table-row': true,
       'selected': isSelected,
@@ -929,7 +1035,14 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, dataIndex);
     };
 
-    const formatCellContents = (d: TableEntry) => {
+    // Prevent text highlighting when using shift+click to select rows.
+    const mouseDown = (e: MouseEvent) => {
+      if (e.shiftKey && this.selectionEnabled) {
+        e.preventDefault();
+      }
+    };
+
+    function formatCellContents(d: TableEntry) {
       if (d == null) return null;
 
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
@@ -943,7 +1056,11 @@ export class DataTable extends ReactiveElement {
         const t = (d as SortableTemplateResult).template;
         if (typeof t === 'function') {
           templateResult = t(
-            isSelected, isPrimarySelection, isReferenceSelection, isFocused);
+            isSelected,
+            isPrimarySelection,
+            isReferenceSelection,
+            isFocused,
+            isStarred);
         } else {
           templateResult = t;
         }
@@ -956,7 +1073,7 @@ export class DataTable extends ReactiveElement {
       return html`
           <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
       // clang-format on
-    };
+    }
 
     const cellClasses = this.columnHeaders.map(
         h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
@@ -965,7 +1082,7 @@ export class DataTable extends ReactiveElement {
     // clang-format off
     return html`
       <tr class="${rowClass}" @click=${onClick} @mouseenter=${mouseEnter}
-        @mouseleave=${mouseLeave}>
+        @mouseleave=${mouseLeave} @mousedown=${mouseDown}>
         ${data.rowData.map((d, i) =>
             html`<td style=${cellStyles}><div class=${cellClasses[i]}>${
               formatCellContents(d)

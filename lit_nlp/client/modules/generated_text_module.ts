@@ -115,7 +115,7 @@ export class GeneratedTextModule extends LitModule {
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset, [...GENERATION_TYPES, ReferenceScores],
-        'Generating text');
+        [], 'Generating text');
     const results = await this.loadLatest('generatedText', promise);
     if (results === null) return;
 

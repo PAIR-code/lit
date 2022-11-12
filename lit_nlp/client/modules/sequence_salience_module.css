@@ -13,6 +13,13 @@ lit-slider {
   max-width: 72px;
 }
 
+.color-legend-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 16px;
+}
+
 .subfield-title {
   padding-top: 6px; /* align title with first row of content */
 }

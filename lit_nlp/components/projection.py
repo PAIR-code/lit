@@ -36,7 +36,7 @@ projections).
 import abc
 import copy
 import threading
-from typing import Any, Dict, List, Text, Optional, Hashable, Iterable, Type, Sequence
+from typing import Any, Hashable, Iterable, Optional, Sequence
 
 from absl import logging
 
@@ -57,10 +57,10 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
   ##
   # Training methods
   @abc.abstractmethod
-  def fit_transform(self, inputs: Iterable[JsonDict]) -> List[JsonDict]:
+  def fit_transform(self, inputs: Iterable[JsonDict]) -> list[JsonDict]:
     return
 
-  def fit_transform_with_metadata(self, indexed_inputs) -> List[JsonDict]:
+  def fit_transform_with_metadata(self, indexed_inputs) -> list[JsonDict]:
     return self.fit_transform((i["data"] for i in indexed_inputs))
 
   ##
@@ -75,7 +75,7 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def predict_minibatch(self, inputs: Iterable[JsonDict],
-                        **unused_kw) -> List[JsonDict]:
+                        **unused_kw) -> list[JsonDict]:
     return
 
   def max_minibatch_size(self, **unused_kw):
@@ -87,13 +87,18 @@ class ProjectionInterpreter(lit_components.Interpreter):
 
   def __init__(self, model: lit_model.Model,
                indexed_inputs: Sequence[IndexedInput],
-               model_outputs: Optional[List[JsonDict]],
-               projector: ProjectorModel, field_name: Text, name: Text):
+               model_outputs: Optional[list[JsonDict]],
+               projector: ProjectorModel, field_name: str, name: str):
     self._projector = caching.CachingModelWrapper(projector, name=name)
     self._field_name = field_name
 
     # Train on the given examples
     self._run(model, indexed_inputs, model_outputs, do_fit=True)
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset, model  # Unused as field and model come through constructor
+    return self._field_name in self._projector.output_spec()
 
   def convert_input(self, indexed_input: JsonDict,
                     model_output: JsonDict) -> JsonDict:
@@ -105,7 +110,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
   def _run(self,
            model: lit_model.Model,
            indexed_inputs: Sequence[IndexedInput],
-           model_outputs: Optional[List[JsonDict]] = None,
+           model_outputs: Optional[list[JsonDict]] = None,
            do_fit=False):
     # Run model, if needed.
     if model_outputs is None:
@@ -125,13 +130,13 @@ class ProjectionInterpreter(lit_components.Interpreter):
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.Dataset,
-                        model_outputs: Optional[List[JsonDict]] = None,
-                        config: Optional[Dict[Text, Any]] = None):
+                        model_outputs: Optional[list[JsonDict]] = None,
+                        config: Optional[dict[str, Any]] = None):
     # If using input values, then treat inputs as outputs instead of running
     # the model.
+    del dataset  # unused - pass examples to constructor instead
     if config and config.get("use_input"):
       model_outputs = [inp["data"] for inp in indexed_inputs]
-    del dataset  # unused - pass examples to constructor instead
     return self._run(model, indexed_inputs, model_outputs, do_fit=False)
 
 
@@ -163,7 +168,7 @@ class ProjectionManager(lit_components.Interpreter):
   this is not explicitly enforced.
   """
 
-  def __init__(self, model_class: Type[ProjectorModel]):
+  def __init__(self, model_class: type[ProjectorModel]):
     self._lock = threading.RLock()
     self._instances = {}
     # Used to construct new instances, given config['proj_kw']
@@ -171,7 +176,7 @@ class ProjectionManager(lit_components.Interpreter):
 
   def _train_instance(self, model: lit_model.Model,
                       dataset: lit_dataset.IndexedDataset, config: JsonDict,
-                      name: Text) -> ProjectionInterpreter:
+                      name: str) -> ProjectionInterpreter:
     # Ignore pytype warning about abstract methods, since this should always
     # be a subclass of ProjectorModel which has these implemented.
     projector = self._model_factory(**config.get("proj_kw", {}))  # pytype: disable=not-instantiable
@@ -208,8 +213,8 @@ class ProjectionManager(lit_components.Interpreter):
                          indexed_inputs: Sequence[IndexedInput],
                          model: lit_model.Model,
                          dataset: lit_dataset.IndexedDataset,
-                         model_outputs: Optional[List[JsonDict]] = None,
-                         config: Optional[Dict[Text, Any]] = None):
+                         model_outputs: Optional[list[JsonDict]] = None,
+                         config: Optional[dict[str, Any]] = None):
     instance_key = _key_from_dict(config)
     logging.info("Projection request: instance key: %s", instance_key)
     # Fit a new instance if necessary

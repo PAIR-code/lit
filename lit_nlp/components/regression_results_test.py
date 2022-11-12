@@ -15,23 +15,28 @@
 """Tests for lit_nlp.components.regression_results."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes
+from lit_nlp.api import model as lit_model
 from lit_nlp.components import regression_results
 from lit_nlp.lib import testing_utils
 
 
-class RegressionResultsTest(absltest.TestCase):
+class RegressionResultsTest(parameterized.TestCase):
 
   def setUp(self):
     super(RegressionResultsTest, self).setUp()
     self.interpreter = regression_results.RegressionInterpreter()
 
-  def test_is_compatible(self):
-    self.assertFalse(self.interpreter.is_compatible(
-        testing_utils.TestModelClassification()))
-    self.assertTrue(self.interpreter.is_compatible(
-        testing_utils.TestRegressionModel({})))
+  @parameterized.named_parameters(
+      ('classification', testing_utils.TestModelClassification(), False),
+      ('regression', testing_utils.TestRegressionModel({}), True),
+  )
+  def test_is_compatible(self, model: lit_model.Model, epxected: bool):
+    compat = self.interpreter.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model}))
+    self.assertEqual(compat, epxected)
 
   def test_run_with_label(self):
     dataset = lit_dataset.Dataset(None, None)

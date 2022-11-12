@@ -28,8 +28,8 @@ import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {getTemplateStringFromMarkdown} from '../lib/utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getTemplateStringFromMarkdown} from '../lib/utils';
 import {AppState} from '../services/services';
 
 import {app} from './app';
@@ -41,7 +41,6 @@ import {styles} from './documentation.css';
 @customElement('lit-documentation')
 export class DocumentationComponent extends ReactiveElement {
   @observable isOpen = false;
-  @observable hideDialog = false;
   @observable currentPage = 0;
 
   static override get styles() {
@@ -49,47 +48,48 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   // Markdown of splash screen text to render.
-  @observable private readonly markdownPages = [
+  @observable
+  private readonly markdownPages = [
     `![](static/onboarding_1_welcome.gif)\n# Welcome to LIT!\nLIT is a ` +
-    `visual, interactive tool to help ML researchers, engineers, product ` +
-    `teams, and decision makers explore and compare models using ` +
-    `out-of-the-box interpretability methods to improve performance and ` +
-    `mitigate bias issues. We support a variety of models, data types, and ` +
-    `interpretability methods.`,
+        `visual, interactive tool to help ML researchers, engineers, product ` +
+        `teams, and decision makers explore and compare models using ` +
+        `out-of-the-box interpretability methods to improve performance and ` +
+        `mitigate bias issues. We support a variety of models, data types, and ` +
+        `interpretability methods.`,
 
     `![](static/onboarding_2_modules.gif)\n# Start interacting with flexible ` +
-    `modules\nLIT uses modules that allow rich interactions using ` +
-    `visualizations, tables, to perform lots of tasks. Modules interact with ` +
-    `each other so you can seamlessly switch between various workflows – `  +
-    `from datapoint explorations, to model predictions to counterfactuals – ` +
-    `without getting lost.`,
+        `modules\nLIT uses modules that allow rich interactions using ` +
+        `visualizations, tables, to perform lots of tasks. Modules interact with ` +
+        `each other so you can seamlessly switch between various workflows – ` +
+        `from datapoint explorations, to model predictions to counterfactuals – ` +
+        `without getting lost.`,
 
     `![](static/onboarding_3_workspaces.gif)\n# Workspaces in LIT\nWhether ` +
-    `you're evaluating model predictions, looking for explanations, or ` +
-    `generating counterfactuals, you can find the modules you need in ` +
-    `LIT's workflow-optimized workspaces.\n`,
+        `you're evaluating model predictions, looking for explanations, or ` +
+        `generating counterfactuals, you can find the modules you need in ` +
+        `LIT's workflow-optimized workspaces.\n`,
 
     `![](static/onboarding_4_explore.gif)\n# Explore data and models\n` +
-    `Explore model performance across the entire dataset, a subset, or ` +
-    `individual data points. Create subsets of your loaded data by filtering ` +
-    `on criteria, curating by selection, or by generating “what-if” ` +
-    `style counterfactuals.`,
+        `Explore model performance across the entire dataset, a subset, or ` +
+        `individual data points. Create subsets of your loaded data by filtering ` +
+        `on criteria, curating by selection, or by generating “what-if” ` +
+        `style counterfactuals.`,
 
     `![](static/onboarding_5_toolbars.gif)\n# Manage models, datasets, and ` +
-    `selections\nLIT's toolbars present controls for selecting models and ` +
-    `datasets and sharing findings. Advanced controls allow you to navigate ` +
-    `individual data points systematically or switch into datapoint ` +
-    `comparison mode.`,
+        `selections\nLIT's toolbars present controls for selecting models and ` +
+        `datasets and sharing findings. Advanced controls allow you to navigate ` +
+        `individual data points systematically or switch into datapoint ` +
+        `comparison mode.`,
 
     `![](static/onboarding_6_compare.gif)\n# Dynamically evaluate models ` +
-    `side-by-side\nEasily switch between exploring a single model or ` +
-    `comparing multiple models from within your workflow. Compare ` +
-    `predictions, explanations, and metrics to see differences in behavior ` +
-    `and performance.`,
+        `side-by-side\nEasily switch between exploring a single model or ` +
+        `comparing multiple models from within your workflow. Compare ` +
+        `predictions, explanations, and metrics to see differences in behavior ` +
+        `and performance.`,
 
     `![](static/onboarding_7_start.gif)\n# Start exploring!\nNeed more help? ` +
-    `Visit our documentation page for more advanced help and support. ` +
-    `Otherwise, click get started.`
+        `Visit our documentation page for more advanced help and support. ` +
+        `Otherwise, click get started.`
   ];
 
   @query('#holder') docElement!: HTMLDivElement;
@@ -99,17 +99,6 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   override firstUpdated() {
-    // Store user setting for if to hide this splash screen on LIT load in
-    // browser local storage.
-    const hideDialogStorage = localStorage.getItem('hideDialog');
-    this.hideDialog = hideDialogStorage != null && hideDialogStorage === 'true';
-    this.isOpen = !this.hideDialog;
-
-    const hideDialog = () => this.hideDialog;
-    this.react(hideDialog, () => {
-      localStorage.setItem('hideDialog', this.hideDialog.toString());
-    });
-
     // Sync if this is open or closed with appState to control URL param setting
     // when splash screen is open.
     const isOpen = () => this.isOpen;
@@ -131,10 +120,9 @@ export class DocumentationComponent extends ReactiveElement {
       }
     });
 
-    // The splash screen will be open if it isn't set to hide due to user
-    // settings in local storage, or if the URL param explictly states to show
+    // The splash screen will be open if the URL param explictly states to show
     // it on load.
-    this.isOpen = !this.hideDialog || this.appState.documentationOpen;
+    this.isOpen = this.appState.documentationOpen;
   }
 
   /**
@@ -174,11 +162,6 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   override render() {
-    // tslint:disable-next-line:no-any
-    const changeHideDialog = (e: any) => {
-      this.hideDialog = e.target.checked;
-      if (e.target.checked) {this.close();}
-    };
     const hiddenClassMap = classMap({hide: !this.isOpen});
     const docToDisplay = this.pagesToRender[this.currentPage];
     const onCloseClick = () => {
@@ -213,11 +196,6 @@ export class DocumentationComponent extends ReactiveElement {
                 ${this.renderNextPrevButton(false)}
                 ${this.renderNextPrevButton(true)}
               </div>
-            </div>
-            <div class="bottom-controls">
-              <lit-checkbox class='checkbox' ?checked=${this.hideDialog}
-                  label="Don't show this screen again"
-                  @change=${changeHideDialog}></lit-checkbox>
             </div>
           </div>
         </div>

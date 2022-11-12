@@ -77,6 +77,8 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#tcav';
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
@@ -140,16 +142,18 @@ export class TCAVModule extends LitModule {
 
   @computed
   get predClasses() {
-    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).vocab;
+    return predKey == null ?
+        [] : (this.modelSpec.output[predKey] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
-    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).null_idx;
+    return predKey == null ?
+        undefined : (this.modelSpec.output[predKey] as MulticlassPreds).null_idx;
   }
 
   override firstUpdated() {
@@ -177,16 +181,19 @@ export class TCAVModule extends LitModule {
       title: string, items: string[], columnName: string,
       selectSet: Set<string>, secondSelectName: string = '',
       secondSelectSet: Set<string>|null = null) {
-    const checkboxChanged = (e: Event, item: string) => {
-      const checkbox = e.target as HTMLInputElement;
-      if (checkbox.checked) {
-        selectSet.add(item);
-      } else {
-        selectSet.delete(item);
-      }
-    };
+    function changeForSet(set: Set<string>): (e: Event, i: string) => void {
+      return (e: Event, item: string) => {
+        const checkbox = e.target as HTMLInputElement;
+        if (checkbox.checked) {
+          set.add(item);
+        } else {
+          set.delete(item);
+        }
+      };
+    }
 
     const data = items.map((item) => {
+      const checkboxChanged = changeForSet(selectSet);
       const row = [
         // clang-format off
         html`<lit-checkbox ?checked=${selectSet.has(item)}
@@ -196,14 +203,7 @@ export class TCAVModule extends LitModule {
         item
       ];
       if (secondSelectSet != null) {
-        const secondCheckboxChanged = (e: Event, item: string) => {
-          const checkbox = e.target as HTMLInputElement;
-          if (checkbox.checked) {
-            secondSelectSet.add(item);
-          } else {
-            secondSelectSet.delete(item);
-          }
-        };
+        const secondCheckboxChanged = changeForSet(secondSelectSet);
         row.push(
             // clang-format off
             html`<lit-checkbox id='compare-switch'

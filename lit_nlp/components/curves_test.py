@@ -160,7 +160,7 @@ class CurvesInterpreterTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('red', 'red', [(0.0, 0.0), (0.0, 0.5), (1.0, 0.5), (1.0, 1.0)],
-       [(2 / 3, 1.0), (0.5, 0.5), (1.0, 0.5), (1.0, 0.0)]),
+       [(0.5, 0.5), (2 / 3, 1.0), (1.0, 0.5), (1.0, 0.0)]),
       ('blue', 'blue', [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)],
        [(1.0, 1.0), (1.0, 0.0)]))
   def test_interpreter_honors_user_selected_label(
@@ -196,7 +196,7 @@ class CurvesInterpreterTest(parameterized.TestCase):
       ('no_parent', NoParentTestModel(), False))
   def test_model_compatibility(self, model: Model, exp_is_compat: bool):
     """A model is incompatible if prediction is not MulticlassPreds."""
-    self.assertEqual(self.ci.is_compatible(model), exp_is_compat)
+    self.assertEqual(self.ci.is_compatible(model, TestDataset()), exp_is_compat)
 
 
 if __name__ == '__main__':

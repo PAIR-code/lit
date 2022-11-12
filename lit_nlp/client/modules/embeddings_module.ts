@@ -17,6 +17,8 @@
 
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
 import {html, TemplateResult} from 'lit';
@@ -70,6 +72,8 @@ const SPRITE_THUMBNAIL_SIZE = 48;
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
   static override title = 'Embeddings';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#embedding-projector';
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
         return html`
@@ -298,7 +302,7 @@ export class EmbeddingsModule extends LitModule {
     this.legendWidth =
         scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
     if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL.resize();
+      this.scatterGL?.resize();
     }
   }
 
@@ -565,7 +569,7 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
+            <mwc-icon class="icon-button mdi-outlined"
               title="Reset view"
               @click=${onClickReset}>view_in_ar</mwc-icon>
           </div>
@@ -697,6 +701,9 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Check if there are Embeddings in the input data.
+    if (findSpecKeys(datasetSpec, Embeddings).length > 0) return true;
+
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
     if (!doesOutputSpecContain(modelSpecs, Embeddings)) {

@@ -408,4 +408,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
   getUrlConfiguration() {
     return this.urlConfiguration;
   }
+
+  /**
+   * Get best URL for this server.
+   */
+  getBestURL() {
+    const urlBase = (this.metadata.canonicalURL || window.location.origin);
+    return new URL(`${urlBase}${window.location.search}`).href;
+  }
 }
