@@ -24,7 +24,7 @@ class CachingTest(absltest.TestCase):
 
   def test_preds_cache(self):
     """Test with an exact match."""
-    cache = caching.PredsCache()
+    cache = caching.PredsCache("test")
     self.assertEqual("0", cache.info())
     cache.put("test", None)
     self.assertEqual("0", cache.info())
@@ -103,7 +103,7 @@ class CachingTest(absltest.TestCase):
     self.assertEqual({"score": 2}, results[2])
 
   def test_pred_lock_key(self):
-    cache = caching.PredsCache()
+    cache = caching.PredsCache("test")
     cache_key = [("a", "1"), ("a", "2")]
 
     self.assertIsNone(cache.pred_lock_key(cache_key))
@@ -119,7 +119,7 @@ class CachingTest(absltest.TestCase):
     self.assertIsNone(cache.pred_lock_key(mismatch_cache_key))
 
   def test_pred_lock_key_no_concurrent_predictions(self):
-    cache = caching.PredsCache(False)
+    cache = caching.PredsCache("test", False)
     cache_key = [("a", "1"), ("a", "2")]
 
     self.assertIsNone(cache.pred_lock_key(cache_key))
@@ -137,7 +137,7 @@ class CachingTest(absltest.TestCase):
         mismatch_cache_key))
 
   def test_delete_pred_lock(self):
-    cache = caching.PredsCache()
+    cache = caching.PredsCache("test")
     cache_key = [("a", "1"), ("a", "2")]
 
     self.assertIsNone(cache.delete_pred_lock(cache_key))
@@ -148,7 +148,7 @@ class CachingTest(absltest.TestCase):
     self.assertIsNone(cache.delete_pred_lock(cache_key))
 
   def test_get_pred_lock(self):
-    cache = caching.PredsCache()
+    cache = caching.PredsCache("test")
     cache_key = [("a", "1"), ("a", "2")]
 
     lock = cache.get_pred_lock(cache_key)

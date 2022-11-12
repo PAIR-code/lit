@@ -4,6 +4,7 @@
   align-items: center;
   height: 30px;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .legend-line {
@@ -15,7 +16,9 @@
 .legend-box {
   width: 13px;
   height: 13px;
-  margin: 5px;
+  margin: 2px;
+  border: 1px solid gray;
+  border-radius: 1px;
 }
 
 .legend-label {
@@ -41,19 +44,3 @@
   white-space: nowrap;
   color: var(--lit-neutral-800);
 }
-
-.palette-icon {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  user-select: none;
-  color: var(--lit-neutral-700);
-}
-
-.icon-outlined {
-  font-family: 'Material Icons Outlined';
-  vertical-align: middle;
-  margin: 0;
-}
-

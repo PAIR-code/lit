@@ -1,12 +1,12 @@
 import 'jasmine';
-import {LitElement} from 'lit';
-import {DocumentationComponent} from './documentation';
 
-import {Checkbox} from '@material/mwc-checkbox';
+import {LitElement} from 'lit';
+
 import {LitApp} from '../core/app';
-import {LitCheckbox} from '../elements/checkbox';
 import {mockMetadata} from '../lib/testing_utils';
 import {AppState} from '../services/services';
+
+import {DocumentationComponent} from './documentation';
 
 
 describe('documentation display test', () => {
@@ -23,9 +23,6 @@ describe('documentation display test', () => {
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
     appState.setCurrentDataset('sst_dev');
-
-    // Reset the hideDialog flag in localStorage between tests
-    localStorage.setItem('hideDialog', false.toString());
 
     docComponent = new DocumentationComponent(appState);
     document.body.appendChild(docComponent);
@@ -47,21 +44,25 @@ describe('documentation display test', () => {
   });
 
   it('can be opened and closed', async () => {
+    expect(docComponent.isOpen).toBeFalse();
+
+    docComponent.open();
+    await docComponent.updateComplete;
     expect(docComponent.isOpen).toBeTrue();
     expect(docElem.classList.length).toBe(0);
     expect(docElem.style.display).toBe('');
+
     docComponent.close();
     await docComponent.updateComplete;
     expect(docComponent.isOpen).toBeFalse();
     expect(docElem.classList.length).toBe(1);
     expect(docElem.classList[0]).toBe('hide');
-    docComponent.open();
-    await docComponent.updateComplete;
-    expect(docComponent.isOpen).toBeTrue();
-    expect(docElem.classList.length).toBe(0);
   });
 
   it('can be navigated', async () => {
+    docComponent.open();
+    await docComponent.updateComplete;
+
     expect(docComponent.isOpen).toBeTrue();
     expect(docComponent.totalPages).toBe(7);
     expect(docComponent.currentPage).toBe(0);
@@ -75,20 +76,6 @@ describe('documentation display test', () => {
       nextButton.click();
       await docComponent.updateComplete;
     }
-    expect(docComponent.isOpen).toBeFalse();
-  });
-
-  it('closes when the checkbox is checked', async () => {
-    await docComponent.updateComplete;
-
-    const litCheckbox = docComponent.renderRoot.querySelector('lit-checkbox') as LitCheckbox;
-    const mwcCheckbox = litCheckbox.renderRoot.querySelector('lit-mwc-checkbox-internal') as Checkbox;
-    const doNotShowCheckbox = mwcCheckbox.renderRoot.querySelector("input[type='checkbox']") as HTMLInputElement;
-
-    doNotShowCheckbox.click();
-    await docComponent.updateComplete;
-
-    expect(doNotShowCheckbox.checked).toBeTrue();
     expect(docComponent.isOpen).toBeFalse();
   });
 });

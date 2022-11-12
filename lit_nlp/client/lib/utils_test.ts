@@ -21,9 +21,10 @@
 
 import 'jasmine';
 
+import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
+import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
 
-import {createLitType} from './lit_types_utils';
 import * as utils from './utils';
 
 describe('mean test', () => {
@@ -140,61 +141,198 @@ describe('arrayContainsSame test', () => {
      });
 });
 
+describe('convert lit types to names tests', () => {
+  it('converts types to names', () => {
+    const types = [Scalar, StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypeNames(types);
+    expect(result).toEqual(names);
+  });
+
+  it('converts names to types', () => {
+    const testTypes = [Scalar, StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypes(names);
+    expect(result).toEqual(testTypes);
+    expect(utils.createLitType(StringLitType) instanceof result[1])
+        .toBe(true);
+
+  });
+});
+
+describe('createLitType test', () => {
+  it('creates a type as expected', () => {
+    const expected = new Scalar();
+    expected.show_in_data_table = false;
+
+    const result = utils.createLitType(Scalar);
+    expect(result.name).toEqual('Scalar');
+    expect(result).toEqual(expected);
+    expect(result instanceof Scalar).toEqual(true);
+  });
+
+  it('creates with constructor params', () => {
+    const expected = new StringLitType();
+    expected.default = 'foo';
+    expected.show_in_data_table = true;
+
+    const result = utils.createLitType(
+        StringLitType, {'show_in_data_table': true, 'default': 'foo'});
+    expect(result).toEqual(expected);
+  });
+
+  it('creates a modifiable lit type', () => {
+    const result = utils.createLitType(Scalar);
+    result.min_val = 5;
+    expect(result.min_val).toEqual(5);
+  });
+
+  it('handles invalid constructor params', () => {
+    expect(() => utils.createLitType(StringLitType, {
+      'notAStringParam': true
+    })).toThrowError();
+  });
+
+  it('creates with constructor params and custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel =
+        utils.createLitType(CategoryLabel, {'vocab': vocab});
+    expect(categoryLabel.vocab).toEqual(vocab);
+  });
+
+  it('allows modification of custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel = utils.createLitType(CategoryLabel);
+    categoryLabel.vocab = vocab;
+    expect(categoryLabel.vocab).toEqual(vocab);
+  });
+});
+
+describe('deserializeLitTypesInSpec test', () => {
+  const testSpec = {
+    'probabilities': {
+      '__name__': 'MulticlassPreds',
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    },
+    'pooled_embs': {
+      '__name__': 'Embeddings',
+      'required': true
+    }
+  };
+
+  it('returns serialized littypes', () => {
+    expect(testSpec['probabilities'] instanceof MulticlassPreds)
+        .toBe(false);
+    const result = utils.deserializeLitTypesInSpec(testSpec);
+    expect(result['probabilities'])
+        .toEqual(utils.createLitType(
+            MulticlassPreds,
+            {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
+    expect(result['probabilities'] instanceof MulticlassPreds)
+        .toBe(true);
+  });
+});
+
+describe('deserializeLitTypesInLitMetadata test', () => {
+  it('deserializes lit metadata', () => {
+    const result =
+        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
+    expect(result).toEqual(mockMetadata);
+  });
+});
+
+describe('cloneSpec test', () => {
+  const testSpec = {
+    'probabilities': utils.createLitType(MulticlassPreds, {
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    })
+  };
+
+  it('deeply copies', () => {
+    const testSpec2 = utils.cloneSpec(testSpec);
+
+    const oldProbs = testSpec['probabilities'];
+    const newProbs = testSpec2['probabilities'] as MulticlassPreds;
+
+    newProbs.null_idx = 1;
+    expect(oldProbs.null_idx).toEqual(0);
+    expect(newProbs.null_idx).toEqual(1);
+
+    expect(testSpec2['probabilities'] instanceof MulticlassPreds)
+        .toBe(true);
+  });
+});
+
 describe('isLitSubtype test', () => {
+  it('checks is lit subtype', () => {
+    const testType = utils.createLitType(StringLitType);
+    expect(utils.isLitSubtype(testType, StringLitType)).toBe(true);
+    expect(utils.isLitSubtype(testType, [Scalar])).toBe(false);
+  });
+
   it('finds a subclass', () => {
     const spec: Spec = {
-      'score': createLitType('RegressionScore'),
+      'score': utils.createLitType(RegressionScore),
     };
 
-    expect(utils.isLitSubtype(spec['score'], 'RegressionScore')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'Scalar')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'LitType')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'TextSegment')).toBe(false);
+    expect(utils.isLitSubtype(spec['score'], [RegressionScore])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [Scalar])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [LitType])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [TextSegment])).toBe(false);
   });
 });
 
 describe('findSpecKeys test', () => {
   const spec: Spec = {
-    'score': createLitType('RegressionScore'),
-    'probabilities': createLitType('MulticlassPreds', {'null_idx': 0}),
-    'score2': createLitType('RegressionScore'),
-    'scalar_foo': createLitType('Scalar'),
-    'segment': createLitType('TextSegment'),
-    'generated_text': createLitType('GeneratedText', {'parent': 'segment'}),
+    'score': utils.createLitType(RegressionScore),
+    'probabilities': utils.createLitType(MulticlassPreds, {'null_idx': 0}),
+    'score2': utils.createLitType(RegressionScore),
+    'scalar_foo': utils.createLitType(Scalar),
+    'segment': utils.createLitType(TextSegment),
+    'generated_text':
+        utils.createLitType(GeneratedText, {'parent': 'segment'}),
   };
 
   it('finds all spec keys that match the specified types', () => {
     // Key is in spec.
-    expect(utils.findSpecKeys(spec, 'RegressionScore')).toEqual([
+    expect(utils.findSpecKeys(spec, RegressionScore)).toEqual([
       'score', 'score2'
     ]);
-    expect(utils.findSpecKeys(spec, 'MulticlassPreds')).toEqual([
+    expect(utils.findSpecKeys(spec, [MulticlassPreds])).toEqual([
       'probabilities'
     ]);
 
     // Keys are in spec.
     expect(utils.findSpecKeys(spec, [
-      'MulticlassPreds', 'RegressionScore'
+      MulticlassPreds, RegressionScore
     ])).toEqual(['score', 'probabilities', 'score2']);
-    expect(utils.findSpecKeys(spec, ['GeneratedText'])).toEqual([
+    expect(utils.findSpecKeys(spec, [GeneratedText])).toEqual([
       'generated_text'
     ]);
 
     // Key is not in spec.
-    expect(utils.findSpecKeys(spec, ['TokenGradients'])).toEqual([]);
+    expect(utils.findSpecKeys(spec, [TokenGradients])).toEqual([]);
   });
 
   it('identifies subclass fields', () => {
-    expect(utils.findSpecKeys(spec, 'LitType')).toEqual(Object.keys(spec));
-    expect(utils.findSpecKeys(spec, 'TextSegment')).toEqual([
+    expect(utils.findSpecKeys(spec, LitType)).toEqual(Object.keys(spec));
+    expect(utils.findSpecKeys(spec, [TextSegment])).toEqual([
       'segment', 'generated_text'
     ]);
-    expect(utils.findSpecKeys(spec, 'Scalar')).toEqual([
-      'score', 'score2', 'scalar_foo'
-    ]);
+  });
+
+  it('handles empty spec keys', () => {
+    expect(utils.findSpecKeys(spec, [])).toEqual([]);
   });
 });
-
 
 describe('flatten test', () => {
   it('flattens a nested array by a single level', async () => {
@@ -249,18 +387,6 @@ describe('getThresholdFromMargin test', () => {
   });
   it('Behaves correctly for 0 input', () => {
     expect(utils.getThresholdFromMargin(0)).toEqual(.5);
-  });
-});
-
-describe('shortenID test', () => {
-  it('Shortens an id to 6 characters, for display', () => {
-    expect(utils.shortenId('b6ea684bec7bb1d4b9f2736b749c3030'))
-        .toEqual('b6ea68');
-    expect(utils.shortenId('924d4976b4ac56d053ed956671652892'))
-        .toEqual('924d49');
-  });
-  it('Behaves correctly for null input', () => {
-    expect(utils.shortenId(null)).toEqual(undefined);
   });
 });
 
@@ -432,6 +558,23 @@ describe('replaceNth test', () => {
         .toEqual('hello yes world');
     expect(utils.replaceNth('hello world world', 'world', 'yes', 2))
         .toEqual('hello world yes');
+  });
+});
+
+describe('getStepSizeGivenRange test', () => {
+  it('Works as expected in the basic case', () => {
+    expect(utils.getStepSizeGivenRange(0.9)).toEqual(0.01);
+    expect(utils.getStepSizeGivenRange(1)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(9.9)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(10)).toEqual(1);
+    expect(utils.getStepSizeGivenRange(100)).toEqual(10);
+    expect(utils.getStepSizeGivenRange(101)).toEqual(10);
+  });
+  it('Behaves correctly for 0 range', () => {
+    expect(utils.getStepSizeGivenRange(0)).toEqual(0);
+  });
+  it('Behaves correctly for negative range', () => {
+    expect(utils.getStepSizeGivenRange(-1)).toBeNaN();
   });
 });
 

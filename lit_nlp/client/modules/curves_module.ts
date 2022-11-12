@@ -24,6 +24,7 @@ import {action, computed, observable} from 'mobx';
 import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {MulticlassPreds} from '../lib/lit_types';
 import {GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, hasParent} from '../lib/utils';
 import {GroupService} from '../services/services';
@@ -54,9 +55,13 @@ export class CurvesModule extends LitModule {
   static override title = 'PR/ROC Curves';
   static override numCols = 3;
   static override duplicateForModelComparison = false;
-  static override template = () => {
-    return html`<curves-module></curves-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+  <curves-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </curves-module>`;
+      };
 
   static override get styles() {
     return [
@@ -76,6 +81,18 @@ export class CurvesModule extends LitModule {
   @observable private readonly selectedFacets: string[] = [];
 
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.setFacetInfo(event);
+    };
+    this.facetingControl.contextName = CurvesModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   override firstUpdated() {
 
@@ -162,7 +179,7 @@ export class CurvesModule extends LitModule {
   get predKeyOptions() {
     return this.appState.currentModels.flatMap((modelName: string) => {
       const modelSpec = this.appState.metadata.models[modelName].spec;
-      return findSpecKeys(modelSpec.output, 'MulticlassPreds');
+      return findSpecKeys(modelSpec.output, MulticlassPreds);
     });
   }
 
@@ -176,16 +193,15 @@ export class CurvesModule extends LitModule {
     for (const modelName of this.appState.currentModels) {
       const modelSpec = this.appState.metadata.models[modelName].spec;
       if (this.predKey in modelSpec.output) {
-        if (modelSpec.output[this.predKey].vocab == null) {
-          continue;
-        }
-        // Find default positive label by finding first index that isn't
-        // the null index for a predicted class vocab.
-        this.selectedPositiveLabelIndex =
-            modelSpec.output[this.predKey].vocab!.findIndex(
-                (elem, i) => i !== modelSpec.output[this.predKey].null_idx);
+        const fieldSpec = modelSpec.output[this.predKey];
+        if (fieldSpec instanceof MulticlassPreds) {
+          // Find default positive label by finding first index that isn't
+          // the null index for a predicted class vocab.
+          this.selectedPositiveLabelIndex =
+              fieldSpec.vocab.findIndex((elem, i) => i !== fieldSpec.null_idx);
 
-        return modelSpec.output[this.predKey].vocab!;
+          return fieldSpec.vocab;
+        }
       }
     }
     return [];
@@ -319,22 +335,16 @@ export class CurvesModule extends LitModule {
 
   private renderHeader() {
     // Render facet control, predKey dropdown, and positive label dropdown.
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-       this.setFacetInfo(event);
-    };
-
     // clang-format off
     return html`
         ${this.renderPredKeySelect()}
         ${this.renderPositiveLabelSelect()}
-        <faceting-control @facets-change=${facetsChange}
-                          contextName=${CurvesModule.title}>
-        </faceting-control>
+        ${this.facetingControl}
     `;
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const groups = Object.keys(this.groupedCurves);
 
     // clang-format off
@@ -357,8 +367,7 @@ export class CurvesModule extends LitModule {
 
   static override shouldDisplayModule(
       modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
-                                 hasParent);
+    return doesOutputSpecContain(modelSpecs, MulticlassPreds, hasParent);
   }
 }
 

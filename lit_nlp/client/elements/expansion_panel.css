@@ -11,6 +11,7 @@
   padding: 2px 8px;
   border-bottom: 1px solid var(--lit-neutral-300);
   border-top: 1px solid var(--lit-neutral-100);
+  column-gap: 4px;
 
   display: flex;
   flex-direction: row;
@@ -19,8 +20,6 @@
   justify-content: space-between;
 
   background-color: var(--lit-neutral-100);
-  color: var(--lit-majtonal-nv-800);
-  font-weight: bold;
 }
 
 .expansion-label {
@@ -29,6 +28,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  color: var(--lit-majtonal-nv-800);
+  font-weight: bold;
+}
+
+.bar-spacer {
+  flex: 1; /* use available space */
+}
+
+/* Revert a pointer style from .expansion-header */
+.bar-content {
+  cursor: initial;
 }
 
 .expansion-content {

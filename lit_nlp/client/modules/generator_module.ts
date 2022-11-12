@@ -19,21 +19,22 @@ import '../elements/interpreter_controls';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
+import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import {css, html, TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
-import {CallConfig, formatForDisplay, IndexedInput, Input, LitName, ModelInfoMap, Spec} from '../lib/types';
-import {flatten, isLitSubtype} from '../lib/utils';
+import {EdgeLabels, FieldMatcher, LitTypeTypesList, SpanLabels} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {CallConfig, formatForDisplay, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
+import {cloneSpec, flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService, SliceService} from '../services/services';
 
 import {styles} from './generator_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Custom element for in-table add/remove controls.
@@ -86,11 +87,15 @@ export class GeneratedRowControls extends MobxLitElement {
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#generators';
   static override numCols = 10;
 
-  static override template = () => {
-    return html`<generator-module></generator-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <generator-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </generator-module>`;
 
   static override duplicateForModelComparison = false;
   private readonly groupService = app.getService(GroupService);
@@ -227,7 +232,7 @@ export class GeneratorModule extends LitModule {
     }
   }
 
-  override render() {
+  override renderImpl() {
     return html`
       <div class="module-container">
         <div class="module-content generator-module-content">
@@ -342,6 +347,7 @@ export class GeneratorModule extends LitModule {
         <lit-data-table class="table"
             .columnNames=${Object.keys(rows[0])}
             .data=${rows}
+            exportEnabled
         ></lit-data-table>
       </div>
     `;
@@ -372,9 +378,9 @@ export class GeneratorModule extends LitModule {
         const row: {[key: string]: TableEntry} = {};
         for (const key of fieldNames) {
           const editable =
-            !this.appState.currentModelRequiredInputSpecKeys.includes(key);
-          row[key] = editable ? this.renderEntry(generated.data, key)
-              : generated.data[key];
+              !this.appState.currentModelRequiredInputSpecKeys.includes(key);
+          row[key] = editable ? this.renderEntry(generated.data, key) :
+                                generated.data[key];
         }
         row['Add/Remove'] = html`<generated-row-controls
                                 @add-point=${addPoint}
@@ -449,27 +455,25 @@ export class GeneratorModule extends LitModule {
     return html`
         <div class="generators-panel">
           ${generators.map(genName => {
-            const spec = generatorsInfo[genName].configSpec;
-            const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-            const description = generatorsInfo[genName].description;
-            for (const fieldName of Object.keys(clonedSpec)) {
-              // If the generator uses a field matcher, then get the matching
-              // field names from the specified spec and use them as the vocab.
-              if (isLitSubtype(clonedSpec[fieldName],
-                               ['FieldMatcher','MultiFieldMatcher'])) {
-                clonedSpec[fieldName].vocab =
-                    this.appState.getSpecKeysFromFieldMatcher(
-                        clonedSpec[fieldName], this.modelName);
-              }
-            }
-            return html`
+      const spec = generatorsInfo[genName].configSpec;
+      const clonedSpec = cloneSpec(spec);
+      const description = generatorsInfo[genName].description;
+      for (const fieldSpec of Object.values(clonedSpec)) {
+        // If the generator uses a field matcher, then get the matching
+        // field names from the specified spec and use them as the vocab.
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldSpec, this.modelName);
+        }
+      }
+      return html`
                 <lit-interpreter-controls
                   .spec=${clonedSpec}
                   .name=${genName}
-                  .description=${description||''}
+                  .description=${description || ''}
                   @interpreter-click=${onGenClick}>
                 </lit-interpreter-controls>`;
-          })}
+    })}
         </div>
     `;
     // clang-format on
@@ -508,7 +512,7 @@ export class GeneratorModule extends LitModule {
     // ideally as part of b/172597999.
     const renderFreeformInput = () => {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      const nonEditableSpecs: LitName[] = ['EdgeLabels', 'SpanLabels'];
+      const nonEditableSpecs: LitTypeTypesList = [EdgeLabels, SpanLabels];
       const formattedVal = formatForDisplay(value, fieldSpec).toString();
 
       if (isLitSubtype(fieldSpec, nonEditableSpecs)) {
@@ -526,7 +530,8 @@ export class GeneratorModule extends LitModule {
     return isCategorical ? renderCategoricalInput() : renderFreeformInput();
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

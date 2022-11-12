@@ -27,10 +27,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {createLitType} from '../lib/lit_types_utils';
+import {CategoryLabel, FieldMatcher, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {CallConfig, IndexedInput, Input, ModelInfoMap} from '../lib/types';
+import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
@@ -85,14 +85,11 @@ interface VisToggles {
 export class SalienceClusteringModule extends LitModule {
   static override title = 'Salience Clustering Results';
   static override numCols = 1;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    // clang-format off
-    return html`
-        <salience-clustering-module
-            model=${model} selectionServiceIndex=${selectionServiceIndex}>
-        </salience-clustering-module>`;
-    // clang format on
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <salience-clustering-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </salience-clustering-module>`;
 
   private readonly dataService = app.getService(DataService);
   private runCount: number = 0;
@@ -151,7 +148,7 @@ export class SalienceClusteringModule extends LitModule {
         `Running ${salienceMapper}`);
     this.state.clusteringState.isLoading = false;
     this.state.dataColumns = Object.keys(inputs[0].data);
-    const dataType = createLitType('CategoryLabel');
+    const dataType = createLitType(CategoryLabel);
     dataType.vocab = Array.from(
         {length: this.state.clusteringConfig[N_CLUSTERS_KEY]},
         (value, key) => key.toString()
@@ -356,7 +353,7 @@ export class SalienceClusteringModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     for (const key of validInterpreters) {
       const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, ['TokenSalience']);
+          interpreters[key].metaSpec, TokenSalience);
       if (salienceKeys.length !== 0) {
         names.push(key);
       }
@@ -385,15 +382,13 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format off
     const renderInterpreterControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-      for (const fieldName of Object.keys(clonedSpec)) {
+      const clonedSpec = cloneSpec(spec);
+      for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName],
-                         ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab = this.appState.getSpecKeysFromFieldMatcher(
+              fieldSpec, this.model);
         }
       }
       if (Object.keys(clonedSpec).length === 0) {
@@ -453,7 +448,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang format on
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>

@@ -157,7 +157,8 @@ describe('expansion panel test', () => {
     (firstChild as HTMLDivElement).click();
     await panel.updateComplete;
 
-    const slot = panel.shadowRoot!.querySelector('slot');
+    const slot =
+        panel.shadowRoot!.querySelector('slot:not([name])') as HTMLSlotElement;
     const slottedNodes = slot!.assignedNodes({flatten: true})
                               .filter(n => n instanceof HTMLDivElement);
 
@@ -181,7 +182,8 @@ describe('expansion panel test', () => {
     (firstChild as HTMLDivElement).click();
     await panel.updateComplete;
 
-    const slot = panel.shadowRoot!.querySelector('slot');
+    const slot =
+        panel.shadowRoot!.querySelector('slot:not([name])') as HTMLSlotElement;
     const slottedNodes = slot!.assignedNodes({flatten: true})
                               .filter(n => n instanceof HTMLDivElement);
 
@@ -190,4 +192,38 @@ describe('expansion panel test', () => {
       expect(node instanceof HTMLDivElement).toBeTrue();
     }
   });
+
+  it('should render bar content from a named slot from a template',
+     async () => {
+       const template = html`
+        <expansion-panel .label=${'test expansion panel'}>
+          <div slot="bar-content">This goes in the bar</div>
+          <div>This is a test div</div>
+        </expansion-panel>`;
+       render(template, document.body);
+       const panels = document.body.querySelectorAll('expansion-panel');
+       const panel = panels[panels.length - 1];
+       await panel.updateComplete;
+
+       const [firstChild] = panel.renderRoot.children;
+       (firstChild as HTMLDivElement).click();
+       await panel.updateComplete;
+
+       const namedSlot = panel.shadowRoot!.querySelector(
+                             'slot[name=bar-content]') as HTMLSlotElement;
+       const namedSlotNodes = namedSlot.assignedNodes({flatten: true})
+                                  .filter(n => n instanceof HTMLDivElement);
+
+       expect(namedSlotNodes.length).toEqual(1);
+       expect(namedSlotNodes[0] instanceof HTMLDivElement).toBeTrue();
+
+       // Check the non-named slot is still handled correctly.
+       const slot = panel.shadowRoot!.querySelector('slot:not([name])') as
+           HTMLSlotElement;
+       const slottedNodes = slot.assignedNodes({flatten: true})
+                                .filter(n => n instanceof HTMLDivElement);
+
+       expect(slottedNodes.length).toEqual(1);
+       expect(slottedNodes[0] instanceof HTMLDivElement).toBeTrue();
+     });
 });

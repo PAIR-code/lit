@@ -17,20 +17,20 @@
 
 // tslint:disable:no-new-decorators
 
-import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {css, html} from 'lit';
+import {customElement, query} from 'lit/decorators';
+import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, TableData} from '../elements/table';
+import {ColumnHeader, DataTable, TableData} from '../elements/table';
+import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-import {styles} from './metrics_module.css';
 
 // Each entry from the server.
 interface MetricsResponse {
@@ -89,19 +89,31 @@ interface TableHeaderAndData {
 export class MetricsModule extends LitModule {
   static override title = 'Metrics';
   static override numCols = 6;
-  static override template = () => {
-    return html`<metrics-module></metrics-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <metrics-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </metrics-module>`;
   static override duplicateForModelComparison = false;
 
   static override get styles() {
-    return [sharedStyles, styles];
+    return [sharedStyles, css`
+      .cb-label {margin: 4pt;}
+
+      .checkbox-holder {
+        display: flex;
+        justify-content: space-between;
+        margin-right: 4pt;
+      }
+    `];
   }
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
   private readonly classificationService =
       app.getService(ClassificationService);
+  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable private selectedFacetBins: NumericFeatureBins = {};
 
@@ -109,7 +121,21 @@ export class MetricsModule extends LitModule {
   @observable private facetBySlice: boolean = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
+  @query('#metrics-table') private readonly table?: DataTable;
 
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets = event.detail.features;
+      this.selectedFacetBins = event.detail.bins;
+      this.updateAllFacetedMetrics();
+    };
+
+    this.facetingControl.contextName = MetricsModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   override firstUpdated() {
     this.react(() => this.appState.currentInputData, entireDataset => {
@@ -126,13 +152,21 @@ export class MetricsModule extends LitModule {
         }
       });
       if (this.selectionService.lastUser === this) {
+        // If selection made through this module, no need to show a separate
+        // "selection" row in the metrics table, as the selected row will
+        // be highlighted to indicate that it is selected.
         return;
+      } else if (this.table != null) {
+        // If selection changed outside of this module, clear the highlight in
+        // the metrics table.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
       }
       if (this.selectionService.selectedInputData.length > 0) {
-        this.addMetrics(this.selectionService.selectedInputData,
-                        Source.SELECTION);
-        this.updateFacetedMetrics(this.selectionService.selectedInputData,
-                                  true);
+        // If a selection is made outside of this module,, then calculate a row
+        // in the metrics table for the selection.
+        this.addMetrics(
+            this.selectionService.selectedInputData, Source.SELECTION);
       }
     });
     this.react(() => this.classificationService.allMarginSettings, margins => {
@@ -231,7 +265,6 @@ export class MetricsModule extends LitModule {
     });
     // Get the intersectional feature bins.
     if (this.selectedFacets.length > 0) {
-      this.updateFacetedMetrics(this.selectionService.selectedInputData, true);
       this.updateFacetedMetrics(this.appState.currentInputData, false);
     }
   }
@@ -274,34 +307,48 @@ export class MetricsModule extends LitModule {
   /** Convert the metricsMap information into table data for display. */
   @computed
   get tableData(): TableHeaderAndData {
-    const tableRows = [] as TableData[];
-    const allMetricNames = new Set<string>();
+    const {metaSpec} = this.appState.metadata.interpreters['metrics'];
+    if (metaSpec == null) return {'header': [], 'data': []};
+
+    const tableRows: TableData[] = [];
+    const metricBests = new Map<string, number>();
+    function getMetricKey(t: string, n: string) {return `${t}: ${n}`;}
+
     Object.values(this.metricsMap).forEach(row => {
-      Object.keys(row.headMetrics).forEach(metricsType => {
-        const metricsValues = row.headMetrics[metricsType];
-        Object.keys(metricsValues).forEach(metricName => {
-          allMetricNames.add(`${metricsType}: ${metricName}`);
+      Object.entries(row.headMetrics).forEach(([metricsT, metricsV]) => {
+        Object.entries(metricsV).forEach(([name, val]) => {
+          const key = getMetricKey(metricsT, name);
+          const max = metricBests.get(key)!;
+          const spec = metaSpec[key];
+          if (!(spec instanceof MetricResult)) return;
+          const bestCase = spec.best_value;
+
+          if (bestCase != null && (!metricBests.has(key) ||
+              (bestCase === MetricBestValue.HIGHEST && max < val) ||
+              (bestCase === MetricBestValue.LOWEST && max > val) ||
+              (bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
+            metricBests.set(key,
+                            bestCase === MetricBestValue.NONE ? Infinity : val);
+          }
         });
       });
     });
 
-    const metricNames = [...allMetricNames];
+    const metricNames = [...metricBests.keys()];
 
     for (const row of Object.values(this.metricsMap)) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
-        if (row.headMetrics[metricsType] == null) {
-          return '-';
-        }
-        const num = row.headMetrics[metricsType][metricName];
-        if (num == null) {
-          return '-';
-        }
+        if (row.headMetrics[metricsType] == null) {return '-';}
+
+        const raw = row.headMetrics[metricsType][metricName];
+        if (raw == null) {return '-';}
+        const isBest = raw === metricBests.get(metricKey);
         // If the metric is not a whole number, then round to 3 decimal places.
-        if (typeof num === 'number' && num % 1 !== 0) {
-          return num.toFixed(3);
-        }
-        return num;
+        const value = typeof raw === 'number' && !Number.isInteger(raw) ?
+            raw.toFixed(3) : raw;
+        const styles = styleMap({'font-weight': isBest ? 'bold' : 'normal'});
+        return html`<span style=${styles}>${value}</span>`;
       });
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {
@@ -319,7 +366,10 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      return {name, rightAlign: true};
+      const spec = metaSpec[name] as MetricResult;
+      return {name, rightAlign: true, html: html`
+        <div class="header-text" title=${spec.description}>${name}</div>`
+      };
     });
 
     return {
@@ -330,7 +380,7 @@ export class MetricsModule extends LitModule {
     };
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class="module-container">
@@ -346,13 +396,43 @@ export class MetricsModule extends LitModule {
   }
 
   renderTable() {
-    // TODO(b/180903904): Add onSelect behavior to rows for selection.
+    const onSelect = (idxs: number[]) => {
+      if (this.table == null) {
+        return;
+      }
+      const primaryId = this.table.primarySelectedIndex;
+      if (primaryId < 0) {
+        this.selectionService.selectIds([], this);
+        this.table.selectedIndices = [];
+        return;
+      }
+      const mapEntry = Object.values(this.metricsMap)[primaryId];
+      const ids = mapEntry.exampleIds;
+      // If the metrics table row selected isn't the row indicating the current
+      // selection, then change the datapoints selection to the ones represented
+      // by that row.
+      if (mapEntry.source !== Source.SELECTION) {
+        this.selectionService.selectIds(ids, this);
+        this.table.selectedIndices = [primaryId];
+      } else {
+        // Don't highlight the row of the selected datapoint if this is clicked
+        // as it has no effect.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
+      }
+    };
+    // clang-format off
     return html`
-      <lit-data-table
+      <lit-data-table id="metrics-table"
         .columnNames=${this.tableData.header}
         .data=${this.tableData.data}
+        selectionEnabled
+        .onSelect=${(idxs: number[]) => {
+          onSelect(idxs);
+        }}
       ></lit-data-table>
     `;
+    // clang-format on
   }
 
   renderFacetSelector() {
@@ -364,12 +444,6 @@ export class MetricsModule extends LitModule {
       this.updateSliceMetrics();
     };
 
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.selectedFacets = event.detail.features;
-      this.selectedFacetBins = event.detail.bins;
-      this.updateAllFacetedMetrics();
-    };
-
     // clang-format off
     return html`
       <label class="cb-label">Show slices</label>
@@ -378,9 +452,7 @@ export class MetricsModule extends LitModule {
         @change=${onSlicesCheckboxChecked}
         ?disabled=${slicesDisabled}>
       </lit-checkbox>
-      <faceting-control @facets-change=${facetsChange}
-                        contextName=${MetricsModule.title}>
-      </faceting-control>
+      ${this.facetingControl}
       ${this.pendingCalls > 0 ? this.renderSpinner() : null}
     `;
     // clang-format on

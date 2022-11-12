@@ -45,6 +45,7 @@ export class ExpansionPanel extends ReactiveElement {
   }
 
   @observable @property({type: String}) label = '';
+  @observable @property({type: String}) description = '';
   @observable @property({type: Boolean}) expanded = false;
   @observable @property({type: Boolean}) padLeft = false;
   @observable @property({type: Boolean}) padRight = false;
@@ -66,9 +67,17 @@ export class ExpansionPanel extends ReactiveElement {
       this.dispatchEvent(event);
     };
 
+    const description = this.description ?? this.label;
+
+    // clang-format off
     return html`
         <div class="expansion-header" @click=${toggle}>
-          <div class="expansion-label">${this.label}</div>
+          <div class="expansion-label" title=${description}>${this.label}</div>
+          <div class='bar-spacer'></div>
+          <div class='bar-content'
+            @click=${(e: Event) => { e.stopPropagation(); }}>
+            <slot name="bar-content"></slot>
+          </div>
           <mwc-icon class="icon-button min-button">
             ${this.expanded ? 'expand_less' : 'expand_more'}
           </mwc-icon>
@@ -76,6 +85,7 @@ export class ExpansionPanel extends ReactiveElement {
         ${this.expanded ?
             html`<div class=${classes} style=${styles}><slot></slot></div>` :
             null}`;
+    // clang-format on
   }
 }
 

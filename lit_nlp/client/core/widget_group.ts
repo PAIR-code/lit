@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+// tslint:disable:no-new-decorators
 import '../elements/checkbox';
 import '../elements/spinner';
 import '@material/mwc-icon-button-toggle';
@@ -25,6 +26,7 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
+import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -59,6 +61,7 @@ export class WidgetGroup extends ReactiveElement {
   @property({type: Boolean, reflect: true}) minimized = false;
   @property({type: Boolean, reflect: true}) maximized = false;
   @property({type: Boolean, reflect: true}) dragging = false;
+  @observable @property({type: Boolean, reflect: true}) visible = false;
   @property({type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
@@ -84,10 +87,26 @@ export class WidgetGroup extends ReactiveElement {
   }
 
   /**
+   * Renders the reference URL.
+   */
+  renderReferenceURL(referenceURL: string) {
+    return html`
+         <a href=${referenceURL} style=${styleMap({'text-decoration': 'none'})}
+          target='_blank'>
+          <span class="help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+         </a>
+      `;
+  }
+
+  /**
    * Renders the header, including the minimize/maximize logic.
    */
   renderHeader(configGroup: RenderConfig[]) {
     const title = configGroup[0].moduleType.title;
+    const referenceURL = configGroup[0].moduleType.referenceURL;
 
     // Maximization.
     const onMaxClick = () => {
@@ -115,7 +134,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button direction-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon direction-toggle"
           title="Toggle layout direction"
           onIcon="view_week" offIcon="table_rows"
           ?on="${this.duplicateAsRow}"
@@ -130,7 +149,7 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button scroll-toggle"
+        <mwc-icon-button-toggle class="icon-button large-icon scroll-toggle"
           title="Toggle scroll sync"
           onIcon="sync" offIcon="sync_disabled"
           ?on="${this.syncScrolling}"
@@ -142,15 +161,20 @@ export class WidgetGroup extends ReactiveElement {
     // clang-format off
     return html`
       <div class=header>
-        <div class="title" @click=${onTitleClick}>${title}</div>
-        ${this.minimized || configGroup.length < 2 ?
-          null :
-          [renderDirectionControl(), renderScrollSyncControl()]
-        }
-        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${this.minimized ? 'maximize' : 'minimize'}
+        <div class="title" @click=${onTitleClick}>
+          ${title}
+          ${!this.minimized && referenceURL !== '' ?
+            this.renderReferenceURL(referenceURL) : null}
+        </div>
+        ${this.minimized || configGroup.length < 2 ? null : [
+          renderDirectionControl(), renderScrollSyncControl()
+        ]}
+        <mwc-icon class="icon-button large-icon min-button" @click=${onMinClick}
+          title=${this.minimized ? 'Expand' : 'Collapse'}>
+          ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
+        <mwc-icon class="icon-button large-icon " @click=${onMaxClick}
+          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
@@ -220,18 +244,18 @@ export class WidgetGroup extends ReactiveElement {
       config: RenderConfig, styles: {[key: string]: string},
       showSubtitle: boolean) {
     const moduleType = config.moduleType;
-    const modelName = config.modelName;
-    const selectionServiceIndex = config.selectionServiceIndex;
-
+    const modelName = config.modelName || 'unused';
+    const selectionServiceIndex = config.selectionServiceIndex || 0;
+    const shouldReact = this.visible && !this.minimized;
     let subtitle = modelName ?? '';
     /**
      * If defined, modules show "Selected" for 0 and "Pinned" for 1,
      * If undefined, modules do not show selectionService related info in their
      * titles (when compare examples mode is disabled)."
      */
-    if (typeof selectionServiceIndex !== 'undefined' && moduleType.duplicateForExampleComparison) {
+    if (moduleType.duplicateForExampleComparison) {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
-        selectionServiceIndex ? 'Pinned' : 'Selected'}`);
+          selectionServiceIndex ? 'Pinned' : 'Selected'}`);
     }
     // Track scolling changes to the widget and request a rerender.
     const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
@@ -252,7 +276,8 @@ export class WidgetGroup extends ReactiveElement {
         widgetScrollTop=${this.widgetScrollTop}
         style=${styleMap(styles)}
       >
-        ${moduleType.template(modelName, selectionServiceIndex)}
+        ${moduleType.template(modelName, selectionServiceIndex,
+          shouldReact ? 1 : 0)}
       </lit-widget>
     `;
     // clang-format on

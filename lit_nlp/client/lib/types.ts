@@ -19,58 +19,23 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
+import {AnnotationCluster, EdgeLabel, ScoredTextCandidate, ScoredTextCandidates, SpanLabel} from './dtypes';
+import {CategoryLabel, EdgeLabels, Embeddings, GeneratedTextCandidates, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
+
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
-export type LitClass = 'LitType';
-export type LitName = 'type'|'LitType'|'StringLitType'|'TextSegment'|
-    'GeneratedText'|'GeneratedTextCandidates'|'ReferenceTexts'|'URL'|
-    'SearchQuery'|'Tokens'|'TokenTopKPreds'|'Scalar'|'RegressionScore'|
-    'CategoryLabel'|'MulticlassPreds'|'SequenceTags'|'SpanLabels'|'EdgeLabels'|
-    'MultiSegmentAnnotations'|'Embeddings'|'TokenGradients'|'TokenEmbeddings'|
-    'AttentionHeads'|'SparseMultilabel'|'FieldMatcher'|'MultiFieldMatcher'|
-    'Gradients'|'Boolean'|'TokenSalience'|'ImageBytes'|'SparseMultilabelPreds'|
-    'ImageGradients'|'ImageSalience'|'SequenceSalience'|'ReferenceScores'|
-    'FeatureSalience'|'TopTokens'|'CurveDataPoints'|'InfluentialExamples'|
-    'GeneratedURL';
-
-export const listFieldTypes: LitName[] =
-    ['Tokens', 'SequenceTags', 'SpanLabels', 'EdgeLabels', 'SparseMultilabel'];
-
-export interface LitType {
-  __class__: LitClass|'type';
-  __name__: LitName;
-  __mro__: string[];
-  parent?: string;
-  align?: string;
-  align_in?: string;
-  align_out?: string;
-  vocab?: string[];
-  null_idx?: number;
-  required?: boolean;
-  annotated?: boolean;
-  default?: string|string[]|number|number[];
-  spec?: string;
-  types?: LitName|LitName[];
-  min_val?: number;
-  max_val?: number;
-  step?: number;
-  exclusive?: boolean;
-  background?: boolean;
-  separator?: string;
-  autorun?: boolean;
-  signed?: boolean;
-  mask_token?: string;
-  token_prefix?: string;
-  select_all?: boolean;
-  autosort?: boolean;
-  show_in_data_table?: boolean;
-}
-
 export interface Spec {
   [key: string]: LitType;
+}
+
+/** Serialized Spec data returned from the backend. */
+export interface SerializedSpec {
+  // All LitTypes have a `__name__` field; we deserialize and cast the
+  // LitType before accessing additional fields.
+  [key: string]: {__name__: string};
 }
 
 export interface ComponentInfo {
@@ -121,7 +86,6 @@ export interface LitMetadata {
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
   layouts: LitComponentLayouts;
-  littypes: Spec;
   demoMode: boolean;
   defaultLayout: string;
   canonicalURL?: string;
@@ -129,7 +93,16 @@ export interface LitMetadata {
   inlineDoc?: string;
   onboardStartDoc?: string;
   onboardEndDoc?: string;
+  syncState: boolean;
 }
+
+/**
+ * Serialized LitMetadata returned by the backend.
+ */
+export type SerializedLitMetadata = {
+  // tslint:disable-next-line:no-any
+  [K in keyof LitMetadata]: any;
+};
 
 export interface Input {
   // tslint:disable-next-line:no-any
@@ -176,12 +149,16 @@ export interface TopKResult {
   1: number;
 }
 
-export interface SpanLabel {
-  start: number;  // inclusive
-  end: number;    // exclusive
-  label: string;
-  align?: string;
+function isGeneratedTextCandidate(input: unknown): boolean {
+  return Array.isArray(input) && input.length === 2 &&
+         typeof input[0] === 'string' &&
+         (input[1] == null || typeof input[1] === 'number');
 }
+
+function formatNumber (item: number) {
+  return Number.isInteger(item) ? item : Number(item.toFixed(3));
+}
+
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
@@ -195,18 +172,8 @@ export function formatSpanLabel(s: SpanLabel): string {
   return formatted.replace(/\ /g, '\u00a0' /* &nbsp; */);
 }
 
-/**
- * Represents a directed edge between two mentions.
- * If span2 is null, interpret as a single span label.
- * See https://arxiv.org/abs/1905.06316 for more on this formalism.
- */
-export interface EdgeLabel {
-  span1: [number, number];   // inclusive, exclusive
-  span2?: [number, number];  // inclusive, exclusive
-  label: string|number;
-}
 export function formatEdgeLabel(e: EdgeLabel): string {
-  const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
+  function formatSpan (s: [number, number]) {return `[${s[0]}, ${s[1]})`;}
   const span1Text = formatSpan(e.span1);
   const span2Text = e.span2 ? ' ← ' + formatSpan(e.span2) : '';
   // Add non-breaking control chars to keep this on one line
@@ -215,23 +182,23 @@ export function formatEdgeLabel(e: EdgeLabel): string {
       /\ /g, '\u00a0' /* &nbsp; */);
 }
 
-/**
- * Represents an annotation and its score, and the segment(s) is spans.
- */
-export interface AnnotationCluster {
-  label: string;
-  score?: number;
-  spans: SpanLabel[];
-}
 /** Formats an AnnotationCluster for textual display, e.g., in the DataTable. */
 export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
 }
 
-/**
- * Element of GeneratedTextCandidates and ReferenceTexts fields.
- */
-export type GeneratedTextCandidate = [string, number | null];
+export function formatScoredTextCandidate([t, s]: ScoredTextCandidate): string {
+  return `${t}${typeof s === 'number' ? ` (${formatNumber(s)})` : ''}`;
+}
+
+export function formatScoredTextCandidates(stc: ScoredTextCandidates): string {
+  return stc.map(formatScoredTextCandidate).join('\n\n');
+}
+
+export function formatScoredTextCandidatesList(
+    list: ScoredTextCandidates[]): string {
+  return list.map(formatScoredTextCandidates).join('\n\n');
+}
 
 /**
  * Info about individual classifications including computed properties.
@@ -327,13 +294,15 @@ export type ServiceUser = object;
 export interface LitModuleClass {
   title: string;
   template:
-      (modelName?: string, selectionServiceIndex?: number) => TemplateResult;
+      (modelName: string, selectionServiceIndex: number,
+       shouldReact: number) => TemplateResult;
   shouldDisplayModule: (modelSpecs: ModelInfoMap, datasetSpec: Spec) => boolean;
   duplicateForExampleComparison: boolean;
   duplicateForModelComparison: boolean;
   duplicateAsRow: boolean;
   numCols: number;
   collapseByDefault: boolean;
+  referenceURL: string;
 }
 
 /**
@@ -346,19 +315,19 @@ export function defaultValueByField(key: string, spec: Spec) {
     return fieldSpec.default;
   }
   // TODO(lit-dev): remove these and always use the spec default value.
-  if (isLitSubtype(fieldSpec, 'Scalar')) {
+  if (fieldSpec instanceof Scalar) {
     return 0;
   }
 
-  if (isLitSubtype(fieldSpec, listFieldTypes)) {
+  if (fieldSpec instanceof ListLitType) {
     return [];
   }
 
-  if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+  if (fieldSpec instanceof ImageBytes) {
     return '';
   }
 
-  const stringFieldTypes: LitName[] = ['TextSegment', 'CategoryLabel'];
+  const stringFieldTypes : LitTypeTypesList = [TextSegment, CategoryLabel];
   if (isLitSubtype(fieldSpec, stringFieldTypes)) {
     return '';
   }
@@ -508,57 +477,59 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
  */
+// TODO(b/252788334): Long text can make columns look weird, especially when a
+// GeneratedTextCandidates field is in the Spec.
 export function formatForDisplay(
-    // tslint:disable-next-line:no-any
-    input: any, fieldSpec?: LitType, limitWords?: boolean): string|number {
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): string|number {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
   // TODO(lit-dev): handle more fields this way.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'SpanLabels')) {
+  if (fieldSpec instanceof SpanLabels) {
     const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
     return formattedTags.join(', ');
   }
   // Handle EdgeLabels, if field spec given.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'EdgeLabels')) {
+  if (fieldSpec instanceof EdgeLabels) {
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
     return formattedTags.join(', ');
   }
   // Handle MultiSegmentAnnotations, if field spec given.
-  if (fieldSpec != null && isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+  if (fieldSpec instanceof MultiSegmentAnnotations) {
     const formattedTags =
         (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');
   }
-  const formatNumber = (item: number) =>
-      Number.isInteger(item) ? item : Number(item.toFixed(4));
+  // Handle Embeddings, if field spec given
+  if (fieldSpec instanceof Embeddings) {
+    return Array.isArray(input) ? `<float>[${input.length}]` : '';
+  }
+  if (fieldSpec instanceof GeneratedTextCandidates) {
+    return formatScoredTextCandidatesList(input as ScoredTextCandidates[]);
+  }
 
   // Generic data, based on type of input.
   if (Array.isArray(input)) {
+    if (isGeneratedTextCandidate(input)) {
+      return formatScoredTextCandidate(input as ScoredTextCandidate);
+    }
+
+    if (Array.isArray(input[0]) && isGeneratedTextCandidate(input[0])) {
+      return formatScoredTextCandidates(input as ScoredTextCandidates);
+    }
+
     const strings = input.map((item) => {
-      if (typeof item === 'number') {
-        return formatNumber(item);
-      }
-      if (limitWords) {
-        return chunkWords(item);
-      }
+      if (typeof item === 'number') {return formatNumber(item);}
+      if (limitWords) {return chunkWords(item);}
       return `${item}`;
     });
     return `${strings.join(', ')}`;
   }
 
-  if (typeof input === 'boolean') {
-    return formatBoolean(input);
-  }
-
-  if (typeof input === 'number') {
-    return formatNumber(input);
-  }
-
+  if (typeof input === 'boolean') {return formatBoolean(input);}
+  if (typeof input === 'number') {return formatNumber(input);}
   // Fallback: just coerce to string.
-  if (limitWords) {
-    return chunkWords(input);
-  }
+  if (limitWords) {return chunkWords(input as string);}
   return `${input}`;
 }
 

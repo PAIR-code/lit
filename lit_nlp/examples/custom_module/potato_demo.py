@@ -23,11 +23,13 @@ from lit_nlp.api import layout
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
 
+import transformers
+
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
-
 FLAGS.set_default("development_demo", True)
+FLAGS.set_default("default_layout", "potato")
 
 _MODEL = flags.DEFINE_string(
     "model",
@@ -38,7 +40,6 @@ _MODEL = flags.DEFINE_string(
 FLAGS.set_default(
     "client_root",
     os.path.join(pathlib.Path(__file__).parent.absolute(), "build"))
-FLAGS.set_default("default_layout", "potato")
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
@@ -68,7 +69,12 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     raise app.UsageError("Too many command-line arguments.")
 
   # Load our trained model.
-  models = {"sst": glue_models.SST2Model(_MODEL.value)}
+  model = _MODEL.value
+  if model.endswith(".tar.gz"):
+    model = transformers.file_utils.cached_path(
+        model, extract_compressed_file=True)
+
+  models = {"sst": glue_models.SST2Model(model)}
   datasets = {"sst_dev": glue.SST2Data("validation")}
 
   # Start the LIT server. See server_flags.py for server options.

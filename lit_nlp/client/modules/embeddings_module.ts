@@ -17,11 +17,12 @@
 
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
+import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -29,12 +30,13 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
+import {CategoryLabel, Embeddings, ImageBytes, Scalar, StringLitType, TextSegment} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColorService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface ProjectorOptions {
   displayName: string;
@@ -70,9 +72,15 @@ const SPRITE_THUMBNAIL_SIZE = 48;
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
   static override title = 'Embeddings';
-  static override template = () => {
-    return html`<embeddings-module></embeddings-module>`;
-  };
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#embedding-projector';
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <embeddings-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </embeddings-module>`;
+      };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -142,11 +150,11 @@ export class EmbeddingsModule extends LitModule {
     const modelOptions: EmbeddingOptions[] =
         this.appState.currentModels.flatMap((modelName: string) => {
           const modelSpec = this.appState.metadata.models[modelName].spec;
-          const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
+          const embKeys = findSpecKeys(modelSpec.output, Embeddings);
           return embKeys.map((fieldName) => ({modelName, fieldName}));
         });
     const datasetOptions =
-        findSpecKeys(this.appState.currentDatasetSpec, 'Embeddings').map(
+        findSpecKeys(this.appState.currentDatasetSpec, Embeddings).map(
             key => ({modelName: '', fieldName: key}));
     return datasetOptions.concat(modelOptions);
   }
@@ -294,7 +302,7 @@ export class EmbeddingsModule extends LitModule {
     this.legendWidth =
         scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
     if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL.resize();
+      this.scatterGL?.resize();
     }
   }
 
@@ -312,17 +320,7 @@ export class EmbeddingsModule extends LitModule {
     this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
-    this.react(() => this.focusService.focusData, focusData => {
-      this.scatterGL.setPointColorer(
-          (i, selectedIndices, hoverIndex) =>
-              this.pointColorer(i, selectedIndices, hoverIndex));
-    });
-    this.react(() => this.selectionService.primarySelectedId, primaryId => {
-      this.scatterGL.setPointColorer(
-          (i, selectedIndices, hoverIndex) =>
-              this.pointColorer(i, selectedIndices, hoverIndex));
-    });
-    this.react(() => this.selectedSpriteIndex, focusData => {
+    this.react(() => this.selectedSpriteIndex, idx => {
       this.computeSpriteMap();
     });
 
@@ -348,6 +346,19 @@ export class EmbeddingsModule extends LitModule {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
           this.scatterGL.select(selectedIndices);
         });
+    this.reactImmediately(() => this.focusService.focusData, focusData => {
+      const hoveredId = this.focusService.focusData != null &&
+              this.focusService.focusData.datapointId != null &&
+              this.focusService.focusData.io == null ?
+          this.focusService.focusData.datapointId :
+          null;
+      if (hoveredId != null) {
+        const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];
+        this.scatterGL.setHoverPointIndex(hoveredIdx);
+      } else {
+        this.scatterGL.setHoverPointIndex(null);
+      }
+    });
   }
 
   private updateScatterGL() {
@@ -418,11 +429,11 @@ export class EmbeddingsModule extends LitModule {
   private getLabelByFields() {
     return findSpecKeys(
         this.appState.currentDatasetSpec,
-        ['TextSegment', 'Scalar', 'StringLitType', 'CategoryLabel']);
+        [TextSegment, Scalar, StringLitType, CategoryLabel]);
   }
 
   private getImageFields() {
-    return findSpecKeys(this.appState.currentDatasetSpec, 'ImageBytes');
+    return findSpecKeys(this.appState.currentDatasetSpec, ImageBytes);
   }
 
   private computeSpriteMap() {
@@ -532,7 +543,7 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  override render() {
+  override renderImpl() {
     // check the type of the labels.
     const domain = this.colorService.selectedColorOption.scale.domain();
     const sequentialScale = typeof domain[0] === 'number';
@@ -558,7 +569,7 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
+            <mwc-icon class="icon-button mdi-outlined"
               title="Reset view"
               @click=${onClickReset}>view_in_ar</mwc-icon>
           </div>
@@ -690,9 +701,12 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Check if there are Embeddings in the input data.
+    if (findSpecKeys(datasetSpec, Embeddings).length > 0) return true;
+
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
-    if (!doesOutputSpecContain(modelSpecs, 'Embeddings')) {
+    if (!doesOutputSpecContain(modelSpecs, Embeddings)) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

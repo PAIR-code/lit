@@ -20,9 +20,10 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
-import {createLitType} from '../lib/lit_types_utils';
+import {Scalar, TextSegment} from '../lib/lit_types';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
+import {createLitType} from '../lib/utils';
 import {ApiService, AppState, ClassificationService, SettingsService, StatusService} from '../services/services';
 import {ColumnData, DataService} from './data_service';
 
@@ -130,7 +131,7 @@ describe('DataService test', () => {
   it('has correct columns', () => {
     expect(dataService.cols.length).toBe(0);
 
-    const dataType = createLitType('Scalar');
+    const dataType = createLitType(Scalar);
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
@@ -143,12 +144,12 @@ describe('DataService test', () => {
     expect(dataService.cols.length).toBe(1);
     expect(dataService.cols[0].key).toBe('featKey');
     expect(dataService.cols[0].name).toBe('newFeat');
-    expect(dataService.getColNamesOfType('Scalar').length).toBe(1);
-    expect(dataService.getColNamesOfType('TextSegment').length).toBe(0);
+    expect(dataService.getColNamesOfType(Scalar).length).toBe(1);
+    expect(dataService.getColNamesOfType(TextSegment).length).toBe(0);
   });
 
   it('has correct column data', () => {
-    const dataType = createLitType('Scalar');
+    const dataType = createLitType(Scalar);
     const getValueFn = () => 1;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {
@@ -167,7 +168,7 @@ describe('DataService test', () => {
   });
 
   it('handles new datapoints', async () => {
-    const dataType = createLitType('Scalar');
+    const dataType = createLitType(Scalar);
     const getValueFn = () => 1000;
     const dataMap: ColumnData = new Map();
     for (let i = 0; i < appState.currentInputData.length; i++) {

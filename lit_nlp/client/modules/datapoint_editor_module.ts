@@ -24,12 +24,13 @@ import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable, when} from 'mobx';
-
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
+import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {AnnotationCluster, defaultValueByField, EdgeLabel, formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, SpanLabel, Spec} from '../lib/types';
-import {isLitSubtype, findSpecKeys} from '../lib/utils';
+import {defaultValueByField,  formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -46,10 +47,11 @@ type InputConverterFn = (s: string) => string|number|string[]|boolean;
 export class DatapointEditorModule extends LitModule {
   static override title = 'Datapoint Editor';
   static override numCols = 2;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<datapoint-editor-module selectionServiceIndex=${
-        selectionServiceIndex}></datapoint-editor-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+      <datapoint-editor-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </datapoint-editor-module>`;
 
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
@@ -66,8 +68,34 @@ export class DatapointEditorModule extends LitModule {
   protected addButtonText = 'Add';
   protected showAddAndCompare = true;
 
-  @observable editedData: Input = {};
-  @observable datapointEdited: boolean = false;
+  @computed
+  get emptyDatapoint(): Input {
+    const data: Input = {};
+    const spec = this.appState.currentDatasetSpec;
+    for (const key of this.appState.currentInputDataKeys) {
+      data[key] = defaultValueByField(key, spec);
+    }
+    return data;
+  }
+
+  @computed
+  get baseData(): Input {
+    const input = this.selectionService.primarySelectedInputData;
+    return input == null ? this.emptyDatapoint : input.data;
+  }
+
+  @observable dataEdits: Input = {};
+
+  @computed
+  get editedData(): Input {
+    return Object.assign({}, this.baseData, this.dataEdits);
+  }
+
+  @computed
+  get datapointEdited(): boolean {
+    return Object.keys(this.dataEdits).length > 0;
+  }
+
   @observable inputHeights: {[name: string]: string} = {};
   @observable maximizedImageFields = new Set<string>();
   @observable editingTokenIndex = -1;
@@ -84,11 +112,14 @@ export class DatapointEditorModule extends LitModule {
       if (this.groupService.categoricalFeatureNames.includes(key)) continue;
       if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Skip fields with value type string[]
+      // Skip fields with value type string[] or number[]
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      const isListField = isLitSubtype(
-          fieldSpec, ['SparseMultilabel', 'Tokens', 'SequenceTags']);
-      if (isListField) continue;
+      if (fieldSpec instanceof ListLitType) continue;
+      if (fieldSpec instanceof Embeddings) continue;
+
+      // Skip image fields
+      if (fieldSpec instanceof ImageBytes) continue;
+
       dataTextKeys.push(key);
     }
     return dataTextKeys;
@@ -97,7 +128,7 @@ export class DatapointEditorModule extends LitModule {
   @computed
   get sparseMultilabelInputKeys(): string[] {
     const spec = this.appState.currentDatasetSpec;
-    return findSpecKeys(spec, 'SparseMultilabel');
+    return findSpecKeys(spec, SparseMultilabel);
   }
 
   private calculateQuantileLengthsForFields(
@@ -109,17 +140,17 @@ export class DatapointEditorModule extends LitModule {
       const fieldSpec = this.appState.currentDatasetSpec[key];
       let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
 
-      if (isLitSubtype(fieldSpec, ['StringLitType', 'TextSegment'])) {
+      if (fieldSpec instanceof StringLitType) {
         calculateStringLength = (s: string) => s.length;
       }
-      else if (isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+      else if (fieldSpec instanceof SparseMultilabel) {
         const separator = fieldSpec.separator;
         calculateStringLength = (s: string[]) =>
           Object.values(s).join(separator).length;
       }
       else {
-            throw new Error(
-              `Attempted to convert unrecognized type to string: ${key}.`);
+        throw new Error(`Attempted to convert field ${
+            key} of unrecognized type to string.`);
         }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
@@ -165,11 +196,10 @@ export class DatapointEditorModule extends LitModule {
       });
     });
 
-    const getSelectedData = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(getSelectedData, selectedData => {
-      this.resetEditedData(selectedData == null ? null : selectedData.data);
-    });
+    this.reactImmediately(
+        () => this.selectionService.primarySelectedInputData, unusedData => {
+          this.resetEditedData();
+        });
   }
 
   override updated() {
@@ -230,24 +260,12 @@ export class DatapointEditorModule extends LitModule {
     }
   }
 
-  private resetEditedData(selectedInputData: Input|null) {
-    this.datapointEdited = false;
+  private resetEditedData() {
     this.editingTokenIndex = -1;
-    const data: Input = {};
-
-    // If no datapoint is selected, then show an empty datapoint to fill in.
-    const keys = selectedInputData == null ?
-        this.appState.currentInputDataKeys :
-        Object.keys(selectedInputData);
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of keys) {
-      data[key] = selectedInputData == null ? defaultValueByField(key, spec) :
-                                              selectedInputData[key];
-    }
-    this.editedData = data;
+    this.dataEdits = {};
   }
 
-  override render() {
+  override renderImpl() {
     // Scrolling inside this module is done inside a div with ID 'container'.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
@@ -256,7 +274,7 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div class='module-container'>
         <div class="${SCROLL_SYNC_CSS_CLASS} module-results-area">
-          ${this.renderEditText()}
+          ${this.renderEditableFields()}
         </div>
         <div class="module-footer">
           ${this.renderButtons()}
@@ -265,28 +283,11 @@ export class DatapointEditorModule extends LitModule {
     `;
   }
 
-  /**
-   * Returns false if any of the required model inputs are blank.
-   */
-  @computed
-  private get allRequiredInputsFilledOut() {
-    const keys = Object.keys(this.editedData);
-    let allRequiredInputsFilledOut = true;
-    for (let i = 0; i < keys.length; i++) {
-      if (this.appState.currentModelRequiredInputSpecKeys.includes(keys[i]) &&
-          this.editedData[keys[i]] === '') {
-        allRequiredInputsFilledOut = false;
-        break;
-      }
-    }
-    return allRequiredInputsFilledOut;
-  }
-
   renderButtons() {
-    const makeEnabled = this.datapointEdited && this.allRequiredInputsFilledOut;
+    const makeEnabled = this.datapointEdited;
     const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
-    const clearEnabled = !!this.selectionService.primarySelectedInputData;
+    const clearEnabled = this.selectionService.primarySelectedInputData != null;
 
     const onClickNew = async () => {
       const datum: IndexedInput = {
@@ -314,10 +315,7 @@ export class DatapointEditorModule extends LitModule {
       app.getService(SelectionService).selectIds(newIds);
     };
     const onClickReset = () => {
-      this.resetEditedData(
-          this.selectionService.primarySelectedInputData == null ?
-              null :
-              this.selectionService.primarySelectedInputData.data);
+      this.resetEditedData();
     };
     const onClickClear = () => {
       this.selectionService.selectIds([]);
@@ -358,47 +356,47 @@ export class DatapointEditorModule extends LitModule {
     // clang-format on
   }
 
-  renderEditText() {
+  renderEditableFields() {
     const keys = Object.keys(this.appState.currentDatasetSpec);
-    const editable = true;
     // clang-format off
     return html`
       <div id="edit-table">
        ${keys.map(
-            (key) => this.renderEntry(key, this.editedData[key], editable))}
+            key => this.renderEntry(key, this.editedData[key]))}
       </div>
     `;
     // clang-format on
   }
 
   // tslint:disable-next-line:no-any
-  renderEntry(key: string, value: any, editable: boolean) {
+  renderEntry(key: string, value: any) {
     const handleInputChange =
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
-          this.datapointEdited = true;
           // tslint:disable-next-line:no-any
-          this.editedData[key] = converterFn((e as any).target.value as string);
+          const value = converterFn((e as any).target.value as string);
+          if (value === this.baseData[key]) {
+            delete this.dataEdits[key];
+          } else {
+            this.dataEdits[key] = value;
+          }
         };
 
-    // For categorical outputs, render a dropdown.
+    // For categorical fields, render a dropdown.
     const renderCategoricalInput = (catVals: string[]) => {
       // Note that the first option is blank (so that the dropdown is blank when
       // no point is selected), and disabled (so that datapoints can only have
       // valid values).
+      // clang-format off
       return html`
-      <select class="dropdown"
-        @change=${handleInputChange}>
-        <option value="" selected></option>
-        ${catVals.map(val => {
-        return html`
-            <option
-              value="${val}"
-              ?selected=${val === value}
-              >
-              ${val}
-            </option>`;
-      })}
-      </select>`;
+        <select class="dropdown"
+          @change=${handleInputChange} .value=${value}>
+          <option value="" ?selected=${"" === value}></option>
+          ${catVals.map(val => html`
+            <option value="${val}" ?selected=${val === value}>${val}</option>
+          `)}
+        </select>
+      `;
+      // clang-format on
     };
 
     // Render an image.
@@ -423,9 +421,12 @@ export class DatapointEditorModule extends LitModule {
         }
         const reader = new FileReader();
         reader.addEventListener('load', () => {
-          const result = reader.result as string;
-          this.datapointEdited = true;
-          this.editedData[key] = result;
+          const value = reader.result as string;
+          if (value === this.baseData[key]) {
+            delete this.dataEdits[key];
+          } else {
+            this.dataEdits[key] = value;
+          }
         });
         reader.readAsDataURL(file);
         inputElem.value = '';
@@ -463,15 +464,14 @@ export class DatapointEditorModule extends LitModule {
     const renderFreeformInput = () => {
       return html`
       <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}
-        ?readonly="${!editable}">${value}</textarea>`;
+          handleInputChange}>${value}</textarea>`;
     };
 
     // Render a single-line text input.
     const renderShortformInput = () => {
       return html`
       <input type="text" class="input-short" @input=${handleInputChange}
-        ?readonly="${!editable}" .value=${value}></input>`;
+        .value=${value}></input>`;
     };
 
     // Render a single-line text input, and convert entered value to a number.
@@ -481,11 +481,11 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`
       <input type="text" class="input-short" @input=${handleNumberInput}
-        ?readonly="${!editable}" .value=${value}></input>`;
+        .value=${value}></input>`;
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
-        html`<div class="span-label">${formatSpanLabel(d)}</div>`;
+        html`<div class="monospace-label">${formatSpanLabel(d)}</div>`;
 
     // Non-editable render for span labels.
     const renderSpanLabelsNonEditable = () => {
@@ -495,7 +495,7 @@ export class DatapointEditorModule extends LitModule {
     // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
-        return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
+        return html`<div class="monospace-label">${formatEdgeLabel(d)}</div>`;
       };
       return html`<div>${
           value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
@@ -511,6 +511,17 @@ export class DatapointEditorModule extends LitModule {
       return html`<div class="multi-segment-annotation">${
           value ? (value as AnnotationCluster[]).map(renderLabel) : ''}</div>`;
     };
+
+    // Non-editable render for embeddings fields.
+    // We technically can use the token editor for these, but it is very
+    // unwieldy.
+    function renderEmbeddingsNonEditable() {
+      // clang-format off
+      return html`<div class="monospace-label">
+        ${value ? html`&lt;float&gt;[${value.length}]` : null}
+      </div>`;
+      // clang-format on
+    }
 
     // For boolean values, render a checkbox.
     const renderBoolean = () => {
@@ -528,7 +539,7 @@ export class DatapointEditorModule extends LitModule {
     const renderTokensInput = () => {
       return this.renderTokensInput(
           key, value, handleInputChange,
-          !isLitSubtype(fieldSpec, 'Embeddings'));
+          !(fieldSpec instanceof Embeddings));
     };
 
     let renderInput = renderFreeformInput;  // default: free text
@@ -538,28 +549,29 @@ export class DatapointEditorModule extends LitModule {
       'left-align': false
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
-    const vocab = fieldSpec?.vocab;
-    if (vocab != null && !isLitSubtype(fieldSpec, 'SparseMultilabel')) {
+    const {vocab} = fieldSpec as LitTypeWithVocab;
+    if (vocab != null && !(fieldSpec instanceof SparseMultilabel)) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
-    } else if (isLitSubtype(fieldSpec, [
-                 'Tokens', 'SequenceTags', 'Embeddings', 'SparseMultilabel'
-               ])) {
+    } else if (isLitSubtype(
+                   fieldSpec, [Tokens, SequenceTags, SparseMultilabel])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
-    } else if (isLitSubtype(fieldSpec, 'SpanLabels')) {
+    } else if (fieldSpec instanceof Embeddings) {
+      renderInput = renderEmbeddingsNonEditable;
+    } else if (fieldSpec instanceof SpanLabels) {
       renderInput = renderSpanLabelsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'EdgeLabels')) {
+    } else if (fieldSpec instanceof EdgeLabels) {
       renderInput = renderEdgeLabelsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'MultiSegmentAnnotations')) {
+    } else if (fieldSpec instanceof MultiSegmentAnnotations) {
       renderInput = renderMultiSegmentAnnotationsNonEditable;
-    } else if (isLitSubtype(fieldSpec, 'ImageBytes')) {
+    } else if (fieldSpec instanceof ImageBytes) {
       renderInput = renderImage;
-    } else if (isLitSubtype(fieldSpec, 'Boolean')) {
+    } else if (fieldSpec instanceof BooleanLitType) {
       renderInput = renderBoolean;
     } else {
       entryContentClasses['entry-content-long'] = true;
@@ -586,13 +598,13 @@ export class DatapointEditorModule extends LitModule {
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
 
     let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
-    if (isLitSubtype(fieldSpec, 'URL')) {
+    if (fieldSpec instanceof URLLitType) {
       headerContent = html`
         <a href=${value as string} target="_blank">
           ${headerContent}
           <mwc-icon class="icon-button">open_in_new</mwc-icon>
         </a>`;
-    } else if (isLitSubtype(fieldSpec, 'SearchQuery')) {
+    } else if (fieldSpec instanceof SearchQuery) {
       const params = new URLSearchParams();
       params.set('q', value);
       headerContent = html`
@@ -603,17 +615,20 @@ export class DatapointEditorModule extends LitModule {
         </a>`;
     }
 
+    const entryClasses = classMap(
+        {'entry': true, 'entry-edited': this.dataEdits[key] !== undefined});
+
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
     return html`
-      <div class="entry"
+      <div class=${entryClasses}
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
-          <div class='field-type'>${fieldSpec.__name__}</div>
+          <div class='field-type'>${fieldSpec.name}</div>
         </div>
         <div class=${classMap(entryContentClasses)}>
           ${renderInput()}

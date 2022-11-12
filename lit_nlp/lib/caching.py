@@ -19,7 +19,7 @@ import hashlib
 import os
 import pickle
 import threading
-from typing import Text, Optional, Union, Any, List, Tuple
+from typing import Any, Callable, Iterable, Optional, Union
 
 from absl import logging
 
@@ -31,9 +31,11 @@ JsonDict = types.JsonDict
 Input = types.Input
 IndexedInput = types.IndexedInput
 
+ProgressIndicator = Callable[[Iterable], Iterable]
+
 # Compound keys: (dataset_name, example_id)
 # None is used as a sentinel to skip the cache.
-CacheKey = Union[Tuple[Text, Text], None]
+CacheKey = Union[tuple[str, str], None]
 
 # The keys to the prediction locks are frozen sets of CacheKeys.
 PredLockKey = frozenset[CacheKey]
@@ -43,25 +45,55 @@ PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS: CacheKey = (
     "NO_CONCURRENT_PREDICTION", "")
 
 
-def input_hash(example: JsonDict) -> Text:
+def input_hash(example: Input) -> types.ExampleId:
   """Create stable hash of an input example."""
   json_str = serialize.to_json(
       example, simple=True, sort_keys=True).encode("utf-8")
-  return hashlib.md5(json_str).hexdigest()
+  return types.ExampleId(hashlib.md5(json_str).hexdigest())
+
+
+class PickleCacheLoader(object):
+  """For saving and loading cache to a pickle file."""
+
+  def __init__(self, name: str, cache_dir: str):
+    self._cache_path = os.path.join(cache_dir, name + ".cache.pkl")
+
+  def save(self, data: dict[CacheKey, Any]):
+    with open(self._cache_path, "wb") as fd:
+      pickle.dump(data, fd)
+
+  def load(self) -> dict[CacheKey, Any]:
+    """Load data from pickle file."""
+    try:
+      with open(self._cache_path, "rb") as fd:
+        data = pickle.load(fd)
+    except FileNotFoundError:
+      logging.info("No cache to load at %s.", self._cache_path)
+    except EOFError:
+      logging.error(
+          "Failed loading cache, possibly due to malformed cache data."
+          "Please remove %s and try again.", self._cache_path)
+    except IOError:
+      logging.error("Failed loading cache at %s.", self._cache_path)
+    return data  # pytype: disable=name-error  # py310-upgrade
 
 
 class PredsCache(object):
   """Cache for model outputs."""
 
-  def __init__(self, allow_concurrent_predictions: bool = True):
+  def __init__(self, name: str, allow_concurrent_predictions: bool = True,
+               cache_dir: Optional[str] = None):
     # TODO(lit-team): consider using a read/write lock, or setting timeouts if
     # contention becomes an issue.
     self._lock = threading.RLock()
-    # TODO(lit-dev): consider using an OrderedDict to implement a LRU cache of
-    # bounded size.
     self._d: dict[CacheKey, Any] = dict()
-
+    self._num_persisted = 0
     self._allow_concurrent_predictions = allow_concurrent_predictions
+
+    self._cache_dir = cache_dir
+    self._cache_loader = None
+    if cache_dir:
+      self._cache_loader = PickleCacheLoader(name, cache_dir)
 
     # A map of keys needing predictions to a lock for that model predict call.
     # Used for not duplicating concurrent prediction calls on the same inputs.
@@ -83,7 +115,7 @@ class PredsCache(object):
       return None
     return self._d.get(key, None)
 
-  def info(self) -> Text:
+  def info(self) -> str:
     """Print some info, for logging."""
     return str(len(self._d))
 
@@ -135,26 +167,30 @@ class PredsCache(object):
       return None
     return self._pred_locks.pop(pl_key)
 
-  ##
-  # For development use
-  def save_to_disk(self, path):
+  def save_to_disk(self):
     """Save cache data to disk."""
-    logging.info("Saving cache (%d entries) to %s", len(self._d), path)
-    with open(path, "wb") as fd:
-      pickle.dump(self._d, fd)
+    # No cache loader is created if no cache directory was provided, in which
+    # case this is a no-op.
+    if not self._cache_loader:
+      return
+    if self._num_persisted == len(self._d):
+      logging.info("No need to re-save cache to %s", self._cache_dir)
+      return
+    logging.info("Saving cache (%d entries) to %s", len(self._d),
+                 self._cache_dir)
+    self._cache_loader.save(self._d)
+    self._num_persisted = len(self._d)
 
-  def load_from_disk(self, path):
+  def load_from_disk(self):
     """Load cache data from disk."""
-    try:
-      with open(path, "rb") as fd:
-        data = pickle.load(fd)
-      self._d = data
-      logging.info("Loaded cache (%d entries) from %s", len(self._d), path)
-    except EOFError:
-      logging.error(
-          "Failed loading cache, possibly due to malformed cache data."
-          "Please remove %s and try again.", path)
-      exit(1)
+    # No cache loader is created if no cache directory was provided, in which
+    # case this is a no-op.
+    if not self._cache_loader:
+      return
+    self._d = self._cache_loader.load()
+    self._num_persisted = len(self._d)
+    logging.info("Loaded cache (%d entries) from %s", self._num_persisted,
+                 self._cache_dir)
 
 
 class CachingModelWrapper(lit_model.ModelWrapper):
@@ -162,8 +198,8 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   def __init__(self,
                model: lit_model.Model,
-               name: Text,
-               cache_dir: Optional[Text] = None):
+               name: str,
+               cache_dir: Optional[str] = None):
     """Wrap a model to add caching.
 
     Args:
@@ -173,33 +209,15 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     """
     super().__init__(model)
     self._log_prefix = f"CachingModelWrapper '{name:s}'"
-    self._cache = PredsCache(model.supports_concurrent_predictions)
-    self._cache_path = None
-    if cache_dir:
-      self._cache_path = os.path.join(cache_dir, name + ".cache.pkl")
+    self._cache = PredsCache(
+        name, model.supports_concurrent_predictions, cache_dir)
     self.load_cache()
 
   def load_cache(self):
-    if not self._cache_path:
-      logging.info("%s: no cache path specified, not loading.",
-                   self._log_prefix)
-      return
-
-    if not os.path.exists(self._cache_path):
-      logging.info("%s: cache file %s does not exist, not loading.",
-                   self._log_prefix, self._cache_path)
-      return
-
-    logging.info("%s: loading from %s", self._log_prefix, self._cache_path)
-    self._cache.load_from_disk(self._cache_path)
+    self._cache.load_from_disk()
 
   def save_cache(self):
-    if not self._cache_path:
-      logging.info("%s: no cache path specified, not saving.", self._log_prefix)
-      return
-
-    logging.info("%s: saving to %s", self._log_prefix, self._cache_path)
-    self._cache.save_to_disk(self._cache_path)
+    self._cache.save_to_disk()
 
   def key_fn(self, d, group_name) -> CacheKey:
     if d["id"] == "":  # pylint: disable=g-explicit-bool-comparison
@@ -209,8 +227,9 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   ##
   # For internal use
-  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict],
-                                  dataset_name: Text):
+  def fit_transform_with_metadata(self,
+                                  indexed_inputs: list[JsonDict],
+                                  dataset_name: str = ""):
     """For use with UMAP and other preprocessing transforms."""
     outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
@@ -242,10 +261,12 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     with self._cache.lock:
       return [self._cache.get(input_key) for input_key in input_keys]
 
-  def _predict_with_metadata(self,
-                             indexed_inputs: List[JsonDict],
-                             dataset_name: Optional[Text] = None,
-                             **kw) -> List[JsonDict]:
+  def _predict_with_metadata(
+      self,
+      indexed_inputs: list[JsonDict],
+      dataset_name: Optional[str] = None,
+      progress_indicator: Optional[ProgressIndicator] = lambda x: x,
+      **kw) -> list[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     # TODO(lit-dev): consider moving this to example level
     # (null keys skip cache), and removing this codepath.
@@ -278,11 +299,13 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       return results
 
     with self._cache.get_pred_lock(input_keys):
-      model_preds = list(self.wrapped.predict_with_metadata(misses))
+      model_preds = list(
+          self.wrapped.predict_with_metadata(progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
-      assert len(model_preds) == len(
-          misses
-      ), f"Received {len(model_preds)} predictions, which does not match {len(misses)}, the number of inputs."
+
+      if len(model_preds) != len(misses):
+        raise ValueError(f"Received {len(model_preds)} predictions, which does "
+                         f"not match {len(misses)}, the number of inputs.")
 
       # Merge results back into the output list.
       with self._cache.lock:

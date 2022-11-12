@@ -28,10 +28,10 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {createLitType} from '../lib/lit_types_utils';
+import {Embeddings, Gradients, MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
@@ -77,14 +77,16 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#tcav';
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
-  static override template = (model = '') => {
-    return html`
-      <tcav-module model=${model}>
-      </tcav-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <tcav-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </tcav-module>`;
   private readonly sliceService = app.getService(SliceService);
   private readonly dataService = app.getService(DataService);
 
@@ -104,7 +106,7 @@ export class TCAVModule extends LitModule {
 
   @computed
   get gradKeys() {
-    return findSpecKeys(this.modelSpec.output, 'Gradients');
+    return findSpecKeys(this.modelSpec.output, Gradients);
   }
 
   @computed
@@ -140,16 +142,18 @@ export class TCAVModule extends LitModule {
 
   @computed
   get predClasses() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].vocab!;
+    return predKey == null ?
+        [] : (this.modelSpec.output[predKey] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].null_idx!;
+    return predKey == null ?
+        undefined : (this.modelSpec.output[predKey] as MulticlassPreds).null_idx;
   }
 
   override firstUpdated() {
@@ -177,16 +181,19 @@ export class TCAVModule extends LitModule {
       title: string, items: string[], columnName: string,
       selectSet: Set<string>, secondSelectName: string = '',
       secondSelectSet: Set<string>|null = null) {
-    const checkboxChanged = (e: Event, item: string) => {
-      const checkbox = e.target as HTMLInputElement;
-      if (checkbox.checked) {
-        selectSet.add(item);
-      } else {
-        selectSet.delete(item);
-      }
-    };
+    function changeForSet(set: Set<string>): (e: Event, i: string) => void {
+      return (e: Event, item: string) => {
+        const checkbox = e.target as HTMLInputElement;
+        if (checkbox.checked) {
+          set.add(item);
+        } else {
+          set.delete(item);
+        }
+      };
+    }
 
     const data = items.map((item) => {
+      const checkboxChanged = changeForSet(selectSet);
       const row = [
         // clang-format off
         html`<lit-checkbox ?checked=${selectSet.has(item)}
@@ -196,14 +203,7 @@ export class TCAVModule extends LitModule {
         item
       ];
       if (secondSelectSet != null) {
-        const secondCheckboxChanged = (e: Event, item: string) => {
-          const checkbox = e.target as HTMLInputElement;
-          if (checkbox.checked) {
-            secondSelectSet.add(item);
-          } else {
-            secondSelectSet.delete(item);
-          }
-        };
+        const secondCheckboxChanged = changeForSet(secondSelectSet);
         row.push(
             // clang-format off
             html`<lit-checkbox id='compare-switch'
@@ -238,7 +238,7 @@ export class TCAVModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const shouldDisable = () => {
       for (const slice of this.selectedSlices) {
         const examples = this.sliceService.getSliceByName(slice);
@@ -444,7 +444,7 @@ export class TCAVModule extends LitModule {
             res.config, res.positiveSlice, res.negativeSlice);
         const featName = `TCAV cosine similarity: ${tcavRunName}`;
 
-        const dataType = createLitType('Scalar');
+        const dataType = createLitType(Scalar);
 
         // Function to get value for this new data column when new datapoints
         // are added.
@@ -484,11 +484,8 @@ export class TCAVModule extends LitModule {
       modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // Ensure the models can support TCAV and that the TCAV interpreter is
     // loaded.
-    const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');
-    const supportsGrads = doesOutputSpecContain(modelSpecs, 'Gradients');
-    const multiclassPreds =
-        doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
-    if (!supportsGrads || !supportsEmbs || !multiclassPreds) {
+    if (!doesOutputSpecContain(
+            modelSpecs, [Embeddings, Gradients, MulticlassPreds])) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

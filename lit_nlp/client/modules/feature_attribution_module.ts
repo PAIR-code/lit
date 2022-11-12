@@ -26,11 +26,13 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
+import {FeatureSalience as FeatureSalienceLitType, SingleFieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {findSpecKeys} from '../lib/utils';
 import {SignedSalienceCmap} from '../services/color_service';
 import {NumericFeatureBins} from '../services/group_service';
 import {AppState, GroupService} from '../services/services';
@@ -40,6 +42,11 @@ import {styles} from './feature_attribution_module.css';
 
 const ALL_DATA = 'Entire Dataset';
 const SELECTION = 'Selection';
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
 
 interface AttributionStats {
   min: number;
@@ -87,29 +94,31 @@ export class FeatureAttributionModule extends LitModule {
     return Object.values(modelSpecs).some(modelInfo => {
       // The model directly outputs FeatureSalience
       const hasIntrinsicSalience =
-          findSpecKeys(modelInfo.spec.output, 'FeatureSalience').length > 0;
+          findSpecKeys(modelInfo.spec.output, FeatureSalienceLitType).length >
+          0;
 
       // At least one compatible interpreter outputs FeatureSalience
       const canDeriveSalience = modelInfo.interpreters.some(name => {
         const {metaSpec} = appState.metadata.interpreters[name];
-        return findSpecKeys(metaSpec, 'FeatureSalience').length > 0;
+        return findSpecKeys(metaSpec, FeatureSalienceLitType).length > 0;
       });
 
       return hasIntrinsicSalience || canDeriveSalience;
     });
   }
 
-  static override template(model = '') {
-    // clang-format off
-    return html`<feature-attribution-module model=${model}>
-                </feature-attribution-module>`;
-    // clang format on
-  }
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+      <feature-attribution-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </feature-attribution-module>`;
 
   // ---- Instance Properties ----
 
   private readonly groupService = app.getService(GroupService);
   private readonly colorMap = new SignedSalienceCmap();
+  private readonly facetingControl = document.createElement('faceting-control');
 
   @observable private startsOpen?: string;
   @observable private isColored = false;
@@ -123,6 +132,19 @@ export class FeatureAttributionModule extends LitModule {
     [SELECTION]: false
   };
 
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.features = event.detail.features;
+      this.bins = event.detail.bins;
+    };
+
+    this.facetingControl.contextName = FeatureAttributionModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
+
   @computed
   private get facets() {
     return this.groupService.groupExamplesByFeatures(
@@ -133,7 +155,7 @@ export class FeatureAttributionModule extends LitModule {
   private get hasIntrinsicSalience() {
     if (this.appState.metadata.models[this.model]?.spec?.output) {
       return findSpecKeys(this.appState.metadata.models[this.model].spec.output,
-                          'FeatureSalience').length > 0;
+                          FeatureSalienceLitType).length > 0;
     }
     return false;
   }
@@ -142,10 +164,10 @@ export class FeatureAttributionModule extends LitModule {
   private get salienceInterpreters() {
     const {interpreters} = this.appState.metadata.models[this.model];
     return Object.entries(app.getService(AppState).metadata.interpreters)
-                 .filter(([name, i]) =>
-                    interpreters.includes(name) &&
-                    findSpecKeys(i.metaSpec,'FeatureSalience').length > 0)
-                 .map(([name]) => name);
+        .filter(
+            ([name, i]) => interpreters.includes(name) &&
+                findSpecKeys(i.metaSpec, FeatureSalienceLitType).length > 0)
+        .map(([name]) => name);
   }
 
   // ---- Private API ----
@@ -160,13 +182,14 @@ export class FeatureAttributionModule extends LitModule {
    */
   private async predict(facet: string, data: IndexedInput[]) {
     const promise = this.apiService.getPreds(
-        data, this.model, this.appState.currentDataset, ['FeatureSalience']);
+        data, this.model, this.appState.currentDataset,
+        [FeatureSalienceLitType]);
     const results = await this.loadLatest('predictionScores', promise);
 
     if (results == null) return;
 
     const outputSpec = this.appState.metadata.models[this.model].spec.output;
-    const salienceKeys = findSpecKeys(outputSpec, 'FeatureSalience');
+    const salienceKeys = findSpecKeys(outputSpec, FeatureSalienceLitType);
 
     for (const key of salienceKeys) {
       const summaryName = `Feature: ${key} | Facet: ${facet}`;
@@ -213,10 +236,12 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo.default) {
-        defaultCallConfig[configKey] = configInfo.default;
-      } else if (configInfo.vocab && configInfo.vocab.length) {
-        defaultCallConfig[configKey] = configInfo.vocab[0];
+      if (configInfo instanceof SingleFieldMatcher) {
+        if (configInfo.default) {
+          defaultCallConfig[configKey] = configInfo.default;
+        } else if (configInfo.vocab && configInfo.vocab.length) {
+          defaultCallConfig[configKey] = configInfo.vocab[0];
+        }
       }
     }
 
@@ -234,7 +259,7 @@ export class FeatureAttributionModule extends LitModule {
     const {metaSpec} = this.appState.metadata.interpreters[name];
     const {output} = this.appState.getModelSpec(this.model);
     const spec = {...metaSpec, ...output};
-    const salienceKeys = findSpecKeys(spec, 'FeatureSalience');
+    const salienceKeys = findSpecKeys(spec, FeatureSalienceLitType);
 
     for (const key of salienceKeys) {
       if (results[0][key] != null) {
@@ -295,17 +320,13 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   private renderSecondaryControls() {
-    const change = () => {this.isColored = !this.isColored;};
-    const updateFacets = (event: CustomEvent<FacetsChange>) => {
-      this.features = event.detail.features;
-      this.bins = event.detail.bins;
+    const change = () => {
+      this.isColored = !this.isColored;
     };
 
     // clang-format off
     return html`
-        <faceting-control @facets-change=${updateFacets}
-                          contextName=${FeatureAttributionModule.title}>
-        </faceting-control>
+        ${this.facetingControl}
         <span style="felx: 1 1 auto;"></span>
         <lit-checkbox label="Heatmap" ?checked=${this.isColored}
                       @change=${() => {change();}}>
@@ -342,13 +363,12 @@ export class FeatureAttributionModule extends LitModule {
     const {configSpec, description} =
         this.appState.metadata.interpreters[interpreter];
     const clonedSpec = Object.assign({}, configSpec);
-    for (const fieldName of Object.keys(clonedSpec)) {
+    for (const fieldSpec of Object.values(clonedSpec)) {
       // If the interpreter uses a field matcher, then get the matching field
       // names from the specified spec and use them as the vocab.
-      if (isLitSubtype(clonedSpec[fieldName], ['FieldMatcher'])) {
-        clonedSpec[fieldName].vocab =
-            this.appState.getSpecKeysFromFieldMatcher(
-                clonedSpec[fieldName], this.model);
+      if (fieldSpec instanceof SingleFieldMatcher) {
+        fieldSpec.vocab =
+            this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }
     }
     const interpreterControlClick = (event: CustomEvent<InterpreterClick>) => {
@@ -416,7 +436,10 @@ export class FeatureAttributionModule extends LitModule {
     this.updateSummaries();
   }
 
-  override render() {
+  override renderImpl() {
+    const scale = (val: number) => this.colorMap.bgCmap(val);
+    scale.domain = () => this.colorMap.colorScale.domain();
+
     // clang-format off
     return html`
       <div class='module-container'>
@@ -451,6 +474,17 @@ export class FeatureAttributionModule extends LitModule {
                   html`<lit-spinner size=${24} color="var(--lit-cyea-400)">
                        </lit-spinner>`: null}
             </div>
+          </div>
+        </div>
+        <div class="module-footer">
+          <div class="color-legend-container">
+            <color-legend selectedColorName="Salience" .scale=${scale}
+                legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
+            </color-legend>
+            <mwc-icon class="icon material-icon-outlined"
+                      title=${LEGEND_INFO_TITLE_SIGNED}>
+              info_outline
+            </mwc-icon>
           </div>
         </div>
       </div>`;

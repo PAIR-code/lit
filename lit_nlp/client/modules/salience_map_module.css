@@ -1,8 +1,14 @@
+.color-legend-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 16px;
+}
+
 .group-label {
-  padding: 4px;
   text-align: start;
   vertical-align: baseline;
-  width: 250px;
+  width: 295px;
 }
 
 .group-container {
@@ -13,6 +19,12 @@
 
 .module-toolbar > * {
   margin: 0px 4px;
+}
+
+.module-footer > * { min-width: 0; }
+
+.module-footer {
+  justify-content: flex-start;
 }
 
 .tokens-holder {
@@ -50,14 +62,31 @@
   visibility: hidden;
 }
 
-table {
-  border-collapse: collapse;
-  width: 100%;
+.method-row-contents {
+  display: flex;
+  flex-direction: row;
 }
 
-.method-row {
-  border-top: 1px solid #e8eaed;
-  border-bottom: 1px solid #e8eaed;
+.controls-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.controls-toggle mwc-icon {
+  --mdc-icon-size: 16px;
+}
+
+.controls-panel {
+  width: 295px;
+}
+
+.method-results {
+  padding: 4px;
+}
+
+.salience-placeholder {
+  color: var(--lit-neutral-800);
 }
 
 .loading {

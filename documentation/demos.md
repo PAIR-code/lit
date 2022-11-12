@@ -1,6 +1,6 @@
 # Demos
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-12' }
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-09-08' }
       css: "//depot/google3/third_party/py/lit_nlp/g3doc/includes/demos.css"
 *-->
 

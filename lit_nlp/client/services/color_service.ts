@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';
-import {computed, observable, reaction} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {CATEGORICAL_NORMAL, CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, DEFAULT, MULTIHUE_CONTINUOUS} from '../lib/colors';
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
@@ -25,7 +25,7 @@ import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
 import {DataService} from './data_service';
 import {GroupService} from './group_service';
 import {LitService} from './lit_service';
-import {AppState} from './state_service';
+import {ColorObservedByUrlService, UrlConfiguration} from './url_service';
 
 /** Color map for salience maps. */
 export abstract class SalienceCmap {
@@ -33,7 +33,9 @@ export abstract class SalienceCmap {
    * An RGB interpolated color scale for one of the continuous LAB ramps from
    * VizColor, which have been linearized.
    */
-  protected colorScale: d3.ScaleSequential<string>;
+  protected myColorScale: d3.ScaleSequential<string>;
+
+  get colorScale() { return this.myColorScale; }
 
   // Exponent for computing luminance values from salience scores.
   // A higher value gives higher contrast for small (close to 0) salience
@@ -41,7 +43,7 @@ export abstract class SalienceCmap {
   // See https://en.wikipedia.org/wiki/Gamma_correction
   constructor(protected gamma: number = 1.0,
               protected domain: [number, number] = [0, 1]) {
-    this.colorScale = d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
+    this.myColorScale = d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
   }
 
   /**
@@ -54,7 +56,7 @@ export abstract class SalienceCmap {
 
   /** Clamps the value of d to the color scale's domain */
   clamp(d: number): number {
-    const [min, max] = this.colorScale.domain();
+    const [min, max] = this.myColorScale.domain();
     return Math.max(min, Math.min(max, d));
   }
 
@@ -75,7 +77,7 @@ export abstract class SalienceCmap {
 /** Color map for unsigned (positive) salience maps. */
 export class UnsignedSalienceCmap extends SalienceCmap {
   bgCmap(d: number): string {
-    return this.colorScale(this.lightness(d));
+    return this.myColorScale(this.lightness(d));
   }
 }
 
@@ -83,27 +85,24 @@ export class UnsignedSalienceCmap extends SalienceCmap {
 export class SignedSalienceCmap extends SalienceCmap {
   constructor(gamma: number = 1.0, domain: [number, number] = [-1, 1]) {
     super(gamma, domain);
-    this.colorScale = d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
+    this.myColorScale = d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
   }
 
   bgCmap(d: number): string {
     const direction = d < 0 ? -1 : 1;
-    return this.colorScale(this.lightness(d) * direction);
+    return this.myColorScale(this.lightness(d) * direction);
   }
 }
 
 /**
  * A singleton class that handles all coloring options.
  */
-export class ColorService extends LitService {
+export class ColorService extends LitService implements
+    ColorObservedByUrlService {
   constructor(
-      private readonly appState: AppState,
       private readonly groupService: GroupService,
       private readonly dataService: DataService) {
     super();
-    reaction(() => this.appState.currentModels, currentModels => {
-      this.reset();
-    });
   }
 
   private readonly defaultColor = DEFAULT;
@@ -116,7 +115,11 @@ export class ColorService extends LitService {
 
   // Name of selected feature to color datapoints by, or default not coloring by
   // features.
-  @observable selectedColorOption = this.defaultOption;
+  @observable mySelectedColorOption = this.defaultOption;
+  // It's used for the url service. When urlService.syncStateToUrl is invoked,
+  // colorableOptions are not available. There, this variable is used to
+  // preserve the url param value entered by users.
+  @observable selectedColorOptionName: string = '';
 
   // All variables that affect color settings, so clients can listen for when
   // they may need to rerender.
@@ -125,6 +128,19 @@ export class ColorService extends LitService {
     return [
       this.selectedColorOption,
     ];
+  }
+
+  // Return the selectedColorOption based on the selectedColorOptionName
+  @computed
+  get selectedColorOption() {
+    if (this.colorableOptions.length === 0 ||
+        this.selectedColorOptionName.length === 0) {
+      return this.defaultOption;
+    } else {
+      const options = this.colorableOptions.filter(
+          option => option.name === this.selectedColorOptionName);
+      return options.length ? options[0] : this.defaultOption;
+    }
   }
 
   @computed
@@ -190,10 +206,8 @@ export class ColorService extends LitService {
     return this.selectedColorOption.scale(val) || this.defaultColor;
   }
 
-  /**
-   * Reset stored info. Used when active models change.
-   */
-  reset() {
-    this.selectedColorOption = this.defaultOption;
+  // Set color option based on the URL configuration
+  setUrlConfiguration(urlConfiguration: UrlConfiguration) {
+    this.selectedColorOptionName = urlConfiguration.colorBy ?? '';
   }
 }

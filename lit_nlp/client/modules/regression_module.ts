@@ -24,6 +24,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {RegressionScore} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, RegressionResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
@@ -39,10 +40,11 @@ export class RegressionModule extends LitModule {
   static override title = 'Regression Results';
   static override duplicateForExampleComparison = true;
   static override numCols = 3;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<regression-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></regression-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <regression-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </regression-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -68,7 +70,7 @@ export class RegressionModule extends LitModule {
 
     const result: RegressionResults = {};
     const {output} = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(output, 'RegressionScore');
+    const scoreFields: string[] = findSpecKeys(output, RegressionScore);
     for (const key of scoreFields) {
       const predKey = this.dataService.getColumnName(this.model, key);
       const errorKey = this.dataService.getColumnName(
@@ -81,7 +83,7 @@ export class RegressionModule extends LitModule {
     this.result = result;
   }
 
-  override render() {
+  override renderImpl() {
     if (this.result == null) {
       return null;
     }
@@ -90,7 +92,7 @@ export class RegressionModule extends LitModule {
 
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
+    const scoreFields: string[] = findSpecKeys(spec.output, RegressionScore);
 
 
     const rows: TableData[] = [];
@@ -100,7 +102,8 @@ export class RegressionModule extends LitModule {
       // Add new row for each output from the model.
       const score = result[scoreField]?.score?.toFixed(4) || '';
       // Target score to compare against.
-      const parentField = spec.output[scoreField].parent! || '';
+      const parentField =
+          (spec.output[scoreField] as RegressionScore).parent || '';
       const parentScore = input.data[parentField]?.toFixed(4) || '';
       let errorScore = '';
       if (parentField && parentScore) {
@@ -132,7 +135,7 @@ export class RegressionModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'RegressionScore');
+    return doesOutputSpecContain(modelSpecs, RegressionScore);
   }
 }
 

@@ -20,8 +20,10 @@
  */
 import difflib from 'difflib';
 
-import {GeneratedTextCandidate, IndexedInput, Input, LitName, Preds, Spec} from './types';
-import {findSpecKeys, isLitSubtype} from './utils';
+import {ScoredTextCandidates} from './dtypes';
+import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent} from './lit_types';
+import {IndexedInput, Input, Preds, Spec} from './types';
+import {findSpecKeys} from './utils';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
 // difflib declare placeholder - DO NOT REMOVE
@@ -30,14 +32,14 @@ import {findSpecKeys, isLitSubtype} from './utils';
  * Preds type for text generation.
  */
 export interface GeneratedTextResult {
-  [outputFieldName: string]: GeneratedTextCandidate[];
+  [outputFieldName: string]: ScoredTextCandidates;
 }
 
 /**
  * Types for sequence generation output
  */
-export const GENERATION_TYPES: LitName[] =
-    ['GeneratedText', 'GeneratedTextCandidates'];
+export const GENERATION_TYPES: LitTypeTypesList =
+    [GeneratedText, GeneratedTextCandidates];
 
 /**
  * Convert generation results, which may contain a mix of types, to a
@@ -47,10 +49,10 @@ export function canonicalizeGenerationResults(
     result: Preds, outputSpec: Spec): GeneratedTextResult {
   const preds: GeneratedTextResult = {};
   for (const key of Object.keys(result)) {
-    if (isLitSubtype(outputSpec[key], 'GeneratedText')) {
+    if (outputSpec[key] instanceof GeneratedText) {
       preds[key] = [[result[key], null]];
     }
-    if (isLitSubtype(outputSpec[key], 'GeneratedTextCandidates')) {
+    if (outputSpec[key] instanceof GeneratedTextCandidates) {
       preds[key] = result[key];
     }
   }
@@ -89,7 +91,7 @@ export function getAllReferenceTexts(
   // Search input fields: anything referenced in model's output spec
   const inputReferenceKeys = new Set<string>();
   for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
-    const parent = outputSpec[outKey].parent;
+    const {parent} = outputSpec[outKey] as LitTypeWithParent;
     if (parent && dataSpec[parent]) {
       inputReferenceKeys.add(parent);
     }

@@ -15,52 +15,63 @@
  * limitations under the License.
  */
 
+// Some class properties are in snake_case to match their Python counterparts.
 // We use _ prefixes to denote private LitTypes, consistent with
 // their Python counterparts.
-// tslint:disable:no-new-decorators class-name
+// tslint:disable:no-new-decorators class-name enforce-name-casing
+
+import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, ScoredTextCandidates, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
 
 /**
  * A dictionary of registered LitType names mapped to their constructor.
  * LitTypes are added using the @registered decorator.
  */
-export const REGISTRY: {[litType: string]: LitType} = {};
-// tslint:disable-next-line:no-any
-function registered(target: any) {
-  REGISTRY[target.name] = target;
+export const LIT_TYPES_REGISTRY: {[litType: string]: new () => LitType} = {};
+function registered(target: new () => LitType) {
+  LIT_TYPES_REGISTRY[target.name] = target;
 }
 
-const registryKeys = Object.keys(REGISTRY) as ReadonlyArray<string>;
+const registryKeys: string[] = Object.keys(LIT_TYPES_REGISTRY);
 /**
  * The types of all LitTypes in the registry, e.g.
  * 'StringLitType' | 'TextSegment' ...
  */
 export type LitName = typeof registryKeys[number];
 
-type LitClass = 'LitType';
-type ScoredTextCandidates = Array<[text: string, score: number|null]>;
+/** A type alias for the LitType class. */
+export type LitClass = 'LitType';
+
+/** A list of types of LitTypes. */
+export type LitTypeTypesList = Array<typeof LitType>;
 
 /**
  * Data classes used in configuring front-end components to describe
  * input data and model outputs.
  */
+@registered
 export class LitType {
-  // tslint:disable:enforce-name-casing
-  __class__: LitClass|'type' = 'LitType';
-  // TODO(b/162269499): Replace this with LitName, when created.
-  // tslint:disable-next-line:no-any
-  __name__: any|undefined;
-  // TODO(b/162269499): __mro__ is included here to temporarily ensure
-  // type equivalence betwen the old `LitType` and new `LitType`.
-  __mro__: string[] = [];
-  readonly required: boolean = true;
-  // TODO(b/162269499): Replace this with `unknown` after migration.
-  // tslint:disable-next-line:no-any
-  readonly default: any|undefined = null;
-  // TODO(b/162269499): Update to camel case once we've replaced old LitType.
-  show_in_data_table: boolean = false;
+  get name(): string {
+    return this.constructor.name;
+  }
 
-  // TODO(b/162269499): Add isCompatible functionality.
+  required: boolean = true;
+  default: unknown = undefined;
+  // If this type is created from an Annotator.
+  annotated: boolean = false;
+  show_in_data_table: boolean = false;
 }
+
+/** A type alias for LitType with an align property. */
+export type LitTypeWithAlign = LitType&{align: string};
+
+/** A type alias for LitType with a null idx property. */
+export type LitTypeWithNullIdx = LitType&{null_idx: number};
+
+/** A type alias for LitType with a parent property. */
+export type LitTypeWithParent = LitType&{parent: string};
+
+/** A type alias for LitType with a vocab property. */
+export type LitTypeWithVocab = LitType&{vocab: string[]};
 
 /**
  * A string LitType.
@@ -84,6 +95,22 @@ export class TextSegment extends StringLitType {
 export class ImageBytes extends LitType {
 }
 
+/**
+ * A JPEG image, as an encoded base64 ascii string
+ * (starts with 'data:image/jpg...').
+ */
+@registered
+export class JPEGBytes extends ImageBytes {
+}
+
+/**
+ * A PNG image, as an encoded base64 ascii string
+ * (starts with 'data:image/png...').
+ */
+@registered
+export class PNGBytes extends ImageBytes {
+}
+
 
 /**
  * Generated (untokenized) text.
@@ -94,16 +121,17 @@ export class GeneratedText extends TextSegment {
 }
 
 /**
- * A list type.
+ * A list type. Named `ListListType` to avoid conflicts with TypeScript List.
  */
-class _List extends LitType {
+@registered
+export class ListLitType extends LitType {
   override default: unknown[] = [];
 }
 
 /**
  * A list of (text, score) tuples.
  */
-class _StringCandidateList extends _List {
+class _StringCandidateList extends ListLitType {
   override default: ScoredTextCandidates = [];
 }
 
@@ -135,7 +163,7 @@ export class TopTokens extends _StringCandidateList {
  * TextSegment that should be interpreted as a URL.
  */
 @registered
-export class URL extends TextSegment {
+export class URLLitType extends TextSegment {
 }
 
 /**
@@ -157,7 +185,7 @@ export class SearchQuery extends TextSegment {
  * A list of strings.
  */
 @registered
-export class StringList extends _List {
+export class StringList extends ListLitType {
   override default: string[] = [];
 }
 
@@ -179,7 +207,7 @@ export class Tokens extends StringList {
  * The inner list should contain (word, probability) in descending order.
  */
 @registered
-export class TokenTopKPreds extends _List {
+export class TokenTopKPreds extends ListLitType {
   override default: ScoredTextCandidates[] = [];
   align?: string = undefined;
   parent?: string = undefined;
@@ -208,7 +236,7 @@ export class RegressionScore extends Scalar {
  * Score of one or more target sequences.
  */
 @registered
-export class ReferenceScores extends _List {
+export class ReferenceScores extends ListLitType {
   override default: number[] = [];
 
   /** Name of a TextSegment or ReferenceTexts field in the input. */
@@ -230,7 +258,7 @@ export class CategoryLabel extends StringLitType {
 /**
  * A tensor type.
  */
-class _Tensor1D extends LitType {
+class _Tensor extends LitType {
   override default: number[] = [];
 }
 
@@ -239,7 +267,7 @@ class _Tensor1D extends LitType {
  * Multiclass predicted probabilities, as <float>[num_labels].
  */
 @registered
-export class MulticlassPreds extends _Tensor1D {
+export class MulticlassPreds extends _Tensor {
   /**
    * Vocabulary is required here for decoding model output.
    * Usually this will match the vocabulary in the corresponding label field.
@@ -251,6 +279,8 @@ export class MulticlassPreds extends _Tensor1D {
   parent?: string = undefined;
   /** Enable automatic sorting. */
   autosort?: boolean = false;
+  /** Binary threshold, used to compute margin. */
+  threshold?: number = undefined;
 
   get num_labels() {
     return this.vocab.length;
@@ -274,8 +304,10 @@ export class SequenceTags extends StringList {
  * sentence, and may overlap with each other.
  */
 @registered
-export class SpanLabels extends _List {
+export class SpanLabels extends ListLitType {
   /** Name of Tokens field. **/
+  override default: SpanLabel[] = [];
+
   align: string = '';
   parent?: string = undefined;
 }
@@ -287,7 +319,9 @@ export class SpanLabels extends _List {
  * of (span1, span2, label).
  */
 @registered
-export class EdgeLabels extends _List {
+export class EdgeLabels extends ListLitType {
+  override default: EdgeLabel[] = [];
+
   /** Name of Tokens field. **/
   align: string = '';
 }
@@ -303,7 +337,9 @@ export class EdgeLabels extends _List {
  * specific segment from the input.
  */
 @registered
-export class MultiSegmentAnnotations extends _List {
+export class MultiSegmentAnnotations extends ListLitType {
+  override default: AnnotationCluster[] = [];
+
   /** If true, treat as candidate list. */
   exclusive: boolean = false;
   /** If true, don't emphasize in visualization. */
@@ -314,13 +350,13 @@ export class MultiSegmentAnnotations extends _List {
  * Embeddings or model activations, as fixed-length <float>[emb_dim].
  */
 @registered
-export class Embeddings extends _Tensor1D {
+export class Embeddings extends _Tensor {
 }
 
 /**
  * Shared gradient attributes.
  */
-class _GradientsBase extends _Tensor1D {
+class _GradientsBase extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
   /** Name of Embeddings field. */
@@ -342,7 +378,7 @@ export class Gradients extends _GradientsBase {
 /**
  * A single vector of <float>[enc_dim].
  */
-class _InfluenceEncodings extends _Tensor1D {
+class _InfluenceEncodings extends _Tensor {
   /** Class for computing gradients (string). */
   grad_target?: string = undefined;
 }
@@ -351,7 +387,7 @@ class _InfluenceEncodings extends _Tensor1D {
  * Per-token embeddings, as <float>[num_tokens, emb_dim].
  */
 @registered
-export class TokenEmbeddings extends _Tensor1D {
+export class TokenEmbeddings extends _Tensor {
   /** Name of a Tokens field. */
   align?: string = undefined;
 }
@@ -374,7 +410,7 @@ export class ImageGradients extends _GradientsBase {
  * One or more attention heads, as <float>[num_heads, num_tokens, num_tokens].
  */
 @registered
-export class AttentionHeads extends _Tensor1D {
+export class AttentionHeads extends _Tensor {
   // Input and output Tokens fields; for self-attention these can
   // be the same.
   align_in: string = '';
@@ -386,7 +422,7 @@ export class AttentionHeads extends _Tensor1D {
  * offsets[i] should be the index of the first wordpiece for input token i.
  */
 @registered
-export class SubwordOffsets extends _List {
+export class SubwordOffsets extends ListLitType {
   override default: number[] = [];
   /** Name of field in data spec. */
   align_in: string = '';
@@ -402,7 +438,6 @@ export class SubwordOffsets extends _List {
 export class SparseMultilabel extends StringList {
   /** Label names. */
   vocab?: string[] = undefined;
-  // TODO(b/162269499) Migrate non-comma separators to custom type.
   /** Separator used for display purposes. */
   separator: string = ',';
 }
@@ -420,13 +455,12 @@ export class SparseMultilabelPreds extends _StringCandidateList {
   parent?: string = undefined;
 }
 
+
 /**
  * For matching spec fields.
  *
  * The front-end will perform spec matching and fill in the vocab field
  * accordingly. UI will materialize this to a dropdown-list.
- * Use MultiFieldMatcher when your intent is selecting more than one field in
- * UI.
  */
 @registered
 export class FieldMatcher extends LitType {
@@ -438,21 +472,23 @@ export class FieldMatcher extends LitType {
   vocab?: string[] = undefined;
 }
 
+
 /**
- * For matching spec fields.
- * The front-end will perform spec matching and fill in the vocab field
- * accordingly. UI will materialize this to multiple checkboxes. Use this when
- * the user needs to pick more than one field in UI.
+ * For matching a single spec field.
+ * UI will materialize this to a dropdown-list.
  */
 @registered
-export class MultiFieldMatcher extends LitType {
-  /** Which spec to check, 'dataset', 'input', or 'output'. */
-  spec: string = 'dataset';
-  /** Types of LitType to match in the spec. */
-  types: string|string[] = '';
-  /** Names matched from the spec. */
-  vocab?: string[] = undefined;
+export class SingleFieldMatcher extends FieldMatcher {
+  override default: string = '';
+}
 
+/**
+ * For matching multiple spec fields.
+ * UI will materialize this to multiple checkboxes. Use this when the user needs
+ * to pick more than one field in UI.
+ */
+@registered
+export class MultiFieldMatcher extends FieldMatcher {
   /** Default names of selected items. */
   override default: string[] = [];
   /** Select all by default (overrides default). */
@@ -462,7 +498,8 @@ export class MultiFieldMatcher extends LitType {
 /**
  * Metadata about a returned salience map.
  */
-class _Salience extends LitType {
+@registered
+export class Salience extends LitType {
   /** If the saliency technique is automatically run. */
   autorun: boolean = false;
   /** If the returned values are signed. */
@@ -473,15 +510,16 @@ class _Salience extends LitType {
  * Metadata about a returned token salience map.
  */
 @registered
-export class TokenSalience extends _Salience {
+export class TokenSalience extends Salience {
+  override default: TokenSalienceDType|undefined = undefined;
 }
 
 /**
  * Metadata about a returned feature salience map.
  */
 @registered
-export class FeatureSalience extends _Salience {
-  // TODO(b/162269499): Add Typescript dtypes so that we can set default types.
+export class FeatureSalience extends Salience {
+  override default: FeatureSalienceDType|undefined = undefined;
 }
 
 /**
@@ -490,22 +528,23 @@ export class FeatureSalience extends _Salience {
  * data:image/jpg;base64,w4J3k1Bfa...
  */
 @registered
-export class ImageSalience extends _Salience {
+export class ImageSalience extends Salience {
 }
 
 /**
  * Metadata about a returned sequence salience map.
  */
 @registered
-export class SequenceSalience extends _Salience {
+export class SequenceSalience extends Salience {
+  override default: SequenceSalienceMap|undefined = undefined;
 }
 
 /**
  * A boolean value.
  */
 @registered
-export class Boolean extends LitType {
-  override default : boolean = false;
+export class BooleanLitType extends LitType {
+  override default: boolean = false;
 }
 
 /**
@@ -529,4 +568,20 @@ export class CurveDataPoints extends LitType {
  */
 @registered
 export class InfluentialExamples extends LitType {
+}
+
+/** The method to use to determine the best value for a Metric. */
+export enum MetricBestValue {
+  HIGHEST = "highest",
+  LOWEST = "lowest",
+  NONE = "none",
+  ZERO = "zero",
+}
+
+/** Score returned from the computation of a Metric. */
+@registered
+export class MetricResult extends LitType {
+  override default: number = 0;
+  description: string = '';
+  best_value: MetricBestValue = MetricBestValue.NONE;
 }

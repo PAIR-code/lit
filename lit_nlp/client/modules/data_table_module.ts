@@ -18,6 +18,7 @@
 // tslint:disable:no-new-decorators
 import '@material/mwc-switch';
 import '../elements/checkbox';
+import '../elements/popup_container';
 
 import {html} from 'lit';
 import {customElement, query} from 'lit/decorators';
@@ -28,10 +29,12 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, DataTable, TableData} from '../elements/table';
+import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatForDisplay, IndexedInput, LitType, ModelInfoMap, Spec} from '../lib/types';
-import {compareArrays, isLitSubtype} from '../lib/utils';
-import {DataService, FocusService, SelectionService} from '../services/services';
+import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {compareArrays} from '../lib/utils';
+import {DataService, FocusService, SelectionService, SliceService} from '../services/services';
+import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
 
@@ -42,9 +45,11 @@ import {styles} from './data_table_module.css';
 @customElement('data-table-module')
 export class DataTableModule extends LitModule {
   static override title = 'Data Table';
-  static override template = () => {
-    return html`<data-table-module></data-table-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+      <data-table-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </data-table-module>`;
   static override numCols = 4;
   static override get styles() {
     return [sharedStyles, styles];
@@ -56,13 +61,16 @@ export class DataTableModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
+  private readonly sliceService = app.getService(SliceService);
+  private readonly referenceSelectionService =
+      app.getService(SelectionService, 'pinned');
 
   @observable columnVisibility = new Map<string, boolean>();
   @observable searchText = '';
 
   // Module options / configuration state
+  @observable private onlyShowGenerated: boolean = false;
   @observable private onlyShowSelected: boolean = false;
-  @observable private columnDropdownVisible: boolean = false;
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -75,13 +83,13 @@ export class DataTableModule extends LitModule {
   // Column names from the current data for the data table.
   @computed
   get keys(): ColumnHeader[] {
-    const createColumnHeader = (name: string, type: LitType) => {
-      const header = {name, vocab: type.vocab};
-      if (isLitSubtype(type, 'Boolean')) {
+    function createColumnHeader(name: string, type: LitType) {
+      const header = {name, vocab: (type as LitTypeWithVocab).vocab};
+      if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
       }
       return header;
-    };
+    }
 
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
@@ -114,9 +122,18 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get pinnedInputData(): IndexedInput[] {
+    return this.appState.currentInputData.filter((inputData) => {
+      return this.referenceSelectionService.primarySelectedId === inputData.id;
+    });
+  }
+
+  @computed
   get filteredData(): IndexedInput[] {
-    return this.onlyShowSelected ? this.selectionService.selectedInputData :
-                                   this.appState.currentInputData;
+    const data: IndexedInput[] = this.onlyShowSelected ?
+        this.selectionService.selectedInputData.concat(this.pinnedInputData) :
+        this.appState.currentInputData;
+    return this.onlyShowGenerated ? data.filter((d) => d.meta.added) : data;
   }
 
   @computed
@@ -151,6 +168,49 @@ export class DataTableModule extends LitModule {
         .filter(i => i !== -1);
   }
 
+  @computed
+  get tableDataIds(): string[] {
+    return this.sortedData.map(d => d.id);
+  }
+
+  private indexOfId(id: string|null) {
+    return id != null ? this.tableDataIds.indexOf(id) : -1;
+  }
+
+  @computed
+  get primarySelectedIndex(): number {
+    return this.indexOfId(this.selectionService.primarySelectedId);
+  }
+
+  @computed
+  get referenceSelectedIndex(): number {
+    if (this.appState.compareExamplesEnabled) {
+      return this.indexOfId(this.referenceSelectionService.primarySelectedId);
+    }
+    return -1;
+  }
+
+  @computed
+  get starredIndices(): number[] {
+    const starredIds = this.sliceService.getSliceByName(STARRED_SLICE_NAME);
+    if (starredIds) {
+      return starredIds.map(sid => this.indexOfId(sid));
+    }
+    return [];
+  }
+
+  @computed
+  get focusedIndex(): number {
+    // Set focused index if a datapoint is focused according to the focus
+    // service. If the focusData is null then nothing is focused. If focusData
+    // contains a value in the "io" field then the focus is on a subfield of
+    // a datapoint, as opposed to a datapoint itself.
+    const focusData = this.focusService.focusData;
+    return focusData == null || focusData.io != null ?
+        -1 :
+        this.indexOfId(focusData.datapointId);
+  }
+
   /**
    * Recursively follow parent pointers and list their numerical indices.
    * Returns a list with the current index last, e.g.
@@ -163,88 +223,128 @@ export class DataTableModule extends LitModule {
         .reverse();
   }
 
+  private isStarred(id: string|null): boolean {
+    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
+  }
+
+  private toggleStarred(id: string|null) {
+    if (id == null) return;
+    if (this.isStarred(id)) {
+      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [id]);
+    } else {
+      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [id]);
+    }
+  }
+
+
   // TODO(lit-dev): figure out why this updates so many times;
   // it gets run _four_ times every time a new datapoint is added.
   @computed
   get tableData(): TableData[] {
-    const pinnedId = this.appState.compareExamplesEnabled ?
-        app.getService(SelectionService, 'pinned').primarySelectedId : null;
-    const selectedId = this.selectionService.primarySelectedId;
-    const focusedId = this.focusService.focusData?.datapointId;
-
-    // TODO(b/160170742): Make data table render immediately once the
-    // non-prediction data is available, then fetch predictions asynchronously
-    // and enable the additional columns when ready.
     return this.dataEntries.map((dataEntry, i) => {
       const d = this.sortedData[i];
       const index = this.appState.indicesById.get(d.id);
       if (index == null) return [];
 
       const pinClick = (event: Event) => {
+        const pinnedId = this.appState.compareExamplesEnabled ?
+            this.referenceSelectionService.primarySelectedId :
+            null;
         if (pinnedId === d.id) {
           this.appState.compareExamplesEnabled = false;
-          app.getService(SelectionService, 'pinned').selectIds([]);
+          this.referenceSelectionService.selectIds([]);
         } else {
           this.appState.compareExamplesEnabled = true;
-          app.getService(SelectionService, 'pinned').selectIds([d.id]);
+          this.referenceSelectionService.selectIds([d.id]);
         }
         event.stopPropagation();
       };
 
-      const indexHolderDivStyle = styleMap({
-        'display': 'flex',
-        'flex-direction': 'row-reverse',
-        'justify-content': 'space-between',
-        'width': '100%'
-      });
-      const indexDivStyle = styleMap({
-        'text-align': 'right',
-      });
-      // Render the pin button next to the index if datapoint is pinned,
-      // selected, or hovered.
-      const renderPin = () => {
-        const iconClass = classMap({
-           'icon-button': true,
-           'cyea': true,
-           'mdi-outlined': pinnedId !== d.id,
+      const starClick = (event: Event) => {
+        this.toggleStarred(d.id);
+        event.stopPropagation();
+        event.preventDefault();
+      };
+
+      // Provide a template function for the 'index' column so that the
+      // rendering can be based on the selection/hover state of the datapoint
+      // represented by the row.
+      function templateFn(
+          isSelected: boolean, isPrimarySelection: boolean,
+          isReferenceSelection: boolean, isFocused: boolean,
+          isStarred: boolean) {
+        const indexHolderDivStyle = styleMap({
+          'display': 'flex',
+          'justify-content': 'space-between',
+          'width': '100%'
         });
-        if (pinnedId === d.id || focusedId === d.id || selectedId === d.id) {
-          return html`
-              <mwc-icon class="${iconClass}" @click=${pinClick}>
-                  push_pin
+        const indexButtonsDivStyle = styleMap({
+          'display': 'flex',
+          'flex-direction': 'row',
+          'column-gap': '8px',
+        });
+        const indexDivStyle = styleMap({
+          'text-align': 'right',
+          'flex': '1',
+        });
+        // Render the action button next to the index if datapoint is selected,
+        // hovered, or active (pinned, starred).
+        function renderActionButtons() {
+          function getActionStyle(isActive: boolean) {
+            return styleMap({
+              'visibility': isPrimarySelection || isFocused || isActive ?
+                  'default' :
+                  'hidden',
+            });
+          }
+
+          function getActionClass(isActive: boolean) {
+            return classMap({
+              'icon-button': true,
+              'cyea': true,
+              'mdi-outlined': !isActive,
+            });
+          }
+
+          if (isPrimarySelection || isFocused || isReferenceSelection ||
+              isStarred) {
+            return html`
+              <mwc-icon style="${getActionStyle(isReferenceSelection)}"
+                class="${getActionClass(isReferenceSelection)}"
+                @click=${pinClick}
+                title=${`${isReferenceSelection ? 'Pin' : 'Unpin'} datapoint`}>
+                push_pin
+              </mwc-icon>
+              <mwc-icon style="${getActionStyle(isStarred)}" @click=${starClick}
+                class="${getActionClass(isStarred)}"
+                title=${isStarred ? 'Remove from starred slice' :
+                                    'Add to starred slice'}>
+                ${isStarred ? 'star' : 'star_border'}
               </mwc-icon>`;
+          }
+          return null;
         }
-        return null;
-      };
-      const indexHtml = html`
-          <div style="${indexHolderDivStyle}">
-            <div style="${indexDivStyle}">${index}</div>
-            ${renderPin()}
-          </div>`;
-      const indexEntry = {
-        template: indexHtml,
-        value: index
-      };
-      const ret: TableData = [indexEntry];
-      return [...ret, ...dataEntry];
+
+        return html`
+            <div style="${indexHolderDivStyle}">
+              <div style=${indexButtonsDivStyle}>
+               ${renderActionButtons()}
+              </div>
+              <div style="${indexDivStyle}">${index}</div>
+            </div>`;
+      }
+
+      const indexEntry = {template: templateFn, value: index};
+      return [indexEntry, ...dataEntry];
     });
   }
 
   override firstUpdated() {
-    const getCurrentModels = () => this.appState.currentModels;
-    this.react(getCurrentModels, currentModels => {
+    const updateColsChange = () =>
+        [this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.reactImmediately(updateColsChange, () => {
       this.updateColumns();
     });
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.react(getCurrentDataset, currentDataset => {
-      this.updateColumns();
-    });
-    const getKeys = () => this.keys;
-    this.react(getKeys, keys => {
-      this.updateColumns();
-    });
-
-    this.updateColumns();
   }
 
   private updateColumns() {
@@ -299,7 +399,8 @@ export class DataTableModule extends LitModule {
     // clang-format off
     return html`
       <div>
-        <lit-checkbox label=${key} ?checked=${checked}
+        <lit-checkbox class='column-select'
+         label=${key} ?checked=${checked}
                       @change=${toggleChecked}>
         </lit-checkbox>
       </div>
@@ -309,86 +410,65 @@ export class DataTableModule extends LitModule {
 
   renderColumnDropdown() {
     const names = [...this.columnVisibility.keys()].filter(c => c !== 'index');
-    const classes =
-        this.columnDropdownVisible ? 'column-dropdown' : 'column-dropdown-hide';
+
     // clang-format off
     return html`
-      <div class='${classes} popup-container'>
-        ${names.map(key => this.renderDropdownItem(key))}
-      </div>
+      <popup-container class='column-dropdown-container'>
+        <button class='hairline-button' slot='toggle-anchor-closed'>
+          <span class='material-icon-outlined'>view_column</span>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_more</span>
+        </button>
+        <button class='hairline-button' slot='toggle-anchor-open'>
+          <span class='material-icon-outlined'>view_column</span>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_less</span>
+        </button>
+        <div class='column-dropdown'>
+          ${names.map(key => this.renderDropdownItem(key))}
+        </div>
+      </popup-container>
     `;
     // clang-format on
   }
 
   renderControls() {
-    const onClickResetView = () => {
-      this.table!.resetView();
-    };
+    const onClickResetView = () => {this.table?.resetView();};
 
-    const onClickSelectAll = () => {
+    const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
-    };
-
-    const onToggleShowColumn = () => {
-      this.columnDropdownVisible = !this.columnDropdownVisible;
-    };
-
-    const onClickSwitch = () => {
-      this.onlyShowSelected = !this.onlyShowSelected;
     };
 
     // clang-format off
     return html`
-      <div class='switch-container' @click=${onClickSwitch}>
-        <div>Hide unselected</div>
-        <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+      ${this.renderColumnDropdown()}
+      <div class="toggles-row">
+        <div class='switch-container'
+            @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
+          <div>Show only selected</div>
+          <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+        </div>
+        <div class='switch-container'
+            @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
+          <div>Show only generated</div>
+          <mwc-switch .checked=${this.onlyShowGenerated}></mwc-switch>
+        </div>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
           ?disabled="${this.table?.isDefaultView ?? true}">
           Reset view
         </button>
-        <button class='hairline-button' @click=${onClickSelectAll}>
-          Select all
-        </button>
-        <button class='hairline-button' @click=${onToggleShowColumn}>
-          Columns&nbsp;
-          <span class='material-icon'>
-            ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
-          </span>
+        <button class='hairline-button' @click=${onClickSelectFiltered}
+          ?disabled="${!this.table?.isFiltered ?? true}">
+          Select filtered
         </button>
       </div>
-      ${this.renderColumnDropdown()}
     `;
     // clang-format on
   }
 
   renderTable() {
-    const tableDataIds = this.sortedData.map(d => d.id);
-    const indexOfId = (id: string|null) =>
-        id != null ? tableDataIds.indexOf(id) : -1;
-
-    const primarySelectedIndex =
-        indexOfId(this.selectionService.primarySelectedId);
-
-    // Set focused index if a datapoint is focused according to the focus
-    // service. If the focusData is null then nothing is focused. If focusData
-    // contains a value in the "io" field then the focus is on a subfield of
-    // a datapoint, as opposed to a datapoint itself.
-    const focusData = this.focusService.focusData;
-    const focusedIndex = focusData == null || focusData.io != null ?
-        -1 :
-        indexOfId(focusData.datapointId);
-
-    // Handle reference selection, if in compare examples mode.
-    let referenceSelectedIndex = -1;
-    if (this.appState.compareExamplesEnabled) {
-      const referenceSelectionService =
-          app.getService(SelectionService, 'pinned');
-      referenceSelectedIndex =
-          indexOfId(referenceSelectionService.primarySelectedId);
-    }
-
     const columnNames =
         this.defaultColumns.filter(col => this.columnVisibility.get(col.name));
 
@@ -398,21 +478,23 @@ export class DataTableModule extends LitModule {
         .data=${this.tableData}
         .columnNames=${columnNames}
         .selectedIndices=${this.selectedRowIndices}
-        .primarySelectedIndex=${primarySelectedIndex}
-        .referenceSelectedIndex=${referenceSelectedIndex}
-        .focusedIndex=${focusedIndex}
+        .primarySelectedIndex=${this.primarySelectedIndex}
+        .referenceSelectedIndex=${this.referenceSelectedIndex}
+        .starredIndices=${this.starredIndices}
+        .focusedIndex=${this.focusedIndex}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
         .onHover=${(i: number|null)=> { this.onHover(i); }}
         searchEnabled
         selectionEnabled
         paginationEnabled
+        exportEnabled
       ></lit-data-table>
     `;
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>
@@ -429,7 +511,8 @@ export class DataTableModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return true;
   }
 }

@@ -29,8 +29,9 @@ import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {FieldMatcher, LitTypeWithParent, InfluentialExamples} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {filterToKeys, findSpecKeys, isLitSubtype} from '../lib/utils';
+import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -97,10 +98,11 @@ export class TrainingDataAttributionModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
 
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<tda-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></tda-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <tda-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </tda-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -140,9 +142,11 @@ export class TrainingDataAttributionModule extends LitModule {
   @computed
   get targetLabelInputKeys(): string[] {
     const spec = this.appState.getModelSpec(this.model);
-    const referencedKeys = new Set(Object.values(spec.output)
-                                       .filter(v => v.parent != null)
-                                       .map(v => v.parent!));
+    const referencedKeys =
+        new Set(Object.values(spec.output)
+                    // tslint:disable-next-line:no-any
+                    .filter(v => (v as any).parent != null)
+                    .map(v => (v as LitTypeWithParent).parent));
     return [...referencedKeys].filter(k => spec.input[k] !== undefined);
   }
 
@@ -169,8 +173,9 @@ export class TrainingDataAttributionModule extends LitModule {
       // Filter the output spec to only fields that reference this inputKey.
       const outputSpec = this.appState.getModelSpec(this.model).output;
       const selectedOutputKeys =
-          Object.keys(outputSpec)
-              .filter(k => outputSpec[k].parent === inputKey);
+          Object
+              .keys(outputSpec)
+              .filter(k => (outputSpec[k] as LitTypeWithParent).parent === inputKey);
       const filteredOutputSpec = filterToKeys(outputSpec, selectedOutputKeys);
       ret.push(...getAllOutputTexts(filteredOutputSpec, this.currentPreds));
     }
@@ -194,7 +199,7 @@ export class TrainingDataAttributionModule extends LitModule {
 
   static compatibleGenerators(generatorInfo: ComponentInfoMap): string[] {
     return Object.keys(generatorInfo).filter(name => {
-      return findSpecKeys(generatorInfo[name].metaSpec, 'InfluentialExamples')
+      return findSpecKeys(generatorInfo[name].metaSpec, InfluentialExamples)
                  .length > 0;
     });
   }
@@ -242,7 +247,7 @@ export class TrainingDataAttributionModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES, [],
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;
@@ -390,7 +395,7 @@ export class TrainingDataAttributionModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     return html`
       <div class="module-container">
         <div class="module-content tda-module-content">
@@ -478,6 +483,7 @@ export class TrainingDataAttributionModule extends LitModule {
         <lit-data-table class="table"
             .columnNames=${Object.keys(rows[0])}
             .data=${rows}
+            exportEnabled
         ></lit-data-table>
       </div>
     `;
@@ -527,16 +533,14 @@ export class TrainingDataAttributionModule extends LitModule {
 
     return this.compatibleGenerators.map((genName, i) => {
       const spec = generatorsInfo[genName].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
+      const clonedSpec = cloneSpec(spec);
       const description = generatorsInfo[genName].description;
-      for (const fieldName of Object.keys(clonedSpec)) {
+      for (const fieldSpec of Object.values(clonedSpec)) {
         // If the generator uses a field matcher, then get the matching
         // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(
-                clonedSpec[fieldName], ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
+        if (fieldSpec instanceof FieldMatcher) {
+          fieldSpec.vocab =
+              this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
         }
       }
       const runDisabled =

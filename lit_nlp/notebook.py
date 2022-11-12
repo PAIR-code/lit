@@ -25,8 +25,14 @@ from lit_nlp.lib import wsgi_serving
 try:
   import google.colab  # pylint: disable=g-import-not-at-top,unused-import
   is_colab = True
+  # Can disable import error as this package is always
+  # included in colab kernels.
+  from colabtools import interactive_widgets  # pytype: disable=import-error # pylint: disable=g-import-not-at-top
+  progress_indicator = interactive_widgets.ProgressIter
 except ImportError:
   is_colab = False
+  from tqdm.notebook import tqdm  # pylint: disable=g-import-not-at-top
+  progress_indicator = tqdm
 
 modules = layout.LitModuleName
 
@@ -100,6 +106,9 @@ class LitWidget(object):
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
     app_flags['warm_start'] = 1
+    app_flags['warm_start_progress_indicator'] = progress_indicator
+    app_flags['sync_state'] = True
+
     layouts = dict(layouts or {})
     if 'notebook' not in layouts:
       layouts['notebook'] = LIT_NOTEBOOK_LAYOUT
@@ -114,6 +123,10 @@ class LitWidget(object):
 
     if render:
       self.render()
+
+  @property
+  def ui_state(self):
+    return self._server.app.ui_state_tracker.state
 
   def stop(self):
     """Stop the LIT server."""

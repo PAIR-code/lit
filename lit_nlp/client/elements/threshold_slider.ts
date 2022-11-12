@@ -44,13 +44,13 @@ export class ThresholdSlider extends LitElement {
     return [sharedStyles, css`
         .slider-row {
           display: flex;
-          flex-wrap: wrap;
-          align-items: start;
+          flex-direction: row;
+          align-items: center;
           justify-content: center;
         }
 
         .text-with-controls {
-          padding-top: 9px;
+          padding-top: 0;
         }
 
         .text-no-controls {
@@ -62,11 +62,6 @@ export class ThresholdSlider extends LitElement {
           margin-top: -3px; /*Accounts for custom thumb offset in lit-slider*/
           margin-left: 2px;
           width: 30px;
-        }
-
-        .hairline-button.reset-button {
-          margin: 5px;
-          padding: 5px 10px;
         }
     `];
   }
@@ -91,12 +86,12 @@ export class ThresholdSlider extends LitElement {
       });
       this.dispatchEvent(event);
     };
-    const marginToVal = (margin: number) => {
+    function marginToVal(margin: number) {
       const val = getThresholdFromMargin(+margin);
       return Math.round(100 * val) / 100;
-    };
+    }
     return this.renderSlider(
-        margin, label, 0, 1, 0.01, onChange, marginToVal, 'threshold');
+        margin, label, 0, 1, 0.01, onChange, marginToVal, 'Threshold');
   }
 
   renderMarginSlider(margin: number, label: string) {
@@ -110,7 +105,7 @@ export class ThresholdSlider extends LitElement {
       });
       this.dispatchEvent(event);
     };
-    const marginToVal = (margin: number) => margin;
+    function marginToVal (margin: number) {return margin;}
     return this.renderSlider(
         margin, label, -5, 5, 0.05, onChange, marginToVal, 'margin');
   }

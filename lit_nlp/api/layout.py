@@ -35,7 +35,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   AnnotatedTextGoldModule = 'annotated-text-gold-module'
   AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
-  ColorModule = 'color-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
   CounterfactualExplainerModule = 'counterfactual-explainer-module'
   CurvesModule = 'curves-module'
@@ -58,7 +57,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SalienceMapModule = 'salience-map-module'
   ScalarModule = 'scalar-module'
   SequenceSalienceModule = 'sequence-salience-module'
-  SliceModule = 'lit-slice-module'
   SpanGraphGoldModule = 'span-graph-gold-module'
   SpanGraphModule = 'span-graph-module'
   SpanGraphGoldModuleVertical = 'span-graph-gold-module-vertical'
@@ -153,8 +151,6 @@ MODEL_PREDS_MODULES = (
 DEFAULT_MAIN_GROUP = (
     modules.DataTableModule,
     modules.DatapointEditorModule,
-    modules.SliceModule,
-    modules.ColorModule,
 )
 
 ##

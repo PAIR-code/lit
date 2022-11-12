@@ -12,7 +12,9 @@ import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
+import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
@@ -39,6 +41,17 @@ enum ColorScalingMode {
   MAX_GLOBAL = 'max_global',
 }
 
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
+
+const LEGEND_INFO_TITLE_UNSIGNED =
+    "Salience is relative to the model's prediction of a class. A larger " +
+    "score (more purple) for a token means that token was more influential " +
+    "on the model's prediction of that class.";
+
 /** LIT module for model output. */
 @customElement('sequence-salience-module')
 export class SequenceSalienceModule extends LitModule {
@@ -46,12 +59,11 @@ export class SequenceSalienceModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <sequence-salience-module model=${model}
-       selectionServiceIndex=${selectionServiceIndex}>
-      </sequence-salience-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <sequence-salience-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </sequence-salience-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -82,7 +94,8 @@ export class SequenceSalienceModule extends LitModule {
   @computed
   get cmap() {
     if (this.selectedSalienceField != null &&
-        this.salienceSpecInfo[this.selectedSalienceField]?.signed) {
+        (this.salienceSpecInfo[this.selectedSalienceField] as Salience)
+            .signed) {
       return new SignedSalienceCmap(/* gamma */ this.cmapGamma);
     } else {
       return new UnsignedSalienceCmap(/* gamma */ this.cmapGamma);
@@ -129,7 +142,7 @@ export class SequenceSalienceModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES, [],
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;
@@ -226,8 +239,8 @@ export class SequenceSalienceModule extends LitModule {
     // Hide values for unimportant tokens, based on current colormap scale.
     // 1 - lightness is roughly how dark the token highlighting will be;
     // 0.05 is an arbitrary threshold that seems to work well.
-    const showNumber = (val: number) => 1 - cmap.lightness(val) > 0.05;
-    const displayVal = (val: number) => val.toFixed(3);
+    function showNumber(val: number) {return 1 - cmap.lightness(val) > 0.05;}
+    function displayVal(val: number) {return val.toFixed(3);}
     // TODO(b/204887716, b/173469699): improve layout density?
     // Try to strip leading zeros to save some space? Can do down to 24px width
     // with this, but need to handle negatives.
@@ -360,29 +373,28 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format on
   }
 
-  // TODO(b/198684817): move this colormap impl to a shared element?
-  renderColorBlocks() {
+  renderColorLegend() {
     const cmap = this.cmap;
     const isSigned = (cmap instanceof SignedSalienceCmap);
-    const blockValues = isSigned ? [-1.0, -0.7, -0.3, 0.0, 0.3, 0.7, 1.0] :
-                                   [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    function scale(val: number) {return cmap.bgCmap(val);}
+    scale.domain = () => cmap.colorScale.domain();
+    const labelName = "Token Salience";
 
-    const blockClass = classMap({
-      'cmap-block': true,
-      'cmap-block-wide': isSigned,
-    });
-
-    const blocks = blockValues.map(val => {
-      const blockStyle = styleMap(
-          {'color': cmap.textCmap(val), 'background-color': cmap.bgCmap(val)});
-      // clang-format off
-      return html`
-        <div class=${blockClass} style=${blockStyle}>
-          ${val.toFixed(1)}
-        </div>`;
-      // clang-format on
-    });
-    return html`<div class='cmap-blocks-holder'>${blocks}</div>`;
+    // clang-format off
+    return html`<div class="color-legend-container">
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        selectedColorName=${labelName}
+        ?alignRight=${true}
+        .scale=${scale}
+        numBlocks=${isSigned ? 7 : 5}>
+      </color-legend>
+      <mwc-icon class="icon material-icon-outlined"
+                title=${isSigned ? LEGEND_INFO_TITLE_SIGNED :
+                                   LEGEND_INFO_TITLE_UNSIGNED}>
+        info_outline
+      </mwc-icon>
+    </div>`;
+    // clang-format on
   }
 
   renderFooterControls() {
@@ -412,8 +424,7 @@ export class SequenceSalienceModule extends LitModule {
         </div>
       </div>
       <div class="controls-group">
-        <label>Colormap:</label>
-        ${this.renderColorBlocks()}
+        ${this.renderColorLegend()}
         <label for="gamma-slider">Gamma:</label>
         <lit-slider min="0.25" max="6" step="0.25" val="${this.cmapGamma}"
                     .onInput=${onChangeGamma}></lit-slider>
@@ -422,7 +433,7 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const clearStickyFocus = () => {
       if (this.focusState?.sticky) {
         this.focusState = undefined; /* clear focus */

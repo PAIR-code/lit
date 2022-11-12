@@ -17,12 +17,12 @@
 
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {app} from '../core/app';
-import {LitModule} from '../core/lit_module';
+import {app} from './app';
+import {LitModule} from './lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
@@ -44,21 +44,39 @@ export class SliceModule extends LitModule {
   }
 
   static override title = 'Slice Editor';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/ui_guide.md#slices';
   static override numCols = 2;
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
 
-  static override template = () => {
-    return html`<lit-slice-module></lit-slice-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <lit-slice-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </lit-slice-module>`;
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
   private sliceByBins: NumericFeatureBins = {};
 
   @observable private sliceByFeatures: string[] = [];
 
   @observable private sliceName: string|null = null;
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.sliceByFeatures = event.detail.features;
+      this.sliceByBins = event.detail.bins;
+    };
+    this.facetingControl.contextName = SliceModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   @computed
   private get createButtonEnabled() {
@@ -229,20 +247,13 @@ export class SliceModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.sliceByFeatures = event.detail.features;
-      this.sliceByBins = event.detail.bins;
-    };
-
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>
         ${this.renderCreate()}
         <div class="row-container" >
-          <faceting-control @facets-change=${facetsChange}
-                            contextName=${SliceModule.title}>
-          </faceting-control>
+          ${this.facetingControl}
         </div>
         ${this.renderSliceSelector()}
       </div>

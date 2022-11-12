@@ -3,7 +3,6 @@
 }
 
 .faceting-info {
-  position: relative;
   display: flex;
   flex-direction: row;
   align-items: start;
@@ -17,6 +16,8 @@
 .active-facets {
   flex: 1;
   line-height: 22px;
+  /* Revert a pointer style from <popup-container> */
+  cursor: text;
 }
 
 .active-facets.disabled {
@@ -24,16 +25,11 @@
 }
 
 .config-panel {
-  position: absolute;
-  top: 26px;
-
   min-width: 250px;
   max-height: 150px;
 
   flex-direction: column;
   overflow-y: hidden;
-
-  z-index: 9000;
 }
 
 .panel-header {
@@ -91,4 +87,8 @@
 
 .feature-options-row .no-input {
   min-width: 72px;
+}
+
+popup-container {
+  --popup-top: 4px;
 }

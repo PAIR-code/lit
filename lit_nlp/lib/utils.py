@@ -18,8 +18,8 @@ import itertools
 import queue
 import threading
 import time
-
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
+import uuid
 import numpy as np
 
 T = TypeVar('T')
@@ -51,6 +51,11 @@ def find_spec_keys(d: Dict[K, Any], types) -> List[K]:
 def filter_by_keys(d: Dict[K, V], predicate: Callable[[K], bool]) -> Dict[K, V]:
   """Filter to keys matching predicate."""
   return {k: v for k, v in d.items() if predicate(k)}
+
+
+def spec_contains(d: dict[str, Any], types) -> bool:
+  """Returns true if the spec contains any field with one of these types."""
+  return bool(find_spec_keys(d, types))
 
 
 def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
@@ -181,6 +186,11 @@ def coerce_real(vals: np.ndarray, limit=0.0001):
   assert np.all(np.imag(vals) < limit), (
       'Array contains imaginary part out of acceptable limits.')
   return np.real(vals)
+
+
+def get_uuid():
+  """Return a randomly-generated UUID hex string."""
+  return uuid.uuid4().hex
 
 
 class TaskQueue(queue.Queue):

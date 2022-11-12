@@ -18,8 +18,9 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
+import {FieldMatcher, ImageBytes} from '../lib/lit_types';
+import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {getTypes, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -99,18 +100,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @computed
   get datasetHasImages(): boolean {
-    return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
-  }
-
-  createLitType(typeName: string, showInDataTable = true): LitType {
-    const litType = this.metadata.littypes[typeName];
-    if (litType == null) {
-      throw new Error(`LitType ${typeName} not defined`);
-    }
-    const newType = {...litType};
-    newType['__class__'] = 'LitType';
-    newType['show_in_data_table'] = showInDataTable;
-    return newType;
+    return findSpecKeys(this.currentDatasetSpec, ImageBytes).length > 0;
   }
 
   @observable
@@ -243,14 +233,14 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the spec keys matching the info from the provided FieldMatcher.
    */
-  getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
+  getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
       spec = this.currentModelSpecs[modelName].spec.output;
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.types!);
+    return findSpecKeys(spec, getTypes(matcher.types));
   }
 
   //=================================== Generation logic
@@ -417,5 +407,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
   getUrlConfiguration() {
     return this.urlConfiguration;
+  }
+
+  /**
+   * Get best URL for this server.
+   */
+  getBestURL() {
+    const urlBase = (this.metadata.canonicalURL || window.location.origin);
+    return new URL(`${urlBase}${window.location.search}`).href;
   }
 }

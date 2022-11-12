@@ -21,8 +21,9 @@ import {css, html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {GeneratedURL, ImageBytes} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, LitName, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
 
 /**
@@ -33,15 +34,13 @@ export class GeneratedImageModule extends LitModule {
   static override title = 'Generated Images';
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <generated-image-module model=${model}
-                              selectionServiceIndex=${selectionServiceIndex}>
-      </generated-image-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <generated-image-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </generated-image-module>`;
 
-
-  static supportedTypes: LitName[] = ['ImageBytes'];
+  static supportedTypes = [ImageBytes];
 
   static override get styles() {
     const styles = css`
@@ -77,7 +76,7 @@ export class GeneratedImageModule extends LitModule {
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
         [input], this.model, dataset,
-        [...GeneratedImageModule.supportedTypes, 'GeneratedURL'],
+        [...GeneratedImageModule.supportedTypes, GeneratedURL], [],
         'Generating images');
     const results = await this.loadLatest('generatedImages', promise);
     if (results === null) return;
@@ -106,22 +105,23 @@ export class GeneratedImageModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const {output} = this.appState.getModelSpec(this.model);
     // clang-format off
     return html`
       <div class='module-container'>
         <div class="module-results-area">
           ${Object.entries(this.generatedImages).map(([key, value]) => {
-              const keyType = output[key];
-              if (isLitSubtype(keyType, GeneratedImageModule.supportedTypes)) {
+              const imageFieldSpec = output[key];
+              if (isLitSubtype(imageFieldSpec, GeneratedImageModule.supportedTypes)) {
                 return this.renderImage(key, value);
               }
 
-              const {align} = keyType;
-              if (isLitSubtype(keyType, 'GeneratedURL') &&
-                  align != null && align in this.generatedImages) {
-                return this.renderLink(key, value);
+              if (imageFieldSpec instanceof GeneratedURL) {
+                const {align} = imageFieldSpec;
+                if (align != null && align in this.generatedImages) {
+                  return this.renderLink(key, value);
+                }
               }
 
               return null;

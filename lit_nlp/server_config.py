@@ -51,11 +51,11 @@ config.data_dir = ''
 config.warm_start = 0.0
 
 # If true, will precompute server-side embedding projections such as PCA.
-config.warm_projections = config_dict.placeholder(bool)
+config.warm_projections = False
 
 # If true, will disable capabilities not allowed in demo mode, such as
 # saving generated datapoints to disk.
-config.demo_mode = config_dict.placeholder(bool)
+config.demo_mode = False
 
 # Which layout to use by default (can be changed via url); see layout.ts
 config.default_layout = 'default'
@@ -70,6 +70,12 @@ config.page_title = config_dict.placeholder(str)
 # Whether the LIT instance is a development demo.
 config.development_demo = False
 
+# Whether dataset and model validation will happen at startup.
+config.validate = None
+config.report_all = False
+
+import os
+import pathlib
 config.client_root = os.path.join(
         pathlib.Path(__file__).parent.absolute(), 'client', 'build',
         'default')

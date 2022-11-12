@@ -53,13 +53,6 @@
   --mdc-icon-button-size: 24px;
 }
 
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-}
-
 .holder {
   height: calc(100% - var(--lit-group-header-height));
   display: flex;

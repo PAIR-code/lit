@@ -20,19 +20,19 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
 import {css, html, svg} from 'lit';
+import {customElement} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {getBrandColor} from '../lib/colors';
+import {AttentionHeads as AttentionHeadsLitType, Tokens as TokensLitType} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
-
-import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {getBrandColor} from '../lib/colors';
 
 type Tokens = string[];
 // <float>[num_heads, num_tokens, num_tokens]
@@ -44,12 +44,18 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#attention';
   static override numCols = 3;
+  static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<attention-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></attention-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <attention-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </attention-module>`;
+      };
 
   static override get styles() {
     const styles = css`
@@ -84,35 +90,35 @@ export class AttentionModule extends LitModule {
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
   override firstUpdated() {
-    const getSelectedInput = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(getSelectedInput, selectedInput => {
-      this.updateSelection(selectedInput);
+    const getAttnInputs = () =>
+        [this.selectionService.primarySelectedInputData, this.selectedLayer];
+    this.reactImmediately(getAttnInputs, (selectedInput, selectedLayer) => {
+      this.updateSelection(
+          this.selectionService.primarySelectedInputData, this.selectedLayer!);
     });
   }
 
-  private async updateSelection(selectedInput: IndexedInput|null) {
+  private async updateSelection(
+      selectedInput: IndexedInput|null, layer: string) {
     this.preds = undefined;  // clear previous results
 
     if (selectedInput === null) return;
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [selectedInput], this.model, dataset, ['Tokens', 'AttentionHeads'],
+        [selectedInput], this.model, dataset, [TokensLitType], [layer],
         'Fetching attention');
     const res = await this.loadLatest('attentionAndTokens', promise);
     if (res === null) return;
     this.preds = res[0];
     // Make sure head selection is valid.
-    const numHeadsPerLayer = this.preds[this.selectedLayer!] != null ?
-        this.preds[this.selectedLayer!].length : 0;
+    const numHeadsPerLayer =
+        this.preds[layer] != null ? this.preds[layer].length : 0;
     if (this.selectedHeadIndex >= numHeadsPerLayer) {
       this.selectedHeadIndex = 0;
     }
   }
 
-  override render() {
-    if (!this.preds) return;
-
+  override renderImpl() {
     // Scrolling inside this module is done inside the module-results-area div.
     // Giving this div the class defined by SCROLL_SYNC_CSS_CLASS allows
     // scrolling to be sync'd instances of this module when doing comparisons
@@ -126,7 +132,7 @@ export class AttentionModule extends LitModule {
           ${this.renderHeadSelector()}
         </div>
         <div class='module-results-area padded-container ${SCROLL_SYNC_CSS_CLASS}'>
-          ${this.renderAttnHead()}
+          ${this.preds != null ? this.renderAttnHead(): null}
         </div>
       </div>
     `;
@@ -135,13 +141,14 @@ export class AttentionModule extends LitModule {
 
   private renderAttnHead() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const fieldSpec = outputSpec[this.selectedLayer!];
+    const fieldSpec =
+        outputSpec[this.selectedLayer!] as AttentionHeadsLitType;
 
     // Tokens involved in the attention.
     const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
     const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
 
-    const fontFamily = "'Share Tech Mono', monospace";
+    const fontFamily = '\'Share Tech Mono\', monospace';
     const fontSize = 12;
     const defaultCharWidth = 6.5;
     const font = `${fontSize}px ${fontFamily}`;
@@ -279,9 +286,12 @@ export class AttentionModule extends LitModule {
    */
   private renderLayerSelector() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const attnKeys = findSpecKeys(outputSpec, 'AttentionHeads');
+    const attnKeys = findSpecKeys(outputSpec, AttentionHeadsLitType);
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];
+    }
+    if (this.preds == null) {
+      return;
     }
     const onchange = (e: Event) => {
       this.selectedLayer = (e.target as HTMLSelectElement).value;
@@ -289,7 +299,10 @@ export class AttentionModule extends LitModule {
     // clang-format off
     return html`
       <select class="dropdown" @change=${onchange}>
-        ${attnKeys.map(key => html`<option value=${key}>${key}</option>`)}
+        ${attnKeys.map(key =>
+          html`<option value=${key} ?selected=${key === this.selectedLayer}>
+                 ${key}
+               </option>`)}
       </select>
     `;
     // clang-format on
@@ -310,6 +323,9 @@ export class AttentionModule extends LitModule {
       });
       return html`<div class=${classes} @click=${handleClick}>${i}</div>`;
     };
+    if (this.preds == null || this.preds[this.selectedLayer!] == null) {
+      return;
+    }
     const numHeadsPerLayer = this.preds![this.selectedLayer!].length;
     const numHeadsPerLayerRange =
         Array.from({length: numHeadsPerLayer}, (x: string, i: number) => i);
@@ -322,7 +338,7 @@ export class AttentionModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'AttentionHeads');
+    return doesOutputSpecContain(modelSpecs, AttentionHeadsLitType);
   }
 }
 

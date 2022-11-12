@@ -14,7 +14,7 @@
 # ==============================================================================
 """SHAP explanations for datasets and models."""
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -64,22 +64,24 @@ class TabularShapExplainer(lit_components.Interpreter):
             'predictions over tabular data. Influence values are normalized in '
             'the range of [-1, 1].')
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    # Tabular models require all input features are present for each datapoint
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    # Tabular models require all dataset features are present for each datapoint
     compatible_input_types = (types.Scalar, types.CategoryLabel)
     compatible_output_types = (types.MulticlassPreds, types.RegressionScore,
                                types.Scalar, types.SparseMultilabelPreds)
+    input_spec_keys = model.input_spec().keys()
     is_tabular = all(
-        feature.required and isinstance(feature, compatible_input_types)
-        for feature in model.input_spec().values())
-    supported_output_features = utils.find_spec_keys(model.output_spec(),
-                                                     compatible_output_types)
-    return is_tabular and bool(len(supported_output_features))
+        feature.required and isinstance(feature, compatible_input_types) and
+        name in input_spec_keys for name, feature in dataset.spec().items())
+    has_outputs = utils.spec_contains(model.output_spec(),
+                                      compatible_output_types)
+    return is_tabular and has_outputs
 
   def config_spec(self) -> types.Spec:
     return {
         EXPLAIN_KEY:
-            types.FieldMatcher(
+            types.SingleFieldMatcher(
                 spec='output',
                 types=[
                     'MulticlassPreds', 'RegressionScore', 'Scalar',
@@ -94,12 +96,12 @@ class TabularShapExplainer(lit_components.Interpreter):
 
   def run(
       self,
-      inputs: List[JsonDict],
+      inputs: list[JsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
-      model_outputs: Optional[List[JsonDict]] = None,
+      model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None
-  ) -> Optional[List[Dict[str, dtypes.FeatureSalience]]]:
+  ) -> Optional[list[dict[str, dtypes.FeatureSalience]]]:
     """Generate SHAP explanations for model predictions given a set of inputs.
 
     Args:
@@ -121,13 +123,13 @@ class TabularShapExplainer(lit_components.Interpreter):
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))
 
-    input_feats = list(model.input_spec().keys())
+    input_feats = list(dataset.spec().keys())
     output_feats = list(model.output_spec().keys())
     pred_key_to_explain = str(config[EXPLAIN_KEY])
     sample_size = int(config[SAMPLE_KEY]) if config[SAMPLE_KEY] else 0
 
     if not pred_key_to_explain or pred_key_to_explain not in output_feats:
-      logging.error('SHAP requires an output field to explain.')
+      logging.warning('SHAP requires an output field to explain.')
       return None
 
     random_baseline = dataset.sample(1).examples
@@ -139,7 +141,7 @@ class TabularShapExplainer(lit_components.Interpreter):
       inputs_to_use = inputs_to_use.sample(sample_size)
 
     def prediction_fn(examples):
-      dict_examples: List[JsonDict] = [{
+      dict_examples: list[JsonDict] = [{
           input_feats[i]: example[i] for i in range(len(input_feats))
       } for example in examples]
 

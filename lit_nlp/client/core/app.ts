@@ -17,7 +17,7 @@
 
 // Import Services
 // Import and add injection functionality to LitModule
-import {toJS} from 'mobx';
+import {autorun, toJS} from 'mobx';
 
 import {Constructor} from '../lib/types';
 import {ApiService} from '../services/api_service';
@@ -55,6 +55,7 @@ export class LitApp {
     const [selectionService, pinnedSelectionService] =
         this.getServiceArray(SelectionService);
     const urlService = this.getService(UrlService);
+    const colorService = this.getService(ColorService);
 
     // Load the app metadata before any further initialization
     appState.metadata = await apiService.getInfo();
@@ -67,8 +68,8 @@ export class LitApp {
     }
 
     // Sync app state based on URL search params
-    urlService.syncStateToUrl(
-        appState, modulesService, selectionService, pinnedSelectionService);
+    urlService.syncStateToUrl(appState, modulesService, selectionService,
+        pinnedSelectionService, colorService);
 
     // Initialize the rest of the app state
     await appState.initialize();
@@ -84,6 +85,17 @@ export class LitApp {
     // Enabling comparison mode if a datapoint has been pinned
     if (pinnedSelectionService.primarySelectedId) {
       appState.compareExamplesEnabled = true;
+    }
+
+    // If enabled, set up state syncing back to Python.
+    if (appState.metadata.syncState) {
+      autorun(() => {
+        apiService.pushState(
+            selectionService.selectedInputData, appState.currentDataset, {
+              'primary_id': selectionService.primarySelectedId,
+              'pinned_id': pinnedSelectionService.primarySelectedId,
+            });
+      });
     }
   }
 
@@ -134,7 +146,7 @@ export class LitApp {
     const statusService = new StatusService();
     const apiService = new ApiService(statusService);
     const modulesService = new ModulesService();
-    const urlService = new UrlService();
+    const urlService = new UrlService(apiService);
     const appState = new AppState(apiService, statusService);
     const selectionService = new SelectionService(appState);
     const pinnedSelectionService = new SelectionService(appState);
@@ -145,8 +157,7 @@ export class LitApp {
     const dataService = new DataService(
         appState, classificationService, apiService, settingsService);
     const groupService = new GroupService(appState, dataService);
-    const colorService = new ColorService(
-        appState, groupService, dataService);
+    const colorService = new ColorService(groupService, dataService);
     const focusService = new FocusService(selectionService);
 
     // Populate the internal services map for dependency injection

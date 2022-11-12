@@ -26,6 +26,7 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
 import {ThresholdChange} from '../elements/threshold_slider';
+import {MulticlassPreds} from '../lib/lit_types';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
@@ -54,11 +55,15 @@ interface CalculatedMarginsPerField {
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
   static override title = 'Binary Classifier Thresholds';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#binary-classification-thresholds';
   static override numCols = 3;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<thresholder-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></thresholder-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <thresholder-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </thresholder-module>`;
 
   static override get styles() {
     return [
@@ -89,6 +94,20 @@ export class ThresholderModule extends LitModule {
   private readonly classificationService =
     app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets.length = 0;
+      this.selectedFacets.push(...event.detail.features);
+      this.selectedFacetBins = event.detail.bins;
+    };
+    this.facetingControl.contextName = ThresholderModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   override firstUpdated() {
     const getGroupedExamples = () => this.groupedExamples;
@@ -118,7 +137,7 @@ export class ThresholderModule extends LitModule {
   @computed
   private get binaryClassificationKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const classificationKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
+    const classificationKeys = findSpecKeys(outputSpec, MulticlassPreds);
     return classificationKeys.filter(
         key => isBinaryClassification(outputSpec[key]));
   }
@@ -228,20 +247,12 @@ export class ThresholderModule extends LitModule {
       this.costRatio = +((e.target as HTMLInputElement).value);
     };
 
-    const facetsChange = (event: CustomEvent<FacetsChange>) => {
-      this.selectedFacets.length = 0;
-      this.selectedFacets.push(...event.detail.features);
-      this.selectedFacetBins = event.detail.bins;
-    };
-
     const costRatioTooltip = "The cost of false positives relative to false " +
         "negatives. Used to find optimal classifier thresholds";
     const calculateTooltip = "Calculate optimal threholds for each facet " +
         "using the cost ratio and a number of different techniques";
     return html`
-        <faceting-control @facets-change=${facetsChange}
-                          contextName=${ThresholderModule.title}>
-        </faceting-control>
+        ${this.facetingControl}
         <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
         <input type=number class="cost-ratio-input" step="0.1" min=0 max=20
                .value=${this.costRatio.toString()}
@@ -252,7 +263,7 @@ export class ThresholderModule extends LitModule {
         </button>`;
   }
 
-  override render() {
+  override renderImpl() {
     const tables =
         this.binaryClassificationKeys.map(key => this.renderTable(key));
 
@@ -268,9 +279,10 @@ export class ThresholderModule extends LitModule {
         `;
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
-                                 isBinaryClassification);
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    return doesOutputSpecContain(
+        modelSpecs, MulticlassPreds, isBinaryClassification);
   }
 }
 

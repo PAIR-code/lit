@@ -33,6 +33,11 @@
   position: absolute;
 }
 
+.slice-container {
+  width: 300px;
+  height: 300px;
+}
+
 #slice-toolbar-container {
   right: 0; /* remove to span page */
 }

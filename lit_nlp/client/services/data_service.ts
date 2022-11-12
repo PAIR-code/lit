@@ -19,9 +19,9 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
-import {createLitType} from '../lib/lit_types_utils';
-import {ClassificationResults, IndexedInput, LitName, LitType, RegressionResults} from '../lib/types';
-import {findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
+import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
+import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
+import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {ApiService, AppState, ClassificationService, SettingsService} from './services';
@@ -60,6 +60,10 @@ export type ColumnData = Map<string, ValueType>;
 
 /** Column source prefix for columns from the classification interpreter. */
 export const CLASSIFICATION_SOURCE_PREFIX = 'Classification';
+/** Column source prefix for columns from GeneratedText model outputs. */
+export const GEN_TEXT_SOURCE_PREFIX = 'GeneratedText';
+/** Column source prefix for columns from GeneratedTextCandidates outputs. */
+export const GEN_TEXT_CANDS_SOURCE_PREFIX = 'GeneratedTextCandidates';
 /** Column source prefix for columns from the regression interpreter. */
 export const REGRESSION_SOURCE_PREFIX = 'Regression';
 /** Column source prefix for columns from scalar model outputs. */
@@ -87,7 +91,7 @@ export class DataService extends LitService {
 
     // Run classification interpreter when the inputs or margins change.
     const getClassificationInputs = () =>
-        [this.appState.currentInputData,
+        [this.appState.currentInputData, this.appState.currentModels,
          this.classificationService.allMarginSettings];
     reaction(getClassificationInputs, () => {
       if (this.appState.currentInputData == null ||
@@ -101,10 +105,10 @@ export class DataService extends LitService {
       }
     }, {fireImmediately: true});
 
-    // Run regression interpreter when necessary.
-    const getRegressionInputs =
+    // Run other preiction interpreters when necessary.
+    const getPredictionInputs =
         () => [this.appState.currentInputData, this.appState.currentModels];
-    reaction(getRegressionInputs, () => {
+    reaction(getPredictionInputs, () => {
       if (this.appState.currentInputData == null ||
           this.appState.currentInputData.length === 0 ||
           this.appState.currentModels.length === 0 ||
@@ -113,6 +117,7 @@ export class DataService extends LitService {
         return;
       }
       for (const model of this.appState.currentModels) {
+        this.runGeneratedTextPreds(model, this.appState.currentInputData);
         this.runRegression(model, this.appState.currentInputData);
         this.runScalarPreds(model, this.appState.currentInputData);
       }
@@ -137,7 +142,7 @@ export class DataService extends LitService {
    */
   private async runClassification(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'MulticlassPreds').length === 0) {
+    if (findSpecKeys(output, MulticlassPreds).length === 0) {
       return;
     }
 
@@ -167,18 +172,46 @@ export class DataService extends LitService {
           (result: ClassificationResults) => result[key].correct);
       const source = `${CLASSIFICATION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
-          scores, data, key, scoreFeatName, createLitType('MulticlassPreds'),
+          scores, data, key, scoreFeatName, createLitType(MulticlassPreds),
           source);
-      const litTypeClassification = createLitType('CategoryLabel');
-      litTypeClassification.vocab = output[key].vocab;
-      this.addColumnFromList(
-          predClasses, data, key, predClassFeatName, litTypeClassification,
-          source);
-      if (output[key].parent != null) {
+      const litTypeClassification = createLitType(CategoryLabel);
+      if (output[key] instanceof MulticlassPreds) {
+        const predSpec = output[key] as MulticlassPreds;
+        litTypeClassification.vocab = predSpec.vocab;
         this.addColumnFromList(
-            correctness, data, key, correctnessName, createLitType('Boolean'),
-            source, () => null, BINARY_NEG_POS);
+            predClasses, data, key, predClassFeatName, litTypeClassification,
+            source);
+        if (predSpec.parent != null) {
+          this.addColumnFromList(
+              correctness, data, key, correctnessName,
+              createLitType(BooleanLitType), source, () => null,
+              BINARY_NEG_POS);
+        }
       }
+    }
+  }
+
+  private async runGeneratedTextPreds(model: string, data: IndexedInput[]) {
+    const genTextTypes = [GeneratedText, GeneratedTextCandidates];
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    if (findSpecKeys(output, genTextTypes).length === 0) {return;}
+
+    const predsPromise = this.apiService.getPreds(
+      data, model, this.appState.currentDataset, genTextTypes);
+    const preds = await predsPromise;
+    if (preds == null || preds.length === 0) {return;}
+
+    const genTextKeys = Object.keys(preds[0]);
+    for (const key of genTextKeys) {
+      const isGenText = output[key] instanceof GeneratedText;
+      const genTextFeatureName = this.getColumnName(model, key);
+      const genText = preds.map((p) => p[key]);
+      const dataType =  isGenText ? createLitType(GeneratedText) :
+                                    createLitType(GeneratedTextCandidates);
+      const source =  `${isGenText ? GEN_TEXT_SOURCE_PREFIX :
+                                     GEN_TEXT_CANDS_SOURCE_PREFIX}:${model}`;
+      this.addColumnFromList(
+          genText, data, key, genTextFeatureName, dataType, source);
     }
   }
 
@@ -187,7 +220,7 @@ export class DataService extends LitService {
    */
   private async runRegression(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'RegressionScore').length === 0) {
+    if (findSpecKeys(output, RegressionScore).length === 0) {
       return;
     }
 
@@ -214,15 +247,18 @@ export class DataService extends LitService {
           (result: RegressionResults) => result[key].error);
       const sqErrors = regressionResults.map(
           (result: RegressionResults) => result[key].squared_error);
-      const dataType = createLitType('Scalar');
+      const dataType = createLitType(Scalar);
       const source = `${REGRESSION_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
-      if (output[key].parent != null) {
-        this.addColumnFromList(
-            errors, data, key, errorFeatName, dataType, source);
-        this.addColumnFromList(
-            sqErrors, data, key, sqErrorFeatName, dataType, source);
+      if (output[key] instanceof RegressionScore) {
+        const predSpec = output[key] as RegressionScore;
+        if (predSpec.parent != null) {
+          this.addColumnFromList(
+              errors, data, key, errorFeatName, dataType, source);
+          this.addColumnFromList(
+              sqErrors, data, key, sqErrorFeatName, dataType, source);
+        }
       }
     }
   }
@@ -232,12 +268,12 @@ export class DataService extends LitService {
    */
   private async runScalarPreds(model: string, data: IndexedInput[]) {
     const {output} = this.appState.currentModelSpecs[model].spec;
-    if (findSpecKeys(output, 'Scalar').length === 0) {
+    if (findSpecKeys(output, Scalar).length === 0) {
       return;
     }
 
     const predsPromise = this.apiService.getPreds(
-        data, model, this.appState.currentDataset, ['Scalar']);
+        data, model, this.appState.currentDataset, [Scalar]);
     const preds = await predsPromise;
 
     // Add scalar results as new column to the data service.
@@ -248,7 +284,7 @@ export class DataService extends LitService {
     for (const key of scalarKeys) {
       const scoreFeatName = this.getColumnName(model, key);
       const scores = preds.map(pred => pred[key]);
-      const dataType = createLitType('Scalar');
+      const dataType = createLitType(Scalar);
       const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
@@ -273,8 +309,8 @@ export class DataService extends LitService {
     return Array.from(this.columnHeaders.values());
   }
 
-  getColNamesOfType(typeName: LitName): string[] {
-    return this.cols.filter(col => isLitSubtype(col.dataType, typeName))
+  getColNamesOfType(litTypeType: typeof LitType): string[] {
+    return this.cols.filter(col => isLitSubtype(col.dataType, litTypeType))
                     .map(col => col.name);
   }
 

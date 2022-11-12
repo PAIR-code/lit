@@ -16,7 +16,6 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-icon';
 import '../elements/spinner';
 
 import * as d3 from 'd3';

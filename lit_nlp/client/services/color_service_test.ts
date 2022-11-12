@@ -56,8 +56,7 @@ describe('Color service test', () => {
 
   const app = new LitApp();
   const colorService = new ColorService(
-      app.getService(AppState), mockGroupService,
-      app.getService(DataService));
+      mockGroupService, app.getService(DataService));
 
   it('Tests colorableOption', () => {
     const opts = colorService.colorableOptions;
@@ -106,19 +105,16 @@ describe('Color service test', () => {
 
     // When the settings are updated, getDatapointColor() should reflect the
     // update.
-    colorService.selectedColorOption = colorService.colorableOptions[0];
+    colorService.selectedColorOptionName =
+        colorService.colorableOptions[0].name;
     color = colorService.getDatapointColor(mockInput);
     expect(color).toEqual(CATEGORICAL_NORMAL[1]);
 
     // Updating to a numerical color scheme.
-    colorService.selectedColorOption = colorService.colorableOptions[2];
+    colorService.selectedColorOptionName =
+        colorService.colorableOptions[2].name;
     color = colorService.getDatapointColor(mockInput);
     expect(color).toEqual('rgb(51, 138, 163)');
-
-    // After resetting, getDatapointColor() should reset.
-    colorService.reset();
-    color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual(DEFAULT);
   });
 
   it('provides color map classes for salience viz', () => {

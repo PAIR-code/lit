@@ -24,8 +24,9 @@ import {until} from 'lit/directives/until';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
+import {CategoryLabel, LitTypeWithNullIdx, LitTypeWithVocab, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ModelInfoMap, Spec} from '../lib/types';
-import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, isLitSubtype, setEquals} from '../lib/utils';
+import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, setEquals} from '../lib/utils';
 
 import {styles} from './pdp_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -51,11 +52,11 @@ export class PdpModule extends LitModule {
   static override title = 'Partial Dependence Plots';
   static override duplicateForExampleComparison = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<pdp-module model=${model}
-                            selectionServiceIndex=${selectionServiceIndex}>
-                </pdp-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <pdp-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </pdp-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -91,7 +92,7 @@ export class PdpModule extends LitModule {
   private async resetPlots(inputSpec: Spec) {
     this.plotVisibility.clear();
     this.plotInfo.clear();
-    const feats = findSpecKeys(inputSpec, ['Scalar', 'CategoryLabel']);
+    const feats = findSpecKeys(inputSpec, [Scalar, CategoryLabel]);
     for (const feat of feats) {
       if (inputSpec[feat].required) {
         this.plotVisibility.set(feat, false);
@@ -115,7 +116,7 @@ export class PdpModule extends LitModule {
     if (!this.plotVisibility.get(feat)) return html``;
 
     const spec = this.appState.getModelSpec(this.model);
-    const isNumeric = isLitSubtype(spec.input[feat], 'Scalar');
+    const isNumeric = spec.input[feat] instanceof Scalar;
 
     // Get plot info if already fetched by front-end, or make call to back-end
     // to calcuate it.
@@ -159,10 +160,10 @@ export class PdpModule extends LitModule {
         }
       }
 
-      const nullIdx = spec.output[predKey].null_idx;
-      const vocab = spec.output[predKey].vocab;
-      const isClassification = isLitSubtype(
-          spec.output[predKey], 'MulticlassPreds');
+      const {vocab} = spec.output[predKey] as LitTypeWithVocab;
+      const {null_idx: nullIdx} = spec.output[predKey] as LitTypeWithNullIdx;
+
+      const isClassification = spec.output[predKey] instanceof MulticlassPreds;
       const yRange = isClassification ? [0, 1] : [];
       const renderChart = (chartData: ChartInfo) => {
         if (isNumeric) {
@@ -229,14 +230,14 @@ export class PdpModule extends LitModule {
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     return html`${Array.from(this.plotVisibility.keys()).map(
         feat => this.renderPlotHolder(feat))}`;
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['RegressionScore', 'MulticlassPreds'])
-        && doesInputSpecContain(modelSpecs, ['Scalar', 'CategoryLabel'], true);
+    return doesOutputSpecContain(modelSpecs, [RegressionScore, MulticlassPreds])
+        && doesInputSpecContain(modelSpecs, [Scalar, CategoryLabel], true);
   }
 }
 

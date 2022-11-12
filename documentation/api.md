@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-01-19' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-07-29' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -69,6 +69,26 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 
 For pre-built `demo.py` examples, check out
 https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples
+
+### Validating Models and Data
+
+Datasets and models can optionally be validated by LIT to ensure that dataset
+examples match their spec and that model output values match their spec.
+This can be very helpful during development of new model and dataset wrappers
+to ensure correct behavior in LIT.
+
+At LIT server startup, the `validate` runtime flag can be used to enable
+validation.
+Setting the flag to `first` will validate the first example in each dataset for
+correctly typed values and validate it with each model it is compatible with, to
+ensure that the model outputs are also correctly typed. Setting it to `sample`
+will validate against a sample of 5% of each dataset. Setting it to `all` will
+validate all examples in all datasets. By default, no validation is performed,
+to enable quick startup.
+
+Additionally, if using LIT datasets and models outside of the LIT server,
+validation can be called directly through the
+[`validation`](../lit_nlp/lib/validation.py) module.
 
 ## Datasets
 
@@ -326,8 +346,6 @@ LM_LAYOUT = layout.LitCanonicalLayout(
             modules.EmbeddingsModule,
             modules.DataTableModule,
             modules.DatapointEditorModule,
-            modules.SliceModule,
-            modules.ColorModule,
         ]
     },
     lower={
@@ -576,11 +594,12 @@ which can be useful if
 
 The following [types](#available-types) are supported (see
 [interpreter_controls.ts](../lit_nlp/client/elements/interpreter_controls.ts)):
+
 *   `Scalar`, which creates a slider for setting a numeric option. You can
     specify the `min_val`, `max_val`, `default`, and `step`, values for the
     slider through arguments to the `Scalar` constructor.
-*   `Boolean`, which creates a checkbox, with a `default` value to be set in
-    the constructor.
+*   `Boolean` (`BooleanLitType` in TypeScript), which creates a checkbox, with
+    a `default` value to be set in the constructor.
 *   `CategoryLabel`, which creates a dropdown with options specified in the
     `vocab` argument.
 *   `SparseMultilabel`, which creates a series of checkboxes for each option
@@ -590,13 +609,14 @@ The following [types](#available-types) are supported (see
 *   `Tokens`, which creates an input text box for entry of multiple,
     comma-separated strings which are parsed into a list of strings to be
     supplied to the interpreter.
-*   `FieldMatcher`, which acts like a `CategoryLabel` but where the vocab is
-    automatically populated by the names of fields from the data or model spec.
-    For example, `FieldMatcher(spec='dataset', types=['TextSegment'])` will give
-    a dropdown with the names of all `TextSegment` fields in the dataset.
-*   `MultiFieldMatcher` is similar to `FieldMatcher` except it gives a set of
-    checkboxes to select one or more matching field names. The returned value in
-    `config` will be a list of string values.
+*   `SingleFieldMatcher`, which acts like a `CategoryLabel` but where the vocab
+    is automatically populated by the names of fields from the data or model
+    spec. For example, `SingleFieldMatcher(spec='dataset',
+    types=['TextSegment'])` will give a dropdown with the names of all
+    `TextSegment` fields in the dataset.
+*   `MultiFieldMatcher` is similar to `SingleFieldMatcher` except it gives a set
+    of checkboxes to select one or more matching field names. The returned value
+    in `config` will be a list of string values.
 
 The field matching controls can be useful for selecting one or more fields to
 operate on. For example,to choose which input fields to perturb, or which output
@@ -726,7 +746,9 @@ to provide access to model internals. For a more detailed example, see the
 
 The actual spec types, such as `MulticlassLabel`, are simple dataclasses (built
 using [`attr.s`](https://www.attrs.org/en/stable/). They are defined in Python,
-but are available in the [TypeScript client](client.md) as well.
+but are available in
+[TypeScript](../lit_nlp/client/lib/lit_types.ts) as
+well.
 
 [`utils.find_spec_keys()`](../lit_nlp/lib/utils.py)
 (Python) and
@@ -780,6 +802,10 @@ Values can be plain data, NumPy arrays, or custom dataclasses - see
 [dtypes.py](../lit_nlp/api/dtypes.py) and
 [serialize.py](../lit_nlp/api/serialize.py) for
 further detail.
+
+*Note: Note that `String`, `Boolean` and `URL` types in Python are represented
+as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
+naming collisions with protected TypeScript keywords.*
 
 ### Conventions
 

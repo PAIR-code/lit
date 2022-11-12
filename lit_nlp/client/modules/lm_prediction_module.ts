@@ -24,8 +24,9 @@ import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
+import {TextSegment, Tokens, TokenTopKPreds} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
-import {findMatchingIndices, findSpecKeys, isLitSubtype, replaceNth} from '../lib/utils';
+import {findMatchingIndices, findSpecKeys, replaceNth} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -39,10 +40,11 @@ export class LanguageModelPredictionModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<lm-prediction-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></lm-prediction-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <lm-prediction-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </lm-prediction-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -68,26 +70,28 @@ export class LanguageModelPredictionModule extends LitModule {
   @computed
   private get predKey(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return findSpecKeys(this.modelSpec.output, 'TokenTopKPreds')[0];
+    return findSpecKeys(this.modelSpec.output, TokenTopKPreds)[0];
   }
 
   @computed
   private get outputTokensKey(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return this.modelSpec.output[this.predKey].align as string;
+    return (this.modelSpec.output[this.predKey] as TokenTopKPreds).align as
+        string;
   }
 
   @computed
   private get outputTokensPrefix(): string {
     // This list is guaranteed to be non-empty due to checkModule()
-    return this.modelSpec.output[this.outputTokensKey].token_prefix as string;
+    return (this.modelSpec.output[this.outputTokensKey] as Tokens)
+               .token_prefix as string;
   }
 
   @computed
   private get inputTokensKey(): string|null {
     // Look for an input field matching the output tokens name.
     if (this.modelSpec.input.hasOwnProperty(this.outputTokensKey) &&
-        isLitSubtype(this.modelSpec.input[this.outputTokensKey], 'Tokens')) {
+        this.modelSpec.input[this.outputTokensKey] instanceof Tokens) {
       return this.outputTokensKey;
     }
     return null;
@@ -97,7 +101,7 @@ export class LanguageModelPredictionModule extends LitModule {
   private get maskToken() {
     // Look at metadata for /input/ field matching output tokens name.
     return this.inputTokensKey ?
-        this.modelSpec.input[this.inputTokensKey].mask_token :
+        (this.modelSpec.input[this.inputTokensKey] as Tokens).mask_token :
         undefined;
   }
 
@@ -133,7 +137,7 @@ export class LanguageModelPredictionModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [input], this.model, dataset, ['Tokens', 'TokenTopKPreds'],
+        [input], this.model, dataset, [Tokens, TokenTopKPreds], [],
         'Loading tokens');
     const results = await this.loadLatest('modelPreds', promise);
     if (results === null) return;
@@ -197,7 +201,7 @@ export class LanguageModelPredictionModule extends LitModule {
 
     const dataset = this.appState.currentDataset;
     const promise = this.apiService.getPreds(
-        [this.maskedInput], this.model, dataset, ['TokenTopKPreds']);
+        [this.maskedInput], this.model, dataset, [TokenTopKPreds]);
     const results = await this.loadLatest('mlmResults', promise);
     if (results === null) return;
 
@@ -209,7 +213,7 @@ export class LanguageModelPredictionModule extends LitModule {
                             tokenIndex: number) {
     // This logic ensure that if the token to replace occurs multiple times
     // in the text segment, that the correct instance of the token is replaced.
-    const textField = findSpecKeys(this.modelSpec.input, 'TextSegment')[0];
+    const textField = findSpecKeys(this.modelSpec.input, TextSegment)[0];
     let oldToken = this.tokens[tokenIndex];
     const tokensIndicesMatchingToken = findMatchingIndices(
         this.tokens, oldToken);
@@ -223,7 +227,7 @@ export class LanguageModelPredictionModule extends LitModule {
     datapoint.data[textField] = newText;
   }
 
-  override render() {
+  override renderImpl() {
     return html`
       <div class='module-container'>
         ${this.renderControls()}
@@ -380,10 +384,10 @@ export class LanguageModelPredictionModule extends LitModule {
    * Find available output fields.
    */
   static findTargetFields(outputSpec: Spec): string[] {
-    const candidates = findSpecKeys(outputSpec, 'TokenTopKPreds');
+    const candidates = findSpecKeys(outputSpec, TokenTopKPreds);
     return candidates.filter(k => {
-      const align = outputSpec[k].align;
-      return align != null && isLitSubtype(outputSpec[align], 'Tokens');
+      const align = (outputSpec[k] as TokenTopKPreds).align;
+      return align != null && (outputSpec[align] instanceof Tokens);
     });
   }
 

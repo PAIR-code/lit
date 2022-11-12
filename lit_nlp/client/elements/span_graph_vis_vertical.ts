@@ -21,8 +21,6 @@
 
 // tslint:disable:no-new-decorators
 
-import '@material/mwc-icon';
-
 import {property} from 'lit/decorators';
 import {customElement} from 'lit/decorators';
 import { html} from 'lit';
@@ -31,8 +29,8 @@ import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';
+import {EdgeLabel} from '../lib/dtypes';
 import {ReactiveElement} from '../lib/elements';
-import {EdgeLabel} from '../lib/types';
 
 import {styles} from './span_graph_vis_vertical.css';
 

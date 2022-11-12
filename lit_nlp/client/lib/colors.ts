@@ -94,6 +94,18 @@ export function ramp (range:string[]): (t:number) => string {
 }
 
 /**
+ * Converts a CSS color string to an RGB object.
+ *
+ * @throws {RangeError} The color argument must be a valid CSS color string.
+ */
+export function colorToRGB(color: string, opacity?: number): d3.RGBColor {
+  const colorObj = d3.color(color);
+  if (colorObj == null) throw new RangeError(`Invalid CSS color '${color}'`);
+  if (opacity != null) colorObj.opacity = opacity;
+  return colorObj.rgb();
+}
+
+/**
  * LIT Brand colors by palette with text color
  */
 export const BRAND_COLORS: {[palette in LitBrandPaletteKey]: ColorEntry[]} = {

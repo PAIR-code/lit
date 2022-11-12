@@ -52,11 +52,13 @@ class TestRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return 0.0 regression values for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:
@@ -83,11 +85,13 @@ class TestIdentityRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return input value for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:
@@ -197,3 +201,38 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
       testcase.fail('results and actual have different keys')
     for key in result:
       assert_deep_almost_equal(testcase, result[key], actual[key])
+
+
+class TestCustomOutputModel(lit_model.Model):
+  """Implements lit.Model interface for testing.
+
+  This class allows user-specified outputs for testing return values.
+  """
+
+  def __init__(self, input_spec: lit_types.Spec, output_spec: lit_types.Spec,
+               results: List[JsonDict]):
+    """Set model internals.
+
+    Args:
+      input_spec: An input spec.
+      output_spec: An output spec.
+      results: Results to return.
+    """
+    self._input_spec = input_spec
+    self._output_spec = output_spec
+    self._predict_counter = 0
+    self._results = results
+
+  # LIT API implementation
+  def input_spec(self):
+    return self._input_spec
+
+  def output_spec(self):
+    return self._output_spec
+
+  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+    def predict_single(_):
+      output = self._results[self._predict_counter % len(self._results)]
+      self._predict_counter += 1
+      return output
+    return map(predict_single, inputs)
