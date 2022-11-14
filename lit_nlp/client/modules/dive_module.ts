@@ -42,6 +42,9 @@ const COLOR_PINNED_BORDER = colorToRGB(getBrandColor('mage', '700').color);
 const COLOR_NONE = [0, 0, 0, 0];
 const HEURISTIC_SCALE_FACTOR = 0.7;
 const TEXT_SIZE = 14;
+const ZOOM_IN_FACTOR = 1.1;
+const ZOOM_OUT_FACTOR = 0.9;
+const ZOOM_WHEEL_FACTOR = -0.05;
 
 /**
  * A map from the feature facet display name to the number of dots in a cell
@@ -133,6 +136,29 @@ export class DiveModule extends LitModule {
         width: 100%;
         cursor: crosshair;
       }
+
+      select.limit-width {
+        width: 150px;
+        max-width: 150px;
+      }
+
+      .dive-controls {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .dive-controls .feature-selectors {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .dive-controls .icon-button {
+        font-size: 16px;
+      }
     `;
 
     return [sharedStyles, styles];
@@ -181,6 +207,7 @@ export class DiveModule extends LitModule {
 
   /** The Megaplot Scene into which the visualization is rendered. */
   private scene?: Scene;
+  private mouseDown?: Position2D;
 
   /** The Megaplot Selections that get rendered into the visualziation. */
   private readonly selections: DiveSelections = Object.seal({
@@ -471,12 +498,30 @@ export class DiveModule extends LitModule {
     this.resetScale();
   }
 
+  private updateZoom(scaleX: number, scaleY: number) {
+    if (this.scene != null) {
+      const {x: offsetX, y: offsetY} = this.scene.offset;
+      this.scene.scale.x = scaleX;
+      this.scene.scale.y = scaleY;
+      this.scene.offset.x = offsetX;
+      this.scene.offset.y = offsetY;
+    }
+  }
+
   private renderControls() {
     const colsChange = (event: Event) => {
       this.colsFeatureIdx = Number((event.target as HTMLInputElement).value);
     };
+
     const rowsChange = (event: Event) => {
       this.rowsFeatureIdx = Number((event.target as HTMLInputElement).value);
+    };
+
+    const zoomChange = (factor: number) => {
+      if (this.scene != null) {
+        const {x, y} = this.scene.scale;
+        this.updateZoom(x * factor, y * factor);
+      }
     };
 
     const dropDownSpecs: Array<[string, number, (e: Event) => void]> = [
@@ -485,14 +530,35 @@ export class DiveModule extends LitModule {
     ];
 
     // clang-format off
-    return dropDownSpecs.map(([label, index, onChange]) => html`
-      <div class="dropdown-holder">
-        <label class="dropdown-label">${label}</label>
-        <select class="dropdown" @change=${onChange}>
-          ${this.groupService.denseFeatureNames.map((feature, i) => html`
-            <option value=${i} ?selected=${index === i}>${feature}</option>`)}
-        </select>
-      </div>`);
+    return html`<div class="dive-controls">
+      <div class="feature-selectors">
+        ${dropDownSpecs.map(([label, index, onChange]) => html`
+        <div class="dropdown-holder">
+          <label class="dropdown-label">${label}</label>
+          <select class="dropdown limit-width" @change=${onChange}
+                  title=${this.groupService.denseFeatureNames[index]}>
+            ${this.groupService.denseFeatureNames.map((feature, i) => html`
+              <option value=${i} ?selected=${index === i}>
+                ${feature}
+              </option>`)}
+          </select>
+        </div>`)}
+      </div>
+      <div class="view-controls">
+        <span class="material-icon-outlined icon-button" title="Zoom in"
+              @click=${() =>{zoomChange(ZOOM_IN_FACTOR);}}>
+          zoom_in
+        </span>
+        <span class="material-icon-outlined icon-button" title="Zoom out"
+              @click=${() =>{zoomChange(ZOOM_OUT_FACTOR);}}>
+          zoom_out
+        </span>
+        <span class="material-icon-outlined icon-button" title="Reset view"
+              @click=${() =>{this.resetScale();}}>
+          view_in_ar
+        </span>
+      </div>
+    </div>`;
     // clang-format on
   }
 
@@ -539,13 +605,41 @@ export class DiveModule extends LitModule {
       }
     };
 
-    const hover = (event: MouseEvent) => {
+    const mousedown = (event: MouseEvent) => {
+      this.mouseDown = {x: event.offsetX, y: event.offsetY};
+    };
+
+    const mousemove = (event: MouseEvent) => {
       const {offsetX: x, offsetY: y} = event;
-      const hovered = this.selections.points?.hitTest({x, y});
-      if (hovered?.length) {
-        this.focusService.setFocusedDatapoint(hovered[0].id);
-      } else {
+
+      if (this.mouseDown != null) {   // This is a pan interaction
+        if (this.scene == null) return;
         this.focusService.clearFocus();
+        this.scene.offset.x -= this.mouseDown.x - x;
+        this.scene.offset.y -= this.mouseDown.y - y;
+        this.mouseDown = {x, y};
+      } else {  // This is a hover interaction
+        const hovered = this.selections.points?.hitTest({x, y});
+        if (hovered?.length) {
+          this.focusService.setFocusedDatapoint(hovered[0].id);
+        } else {
+          this.focusService.clearFocus();
+        }
+      }
+    };
+
+    const mouseup = (event: MouseEvent) => {
+      this.mouseDown = undefined;
+    };
+
+    const wheelZoom = (event: WheelEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (this.scene != null) {
+        const {x, y} = this.scene.scale;
+        const factor = event.deltaY * ZOOM_WHEEL_FACTOR;
+        this.updateZoom(x + factor, y + factor);
       }
     };
 
@@ -553,7 +647,9 @@ export class DiveModule extends LitModule {
     return html`<div class="module-container">
       <div class='module-toolbar'>${this.renderControls()}</div>
       <div class="module-results-area">
-        <div class="scene" @mousemove=${hover} @click=${select}></div>
+        <div class="scene" @click=${select} @mousedown=${mousedown}
+             @mousemove=${mousemove} @mouseout=${mouseup} @mouseup=${mouseup}
+             @wheel=${wheelZoom}></div>
       </div>
       <div class="module-footer">${this.renderFooter()}</div>
     </div>`;
