@@ -28,14 +28,17 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
-import {colorToRGB} from '../lib/colors';
+import {colorToRGB, getBrandColor} from '../lib/colors';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {GroupedExamples, IndexedInput} from '../lib/types';
 import {FacetingConfig, FacetingMethod} from '../services/group_service';
-import {ColorService, DataService, GroupService} from '../services/services';
+import {ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
 const CELL_PADDING = 8;
-const COLOR_BLACK = [0, 0, 0, 1];
+const COLOR_TEXT = colorToRGB('black');
+const COLOR_PRIMARY_BORDER = colorToRGB(getBrandColor('cyea', '700').color);
+const COLOR_HOVER_FILL = colorToRGB(getBrandColor('mage', '400').color);
+const COLOR_PINNED_BORDER = colorToRGB(getBrandColor('mage', '700').color);
 const COLOR_NONE = [0, 0, 0, 0];
 const HEURISTIC_SCALE_FACTOR = 0.7;
 const TEXT_SIZE = 14;
@@ -98,7 +101,7 @@ interface DiveSelections {
 }
 
 function bindLabel(sprite: SpriteView, label: Label) {
-  sprite.FillColor = COLOR_BLACK;
+  sprite.FillColor = COLOR_TEXT;
   sprite.SizePixel = TEXT_SIZE;
   sprite.PositionWorld = label.world;
   sprite.PositionPixel = label.pixel;
@@ -128,6 +131,7 @@ export class DiveModule extends LitModule {
       .scene {
         height: 100%;
         width: 100%;
+        cursor: crosshair;
       }
     `;
 
@@ -142,7 +146,10 @@ export class DiveModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
   private readonly dataService = app.getService(DataService);
+  private readonly focusService = app.getService(FocusService);
   private readonly groupService = app.getService(GroupService);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
 
   /**
    * An index into `this.groupService.denseFeatureNames`, used to find the
@@ -206,9 +213,29 @@ export class DiveModule extends LitModule {
     if (colFeature == null || rowFeature == null) return;
 
     const bindDot = (sprite: SpriteView, dot: Dot) => {
+      const isHovered =
+          this.focusService.focusData?.datapointId === dot.id;
+      const isPinned =
+          this.pinnedSelectionService.primarySelectedId === dot.id;
+      const isPrimary =
+          this.selectionService.primarySelectedId === dot.id;
+      const isSelected =
+          this.selectionService.selectedIds.includes(dot.id) &&
+          !(isHovered || isPinned || isPrimary);
+      const isSpecial = isHovered || isPinned || isPrimary || isSelected;
+      const noSelections = this.selectionService.selectedIds.length === 0;
+
       const input = this.appState.getCurrentInputDataById(dot.id);
       const colorString = this.colorService.getDatapointColor(input);
-      sprite.FillColor = colorToRGB(colorString);
+      const color = colorToRGB(colorString);
+
+      sprite.BorderColor = isPinned  ? COLOR_PINNED_BORDER :
+                           isPrimary ? COLOR_PRIMARY_BORDER : color;
+      sprite.BorderColorOpacity = isSpecial ? 1 : 0.25;
+      sprite.BorderRadiusPixel = (isPinned || isPrimary) ? 2 : 0;
+      sprite.BorderPlacement = 1;
+      sprite.FillColor = (isHovered || isPinned) ? COLOR_HOVER_FILL : color;
+      sprite.FillColorOpacity = (noSelections || isSpecial) ? 1 : 0.25;
       sprite.PositionWorld = dot.world;
       sprite.PositionPixel = dot.pixel;
       sprite.Sides = 2;
@@ -486,10 +513,48 @@ export class DiveModule extends LitModule {
   // special case where the render pass here is just a set up for the containers
   // and the true rendering happens in reactions.
   override render() {
+    const select = (event: MouseEvent) => {
+      const {offsetX: x, offsetY: y} = event;
+      const selected = this.selections.points?.hitTest({x, y});
+      if (selected?.length) {
+        const primary = selected[0].id;
+        const ids = selected.map(d => d.id);
+
+        // Hold down Alt/Option key to pin a datapoint.
+        if (event.altKey) {
+          this.pinnedSelectionService.selectIds([]);
+          this.pinnedSelectionService.setPrimarySelection(primary);
+          return;
+        }
+
+        // Hold down Ctrl or Cmd to preserve current selection.
+        if (event.metaKey || event.ctrlKey) {
+          ids.unshift(...this.selectionService.selectedIds);
+        }
+
+        this.selectionService.selectIds(ids);
+        this.selectionService.setPrimarySelection(primary);
+      } else {
+        this.selectionService.selectIds([]);
+      }
+    };
+
+    const hover = (event: MouseEvent) => {
+      const {offsetX: x, offsetY: y} = event;
+      const hovered = this.selections.points?.hitTest({x, y});
+      if (hovered?.length) {
+        this.focusService.setFocusedDatapoint(hovered[0].id);
+      } else {
+        this.focusService.clearFocus();
+      }
+    };
+
     // clang-format off
     return html`<div class="module-container">
       <div class='module-toolbar'>${this.renderControls()}</div>
-      <div class="module-results-area"><div class="scene"></div></div>
+      <div class="module-results-area">
+        <div class="scene" @mousemove=${hover} @click=${select}></div>
+      </div>
       <div class="module-footer">${this.renderFooter()}</div>
     </div>`;
     // clang-format on
@@ -498,7 +563,7 @@ export class DiveModule extends LitModule {
   override firstUpdated() {
     if (this.container == null) return;
     this.scene = new Scene({container: this.container,
-                            defaultTransitionTimeMs: 500});
+                            defaultTransitionTimeMs: 300});
 
     this.selections.columnLabels = this.scene.createTextSelection<Label>();
     this.selections.columnLabels.align(() => 'center')
@@ -537,6 +602,13 @@ export class DiveModule extends LitModule {
       this.configure();
       this.draw();
     });
+
+    const selectionChanges = () => [
+        this.selectionService.selectedIds,
+        this.selectionService.primarySelectedId,
+        this.pinnedSelectionService.primarySelectedId,
+        this.focusService.focusData?.datapointId];
+    this.reactImmediately(selectionChanges, () => {this.draw();});
   }
 }
 
