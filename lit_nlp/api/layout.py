@@ -42,6 +42,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SimpleDataTableModule = 'simple-data-table-module'
   DatapointEditorModule = 'datapoint-editor-module'
   SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
+  DiveModule = 'dive-module'
   DocumentationModule = 'documentation-module'
   EmbeddingsModule = 'embeddings-module'
   FeatureAttributionModule = 'feature-attribution-module'

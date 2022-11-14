@@ -93,7 +93,8 @@ describe('classification service test', () => {
         new ClassificationService(mockAppState as {} as AppState);
 
     function getMargin (facet?: string) {
-      const facetData = facet != null ? {displayName: facet, data: []} : undefined;
+      const facetData = facet != null ?
+          {displayName: facet, data: [], facets: {}} : undefined;
       return classificationService.getMargin(MODEL_NAME, FIELD_NAME, facetData);
     }
 
@@ -116,7 +117,7 @@ describe('classification service test', () => {
 
     if (facets != null) {
       const groupedExamples = facets.reduce((obj, facet) => {
-        obj[facet] = {data: [], displayName: facet};
+        obj[facet] = {data: [], displayName: facet, facets: {}};
         return obj;
       }, {} as GroupedExamples);
 
@@ -129,8 +130,9 @@ describe('classification service test', () => {
         });
 
         it(`updates margin for ${facet} facet from a spec ${name}`, () => {
-          classificationService.setMargin(MODEL_NAME, FIELD_NAME, UPDATED_MARGIN,
-                                          {displayName: facet, data: []});
+          const facetData = {displayName: facet, data: [], facets: {}};
+          classificationService.setMargin(MODEL_NAME, FIELD_NAME,
+                                          UPDATED_MARGIN, facetData);
           expect(getMargin(facet)).toBe(UPDATED_MARGIN);
         });
 

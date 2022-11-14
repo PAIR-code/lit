@@ -14,6 +14,7 @@ from absl import flags
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import layout
 from lit_nlp.components import minimal_targeted_counterfactuals
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
@@ -23,8 +24,25 @@ import transformers
 MODEL_PATH = transformers.file_utils.cached_path(MODEL_PATH)
 
 FLAGS = flags.FLAGS
+FLAGS.set_default('default_layout', 'penguins')
 _MODEL_PATH = flags.DEFINE_string('model_path', MODEL_PATH,
                                   'Path to load trained model.')
+
+
+# Custom frontend layout; see api/layout.py
+modules = layout.LitModuleName
+PENGUIN_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        'Main': [
+            modules.DiveModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ]
+    },
+    lower=layout.STANDARD_LAYOUT.lower,
+    description='Custom layout for the Palmer Penguins demo.',
+)
+CUSTOM_LAYOUTS = {'penguins': PENGUIN_LAYOUT}
 
 
 # Function for running demo through gunicorn instead of the local dev server.
@@ -48,7 +66,11 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           minimal_targeted_counterfactuals.TabularMTC()
   }
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 

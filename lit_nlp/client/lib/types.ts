@@ -123,7 +123,7 @@ export interface FacetedData {
   /** Name to display */
   displayName?: string;
   /** What values were used as filters to get this data */
-  facets?: FacetMap;
+  facets: FacetMap;
 }
 
 /**
