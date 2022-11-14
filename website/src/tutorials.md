@@ -28,6 +28,9 @@ c-copy: "Get familiar with the interface of the Language Interpretability Tool."
 {% include partials/tutorial-link-element c-title: "Salience Maps for Text", link: "/tutorials/text-salience",
 c-copy: "Learn how to use salience maps for text data in LIT." %}
 
+{% include partials/tutorial-link-element c-title: "Tabular Feature Attribution", link: "/tutorials/tab-feat-attr",
+c-copy: "Learn how to use the Kernel SHAP based Tabular Feature Attribution module in LIT." %}
+
 {% include partials/tutorial-link-element c-title: "Global Model Analysis with TCAV", link: "/tutorials/tcav",
 c-copy: "Learn about examining model behavior through user-curated concepts." %}
 
