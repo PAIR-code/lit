@@ -33,7 +33,7 @@ visualizations and support user interaction. For more details, see the
 [UI guide](./ui_guide.md) and the 
 [frontend developer guide](./frontend_development.md).
 
-[^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
+[^1]: Naming is just a happy coincidence; the Learning Interpretability Tool is
       not related to the Lit projects.
 
 ## Adding Models and Data

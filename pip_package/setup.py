@@ -40,6 +40,7 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="lit-nlp",
     version="0.4.1",
+    # TODO(lit-dev): Rename to Learning when version is incremented to 0.5.
     description="Language Interpretability Tool.",
     long_description=long_description,
     long_description_content_type="text/markdown",

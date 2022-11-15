@@ -2,7 +2,7 @@
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
 
-This is a user guide for the Language Interpretability Tool (LIT) UI.
+This is a user guide for the Learning Interpretability Tool (LIT) UI.
 
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
