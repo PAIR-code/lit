@@ -76,12 +76,15 @@ FLAGS.set_default("default_layout", "lm")
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
+  """Return WSGI app for container-hosted demos."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("lm_demo:get_wsgi_app() called with unused args: %s", unused)
+  return main([])
 
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:

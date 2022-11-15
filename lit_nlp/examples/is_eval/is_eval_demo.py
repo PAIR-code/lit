@@ -63,7 +63,10 @@ def get_wsgi_app():
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("is_eval_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
 def main(_):

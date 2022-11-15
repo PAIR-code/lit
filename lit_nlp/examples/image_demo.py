@@ -7,8 +7,10 @@ Then navigate to localhost:5432 to access the demo UI.
 """
 
 import sys
+from typing import Optional, Sequence
 from absl import app
 from absl import flags
+from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
@@ -27,17 +29,23 @@ FLAGS.set_default('default_layout', 'demo_layout')
 FLAGS.set_default('page_title', 'LIT Image Demo')
 
 
-# Function for running demo through gunicorn instead of the local dev server.
 def get_wsgi_app():
+  """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default('server_type', 'external')
   FLAGS.set_default('demo_mode', True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info('image_demo:get_wsgi_app() called with unused args: %s',
+                 unused)
+  return main([])
 
 
-def main(_):
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError('Too many command-line arguments.')
+
   modules = layout.LitModuleName
   demo_layout = layout.LitComponentLayout(
       components={

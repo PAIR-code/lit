@@ -67,6 +67,7 @@ FLAGS.set_default("development_demo", True)
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
+  """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   FLAGS.set_default("data_dir", "./t5_data/")
@@ -74,7 +75,9 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("t5_demo:get_wsgi_app() called with unused args: %s", unused)
+  return main([])
 
 
 def build_indexer(models):

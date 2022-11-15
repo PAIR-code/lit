@@ -49,6 +49,7 @@ from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
+from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
@@ -122,13 +123,17 @@ FLAGS.set_default("default_layout", "winogender")
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
+  """Return WSGI app for container-hosted demos."""
   # Set defaults for container-hosted demo.
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("do_train", False)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("coref_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
 def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
