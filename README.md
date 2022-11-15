@@ -1,6 +1,6 @@
 # 🔥 Language Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-07-08' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-15' } *-->
 
 The Language Interpretability Tool (LIT) is a visual, interactive ML
 model-understanding tool that supports text, image, and tabular data. It can be
@@ -133,9 +133,27 @@ Run all the cells to see LIT on an example classification model in the notebook.
 
 ### Run LIT in a Docker container
 
-See [docker.md](https://github.com/PAIR-code/lit/wiki/docker.md) for instructions on running LIT as a
-containerized web app. This is how we run our
-[hosted demos](https://pair-code.github.io/lit/demos/).
+LIT can be run as a containerized app using [Docker](https://www.docker.com/) or
+your preferred engine. Use the following shell commands to build the default
+Docker image for LIT from the provided `Dockerfile`, and then run a container
+from that image. Comments are provided in-line to help explain each step.
+
+```shell
+# Build the docker image using the -t argument to name the image. Remember to
+# include the trailing . so Docker knows where to look for the Dockerfile
+docker build -t lit_app .
+
+# Now you can run LIT as a containerized app using the following command. Note
+# that the last parameter to the run command is the value you passed to the -t
+# argument in the build command above.
+docker run --rm -p 5432:5432 lit-app
+```
+
+The image above defaults to launching the GLUE demo on port 5432, but you can
+override this using environment variables. See our
+[advanced guide](https://github.com/PAIR-code/lit/wiki/docker.md) for detailed instructions on using the default
+LIT Docker image, running LIT as a containerized web app in different scenarios,
+and how to creating your own LIT images.
 
 ### More Examples
 
