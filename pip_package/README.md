@@ -1,6 +1,6 @@
-# Language Interpretability Tool (LIT)
+# Learning Interpretability Tool (LIT)
 
-The Language Interpretability Tool (LIT) is a visual, interactive
+The Learning Interpretability Tool (LIT) is a visual, interactive
 model-understanding tool for NLP models.
 
 LIT is built to answer questions such as:

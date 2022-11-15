@@ -17,7 +17,7 @@ color: "#fef0f7"
 ## Discover the basics
 
 {% include partials/tutorial-link-element c-title: "A Tour of LIT", link: "/tutorials/tour",
-c-copy: "Get familiar with the interface of the Language Interpretability Tool." %}
+c-copy: "Get familiar with the interface of the Learning Interpretability Tool." %}
 
 {% include partials/spacer height:50 %}
 

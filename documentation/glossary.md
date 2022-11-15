@@ -13,8 +13,9 @@ LIT APIs and codebase:
     feed to models and get predictions back.
 *   **Instance**, a specific implementation of LIT (e.g. a demo.py binary) or
     server job running the former.
-*   **LIT**, the Language Interpretability Tool. Always fully capitalized,
+*   **LIT**, the Learning Interpretability Tool. Always fully capitalized,
     sometimes accompanied by a 🔥 emoji. Pronounced "lit", not "ell-eye-tee".
+    Formerly known as the Language Interpretability Tool.
 *   **Lit**, the web framework consisting of
     [lit-element](https://lit-element.polymer-project.org/guide) and
     [lit-html](https://lit-html.polymer-project.org/guide) and maintained by the

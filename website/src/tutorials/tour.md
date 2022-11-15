@@ -1,5 +1,5 @@
 ---
-title: A Quick Tour of the Language Interpretability Tool
+title: A Quick Tour of the Learning Interpretability Tool
 layout: layouts/tutorial.liquid
 
 hero-image: /assets/images/sample-banner.png
@@ -11,10 +11,10 @@ bc-category-title: "Basics"
 bc-title: "Tour"
 
 time: "7 minutes"
-takeaways: "Get familiar with the interface of the Language Interpretability Tool."
+takeaways: "Get familiar with the interface of the Learning Interpretability Tool."
 ---
 
-## A Quick Tour of the Language Interpretability Tool
+## A Quick Tour of the Learning Interpretability Tool
 {% include partials/link-out link: "../../demos/glue.html", text: "Follow along in the hosted demo." %}
 {% include partials/spacer height:10 %}
 
@@ -23,14 +23,14 @@ takeaways: "Get familiar with the interface of the Language Interpretability Too
 </div>
 {% include partials/spacer height:10 %}
 
-The Language Interpretability Tool (LIT)  is a modular and extensible tool to interactively analyze and debug a variety of NLP models. LIT brings together common machine learning performance checks with interpretability methods specifically designed for NLP.
+The Learning Interpretability Tool (LIT)  is a modular and extensible tool to interactively analyze and debug a variety of NLP models. LIT brings together common machine learning performance checks with interpretability methods specifically designed for NLP.
 
 ### Building blocks - modules, groups, and workspaces
 
 **Modules, groups, and workspaces** form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.
 
 {% include partials/inset-image image: '/assets/images/lit-workspaces.png', 
-  caption: 'Above: Building blocks of the Language Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.'%}
+  caption: 'Above: Building blocks of the Learning Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.'%}
 
 LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.
 

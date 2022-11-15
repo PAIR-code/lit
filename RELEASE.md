@@ -1,4 +1,4 @@
-# Language Interpretability Tool releases
+# Learning Interpretability Tool releases
 
 ## Release 0.4.1
 

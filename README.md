@@ -1,11 +1,12 @@
-# 🔥 Language Interpretability Tool (LIT)
+# 🔥 Learning Interpretability Tool (LIT)
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-15' } *-->
 
-The Language Interpretability Tool (LIT) is a visual, interactive ML
-model-understanding tool that supports text, image, and tabular data. It can be
-run as a standalone server, or inside of notebook environments such as Colab,
-Jupyter, and Google Cloud Vertex AI notebooks.
+The Learning Interpretability Tool (🔥LIT, formerly known as the Language
+Interpretability Tool) is a visual, interactive ML model-understanding tool that
+supports text, image, and tabular data. It can be run as a standalone server, or
+inside of notebook environments such as Colab, Jupyter, and Google Cloud Vertex
+AI notebooks.
 
 LIT is built to answer questions such as:
 
