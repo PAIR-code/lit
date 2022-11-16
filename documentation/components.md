@@ -268,9 +268,8 @@ soon. Available methods include:
 ### Gradient Norm
 
 This is a simple method, in which salience scores are proportional to the L2
-norm of the gradient, i.e. the score for token $i$ is:
-
-$$S(i) \propto ||\nabla_{x_i} \hat{y}||_2$$
+norm of the gradient, i.e. the score for token $$i$$ is $$ S(i) \propto
+||\nabla_{x_i} \hat{y}||_2 $$.
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -280,25 +279,22 @@ To enable this method, your model should, as part of the
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`). Values should be arrays
     of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
-    $\hat{y}$.
+    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
+    $$\hat{y}$$.
 
 Because LIT is framework-agnostic, the model code is responsible for performing
 the gradient computation and returning the result as a NumPy array. The choice
-of $\hat{y}$ is up to the developer; typically for regression/scoring this is
+of $$\hat{y}$$ is up to the developer; typically for regression/scoring this is
 the raw score and for classification this is the score of the predicted (argmax)
 class.
 
 ### Gradient-dot-Input
 
 In this method, salience scores are proportional to the dot product of the input
-embeddings and their gradients, i.e. for token $i$ we compute:
-
-$$S(i) \propto x_i \cdot \nabla_{x_i} \hat{y}$$
-
-Compared to grad-norm, this gives directional
+embeddings and their gradients, i.e. for token $$i$$ we take $$ S(i) \propto x_i
+\cdot \nabla_{x_i} \hat{y}$$. Compared to grad-norm, this gives directional
 scores: a positive score is can be interpreted as that token having a positive
-influence on the prediction $\hat{y}$, while a negative score suggests that
+influence on the prediction $$\hat{y}$$, while a negative score suggests that
 the prediction would be stronger if that token was removed.
 
 To enable this method, your model should, as part of the
@@ -307,13 +303,13 @@ To enable this method, your model should, as part of the
 *   Return a `Tokens` field with values (as `List[str]`) containing the
     tokenized input.
 *   Return a `TokenEmbeddings` field with values as arrays of shape
-    `<float>[num_tokens, emb_dim]` containing the input embeddings $x$.
+    `<float>[num_tokens, emb_dim]` containing the input embeddings $$x$$.
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`), and the `grad_for`
     attribute pointing to the name of the `TokenEmbeddings` field. Values should
     be arrays of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
-    $\hat{y}$.
+    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
+    $$\hat{y}$$.
 
 As with grad-norm, the model should return embeddings and gradients as NumPy
 arrays. The LIT `GradientDotInput` component will compute the dot products and
@@ -339,7 +335,7 @@ needed for grad-dot-input, and also to *accept* modified embeddings as input.
 *   The model should have an additional field ("grad_class", below) which is
     used to pin the gradients to a particular target class. This is necessary
     because we want to integrate gradients with respect to a single target
-    $\hat{y}$, but the argmax prediction may change over the integration path.
+    $$\hat{y}$$, but the argmax prediction may change over the integration path.
     This field can be any type, though for classification models it is typically
     a `CategoryLabel`. The value of this on the original input (usually, the
     argmax class) is stored and fed back in to the model during integration.
