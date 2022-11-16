@@ -3,6 +3,9 @@ FROM mcr.microsoft.com/devcontainers/anaconda:0-3
 ARG NODE_VERSION="lts/*"
 RUN if [ "${NODE_VERSION}" != "none" ]; then su vscode -c "umask 0002 && . /usr/local/share/nvm/nvm.sh && nvm install ${NODE_VERSION} 2>&1"; fi
 
+# Update conda, as the default image has a very old version.
+RUN /opt/conda/bin/conda update -n base -c defaults conda
+
 # Copy environment.yml (if found) to a temp location so we update the environment. Also
 # copy "noop.txt" so the COPY instruction does not fail if no environment.yml exists.
 COPY environment.yml* .devcontainer/noop.txt /tmp/conda-tmp/
