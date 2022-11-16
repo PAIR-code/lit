@@ -13,12 +13,14 @@ LIT can be run as a containerized app using [Docker](https://www.docker.com/) or
 your preferred engine. This is how we run our
 [hosted demos](https://pair-code.github.io/lit/demos/).
 
-We provide a basic [`Dockerfile`](../Dockerfile) that you can use to build and
-run any of the demos in the `lit_nlp/examples` directory. The `Dockerfile`
-installs all necessary dependencies for LIT and builds the front-end code from
-source. Then it runs [gunicorn](https://gunicorn.org/) as the HTTP server,
-invoking the `get_wsgi_app()` method from our demo file to get the WSGI app to
-serve. The options provided to gunicorn for our use-case can be found in
+We provide a basic
+[`Dockerfile`](../lit_nlp/Dockerfile) that you can
+use to build and run any of the demos in the `lit_nlp/examples` directory. The
+`Dockerfile` installs all necessary dependencies for LIT and builds the
+front-end code from source. Then it runs [gunicorn](https://gunicorn.org/) as
+the HTTP server, invoking the `get_wsgi_app()` method from our demo file to get
+the WSGI app to serve. The options provided to gunicorn for our use-case can be
+found in
 [`gunicorn_config.py`](../lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
 [`glue_demo.py`](../lit_nlp/examples/glue_demo.py) or
@@ -30,8 +32,8 @@ are provided in-line to help explain what each step does.
 
 ```shell
 # Build the docker image using the -t argument to name the image. Remember to
-# include the trailing . so Docker knows where to look for the Dockerfile
-docker build -t lit_app .
+# include the trailing . so Docker knows where to look for the Dockerfile.
+docker build -t lit-app .
 
 # Now you can run LIT as a containerized app using the following command. Note
 # that the last parameter to the run command is the value you passed to the -t
