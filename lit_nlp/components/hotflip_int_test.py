@@ -65,9 +65,10 @@ class HotflipIntegrationTest(parameterized.TestCase):
       ('2_examples', 2),
   )
   def test_hotflip_num_ex(self, num_examples: int):
-    config = _CONFIG_CLASSIFICATION | {hotflip.NUM_EXAMPLES_KEY: num_examples}
-    counterfactuals = self.hotflip.generate(
-        _SST2_EXAMPLE, self.classification_model, None, config)
+    config = {**_CONFIG_CLASSIFICATION, hotflip.NUM_EXAMPLES_KEY: num_examples}
+    counterfactuals = self.hotflip.generate(_SST2_EXAMPLE,
+                                            self.classification_model, None,
+                                            config)
     self.assertLen(counterfactuals, num_examples)
 
   @parameterized.named_parameters(
@@ -76,18 +77,19 @@ class HotflipIntegrationTest(parameterized.TestCase):
       ('2_examples', 2),
   )
   def test_hotflip_num_ex_multi_input(self, num_examples: int):
-    config = _CONFIG_REGRESSION | {hotflip.NUM_EXAMPLES_KEY: num_examples}
-    counterfactuals = self.hotflip.generate(
-        _STSB_EXAMPLE, self.regression_model, None, config)
+    config = {**_CONFIG_REGRESSION, hotflip.NUM_EXAMPLES_KEY: num_examples}
+    counterfactuals = self.hotflip.generate(_STSB_EXAMPLE,
+                                            self.regression_model, None, config)
     self.assertLen(counterfactuals, num_examples)
 
   @parameterized.named_parameters(
       ('terrible', ['terrible'], [4]),
       ('long_terrible', ['long', 'terrible'], [1, 4]),
   )
-  def test_hotflip_freeze_tokens(
-      self, ignore: list[str], exp_indexes: list[int]):
-    config = _CONFIG_CLASSIFICATION | {
+  def test_hotflip_freeze_tokens(self, ignore: list[str],
+                                 exp_indexes: list[int]):
+    config = {
+        **_CONFIG_CLASSIFICATION,
         hotflip.NUM_EXAMPLES_KEY: 10,
         hotflip.TOKENS_TO_IGNORE_KEY: ignore,
     }
@@ -101,13 +103,20 @@ class HotflipIntegrationTest(parameterized.TestCase):
         self.assertEqual(target, tokens[index])
 
   def test_hotflip_freeze_tokens_multi_input(self):
-    config = _CONFIG_REGRESSION | {
+    config = {
+        **_CONFIG_REGRESSION,
         hotflip.NUM_EXAMPLES_KEY: 10,
-        hotflip.TOKENS_TO_IGNORE_KEY: ['terrible', 'long'],
+        hotflip.TOKENS_TO_IGNORE_KEY: ['long', 'terrible'],
     }
 
-    counterfactuals = self.hotflip.generate(
-        _STSB_EXAMPLE, self.regression_model, None, config)
+    ex = {
+        'sentence1': 'this long movie is terrible.',
+        'sentence2': 'this long movie is great.',
+    }
+
+    counterfactuals = self.hotflip.generate(ex, self.regression_model, None,
+                                            config)
+
     for cf in counterfactuals:
       tokens1 = cf['tokens_sentence1']
       tokens2 = cf['tokens_sentence2']
@@ -116,22 +125,28 @@ class HotflipIntegrationTest(parameterized.TestCase):
       self.assertEqual('long', tokens2[1])
 
   def test_hotflip_max_flips(self):
-    config = _CONFIG_CLASSIFICATION
+    config = {
+        **_CONFIG_CLASSIFICATION,
+        hotflip.MAX_FLIPS_KEY: 1,
+        hotflip.NUM_EXAMPLES_KEY: 1,
+    }
     ex = _SST2_EXAMPLE
 
     ex_output = list(self.classification_model.predict([ex]))[0]
     ex_tokens = ex_output['tokens_sentence']
-    cfs = self.hotflip.generate(ex, self.classification_model, None, config)
-    cf_tokens = list(cfs)[0]['tokens_sentence']
-    self.assertEqual(1, sum([1 for i, t in enumerate(cf_tokens)
-                             if t != ex_tokens[i]]))
+    cfs_1 = self.hotflip.generate(ex, self.classification_model, None, config)
+    cf_tokens = list(cfs_1)[0]['tokens_sentence']
 
     ex = {'sentence': 'this long movie is terrible and horrible.'}
-    cfs = self.hotflip.generate(ex, self.classification_model, None, config)
-    self.assertEmpty(cfs)
+    cfs_2 = self.hotflip.generate(ex, self.classification_model, None, config)
+
+    self.assertEqual(1, sum([1 for i, t in enumerate(cf_tokens)
+                             if t != ex_tokens[i]]))
+    self.assertEmpty(cfs_2)
 
   def test_hotflip_max_flips_multi_input(self):
-    config = _CONFIG_REGRESSION | {
+    config = {
+        **_CONFIG_REGRESSION,
         hotflip.MAX_FLIPS_KEY: 1,
         hotflip.NUM_EXAMPLES_KEY: 20,
     }
@@ -150,7 +165,7 @@ class HotflipIntegrationTest(parameterized.TestCase):
                                 if t != ex_tokens2[i]]), 1)
 
   def test_hotflip_only_flip_one_field(self):
-    config = _CONFIG_REGRESSION | {hotflip.NUM_EXAMPLES_KEY: 10}
+    config = {**_CONFIG_REGRESSION, hotflip.NUM_EXAMPLES_KEY: 10}
     ex = _STSB_EXAMPLE
     cfs = self.hotflip.generate(ex, self.regression_model, None, config)
     for cf in cfs:
@@ -173,7 +188,7 @@ class HotflipIntegrationTest(parameterized.TestCase):
                           np.argmax(cf_output['probas']))
 
   def test_hotflip_changes_regression_score(self):
-    config = _CONFIG_REGRESSION | {hotflip.NUM_EXAMPLES_KEY: 2}
+    config = {**_CONFIG_REGRESSION, hotflip.NUM_EXAMPLES_KEY: 2}
     ex = _STSB_EXAMPLE
 
     thresh = config[hotflip.REGRESSION_THRESH_KEY]
