@@ -1,11 +1,11 @@
 ---
-title: Language Interpretability Tool
+title: Learning Interpretability Tool
 layout: layouts/main.liquid
 ---
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-{% include partials/display1 text:"The Language Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
+{% include partials/display1 text:"The Learning Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
 
 {% include partials/home-cta-button text:"Take a tour", link:"/tutorials/tour" %}
 {% include partials/home-cta-button text:"Setup LIT", link:"/setup" %}
@@ -20,7 +20,7 @@ layout: layouts/main.liquid
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-The Language Interpretability Tool (LIT) is for researchers and practitioners looking to understand NLP model behavior through a visual, interactive, and extensible tool.  
+The Learning Interpretability Tool (LIT) is for researchers and practitioners looking to understand NLP model behavior through a visual, interactive, and extensible tool.  
 
 Use LIT to ask and answer questions like:
 - What kind of examples does my model perform poorly on?
