@@ -43,6 +43,7 @@
   align-items: center;
   justify-content: start;
   padding: 4px 0;
+  column-gap: 4px;
 }
 
 #create-button {
@@ -59,7 +60,7 @@
 /* Make the "Rows" and "Columns" labels the same width */
 .dropdown-label {
   display: inline-block;
-  margin: 0 8px;
+  margin: 0 4px;
 }
 
 .spacer {

@@ -19,10 +19,8 @@
  * LIT App selection controls toolbar
  */
 
- import '../elements/popup_container';
-
+import '../elements/popup_container';
 import '@material/mwc-icon';
-import '@material/mwc-switch';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';

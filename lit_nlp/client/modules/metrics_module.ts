@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 
-import {css, html} from 'lit';
+import {html} from 'lit';
 import {customElement, query} from 'lit/decorators';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
@@ -98,15 +98,7 @@ export class MetricsModule extends LitModule {
   static override duplicateForModelComparison = false;
 
   static override get styles() {
-    return [sharedStyles, css`
-      .cb-label {margin: 4pt;}
-
-      .checkbox-holder {
-        display: flex;
-        justify-content: space-between;
-        margin-right: 4pt;
-      }
-    `];
+    return [sharedStyles];
   }
 
   private readonly sliceService = app.getService(SliceService);
@@ -446,8 +438,7 @@ export class MetricsModule extends LitModule {
 
     // clang-format off
     return html`
-      <label class="cb-label">Show slices</label>
-      <lit-checkbox
+      <lit-checkbox label="Show slices"
         ?checked=${this.facetBySlice}
         @change=${onSlicesCheckboxChecked}
         ?disabled=${slicesDisabled}>

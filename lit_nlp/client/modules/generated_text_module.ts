@@ -174,7 +174,7 @@ export class GeneratedTextModule extends LitModule {
           <div class=${isDiffActive && !this.invertDiffs ? 'highlighted-diff' : ''}>
             Diffs
           </div>
-          <mwc-switch .checked=${this.invertDiffs} ?disabled=${!isDiffActive}>
+          <mwc-switch ?selected=${this.invertDiffs} ?disabled=${!isDiffActive}>
           </mwc-switch>
           <div class=${isDiffActive && this.invertDiffs ? 'highlighted-match' : ''}>
             Matches

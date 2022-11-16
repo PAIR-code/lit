@@ -2,6 +2,7 @@
  * @fileoverview Visualization for seq2seq salience maps.
  */
 
+import '@material/mwc-switch';
 import '../elements/slider';
 
 // tslint:disable:no-new-decorators
@@ -415,12 +416,12 @@ export class SequenceSalienceModule extends LitModule {
       <div class="controls-group">
         <div class='switch-container' @click=${onClickToggleDensity}>
           <div>Dense view</div>
-          <mwc-switch .checked=${this.denseView}></mwc-switch>
+          <mwc-switch ?selected=${this.denseView}></mwc-switch>
         </div>
         <div class='vertical-separator'></div>
         <div class='switch-container' @click=${onClickToggleValues}>
           <div>Show values</div>
-          <mwc-switch .checked=${this.showValues}></mwc-switch>
+          <mwc-switch ?selected=${this.showValues}></mwc-switch>
         </div>
       </div>
       <div class="controls-group">

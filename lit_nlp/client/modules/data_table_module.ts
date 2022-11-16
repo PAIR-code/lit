@@ -445,13 +445,13 @@ export class DataTableModule extends LitModule {
       <div class="toggles-row">
         <div class='switch-container'
             @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
-          <div>Show only selected</div>
-          <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+          <div>Show selected</div>
+          <mwc-switch ?selected=${this.onlyShowSelected}></mwc-switch>
         </div>
         <div class='switch-container'
             @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
-          <div>Show only generated</div>
-          <mwc-switch .checked=${this.onlyShowGenerated}></mwc-switch>
+          <div>Show generated</div>
+          <mwc-switch ?selected=${this.onlyShowGenerated}></mwc-switch>
         </div>
       </div>
       <div id="toolbar-buttons">

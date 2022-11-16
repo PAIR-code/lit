@@ -18,7 +18,6 @@
 // tslint:disable:no-new-decorators
 import '../elements/spinner';
 import '../elements/tcav_score_bar';
-import '@material/mwc-switch';
 
 import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';

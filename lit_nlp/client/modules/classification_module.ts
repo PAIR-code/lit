@@ -16,6 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
+import '@material/mwc-switch';
 import '../elements/score_bar';
 
 import {html} from 'lit';
@@ -200,6 +201,7 @@ export class ClassificationModule extends LitModule {
 
     const onClickSwitch = () => {this.sparseMode = !this.sparseMode;};
 
+    // clang-format off
     return html`<div class='module-container'>
       <div class="module-results-area">
         ${
@@ -219,10 +221,11 @@ export class ClassificationModule extends LitModule {
         ${allowSparseMode ? html`
             <div class='switch-container' @click=${onClickSwitch}>
               <div>Only show classes above ${SPARSE_MODE_THRESHOLD}</div>
-              <mwc-switch .checked=${this.sparseMode}></mwc-switch>
+              <mwc-switch ?selected=${this.sparseMode}></mwc-switch>
             </div>` : null}
       </div>
     </div>`;
+    // clang-format on
   }
 
   private renderFeatureTable(labelRow: LabelRows, hasGroundTruth: boolean) {
