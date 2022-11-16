@@ -25,7 +25,6 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default('development_demo', True)
 FLAGS.set_default('warm_start', 1)
-FLAGS.set_default('default_layout', 'demo_layout')
 FLAGS.set_default('page_title', 'LIT Image Demo')
 
 
@@ -41,25 +40,27 @@ def get_wsgi_app():
                  unused)
   return main([])
 
+# Custom frontend layout; see api/layout.py
+modules = layout.LitModuleName
+DEMO_LAYOUT = layout.LitComponentLayout(
+    components={
+        'Main': [
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ],
+        'Predictions': [modules.ClassificationModule, modules.ScalarModule],
+        'Explanations': [
+            modules.ClassificationModule, modules.SalienceMapModule
+        ],
+    },
+    description='Basic layout for image demo',
+)
+
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  modules = layout.LitModuleName
-  demo_layout = layout.LitComponentLayout(
-      components={
-          'Main': [
-              modules.DataTableModule,
-              modules.DatapointEditorModule,
-          ],
-          'Predictions': [modules.ClassificationModule, modules.ScalarModule],
-          'Explanations': [
-              modules.ClassificationModule, modules.SalienceMapModule
-          ],
-      },
-      description='Basic layout for image demo',
-  )
   datasets = {'imagenette': imagenette.ImagenetteDataset()}
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
@@ -72,10 +73,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       'XRAI GIG': image_gradient_maps.XRAIGIG(),
   }
 
-  lit_demo = dev_server.Server(models, datasets, interpreters=interpreters,
-                               generators={},
-                               layouts={'demo_layout': demo_layout},
-                               **server_flags.get_flags())
+  lit_demo = dev_server.Server(
+      models,
+      datasets,
+      interpreters=interpreters,
+      generators={},
+      layouts={'default': DEMO_LAYOUT},
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 

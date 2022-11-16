@@ -43,9 +43,11 @@ export class LitCheckbox extends LitElement {
       .wrapper {
         display: flex;
         align-items: center;
-        font-size: 10pt;
+        font-size: 13px;
         height: 28px;
         margin-left: -12px;
+        margin-right: 4px;
+        line-height: 14px;
       }
 
       .wrapper.disabled {
