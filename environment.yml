@@ -22,11 +22,10 @@ dependencies:
         - scipy
         - pandas
         - scikit-learn==1.0.2
-        - tensorflow==2.6.0
-        - keras==2.6.0
+        - tensorflow==2.10.0
+        - keras==2.10.0
         - tfds-nightly
-        - tensorflow-text==2.6.0
-        - tensorflow-estimator==2.6.0
+        - tensorflow-text==2.10.0
         - rouge-score
         - sacrebleu
         - numba==0.53.1

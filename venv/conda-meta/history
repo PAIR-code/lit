@@ -1,0 +1,25 @@
+==> 2022-11-15 22:55:28 <==
+# cmd: /opt/conda/bin/conda-env create --file environment.yml --prefix ./venv --quiet
+# conda version: 4.12.0
++defaults/linux-64::_libgcc_mutex-0.1-main
++defaults/linux-64::_openmp_mutex-5.1-1_gnu
++defaults/linux-64::ca-certificates-2022.10.11-h06a4308_0
++defaults/linux-64::certifi-2022.9.24-py39h06a4308_0
++defaults/linux-64::ld_impl_linux-64-2.38-h1181459_1
++defaults/linux-64::libffi-3.3-he6710b0_2
++defaults/linux-64::libgcc-ng-11.2.0-h1234567_1
++defaults/linux-64::libgomp-11.2.0-h1234567_1
++defaults/linux-64::libstdcxx-ng-11.2.0-h1234567_1
++defaults/linux-64::ncurses-6.3-h5eee18b_3
++defaults/linux-64::openssl-1.1.1s-h7f8727e_0
++defaults/linux-64::pip-22.2.2-py39h06a4308_0
++defaults/linux-64::python-3.9.15-haa1d7c7_0
++defaults/linux-64::readline-8.2-h5eee18b_0
++defaults/linux-64::setuptools-65.5.0-py39h06a4308_0
++defaults/linux-64::sqlite-3.39.3-h5082296_0
++defaults/linux-64::tk-8.6.12-h1ccaba5_0
++defaults/linux-64::xz-5.2.6-h5eee18b_0
++defaults/linux-64::zlib-1.2.13-h5eee18b_0
++defaults/noarch::tzdata-2022f-h04d1e81_0
++defaults/noarch::wheel-0.37.1-pyhd3eb1b0_0
+# update specs: ['python=3.9', 'pip']
