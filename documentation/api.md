@@ -77,14 +77,12 @@ examples match their spec and that model output values match their spec.
 This can be very helpful during development of new model and dataset wrappers
 to ensure correct behavior in LIT.
 
-At LIT server startup, the `validate` runtime flag can be used to enable
-validation.
-Setting the flag to `first` will validate the first example in each dataset for
-correctly typed values and validate it with each model it is compatible with, to
-ensure that the model outputs are also correctly typed. Setting it to `sample`
-will validate against a sample of 5% of each dataset. Setting it to `all` will
-validate all examples in all datasets. By default, no validation is performed,
-to enable quick startup.
+At LIT server startup, the `validate` flag can be used to enable validation.
+There are three modes:
+
+*   `--validate=first` will check the first example in each dataset.
+*   `--validate=sample` will validate a sample of 5% of each dataset.
+*   `--validate=all` will run validation on all examples from all datasets.
 
 Additionally, if using LIT datasets and models outside of the LIT server,
 validation can be called directly through the
@@ -660,7 +658,7 @@ lime.run([dataset.examples[0]], model, dataset)
 # will return {"tokens": ..., "salience": ...} for each example given
 ```
 
-For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
+For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
 
 ## Type System
 

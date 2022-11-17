@@ -18,7 +18,7 @@ import attr
 # pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
-from lit_nlp import server_flags
+from lit_nlp import server_config
 from lit_nlp.api import layout
 from lit_nlp.lib import wsgi_serving
 
@@ -101,7 +101,7 @@ class LitWidget(object):
         lists here as well.
       **kw: Keyword arguments for the LitApp.
     """
-    app_flags = server_flags.get_flags()
+    app_flags = dict(server_config.get_flags())
     app_flags['server_type'] = 'notebook'
     app_flags['host'] = 'localhost'
     app_flags['port'] = None

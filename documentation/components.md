@@ -394,6 +394,21 @@ can increase the number of samples:
 LIME works out-of-the-box with any classification (`MulticlassPreds`) or
 regression/scoring (`RegressionScore`) model.
 
+### Salience Clustering
+
+LIT includes a basic implementation of the salience clustering method from
+[Ebert et al. 2022](https://arxiv.org/abs/2211.05485), which uses k-means on a
+salience-weighted bag-of-words representation to find patterns in model
+behavior. This method is available using any of the token-based salience methods
+above, and if enabled will appear in the "Salience Clustering" tab:
+
+![Salience clustering UI](./images/components/salience-clustering.png)
+
+To run clustering, select a group of examples or the entire dataset, choose a
+salience method, and run using the "Apply" button. The result will be a set of
+top tokens for each cluster, as in Table 6 of
+[the paper](https://arxiv.org/pdf/2211.05485.pdf).
+
 ## Pixel-based Salience
 
 LIT also supports pixel-based salience methods, for models that take images as
@@ -423,9 +438,9 @@ your model should, as part of the
 
 A variety of image saliency techniques are implemented for models that return
 image gradients, through use of the
-[PAIR-code saliency library](https://github.com/PAIR-code/saliency), including *
-Integrated gradients * Guided integrated gradients * Blurred integrated
-gradients * XRAI
+[PAIR-code saliency library](https://github.com/PAIR-code/saliency), including
+integrated gradients, guided integrated gradients, blurred integrated gradients,
+and XRAI.
 
 Each of these techniques returns a saliency map image as a base64-encoded string
 through the `ImageSalience` type.

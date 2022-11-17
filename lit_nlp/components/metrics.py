@@ -45,15 +45,16 @@ def map_pred_keys(
   for pred_key, pred_spec in model_output_spec.items():
     parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
     if parent_key is None:
-      logging.warning("Skipping '%s': No parent provided.", pred_key)
+      logging.info("Skipping '%s': No parent provided.", pred_key)
       continue
 
     parent_spec: Optional[LitType] = data_spec.get(parent_key)
     if predicate(pred_spec, parent_spec):
       ret[pred_key] = parent_key
     else:
-      logging.warning(
-          "Skipping '%s': incompatible parent '%s'.", pred_key, parent_key)
+      logging.info("Skipping '%s': incompatible parent '%s'.", pred_key,
+                   parent_key)
+      continue
   return ret
 
 
