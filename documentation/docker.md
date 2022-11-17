@@ -97,7 +97,12 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   return main([])
 ```
 
-A more detailed description of this code is as follows:
+Assuming your custom script meets the two requirements above, you can simply
+rebuild the default Docker image and run a container using the steps above,
+ensuring that you pass the `-e DEMO_NAME=your_server_script_path_here` to the
+run command.
+
+A more detailed description of the `get_wsgi_app()` code can be found below.
 
 ```python
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
@@ -134,11 +139,6 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # required to run the app.
   return main([])
 ```
-
-Assuming your custom script meets the two requirements above, you can simply
-rebuild the default Docker image and run a container using the steps above,
-ensuring that you pass the `-e DEMO_NAME=your_server_script_path_here` to the
-run command.
 
 ## Building Your Own Image
 
