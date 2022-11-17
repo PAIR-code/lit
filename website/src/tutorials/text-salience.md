@@ -16,7 +16,9 @@ takeaways: "Learn how to use salience maps for text data in LIT."
 
 ## Tutorial : Salience Maps for Text
 
-{% include partials/link-out link: "../../demos/glue.html", text: "Explore this demo yourself." %}
+{%  include partials/link-out
+    link: "../../demos/glue.html",
+    text: "Explore this demo yourself." %}
 
 Or, run your own with [`examples/glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
 
@@ -38,9 +40,12 @@ and [LIME](https://arxiv.org/pdf/1602.04938v3.pdf).
 ### Heuristics : Which salience method for which task?
 
 Salience methods are imperfect. Research has shown that salience methods are
-often “[sensitive to factors that do not contribute to a model’s prediction](https://arxiv.org/abs/1711.00867)”;
-that people tend to [overly trust salience values or use methods they believe they know incorrectly](https://dl.acm.org/doi/10.1145/3313831.3376219);
-and that [model architecture may directly impact the utility](https://arxiv.org/pdf/2111.07367.pdf)
+often
+“[sensitive to factors that do not contribute to a model’s prediction](https://arxiv.org/abs/1711.00867)”;
+that people tend to
+[overly trust salience values or use methods they believe they know incorrectly](https://dl.acm.org/doi/10.1145/3313831.3376219);
+and that
+[model architecture may directly impact the utility](https://arxiv.org/pdf/2111.07367.pdf)
 of different salience methods.
 
 With those limitations in mind, the question remains as to which methods should
@@ -48,8 +53,10 @@ be used and when. To offer some guidance, we have come up with the following
 decision aid that provides some ideas about which salience method(s) might be
 appropriate.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-1.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-1.png',
+    caption: 'This flow chart can help you decide which salience interpreter to
+        apply given the information provided by your model.'%}
 
 If your model does not output gradients with its predictions (i.e., is a
 blackbox), [LIME](https://arxiv.org/pdf/1602.04938v3.pdf) is your only choice as
@@ -59,11 +66,11 @@ If your model does output gradients, then you can choose among three methods:
 [Grad L2 Norm](https://aclanthology.org/P18-1032/),
 [Grad · Input](https://arxiv.org/abs/1412.6815), and
 [Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG).
-Grad L2 Norm and Grad · Input are easy to use and fast to compute, but can suffer from gradient
-saturation. IG addresses the gradient saturation issue in the Grad methods
-(described in detail below), but requires that the model output both gradients
-and embeddings, is much more expensive to compute, and requires parameterization
-to optimize results.
+Grad L2 Norm and Grad · Input are easy to use and fast to compute, but can
+suffer from gradient saturation. IG addresses the gradient saturation issue in
+the Grad methods (described in detail below), but requires that the model output
+both gradients and embeddings, is much more expensive to compute, and requires
+parameterization to optimize results.
 
 Remember that a good investigative process will check for commonalities and
 patterns across salience values from multiple salience methods. Further,
@@ -81,27 +88,35 @@ improved interpretation of whether a token has positive or negative influence on
 the prediction.
 
 **_LIT uses different color scales to represent signed and unsigned salience scores_**.
-Methods that produce unsigned salience values, such as Grad L2 Norm,
-use a purple scale where darker colors indicate greater salience, whereas the other methods
-use a red-to-green scale, with red denoting negative scores and green denoting
-positive.
+Methods that produce unsigned salience values, such as Grad L2 Norm, use a
+purple scale where darker colors indicate greater salience, whereas the other
+methods use a red-to-green scale, with red denoting negative scores and green
+denoting positive.
 
-{% include partials/info-box title: 'Interpreting salience polarity',
-  text: "Salience is always relative to the model’s prediction of one class.
-  Intuitively, a positive influence score (attribution) for a token (or word,
-  depending on your method) in an example means that if this token was removed
-  we expect a drop in model confidence in the prediction of the class.
-  Similarly, removing a negative token would correspond to an increase in the
-  model's confidence in the prediction of this class."%}
+{%  include partials/info-box title: 'Interpreting salience polarity',
+    text: "Salience is always relative to the model’s prediction of one class.
+        Intuitively, a positive influence score (attribution) for a token (or
+        word, depending on your method) in an example means that if this token
+        was removed we expect a drop in model confidence in the prediction of
+        the class. Similarly, removing a negative token would correspond to an
+        increase in the model's confidence in the prediction of this class."%}
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-2.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-2.png',
+    caption: 'The tokens from same example in the SST-2 dataset can have
+        dramatically different scores depending on the interpreter, as seen in
+        this screenshot. Different salience interpreters output scores in
+        different ranges, for example, Grad L2 Norm outputs unsigned values in
+        the range from 0 to 1, denoted by the purple colors (more purple means
+        closer to one), whereas others output signed scores in the range -1 to
+        1, denoted by the pink to green color scale.'%}
 
 #### Token-Based Methods
 
 [Gradient saturation](https://towardsdatascience.com/the-vanishing-gradient-problem-69bf08b15484)
-is a potential problem for all of the Gradient based methods, such as [Grad L2 Norm](https://aclanthology.org/P18-1032/)
-and [Grad · Input](https://arxiv.org/abs/1412.6815), that we need to look out
+is a potential problem for all of the Gradient based methods, such as
+[Grad L2 Norm](https://aclanthology.org/P18-1032/) and
+[Grad · Input](https://arxiv.org/abs/1412.6815), that we need to look out
 for. Essentially if the model learning saturates for a particular token, then
 its gradient goes to zero and appears to have zero salience. At the same time,
 some tokens actually have a zero salience score, because they do not affect the
@@ -114,7 +129,8 @@ addresses the gradient saturation problem by enriching gradients with
 embeddings.
 [Tokens](https://jalammar.github.io/a-visual-guide-to-using-bert-for-the-first-time/)
 are the discrete building blocks of text sequences, but they can also be
-represented as vectors in a [continuous embedding space](https://colah.github.io/posts/2014-07-NLP-RNNs-Representations/).
+represented as vectors in a
+[continuous embedding space](https://colah.github.io/posts/2014-07-NLP-RNNs-Representations/).
 IG computes per-token salience as the average salience over a set of local
 gradients computed by interpolating between the token’s embedding vectors and a
 baseline (typically the zero vector). The tradeoff is that IG requires more
@@ -123,8 +139,11 @@ effective (configurable in LIT’s interface), with the number of steps
 correlating directly with runtime. It also requires more information,
 which the model may or may not be able to provide.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-3.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-3.png',
+    caption: 'Integrated gradients can be configured to explain a specific
+        class, to normalize the data during analysis, and to interpolate a
+        given number of steps (between 5 and 100).'%}
 
 #### Blackbox Methods
 
@@ -140,63 +159,54 @@ LIME has two limitations, compared to gradient-based methods:
 1.  it can be slow as it requires many evaluations of the model, and
 2.  it can be noisy on longer inputs where there are more tokens to ablate.
 
-We can increase **_the number of samples to be used for LIME_**
-within LIT to counter the potential noisiness, however
-this is at the cost of computation time.
+We can increase **_the number of samples to be used for LIME_** within LIT to
+counter the potential noisiness, however this is at the cost of computation
+time.
 
-In the example below, we go from the default number of samples (256) up to 4096,
-increasing in powers of 2 (i.e., 256, 512, 1024, 2048, 4096). Note through these
-transitions, how the model becomes more sure of the salience scores it outputs
-(indicated by stronger colors for the key tokens). A particularly interesting
-observation for this example is how the model isn’t sure about the word
-“although” in this sentence, but later on learns that it has a negative
-connotation and assigns a non-negligible negative salience score to it.
-
-{% include partials/inset-image image: '/assets/images/text-salience-image-4.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/text-salience-image-5.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/text-salience-image-6.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/text-salience-image-7.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/text-salience-image-8.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-4.png',
+    caption: 'LIME can be configured to explain a specific output field and/or
+        class, to use a specific masking token, and to use a specific seed for
+        its random number generator. The most often used configuration
+        parameters are the number of samples and kerne size, which can reduce
+        noise in the results, but also affect the time required for each run.'%}
 
 Another interesting difference between the gradient based methods and LIME lies
 in how they analyze the input. The gradient based methods use the model’s
-tokenizer, which splits up words into smaller constituents, whereas LIME
-splits the text into words at whitespaces.
-Thus, LIME’s word-level results are often incomparable with the token-level
-results from other methods, as you can see in the salience maps below.
+tokenizer, which splits up words into smaller constituents, whereas LIME splits
+the text into words at whitespaces. Thus, LIME’s word-level results are often
+incomparable with the token-level results from other methods, as you can see in
+the salience maps below.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-9.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-2.png',
+    caption: "LIME splits the input sentence based on whitespace and punctuation
+        characters, whereas the other methods use the model's tokenizer to
+        separate the input into its constituent parts."%}
 
-### Single example use-case : What do we do with the output of the salience maps module
+### Single example use-case : Interpreting the salience maps module
 
 Let’s take a concrete example and walkthrough how we might use the salience maps
 module and counterfactual generators to analyze the behavior of the `sst2-tiny`
 model on the classification task.
 
 First, let’s refer back to our heuristic for choosing appropriate methods.
-Because `sst2-tiny` does not have a LSTM architecture, we shouldn’t rely too much
-on Grad · Input. So, we are left with Grad L2 Norm, Integrated Gradients and
-LIME to base our decisions on.
+Because `sst2-tiny` does not have a LSTM architecture, we shouldn't rely too
+much on Grad · Input. So, we are left with Grad L2 Norm, Integrated Gradients
+and LIME to base our decisions on.
 
-To gain some confidence in our heuristic, we look for examples where Grad &dot;
+To gain some confidence in our heuristic, we look for examples where Grad ·
 Input performs poorly compared to the other methods. There are quite a few in
 the dataset, for example the sentence below where Grad · Input predicts
 completely opposite salience scores to its counterparts.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-10.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-10.png',
+    caption: 'An example of how Grad · Input can perform poorly&mdash;all pink
+        values, the opposite of what. other methods found&mdash;on certain input
+        and model architecture combinations.'%}
 
-#### Use Case 1: Sexism Analysis  with Counterfactuals
+#### Use Case 1: Sexism Analysis with Counterfactuals
 
 Coming back to our use-case, we want to investigate if the model displays sexist
 behavior for a particular input sentence. We take a datapoint with a negative
@@ -222,20 +232,22 @@ tokens or the tokens we replaced? Would it change the model prediction
 confidence scores?
 
 To do this, we generate a counterfactual example using the Datapoint
-Editor which is located right beside the Data Table in the UI,
-changing "actress" with "actor" and "her" with "his" after selecting our
-datapoint of interest. An alternative to this approach is to use the Word
-replacer under the Counterfactuals tab in the bottom half of the LIT app to
-achieve the same task. If our model is predicting a negative sentiment
-due to sexist influences towards
+Editor which is located right beside the Data Table in the UI, changing
+"actress" with "actor" and "her" with "his" after selecting our datapoint of
+interest. An alternative to this approach is to use the Word replacer under the
+Counterfactuals tab in the bottom half of the LIT app to achieve the same task.
+If our model is predicting a negative sentiment due to sexist influences towards
 “actress” or “her”, then the hypothesis is that it should show opposite
 sentiments if we flip those key tokens.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-11.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-11.png',
+    caption: 'Manually generating a counterfactual example in the Datapoint
+        Editor, in this case changing "actress" to "actor" and "her" to "his",
+        does not induce much change in the token salience scores.'%}
 
 However, it turns out that there is very minimal (and hence negligible) change
-in the salience score values of any of the tokens. The model doesn’t change its
+in the salience score values of any of the tokens. The model doesn't change its
 prediction either. It still predicts this to be a negative review sentiment with
 approximately the same prediction confidence. This indicates that at least for
 this particular example, our model isn’t displaying sexist behavior and is
@@ -252,32 +264,38 @@ then together to observe the changes in predictions and  salience.
 To create the counterfactuals, we can simply use the Datapoint Editor which is
 located right beside the Data Table in the UI. We can just select our data point
 of interest (data point 6), and then replace the words we are interested in with
-the respective substitutes. Then we assign a `label` to the newly created sentence
-and add it to our data. For this particular example, we are assigning 0 when
-"tedious" appears and 1 when "exciting" appears in the sentence.
-An alternative to this approach is to use the Word
-replacer under the Counterfactuals tab in the bottom half of the LIT app to
-achieve the same task.
+the respective substitutes. Then we assign a `label` to the newly created
+sentence and add it to our data. For this particular example, we are assigning 0
+when "tedious" appears and 1 when "exciting" appears in the sentence. An
+alternative to this approach is to use the Word replacer under the
+Counterfactuals tab in the bottom half of the LIT app to achieve the same task.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-12.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-12.png',
+    caption: 'The Data Table and Datapoint Editor modules showing the three
+        manually generated counterfactuals that will be used to explore pairwise
+        comparisons of salience results.'%}
 
 We can pin the original sentence in the data table and then cycle through the
 three available pairs by selecting each of the new sentences as our primary
 selection. This will give us a comparison-type output in the Salience Maps
 module between the pinned and the selected examples.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-13.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-13.png',
+    caption: 'A table of the salience scores for each token in the inputs.'%}
 
 When we replace “sometimes” with “often”, it gets a negative score of almost
 equal magnitude (reversing polarity) from LIME which makes sense, because
-“often” makes the next word in the sentence more impactful, linguistically. The model
-prediction doesn’t change either, and this new review is still classified as
-having a negative sentiment.
+“often” makes the next word in the sentence more impactful, linguistically. The
+model prediction doesn’t change either, and this new review is still classified
+as having a negative sentiment.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-14.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-14.png',
+    caption: 'Replacing "sometimes" with "often" had a minimal impact on the
+        gradient-based salience interpreters, but it did flip the polarity of
+        that token in the LIME results.'%}
 
 On replacing “tedious” with “exciting”, the salience for “sometimes” changes
 from positive score to negative in the LIME output. In the IG output,
@@ -288,8 +306,11 @@ datapoint was “tedious” and by replacing this with a positive word “exciti
 the model’s classification of this new sentence also changes and the new
 sentence is classified as positive with a very high confidence score.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-15.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-15.png',
+    caption: 'Replacing "tedious" with "exciting" had a substantial impact on
+        the salience interpreters that output signed results, but only a minimal
+        impact on the Grad L2 Norm interpreter.'%}
 
 And finally, when we replace both “sometimes tedious” with “often exciting”, we
 get strong positive scores from both LIME and IG, which is in line with the
@@ -299,8 +320,12 @@ slightly higher than the previous sentence where instead of “often” we had u
 “sometimes”. This makes sense as well because “often” enhances the positive
 sentiment slightly more than using “sometimes” in a positive review.
 
-{% include partials/inset-image image: '/assets/images/text-salience-image-16.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/text-salience-image-16.png',
+    caption: 'Replacing both "sometimes" and "tedious" has a substantial impact
+        on all salience interpreters, attenuating some results, accentuating
+        others, and in the case of Grad · Input, demonstrating how this
+        counterfactual captures an opposing sentiment to the original.'%}
 
 In this second example, we mostly based our observation on LIME and IG, because
 we could observe visual changes directly from the outputs of these methods. Grad
@@ -325,13 +350,11 @@ or checks) to solve the production failure.
 
 ### Conclusion
 
-Three gradient-based salience methods and one blackbox method are provided out
+Three gradient-based salience methods and one black box method are provided out
 of the box to LIT users who need to use these post-hoc interpretations to make
 sense of their language model’s predictions. This diverse array of built-in
 techniques can be used in combination with other LIT modules like
 counterfactuals to support robust exploration of a model's behavior, as
-illustrated in this tutorial. And as always, LIT strives to
-enable users to
+illustrated in this tutorial. And as always, LIT strives to enable users to
 [add their own salience interpreters](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components)
-to allow for a wider variety
-of use cases beyond these default capabilities!
+to allow for a wider variety of use cases beyond these default capabilities!

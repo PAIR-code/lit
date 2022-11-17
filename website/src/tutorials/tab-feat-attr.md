@@ -18,12 +18,24 @@ takeaways: "Learn how to use the Kernel SHAP based Tabular Feature Attribution m
 
 {% include partials/link-out link: "../../demos/penguins.html", text: "Explore this demo yourself." %}
 
-Or, run your own with [`examples/penguin_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
+Or, run your own with
+[`examples/penguin_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
 
-LIT supports many techniques like salience maps and counterfactual generators for text data. But what if you have a tabular dataset? You might want to find out which data features are most relevant in the model’s predictions. LIT provides a Feature Attribution module, which is currently supported for [tabular datasets](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data) only, to enable identification of important features. This tutorial provides a walkthrough for this module within LIT, on the [Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
+LIT supports many techniques like salience maps and counterfactual generators for text data. But what if you have a tabular dataset? You might want to find out which data features are most relevant in the model’s predictions. LIT provides a Feature Attribution module, which is currently supported for
+[tabular datasets](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)
+only, to enable identification of important features. This tutorial provides a walkthrough for this module within LIT, on the
+[Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
 
-{% include partials/info-box title: 'Kernel SHAP based Feature Attribution',
-  text: "The Feature Attribution functionality is [achieved using SHAP](https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf). In particular LIT uses [Kernel SHAP](https://shap-lrjball.readthedocs.io/en/latest/generated/shap.KernelExplainer.html) over tabular data, which is basically a specially weighted local linear regression for estimating SHAP values and works for any model. For now, the feature attribution module is only shown in the UI when working with [tabular data](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)."%}
+{%  include partials/info-box
+    title: 'Kernel SHAP based Feature Attribution',
+    text: "The Feature Attribution functionality is
+        [achieved using SHAP](https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf).
+        In particular LIT uses
+        [Kernel SHAP](https://shap-lrjball.readthedocs.io/en/latest/generated/shap.KernelExplainer.html)
+        over tabular data, which is basically a specially weighted local linear
+        regression for estimating SHAP values and works for any model. For now,
+        the feature attribution module is only shown in the UI when working with
+        [tabular data](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)."%}
 
 ### **Overview**
 
@@ -39,21 +51,42 @@ depth, culmen length, flipper length, island, and sex).
   is missing for all penguins, though some are missing additional information),
   resulting in 333 datapoints being loaded for analysis."%}
 
-The Feature Attribution module shows up in the bottom right of the demo within the Explanations tab. It computes SHAP values for each feature in a set of inputs and displays these values in a table. The controls for this module are:
+The Feature Attribution module shows up in the bottom right of the demo within
+the Explanations tab. It computes SHAP values for each feature in a set of
+inputs and displays these values in a table. The controls for this module are:
 
-1. The **sample size slider,** which defaults to a value of 30. SHAP computations are very expensive and it is infeasible to compute them for the entire dataset. Through testing, we found that 30 is about the maximum number of samples we can run SHAP on before performance takes a significant hit, and it becomes unusable above 50 examples. Clicking the Apply button will automatically check the Show attributions from the Tabular SHAP checkbox, and LIT will start computing the SHAP values.
-2. The **prediction key** selects the model output value for which influence is computed. Since the penguin mode only predicts one feature, species, this is set to species and cannot be changed. If a model can predict multiple values in different fields, for example predicting species and island or species and sex, then you could change which output field to explain before clicking Apply.
-3. The **heatmap toggle** can be enabled to color code the SHAP values.
-4. The **facets button** and **show attributions for selection checkbox** enable
-   conditionally running the Kernel SHAP interpreter over subsets of the data.
-   We will get into the specifics of this with an example later on in this
-   tutorial.
+1.  The **sample size slider,** which defaults to a value of 30. SHAP
+    computations are very expensive and it is infeasible to compute them for the
+    entire dataset. Through testing, we found that 30 is about the maximum
+    number of samples we can run SHAP on before performance takes a significant
+    hit, and it becomes unusable above 50 examples. Clicking the Apply button
+    will automatically check the Show attributions from the Tabular SHAP
+    checkbox, and LIT will start computing the SHAP values.
+2.  The **prediction key** selects the model output value for which influence is
+    computed. Since the penguin mode only predicts one feature, species, this is
+    set to species and cannot be changed. If a model can predict multiple values
+    in different fields, for example predicting species and island or species
+    and sex, then you could change which output field to explain before clicking
+    Apply.
+3.  The **heatmap toggle** can be enabled to color code the SHAP values.
+4.  The **facets button** and **show attributions for selection checkbox**
+    enable conditionally running the Kernel SHAP interpreter over subsets of the
+    data. We will get into the specifics of this with an example later on in this
+    tutorial.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-1.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-1.png',
+    caption: 'An overview of the Penguins demo, notice the tabular feature
+        attribution (1) and salience maps (2) modules in the bottom right and
+        center, respectively.'%}
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-2.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-2.png',
+    caption: 'The tabular feature attribution module has three main elements of
+        interactivity: an expansion panel where you can configure the SHAP
+        parameters (1), a heatmap toggle to activate color the cells in the
+        results table based on the scores (2), and a facets control for
+        exploring subsets of the data (3).'%}
 
 #### **A Simple Use Case : Feature Attribution for 10 samples**
 
@@ -68,22 +101,26 @@ start the SHAP computation with heatmap enabled.
   dataset. When sampling from the current selection, the sample size can have
   interesting edge cases:
 
-- If the selection is empty, LIT samples the “sample size” number of data points from the entire dataset.
-- If the sample size is zero or larger than the selection, then LIT computes SHAP for the entire selection and only that selection.
-- If sample size is smaller than the selection, then LIT samples the “sample size” number of data points from the selected inputs."%}
+* If the selection is empty, LIT samples the “sample size” number of data points
+  from the entire dataset.
+* If the sample size is zero or larger than the selection, then LIT computes
+  SHAP for the entire selection and only that selection.
+* If sample size is smaller than the selection, then LIT samples the “sample
+  size” number of data points from the selected inputs."%}
 
 Enabling the heatmap provides a visual indicator of the polarity and strength of
-a feature’s influence. A reddish hue indicates negative attribution for that
+a feature's influence. A reddish hue indicates negative attribution for that
 particular feature and a bluish hue indicates positive attribution. The deeper
 the color the stronger its influence on the predictions.
 
-{% include partials/info-box title: 'Interpreting salience polarity',
-  text: "Salience is always relative to the model’s prediction of one class.
-Intuitively, a positive attribution score for a feature of an example means that
- if this feature was removed we
-expect a drop in model confidence in the prediction of this class. Similarly,
-removing a feature with a negative score would correspond to an increase in
-the model's confidence in the prediction of this class."%}
+{%  include partials/info-box
+    title: 'Interpreting salience polarity',
+    text: "Salience is always relative to the model's prediction of one class.
+        Intuitively, a positive attribution score for a feature of an example
+        means that if this feature was removed we expect a drop in model
+        confidence in the prediction of this class. Similarly, removing a
+        feature with a negative score would correspond to an increase in the
+        model's confidence in the prediction of this class."%}
 
 SHAP values are computed per feature per example, from which LIT computes the
 mean, min, median, and max feature values across the examples. The min and max
@@ -100,14 +137,16 @@ are many features in a dataset this space will get crowded, so LIT offers a
 filter button for each of the columns to look up a particular feature or value
 directly.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-3.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-4.png',
+    caption: 'Start by reducing the sample size from 30 to 10, this will speed
+        up the SHAP computations.'%}
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-4.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-5.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-5.png',
+    caption: 'The results of the SHAP run over a sample of 10 inputs from the
+        entire dataset. Notice how subtle the salience values are in the "mean"
+        column.'%}
 
 #### **Faceting & Binning of Features**
 
@@ -123,8 +162,11 @@ Biscoe, Dream and Torgersen), then LIT will create 6 facets for (Male, Biscoe),
 Torgersen) and show the SHAP values for whichever facets have a non-zero number
 of samples.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-6.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-6.png',
+    caption: 'Each facet of the dataset is given its own expansion panel. Click
+        on the down arrow on the right to expand the section and see the results
+        for that facet.'%}
 
 Numerical features support more complex faceting options. Faceting based on
 numerical features allows for defining bins using 4 methods: discrete, equal
@@ -147,17 +189,16 @@ Faceting is not supported for selections, meaning that if you already have a
 selection of elements (let’s say 10 penguins), then facets won’t split it
 further.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-7.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-7.png',
+    caption: 'Clicking the facets button will open the configuration controls.
+        Use these to configure how divide the dataset into subsets.'%}
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-8.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-9.png',
-  caption: 'TODO'%}
-
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-10.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-9.png',
+    caption: 'LIT limits the number of facets to 100 bins for performance
+        reasons. Attempting to exceed this limit will cause the active features
+        to highlight red so you can adjust their configurations.'%}
 
 ### **Side-by-side comparison : Salience Maps Vs Tabular Feature Attribution**
 
@@ -183,25 +224,28 @@ Tabular SHAP output match the saliency scores exactly. Also, another cool but
 obvious thing to note is that the mean, min, median and max values are all the
 same when a single data point is selected.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-11.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-11.png',
+    caption: 'The results in the tabular feature attribution and salience maps
+        modules will be the same for single datapoint selections.'%}
 
 #### **A slice of 5 random data points**
 
 LIT uses a [complex selection model](https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#datapoint-selections)
 and different modules react to it differently. Salience Maps only care about the
-primary selection (the data point highlighted in a deep cyan hue in the data table) in a slice
-of elements, whereas Feature Attribution uses the entire list of selected
-elements.
+primary selection (the data point highlighted in a deep cyan hue in the data
+table) in a slice of elements, whereas Feature Attribution uses the entire list
+of selected elements.
 
-{% include partials/info-box title: 'Using Salience Maps to support Tabular Feature Attribution',
-  text: "Changing primary selection reruns SHAP in the Salience Maps module but
-  not in Tabular Feature Attribution. So, we can effectively toggle through the
-  items in our selection one-by-one and see how they compare to the mean values
-  in the Feature Attribution module. Another thing to note is that the Salience
-  Maps module supports comparison between a pinned datapoint and the primary
-  selection, so we can do the above comparisons in a pair-wise manner as
-  well."%}
+{%  include partials/info-box
+    title: 'Using Salience Maps to support Tabular Feature Attribution',
+    text: "Changing primary selection reruns SHAP in the Salience Maps module
+        but not in Tabular Feature Attribution. So, we can effectively toggle
+        through the items in our selection one-by-one and see how they compare
+        to the mean values in the Feature Attribution module. Another thing to
+        note is that the Salience Maps module supports comparison between a
+        pinned datapoint and the primary selection, so we can do the above
+        comparisons in a pair-wise manner as well."%}
 
 As we can see in this example, where we run both modules on a slice of 5
 elements, the Salience Maps module is only providing its output for the primary
@@ -211,8 +255,11 @@ attributions for selection”. This allows us to use the salience
 map module as a kind of magnifying glass to focus on any individual example even
 when we are considering a slice of examples in our exploration of the dataset.
 
-{% include partials/inset-image image: '/assets/images/tab-feat-attr-image-12.png',
-  caption: 'TODO'%}
+{%  include partials/inset-image
+    image: '/assets/images/tab-feat-attr-image-12.png',
+    caption: 'The salience maps module is a great way to compare the scores for
+        each datapoint in a selection against the scores for that entire
+        selection from. the tabular feature attribution module.'%}
 
 ### **Conclusion**
 
