@@ -631,6 +631,33 @@ datapoints, giving a global view of feature effects.
 
 ![Partial Dependence Plots Module](./images/components/lit-pdps.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
+### Dive
+
+Dive is a visualization module, inspired by our prior work on
+[Facets Dive](https://pair-code.github.io/facets/) and its use in the
+[What-If Tool](https://pair-code.github.io/what-if-tool/), that enables
+exploration of data subsets grouped by feature values.
+
+![Dive module](./images/components/dive.png)<!-- DO NOT REMOVE {style="max-width:500px"} -->
+
+Data are displayed in a matrix of groups based on feature values, with each
+group containing the datapoints at the intersection of the feature values for
+that column and row. Use the drop-downs at the top to select the feature to use
+for the rows and columns in the matrix. You can use the "Color By" drop-down in
+the main toolbar to change the feature by which datapoints are colored in the
+matrix.
+
+This visualization is powered by
+[Megaplot](https://github.com/PAIR-code/megaplot), which allows it to support up
+to 100k datapoints. Dive support mouse-based zoom (scroll) and pan (drag)
+interactions to help you navigate these very large datasets. You can also use
+the "zoom in", "zoom out", and "reset view" buttons in the module toolbar to
+help navigate with more precision.
+
+Dive is currently integrated in the
+[Penguins demo](https://pair-code.github.io/lit/demos/penguins.html), and will
+be supported in other demos in future releases.
+
 ## TCAV
 
 Many interpretability methods provide importance values per input feature (e.g,
