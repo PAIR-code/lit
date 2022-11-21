@@ -883,16 +883,16 @@ export class DataTable extends ReactiveElement {
         {'display': 'block', 'outline': 'auto'} : {});
 
     const upArrowClasses = classMap({
-      arrow: true,
-      up: true,
-      active: isUpActive,
-      inactive: isUpInactive,
+      'arrow': true,
+      'up': true,
+      'active': isUpActive,
+      'inactive': isUpInactive,
     });
     const downArrowClasses = classMap({
-      arrow: true,
-      down: true,
-      active: isDownActive,
-      inactive: isDownInactive,
+      'arrow': true,
+      'down': true,
+      'active': isDownActive,
+      'inactive': isDownInactive,
     });
     const headerClasses =
         classMap({'column-header': true, 'right-align': header.rightAlign!});

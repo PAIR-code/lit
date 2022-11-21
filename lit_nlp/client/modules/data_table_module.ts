@@ -130,9 +130,17 @@ export class DataTableModule extends LitModule {
 
   @computed
   get filteredData(): IndexedInput[] {
-    const data: IndexedInput[] = this.onlyShowSelected ?
-        this.selectionService.selectedInputData.concat(this.pinnedInputData) :
-        this.appState.currentInputData;
+    let data: IndexedInput[];
+
+    if (this.onlyShowSelected) {
+      const {selectedInputData} = this.selectionService;
+      const unselectedPinned =
+          this.pinnedInputData.filter(inp => !selectedInputData.includes(inp));
+      data = selectedInputData.concat(unselectedPinned);
+    } else {
+      data = this.appState.currentInputData;
+    }
+
     return this.onlyShowGenerated ? data.filter((d) => d.meta.added) : data;
   }
 
