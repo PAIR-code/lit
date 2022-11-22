@@ -14,9 +14,8 @@
 # ==============================================================================
 """SHAP explanations for datasets and models."""
 
-from typing import Optional
+from typing import Optional, Union
 
-from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes
@@ -33,6 +32,10 @@ Spec = types.Spec
 
 EXPLAIN_KEY = 'Prediction key'
 SAMPLE_KEY = 'Sample size'
+
+_SUPPORTED_INPUT_TYPES = (types.Scalar, types.CategoryLabel)
+_SUPPORTED_OUTPUT_TYPES = (types.MulticlassPreds, types.RegressionScore,
+                           types.Scalar, types.SparseMultilabelPreds)
 
 
 class TabularShapExplainer(lit_components.Interpreter):
@@ -67,15 +70,12 @@ class TabularShapExplainer(lit_components.Interpreter):
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
     # Tabular models require all dataset features are present for each datapoint
-    compatible_input_types = (types.Scalar, types.CategoryLabel)
-    compatible_output_types = (types.MulticlassPreds, types.RegressionScore,
-                               types.Scalar, types.SparseMultilabelPreds)
     input_spec_keys = model.input_spec().keys()
     is_tabular = all(
-        feature.required and isinstance(feature, compatible_input_types) and
+        feature.required and isinstance(feature, _SUPPORTED_INPUT_TYPES) and
         name in input_spec_keys for name, feature in dataset.spec().items())
     has_outputs = utils.spec_contains(model.output_spec(),
-                                      compatible_output_types)
+                                      _SUPPORTED_OUTPUT_TYPES)
     return is_tabular and has_outputs
 
   def config_spec(self) -> types.Spec:
@@ -114,61 +114,65 @@ class TabularShapExplainer(lit_components.Interpreter):
         optional sample size if taking a random sample from the inputs.
 
     Returns:
-      None if the prediction key is not provided or cannot be found in the
-      model's output spec.
-
       A list of FeatureSalience objects, one for each (randomly sampled) input,
       containing per-input feature salience values in the range of [-1, 1].
+
+    Raises:
+      ValueError: if the value of `config[EXPLAIN_KEY]` is not found in the
+        model's output spec.
     """
+    del model_outputs   # Unused. SHAP calls the model directly
+
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))
 
-    input_feats = list(dataset.spec().keys())
-    output_feats = list(model.output_spec().keys())
-    pred_key_to_explain = str(config[EXPLAIN_KEY])
-    sample_size = int(config[SAMPLE_KEY]) if config[SAMPLE_KEY] else 0
+    default_pred_key = utils.find_spec_keys(
+        model.output_spec(), _SUPPORTED_OUTPUT_TYPES)[0]
+    pred_key = config.get(EXPLAIN_KEY) or default_pred_key
+    pred_spec = model.output_spec().get(pred_key)
+    if not pred_spec:
+      raise ValueError('SHAP requires a prediction field to explain. Could not '
+                       f'find {pred_key} in spec, {str(model.output_spec())}.')
 
-    if not pred_key_to_explain or pred_key_to_explain not in output_feats:
-      logging.warning('SHAP requires an output field to explain.')
-      return None
+    input_feats = [key for key in model.input_spec() if key in dataset.spec()]
+
+    example_data = inputs or dataset.examples
+    examples: pd.DataFrame = pd.DataFrame(example_data)[input_feats]
+    sample_size = int(config.get(SAMPLE_KEY, 0))
+    if sample_size and len(examples) > sample_size:
+      inputs_to_use: pd.DataFrame = examples.sample(sample_size)
+    else:
+      inputs_to_use: pd.DataFrame = examples
 
     random_baseline = dataset.sample(1).examples
-    background = pd.DataFrame(random_baseline)
-    inputs_to_use = inputs or dataset.examples
-    inputs_to_use = pd.DataFrame(inputs_to_use)
-
-    if sample_size and len(inputs_to_use) > sample_size:
-      inputs_to_use = inputs_to_use.sample(sample_size)
+    background = pd.DataFrame(random_baseline)[input_feats]
 
     def prediction_fn(examples):
       dict_examples: list[JsonDict] = [{
           input_feats[i]: example[i] for i in range(len(input_feats))
       } for example in examples]
 
-      preds = []
+      preds: list[Union[int, float]] = []
 
       for pred in model.predict(dict_examples):
-        pred_info = model.output_spec()[pred_key_to_explain]
-
-        if isinstance(pred_info, types.MulticlassPreds):
-          pred_list: np.ndarray = pred[pred_key_to_explain]
+        if isinstance(pred_spec, types.MulticlassPreds):
+          pred_list: list[float] = list(pred[pred_key])
           max_value: float = max(pred_list)
-          preds.append(max_value)
-        elif isinstance(pred_info, types.SparseMultilabelPreds):
-          pred_tuples = pred[pred_key_to_explain]
-          pred_list = list(map(lambda pred: pred[1], pred_tuples))  # pytype: disable=annotation-type-mismatch  # enable-nested-classes
+          index: int = pred_list.index(max_value)
+          preds.append(index)
+        elif isinstance(pred_spec, types.SparseMultilabelPreds):
+          pred_tuples: types.ScoredTextCandidates = pred[pred_key]
+          pred_list = list(map(lambda pred: pred[1], pred_tuples))
           max_value: float = max(pred_list)
-          preds.append(max_value)
+          index: int = pred_list.index(max_value)
+          preds.append(index)
         else:
-          preds.append(pred[pred_key_to_explain])
+          preds.append(pred[pred_key])
 
       return np.array(preds)
 
     explainer = shap.KernelExplainer(prediction_fn, background)
     values = explainer.shap_values(inputs_to_use)
-    salience = [{input_feats[i]: value[i]
-                 for i in range(len(input_feats))}
+    salience = [{input_feats[i]: value[i] for i in range(len(input_feats))}
                 for value in values]
-    salience = [{'saliency': dtypes.FeatureSalience(s)} for s in salience]
-
-    return salience
+    return [{'saliency': dtypes.FeatureSalience(s)} for s in salience]

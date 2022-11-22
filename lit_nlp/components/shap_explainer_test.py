@@ -14,6 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.components.shap_interpreter."""
 
+from typing import Optional
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
@@ -95,35 +96,37 @@ class TabularShapExplainerTest(parameterized.TestCase):
                          dataset: lit_dataset.Dataset, expected: bool):
     self.assertEqual(self.shap.is_compatible(model, dataset), expected)
 
-  def test_valid_run(self):
+  def test_config_errors(self):
+    with self.assertRaises(ValueError):
+      self.shap.run([],
+                    self.regression_model,
+                    _GOOD_DATASET,
+                    config={shap_explainer.EXPLAIN_KEY: 'not_in_mdl'})
+
+  @parameterized.named_parameters(
+      ('default', None, None),
+      ('pred_key_only', 'score', None),
+      ('sample_size_only', None, 3),
+      ('all_fields', 'score', 3),
+  )
+  def test_run(self, pred_key: Optional[str], sample_size: Optional[int]):
+    config = {}
+
+    if pred_key:
+      config[shap_explainer.EXPLAIN_KEY] = pred_key
+
+    if sample_size:
+      config[shap_explainer.SAMPLE_KEY] = sample_size
+      expected_length = sample_size
+    else:
+      expected_length = len(self.dataset.examples)
+
     regress_salience = self.shap.run(
         self.dataset.examples,
         self.regression_model,
         self.dataset,
-        config={shap_explainer.EXPLAIN_KEY: 'score'})
-    self.assertEqual(len(self.dataset), len(regress_salience))
-
-  @parameterized.named_parameters(
-      ('none', None),
-      ('empty_dict', {}),
-      ('empty_pred_key', {shap_explainer.EXPLAIN_KEY: ''}),
-      ('none_pred_key', {shap_explainer.EXPLAIN_KEY: None}),
-  )
-  def test_config(self, config: dict[str, str]):
-    self.assertIsNone(
-        self.shap.run([], self.regression_model, _GOOD_DATASET, config=config))
-
-  def test_run_with_sample_size(self):
-    salience = self.shap.run(
-        self.dataset.examples,
-        self.regression_model,
-        self.dataset,
-        config={
-            shap_explainer.EXPLAIN_KEY: 'score',
-            shap_explainer.SAMPLE_KEY: 3
-        })
-    self.assertNotEqual(len(self.dataset), len(salience))
-    self.assertLen(salience, 3)
+        config=config)
+    self.assertLen(regress_salience, expected_length)
 
 
 if __name__ == '__main__':
