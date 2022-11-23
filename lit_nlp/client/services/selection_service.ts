@@ -66,7 +66,9 @@ export class SelectionService extends LitService implements
 
   @computed
   get selectedIds(): string[] {
-    return [...this.selectedIdsSet.values()];
+    return [...this.selectedIdsSet.values()].sort(
+        (a, b) =>
+            this.appState.getIndexById(a) - this.appState.getIndexById(b));
   }
 
   @computed
