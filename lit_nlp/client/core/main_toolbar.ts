@@ -253,25 +253,41 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   /**
-   * Controls to page through the dataset.
-   * Assume exactly one point is selected.
+   * Controls to navigate through the dataset.
    */
-  renderSelectionDisplay(numSelected: number, numTotal: number) {
-    const primaryId = this.selectionService.primarySelectedId;
-    const selectedIndex =
-        this.appState.currentInputData.findIndex(ex => ex.id === primaryId);
-    const numExamples = this.appState.currentInputData.length;
+  renderDatapointNavigation() {
+    const numTotalDatapoints = this.appState.currentInputData.length;
 
-    // Set the selected set to the previous (-1) or next (1) example in the
-    // dataset.
-    const selectOffset = (offset: number) => {
-      const nextIndex = (selectedIndex + offset + numExamples) % numExamples;
+    const primaryId = this.selectionService.primarySelectedId;
+    let selectedIndex =
+        this.appState.currentInputData.findIndex(ex => ex.id === primaryId);
+
+    // Controls navigate through all datapoints by default.
+    let propertyText = 'datapoints';
+    let selectOffset = (offset: number) => {
+      const nextIndex = primaryId == null ?
+          0 :
+          (selectedIndex + offset + numTotalDatapoints) % numTotalDatapoints;
       const nextId = this.appState.currentInputData[nextIndex].id;
       this.selectionService.selectIds([nextId]);
     };
-    const arrowsDisabled = numSelected === 0;
-    const iconClass =
-        classMap({'icon-button': true, 'disabled': arrowsDisabled});
+
+    const numSelected = this.selectionService.selectedIds.length;
+    // If multiple items are selected, navigate through the selection instead.
+    if (numSelected > 1 && primaryId !== null) {
+      selectedIndex =
+          this.selectionService.selectedIds.findIndex(id => id === primaryId);
+      propertyText = 'selected';
+      selectOffset = (offset: number) => {
+        const nextIndex = (selectedIndex + offset + numSelected) % numSelected;
+        const nextId = this.selectionService.selectedIds[nextIndex];
+        this.selectionService.setPrimarySelection(nextId);
+      };
+    }
+
+    // Set the selected set to the previous (-1) or next (1) example in
+    // the dataset.
+    const iconClass = classMap({'icon-button': true});
     // clang-format off
     return html`
       <mwc-icon class=${iconClass} id='ds-select-prev'
@@ -279,7 +295,7 @@ export class LitMainToolbar extends MobxLitElement {
         chevron_left
       </mwc-icon>
       <div id='number-selected'>
-        <span id='num-selected-text'>${numSelected}</span> of <span>${numTotal}</span> selected
+        <span id='num-selected-text'>${numSelected}</span> of <span>${numTotalDatapoints}</span> ${propertyText}
       </div>
       <mwc-icon class=${iconClass} id='ds-select-next'
         @click=${() => {selectOffset(1);}}>
@@ -290,50 +306,8 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   /**
-   * Primary selection display, including controls
-   * to page the primary selection through the selected set.
+   * Render a Slices button to show the Slice Editor.
    */
-  renderPrimarySelectControls() {
-    const numSelected = this.selectionService.selectedIds.length;
-    const primaryId = this.selectionService.primarySelectedId;
-    if (primaryId == null) return;
-
-    const primaryIndex = this.appState.indicesById.get(primaryId);
-    const selectedIndex =
-        this.selectionService.selectedIds.findIndex(id => id === primaryId);
-    // Set the primary selection to the previous (-1) or next (1) example in the
-    // current selected list.
-    const selectOffset = (offset: number) => {
-      const nextIndex = (selectedIndex + offset + numSelected) % numSelected;
-      const nextId = this.selectionService.selectedIds[nextIndex];
-      this.selectionService.setPrimarySelection(nextId);
-    };
-
-    const arrowsDisabled = numSelected < 2;
-    const iconClass =
-        classMap({'icon-button': true, 'disabled': arrowsDisabled});
-    // clang-format off
-    return html`
-      <div id='primary-selection-status' class='selection-status-group'>
-          <mwc-icon class=${iconClass} id='select-prev'
-            ?disabled=${arrowsDisabled}
-            @click=${() => {selectOffset(-1);}}>
-            chevron_left
-          </mwc-icon>
-          <div id='primary-text'>
-            primary <span class='monospace'>[${primaryIndex}]</span>
-          </div>
-          <mwc-icon class=${iconClass} id='select-next'
-            ?disabled=${arrowsDisabled}
-            @click=${() => {selectOffset(1);}}>
-            chevron_right
-          </mwc-icon>
-      </div>
-    `;
-    // clang-format on
-  }
-
-  // Render a Slices button to show the Slice Editor
   renderSlices() {
     // Left-anchor the Slice Editor popup.
     const popupStyle = styleMap({'--popup-top': '4px'});
@@ -443,7 +417,6 @@ export class LitMainToolbar extends MobxLitElement {
       this.selectionService.selectIds(allIds);
     };
     const numSelected = this.selectionService.selectedIds.length;
-    const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
     const primaryIndex =
         primaryId == null ? -1 : this.appState.indicesById.get(primaryId)!;
@@ -497,9 +470,7 @@ export class LitMainToolbar extends MobxLitElement {
         ${this.renderPairControls()}
       </div>
       <div id='right-container'>
-        ${primaryId !== null && numSelected >= 1 ?
-          this.renderPrimarySelectControls() :  null}
-        ${this.renderSelectionDisplay(numSelected, numTotal)}
+        ${this.renderDatapointNavigation()}
         <button id="select-all" class="hairline-button xl"
           @click=${selectAll}>
           Select all
