@@ -27,6 +27,7 @@ import {SelectionObservedByUrlService} from './url_service';
  * The AppState interface for working with the SelectionService
  */
 export interface AppState {
+  getIndexById: (ids: string|null) => number;
   currentInputData: IndexedInput[];
   getCurrentInputDataById: (id: string) => IndexedInput | null;
   getExamplesById: (ids: string[]) => IndexedInput[];
@@ -47,6 +48,11 @@ export class SelectionService extends LitService implements
   // Track the last user, so components can avoid resetting on selections they
   // triggered.
   @observable private lastUserInternal?: ServiceUser;
+
+
+  // Tracks the last updated data indices to calculate selection.
+  @observable private shiftSelectionStartIndexInternal: number = 0;
+  @observable private shiftSelectionEndIndexInternal: number = 0;
 
   @computed
   get lastUser() {
@@ -81,6 +87,16 @@ export class SelectionService extends LitService implements
     return null;
   }
 
+  @computed
+  get shiftSelectionStartIndex() {
+    return this.shiftSelectionStartIndexInternal;
+  }
+
+  @computed
+  get shiftSelectionEndIndex() {
+    return this.shiftSelectionEndIndexInternal;
+  }
+
   @action
   setLastUser(user?: ServiceUser) {
     this.lastUserInternal = user;
@@ -96,6 +112,12 @@ export class SelectionService extends LitService implements
       // Not in main selection, so update that.
       this.selectIds([id], user);
     }
+  }
+
+  @action
+  setShiftSelectionSpan(startIndex: number, endIndex: number) {
+    this.shiftSelectionStartIndexInternal = startIndex;
+    this.shiftSelectionEndIndexInternal = endIndex;
   }
 
   @action
@@ -115,6 +137,11 @@ export class SelectionService extends LitService implements
       this.primarySelectedIdInternal = ids[0];
     }
     this.setLastUser(user);
+
+    if (ids.length === 1) {
+      const index = this.appState.getIndexById(ids[0]);
+      this.setShiftSelectionSpan(index, index);
+    }
   }
 
   @action

@@ -252,7 +252,6 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-
   /**
    * Controls to page through the dataset.
    * Assume exactly one point is selected.
@@ -276,14 +275,14 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format off
     return html`
       <mwc-icon class=${iconClass} id='ds-select-prev'
-        @click=${arrowsDisabled ? null: () => {selectOffset(-1);}}>
+        @click=${() => {selectOffset(-1);}}>
         chevron_left
       </mwc-icon>
       <div id='number-selected'>
         <span id='num-selected-text'>${numSelected}</span> of <span>${numTotal}</span> selected
       </div>
       <mwc-icon class=${iconClass} id='ds-select-next'
-        @click=${arrowsDisabled ? null: () => {selectOffset(1);}}>
+        @click=${() => {selectOffset(1);}}>
         chevron_right
       </mwc-icon>
     `;

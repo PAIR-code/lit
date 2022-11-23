@@ -139,6 +139,10 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
   @observable @property({type: Boolean}) exportEnabled: boolean = false;
 
+  // Indices to calculate data selection
+  @property({type: Number}) shiftSelectionStartIndex: number = 0;
+  @property({type: Number}) shiftSelectionEndIndex: number = 0;
+
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
 
@@ -172,9 +176,6 @@ export class DataTable extends ReactiveElement {
   private lastContainerHeight = 0;
 
   private selectedIndicesSetForRender = new Set<number>();
-
-  private shiftSelectionStartIndex = 0;
-  private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
   private hoveredIndex: number|null = null;
 

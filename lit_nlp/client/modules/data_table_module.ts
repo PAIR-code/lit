@@ -497,6 +497,9 @@ export class DataTableModule extends LitModule {
         selectionEnabled
         paginationEnabled
         exportEnabled
+        shiftSelectionStartIndex=${
+          this.selectionService.shiftSelectionStartIndex}
+        shiftSelectionEndIndex=${this.selectionService.shiftSelectionEndIndex}
       ></lit-data-table>
     `;
     // clang-format on
