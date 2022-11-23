@@ -69,12 +69,15 @@ class PickleCacheLoader(object):
         data = pickle.load(fd)
     except FileNotFoundError:
       logging.info("No cache to load at %s.", self._cache_path)
+      data = {}
     except EOFError:
       logging.error(
           "Failed loading cache, possibly due to malformed cache data."
           "Please remove %s and try again.", self._cache_path)
+      data = {}
     except IOError:
       logging.error("Failed loading cache at %s.", self._cache_path)
+      data = {}
     return data  # pytype: disable=name-error  # py310-upgrade
 
 
