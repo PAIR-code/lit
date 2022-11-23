@@ -339,7 +339,8 @@ class NoneDataset(Dataset):
   def spec(self):
     combined_spec = {}
     for _, model in self._models.items():
-      req_inputs = {k: v for (k, v) in model.spec().input.items() if v.required}
+      req_inputs = {k: v for (k, v) in model.spec().input.items()
+                    if v['required']}
       # Ensure that there are no conflicting spec keys.
       assert not self.has_conflicting_keys(combined_spec, req_inputs)
       combined_spec.update(req_inputs)
