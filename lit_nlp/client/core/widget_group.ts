@@ -246,7 +246,7 @@ export class WidgetGroup extends ReactiveElement {
       config: RenderConfig, styles: {[key: string]: string},
       showSubtitle: boolean) {
     const moduleType = config.moduleType;
-    const modelName = config.modelName || 'unused';
+    const modelName = config.modelName || '';
     const selectionServiceIndex = config.selectionServiceIndex || 0;
     const shouldReact = this.visible && !this.minimized;
     let subtitle = modelName ?? '';
