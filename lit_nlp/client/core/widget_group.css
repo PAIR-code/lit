@@ -29,6 +29,7 @@
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);
   box-sizing: border-box;
+  gap: 8px;
 }
 
 .title {
