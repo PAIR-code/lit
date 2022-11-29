@@ -110,16 +110,41 @@ export class EmbeddingsModule extends LitModule {
 
   @observable private spriteImage?: HTMLImageElement|string;
 
-  @observable private legendWidth = 150;  // width of the color legend
-
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    // Protect against resize when container isn't rendered, which can happen
+    // during model switching.
+    const resultsArea = this.shadowRoot!.querySelector('.module-results-area');
+    const container = this.shadowRoot!.getElementById('scatter-gl-container');
+    if (resultsArea == null || container == null) {return;}
 
-  private scatterGL!: ScatterGL;
+    /**
+     * While investigating the jitter, we found that this callback function was
+     * being called twice for every selection change. After the first call, the
+     * `container.offsetHeight` would always be less than
+     * `resultsArea.offsetHeight`, and after the second they would be the same.
+     * We were unable to figure out why this is happening because of the
+     * opqueness of the ResizeObserver API's triggers.
+     *
+     * Thus we added this guard to only resize ScatterGL when the heights are
+     * the same, i.e., when container is meeting its `height: 100%;` style rule.
+     *
+     * TODO(b/257440141): Figure out why this callback is happening twice
+     */
+    const resultsAreaRect = resultsArea.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width && containerRect.height &&
+        containerRect.width === resultsAreaRect.width &&
+        containerRect.height === resultsAreaRect.height) {
+      this.scatterGL?.resize();
+    }
+  });
+
+  private scatterGL?: ScatterGL;
 
   /**
    * Cache for embeddings, so we don't need to retrieve the entire
@@ -190,9 +215,7 @@ export class EmbeddingsModule extends LitModule {
 
   @computed
   get scatterGLDataset(): Dataset|null {
-    if (this.projectedPoints.length === 0) {
-      return null;
-    }
+    if (this.projectedPoints.length === 0) {return null;}
     const labels = this.displayLabels.slice(0, this.projectedPoints.length);
     const dataset = new Dataset(this.projectedPoints, labels);
 
@@ -215,13 +238,13 @@ export class EmbeddingsModule extends LitModule {
     const key = `${dataset}:${model}:${projector}:${JSON.stringify(config)}`;
     if (!this.embeddingCache.has(key)) {
       // Not found, create a new one.
-      const keyFn = (d: IndexedInput) => d['id'];
       const requestFn =
-          async(inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
-        return this.apiService.getInterpretations(
-            inputs, model, dataset, projector, config, 'Fetching projections');
-      };
-      const cache = new BatchRequestCache(requestFn, keyFn);
+        async (inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
+          return this.apiService.getInterpretations(
+              inputs, model, dataset, projector, config,
+              'Fetching projections');
+        };
+      const cache = new BatchRequestCache(requestFn, (d: IndexedInput) => d.id);
       this.embeddingCache.set(key, cache);
     }
 
@@ -251,9 +274,7 @@ export class EmbeddingsModule extends LitModule {
     if (result === null) return;
 
     const nearestIds = result[0]['nearest_neighbors'].map(
-        (neighbor: NearestNeighborsResult) => {
-          return neighbor['id'];
-        });
+        (neighbor: NearestNeighborsResult) => neighbor.id);
 
     this.selectionService.selectIds(nearestIds);
   }
@@ -270,8 +291,6 @@ export class EmbeddingsModule extends LitModule {
     const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
-    // invoke handleResize to assign a value for legendWidth
-    this.handleResize();
     this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
@@ -288,22 +307,7 @@ export class EmbeddingsModule extends LitModule {
     this.setupReactions();
 
     // Resize the scatter GL container.
-    this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
-    });
     this.resizeObserver.observe(container);
-  }
-
-  private handleResize() {
-    // Protect against resize when container isn't rendered, which can happen
-    // during model switching.
-    const scatterContainer =
-        this.shadowRoot!.getElementById('scatter-gl-container')!;
-    this.legendWidth =
-        scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
-    if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL?.resize();
-    }
   }
 
   /**
@@ -311,16 +315,10 @@ export class EmbeddingsModule extends LitModule {
    */
   private setupReactions() {
     // Don't react immediately; we'll wait and make a single update.
-    const getColorAll = () => this.colorService.all;
-    this.react(getColorAll, allColorOptions => {
-      this.scatterGL.setPointColorer(
-          (i, selectedIndices, hoverIndex) =>
-              this.pointColorer(i, selectedIndices, hoverIndex));
-    });
     this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
-    this.react(() => this.selectedSpriteIndex, idx => {
+    this.react(() => this.selectedSpriteIndex, () => {
       this.computeSpriteMap();
     });
 
@@ -337,37 +335,34 @@ export class EmbeddingsModule extends LitModule {
     }, {delay: 0.2});
 
     // Actually render the points.
-    this.reactImmediately(() => this.scatterGLDataset, dataset => {
+    this.reactImmediately(() => this.scatterGLDataset, () => {
       this.updateScatterGL();
     });
 
     this.reactImmediately(
-        () => this.selectionService.selectedIds, selectedIds => {
+        () => this.selectionService.selectedIds,
+        (selectedIds) => {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
-          this.scatterGL.select(selectedIndices);
+          this.scatterGL?.select(selectedIndices);
         });
-    this.reactImmediately(() => this.focusService.focusData, focusData => {
-      const hoveredId = this.focusService.focusData != null &&
-              this.focusService.focusData.datapointId != null &&
-              this.focusService.focusData.io == null ?
-          this.focusService.focusData.datapointId :
-          null;
+    this.reactImmediately(() => this.focusService.focusData, () => {
+      const hoveredId = this.focusService.focusData?.datapointId;
       if (hoveredId != null) {
         const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];
-        this.scatterGL.setHoverPointIndex(hoveredIdx);
+        this.scatterGL?.setHoverPointIndex(hoveredIdx);
       } else {
-        this.scatterGL.setHoverPointIndex(null);
+        this.scatterGL?.setHoverPointIndex(null);
       }
     });
   }
 
   private updateScatterGL() {
     if (this.scatterGLDataset) {
-      this.scatterGL.render(this.scatterGLDataset);
+      this.scatterGL?.render(this.scatterGLDataset);
       if (this.spriteImage) {
-        this.scatterGL.setSpriteRenderMode();
+        this.scatterGL?.setSpriteRenderMode();
       } else {
-        this.scatterGL.setPointRenderMode();
+        this.scatterGL?.setPointRenderMode();
       }
     }
   }
@@ -543,7 +538,15 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  override renderImpl() {
+  // Overriding render directly instead of renderImpl to avoid WebGL losing
+  // context when the module is collapsed and re-opened. Rendered elements will
+  // persist in the background and continue to update via reactions. This may
+  // cause performance issues with lage datasets, but the specific impacts of
+  // this are unknown at this time. There is a way to rearchitect this so that
+  // ScatterGL can be used with `renderImpl()` and thus avoid potential
+  // performance penalties for updating off screen.
+  // TODO(b/260699752): Rearchitect to use `renderImpl()`
+  override render() {
     // check the type of the labels.
     const domain = this.colorService.selectedColorOption.scale.domain();
     const sequentialScale = typeof domain[0] === 'number';
@@ -556,9 +559,7 @@ export class EmbeddingsModule extends LitModule {
             this.selectionService.primarySelectedInputData);
       }
     };
-    const onClickReset = () => {
-      this.scatterGL.resetZoom();
-    };
+    const onClickReset = () => {this.scatterGL?.resetZoom();};
 
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
@@ -579,7 +580,6 @@ export class EmbeddingsModule extends LitModule {
         </div>
         <div class="module-footer">
           <color-legend legendType=${legendType}
-            legendWidth=${this.legendWidth}
             selectedColorName=${this.colorService.selectedColorOption.name}
             .scale=${this.colorService.selectedColorOption.scale}>
           </color-legend>
