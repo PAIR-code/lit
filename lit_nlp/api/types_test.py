@@ -1,12 +1,14 @@
 """Tests for types."""
 
+from typing import Any
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
 import numpy as np
 
 
-class TypesTest(absltest.TestCase):
+class TypesTest(parameterized.TestCase):
 
   def test_inherit_parent_default_type(self):
     lit_type = types.StringLitType()
@@ -30,51 +32,206 @@ class TypesTest(absltest.TestCase):
     self.assertTrue(hasattr(lit_type, "align"))
     self.assertFalse(hasattr(lit_type, "not_a_property"))
 
-  def test_tensor_ndim(self):
+  @parameterized.named_parameters(
+      ("list[int]", [1, 2, 3], 1),
+      ("np_array[int]", np.array([1, 2, 3]), 1),
+      ("np_array[list[int]]", np.array([[1, 1], [2, 3]]), 2),
+      ("np_array[list[int]]_2_dim", np.array([[1, 1], [2, 3]]), [2, 4]),
+  )
+  def test_tensor_ndim(self, value, ndim):
     emb = types.Embeddings()
     try:
-      emb.validate_ndim([1, 2, 3], 1)
-      emb.validate_ndim(np.array([1, 2, 3]), 1)
-      emb.validate_ndim(np.array([[1, 1], [2, 3]]), 2)
-      emb.validate_ndim(np.array([[1, 1], [2, 3]]), [2, 4])
+      emb.validate_ndim(value, ndim)
     except ValueError:
       self.fail("Raised unexpected error.")
 
-    self.assertRaises(ValueError, emb.validate_ndim, [1, 2, 3], 2)
-    self.assertRaises(ValueError, emb.validate_ndim, np.array([[1, 1], [2, 3]]),
-                      [1])
+  @parameterized.named_parameters(
+      ("ndim_wrong_size", [1, 2, 3], 2),
+      ("ndim_wrong_type", np.array([[1, 1], [2, 3]]), [1]),
+  )
+  def test_tensor_ndim_errors(self, value, ndim):
+    with self.assertRaises(ValueError):
+      emb = types.Embeddings()
+      emb.validate_ndim(value, ndim)
 
-  def test_type_validate_input(self):
-    spec = {
-        "score": types.Scalar(),
-        "text": types.TextSegment(),
-    }
+  @parameterized.named_parameters(
+      ("boolean", types.Boolean(), True),
+      ("embeddings_list[int]", types.Embeddings(), [1, 2]),
+      ("embeddings_np_array", types.Embeddings(), np.array([1, 2])),
+      ("image", types.ImageBytes(), "data:image/blah..."),
+      ("scalar_float", types.Scalar(), 3.4),
+      ("scalar_int", types.Scalar(), 3),
+      ("scalar_numpy", types.Scalar(), np.int64(2)),
+      ("text", types.TextSegment(), "hi"),
+      ("tokens", types.Tokens(), ["a", "b"]),
+  )
+  def test_type_validate_input(self, lit_type: types.LitType, value: Any):
+    spec = {"score": types.Scalar(), "text": types.TextSegment()}
     example = {}
-    scalar = types.Scalar()
-    text = types.TextSegment()
-    img = types.ImageBytes()
-    tok = types.Tokens()
-    emb = types.Embeddings()
-    bl = types.Boolean()
     try:
-      scalar.validate_input(3.4, spec, example)
-      scalar.validate_input(3, spec, example)
-      scalar.validate_input(np.int64(2), spec, example)
-      text.validate_input("hi", spec, example)
-      img.validate_input("data:image/blah...", spec, example)
-      tok.validate_input(["a", "b"], spec, example)
-      emb.validate_input([1, 2], spec, example)
-      emb.validate_input(np.array([1, 2]), spec, example)
-      bl.validate_input(True, spec, example)
+      lit_type.validate_input(value, spec, example)
     except ValueError:
       self.fail("Raised unexpected error.")
 
-    self.assertRaises(ValueError, scalar.validate_input, "hi", spec, example)
-    self.assertRaises(ValueError, img.validate_input, "hi", spec, example)
-    self.assertRaises(ValueError, text.validate_input, 4, spec, example)
-    self.assertRaises(ValueError, tok.validate_input, [1], spec, example)
-    self.assertRaises(ValueError, emb.validate_input, ["a"], spec, example)
-    self.assertRaises(ValueError, bl.validate_input, 4, spec, example)
+  @parameterized.named_parameters(
+      ("boolean_number", types.Boolean(), 3.14159),
+      ("boolean_text", types.Boolean(), "hi"),
+      ("embeddings_bool", types.Embeddings(), True),
+      ("embeddings_number", types.Embeddings(), 3.14159),
+      ("embeddings_text", types.Embeddings(), "hi"),
+      ("image_bool", types.ImageBytes(), True),
+      ("image_number", types.ImageBytes(), 3.14159),
+      ("image_text", types.ImageBytes(), "hi"),
+      ("scalar_text", types.Scalar(), "hi"),
+      ("text_bool", types.TextSegment(), True),
+      ("text_number", types.TextSegment(), 3.14159),
+      ("tokens_bool", types.Tokens(), True),
+      ("tokens_number", types.Tokens(), 3.14159),
+      ("tokens_text", types.Tokens(), "hi"),
+  )
+  def test_type_validate_input_errors(self,
+                                      lit_type: types.LitType,
+                                      value: Any):
+    spec = {"score": types.Scalar(), "text": types.TextSegment()}
+    example = {}
+    with self.assertRaises(ValueError):
+      lit_type.validate_input(value, spec, example)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="CategoryLabel",
+          json_dict={
+              "required": False,
+              "annotated": False,
+              "default": "",
+              "vocab": ["0", "1"],
+              "__name__": "CategoryLabel",
+          },
+          expected_type=types.CategoryLabel,
+      ),
+      dict(
+          testcase_name="Embeddings",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "default": None,
+              "__name__": "Embeddings",
+          },
+          expected_type=types.Embeddings,
+      ),
+      dict(
+          testcase_name="Gradients",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "default": None,
+              "align": None,
+              "grad_for": "cls_emb",
+              "grad_target_field_key": "grad_class",
+              "__name__": "Gradients",
+          },
+          expected_type=types.Gradients,
+      ),
+      dict(
+          testcase_name="MulticlassPreds",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "default": None,
+              "vocab": ["0", "1"],
+              "null_idx": 0,
+              "parent": "label",
+              "autosort": False,
+              "threshold": None,
+              "__name__": "MulticlassPreds",
+          },
+          expected_type=types.MulticlassPreds,
+      ),
+      dict(
+          testcase_name="RegressionScore",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "min_val": 0,
+              "max_val": 1,
+              "default": 0,
+              "step": 0.01,
+              "parent": "label",
+              "__name__": "RegressionScore",
+          },
+          expected_type=types.RegressionScore,
+      ),
+      dict(
+          testcase_name="Scalar",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "min_val": 2,
+              "max_val": 100,
+              "default": 10,
+              "step": 1,
+              "__name__": "Scalar",
+          },
+          expected_type=types.Scalar,
+      ),
+      dict(
+          testcase_name="TextSegment",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "default": "",
+              "__name__": "TextSegment",
+          },
+          expected_type=types.TextSegment,
+      ),
+      dict(
+          testcase_name="TokenEmbeddings",
+          json_dict={
+              "required": True,
+              "annotated": False,
+              "default": None,
+              "align": "tokens_sentence",
+              "__name__": "TokenEmbeddings",
+          },
+          expected_type=types.TokenEmbeddings,
+      ),
+      dict(
+          testcase_name="Tokens",
+          json_dict={
+              "required": False,
+              "annotated": False,
+              "default": [],
+              "parent": "sentence",
+              "mask_token": None,
+              "token_prefix": "##",
+              "__name__": "Tokens",
+          },
+          expected_type=types.Tokens,
+      ),
+  )
+  def test_from_json(self, json_dict: types.JsonDict,
+                     expected_type: types.LitType):
+    lit_type: types.LitType = types.LitType.from_json(json_dict)
+    self.assertIsInstance(lit_type, expected_type)
+    for key in json_dict:
+      if key == "__name__":
+        continue
+      elif hasattr(lit_type, key):
+        self.assertEqual(getattr(lit_type, key), json_dict[key])
+      else:
+        self.fail(f"Encountered unknown property {key} for type "
+                  f"{lit_type.__class__.__name__}.")
+
+  @parameterized.named_parameters(
+      ("empty_dict", {}, KeyError),
+      ("invalid_name_empty", {"__name__": ""}, NameError),
+      ("invalid_name_none", {"__name__": None}, TypeError),
+      ("invalid_name_number", {"__name__": 3.14159}, TypeError),
+      ("invalid_type_name", {"__name__": "not_a_lit_type"}, NameError),
+  )
+  def test_from_json_errors(self, value: types.JsonDict, expected_error):
+    with self.assertRaises(expected_error):
+      _ = types.LitType.from_json(value)
 
   def test_type_validate_gentext_output(self):
     ds_spec = {

@@ -126,8 +126,33 @@ class LitType(metaclass=abc.ABCMeta):
 
   @staticmethod
   def from_json(d: JsonDict):
-    """Used by serialize.py."""
-    cls = globals()[d.pop("__name__")]  # class by name from this module
+    """Used by serialize.py.
+
+    Args:
+      d: The JSON Object-like dictionary to attempt to parse.
+
+    Returns:
+      An instance of a LitType subclass defined by the contents of `d`.
+
+    Raises:
+      KeyError: If `d` does not have a `__name__` property.
+      NameError: If `d["__name__"]` is not a `LitType` subclass.
+      TypeError: If `d["__name__"]` is not a string.
+    """
+    try:
+      type_name = d.pop("__name__")
+    except KeyError as e:
+      raise KeyError("A __name__ property is required to parse a LitType from "
+                     "JSON.") from e
+
+    if not isinstance(type_name, str):
+      raise TypeError("The value of __name__ must be a string.")
+
+    base_cls = globals().get("LitType")
+    cls = globals().get(type_name)  # class by name from this module
+    if cls is None or not issubclass(cls, base_cls):
+      raise NameError(f"{type_name} is not a valid LitType.")
+
     return cls(**d)
 
 Spec = dict[str, LitType]

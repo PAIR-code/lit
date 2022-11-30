@@ -14,13 +14,15 @@
 # ==============================================================================
 """Miscellaneous utility functions."""
 import json
-from typing import cast, Optional, Text
+from typing import cast, Optional
 
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
 import numpy as np
 
-JsonDict = types.JsonDict
+
+class LitJsonParseError(ValueError):
+  pass
 
 
 def _obj_to_json(o: object):
@@ -70,19 +72,41 @@ def _obj_to_json_simple(o: object):
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
 
-def _obj_from_json(d: JsonDict):
-  """JSON deserialization helper."""
+def _obj_from_json(d: types.JsonDict):
+  """JSON deserialization helper.
+
+  Args:
+    d: The JSON Object-like dictionary to attempt to parse.
+
+  Returns:
+    The parsed JSON as a Python object or class instance.
+
+  Raises:
+    LitJsonParseError: If `LitType.from_json()` cannot parse the JSON.
+  """
   obj_class = d.pop('__class__', None)
   if obj_class == 'np.ndarray':
     return np.array(d['__value__'])
-  elif obj_class == 'LitType':
-    return types.LitType.from_json(d)
   elif obj_class == 'DataTuple':
     return dtypes.DataTuple.from_json(d)
   elif obj_class == 'tuple':
     return tuple(d['__value__'])
   else:
-    return d
+    try:
+      # The __class__ property was removed from JSON serialized LitTypes in
+      # cl/464631365, therefore if obj_class is None try to parse to a LitType
+      # TODO(b/260830384): Maybe bringing back __class__ is safer here?
+      return types.LitType.from_json(d)
+    except KeyError:
+      # LitType.from_json() failing because of a KeyError means that the JSON
+      # did no have a __name__ property, so it is probably not a LitType.
+      # Return it as-is.
+      return d
+    except (NameError, TypeError) as e:
+      # If parsing failed for reasons other than a KeyError, then the JSON has
+      # a __name__ property, implying was intended to be a LitType but is
+      # erroneously formatted, so we raise a RuntimeError
+      raise LitJsonParseError(f'Failed to parse LitType from {d}') from e
 
 
 ##
@@ -91,24 +115,24 @@ def _obj_from_json(d: JsonDict):
 # preserving key order in Python 3.
 class SimpleJSONEncoder(json.JSONEncoder):
 
-  def default(self, obj):
-    return _obj_to_json_simple(obj)
+  def default(self, o):
+    return _obj_to_json_simple(o)
 
 
 class CustomJSONEncoder(json.JSONEncoder):
 
-  def default(self, obj):
-    return _obj_to_json(obj)
+  def default(self, o):
+    return _obj_to_json(o)
 
 
-def from_json(json_string: Text) -> Optional[JsonDict]:
+def from_json(json_string: str) -> Optional[types.JsonDict]:
   """Reconstruct from a JSON string."""
   if json_string:
     return json.loads(json_string, object_hook=_obj_from_json)
   return None
 
 
-def to_json(obj, simple=False, **json_kw) -> Text:
+def to_json(obj, simple=False, **json_kw) -> str:
   """Serialize to a JSON string."""
-  return json.dumps(
-      obj, cls=SimpleJSONEncoder if simple else CustomJSONEncoder, **json_kw)
+  cls = SimpleJSONEncoder if simple else CustomJSONEncoder
+  return json.dumps(obj, cls=cls, **json_kw)
