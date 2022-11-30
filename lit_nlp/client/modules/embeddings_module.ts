@@ -335,9 +335,10 @@ export class EmbeddingsModule extends LitModule {
     }, {delay: 0.2});
 
     // Actually render the points.
-    this.reactImmediately(() => this.scatterGLDataset, () => {
-      this.updateScatterGL();
-    });
+    const dataChanges = () => [
+      this.scatterGLDataset, this.colorService.selectedColorOption
+    ];
+    this.reactImmediately(dataChanges, () => {this.updateScatterGL();});
 
     this.reactImmediately(
         () => this.selectionService.selectedIds,
