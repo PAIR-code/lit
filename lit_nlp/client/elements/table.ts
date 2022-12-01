@@ -139,8 +139,9 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
   @observable @property({type: Boolean}) exportEnabled: boolean = false;
 
-  // Indices to calculate data selection
+  /** Lowest row index of the continguous (i.e., shift-click) selection. */
   @property({type: Number}) shiftSelectionStartIndex: number = 0;
+  /** Highest row index of the continguous (i.e., shift-click) selection. */
   @property({type: Number}) shiftSelectionEndIndex: number = 0;
 
   // Style overrides

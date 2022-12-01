@@ -361,6 +361,12 @@ export class DataTableModule extends LitModule {
     this.columnVisibility = columnVisibility;
   }
 
+  private datasetIndexToRowIndex(inputIndex: number): number {
+    const indexedInput = this.appState.currentInputData[inputIndex];
+    if (indexedInput == null) return -1;
+    return this.sortedData.findIndex(d => d.id === indexedInput.id);
+  }
+
   /**
    * Table callbacks receive indices corresponding to the rows of
    * this.tableData, which matches this.sortedData.
@@ -474,6 +480,11 @@ export class DataTableModule extends LitModule {
     const columnNames =
         this.defaultColumns.filter(col => this.columnVisibility.get(col.name));
 
+    const shiftSelectStartRowIndex = this.datasetIndexToRowIndex(
+        this.selectionService.shiftSelectionStartIndex);
+    const shiftSelectEndRowIndex = this.datasetIndexToRowIndex(
+        this.selectionService.shiftSelectionEndIndex);
+
     // clang-format off
     return html`
       <lit-data-table
@@ -491,9 +502,8 @@ export class DataTableModule extends LitModule {
         selectionEnabled
         paginationEnabled
         exportEnabled
-        shiftSelectionStartIndex=${
-          this.selectionService.shiftSelectionStartIndex}
-        shiftSelectionEndIndex=${this.selectionService.shiftSelectionEndIndex}
+        shiftSelectionStartIndex=${shiftSelectStartRowIndex}
+        shiftSelectionEndIndex=${shiftSelectEndRowIndex}
       ></lit-data-table>
     `;
     // clang-format on
