@@ -452,12 +452,16 @@ export class DataTableModule extends LitModule {
       ${this.renderColumnDropdown()}
       <div class="toggles-row">
         <div class='switch-container'
-            @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
+            title="Only show selected"
+            @click=${() => {this.onlyShowGenerated = false;
+                            this.onlyShowSelected = !this.onlyShowSelected;}}>
           <div>Show selected</div>
           <mwc-switch ?selected=${this.onlyShowSelected}></mwc-switch>
         </div>
         <div class='switch-container'
-            @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
+            title="Only show generated"
+            @click=${() => {this.onlyShowSelected = false;
+                            this.onlyShowGenerated = !this.onlyShowGenerated;}}>
           <div>Show generated</div>
           <mwc-switch ?selected=${this.onlyShowGenerated}></mwc-switch>
         </div>
