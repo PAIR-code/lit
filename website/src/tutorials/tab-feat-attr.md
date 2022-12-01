@@ -16,14 +16,20 @@ takeaways: "Learn how to use the Kernel SHAP based Tabular Feature Attribution m
 
 ## Tabular Feature Attribution
 
-{% include partials/link-out link: "../../demos/penguins.html", text: "Explore this demo yourself." %}
+{%  include partials/link-out
+    link: "../../demos/penguins.html",
+    text: "Explore this demo yourself." %}
 
 Or, run your own with
 [`examples/penguin_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
 
-LIT supports many techniques like salience maps and counterfactual generators for text data. But what if you have a tabular dataset? You might want to find out which data features are most relevant in the model’s predictions. LIT provides a Feature Attribution module, which is currently supported for
+LIT supports many techniques like salience maps and counterfactual generators
+for text data. But what if you have a tabular dataset? You might want to find
+out which features (columns) are most relevant to the model’s predictions. LIT's
+Feature Attribution module for
 [tabular datasets](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)
-only, to enable identification of important features. This tutorial provides a walkthrough for this module within LIT, on the
+support identification of these important features. This tutorial provides a
+walkthrough for this module within LIT, on the
 [Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
 
 {%  include partials/info-box
@@ -42,25 +48,27 @@ only, to enable identification of important features. This tutorial provides a w
 The [penguins demo](https://pair-code.github.io/lit/demos/penguins.html) is a
 simple classifier for predicting penguin species from the Palmer Penguins
 dataset. It classifies the penguins as either Adelie, Chinstrap, or Gentoo based
-on 6 features (body mass, [culmen](https://en.wikipedia.org/wiki/Beak#Culmen)
-depth, culmen length, flipper length, island, and sex).
+on 6 features&mdash;body mass (g), [culmen](https://en.wikipedia.org/wiki/Beak#Culmen)
+depth (mm), culmen length (mm), flipper length (mm), island, and sex.
 
 {% include partials/info-box title: 'Filtering out incomplete data points',
   text: "Palmer Penguins is a tabular dataset with 344 penguin specimens. LIT’s
   penguin demo filters out 11 of these penguins due to missing information (sex
   is missing for all penguins, though some are missing additional information),
-  resulting in 333 datapoints being loaded for analysis."%}
+  resulting in 333 data points being loaded for analysis."%}
 
 The Feature Attribution module shows up in the bottom right of the demo within
-the Explanations tab. It computes SHAP values for each feature in a set of
-inputs and displays these values in a table. The controls for this module are:
+the Explanations tab. It computes
+[Shapley Additive exPlanation (SHAP)](https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf)
+values for each feature in a set of inputs and displays these values in a table.
+The controls for this module are:
 
 1.  The **sample size slider,** which defaults to a value of 30. SHAP
     computations are very expensive and it is infeasible to compute them for the
     entire dataset. Through testing, we found that 30 is about the maximum
     number of samples we can run SHAP on before performance takes a significant
-    hit, and it becomes unusable above 50 examples. Clicking the Apply button
-    will automatically check the Show attributions from the Tabular SHAP
+    hit, and it becomes difficult to use above 50 examples. Clicking the Apply
+    button will automatically check the Show attributions from the Tabular SHAP
     checkbox, and LIT will start computing the SHAP values.
 2.  The **prediction key** selects the model output value for which influence is
     computed. Since the penguin mode only predicts one feature, species, this is
@@ -71,8 +79,8 @@ inputs and displays these values in a table. The controls for this module are:
 3.  The **heatmap toggle** can be enabled to color code the SHAP values.
 4.  The **facets button** and **show attributions for selection checkbox**
     enable conditionally running the Kernel SHAP interpreter over subsets of the
-    data. We will get into the specifics of this with an example later on in this
-    tutorial.
+    data. We will get into the specifics of this with an example later on in
+    this tutorial.
 
 {%  include partials/inset-image
     image: '/assets/images/tab-feat-attr-image-1.png',
@@ -104,7 +112,8 @@ start the SHAP computation with heatmap enabled.
 * If the selection is empty, LIT samples the “sample size” number of data points
   from the entire dataset.
 * If the sample size is zero or larger than the selection, then LIT computes
-  SHAP for the entire selection and only that selection.
+  SHAP for the entire selection and does not sample additional data from the
+  dataset.
 * If sample size is smaller than the selection, then LIT samples the “sample
   size” number of data points from the selected inputs."%}
 
@@ -127,8 +136,7 @@ mean, min, median, and max feature values across the examples. The min and max
 values can be used to spot any outliers during analysis. The difference between
 the mean and the median can be used to gain more insights about the
 distribution. All of this enables statistical comparisons and will be enhanced
-in future releases of LIT with newer features like histograms to be included
-just for this purpose.
+in future releases of LIT.
 
 Each of the columns in the table can be sorted using the up (ascending) or down
 (descending) arrow symbols in the column headers. The table is sorted in
@@ -175,24 +183,25 @@ feature’s [domain](https://en.wikipedia.org/wiki/Domain_of_a_function) into N
 equal-sized bins. Quantile will create N bins that each contain (approximately)
 the same number of examples. Threshold creates two bins, one for the examples
 with values up to and including the threshold value, and one for examples with
-values above the threshold value.
+values above the threshold value. The discrete method requires specific dataset
+or model spec configuration, and we do not recommend using that method with this
+demo.
 
 Categorical and boolean features do not have controllable binning behavior. A
 bin is created for each label in their vocabulary.
-
-A facet is a unique permutation of the bin combinations from the enabled
-features. LIT supports as many as 100 facets (aka bins). An indicator in the
-faceting config dialog lets you know how many would be created given the current
-settings.
-
-Faceting is not supported for selections, meaning that if you already have a
-selection of elements (let’s say 10 penguins), then facets won’t split it
-further.
 
 {%  include partials/inset-image
     image: '/assets/images/tab-feat-attr-image-7.png',
     caption: 'Clicking the facets button will open the configuration controls.
         Use these to configure how divide the dataset into subsets.'%}
+
+LIT supports as many as 100 facets (aka bins). An indicator in the faceting
+config dialog lets you know how many would be created given the current
+settings.
+
+Faceting is not supported for selections, meaning that if you already have a
+selection of elements (let’s say 10 penguins), then facets won’t split it
+further.
 
 {%  include partials/inset-image
     image: '/assets/images/tab-feat-attr-image-9.png',
@@ -204,10 +213,8 @@ further.
 
 The Feature Attribution module works well in conjunction with other modules. In
 particular, we are going to look at the Salience Maps module which allows us to
-enhance our analysis. Salience Maps work on one data point at a time, whereas we
-use the Tabular Feature Attribution usually over a set of data points. And it is
-very likely that these two modules show different information as global average
-behavior is expected to be different from behavior on a single data point.
+enhance our analysis. Salience Maps work on one data point at a time, whereas
+the Tabular Feature Attribution usually looks at a set of data points.
 
 {% include partials/info-box title: 'Slightly different color scales',
   text: "The color scales are slightly different between the salience maps
@@ -220,9 +227,8 @@ In this example, a random data point is chosen using the select random button in
 the top right corner and the unselected data points are hidden in the Data
 Table. After running both the salience maps module and the feature attribution
 module for the selected point, we can see that the values in the mean column of
-Tabular SHAP output match the saliency scores exactly. Also, another cool but
-obvious thing to note is that the mean, min, median and max values are all the
-same when a single data point is selected.
+Tabular SHAP output match the saliency scores exactly. Note also that the mean,
+min, median and max values are all the same when a single datapoint is selected.
 
 {%  include partials/inset-image
     image: '/assets/images/tab-feat-attr-image-11.png',
@@ -250,10 +256,10 @@ of selected elements.
 As we can see in this example, where we run both modules on a slice of 5
 elements, the Salience Maps module is only providing its output for the primary
 selection (data point 0), whereas the Tabular Feature Attribution module is
-providing values for the entire selection by enabling the checkbox of “Show
-attributions for selection”. This allows us to use the salience
-map module as a kind of magnifying glass to focus on any individual example even
-when we are considering a slice of examples in our exploration of the dataset.
+providing values for the entire selection by enabling the “Show attributions for
+selection” checkbox. This allows us to use the salience map module as a kind of
+magnifying glass to focus on any individual example even when we are considering
+a slice of examples in our exploration of the dataset.
 
 {%  include partials/inset-image
     image: '/assets/images/tab-feat-attr-image-12.png',
