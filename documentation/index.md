@@ -1,10 +1,10 @@
 # Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-09-08' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-12-02' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
-Welcome to 🔥LIT (Learning Interpretability Tool, formerly Language
+Welcome to 🔥LIT (Learning Interpretability Tool, formerly the Language
 Interpretability Tool)!
 
 If you want to jump in and start playing with the LIT UI, check out
