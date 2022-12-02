@@ -1,5 +1,5 @@
 ---
 layout: "layouts/redirect.liquid"
 permalink: "/demos/lm.html"
-url: "http://34.86.17.245:5434/"
+url: "http://35.190.117.129/"
 ---
