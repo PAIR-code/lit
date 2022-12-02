@@ -192,7 +192,7 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
   elif isinstance(result, (list)):
     if all(isinstance(n, (int, float)) for n in result):
       rtol = 10 ** (-1 * places)
-      npt.assert_allclose(result, actual, rtol=rtol)
+      npt.assert_allclose(result, actual, rtol=rtol, atol=1e-4)
     elif all(isinstance(n, dict) for n in result):
       for i in range(len(result)):
         assert_deep_almost_equal(testcase, result[i], actual[i])

@@ -345,7 +345,7 @@ class ModelBasedTCAVTest(absltest.TestCase):
         'num_runs': 1
     }
 
-    testing_utils.assert_deep_almost_equal(self, expected, result[0])
+    testing_utils.assert_deep_almost_equal(self, expected, result[0], places=3)
 
     # This example has enough inputs for two runs of size 3.
     config = {
@@ -429,7 +429,7 @@ class ModelBasedTCAVTest(absltest.TestCase):
         'num_runs': 2
     }
 
-    testing_utils.assert_deep_almost_equal(self, expected, result[0])
+    testing_utils.assert_deep_almost_equal(self, expected, result[0], places=3)
 
     # This example has enough examples for three runs of size 3 and two runs of
     # size 5, and returns results with p-value < 0.05.
@@ -536,7 +536,7 @@ class ModelBasedTCAVTest(absltest.TestCase):
         'split_size': 5,
         'num_runs': 2
     }]
-    testing_utils.assert_deep_almost_equal(self, expected, result)
+    testing_utils.assert_deep_almost_equal(self, expected, result, places=3)
 
 
 class TCAVTest(absltest.TestCase):

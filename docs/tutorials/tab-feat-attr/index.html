@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>Tabular Feature Attribution</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Learning Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="tutorial-page-container mdl-grid">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="tutorial-breadcrumbs">
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Tabular Feature Attribution
+</div>
+            <h2>Tabular Feature Attribution</h2>
+<div class="link-out"><a href="../../demos/penguins.html" target="_blank">Explore this demo yourself.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<p>Or, run your own with
+<a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py"><code>examples/penguin_demo.py</code></a></p>
+<p>LIT supports many techniques like salience maps and counterfactual generators
+for text data. But what if you have a tabular dataset? You might want to find
+out which features (columns) are most relevant to the model’s predictions. LIT's
+Feature Attribution module for
+<a href="https://github.com/PAIR-code/lit/wiki/components.md#tabular-data">tabular datasets</a>
+support identification of these important features. This tutorial provides a
+walkthrough for this module within LIT, on the
+<a href="https://allisonhorst.github.io/palmerpenguins/">Palmer Penguins dataset</a>.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Kernel SHAP based Feature Attribution</div>
+  <div class="info-box-text">The Feature Attribution functionality is
+<a href="https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf">achieved using SHAP</a>.
+In particular LIT uses
+<a href="https://shap-lrjball.readthedocs.io/en/latest/generated/shap.KernelExplainer.html">Kernel SHAP</a>
+over tabular data, which is basically a specially weighted local linear
+regression for estimating SHAP values and works for any model. For now,
+the feature attribution module is only shown in the UI when working with
+<a href="https://github.com/PAIR-code/lit/wiki/components.md#tabular-data">tabular data</a>.</div>
+</div>
+<h3><strong>Overview</strong></h3>
+<p>The <a href="https://pair-code.github.io/lit/demos/penguins.html">penguins demo</a> is a
+simple classifier for predicting penguin species from the Palmer Penguins
+dataset. It classifies the penguins as either Adelie, Chinstrap, or Gentoo based
+on 6 features—body mass (g), <a href="https://en.wikipedia.org/wiki/Beak#Culmen">culmen</a>
+depth (mm), culmen length (mm), flipper length (mm), island, and sex.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Filtering out incomplete data points</div>
+  <div class="info-box-text">Palmer Penguins is a tabular dataset with 344 penguin specimens. LIT’s
+penguin demo filters out 11 of these penguins due to missing information (sex
+is missing for all penguins, though some are missing additional information),
+resulting in 333 data points being loaded for analysis.</div>
+</div>
+<p>The Feature Attribution module shows up in the bottom right of the demo within
+the Explanations tab. It computes
+<a href="https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf">Shapley Additive exPlanation (SHAP)</a>
+values for each feature in a set of inputs and displays these values in a table.
+The controls for this module are:</p>
+<ol>
+<li>The <strong>sample size slider,</strong> which defaults to a value of 30. SHAP
+computations are very expensive and it is infeasible to compute them for the
+entire dataset. Through testing, we found that 30 is about the maximum
+number of samples we can run SHAP on before performance takes a significant
+hit, and it becomes difficult to use above 50 examples. Clicking the Apply
+button will automatically check the Show attributions from the Tabular SHAP
+checkbox, and LIT will start computing the SHAP values.</li>
+<li>The <strong>prediction key</strong> selects the model output value for which influence is
+computed. Since the penguin mode only predicts one feature, species, this is
+set to species and cannot be changed. If a model can predict multiple values
+in different fields, for example predicting species and island or species
+and sex, then you could change which output field to explain before clicking
+Apply.</li>
+<li>The <strong>heatmap toggle</strong> can be enabled to color code the SHAP values.</li>
+<li>The <strong>facets button</strong> and <strong>show attributions for selection checkbox</strong>
+enable conditionally running the Kernel SHAP interpreter over subsets of the
+data. We will get into the specifics of this with an example later on in
+this tutorial.</li>
+</ol>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-1.png"/>
+  <div class="tutorial-caption">An overview of the Penguins demo, notice the tabular feature
+        attribution (1) and salience maps (2) modules in the bottom right and
+        center, respectively.</div>
+</div>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-2.png"/>
+  <div class="tutorial-caption">The tabular feature attribution module has three main elements of
+        interactivity: an expansion panel where you can configure the SHAP
+        parameters (1), a heatmap toggle to activate color the cells in the
+        results table based on the scores (2), and a facets control for
+        exploring subsets of the data (3).</div>
+</div>
+<h4><strong>A Simple Use Case : Feature Attribution for 10 samples</strong></h4>
+<p>To get started with the module, we set sample size to a small value, 10, and
+start the SHAP computation with heatmap enabled.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Edge cases for the sample size button</div>
+  <div class="info-box-text">Kernel SHAP computes feature importance relative to a pseudo-random
+sample of the dataset. The sample size is set with the slider, and the samples
+are drawn from either the current selection (i.e., a subset of the data that
+were manually selected or are included as part of a slice) or the entire
+dataset. When sampling from the current selection, the sample size can have
+interesting edge cases:
+<ul>
+<li>If the selection is empty, LIT samples the “sample size” number of data points
+from the entire dataset.</li>
+<li>If the sample size is zero or larger than the selection, then LIT computes
+SHAP for the entire selection and does not sample additional data from the
+dataset.</li>
+<li>If sample size is smaller than the selection, then LIT samples the “sample
+size” number of data points from the selected inputs.</div></li>
+</ul>
+</div>
+<p>Enabling the heatmap provides a visual indicator of the polarity and strength of
+a feature's influence. A reddish hue indicates negative attribution for that
+particular feature and a bluish hue indicates positive attribution. The deeper
+the color the stronger its influence on the predictions.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Interpreting salience polarity</div>
+  <div class="info-box-text">Salience is always relative to the model's prediction of one class.
+Intuitively, a positive attribution score for a feature of an example
+means that if this feature was removed we expect a drop in model
+confidence in the prediction of this class. Similarly, removing a
+feature with a negative score would correspond to an increase in the
+model's confidence in the prediction of this class.</div>
+</div>
+<p>SHAP values are computed per feature per example, from which LIT computes the
+mean, min, median, and max feature values across the examples. The min and max
+values can be used to spot any outliers during analysis. The difference between
+the mean and the median can be used to gain more insights about the
+distribution. All of this enables statistical comparisons and will be enhanced
+in future releases of LIT.</p>
+<p>Each of the columns in the table can be sorted using the up (ascending) or down
+(descending) arrow symbols in the column headers. The table is sorted in
+ascending alphabetical order of input feature names (field) by default. If there
+are many features in a dataset this space will get crowded, so LIT offers a
+filter button for each of the columns to look up a particular feature or value
+directly.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-4.png"/>
+  <div class="tutorial-caption">Start by reducing the sample size from 30 to 10, this will speed
+        up the SHAP computations.</div>
+</div>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-5.png"/>
+  <div class="tutorial-caption">The results of the SHAP run over a sample of 10 inputs from the
+        entire dataset. Notice how subtle the salience values are in the "mean"
+        column.</div>
+</div>
+<h4><strong>Faceting &amp; Binning of Features</strong></h4>
+<p>Simply speaking, facets are subsets of the dataset based on specific feature
+values. We can use facets to explore differences in SHAP values between subsets.
+For example, instead of looking at SHAP values from 10 samples containing both
+male and female penguins, we can look at male penguins and female penguins
+separately by faceting based on sex. LIT also allows you to select multiple
+features for faceting, and it will generate the facets by feature crosses. For
+example, if you select both sex (either male or female) and island (one of
+Biscoe, Dream and Torgersen), then LIT will create 6 facets for (Male, Biscoe),
+(Male, Dream), (Male, Torgersen), (Female, Biscoe), (Female, Dream), (Female,
+Torgersen) and show the SHAP values for whichever facets have a non-zero number
+of samples.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-6.png"/>
+  <div class="tutorial-caption">Each facet of the dataset is given its own expansion panel. Click
+        on the down arrow on the right to expand the section and see the results
+        for that facet.</div>
+</div>
+<p>Numerical features support more complex faceting options. Faceting based on
+numerical features allows for defining bins using 4 methods: discrete, equal
+intervals, quantile, and threshold. Equal intervals will evenly divide the
+feature’s <a href="https://en.wikipedia.org/wiki/Domain_of_a_function">domain</a> into N
+equal-sized bins. Quantile will create N bins that each contain (approximately)
+the same number of examples. Threshold creates two bins, one for the examples
+with values up to and including the threshold value, and one for examples with
+values above the threshold value. The discrete method requires specific dataset
+or model spec configuration, and we do not recommend using that method with this
+demo.</p>
+<p>Categorical and boolean features do not have controllable binning behavior. A
+bin is created for each label in their vocabulary.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-7.png"/>
+  <div class="tutorial-caption">Clicking the facets button will open the configuration controls.
+        Use these to configure how divide the dataset into subsets.</div>
+</div>
+<p>LIT supports as many as 100 facets (aka bins). An indicator in the faceting
+config dialog lets you know how many would be created given the current
+settings.</p>
+<p>Faceting is not supported for selections, meaning that if you already have a
+selection of elements (let’s say 10 penguins), then facets won’t split it
+further.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-9.png"/>
+  <div class="tutorial-caption">LIT limits the number of facets to 100 bins for performance
+        reasons. Attempting to exceed this limit will cause the active features
+        to highlight red so you can adjust their configurations.</div>
+</div>
+<h3><strong>Side-by-side comparison : Salience Maps Vs Tabular Feature Attribution</strong></h3>
+<p>The Feature Attribution module works well in conjunction with other modules. In
+particular, we are going to look at the Salience Maps module which allows us to
+enhance our analysis. Salience Maps work on one data point at a time, whereas
+the Tabular Feature Attribution usually looks at a set of data points.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Slightly different color scales</div>
+  <div class="info-box-text">The color scales are slightly different between the salience maps
+module and the tabular feature attribution module. Salience maps use a
+gamma-adjusted color scale to make values more prominent.</div>
+</div>
+<h4><strong>One random data point</strong></h4>
+<p>In this example, a random data point is chosen using the select random button in
+the top right corner and the unselected data points are hidden in the Data
+Table. After running both the salience maps module and the feature attribution
+module for the selected point, we can see that the values in the mean column of
+Tabular SHAP output match the saliency scores exactly. Note also that the mean,
+min, median and max values are all the same when a single datapoint is selected.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-11.png"/>
+  <div class="tutorial-caption">The results in the tabular feature attribution and salience maps
+        modules will be the same for single datapoint selections.</div>
+</div>
+<h4><strong>A slice of 5 random data points</strong></h4>
+<p>LIT uses a <a href="https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#datapoint-selections">complex selection model</a>
+and different modules react to it differently. Salience Maps only care about the
+primary selection (the data point highlighted in a deep cyan hue in the data
+table) in a slice of elements, whereas Feature Attribution uses the entire list
+of selected elements.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Using Salience Maps to support Tabular Feature Attribution</div>
+  <div class="info-box-text">Changing primary selection reruns SHAP in the Salience Maps module
+but not in Tabular Feature Attribution. So, we can effectively toggle
+through the items in our selection one-by-one and see how they compare
+to the mean values in the Feature Attribution module. Another thing to
+note is that the Salience Maps module supports comparison between a
+pinned datapoint and the primary selection, so we can do the above
+comparisons in a pair-wise manner as well.</div>
+</div>
+<p>As we can see in this example, where we run both modules on a slice of 5
+elements, the Salience Maps module is only providing its output for the primary
+selection (data point 0), whereas the Tabular Feature Attribution module is
+providing values for the entire selection by enabling the “Show attributions for
+selection” checkbox. This allows us to use the salience map module as a kind of
+magnifying glass to focus on any individual example even when we are considering
+a slice of examples in our exploration of the dataset.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-12.png"/>
+  <div class="tutorial-caption">The salience maps module is a great way to compare the scores for
+        each datapoint in a selection against the scores for that entire
+        selection from. the tabular feature attribution module.</div>
+</div>
+<h3><strong>Conclusion</strong></h3>
+<p>Tabular Feature Attribution based on Kernel SHAP allows LIT users to explore
+their tabular data and find the most influential features affecting model
+predictions. It also integrates nicely with the Salience Maps module to allow
+for fine-grained inspections. This is the first of many features in LIT for
+exploring tabular data, and more exciting updates would be coming in future
+releases!</p>
+
+          </div>
+          <div class="mdl-cell--4-col hide-me">
+            <div class="tutorial-info-container">
+              <div class="tutorial-info-header">time to read</div>
+              <div class="tutorial-info-copy">15 minutes</div>
+              <div class="tutorial-info-header">takeaways</div>
+              <div class="tutorial-info-copy">Learn how to use the Kernel SHAP based Tabular Feature Attribution module in LIT.</div>
+            </div>
+          </div>
+          <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            The Learning Interpretability Tool is being actively developed and documentation is likely to change as we improve the tool. We want to hear from you! Leave us a note, feedback, or suggestion on our <a href="https://github.com/pair-code/lit/issues/new" target="_blank">Github</a>.
+          </div>
+        </div>
+
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>
