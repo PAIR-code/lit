@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Backtranslation generator through Google Cloud Translate API."""
 from typing import List, Sequence, Tuple, Text, Any, Optional
 
 from absl import logging
+from google.cloud import translate_v2 as translate
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -24,7 +24,6 @@ from lit_nlp.api import types
 from lit_nlp.lib import utils
 import pandas as pd
 
-from google.cloud import translate_v2 as translate
 
 JsonDict = types.JsonDict
 
@@ -114,7 +113,7 @@ class Backtranslator(lit_components.Generator):
       candidates = candidates_by_field[field_name]
       for i, ex in enumerate(inputs):
         for candidate in candidates[i]:
-          new_ex = utils.copy_and_update(ex, {field_name: candidate})
+          new_ex = dict(ex, **{field_name: candidate})
           all_outputs[i].append(new_ex)
     return all_outputs
 

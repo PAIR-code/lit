@@ -1,0 +1,56 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+}
+
+.expansion-header {
+  width: calc(100% - 16px);
+  height: 30px;
+  padding: 2px 8px;
+  border-bottom: 1px solid var(--lit-neutral-300);
+  border-top: 1px solid var(--lit-neutral-100);
+  column-gap: 4px;
+
+  display: flex;
+  flex-direction: row;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+
+  background-color: var(--lit-neutral-100);
+}
+
+.expansion-label {
+  max-width: calc(100% - 32px);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--lit-majtonal-nv-800);
+  font-weight: bold;
+}
+
+.bar-spacer {
+  flex: 1; /* use available space */
+}
+
+/* Revert a pointer style from .expansion-header */
+.bar-content {
+  cursor: initial;
+}
+
+.expansion-content {
+  padding: 0;
+  border-bottom: 1px solid var(--lit-neutral-300);
+}
+
+.expansion-content.pad-left {
+  padding-left: 8px;
+}
+
+.expansion-content.pad-right {
+  padding-right: 16px;
+}

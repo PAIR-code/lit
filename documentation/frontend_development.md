@@ -1,6 +1,6 @@
 # Frontend Developer Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-08-17' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-02-14' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -62,36 +62,13 @@ A layout is defined by a structure of `LitModule` classes, and includes a set of
 main components that are always visible, (designated in the object by the "main"
 key) and a set of tabs that each contain a group other components.
 
-A simplified version for a classifier model might look like:
-
-```typescript
-const layout: LitComponentLayout = {
-  components : {
-    'Main': [DataTableModule, DatapointEditorModule],
-
-    'Classifiers': [
-      ConfusionMatrixModule,
-    ],
-    'Counterfactuals': [GeneratorModule],
-    'Predictions': [
-      ScalarModule,
-      ClassificationModule,
-    ],
-    'Explanations': [
-      ClassificationModule,
-      SalienceMapModule,
-      AttentionModule,
-    ]
-  }
-};
-```
-
-The full layouts are defined in
-[`layout.ts`](../lit_nlp/client/default/layout.ts). To
-use a specific layout for a given LIT instance, pass the key (e.g., "simple" or
-"mlm") in as a server flag when initializing LIT(`--layout=<layout>`). The
-layout can be set on-the-fly a URL param (the url param overrides the server
-flag).
+Layouts are generally specified in Python (see
+[Custom Layouts](./api.md#ui-layouts)) through the `LitCanonicalLayout` object.
+The default layouts are defined in
+[`layout.py`](../lit_nlp/api/layout.py), and you can
+add your own by defining one or more `LitCanonicalLayout` objects and passing
+them to the server. For an example, see `CUSTOM_LAYOUTS` in
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
 
 The actual layout of components in
 [`<lit-modules>`](../lit_nlp/client/core/modules.ts)
@@ -109,7 +86,7 @@ starting the initial load of data from the server. This process consists of:
 1.  Parsing the URL query params to get the url configuration
 1.  Fetching the app metadata, which includes what models/datasets are available
     to use.
-1.  Determining which models/datasets to load and then loding them.
+1.  Determining which models/datasets to load and then loading them.
 
 ## Modules (LitModule)
 
@@ -129,9 +106,10 @@ outlined below:
 @customElement('demo-module')                                                   // (0)
 export class DemoTextModule extends LitModule {
   static override title = 'Demo Module';                                        // (1)
-  static override template = (model = '') => {                                  // (2)
-    return html`<demo-module model=${model}></demo-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>    // (2)
+          html`<demo-module model=${model} .shouldReact=${shouldReact}
+                selectionServiceIndex=${selectionServiceIndex}></demo-module>`;
   static override duplicateForModelComparison = true;                           // (3)
 
   static override get styles() {
@@ -159,7 +137,7 @@ export class DemoTextModule extends LitModule {
     this.pigLatin = results;
   }
 
-  override render() {                                                           // (10)
+  override renderImpl() {                                                       // (10)
     const color = this.colorService.getDatapointColor(
         this.selectionService.primarySelectedInputData);
     return html`
@@ -231,14 +209,14 @@ of the data. Since we're using mobx observables to store and compute our state,
 we do this all in a reactive way.
 
 First, since the `LitModule` base class derives from `MobxLitElement`, any
-observable data that we use in the `render` method automatically triggers a
-rerener when updated. This is excellent for simple use cases, but what about
+observable data that we use in the `renderImpl` method automatically triggers a
+re-render when updated. This is excellent for simple use cases, but what about
 when we want to trigger more complex behavior, such as the asynchronous request
 outlined above?
 
-The pattern that we leverage across the app is as follows: The `render` method
-(10) accesses a private observable `pigLatin` property (6) that, when updated,
-will rerender the template and show the results of the translation
+The pattern that we leverage across the app is as follows: The `renderImpl`
+method (10) accesses a private observable `pigLatin` property (6) that, when
+updated, will re-render the template and show the results of the translation
 automatically. In order to update the `pigLatin` observable, we need to set up a
 bit of machinery. In the lit-element lifecycle method `firstUpdated`, we use a
 helper method `reactImmediately` (7) to set up an explicit reaction to the user
@@ -247,9 +225,12 @@ selecting data. Whatever is returned by the first function (in this case
 second function immediately **and** whenever it changes, allowing us to do
 something whenever the selection changes. Note, another helper method `react` is
 used in the same way as `reactImmediately`, in instances where you don't want to
-immediately invoke the reaction.
+immediately invoke the reaction. Also note that modules should override
+`renderImpl` and not the base `render` method as our `LitModule` base class
+overrides `render` with custom logic which calls our `renderImpl` method for
+modules to perform their rendering in.
 
-We pass the selction to the `getTranslation` method to fetch the data from our
+We pass the selection to the `getTranslation` method to fetch the data from our
 API service. However rather than awaiting our API request directly, we pass the
 request promise (8) to another helper method `loadLatest` (9). This ensures that
 we won't have any race conditions if, for instance, the user selects different
@@ -260,7 +241,7 @@ template is automatically rerendered, displaying our data.
 
 This may seem like a bit of work for a simple module, but the pattern of using
 purely observable data to declaratively specify what gets rendered is very
-powerful for simpligying the logic around building larger, more complex
+powerful for simplifying the logic around building larger, more complex
 components.
 
 ### Escape Hatches
@@ -291,11 +272,48 @@ reconciliation of what needs to be updated per render.
     this.drawCanvas(canvas);
   }
 
-  render() {
+  override renderImpl() {
     return html`<canvas></canvas>`;
   }
 ```
 
+### Stateful Child Elements
+
+Some modules may contain stateful child elements, where the element has some
+internal state that can have an effect on the module that contains it. Examples of this include any modules that contain the
+[elements/faceting_control.ts](../lit_nlp/client/elements/faceting_control.ts) element.
+
+With these types of child elements, it's important for the containing module
+to construct them programmatically and store them in a class member variable,
+as opposed to only constructing them in the module's html template
+string returned by the `renderImpl` method. Otherwise they will be destroyed
+and recreated when a module is hidden off-screen and then brought back
+on-screen, leading them to lose whatever state they previously held.
+Below is a snippet of example code to handle these types of elements.
+
+```typescript
+// An example of a LITModule using a stateful child element.
+@customElement('example-module')
+export class ExampleModule extends LitModule {
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      // Do something with the information from the event.
+    };
+    // Set the necessary properties on the faceting-control element.
+    this.facetingControl.contextName = ExampleModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener)
+  }
+
+  override renderImpl() {
+    // Render the faceting-control element.
+    return html`${this.facetingControl}`;
+  }
+```
 ## Style Guide
 
 *   Please disable clang-format on `lit-html` templates and format these
@@ -358,15 +376,16 @@ source from the build output.
 
 If you're modifying the Python backend, there is experimental support for
 hot-reloading the LIT application logic (`app.py`) and some dependencies without
-needing to re-load models or datasets. See
-[`dev_server.py`](../lit_nlp/dev_server.py) for details.
+needing to reload models or datasets. See
+[`dev_server.py`](../lit_nlp/dev_server.py) for
+details.
 
 You can use the `--data_dir` flag (see
-[`server_flags.py`](../lit_nlp/server_flags.py) to save the predictions cache to
-disk, and automatically re-load it on a subsequent run. In conjunction with
-`--warm_start`, you can use this to avoid re-running inference during
-development - though if you modify the model at all, you should be sure to
-remove any stale cache files.
+[`server_flags.py`](../lit_nlp/server_flags.py) to
+save the predictions cache to disk, and automatically reload it on a subsequent
+run. In conjunction with `--warm_start`, you can use this to avoid re-running
+inference during development - though if you modify the model at all, you should
+be sure to remove any stale cache files.
 
 ## Custom Client / Modules
 
@@ -375,26 +394,12 @@ modules, though this is currently provided as "best effort" support and the API
 is not as mature as for Python extensions.
 
 An example of a custom LIT client application, including a custom
-(potato-themed) module can be found in `lit_nlp/examples/custom_module`. In
-short, to build and serve a custom LIT client application, create a new
-directory containing a `main.ts` entrypoint. This should import any custom
-modules, define a layout that includes them, and call `app.initialize`. For
-example:
+(potato-themed) module can be found in
+[`lit_nlp/examples/custom_module`](../lit_nlp/examples/custom_module).
+You need only define any custom modules (subclass of `LitModule`) and include
+them in the build.
 
-```ts
-import {PotatoModule} from './potato';
-
-LAYOUTS = {};  // or import existing set from client/default/layout.ts
-LAYOUTS['potato'] = {
-  components: {
-    'Main': [DatapointEditorModule, ClassificationModule],
-    'Data': [DataTableModule, PotatoModule],
-  },
-};
-app.initialize(LAYOUTS);
-```
-
-Then, build the app, specifying the directory to build with the `env.build`
+When you build the app, specify the directory to build with the `env.build`
 flag. For example, to build the `custom_module` demo app:
 
 ```sh
@@ -414,3 +419,24 @@ in `examples/custom_module/potato_demo.py`.
 parent_dir = os.path.join(pathlib.Path(__file__).parent.absolute()
 FLAGS.set_default("client_root", parent_dir, "build"))
 ```
+
+You must also define a [custom layout definition](./api.md#ui-layouts) in Python
+which references your new module. Note that because Python enums are not
+extensible, you need to reference the custom module using its HTML tag name:
+
+```python
+modules = layout.LitModuleName
+POTATO_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [modules.DatapointEditorModule, modules.ClassificationModule],
+    },
+    lower={
+        "Data": [modules.DataTableModule, "potato-module"],
+    },
+    description="Custom layout with our spud-tastic potato module.",
+)
+```
+
+See
+[`potato_demo.py`](../lit_nlp/examples/custom_module/potato_demo.py)
+for the full example.

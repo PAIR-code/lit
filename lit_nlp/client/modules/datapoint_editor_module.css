@@ -30,8 +30,6 @@
 }
 
 .field-header mwc-icon {
-  font-size: 10pt;
-  line-height: 0;
   vertical-align: middle;
   padding-right: 10px; /* for a larger click target */
 }
@@ -41,6 +39,84 @@
   /* Fill available up to outer margin, if supported. */
   width: -moz-available;
   width: -webkit-fill-available;
+  border-radius: 3px;
+}
+
+.token-box {
+  height: 26px;
+  padding-right: 16px;
+  box-sizing: border-box;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  resize: none;
+  min-width: 48px;
+  max-width: 250px;
+  padding-left: 4px;
+  max-width: 250px;
+  overflow: auto;
+}
+
+.token-div {
+  height: 26px;
+  min-width: 16px;
+  max-width: 226px;
+  padding-right: 4px;
+  padding-top: 2px;
+  padding-left: 4px;
+  box-sizing: border-box;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  overflow: auto;
+}
+
+.token-div:hover {
+  cursor: text;
+}
+
+.tokens-holder {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: 6px;
+}
+
+.icon-button.token-button {
+  width: 18px;
+  height: 18px;
+  padding-top: 4px;
+  padding-left: 2px;
+  border: 2px solid var(--lit-neutral-400);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.token-holder {
+  margin-right: 2px;
+  position: relative;
+  height: 28px;
+}
+
+.delete-button {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+}
+
+.token-outer {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.insert-token-div {
+  width: 6px;
+  background: white;
+  margin-right: 2px;
+  margin-bottom: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.insert-token-div:hover {
+  background: var(--lit-neutral-400);
 }
 
 .input-short {
@@ -61,7 +137,13 @@ select.dropdown {
   display: flex;
   flex-flow: row wrap;
   justify-content: space-between;
-  margin: 8px;
+  margin: 4px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.entry-edited {
+  background: var(--lit-bric-50);
 }
 
 /* right-align content, particularly dropdowns */
@@ -75,6 +157,10 @@ select.dropdown {
   flex-basis: 100%;
 }
 
+.entry-content.left-align {
+  justify-content: flex-start;
+}
+
 input {
   font-family: 'Roboto', sans;
   color: var(--lit-gray-800);
@@ -86,14 +172,31 @@ textarea {
   font-family: 'Roboto', sans;
   line-height: 18px;
   color: var(--lit-gray-800);
+  background-color: unset;
 }
 
-.span-label {
+.monospace-label {
   font-family: Monospace;
 }
 
-.edge-label {
-  font-family: Monospace;
+.annotation-cluster,
+.multi-segment-annotation {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+  width: 100%;
+  width: -moz-available;
+  width: -webkit-fill-available;
+}
+
+.annotation-cluster:last-child {
+  margin-bottom: 0;
+}
+
+.annotation-cluster ul {
+  margin-block-start: 0;
+  margin-block-end: 0;
+  padding-inline-start: 16px;
 }
 
 .image-holder {
@@ -123,5 +226,23 @@ textarea {
 .image-toggle:hover {
   opacity: .8;
   background: rgb(211,211,211, 0.8);
+}
+
+mwc-icon.google-icon {
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-font: "Google Material Icons";
+  --mdc-icon-size: 12px;
+  margin-bottom: 1px;
+  margin-left: 4px;
+}
+
+.hidden {
+  display: none;
+}
+
+.image-button {
+  margin-left: 0;
 }
 

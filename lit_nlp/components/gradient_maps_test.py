@@ -12,17 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Tests for lit_nlp.components.gradient_maps."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.components import gradient_maps
 from lit_nlp.lib import testing_utils
 import numpy as np
 
+CLASS_KEY = gradient_maps.CLASS_KEY
+INTERPOLATION_KEY = gradient_maps.INTERPOLATION_KEY
+NORMALIZATION_KEY = gradient_maps.NORMALIZATION_KEY
 
-class GradientMapsTest(absltest.TestCase):
+
+class GradientMapsTest(parameterized.TestCase):
 
   def setUp(self):
     super(GradientMapsTest, self).setUp()
@@ -69,6 +73,36 @@ class GradientMapsTest(absltest.TestCase):
     target = np.array([[[0], [1]], [[0.5], [0.5]], [[1], [0]]])
     np.testing.assert_almost_equal(result, target)
     np.testing.assert_almost_equal(result, target)
+
+  @parameterized.named_parameters(
+      ('default', None, None, None, None),
+      ('autorun only', True, None, None, None),
+      ('config values only', None, 'test_class_key', 50, False),
+      ('autorun + config values', True, 'test_class_key', 50, False))
+  def test_ig_init_args(self, autorun, class_key, interpolation_steps,
+                        normalize):
+    params = {}
+    if autorun is not None:
+      params['autorun'] = autorun
+    if class_key is not None:
+      params['class_key'] = class_key
+    if interpolation_steps is not None:
+      params['interpolation_steps'] = interpolation_steps
+    if normalize is not None:
+      params['normalize'] = normalize
+
+    ig = gradient_maps.IntegratedGradients(**params)
+    config_spec = ig.config_spec()
+
+    if autorun is not None:
+      self.assertEqual(ig.meta_spec()['saliency'].autorun, autorun)
+    if class_key is not None:
+      self.assertEqual(config_spec[CLASS_KEY].default, class_key)
+    if interpolation_steps is not None:
+      self.assertEqual(config_spec[INTERPOLATION_KEY].default,
+                       interpolation_steps)
+    if normalize is not None:
+      self.assertEqual(config_spec[NORMALIZATION_KEY].default, normalize)
 
 
 if __name__ == '__main__':

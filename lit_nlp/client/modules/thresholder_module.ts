@@ -21,13 +21,16 @@ import {customElement} from 'lit/decorators';
 import {css, html} from 'lit';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
+import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ColumnHeader, TableEntry} from '../elements/table';
+import {ThresholdChange} from '../elements/threshold_slider';
+import {MulticlassPreds} from '../lib/lit_types';
 import {GroupedExamples, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {doesOutputSpecContain, getMarginFromThreshold, getThresholdFromMargin, findSpecKeys, isBinaryClassification} from '../lib/utils';
 import {ClassificationService, GroupService} from '../services/services';
-import {FacetingMethod, FacetingConfig, NumericFeatureBins} from '../services/group_service';
+import {NumericFeatureBins} from '../services/group_service';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
@@ -52,11 +55,15 @@ interface CalculatedMarginsPerField {
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
   static override title = 'Binary Classifier Thresholds';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#binary-classification-thresholds';
   static override numCols = 3;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<thresholder-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></thresholder-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <thresholder-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </thresholder-module>`;
 
   static override get styles() {
     return [
@@ -87,6 +94,20 @@ export class ThresholderModule extends LitModule {
   private readonly classificationService =
     app.getService(ClassificationService);
   private readonly groupService = app.getService(GroupService);
+  private readonly facetingControl = document.createElement('faceting-control');
+
+  constructor() {
+    super();
+
+    const facetsChange = (event: CustomEvent<FacetsChange>) => {
+      this.selectedFacets.length = 0;
+      this.selectedFacets.push(...event.detail.features);
+      this.selectedFacetBins = event.detail.bins;
+    };
+    this.facetingControl.contextName = ThresholderModule.title;
+    this.facetingControl.addEventListener(
+        'facets-change', facetsChange as EventListener);
+  }
 
   override firstUpdated() {
     const getGroupedExamples = () => this.groupedExamples;
@@ -116,7 +137,7 @@ export class ThresholderModule extends LitModule {
   @computed
   private get binaryClassificationKeys() {
     const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
-    const classificationKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
+    const classificationKeys = findSpecKeys(outputSpec, MulticlassPreds);
     return classificationKeys.filter(
         key => isBinaryClassification(outputSpec[key]));
   }
@@ -201,10 +222,9 @@ export class ThresholderModule extends LitModule {
       }
       const margin = this.classificationService.getMargin(
           this.model, predKey, this.groupedExamples[facetKey]);
-      const callback = (e: Event) => {
+      const callback = (e: CustomEvent<ThresholdChange>) => {
         this.classificationService.setMargin(
-            // tslint:disable-next-line:no-any
-            this.model, predKey, (e as any).detail.margin,
+            this.model, predKey, e.detail.margin,
             this.groupedExamples[facetKey]);
       };
       row.push(html`<threshold-slider .margin=${margin} label=${facetKey}
@@ -222,44 +242,9 @@ export class ThresholderModule extends LitModule {
     `;
   }
 
-  private renderCheckbox(
-      key: string, checked: boolean, onChange: (e: Event, key: string) => void,
-      disabled: boolean) {
-    // clang-format off
-    return html`
-        <div class='checkbox-holder'>
-          <lit-checkbox
-            ?checked=${checked}
-            ?disabled=${disabled}
-            @change='${(e: Event) => {onChange(e, key);}}'
-            label=${key}>
-          </lit-checkbox>
-        </div>
-    `;
-    // clang-format on
-  }
-
   renderControls() {
-    const handleCostRatioInput = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.costRatio = +((e as any).target.value);
-    };
-    // Update the selected facets to match the checkboxes.
-    const onFeatureCheckboxChange = (e: Event, key: string) => {
-      if ((e.target as HTMLInputElement).checked) {
-        this.selectedFacets.push(key);
-      } else {
-        const index = this.selectedFacets.indexOf(key);
-        this.selectedFacets.splice(index, 1);
-      }
-
-      const configs: FacetingConfig[] = this.selectedFacets.map(feature => ({
-          featureName: feature,
-          method: this.groupService.numericalFeatureNames.includes(feature) ?
-                  FacetingMethod.EQUAL_INTERVAL : FacetingMethod.DISCRETE
-      }));
-
-      this.selectedFacetBins = this.groupService.numericalFeatureBins(configs);
+    const handleCostRatioInput = (e: InputEvent) => {
+      this.costRatio = +((e.target as HTMLInputElement).value);
     };
 
     const costRatioTooltip = "The cost of false positives relative to false " +
@@ -267,24 +252,21 @@ export class ThresholderModule extends LitModule {
     const calculateTooltip = "Calculate optimal threholds for each facet " +
         "using the cost ratio and a number of different techniques";
     return html`
-        <label class="cb-label">Facet by</label>
-       ${
-        this.groupService.denseFeatureNames.map(
-            (facetName: string) => this.renderCheckbox(facetName, false,
-                (e: Event) => {onFeatureCheckboxChange(e, facetName);}, false))}
+        ${this.facetingControl}
         <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
-        <input type=number step="0.1" min=0 max=20
-           .value=${this.costRatio.toString()} class="cost-ratio-input"
-            @input=${handleCostRatioInput}>
+        <input type=number class="cost-ratio-input" step="0.1" min=0 max=20
+               .value=${this.costRatio.toString()}
+               @input=${handleCostRatioInput}>
         <button class='hairline-button' title=${calculateTooltip}
            @click=${this.calculateThresholds}>
           Get optimal thresholds
         </button>`;
   }
 
-  override render() {
+  override renderImpl() {
     const tables =
         this.binaryClassificationKeys.map(key => this.renderTable(key));
+
     return html`
         <div class='module-container'>
           <div class='module-toolbar'>
@@ -297,9 +279,10 @@ export class ThresholderModule extends LitModule {
         `;
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, ['MulticlassPreds'],
-                                 isBinaryClassification);
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    return doesOutputSpecContain(
+        modelSpecs, MulticlassPreds, isBinaryClassification);
   }
 }
 

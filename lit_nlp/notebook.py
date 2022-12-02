@@ -18,39 +18,42 @@ import attr
 # pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
-from lit_nlp import server_flags
-from lit_nlp.api import dtypes
+from lit_nlp import server_config
+from lit_nlp.api import layout
 from lit_nlp.lib import wsgi_serving
 
 try:
   import google.colab  # pylint: disable=g-import-not-at-top,unused-import
   is_colab = True
+  # Can disable import error as this package is always
+  # included in colab kernels.
+  from colabtools import interactive_widgets  # pytype: disable=import-error # pylint: disable=g-import-not-at-top
+  progress_indicator = interactive_widgets.ProgressIter
 except ImportError:
   is_colab = False
+  from tqdm.notebook import tqdm  # pylint: disable=g-import-not-at-top
+  progress_indicator = tqdm
 
-MODEL_PREDS_MODULES = [
-    'span-graph-gold-module-vertical',
-    'span-graph-module-vertical',
-    'classification-module',
-    'multilabel-module',
-    'regression-module',
-    'lm-prediction-module',
-    'generated-text-module',
-    'annotated-text-gold-module',
-    'annotated-text-module',
-    'generated-image-module',
-]
+modules = layout.LitModuleName
 
-LIT_NOTEBOOK_LAYOUT = dtypes.LitCanonicalLayout(
+LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
     upper={
-        'Predictions': ['simple-data-table-module'] + MODEL_PREDS_MODULES,
-        'Explanations': ['simple-datapoint-editor-module'] +
-                        MODEL_PREDS_MODULES + [
-                            'salience-map-module', 'sequence-salience-module',
-                            'attention-module'
-                        ],
-        'Analysis':
-            ['metrics-module', 'confusion-matrix-module', 'scalar-module'],
+        'Predictions': [
+            modules.SimpleDataTableModule,
+            *layout.MODEL_PREDS_MODULES,
+        ],
+        'Explanations': [
+            modules.SimpleDatapointEditorModule,
+            *layout.MODEL_PREDS_MODULES,
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.AttentionModule,
+        ],
+        'Analysis': [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.ScalarModule,
+        ],
     })
 
 
@@ -83,7 +86,7 @@ class LitWidget(object):
                height=1000,
                render=False,
                proxy_url=None,
-               layouts: Optional[dtypes.LitComponentLayouts] = None,
+               layouts: Optional[layout.LitComponentLayouts] = None,
                **kw):
     """Start LIT server and optionally render the UI immediately.
 
@@ -98,11 +101,14 @@ class LitWidget(object):
         lists here as well.
       **kw: Keyword arguments for the LitApp.
     """
-    app_flags = server_flags.get_flags()
+    app_flags = dict(server_config.get_flags())
     app_flags['server_type'] = 'notebook'
     app_flags['host'] = 'localhost'
     app_flags['port'] = None
     app_flags['warm_start'] = 1
+    app_flags['warm_start_progress_indicator'] = progress_indicator
+    app_flags['sync_state'] = True
+
     layouts = dict(layouts or {})
     if 'notebook' not in layouts:
       layouts['notebook'] = LIT_NOTEBOOK_LAYOUT
@@ -117,6 +123,10 @@ class LitWidget(object):
 
     if render:
       self.render()
+
+  @property
+  def ui_state(self):
+    return self._server.app.ui_state_tracker.state
 
   def stop(self):
     """Stop the LIT server."""

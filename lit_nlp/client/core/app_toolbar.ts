@@ -21,6 +21,7 @@
 
 // tslint:disable:no-new-decorators
 import '@material/mwc-icon';
+import './documentation';
 import './global_settings';
 import './main_toolbar';
 
@@ -32,11 +33,11 @@ import {classMap} from 'lit/directives/class-map';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';
-import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
 import {app} from './app';
 import {styles} from './app_toolbar.css';
+import {DocumentationComponent} from './documentation';
 import {GlobalSettingsComponent, TabName} from './global_settings';
 
 /**
@@ -44,6 +45,7 @@ import {GlobalSettingsComponent, TabName} from './global_settings';
  */
 @customElement('lit-app-toolbar')
 export class ToolbarComponent extends MobxLitElement {
+  @query('lit-documentation') docElement!: DocumentationComponent;
   @query('lit-global-settings') globalSettingsElement!: GlobalSettingsComponent;
 
   static override get styles() {
@@ -64,6 +66,15 @@ export class ToolbarComponent extends MobxLitElement {
     }
   }
 
+  toggleDocumentation() {
+    if (this.docElement === undefined) return;
+    if (this.docElement.isOpen) {
+      this.docElement.close();
+    } else {
+      this.docElement.open();
+    }
+  }
+
   jumpToSettingsTab(targetTab: TabName) {
     if (this.globalSettingsElement === undefined) return;
     if (this.globalSettingsElement.isOpen &&
@@ -76,19 +87,33 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   renderStatusAndTitle() {
-    let title = 'Language Interpretability Tool';
+    const defaultTitle = 'LIT';
+    const subtitle = 'Powered by 🔥 LIT';
+    let showSubtitle = false;
+    let title = defaultTitle;
     if (this.appState.initialized && this.appState.metadata.pageTitle) {
       title = this.appState.metadata.pageTitle;
+      if (!title.includes(defaultTitle)) {
+        showSubtitle = true;
+      }
     }
+    const renderFavicon = () => {
+      if (this.statusService.hasError) {
+        return html`<img src="static/potato.svg" class="status-emoji">`;
+      }
+      if (showSubtitle) {
+        return null;
+      }
+      return html`<img src="static/favicon.png" class="status-emoji">`;
+    };
     // clang-format off
     return html`
       <div id="title-group">
         <a href="https://github.com/PAIR-code/lit/issues/new" target="_blank">
-          ${this.statusService.hasError ?
-            html`<img src="static/potato.svg" class="status-emoji">` :
-            html`<img src="static/favicon.png" class="status-emoji">`}
+          ${renderFavicon()}
         </a>
         ${title}
+        ${showSubtitle ? html`<div class="subtitle">${subtitle}</div>` : null}
       </div>
     `;
     // clang-format on
@@ -127,7 +152,8 @@ export class ToolbarComponent extends MobxLitElement {
           <button class=${classMap(classes)} title="${name}"
             @click=${updateModelSelection}>
             <span class='material-icon'>${icon}</span>
-            &nbsp;${name}
+            &nbsp;
+            <span class='headline-button-text' title=${name}>${name}</span>
           </button>
         `;
         // clang-format on
@@ -144,12 +170,15 @@ export class ToolbarComponent extends MobxLitElement {
       // clang-format on
     } else {
       // Otherwise, give a regular button that opens the models menu.
+      const buttonText = this.appState.currentModels.join(', ');
       // clang-format off
       return html`
         <button class='headline-button' title="Select model(s)"
           @click=${() => { this.jumpToSettingsTab("Models"); }}>
           <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;${this.appState.currentModels.join(', ')}&nbsp;
+          &nbsp;
+          <span class='headline-button-text'>${buttonText}</span>
+          &nbsp;
           <span class='material-icon'>arrow_drop_down</span>
         </button>
       `;
@@ -158,13 +187,16 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   renderDatasetInfo() {
+    const buttonText = datasetDisplayName(this.appState.currentDataset);
     // clang-format off
     return html`
       <div class='vertical-separator'></div>
       <button class='headline-button' title="Select dataset"
         @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
         <span class='material-icon'>storage</span>
-        &nbsp;${datasetDisplayName(this.appState.currentDataset)}&nbsp;
+        &nbsp;
+        <span class='headline-button-text'>${buttonText}</span>
+        &nbsp;
         <span class='material-icon'>arrow_drop_down</span>
       </button>
     `;
@@ -191,13 +223,13 @@ export class ToolbarComponent extends MobxLitElement {
           this.settingsService.updateSettings({'layoutName': name});
           this.requestUpdate();
         };
-        const title = `Change layout to ${name}`;
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title=${title}
+          <button class=${classMap(classes)} title='Select ${name} layout'
             @click=${updateLayoutSelection}>
             <span class=${iconClass}>view_compact</span>
-            &nbsp;${name}
+            &nbsp;
+            <span class='headline-button-text'>${name}</span>
           </button>
         `;
         // clang-format on
@@ -212,7 +244,9 @@ export class ToolbarComponent extends MobxLitElement {
         <button class='headline-button' title="Select UI layout."
           @click=${() => { this.jumpToSettingsTab("Layout"); }}>
           <span class='material-icon'>view_compact</span>
-          &nbsp;${currentLayout}&nbsp;
+          &nbsp;
+          <span class='headline-button-text' title=${currentLayout}>${currentLayout}</span>
+          &nbsp;
           <span class='material-icon'>arrow_drop_down</span>
         </button>
       `;
@@ -229,7 +263,7 @@ export class ToolbarComponent extends MobxLitElement {
       ${this.renderLayoutInfo()}
       <div class='vertical-separator'></div>
       <div title="Configure models, dataset, and UI." id="config">
-        <mwc-icon class="icon-button"
+        <mwc-icon class="icon-button large-icon white-icon icon-margin"
           @click=${this.toggleGlobalSettings}>
           settings
         </mwc-icon>
@@ -239,18 +273,24 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   onClickCopyLink() {
-    const urlBase =
-        (this.appState.metadata.canonicalURL || window.location.host);
-    copyToClipboard(urlBase + window.location.search);
+    navigator.clipboard.writeText(this.appState.getBestURL());
   }
 
   renderRightCorner() {
     // clang-format off
+    const docButton = this.appState.metadata != null ?
+        html`
+          <mwc-icon class="icon-button large-icon white-icon icon-margin"
+            title="Documentation"
+            @click=${this.toggleDocumentation}>
+            help_outline
+          </mwc-icon>` : null;
     return html`
+      ${docButton}
       <button class='headline-button unbordered' title="Copy link to this page"
         @click=${this.onClickCopyLink}>
         <span class='material-icon'>link</span>
-        &nbsp;Share
+        &nbsp;Copy Link
       </button>
     `;
     // clang-format on
@@ -266,6 +306,8 @@ export class ToolbarComponent extends MobxLitElement {
     return html`
       ${this.appState.initialized ?
         html`<lit-global-settings></lit-global-settings>` : null}
+      ${this.appState.metadata != null ?
+        html`<lit-documentation></lit-documentation>` : null}
       <div id="at-top">
         <div id="headline">
           <div class="headline-section">

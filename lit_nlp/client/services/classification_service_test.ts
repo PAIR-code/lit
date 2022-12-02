@@ -1,157 +1,179 @@
-/**
- * @license
- * Copyright 2020 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 import 'jasmine';
+import {MulticlassPreds} from '../lib/lit_types';
+import {getMarginFromThreshold} from '../lib/utils';
+import {GroupedExamples, ModelSpec} from '../lib/types';
+import {AppState} from './state_service';
+import {ClassificationService} from './classification_service';
 
-import {IndexedInput, Spec} from '../lib/types';
+const FIELD_NAME = 'pred';
+const MODEL_NAME = 'test_model';
 
-import {getPredictionClass, MarginsPerField} from './classification_service';
+const MULTICLASS_PRED_WITH_THRESHOLD = new MulticlassPreds();
+MULTICLASS_PRED_WITH_THRESHOLD.null_idx = 0;
+MULTICLASS_PRED_WITH_THRESHOLD.vocab = ['0', '1'];
+MULTICLASS_PRED_WITH_THRESHOLD.threshold = 0.3;
+const MULTICLASS_SPEC_WITH_THRESHOLD: ModelSpec = {
+  input: {},
+  output: {[FIELD_NAME]: MULTICLASS_PRED_WITH_THRESHOLD}
+};
 
+const MULTICLASS_PRED_WITHOUT_THRESHOLD = new MulticlassPreds();
+MULTICLASS_PRED_WITHOUT_THRESHOLD.null_idx = 0;
+MULTICLASS_PRED_WITHOUT_THRESHOLD.vocab = ['0', '1'];
+const MULTICLASS_SPEC_WITHOUT_THRESHOLD: ModelSpec = {
+  input: {},
+  output: {[FIELD_NAME]: MULTICLASS_PRED_WITHOUT_THRESHOLD}
+};
 
-describe('getPredictionClass test', () => {
-  const predKey = 'key';
-  const outputSpec: Spec = {};
-  outputSpec[predKey] = {
-    __class__: 'LitType',
-    __name__: 'TextSegment',
-    __mro__: ['TextSegment', 'LitType', 'object'],
-    null_idx: 0
-  };
-  const mockInput: IndexedInput = {
-      id: 'xxxxxxx',
-      data: {'testFeat0': 1, 'testNumFeat0': 0},
-      meta: {}
+const MULTICLASS_PRED_NO_VOCAB = new MulticlassPreds();
+MULTICLASS_PRED_NO_VOCAB.null_idx = 0;
+const INVALID_SPEC_NO_VOCAB: ModelSpec = {
+  input: {},
+  output: {[FIELD_NAME]: MULTICLASS_PRED_NO_VOCAB}
+};
+
+const MULTICLASS_PRED_NO_NULL_IDX = new MulticlassPreds();
+MULTICLASS_PRED_NO_NULL_IDX.vocab = ['0', '1'];
+const INVALID_SPEC_NO_NULL_IDX: ModelSpec = {
+  input: {},
+  output: {[FIELD_NAME]: MULTICLASS_PRED_NO_NULL_IDX}
+};
+
+const INVALID_SPEC_NO_MULTICLASS_PRED: ModelSpec = {
+  input: {},
+  output: {}
+};
+
+const UPDATED_MARGIN = getMarginFromThreshold(0.8);
+
+type MinimalAppState = Pick<AppState, 'currentModels' | 'currentModelSpecs'>;
+
+describe('classification service test', () => {
+  [   // Parameterized tests for models with valid specs.
+    {
+      name: 'without a threshold',
+      spec: MULTICLASS_SPEC_WITHOUT_THRESHOLD,
+      facets: undefined,
+      expThreshold: undefined,
+      expMargin: 0
+    },
+    {
+      name: 'without a threshold with facets',
+      spec: MULTICLASS_SPEC_WITHOUT_THRESHOLD,
+      facets: ['TN', 'TP'],
+      expThreshold: undefined,
+      expMargin: 0
+    },
+    {
+      name: 'with a threshold',
+      spec: MULTICLASS_SPEC_WITH_THRESHOLD,
+      facets: undefined,
+      expThreshold: 0.3,
+      expMargin: getMarginFromThreshold(0.3)
+    },
+    {
+      name: 'with a threshold and facets',
+      spec: MULTICLASS_SPEC_WITH_THRESHOLD,
+      facets: ['TN', 'TP'],
+      expThreshold: 0.3,
+      expMargin: getMarginFromThreshold(0.3)
+    },
+  ].forEach(({name, spec, facets, expThreshold, expMargin}) => {
+    const mockAppState: MinimalAppState = {
+      currentModels: [MODEL_NAME],
+      currentModelSpecs: {[MODEL_NAME]: {
+        spec,
+        datasets: [],
+        generators: [],
+        interpreters: []
+      }}
     };
 
-  it('gets prediction class index given 2 classes and 0 margin', () => {
-    const margins: MarginsPerField = {};
-    margins[predKey] = {"": {margin: 0}};
+    const classificationService =
+        new ClassificationService(mockAppState as {} as AppState);
 
-    let scores = [1, 0];
-    let predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
+    function getMargin (facet?: string) {
+      const facetData = facet != null ?
+          {displayName: facet, data: [], facets: {}} : undefined;
+      return classificationService.getMargin(MODEL_NAME, FIELD_NAME, facetData);
+    }
 
-    scores = [0, 1];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(1);
+    it(`derives margin settings from a spec ${name}`, () => {
+      const predSpec = spec.output['pred'];
+      expect(predSpec).toBeInstanceOf(MulticlassPreds);
+      expect((predSpec as MulticlassPreds).threshold).toEqual(expThreshold);
+      expect(getMargin()).toBe(expMargin);
+    });
 
-    // Tests near decision boundary.
-    scores = [.5, .5];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
+    it(`updates margin settings for specs ${name}`, () => {
+      classificationService.setMargin(MODEL_NAME, FIELD_NAME, UPDATED_MARGIN);
+      expect(getMargin()).toBe(UPDATED_MARGIN);
+    });
 
-    scores = [.5 + 1e-4, .5 - 1e-4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
+    it(`resets margin settings for specs ${name}`, () => {
+      classificationService.resetMargins({[MODEL_NAME]: spec.output});
+      expect(getMargin()).toBe(expMargin);
+    });
 
-    scores = [.5 - 1e-4, .5 + 1e-4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(1);
+    if (facets != null) {
+      const groupedExamples = facets.reduce((obj, facet) => {
+        obj[facet] = {data: [], displayName: facet, facets: {}};
+        return obj;
+      }, {} as GroupedExamples);
+
+      classificationService.setMarginGroups(MODEL_NAME, FIELD_NAME,
+                                            groupedExamples);
+
+      for (const facet of facets) {
+        it(`derives margin for ${facet} facet from a spec ${name}`, () => {
+            expect(getMargin(facet)).toBe(expMargin);
+        });
+
+        it(`updates margin for ${facet} facet from a spec ${name}`, () => {
+          const facetData = {displayName: facet, data: [], facets: {}};
+          classificationService.setMargin(MODEL_NAME, FIELD_NAME,
+                                          UPDATED_MARGIN, facetData);
+          expect(getMargin(facet)).toBe(UPDATED_MARGIN);
+        });
+
+        it(`resets margin for ${facet} facet from a spec ${name}`, () => {
+          classificationService.resetMargins({[MODEL_NAME]: spec.output});
+          expect(getMargin(facet)).toBe(expMargin);
+        });
+      }
+    }
   });
 
-  it('gets prediction class index given 2 classes with non-zero margin', () => {
-    const margins: MarginsPerField = {};
+  [   // Parameterized tests for models with invalid specs
+    {
+      name: 'without a multiclass pred',
+      spec: INVALID_SPEC_NO_MULTICLASS_PRED,
+    },
+    {
+      name: 'without null_idx',
+      spec: INVALID_SPEC_NO_NULL_IDX,
+    },
+    {
+      name: 'without vocab',
+      spec: INVALID_SPEC_NO_VOCAB,
+    },
+  ].forEach(({name, spec}) => {
+    it(`should not compute margins ${name}`, () => {
+      const mockAppState: MinimalAppState = {
+        currentModels: [MODEL_NAME],
+        currentModelSpecs: {[MODEL_NAME]: {
+          spec,
+          datasets: [],
+          generators: [],
+          interpreters: []
+        }}
+      };
 
-    // The margin can be calculated from the binary threshold using:
-    // -ln(1/threshold - 1).
-    const marginFromThreshold = (t: number) => -1 * Math.log(1 / t - 1);
-    margins[predKey] = {"": {margin: marginFromThreshold(.6)}};
+      const {marginSettings} =
+          new ClassificationService(mockAppState as {} as AppState);
 
-    // Tests near decision boundary.
-    let scores = [.4, .6];
-    let predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-
-    scores = [.4 + 1e-4, .6 - 1e-4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-
-    scores = [.4 - 1e-1, .6 + 1e-1];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(1);
-  });
-
-  it('gets prediction class index given 3 classes and 0 margin', () => {
-    const margins: MarginsPerField = {};
-    margins[predKey] = {"": {margin: 0}};
-
-    let scores = [.1, .3, .6];
-    let predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(2);
-
-    scores = [.2, .4, .4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(1);
-
-    scores = [.3333, .3333, .3333];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-  });
-
-  it('gets prediction class index given 3 classes and non-zero margin', () => {
-    const margins: MarginsPerField = {};
-
-    // Margin at which null class score is equal to the max class score:
-    // ln(max class score) - ln(null class score)
-    const maxScoreMargin = (scores: number[]) => {
-      return Math.log(Math.max(...scores)) - Math.log(scores[0]);
-    };
-
-    // Tests near decision boundary.
-    let scores = [.1, .3, .6];
-    margins[predKey] = {"": {margin: maxScoreMargin(scores)}};
-
-    let predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-
-    scores = [.1 + 1e-4, .3, .6 - 1e-4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-
-    scores = [.1 - 1e-4, .3, .6 + 1e-4];
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(2);
-
-
-    // Testing extreme margin values.
-    scores = [.01, .98, .01];
-    margins[predKey] = {"": {margin: 5}};
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(0);
-
-    scores = [.98, .005, .015];
-    margins[predKey] = {"": {margin: -5}};
-    predictionClass = getPredictionClass(
-        scores, predKey, outputSpec, mockInput, undefined, margins);
-    expect(predictionClass).toBe(2);
+      expect(marginSettings[MODEL_NAME]).toBeDefined();
+      expect(marginSettings[MODEL_NAME][FIELD_NAME]).toBeUndefined();
+    });
   });
 });

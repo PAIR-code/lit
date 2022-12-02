@@ -25,6 +25,9 @@ class PenguinModel(lit_model.Model):
         2.49897556e-01
     ])
 
+  def max_minibatch_size(self) -> int:
+    return 32
+
   def predict_minibatch(self, inputs):
 
     def convert_input(inp):

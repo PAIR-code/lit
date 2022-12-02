@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Helper classes and functions for explaining text classifiers."""
 
 import math
-from typing import Any, List, Optional, Text
+from typing import Any, Optional, Sequence
 import attr
 import numpy as np
 
@@ -31,6 +30,8 @@ class PosthocExplanation:
   """Represents a post-hoc explanation with feature importance scores.
 
   Attributes:
+    features: the names of the features to attribute to;
+      typically these are tokens.
     feature_importance: Feature importance scores for each input feature. These
       are the coefficients of the linear model that was fitted to mimic the
       behavior of a (black-box) prediction function.
@@ -44,6 +45,7 @@ class PosthocExplanation:
     prediction: The prediction of the linear model on the full input sentence,
       i.e., an all-true boolean mask.
   """
+  features: Sequence[str]
   feature_importance: np.ndarray
   intercept: Optional[float] = None
   model: Optional[Any] = None
@@ -55,8 +57,8 @@ class TextRationale:
   """A text with a rationale explanation."""
 
   def __init__(self,
-               text: Text,
-               token_weights: List[float],
+               text: str,
+               token_weights: list[float],
                top_k_ratio: float = TOP_K_AVG_RATIO):
     """Initializes with a text and a list of token weights.
 
@@ -79,7 +81,7 @@ class TextRationale:
     self.top_k_ids = list(reversed(self.top_k_ids))
     self.top_k_ids_set = set(self.top_k_ids)
 
-  def get_rationale_text(self, mask_token: Optional[Text] = None) -> str:
+  def get_rationale_text(self, mask_token: Optional[str] = None) -> str:
     """Returns the text covering only the rationale.
 
     Args:
@@ -95,7 +97,7 @@ class TextRationale:
         result.append(mask_token)
     return ' '.join(result)
 
-  def get_text_wo_rationale(self, mask_token: Optional[Text] = None) -> str:
+  def get_text_wo_rationale(self, mask_token: Optional[str] = None) -> str:
     """Returns the text without the rationale.
 
     Args:

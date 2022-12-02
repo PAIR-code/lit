@@ -1,4 +1,3 @@
-# Lint as: python3
 """Wrapper for fine-tuned HuggingFace models in LIT."""
 
 import os
@@ -17,6 +16,7 @@ import transformers
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
+TFSequenceClassifierOutput = transformers.modeling_tf_outputs.TFSequenceClassifierOutput
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -351,10 +351,13 @@ class GlueModel(lit_model.Model):
 
       model_inputs = encoded_input.copy()
       model_inputs["input_ids"] = None
-      out: transformers.modeling_tf_outputs.TFSequenceClassifierOutput = \
-          self.model(model_inputs, inputs_embeds=input_embs, training=False,
-                     output_hidden_states=True, output_attentions=True,
-                     return_dict=True)
+      out: TFSequenceClassifierOutput = self.model(
+          model_inputs,
+          inputs_embeds=input_embs,
+          training=False,
+          output_hidden_states=True,
+          output_attentions=True,
+          return_dict=True)
 
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
@@ -541,3 +544,12 @@ class ToxicityModel(GlueModel):
         labels=["non-toxic", "toxic"],
         null_label_idx=0,
         **kw)
+
+  def output_spec(self) -> Spec:
+    ret = super().output_spec()
+    ret["probas"] = lit_types.MulticlassPreds(
+        parent=self.config.label_name,
+        vocab=self.config.labels,
+        null_idx=self.config.null_label_idx,
+        threshold=0.3)
+    return ret

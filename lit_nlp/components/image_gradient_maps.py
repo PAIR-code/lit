@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """A collection of gradient based saliency interpreters for images.
 
 This module implements interpreters that use the pair-code saliency library to
@@ -22,6 +21,7 @@ generate gradient based saliency maps.
 import abc
 from typing import Any, Callable, cast, Dict, NamedTuple, List, Optional
 
+from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -81,14 +81,21 @@ def find_supported_fields(input_spec: Spec,
   # Find all ImageGradients fields.
   grad_field_keys = lit_utils.find_spec_keys(output_spec, types.ImageGradients)
   # Models with more than one gradient field are not supported.
-  if len(grad_field_keys) > 1 or not grad_field_keys:
+  if not grad_field_keys or len(grad_field_keys) != 1:
+    logging.warning('Models must have exactly 1 ImageGradients field, found %i',
+                    len(grad_field_keys))
     return None
+
   grad_field_key = grad_field_keys[0]
   grad_field_value = cast(types.ImageGradients, output_spec[grad_field_key])
 
   # Find image fields that correspond to grad_field.
   image_field_key = grad_field_value.align
-  assert isinstance(input_spec[image_field_key], types.ImageBytes)
+  if not isinstance(input_spec.get(image_field_key), types.ImageBytes):
+    logging.warning(
+        'Could not find aligned ImageBytes field, %s, in input spec',
+        str(grad_field_value.align))
+    return None
 
   # Find gradient target fields in the input if it is a multiclass
   # classification model. The value of None means that it is a regression or
@@ -96,19 +103,23 @@ def find_supported_fields(input_spec: Spec,
   multiclass = grad_field_value.grad_target_field_key is not None
   if multiclass:
     grad_target_field_key = grad_field_value.grad_target_field_key
-    assert isinstance(input_spec[grad_target_field_key], types.CategoryLabel)
+    if not isinstance(
+        input_spec.get(grad_target_field_key), types.CategoryLabel):
+      logging.warning(
+          'Could not find compatible CategoryLabel field, %s, in input spec',
+          str(grad_target_field_key))
+      return None
   else:
     grad_target_field_key = None
 
   # Find prediction field names.
-  if multiclass:
-    preds_field_keys = lit_utils.find_spec_keys(output_spec,
-                                                types.MulticlassPreds)
-  else:
-    preds_field_keys = lit_utils.find_spec_keys(output_spec,
-                                                types.RegressionScore)
+  pred_type = types.MulticlassPreds if multiclass else types.RegressionScore
+  preds_field_keys = lit_utils.find_spec_keys(output_spec, pred_type)
+
   # Models with more than one prediction field are not supported.
-  if len(preds_field_keys) > 1 or not preds_field_keys:
+  if not preds_field_keys or len(preds_field_keys) != 1:
+    logging.warning('Models must have exactly 1 predicition field, found %i',
+                    len(preds_field_keys))
     return None
   preds_field_key = preds_field_keys[0]
 
@@ -270,10 +281,11 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
       all_results.append(result)
     return all_results
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    input_spec = model.input_spec()
-    output_spec = model.output_spec()
-    return find_supported_fields(input_spec, output_spec) is not None
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model.
+    fields = find_supported_fields(model.input_spec(), model.output_spec())
+    return fields is not None
 
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.ImageSalience(autorun=False)}

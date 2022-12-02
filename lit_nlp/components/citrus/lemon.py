@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """LEMON.
 
 LEMON explains the prediction of a classifier on a particular input using a
@@ -37,20 +36,20 @@ the requested output class.
 """
 import collections
 import functools
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Iterable, Optional, Sequence
 
 from lit_nlp.components.citrus import helpers
+from lit_nlp.components.citrus import utils
 import numpy as np
 from sklearn import linear_model
 from sklearn import metrics
 
-DEFAULT_KERNEL_WIDTH = 25
 DEFAULT_MASK_TOKEN = '<unk>'
 DEFAULT_NUM_SAMPLES = 3000
 DEFAULT_SOLVER = 'lsqr'
 
 
-def make_vocab_dict(tokens: Sequence[str]) -> Dict[str, Sequence[int]]:
+def make_vocab_dict(tokens: Sequence[str]) -> dict[str, Sequence[int]]:
   """Creates a dictionary mapping words in the input sentence to their indices.
 
   Args:
@@ -69,7 +68,7 @@ def make_vocab_dict(tokens: Sequence[str]) -> Dict[str, Sequence[int]]:
 
 
 def get_masks(counterfactuals: Sequence[Sequence[str]],
-              vocab_to_indices: Dict[str, Sequence[int]]):
+              vocab_to_indices: dict[str, Sequence[int]]):
   """Returns strings with the masked tokens replaced with `mask_token`.
 
   Args:
@@ -88,23 +87,16 @@ def get_masks(counterfactuals: Sequence[Sequence[str]],
   return masks
 
 
-# TODO(ellenj): exponential_kernel() is copied from lime.py - move to util.py.
-def exponential_kernel(
-    distance: float, kernel_width: float = DEFAULT_KERNEL_WIDTH) -> np.ndarray:
-  """The exponential kernel."""
-  return np.sqrt(np.exp(-(distance**2) / kernel_width**2))
-
-
 def explain(
     sentence: str,
-    counterfactuals: List[str],
+    counterfactuals: list[str],
     predict_fn: Callable[[Iterable[str]], np.ndarray],
     class_to_explain: int,
     tokenizer: Any = str.split,
     lowercase_tokens: bool = True,
     alpha: float = 1.0,
     solver: str = DEFAULT_SOLVER,
-    kernel: Callable[..., np.ndarray] = exponential_kernel,
+    kernel: Callable[..., np.ndarray] = utils.exponential_kernel,
     distance_fn: Callable[..., np.ndarray] = functools.partial(
         metrics.pairwise.pairwise_distances, metric='cosine'),
     distance_scale: float = 100.,
@@ -137,7 +129,7 @@ def explain(
     solver: Solver to use in the linear approximation model. See
       `sklearn.linear_model.Ridge` for details.
     kernel: A kernel function to be used on the distance function. By default,
-      the exponential kernel (with kernel width DEFAULT_KERNEL_WIDTH) is used.
+      use the exponential kernel with kernel width utils.DEFAULT_KERNEL_WIDTH.
     distance_fn: A distance function to use in range [0, 1]. Default: cosine.
     distance_scale: A scalar factor multiplied with the distances before the
       kernel is applied.
@@ -150,14 +142,17 @@ def explain(
       solver is specified to be stochastic (i.e. 'sag' or 'saga').
 
   Returns:
-    The explanation for the requested class.
+    helpers.PosthocExplanation explaining the prediction of the target class.
   """
+  tokens = tokenizer(sentence)
+  if not tokens:
+    return helpers.PosthocExplanation(
+        features=[], feature_importance=np.array([], dtype=np.float32))
+
   # Include the original sentence in the list of counterfactuals for
   # explanation.
   counterfactuals.append(sentence)
-
-  tokens = tokenizer(sentence)
-  counterfactual_tokens = [tokenizer(sentence) for sentence in counterfactuals]
+  counterfactual_tokens = [tokenizer(s) for s in counterfactuals]
 
   if lowercase_tokens:
     tokens = [token.lower() for token in tokens]
@@ -193,7 +188,9 @@ def explain(
 
   # Add option to return coefficients
   explanation = helpers.PosthocExplanation(
-      feature_importance=feature_importance, intercept=model.intercept_)
+      features=tokens,
+      feature_importance=feature_importance,
+      intercept=model.intercept_)
 
   if return_model:
     explanation.model = model

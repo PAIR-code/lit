@@ -6,6 +6,7 @@
 }
 
 .outside {
+  position: relative;   /* Necessary so that the expander positions correctly */
   width: 100%;
   height: 100%;
 }
@@ -15,6 +16,8 @@
   box-sizing: border-box;
   background-color: white;
   background-clip: content-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -26,30 +29,29 @@
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);
   box-sizing: border-box;
+  gap: 8px;
 }
 
 .title {
   font-size: 14px;
   font-family: 'Google Sans', sans;
   white-space: nowrap;
+  text-overflow: ellipsis;
   overflow: hidden;
-  flex: 1;
-  display: flex;
+  flex: 1 1 auto;
 }
 
 .min-button {
   text-align: right;
 }
 
-.scroll-toggle {
+.direction-toggle {
   --mdc-icon-button-size: 24px;
+  --mdc-icon-font: 'Material Icons Outlined';
 }
 
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
+.scroll-toggle {
+  --mdc-icon-button-size: 24px;
 }
 
 .holder {
@@ -73,22 +75,6 @@
 
 lit-widget {
   min-height: 128px;
-}
-
-.expander {
-  position: absolute;
-  bottom: 0px;
-  right: 0px;
-  height: 90%;
-  width: 10px;
-  cursor: ew-resize;
-}
-
-.expander-drag-target{
-  position: absolute;
-  width: 100%;
-  height:100%;
-  opacity: 0;
 }
 
 /**
@@ -123,17 +109,13 @@ lit-widget {
 /**
  * Minimized state
  */
-:host([minimized]) {
-  min-width: calc(var(--lit-group-header-height) + 6px);
-  width: calc(var(--lit-group-header-height) + 6px);
-}
-
-:host([minimized]) .outside {
-  width: calc(var(--lit-group-header-height) + 2px);
-}
-
+:host([minimized]),
+:host([minimized]) .header,
+:host([minimized]) .outside,
 :host([minimized]) .wrapper {
-  width: calc(var(--lit-group-header-height) + 2px);
+  min-width: var(--lit-group-header-height);
+  width: var(--lit-group-header-height);
+  max-width: var(--lit-group-header-height);
 }
 
 :host([minimized]) .header {
@@ -142,7 +124,6 @@ lit-widget {
   padding-left: 0;
   padding-right: 0;
   height: 100%;
-  width: calc(var(--lit-group-header-height) + 2px);
   writing-mode: vertical-lr;
   transform: rotate(180deg);
 }

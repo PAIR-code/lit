@@ -20,6 +20,7 @@ import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
+import {MultiSegmentAnnotations, TextSegment} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
 
@@ -32,30 +33,31 @@ export class AnnotatedTextGoldModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = false;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <annotated-text-gold-module
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <annotated-text-gold-module model=${model} .shouldReact=${shouldReact}
         selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-gold-module>`;
-  };
+      };
 
   static override get styles() {
     return sharedStyles;
   }
 
-  override render() {
+  override renderImpl() {
     const input = this.selectionService.primarySelectedInputData;
     if (!input) return null;
 
     const dataSpec = this.appState.currentDatasetSpec;
 
     // Text segment fields
-    const segmentNames = findSpecKeys(dataSpec, 'TextSegment');
+    const segmentNames = findSpecKeys(dataSpec, TextSegment);
     const segments: TextSegments = filterToKeys(input.data, segmentNames);
     const segmentSpec = filterToKeys(dataSpec, segmentNames);
 
     // Annotation fields
-    const annotationNames = findSpecKeys(dataSpec, 'MultiSegmentAnnotations');
+    const annotationNames = findSpecKeys(dataSpec, MultiSegmentAnnotations);
     const annotations: AnnotationGroups =
         filterToKeys(input.data, annotationNames);
     const annotationSpec = filterToKeys(dataSpec, annotationNames);
@@ -79,7 +81,7 @@ export class AnnotatedTextGoldModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return findSpecKeys(datasetSpec, 'MultiSegmentAnnotations').length > 0;
+    return findSpecKeys(datasetSpec, MultiSegmentAnnotations).length > 0;
   }
 }
 
@@ -90,12 +92,13 @@ export class AnnotatedTextModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`
-      <annotated-text-module model=${model}
-       selectionServiceIndex=${selectionServiceIndex}>
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <annotated-text-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
       </annotated-text-module>`;
-  };
+      };
 
   static override get styles() {
     return sharedStyles;
@@ -124,7 +127,7 @@ export class AnnotatedTextModule extends LitModule {
 
     const promise = this.apiService.getPreds(
         [input], this.model, this.appState.currentDataset,
-        ['MultiSegmentAnnotations'], 'Retrieving annotations');
+        [MultiSegmentAnnotations], [], 'Retrieving annotations');
     const results = await this.loadLatest('answers', promise);
     if (results === null) return;
 
@@ -133,11 +136,11 @@ export class AnnotatedTextModule extends LitModule {
     this.currentPreds = results[0] as AnnotationGroups;
   }
 
-  override render() {
+  override renderImpl() {
     if (!this.currentData) return null;
 
     const segmentNames =
-        findSpecKeys(this.appState.currentDatasetSpec, 'TextSegment');
+        findSpecKeys(this.appState.currentDatasetSpec, TextSegment);
     const segments: TextSegments =
         filterToKeys(this.currentData.data, segmentNames);
     const segmentSpec =
@@ -145,7 +148,7 @@ export class AnnotatedTextModule extends LitModule {
 
     const outputSpec = this.appState.getModelSpec(this.model).output;
     const annotationSpec = filterToKeys(
-        outputSpec, findSpecKeys(outputSpec, 'MultiSegmentAnnotations'));
+        outputSpec, findSpecKeys(outputSpec, MultiSegmentAnnotations));
     // clang-format off
     return html`
       <annotated-text-vis .segments=${segments}
@@ -157,7 +160,7 @@ export class AnnotatedTextModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'MultiSegmentAnnotations');
+    return doesOutputSpecContain(modelSpecs, MultiSegmentAnnotations);
   }
 }
 

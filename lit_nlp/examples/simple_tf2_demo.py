@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Code example for a custom model, using TensorFlow 2.
 
 This demo shows how to use a custom model with LIT, in just a few lines of code.
@@ -26,6 +25,7 @@ To run locally:
 Then navigate to localhost:5432 to access the demo UI.
 """
 import sys
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
@@ -48,11 +48,13 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-flags.DEFINE_string(
+_MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
     "Path to trained model, in standard transformers format, e.g. as "
     "saved by model.save_pretrained() and tokenizer.save_pretrained()")
+
+TFSequenceClassifierOutput = transformers.modeling_tf_outputs.TFSequenceClassifierOutput
 
 
 def _from_pretrained(cls, *args, **kw):
@@ -105,8 +107,7 @@ class SimpleSentimentModel(lit_model.Model):
         truncation="longest_first")
 
     # Run a forward pass.
-    out: transformers.modeling_tf_outputs.TFSequenceClassifierOutput = \
-        self.model(encoded_input, training=False)
+    out: TFSequenceClassifierOutput = self.model(encoded_input, training=False)
 
     # Post-process outputs.
     batched_outputs = {
@@ -139,20 +140,26 @@ class SimpleSentimentModel(lit_model.Model):
     }
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("simplet_tf2_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
-def main(_):
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
+
   # Normally path is a directory; if it's an archive file, download and
   # extract to the transformers cache.
-  model_path = FLAGS.model_path
+  model_path = _MODEL_PATH.value
   if model_path.endswith(".tar.gz"):
     model_path = transformers.file_utils.cached_path(
         model_path, extract_compressed_file=True)

@@ -1,8 +1,8 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
 
-This is a user guide for the Language Interpretability Tool (LIT) UI.
+This is a user guide for the Learning Interpretability Tool (LIT) UI.
 
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
@@ -105,10 +105,10 @@ includes controls such as:
     features or model outputs on those datapoints (such as coloring by some
     categorical input feature, or by prediction error for a regression task).
 
-Next to the menus is a **"Compare datapoints"** switch. Enabling this puts LIT
-into datapoint comparison mode, where two datapoints can be compared against
-each other, across all applicable modules. This mode is described in more detail
-[below](#comparing-datapoints).
+Next to the menus is a button for pinning/unpinning a datapoint. Pinning a
+datapoint puts LIT into datapoint comparison mode, where two datapoints can be
+compared against each other, across all applicable modules. This mode is
+described in more detail [below](#comparing-datapoints).
 
 On the right side of the toolbar, it displays
 how many datapoints are in the loaded dataset and how many of those are
@@ -147,14 +147,16 @@ models.
 
 ## Comparing Datapoints
 
-Toggling the **"Compare datapoints"** switch in the mail toolbar puts LIT
-into **datapoint comparison mode**. In this mode, the primary datapoint
-selection is used a reference datapoint, and any subsequent setting of the
-primary selection causes it to be compared against the reference point. The
-reference datapoint is highlighted in a blue border in the data table.
+Pinning a datapoint, through either the toolbar button or controls in modules
+(e.g., the pin icons in Data Table rows), puts LIT into 
+**datapoint comparison mode**. In this mode, the pinned datapoint is used as a
+reference to compare the primary selection. The pinned datapoint is indicated 
+by a pin icon in modules that support datapoint comparison, such as the Data
+Table. Any changes to the primary selection will update datapoint comparison
+visualizations in all supporting modules.
 
-Just as with model comparison, certain modules are repeated, one showing the
-reference datapoint and one showing the primary selected datapoint.
+As with model comparison, some modules may be duplicated, one showing the pinned
+datapoint and one showing the primary selected datapoint.
 
 This allows for easy comparison of model results on a datapoint to any generated
 counterfactual datapoints, or any other datapoint from the loaded dataset.
@@ -246,7 +248,7 @@ header row. All columns that have filters set on them have their search button
 outlined. Clicking the **"x"** button in the search box for a column will clear
 that column's filter.
 
-The **"only show selected"** checkbox toggles the data table to only show the
+The **"show only selected"** checkbox toggles the data table to only show the
 datapoints that are currently selected.
 
 The **"reset view"** button returns the data table to its standard, default
@@ -261,7 +263,20 @@ The below data table shows one sorted by the "label" field, with the "passage"
 field being filtered to only those datapoints that contain the word "sound" in
 them.
 
+A datapoint can be pinned to enable comparison by clicking the pin icon on the 
+left side of the datapoint's table entry when the datapoint is hovered over or
+selected. A pinned datapoint can be unpinned by clicking on its pin icon again.
+
 ![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
+
+You can also export data to CSV using the copy or download buttons in the bottom
+right:
+
+![LIT data table](./images/lit-datatable-export.png "LIT data table export controls")<!-- DO NOT REMOVE {width="400"} -->
+
+This will export all data in the current table view. To export only the
+selection, use the "Show only selected" toggle. To include additional
+columns such as model predictions, enable them from the "Columns" dropdown.
 
 ### Datapoint Editor
 
@@ -411,7 +426,7 @@ model's prediction on the primary selection. This module can contain multiple
 methodologies for calculating this salience, depending on the capabilities of
 the model being analyzed (e.x. if the model provides gradients, then
 gradient-based token-wise salience can be calculated and displayed -- see
-[adding models and data](python_api.md#adding-models-and-data) for more). The
+[adding models and data](api.md#adding-models-and-data) for more). The
 background of each text piece is colored by the salience of that piece on the
 prediction, and hovering on any piece will display the exact value calculated
 for that piece.

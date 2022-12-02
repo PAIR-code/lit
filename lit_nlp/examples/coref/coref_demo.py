@@ -45,14 +45,17 @@ match Figure 3 of the paper.
 import copy
 import os
 import sys
+from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
+from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes as lit_dtypes
+from lit_nlp.api import layout
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.coref import edge_predictor
 from lit_nlp.examples.coref import encoders
@@ -69,47 +72,47 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-flags.DEFINE_bool("do_train", False,
-                  "If true, train a new model and save to FLAGS.model_path.")
-flags.DEFINE_bool(
+_DO_TRAIN = flags.DEFINE_bool(
+    "do_train", False,
+    "If true, train a new model and save to FLAGS.model_path.")
+_DO_SERVE = flags.DEFINE_bool(
     "do_serve", True,
     "If true, start a LIT server with the model at FLAGS.model_path.")
 
-flags.DEFINE_string(
+_MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/coref_base.tar.gz",
     "Path to save or load trained model.")
 
 ##
 # Training-only flags; these are ignored if only serving a pre-trained model.
-flags.DEFINE_string(
+_ENCODER_NAME = flags.DEFINE_string(
     "encoder_name", "bert-base-uncased",
     "Name of BERT variant to use for fine-tuning. See https://huggingface.co/models."
 )
 
-flags.DEFINE_string(
+_ONTONOTES_EDGEPROBE_PATH = flags.DEFINE_string(
     "ontonotes_edgeprobe_path", None,
     "Path to OntoNotes coreference data in edge probing JSON format. "
     "This is needed for training, and optional for running LIT.")
 
 # Custom frontend layout; see client/lib/types.ts
-WINOGENDER_LAYOUT = lit_dtypes.LitComponentLayout(
+modules = layout.LitModuleName
+WINOGENDER_LAYOUT = layout.LitComponentLayout(
     components={
         "Main": [
-            "data-table-module",
-            "datapoint-editor-module",
-            "lit-slice-module",
-            "color-module",
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
         ],
         "Predictions": [
-            "span-graph-gold-module",
-            "span-graph-module",
-            "classification-module",
+            modules.SpanGraphGoldModule,
+            modules.SpanGraphModule,
+            modules.ClassificationModule,
         ],
         "Performance": [
-            "metrics-module",
-            "scalar-module",
-            "confusion-matrix-module",
+            modules.MetricsModule,
+            modules.ScalarModule,
+            modules.ConfusionMatrixModule,
         ],
     },
     description="Custom layout for the Winogender coreference demo.",
@@ -119,14 +122,18 @@ CUSTOM_LAYOUTS = {"winogender": WINOGENDER_LAYOUT}
 FLAGS.set_default("default_layout", "winogender")
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
+  """Return WSGI app for container-hosted demos."""
   # Set defaults for container-hosted demo.
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("do_train", False)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("coref_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
 def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
@@ -187,7 +194,7 @@ def run_server(load_path: str):
   # Set up the LIT server.
   models = {"model": full_model}
   datasets = {"winogender": winogender.WinogenderDataset()}
-  if FLAGS.ontonotes_edgeprobe_path:
+  if _ONTONOTES_EDGEPROBE_PATH.value:
     datasets["ontonotes_dev"] = ontonotes.OntonotesCorefDataset(
         os.path.join(FLAGS.ontonotes_edgeprobe_path, "development.json"))
   # Start the LIT server. See server_flags.py for server options.
@@ -196,14 +203,17 @@ def run_server(load_path: str):
   return lit_demo.serve()
 
 
-def main(_):
-  assert FLAGS.model_path, "Must specify --model_path to run."
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
 
-  if FLAGS.do_train:
-    train(FLAGS.model_path)
+  assert _MODEL_PATH.value, "Must specify --model_path to run."
 
-  if FLAGS.do_serve:
-    return run_server(FLAGS.model_path)
+  if _DO_TRAIN.value:
+    train(_MODEL_PATH.value)
+
+  if _DO_SERVE.value:
+    return run_server(_MODEL_PATH.value)
 
 
 if __name__ == "__main__":

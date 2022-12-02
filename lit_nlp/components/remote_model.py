@@ -1,4 +1,3 @@
-# Lint as: python3
 """Client code for querying remote models hosted by a LIT server."""
 
 from typing import Text, Optional, Any, List, Dict

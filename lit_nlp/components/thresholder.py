@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Threshold setter for binary classifiers."""
 
 import math
-from typing import cast, List, Optional, Sequence
+from typing import Optional, Sequence, cast
+
 import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import metrics
+from lit_nlp.lib import utils
 import numpy as np
 
 
@@ -32,7 +33,7 @@ Spec = types.Spec
 
 
 @attr.s(auto_attribs=True, kw_only=True)
-class TresholderConfig(object):
+class ThresholderConfig(object):
   """Config options for Thresholder component."""
   # Ratio of cost of a false negative to a false positive.
   cost_ratio: Optional[float] = 1
@@ -64,6 +65,11 @@ class Thresholder(lit_components.Interpreter):
         'Equal accuracy': equal_acc_metric,
         'Equal opporitunity': equal_opp_metric,
     }
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by Thresholder
+    return utils.spec_contains(model.output_spec(), types.MulticlassPreds)
 
   def threshold_to_margin(self, thresh):
     # Convert between margin and classification threshold when displaying
@@ -169,8 +175,8 @@ class Thresholder(lit_components.Interpreter):
       indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[List[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Calculates optimal thresholds on the provided data.
 
     Args:
@@ -183,12 +189,19 @@ class Thresholder(lit_components.Interpreter):
     Returns:
       A JsonDict containing the calcuated thresholds
     """
-    config = TresholderConfig(**config) if config else TresholderConfig()
+    config = ThresholderConfig(**(config or {}))
 
     pred_keys = []
-    for pred_key, field_spec in model.output_spec().items():
-      if self.metrics_gen.is_compatible(field_spec) and cast(
-          types.MulticlassPreds, field_spec).parent:
+    for pred_key, pred_spec in model.output_spec().items():
+      if not isinstance(pred_spec, types.MulticlassPreds):
+        continue
+
+      parent_key = cast(types.MulticlassPreds, pred_spec).parent
+      if not parent_key:
+        continue
+
+      parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)
+      if self.metrics_gen.is_field_compatible(pred_spec, parent_spec):
         pred_keys.append(pred_key)
 
     indexed_outputs = {
@@ -236,4 +249,3 @@ class Thresholder(lit_components.Interpreter):
           pred_key, i, margins_to_try, dataset_results, faceted_results,
           config))
     return ret
-

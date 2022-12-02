@@ -59,6 +59,9 @@ export abstract class LitModule extends ReactiveElement {
   // Name of this module, to show in the UI.
   static title: string = '';
 
+  // A URL to the reference documentation.
+  static referenceURL: string = '';
+
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
 
@@ -76,14 +79,14 @@ export abstract class LitModule extends ReactiveElement {
 
   // Template function. Should return HTML to create this element in the DOM.
   static template:
-      (model: string,
-       selectionServiceIndex: number) => TemplateResult = () => html``;
+      (model: string, selectionServiceIndex: number,
+       shouldReact: number) => TemplateResult = () => html``;
 
   @property({type: String}) model = '';
   @observable @property({type: Number}) selectionServiceIndex = 0;
 
   // tslint:disable-next-line:no-any
-  private readonly latestLoadPromises = new Map<string, Promise<any>>();
+  protected readonly latestLoadPromises = new Map<string, Promise<any>>();
 
   protected readonly apiService = app.getService(ApiService);
   protected readonly appState = app.getService(AppState);
@@ -107,6 +110,36 @@ export abstract class LitModule extends ReactiveElement {
     scrollElems.forEach(elem => {
       (elem as HTMLElement).onscroll = this.onSyncScroll;
     });
+  }
+
+  /**
+   * Base module render function - not to be overridden by clients.
+   *
+   * This render function will call the renderImpl method if the module is set
+   * to react, otherwise it will not render anything.
+   *
+   * Any client overridding this method will not get the standard behavior of
+   * pausing rendering when a module is set to not react. This may cause issues
+   * as the module will still have reactions paused in this case. Therefore,
+   * clients should avoid overidding this method and instead they should
+   * implement renderImpl.
+   */
+  override render() {
+    // If the module is not reactive, then do not render anything.
+    if (this.shouldReact === 0) {
+      return;
+    }
+    return this.renderImpl();
+  }
+
+  /**
+   * Render function for each LIT module to override.
+   *
+   * Only called if the module is reactive, meaning it is visibly on-screen.
+   * Clients should override this method as opposed to the base render() method.
+   */
+  protected renderImpl(): unknown {
+    return html``;
   }
 
   /**

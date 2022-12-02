@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Tests for lit_nlp.lib.utils."""
 
 from absl.testing import absltest
-
 from lit_nlp.api import types
 from lit_nlp.lib import utils
+import numpy as np
 
 
 class UtilsTest(absltest.TestCase):
@@ -94,52 +93,6 @@ class UtilsTest(absltest.TestCase):
     self.assertDictEqual({}, utils.filter_by_keys(d2, pred))
 
     self.assertDictEqual({}, utils.filter_by_keys({}, pred))
-
-  def test_copy_and_update(self):
-    d = {
-        "a": True,
-        "b": False,
-        "c": True
-    }
-    update = {
-        "a": False,
-        "b": True
-    }
-    expected = {
-        "a": False,
-        "b": True,
-        "c": True
-    }
-    self.assertDictEqual(expected, utils.copy_and_update(d, update))
-
-    d = {
-        "a": True,
-        "b": False,
-    }
-    update = {
-        "a": False,
-        "c": True
-    }
-    expected = {
-        "a": False,
-        "b": False,
-        "c": True
-    }
-    self.assertDictEqual(expected, utils.copy_and_update(d, update))
-
-    d = {
-        "a": True,
-        "b": False,
-    }
-    update = {}
-    self.assertDictEqual(d, utils.copy_and_update(d, update))
-
-    d = {}
-    update = {
-        "a": False,
-        "c": True
-    }
-    self.assertDictEqual(update, utils.copy_and_update(d, update))
 
   def test_remap_dict(self):
     d = {
@@ -217,6 +170,16 @@ class UtilsTest(absltest.TestCase):
     expected = [[1], [2], [3], [4], [1, 2], [1, 3], [1, 4], [2, 3], [2, 4],
                 [3, 4]]
     self.assertListEqual(combinations, expected)
+
+  def test_get_real(self):
+    l = np.array([1, 2, 3, 4])
+    self.assertListEqual(utils.coerce_real(l).tolist(), l.tolist())
+
+    l = np.array([1, 2 + 0.5j, 3, 4])
+    self.assertListEqual(utils.coerce_real(l, 0.51).tolist(), [1, 2, 3, 4])
+
+    with self.assertRaises(AssertionError):
+      utils.coerce_real(l, 0.4)
 
 
 if __name__ == "__main__":

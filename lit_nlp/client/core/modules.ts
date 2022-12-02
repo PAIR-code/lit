@@ -22,24 +22,40 @@
 import '@material/mwc-icon';
 
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property, state} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
-import {LitWidget, MIN_GROUP_WIDTH_PX} from './widget_group';
+import {LitWidget} from './widget_group';
 
-// Width of a minimized widget group. From widget_group.css.
-const MINIMIZED_WIDTH_PX = 38 + 4; /* width + padding */
+// Width of a minimized widget group. Set to the value of
+// --lit-group-header-height when :host([minimized]) in widget_group.css.
+const MINIMIZED_WIDTH_PX = 36;
 
-const COMPONENT_AREA_HPAD = 4; /* padding pixels */
+// Minimum width for a widget group
+const MIN_GROUP_WIDTH_PX = 100;
+
+// Width changes below this delta aren't bubbled up, to avoid unnecssary width
+// recalculations.
+const MIN_GROUP_WIDTH_DELTA_PX = 10;
+
+// The following values are derived from modules.css
+const COMPONENT_AREA_HPAD = 16;   // 2x components-group-holder.padding
+const EXPANDER_WIDTH = 8;         // expander-drag-target.width
+
+// Main section height types and settings
+type SectionHeightPreset = 'lower' | 'split' | 'upper';
+const MAIN_SECTION_HEIGHT_MIDDLE = 45;  // % of outer-container height
+const MIN_TAG_GROUP_HEIGHT = 90;  // Minimum group height in px
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -55,14 +71,55 @@ interface LayoutWidths {
 @customElement('lit-modules')
 export class LitModules extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({type: Number})
-  mainSectionHeight = this.modulesService.getSetting('mainHeight') || 45;
+
+  /** Percentage of .outer-container's height given to the upper tab group. */
+  @property({type: Number}) mainSectionHeight = MAIN_SECTION_HEIGHT_MIDDLE;
   @observable upperLayoutWidths: LayoutWidths = {};
   @observable lowerLayoutWidths: LayoutWidths = {};
-  private resizeObserver!: ResizeObserver;
+
+  /**
+   * A dictionary containing the percentages of .outer-container's height that
+   * should be allocated to the upper tab group when the user clicks a preset
+   * space allocation button in the center tab bar. These preset states are:
+   *
+   * * `lower`: Maximize the space allocated to the lower tab group.
+   * * `split`: Approximately equal allocation to both tab groups.
+   * * `upper`: Maximize the space allocated to the upper tab group.
+   *
+   * These values are also used to set the disabled states for the tab bar
+   * position preset buttons, i.e., if this.mainSectionHeight === {value} then
+   * disable the associated button.
+   */
+  @state() private readonly upperGroupHeightPresets = Object.seal({
+    lower: 0,
+    split: MAIN_SECTION_HEIGHT_MIDDLE,
+    upper: 100
+  });
+
+  private readonly resizeObserver = new ResizeObserver(() => {
+    const renderLayout = this.modulesService.getRenderLayout();
+    this.calculateAllWidths(renderLayout);
+    // Set offset for maximized modules. This module doesn't know which
+    // toolbars are present, but we can just find the bounding area
+    // explicitly.
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
+    const {top, height} = container.getBoundingClientRect();
+    container.style.setProperty('--top-toolbar-offset', `${top}px`);
+    container.style.setProperty('--modules-area-height', `${height}px`);
+
+    // Since the percentages associated with the preset states for maximizing
+    // the upper and lower tab group areas depend on the height of
+    // .outer-container, we need to update these values when .outer-container
+    // resizes.
+    Object.assign(this.upperGroupHeightPresets, {
+      lower: Math.floor(MIN_TAG_GROUP_HEIGHT / height * 100),
+      upper: Math.floor((height - MIN_TAG_GROUP_HEIGHT) / height * 100)
+    });
+  });
 
   static override get styles() {
-    return styles;
+    return [sharedStyles, styles];
   }
 
   override firstUpdated() {
@@ -74,20 +131,15 @@ export class LitModules extends ReactiveElement {
       this.requestUpdate();
     });
 
-    const container: HTMLElement =
-        this.shadowRoot!.querySelector('.outer-container')!;
-
-    this.resizeObserver = new ResizeObserver(() => {
-      const renderLayout = this.modulesService.getRenderLayout();
-      this.calculateAllWidths(renderLayout);
-      // Set offset for maximized modules. This module doesn't know which
-      // toolbars are present, but we can just find the bounding area
-      // explicitly.
-      const bcr = container.getBoundingClientRect();
-      container.style.setProperty('--top-toolbar-offset', `${bcr.top}px`);
-      container.style.setProperty('--modules-area-height', `${bcr.height}px`);
-    });
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
     this.resizeObserver.observe(container);
+
+    this.reactImmediately(
+      () => this.modulesService.getSetting('mainHeight'),
+      (mainHeight) => {
+        if (mainHeight != null) {this.mainSectionHeight = Number(mainHeight);}
+      });
 
     this.reactImmediately(
         () => this.modulesService.getRenderLayout(), renderLayout => {
@@ -121,41 +173,53 @@ export class LitModules extends ReactiveElement {
   }
 
   // Calculate widths of all module groups in a single panel.
-  calculatePanelWidths(
-      panelName: string, panelConfig: RenderConfig[][],
-      layoutWidths: LayoutWidths) {
+  calculatePanelWidths(panelName: string, panelConfig: RenderConfig[][],
+                       layoutWidths: LayoutWidths) {
     // Get the number of minimized widget groups to calculate the total width
     // available for non-minimized widgets.
-    let numMinimized = 0;
-    for (const configGroup of panelConfig) {
-      if (this.modulesService.isModuleGroupHidden(configGroup[0])) {
-        numMinimized +=1;
-      }
-    }
+    const numMinimized = panelConfig.reduce((agg, group) => {
+      return agg + (this.modulesService.isModuleGroupHidden(group[0]) ? 1 : 0);
+    }, 0);
+    // Use the container width so this works correctly with simple/centered
+    // layouts as well as full width.
     const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
                                .getBoundingClientRect()
                                .width;
     const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
-        MINIMIZED_WIDTH_PX * numMinimized;
+        MINIMIZED_WIDTH_PX * numMinimized -
+        EXPANDER_WIDTH * (panelConfig.length - 1);
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
-    let totalCols = 0;
-    for (const configGroup of panelConfig) {
-      if (this.modulesService.isModuleGroupHidden(configGroup[0])) {
-        continue;
-      }
-      const numColsList = configGroup.map(config => config.moduleType.numCols);
-      totalCols += Math.max(...numColsList);
-    }
+    const totalCols = panelConfig.reduce((agg, group) => {
+      if (this.modulesService.isModuleGroupHidden(group[0])) return agg;
+      const numColsList = group.map(config => config.moduleType.numCols);
+      return agg + Math.max(...numColsList);
+    }, 0);
 
     // Set the width for each widget group based on the maximum number of
-    // columns it's widgets have specified and the width available.
+    // columns its widgets have specified and the width available.
+    let totalNonMinimizedWidth = 0;
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
       const numColsList = configGroup.map(config => config.moduleType.numCols);
-      const width = Math.max(...numColsList) / totalCols * widthAvailable;
-      layoutWidths[panelName][i] = width;
+      const widthPct = Math.max(...numColsList) / totalCols;
+      layoutWidths[panelName][i] = Math.round(widthPct * widthAvailable);
+      if (!this.modulesService.isModuleGroupHidden(configGroup[0])) {
+        totalNonMinimizedWidth += layoutWidths[panelName][i];
+      }
+    }
+
+    // It's possible to overflow by a few pixels due to rounding errors above.
+    // overflow: hidden will prevent this from creating evil horizontal
+    // scrollbars, but it's useful to adjust the widths anyway to keep
+    // the right padding nicely aligned. This works for underflow too.
+    // Adjust the right-most non-minimized group.
+    for (let i = panelConfig.length - 1; i >= 0; i--) {
+      if (!this.modulesService.isModuleGroupHidden(panelConfig[i][0])) {
+        layoutWidths[panelName][i] += (widthAvailable - totalNonMinimizedWidth);
+        break;
+      }
     }
   }
 
@@ -239,12 +303,15 @@ export class LitModules extends ReactiveElement {
     };
 
     const lowerSectionVisible = Object.keys(layout.lower).length > 0;
-    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}vh` : "100%";
+    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}%` :
+                                              "100%";
 
     const styles = styleMap({
       '--upper-height': upperHeight,
-      '--num-tab-bars': `${upperTabsVisible ? 2 : 1}`,
+      '--upper-tab-bar-visible': `${+upperTabsVisible}`,
     });
+
+    const {lower, split, upper} = this.upperGroupHeightPresets;
 
     // clang-format off
     return html`
@@ -252,7 +319,8 @@ export class LitModules extends ReactiveElement {
         ${upperTabsVisible ? renderUpperTabBar() : null}
         <div id='upper-group-area'>
           ${this.renderComponentGroups(layout.upper, upperTabToSelect,
-                                       this.upperLayoutWidths)}
+                                       this.upperLayoutWidths,
+                                       'widget-group-upper')}
         </div>
         ${lowerSectionVisible ? html`
           <div class='tab-bar' id='center-bar'>
@@ -265,36 +333,52 @@ export class LitModules extends ReactiveElement {
                   @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
               </div>
             </div>
+            <div class="preset-buttons">
+              <mwc-icon class="icon-button" title="Maximize lower area"
+                        ?disabled=${lower === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('lower');}}>
+                vertical_align_top
+              </mwc-icon>
+              <mwc-icon class="icon-button" title="Split screen"
+                        ?disabled=${split === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('split');}}>
+                vertical_align_center
+              </mwc-icon>
+              <mwc-icon class="icon-button" title="Maximize upper area"
+                        ?disabled=${upper === this.mainSectionHeight}
+                        @click=${() => {this.setMainSectionHeight('upper');}}>
+                vertical_align_bottom
+              </mwc-icon>
+            </div>
           </div>
           <div id='lower-group-area'>
             ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
-                                         this.lowerLayoutWidths)}
+                                         this.lowerLayoutWidths,
+                                         'widget-group-lower')}
           </div>
         ` : null}
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
+  private setMainSectionHeight(setting: SectionHeightPreset) {
+    this.mainSectionHeight = this.upperGroupHeightPresets[setting];
+  }
+
   private onBarDragged(e: DragEvent) {
-    // TODO(lit-dev): compute this relative to the container, rather than using
-    // vh?
-    const main = this.shadowRoot!.getElementById('upper-group-area')!;
-    const mainTopPos = main.getBoundingClientRect().top;
-    // Sometimes Chrome will fire bad drag events, either at (0,0)
-    // or jumping around a few hundred pixels off from the drag handler.
-    // Detect and ignore these so the UI doesn't get messed up.
-    const handlerBCR =
-        this.shadowRoot!.getElementById(
-                            'drag-handler')!.getBoundingClientRect();
-    const yOffset = -10;
-    if (e.clientY + yOffset < mainTopPos || e.clientY <= handlerBCR.top - 30 ||
-        e.clientY >= handlerBCR.bottom + 30) {
-      console.log('Anomalous drag event; skipping resize', e);
-      return;
-    }
-    this.mainSectionHeight = Math.floor(
-        (e.clientY + yOffset - mainTopPos) / window.innerHeight * 100);
+    const {top, height} = this.shadowRoot!.getElementById('outer-container')!
+                                          .getBoundingClientRect();
+
+    // When the user releases the cursor after a drag, browsers sometimes fire
+    // a final DragEvent at position <0,0>, so we ignore it.
+    if (e.clientY === 0) return;
+
+    const maxHeight = height - MIN_TAG_GROUP_HEIGHT;
+    const cursorPosition = e.clientY + 10 - top;
+    const barPoisition =
+        cursorPosition < MIN_TAG_GROUP_HEIGHT ? MIN_TAG_GROUP_HEIGHT :
+        cursorPosition > maxHeight ? maxHeight : cursorPosition;
+    this.mainSectionHeight = Math.floor(barPoisition / height * 100);
   }
 
   /**
@@ -304,14 +388,16 @@ export class LitModules extends ReactiveElement {
    */
   renderComponentGroups(
       layout: LitTabGroupConfig, tabToSelect: string,
-      layoutWidths: LayoutWidths) {
-    return Object.keys(layout).map(tabName => {
+      layoutWidths: LayoutWidths, idPrefix: string) {
+    return Object.keys(layout).map((tabName, i) => {
       const configs: RenderConfig[][] = layout[tabName];
       const selected = tabToSelect === tabName;
       const classes = classMap({selected, 'components-group-holder': true});
       return html`
         <div class=${classes}>
-          ${this.renderWidgetGroups(configs, tabName, layoutWidths)}
+          ${
+          this.renderWidgetGroups(
+              configs, tabName, layoutWidths, `${idPrefix}-${i}`, selected)}
         </div>`;
     });
   }
@@ -340,43 +426,82 @@ export class LitModules extends ReactiveElement {
   }
 
   renderWidgetGroups(
-      configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths) {
-    // Calllback for widget isMinimized state changes.
-    const onMin = (event: Event) => {
-      // Recalculate the widget group widths in this section.
+      configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths,
+      idPrefix: string, visible: boolean) {
+    // Recalculate the widget group widths when isMinimized state changes.
+    const onMin = () => {
       this.calculatePanelWidths(section, configs, layoutWidths);
     };
 
     return configs.map((configGroup, i) => {
+      const width = layoutWidths[section]? layoutWidths[section][i] : 0;
+      const isLastGroup = i === configs.length - 1;
+      const id = `${idPrefix}-${i}`;
 
-      // Callback from widget width drag events.
-      const onDrag = (event: Event) => {
-        // tslint:disable-next-line:no-any
-        const dragWidth =  (event as any).detail.dragWidth;
+      let nextShownGroupIndex = -1;
 
-        // If the dragged group isn't the right-most group, then balance the
-        // delta in width with the widget directly to it's left (so if a widget
-        // is expanded, then its adjacent widget is shrunk by the same amount).
-        if (i < configs.length - 1) {
-          const adjacentConfig = configs[i + 1];
-          if (!this.modulesService.isModuleGroupHidden(adjacentConfig[0])) {
-            const widthChange = dragWidth - layoutWidths[section][i];
-            const oldAdjacentWidth = layoutWidths[section][i + 1];
-            layoutWidths[section][i + 1] =
-                Math.max(MIN_GROUP_WIDTH_PX, oldAdjacentWidth - widthChange);
-          }
+      // Try to find an open widget group to the right of this one
+      for (let adj = i + 1; adj < configs.length; adj++) {
+        if (!this.modulesService.isModuleGroupHidden(configs[adj][0])) {
+          nextShownGroupIndex = adj;
+          break;
         }
+      }
 
-        // Set the width of the dragged widget group.
-        layoutWidths[section][i] = dragWidth;
+      const isDraggable =
+          nextShownGroupIndex > i &&
+          !this.modulesService.isModuleGroupHidden(configGroup[0]);
+
+      const expanderStyles = styleMap({
+        'cursor': isDraggable ? 'ew-resize' : 'default'
+      });
+
+      const dragged = (e: DragEvent) => {
+        // If this is the rightmost group, or this isn't draggable, or this is
+        // minimized, do nothing.
+        if (isLastGroup || !isDraggable ||
+            this.modulesService.isModuleGroupHidden(configGroup[0])) return;
+
+        const widgetGroup = this.shadowRoot!.querySelector(`#${id}`);
+        const left = widgetGroup!.getBoundingClientRect().left;
+        const dragWidth = Math.round(e.clientX - left - EXPANDER_WIDTH);
+        const dragLength = dragWidth - width;
+
+        // Groups have a minimum width, so the user can't drag any further to
+        // the left than that
+        const atMinimum = dragWidth <= MIN_GROUP_WIDTH_PX;
+        // We enforce a minimum drag distance before requesting an update,
+        // effectively a distance-based throttle for render performance
+        const isSufficient = Math.abs(dragLength) > MIN_GROUP_WIDTH_DELTA_PX;
+        if (atMinimum || !isSufficient) return;
+
+        // Balance the delta in width with the next open widget to its right, so
+        // if a widget is expanded, then the next open widget to its right is
+        // shrunk by the same amount and vice versa.
+        const oldAdjacentWidth = layoutWidths[section][nextShownGroupIndex];
+        const newWidth = Math.round(oldAdjacentWidth - dragLength);
+        const newAdjacentWidth = Math.max(MIN_GROUP_WIDTH_PX, newWidth);
+        const deltaFromDrag = newAdjacentWidth - newWidth;
+        layoutWidths[section][nextShownGroupIndex] = newAdjacentWidth;
+        layoutWidths[section][i] =
+            dragWidth - (newAdjacentWidth > newWidth ? deltaFromDrag : 0);
 
         this.requestUpdate();
       };
 
-      const width = layoutWidths[section] ? layoutWidths[section][i] : 0;
-      return html`<lit-widget-group .configGroup=${configGroup}
-          @widget-group-minimized-changed=${onMin} @widget-group-drag=${onDrag}
-          .width=${width}></lit-widget-group>`;
+      // clang-format off
+      return html`
+        <lit-widget-group id=${id} .configGroup=${configGroup} .width=${width}
+                          @widget-group-minimized-changed=${onMin}
+                          ?visible=${visible}>
+        </lit-widget-group>
+        ${isLastGroup ? html`` : html`
+            <div class="expander" style=${expanderStyles}>
+              <div class="expander-drag-target" draggable=${isDraggable}
+                   @drag=${(e: DragEvent) => { dragged(e); }}>
+              </div>
+            </div>`}`;
+      // clang-format on
     });
   }
 }

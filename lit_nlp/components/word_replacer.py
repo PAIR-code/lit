@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Word replacement generator."""
 
 import copy
 import re
-from typing import Dict, Iterator, List, Text, Optional, Pattern
+from typing import Iterator, Optional, Pattern
 
 from absl import logging
 
@@ -40,18 +39,18 @@ class WordReplacer(lit_components.Generator):
   Substitutions must be of the form 'foo -> bar, spam -> eggs'.
   """
 
-  def __init__(self, replacements: Optional[Dict[Text, List[Text]]] = None):
+  def __init__(self, replacements: Optional[dict[str, list[str]]] = None):
     # Populate dictionary with replacement options.
     if replacements is not None:
       assert isinstance(replacements, dict), 'Replacements must be a dict.'
       assert all([isinstance(tgt, list) for tgt in replacements.values()
-                 ]), 'Replacement dict must be Text->List[Text]'
+                 ]), 'Replacement dict must be str->list[str]'
       self.default_replacements = replacements
     else:
       self.default_replacements = {}
 
-  def parse_subs_string(self, subs_string: Text,
-                        ignore_casing: bool = True) -> Dict[Text, List[Text]]:
+  def parse_subs_string(self, subs_string: str,
+                        ignore_casing: bool = True) -> dict[str, list[str]]:
     """Parse a substitutions list of the form 'foo -> bar, spam -> eggs' ."""
     replacements = {}
     # TODO(lit-dev) Use pyparsing if the pattern gets more complicated.
@@ -69,7 +68,7 @@ class WordReplacer(lit_components.Generator):
     return replacements
 
   def _get_replacement_pattern(self,
-                               replacements: Dict[Text, List[Text]],
+                               replacements: dict[str, list[str]],
                                ignore_casing: bool = True) -> Pattern[str]:
     r"""Generate replacement pattern for whole word match.
 
@@ -104,11 +103,16 @@ class WordReplacer(lit_components.Generator):
 
     return re.compile('|'.join(re_strings), casing_flag)
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del model  # Unused by WordReplacer
+    return utils.spec_contains(dataset.spec(), types.TextSegment)
+
   def generate_counterfactuals(
-      self, text: Text,
+      self, text: str,
       replacement_regex: Pattern[str],
-      replacements: Dict[Text, List[Text]],
-      ignore_casing: bool = True) -> Iterator[Text]:
+      replacements: dict[str, list[str]],
+      ignore_casing: bool = True) -> Iterator[str]:
     """Replace each token and yield a new string each time that succeeds.
 
     Note: ignores casing.
@@ -139,7 +143,7 @@ class WordReplacer(lit_components.Generator):
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Replace words based on replacement list.
 
     Note: If multiple fields are selected for replacement, this method will
@@ -184,11 +188,12 @@ class WordReplacer(lit_components.Generator):
 
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
-    text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
+    text_keys = [
+        key for key in utils.find_spec_keys(dataset.spec(), types.TextSegment)
+        if key in fields_to_replace
+    ]
     if not text_keys:
       return []
-
-    text_keys = [key for key in text_keys if key in fields_to_replace]
 
     new_examples = []
     for text_key in text_keys:

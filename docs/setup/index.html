@@ -42,7 +42,7 @@
           <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
           <span class="mdl-layout__title">
             <a href="/lit/">
-              Language Interpretability Tool
+              Learning Interpretability Tool
             </a>
           </span>
           <!-- Add spacer, to align navigation to the right -->
@@ -59,7 +59,7 @@
         </div>
       </header>
       <div class="mdl-layout__drawer">
-        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
         <nav class="mdl-navigation">
           <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
           <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
@@ -105,7 +105,7 @@
 viewed in an output cell of the notebook.</p>
 <h2>Quick-start: Classification and regression</h2>
 <p>To explore classification and regression models tasks from the popular <a href="https://gluebenchmark.com/">GLUE benchmark</a>:</p>
-<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.glue_demo --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
+<pre class="language-bash"><code class="language-bash">blaze run -c opt --config<span class="token operator">=</span>cuda examples:glue_demo -- --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
 <p>Navigate to http://localhost:5432 to access the LIT UI.</p>
 <p>Your default view will be a
 <a href="https://arxiv.org/abs/1908.08962">small BERT-based model</a> fine-tuned on the
@@ -114,7 +114,7 @@ but you can switch to
 <a href="http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark">STS-B</a> or <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> using the toolbar or the gear icon in
 the upper right.</p>
 <h2>Language modeling</h2>
-<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.lm_demo <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
+<pre class="language-bash"><code class="language-bash">blaze run -c opt --config<span class="token operator">=</span>cuda examples:lm_demo -- <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
 <p>In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).
 Navigate to http://localhost:5432 for the UI.</p>
 <h2>More examples</h2>

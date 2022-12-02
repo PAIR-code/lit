@@ -33,20 +33,11 @@
 
 #title-group {
   font-family: 'Google Sans', sans;
+  margin-left: 8px;
 }
 
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
-  cursor: pointer;
+icon-margin {
   margin: 0pt 2pt;
-  color: var(--lit-neutral-100);
-}
-
-.icon-button:hover {
-  color: var(--lit-neutral-400);
 }
 
 .status-emoji {
@@ -113,4 +104,18 @@ button {
 
 .headline-button:disabled {
   color: rgba(60, 64, 67, 0.38);
+}
+
+/* Limit width of button text, without hiding icons. */
+.headline-button-text {
+  max-width: 180px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.subtitle {
+  margin-top: 4px;
+  margin-left: 12px;
+  font-size: 12px;
 }

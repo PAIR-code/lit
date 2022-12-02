@@ -18,24 +18,23 @@
 // tslint:disable:no-new-decorators
 import '../elements/spinner';
 import '../elements/tcav_score_bar';
-import '@material/mwc-switch';
 
+import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {TemplateResult} from 'lit';
 import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {CallConfig, ModelInfoMap, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {SliceService} from '../services/services';
+import {Embeddings, Gradients, MulticlassPreds, Scalar} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
+import {ColumnData} from '../services/data_service';
+import {DataService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './tcav_module.css';
 
 const MIN_EXAMPLES_LENGTH = 3;  // minimum examples needed to train the CAV.
@@ -63,7 +62,10 @@ interface TcavResults {
   p_val: number;
   // tslint:disable-next-line:enforce-name-casing
   random_mean: number;
+  cosSim: number[];
+  cav: number[];
 }
+
 
 /**
  * The TCAV module.
@@ -74,24 +76,24 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#tcav';
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
-  static override template = (model = '') => {
-    return html`
-      <tcav-module model=${model}>
-      </tcav-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <tcav-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </tcav-module>`;
   private readonly sliceService = app.getService(SliceService);
+  private readonly dataService = app.getService(DataService);
 
   @observable private readonly selectedSlices = new Set<string>();
   @observable private readonly selectedLayers = new Set<string>();
   @observable private readonly selectedClasses = new Set<string>();
   @observable private readonly negativeSlices = new Set<string>();
   @observable private isLoading: boolean = false;
-  @observable private isSliceHidden: boolean = false;
-  @observable private isClassHidden: boolean = true;
-  @observable private isEmbeddingHidden: boolean = true;
 
   private resultsTableData: TableData[] = [];
   private cavCounter = 0;
@@ -103,7 +105,7 @@ export class TCAVModule extends LitModule {
 
   @computed
   get gradKeys() {
-    return findSpecKeys(this.modelSpec.output, 'Gradients');
+    return findSpecKeys(this.modelSpec.output, Gradients);
   }
 
   @computed
@@ -139,16 +141,18 @@ export class TCAVModule extends LitModule {
 
   @computed
   get predClasses() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].vocab!;
+    return predKey == null ?
+        [] : (this.modelSpec.output[predKey] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
-    const predKeys = findSpecKeys(this.modelSpec.output, 'MulticlassPreds');
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return this.modelSpec.output[predKeys[0]].null_idx!;
+    return predKey == null ?
+        undefined : (this.modelSpec.output[predKey] as MulticlassPreds).null_idx;
   }
 
   override firstUpdated() {
@@ -173,19 +177,22 @@ export class TCAVModule extends LitModule {
   }
 
   renderCollapseBar(
-      title: string, barToggled: () => void, isHidden: boolean, items: string[],
-      columnName: string, selectSet: Set<string>, secondSelectName: string = '',
+      title: string, items: string[], columnName: string,
+      selectSet: Set<string>, secondSelectName: string = '',
       secondSelectSet: Set<string>|null = null) {
-    const checkboxChanged = (e: Event, item: string) => {
-      const checkbox = e.target as HTMLInputElement;
-      if (checkbox.checked) {
-        selectSet.add(item);
-      } else {
-        selectSet.delete(item);
-      }
-    };
+    function changeForSet(set: Set<string>): (e: Event, i: string) => void {
+      return (e: Event, item: string) => {
+        const checkbox = e.target as HTMLInputElement;
+        if (checkbox.checked) {
+          set.add(item);
+        } else {
+          set.delete(item);
+        }
+      };
+    }
 
     const data = items.map((item) => {
+      const checkboxChanged = changeForSet(selectSet);
       const row = [
         // clang-format off
         html`<lit-checkbox ?checked=${selectSet.has(item)}
@@ -195,14 +202,7 @@ export class TCAVModule extends LitModule {
         item
       ];
       if (secondSelectSet != null) {
-        const secondCheckboxChanged = (e: Event, item: string) => {
-          const checkbox = e.target as HTMLInputElement;
-          if (checkbox.checked) {
-            secondSelectSet.add(item);
-          } else {
-            secondSelectSet.delete(item);
-          }
-        };
+        const secondCheckboxChanged = changeForSet(secondSelectSet);
         row.push(
             // clang-format off
             html`<lit-checkbox id='compare-switch'
@@ -221,29 +221,23 @@ export class TCAVModule extends LitModule {
 
     // clang-format off
     return html`
-      <div class='collapse-bar' @click=${barToggled}>
-        <div class="axis-title">
-          <div>${title}</div>
-        </div>
-        <mwc-icon class="icon-button min-button">
-          ${isHidden ? 'expand_more' : 'expand_less'}
-        </mwc-icon>
-      </div>
-      <div class='collapse-content'
-        style=${styleMap({'display': `${isHidden ? 'none' : 'block'}`})}>
-        ${data.length === 0 ?
-          html`<div class='require-text label-2'>
+      <expansion-panel .label=${title} ?expanded=${title === 'Select Slices'}>
+        <div class='collapse-content'>
+          ${data.length === 0 ?
+              html`
+                <div class='require-text label-2'>
                   This module requires at least one ${columnName.toLowerCase()}.
-               </div>` :
-          html`<lit-data-table .verticalAlignMiddle=${true}
-                               .columnNames=${columns}
-                               .data=${data}></lit-data-table>`}
-      </div>
-    `;
+                </div>` :
+              html`
+                <lit-data-table .verticalAlignMiddle=${true}
+                                .columnNames=${columns}
+                                .data=${data}></lit-data-table>`}
+        </div>
+      </expansion-panel>`;
     // clang-format on
   }
 
-  override render() {
+  override renderImpl() {
     const shouldDisable = () => {
       for (const slice of this.selectedSlices) {
         const examples = this.sliceService.getSliceByName(slice);
@@ -271,16 +265,6 @@ export class TCAVModule extends LitModule {
       this.requestUpdate();
     };
 
-    const toggleSliceCollapse = () => {
-      this.isSliceHidden = !this.isSliceHidden;
-    };
-    const toggleClassCollapse = () => {
-      this.isClassHidden = !this.isClassHidden;
-    };
-    const toggleEmbeddingCollapse = () => {
-      this.isEmbeddingHidden = !this.isEmbeddingHidden;
-    };
-
     const cavCount = this.selectedClasses.size * this.selectedSlices.size *
         this.selectedLayers.size;
 
@@ -297,21 +281,15 @@ export class TCAVModule extends LitModule {
           <div class="left-container">
             <div class="controls-holder">
               ${this.renderCollapseBar('Select Slices',
-                                       toggleSliceCollapse,
-                                       this.isSliceHidden,
                                        this.TCAVSliceNames,
                                        'Positive slice',
                                        this.selectedSlices,
                                        'Negative slice', this.negativeSlices)}
               ${this.renderCollapseBar('Explainable Classes',
-                                       toggleClassCollapse,
-                                       this.isClassHidden,
                                        this.predClasses,
                                        'Class',
                                        this.selectedClasses)}
               ${this.renderCollapseBar('Embeddings',
-                                       toggleEmbeddingCollapse,
-                                       this.isEmbeddingHidden,
                                        this.gradKeys,
                                        'Embedding',
                                        this.selectedLayers)}
@@ -350,8 +328,8 @@ export class TCAVModule extends LitModule {
   }
 
   private async runSingleTCAV(
-      config: CallConfig, positiveSlice: string, negativeSlice: string):
-      Promise<TcavResults|undefined> {
+      config: CallConfig, positiveSlice: string,
+      negativeSlice: string): Promise<TcavResults|undefined> {
     const comparisonSetLength = this.appState.currentInputData.length -
         config['concept_set_ids'].length;
     if (config['concept_set_ids'].length < MIN_EXAMPLES_LENGTH ||
@@ -370,15 +348,41 @@ export class TCAVModule extends LitModule {
     if (result === null) {
       return;
     }
-    // TODO(lit-dev): Show local TCAV scores in the scalar chart.
     return {
       'positiveSlice': positiveSlice,
       'negativeSlice': negativeSlice,
       'config': config,
       'score': result[0]['result']['score'],
       'p_val': result[0]['p_val'],
-      'random_mean': result[0]['random_mean']
+      'cosSim': result[0]['result']['cos_sim'],
+      'random_mean': result[0]['random_mean'],
+      'cav': result[0]['result']['cav']
     };
+  }
+
+  /** Get CAV score for a single new datapoint. **/
+  private async runCAVSimilarity(config: CallConfig, datapoint: IndexedInput):
+      Promise<number[]|undefined> {
+    const result = await this.apiService.getInterpretations(
+        [datapoint], this.model, this.appState.currentDataset,
+        TCAV_INTERPRETER_NAME, config, `Running ${TCAV_INTERPRETER_NAME}`);
+
+    if (result == null) {
+      return;
+    }
+    return result[0]['cos_sim'][0];
+  }
+
+  /** Create a human-readable unique name for a TCAV run. **/
+  private getTcavRunName(
+      config: CallConfig, positiveSlice: string, negativeSlice: string) {
+    let name = positiveSlice;
+    if (negativeSlice !== '-') {
+      name += `-${negativeSlice}`;
+    }
+    name += `-${this.cavCounter}-${config['grad_layer']}-${
+        config['class_to_explain']}`;
+    return name;
   }
 
   private async runTCAV() {
@@ -416,32 +420,56 @@ export class TCAVModule extends LitModule {
 
     for (const res of results) {
       if (res == null) continue;
-      if (res['config'] == null || res['score'] == null) continue;
+      if (res.config == null || res.score == null) continue;
 
       // clang-format off
       let scoreBar: TemplateResult|string = html`<tcav-score-bar
-             score=${res['score']}
-             meanVal=${res['random_mean']}
+             score=${res.score}
+             meanVal=${res.random_mean}
              clampVal=${1}>
            </tcav-score-bar>`;
       // clang-format on
       let displayScore = res.score.toFixed(3);
 
-      if (res['p_val'] != null && res['p_val'] > MAX_P_VAL) {
+      if (res.p_val != null && res.p_val > MAX_P_VAL) {
         displayScore = '-';
         scoreBar = HIGH_P_VAL_WARNING;
-      }
-      if (res['p_val'] == null) {
+      } else if (res.p_val == null) {
         scoreBar = NO_T_TESTING_WARNING;
-      }
+      } else {
+        // Add TCAV run's cosine similarity to datapoints through the data
+        // service.
+        const tcavRunName = this.getTcavRunName(
+            res.config, res.positiveSlice, res.negativeSlice);
+        const featName = `TCAV cosine similarity: ${tcavRunName}`;
 
+        const dataType = createLitType(Scalar);
+
+        // Function to get value for this new data column when new datapoints
+        // are added.
+        const getValueFn = async (input: IndexedInput) => {
+          // Use the returned CAV to get CAV similarity score for the new
+          // datapoint.
+          res.config['cav'] = res.cav;
+          const cosSim = await this.runCAVSimilarity(res.config, input);
+          return cosSim;
+        };
+
+        const dataMap: ColumnData = new Map();
+        for (let i = 0; i < this.appState.currentInputData.length; i++) {
+          const input = this.appState.currentInputData[i];
+          dataMap.set(input.id, res.cosSim[i]);
+        }
+        this.dataService.addColumn(
+            dataMap, 'TCAV', featName, dataType, 'Interpreter', getValueFn);
+      }
 
       this.resultsTableData.push({
-        'Positive Slice': res['positiveSlice'],
-        'Negative Slice': res['negativeSlice'],
+        'Positive Slice': res.positiveSlice,
+        'Negative Slice': res.negativeSlice,
         'Run': this.cavCounter,
-        'Embedding': res['config']['grad_layer'],
-        'Class': res['config']['class_to_explain'],
+        'Embedding': res.config['grad_layer'],
+        'Class': res.config['class_to_explain'],
         'CAV Score': displayScore,
         'Score Bar': scoreBar
       });
@@ -451,14 +479,12 @@ export class TCAVModule extends LitModule {
     this.requestUpdate();
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     // Ensure the models can support TCAV and that the TCAV interpreter is
     // loaded.
-    const supportsEmbs = doesOutputSpecContain(modelSpecs, 'Embeddings');
-    const supportsGrads = doesOutputSpecContain(modelSpecs, 'Gradients');
-    const multiclassPreds =
-        doesOutputSpecContain(modelSpecs, 'MulticlassPreds');
-    if (!supportsGrads || !supportsEmbs || !multiclassPreds) {
+    if (!doesOutputSpecContain(
+            modelSpecs, [Embeddings, Gradients, MulticlassPreds])) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

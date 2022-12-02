@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Tests for lit_nlp.components.minimal_targeted_counterfactuals."""
 
 from typing import List
@@ -38,7 +37,7 @@ class ClassificationTestDataset(lit_dataset.Dataset):
         'size': lit_types.CategoryLabel(vocab=['small', 'medium', 'large']),
         'weight': lit_types.Scalar(),
         'legs': lit_types.Boolean(),
-        'description': lit_types.String(),
+        'description': lit_types.StringLitType(),
         'animal': lit_types.CategoryLabel(vocab=ANIMALS),
     }
 
@@ -91,7 +90,7 @@ class ClassificationTestModel(lit_model.Model):
         'size': lit_types.CategoryLabel(vocab=['small', 'medium', 'large']),
         'weight': lit_types.Scalar(),
         'legs': lit_types.Boolean(),
-        'description': lit_types.String(),
+        'description': lit_types.StringLitType(),
     }
 
   def output_spec(self) -> lit_types.Spec:

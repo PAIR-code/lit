@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Gradient-based attribution."""
 
-from typing import cast, List, Text, Optional
+from typing import cast, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -39,16 +38,22 @@ INTERPOLATION_KEY = 'Interpolation steps'
 class GradientNorm(lit_components.Interpreter):
   """Salience map from gradient L2 norm."""
 
-  def find_fields(self, output_spec: Spec) -> List[Text]:
+  def find_fields(self, output_spec: Spec) -> list[str]:
     # Find TokenGradients fields
-    grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
+    supported_fields: list[str] = []
 
     # Check that these are aligned to Tokens fields
-    for f in grad_fields:
-      tokens_field = output_spec[f].align  # pytype: disable=attribute-error
-      assert tokens_field in output_spec
-      assert isinstance(output_spec[tokens_field], types.Tokens)
-    return grad_fields
+    for f in utils.find_spec_keys(output_spec, types.TokenGradients):
+      tokens_field = cast(types.TokenGradients, output_spec[f]).align
+      is_valid_tokens = (
+          tokens_field is not None and tokens_field in output_spec and
+          isinstance(output_spec[tokens_field], types.Tokens))
+      if not is_valid_tokens:
+        logging.info('Skipping %s. Invalid tokens field, %s', str(f),
+                     str(tokens_field))
+        continue
+      supported_fields.append(f)
+    return supported_fields
 
   def _interpret(self, grads: np.ndarray, tokens: np.ndarray):
     assert grads.shape[0] == len(tokens)
@@ -59,12 +64,13 @@ class GradientNorm(lit_components.Interpreter):
     return grad_norm
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
+    del dataset, config
     # Find gradient fields to interpret
     output_spec = model.output_spec()
     grad_fields = self.find_fields(output_spec)
@@ -90,9 +96,10 @@ class GradientNorm(lit_components.Interpreter):
 
     return all_results
 
-  def is_compatible(self, model: lit_model.Model):
-    compatible_fields = self.find_fields(model.output_spec())
-    return len(compatible_fields)
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by Grad L2 Norm
+    return bool(self.find_fields(model.output_spec()))
 
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.TokenSalience(autorun=True, signed=False)}
@@ -101,27 +108,30 @@ class GradientNorm(lit_components.Interpreter):
 class GradientDotInput(lit_components.Interpreter):
   """Salience map using the values of gradient * input as attribution."""
 
-  def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
-    # Find TokenGradients fields
-    grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
-
-    # Check that these are aligned to Tokens fields
+  def find_fields(self, output_spec: Spec) -> list[str]:
+    # Find and check that TokenGradients fields are aligned to Tokens fields
     aligned_fields = []
-    for f in grad_fields:
-      tokens_field = output_spec[f].align  # pytype: disable=attribute-error
-      assert tokens_field in output_spec
-      assert isinstance(output_spec[tokens_field], types.Tokens)
+    for f in utils.find_spec_keys(output_spec, types.TokenGradients):
+      field_spec = cast(types.TokenGradients, output_spec[f])
+      tokens_field = field_spec.align
+      is_valid_tokens = (
+          tokens_field is not None and tokens_field in output_spec and
+          isinstance(output_spec[tokens_field], types.Tokens))
+      if not is_valid_tokens:
+        logging.info('Skipping %s. Invalid tokens field, %s', str(f),
+                     str(tokens_field))
+        continue
 
-      embeddings_field = output_spec[f].grad_for
-      if embeddings_field is not None:
-        assert embeddings_field in input_spec
-        assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
-        assert embeddings_field in output_spec
-        assert isinstance(output_spec[embeddings_field], types.TokenEmbeddings)
+      embeddings_field = field_spec.grad_for
+      is_valid_embeddings = (
+          embeddings_field is not None and embeddings_field in output_spec and
+          isinstance(output_spec[embeddings_field], types.TokenEmbeddings))
+      if not is_valid_embeddings:
+        logging.info('Skipping %s. Invalid emebeddings field, %s.', str(f),
+                     str(tokens_field))
+        continue
 
-        aligned_fields.append(f)
-      else:
-        logging.info('Skipping %s since embeddings field not found.', str(f))
+      aligned_fields.append(f)
     return aligned_fields
 
   def _interpret(self, grads: np.ndarray, embs: np.ndarray):
@@ -134,16 +144,15 @@ class GradientDotInput(lit_components.Interpreter):
     return scores
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
     # Find gradient fields to interpret
-    input_spec = model.input_spec()
     output_spec = model.output_spec()
-    grad_fields = self.find_fields(input_spec, output_spec)
+    grad_fields = self.find_fields(output_spec)
     logging.info('Found fields for gradient attribution: %s', str(grad_fields))
     if len(grad_fields) == 0:  # pylint: disable=g-explicit-length-test
       return None
@@ -169,10 +178,10 @@ class GradientDotInput(lit_components.Interpreter):
 
     return all_results
 
-  def is_compatible(self, model: lit_model.Model):
-    compatible_fields = self.find_fields(
-        model.input_spec(), model.output_spec())
-    return len(compatible_fields)
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by Grad*Input
+    return bool(self.find_fields(model.output_spec()))
 
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.TokenSalience(autorun=True, signed=True)}
@@ -205,34 +214,54 @@ class IntegratedGradients(lit_components.Interpreter):
         label for all integral steps, since the argmax prediction may change.
   """
 
-  def find_fields(self, input_spec: Spec, output_spec: Spec) -> List[Text]:
-    # Find TokenGradients fields
-    grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
+  def __init__(self,
+               autorun: bool = False,
+               class_key: str = '',
+               interpolation_steps: int = 30,
+               normalize: bool = True):
+    """Cretaes an IntegratedGradients interpreter.
 
-    # Check that these are aligned to Tokens fields
+    Args:
+      autorun: Determines if this intepreter should run automatically.
+      class_key: The class to explain.
+      interpolation_steps: The number of steps to interpolate.
+      normalize: Flag to enable/disable normalization.
+    """
+    self._autorun: bool = autorun
+    self._class_key: str = class_key
+    self._interpolation_steps: int = interpolation_steps
+    self._normalize: bool = normalize
+
+  def find_fields(self, input_spec: Spec, output_spec: Spec) -> list[str]:
+    # Find and check that TokenGradients fields are aligned to Tokens fields
     aligned_fields = []
-    for f in grad_fields:
-      tokens_field = output_spec[f].align  # pytype: disable=attribute-error
-      # Skips this grad field if an aligned token field isn't specified.
-      if tokens_field is None:
+    for f in utils.find_spec_keys(output_spec, types.TokenGradients):
+      field_spec = cast(types.TokenGradients, output_spec[f])
+      tokens_field = field_spec.align
+      embeddings_field = field_spec.grad_for
+      grad_key = field_spec.grad_target_field_key
+
+      if not isinstance(output_spec.get(tokens_field), types.Tokens):
+        logging.info('Skipping %s. Invalid tokens field, %s.', str(f),
+                     str(tokens_field))
         continue
 
-      assert tokens_field in output_spec
-      assert isinstance(output_spec[tokens_field], types.Tokens)
+      is_embs_valid = (
+          isinstance(input_spec.get(embeddings_field),
+                     types.TokenEmbeddings) and
+          isinstance(output_spec.get(embeddings_field), types.TokenEmbeddings))
+      if not is_embs_valid:
+        logging.info('Skipping %s. Invalid embeddings field, %s.', str(f),
+                     str(tokens_field))
+        continue
 
-      embeddings_field = output_spec[f].grad_for
-      grad_class_key = output_spec[f].grad_target_field_key
-      if embeddings_field is not None and grad_class_key is not None:
-        assert embeddings_field in input_spec
-        assert isinstance(input_spec[embeddings_field], types.TokenEmbeddings)
-        assert embeddings_field in output_spec
-        assert isinstance(output_spec[embeddings_field], types.TokenEmbeddings)
+      is_grad_cls_valid = grad_key in input_spec and grad_key in output_spec
+      if not is_grad_cls_valid:
+        logging.info('Skipping %s. Invalid gradient class field, %s.', str(f),
+                     str(tokens_field))
+        continue
 
-        assert grad_class_key in input_spec
-        assert grad_class_key in output_spec
-        aligned_fields.append(f)
-      else:
-        logging.info('Skipping %s since embeddings field not found.', str(f))
+      aligned_fields.append(f)
     return aligned_fields
 
   def get_interpolated_inputs(self, baseline: np.ndarray, target: np.ndarray,
@@ -277,7 +306,7 @@ class IntegratedGradients(lit_components.Interpreter):
   def get_salience_result(self, model_input: JsonDict, model: lit_model.Model,
                           interpolation_steps: int, normalize: bool,
                           class_to_explain: str, model_output: JsonDict,
-                          grad_fields: List[Text]):
+                          grad_fields: list[str]):
     result = {}
 
     output_spec = model.output_spec()
@@ -374,20 +403,24 @@ class IntegratedGradients(lit_components.Interpreter):
     return result
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
     config = config or {}
-    class_to_explain = config.get(CLASS_KEY,
-                                  self.config_spec()[CLASS_KEY].default)
-    interpolation_steps = int(
-        config.get(INTERPOLATION_KEY,
-                   self.config_spec()[INTERPOLATION_KEY].default))
-    normalization = config.get(NORMALIZATION_KEY,
-                               self.config_spec()[NORMALIZATION_KEY].default)
+    class_to_explain = config.get(CLASS_KEY, self._class_key)
+
+    try:
+      interpolation_steps = int(config.get(INTERPOLATION_KEY,
+                                           self._interpolation_steps))
+    except ValueError as parse_error:
+      raise RuntimeError(
+          'Failed to parse interpolation steps'
+          f'from "{config[INTERPOLATION_KEY]}".') from parse_error
+
+    normalization = config.get(NORMALIZATION_KEY, self._normalize)
 
     # Find gradient fields to interpret
     input_spec = model.input_spec()
@@ -409,20 +442,22 @@ class IntegratedGradients(lit_components.Interpreter):
       all_results.append(result)
     return all_results
 
-  def is_compatible(self, model: lit_model.Model):
-    compatible_fields = self.find_fields(
-        model.input_spec(), model.output_spec())
-    return len(compatible_fields)
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by IG
+    return bool(self.find_fields(model.input_spec(), model.output_spec()))
 
   def config_spec(self) -> types.Spec:
     return {
-        CLASS_KEY:
-            types.TextSegment(default=''),
-        NORMALIZATION_KEY:
-            types.Boolean(default=True),
+        CLASS_KEY: types.TextSegment(default=self._class_key),
+        NORMALIZATION_KEY: types.Boolean(default=self._normalize),
         INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=100, default=30, step=1)
+            types.Scalar(
+                min_val=5,
+                max_val=100,
+                default=self._interpolation_steps,
+                step=1)
     }
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}

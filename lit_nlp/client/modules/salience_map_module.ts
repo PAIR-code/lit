@@ -19,26 +19,28 @@
  * LIT module for salience maps, such as gradients or LIME.
  */
 
-import '../elements/checkbox';
 import '../elements/spinner';
+import '../elements/popup_container';
 
+import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
-import {observable} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
+import {InterpreterClick} from '../elements/interpreter_controls';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience, TokenSalience} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
-import {CallConfig, LitName, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
 import {FocusData, FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
 
 import {styles} from './salience_map_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Results for calls to fetch salience.
@@ -59,16 +61,34 @@ interface FeatureSalienceResult {
   [key: string]: {salience: FeatureSalienceMap};
 }
 
+type SalienceResult = TokenSalienceResult | ImageSalienceResult |
+                      FeatureSalienceResult;
+
+// Notably, not SequenceSalience as that is handled by a different module.
+const SUPPORTED_SALIENCE_TYPES =
+    [TokenSalience, FeatureSalience, ImageSalience];
+
 /**
  * UI status for each interpreter.
  */
 interface InterpreterState {
-  salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult;
+  salience: SalienceResult;
   autorun: boolean;
   isLoading: boolean;
   cmap: SalienceCmap;
   config?: CallConfig;
 }
+
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
+
+const LEGEND_INFO_TITLE_UNSIGNED =
+    "Salience is relative to the model's prediction of a class. A larger " +
+    "score (more purple) for a token means that token was more influential " +
+    "on the model's prediction of that class.";
 
 /**
  * A LIT module that displays gradient attribution scores for each token in the
@@ -77,21 +97,33 @@ interface InterpreterState {
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
   static override title = 'Salience Maps';
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#token-based-salience';
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
-  static override template = (model = '', selectionServiceIndex = 0) => {
+  static override template = (model: string, selectionServiceIndex: number, shouldReact: number) => {
     return html`<salience-map-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></salience-map-module>`;
+        selectionServiceIndex} .shouldReact=${shouldReact}></salience-map-module>`;
   };
 
   private readonly focusService = app.getService(FocusService);
-
-  // Types that contain salience information to display.
-  private static readonly salienceTypes: LitName[] =
-      ['TokenSalience', 'ImageSalience', 'FeatureSalience'];
+  private isRenderImage = false;
+  private hasSignedSalience = false;
+  private hasUnsignedSalience = false;
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  // For color legend
+  @observable private cmapGamma: number = 2.0;
+  @computed
+  get signedCmap() {
+      return new SignedSalienceCmap(/* gamma */ this.cmapGamma);
+  }
+  @computed
+  get unsignedCmap() {
+      return new UnsignedSalienceCmap(/* gamma */ this.cmapGamma);
   }
 
   // TODO: We may want the keys to be configurable through the UI at some point,
@@ -114,19 +146,31 @@ export class SalienceMapModule extends LitModule {
         this.appState.metadata.models[this.model].interpreters;
     const state: {[name: string]: InterpreterState} = {};
     for (const key of validInterpreters) {
-      const salienceKeys = findSpecKeys(
-          interpreters[key].metaSpec, SalienceMapModule.salienceTypes);
+      const salienceKeys =
+          findSpecKeys(interpreters[key].metaSpec, SUPPORTED_SALIENCE_TYPES);
       if (salienceKeys.length === 0) {
         continue;
       }
-      const salienceSpecInfo = interpreters[key].metaSpec[salienceKeys[0]];
+      const salienceSpecInfo =
+          interpreters[key].metaSpec[salienceKeys[0]] as Salience;
+
+      if (salienceSpecInfo instanceof ImageSalience) {
+        this.isRenderImage = true;
+      }
+
+      // determine whether we need to show signedSalience or unSignedSalience
+      this.hasSignedSalience = this.hasSignedSalience ||
+          !!salienceSpecInfo.signed;
+      this.hasUnsignedSalience = this.hasUnsignedSalience ||
+          !(!!salienceSpecInfo.signed);
+
       state[key] = {
         autorun: !!salienceSpecInfo.autorun,
         isLoading: false,
         salience: {},
         cmap: !!salienceSpecInfo.signed ?
-            new SignedSalienceCmap(/* gamma */ 4.0) :
-            new UnsignedSalienceCmap(/* gamma */ 4.0),
+            this.signedCmap :
+            this.unsignedCmap,
       };
     }
     this.state = state;
@@ -260,6 +304,75 @@ export class SalienceMapModule extends LitModule {
     return html`<img src='${salienceImage}'></img>`;
   }
 
+  renderColorLegend(colorName: string, colorMap: SalienceCmap,
+    numBlocks: number) {
+
+    function scale(val: number) { return colorMap.bgCmap(val); }
+    scale.domain = () => colorMap.colorScale.domain();
+
+    return html`
+        <div class="color-legend-container">
+          <color-legend legendType=${LegendType.SEQUENTIAL}
+            selectedColorName=${colorName}
+            .scale=${scale}
+            numBlocks=${numBlocks}>
+          </color-legend>
+          <mwc-icon class="icon material-icon-outlined"
+                title=${colorName === 'Signed' ? LEGEND_INFO_TITLE_SIGNED :
+                                                 LEGEND_INFO_TITLE_UNSIGNED}>
+            info_outline
+          </mwc-icon>
+        </div>`;
+  }
+
+  // TODO(b/242164240): Refactor the code once we decide how to address
+  // the contrast problem.
+  renderSlider() {
+    const onChangeGamma = (e: Event) => {
+      this.cmapGamma = Number((e.target as HTMLInputElement).value);
+
+      // Update the cmap values in state
+      const interpreters = this.appState.metadata.interpreters;
+      const validInterpreters =
+        this.appState.metadata.models[this.model].interpreters;
+      for (const key of validInterpreters) {
+        const salienceKeys = findSpecKeys(interpreters[key].metaSpec, Salience);
+        if (salienceKeys.length === 0) {
+          continue;
+        }
+        const salienceSpecInfo =
+          interpreters[key].metaSpec[salienceKeys[0]] as Salience;
+        this.state[key].cmap = !!salienceSpecInfo.signed ?
+          this.signedCmap :
+          this.unsignedCmap;
+      }
+    };
+
+    // reuse the slider from the squence salience module
+    return html`
+      <label for="gamma-slider"
+        title="A larger gamma value makes lower salience tokens more visibile">
+        Gamma:
+      </label>
+      <lit-slider min="0.25" max="6" step="0.25"
+        val="${this.cmapGamma}" .onInput=${onChangeGamma}></lit-slider>
+      <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>`;
+  }
+
+  renderFooter() {
+    return html`
+      <div class="module-footer">
+        ${this.hasSignedSalience
+          ? this.renderColorLegend("Signed", this.signedCmap, 7)
+          : null}
+        ${this.hasUnsignedSalience
+          ? this.renderColorLegend("Unsigned", this.unsignedCmap, 5)
+          : null}
+        ${this.hasSignedSalience || this.hasUnsignedSalience
+          ? this.renderSlider() : null}
+      </div>`;
+  }
+
   // TODO(lit-dev): consider moving this to a standalone viz class.
   renderTokens(salience: TokenSalienceResult, gradKey: string,
                cmap: SalienceCmap) {
@@ -280,8 +393,7 @@ export class SalienceMapModule extends LitModule {
         </div>
         <div class="salience-tooltip">
         </div>
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
@@ -309,19 +421,16 @@ export class SalienceMapModule extends LitModule {
         </div>
         <div class="salience-tooltip">
         </div>
-      </div>
-    `;
+      </div>`;
     // clang-format on
   }
 
-  renderGroup(
-      salience: TokenSalienceResult|ImageSalienceResult|FeatureSalienceResult,
-      gradKey: string, cmap: SalienceCmap) {
-    const spec = this.appState.getModelSpec(this.model);
-    if (isLitSubtype(spec.output[gradKey], 'ImageGradients')) {
+  renderGroup(salience: SalienceResult, spec: Spec, gradKey: string,
+              cmap: SalienceCmap) {
+    if (spec[gradKey] instanceof ImageGradients) {
       salience = salience as ImageSalienceResult;
       return this.renderImage(salience, gradKey);
-    } else if (isLitSubtype(spec.output[gradKey], 'FeatureSalience')) {
+    } else if (spec[gradKey] instanceof FeatureSalience) {
       salience = salience as FeatureSalienceResult;
       return this.renderFeatureSalience(salience, gradKey, cmap);
     } else {
@@ -339,90 +448,106 @@ export class SalienceMapModule extends LitModule {
     `;
   }
 
-  renderControls() {
-    return Object.keys(this.state).map(name => {
-      const toggleAutorun = () => {
-        this.state[name].autorun = !this.state[name].autorun;
-      };
-      // clang-format off
-      return html`
-        <lit-checkbox label=${name}
-         ?checked=${this.state[name].autorun}
-         @change=${toggleAutorun}>
-        </lit-checkbox>
-      `;
-      // clang-format on
-    });
+  private controlsApplyCallback(event: CustomEvent<InterpreterClick>) {
+    const name = event.detail.name;
+    this.state[name].config = event.detail.settings;
+    this.runInterpreter(name);
   }
 
-  renderTable() {
-    const controlsApplyCallback = (event: Event) => {
-      // tslint:disable-next-line:no-any
-      const name =  (event as any).detail.name;
-      // tslint:disable-next-line:no-any
-      this.state[name].config = (event as any).detail.settings;
-      this.runInterpreter(name);
-    };
+  private renderMethodControls(name: string) {
+    const spec = this.appState.metadata.interpreters[name].configSpec;
+    // Don't render controls if there aren't any.
+    if (Object.keys(spec).length === 0) return null;
 
-    // clang-format off
-    const renderMethodControls = (name: string) => {
-      const spec = this.appState.metadata.interpreters[name].configSpec;
-      const clonedSpec = JSON.parse(JSON.stringify(spec)) as Spec;
-      for (const fieldName of Object.keys(clonedSpec)) {
-        // If the generator uses a field matcher, then get the matching
-        // field names from the specified spec and use them as the vocab.
-        if (isLitSubtype(clonedSpec[fieldName],
-                         ['FieldMatcher', 'MultiFieldMatcher'])) {
-          clonedSpec[fieldName].vocab =
-              this.appState.getSpecKeysFromFieldMatcher(
-                  clonedSpec[fieldName], this.model);
-        }
+    const clonedSpec = cloneSpec(spec);
+    for (const fieldSpec of Object.values(clonedSpec)) {
+      // If the generator uses a field matcher, then get the matching
+      // field names from the specified spec and use them as the vocab.
+      if (fieldSpec instanceof FieldMatcher) {
+        fieldSpec.vocab =
+            this.appState.getSpecKeysFromFieldMatcher(fieldSpec, this.model);
       }
-      return html`
-          <lit-interpreter-controls
-            .spec=${clonedSpec}
-            .name=${name}
-            @interpreter-click=${controlsApplyCallback}>
-          </lit-interpreter-controls>`;
-    };
+    }
+
+    const description =
+        this.appState.metadata.interpreters[name].description ?? name;
+    const descriptionPreview = description.split('\n')[0];
+
+    // Right-anchor the controls popup.
+    const popupStyle = styleMap({'--popup-right': '0'});
+    // The "control" slot in <popup-container> renders in-place and uses the
+    // given template as a toggle control for the popup.
+    // This allows control state to remain inside <popup-container>, freeing
+    // us from having to keep track of another set of booleans here.
+    // clang-format off
     return html`
-      <table>
-        ${Object.keys(this.state).map(name => {
-          if (!this.state[name].autorun) {
-            return null;
-          }
-          const salience = this.state[name].salience;
-          const description =
-              this.appState.metadata.interpreters[name].description || name;
-          return html`
-            <tr class='method-row'>
-              <th class='group-label' title=${description}>
-                ${renderMethodControls(name)}
-              </th>
-              <td class=${classMap({'group-container': true,
-                                    'loading': this.state[name].isLoading})}>
-                ${Object.keys(salience).map(gradKey =>
-                  this.renderGroup(salience, gradKey, this.state[name].cmap))}
-                ${this.state[name].isLoading ? this.renderSpinner() : null}
-              </td>
-            </tr>
-          `;
-        })}
-      </table>
-    `;
+      <popup-container style=${popupStyle}>
+        <div class="controls-toggle" slot="toggle-anchor">
+          <mwc-icon class='icon-button'>settings</mwc-icon>
+        </div>
+        <div class="controls-panel">
+          <lit-interpreter-controls .spec=${clonedSpec} .name=${name}
+                      .description=${descriptionPreview}
+                      noexpand opened
+                      @interpreter-click=${this.controlsApplyCallback}>
+          </lit-interpreter-controls>
+        </div>
+      </popup-container>`;
     // clang-format on
   }
 
-  override render() {
+  renderMethodRow(name: string) {
+    // TODO(b/217724273): figure out a more elegant way to handle
+    // variable-named output fields with metaSpec.
+    const {output} = this.appState.getModelSpec(this.model);
+    const {metaSpec} = this.appState.metadata.interpreters[name];
+    const spec = {...metaSpec, ...output};
+    const salience = this.state[name].salience;
+    const description =
+        this.appState.metadata.interpreters[name].description ?? name;
+
+    const toggleAutorun = () => {
+      this.state[name].autorun = !this.state[name].autorun;
+    };
+
+    const salienceContent = Object.keys(salience).map(
+        gradKey =>
+            this.renderGroup(salience, spec, gradKey, this.state[name].cmap));
+
+    // The "bar-content" slot in <expansion-panel> renders inline between
+    // the label and the expander toggle.
+    // clang-format off
+    return html`
+      <div class='method-row'>
+        <expansion-panel .label=${name} ?expanded=${this.state[name].autorun}
+                         .description=${description}
+                          @expansion-toggle=${toggleAutorun}>
+          <div slot="bar-content">
+            ${this.renderMethodControls(name)}
+          </div>
+          <div class='method-row-contents'>
+            <div class='method-results'>
+              ${this.selectionService.primarySelectedInputData != null ?
+                salienceContent : html`
+                <span class='salience-placeholder'>
+                  Select a datapoint to see ${name} attributions.
+                </span>`}
+              ${this.state[name].isLoading ? this.renderSpinner() : null}
+            </div>
+          </div>
+        </expansion-panel>
+      </div>`;
+    // clang-format on
+  }
+
+  override renderImpl() {
     // clang-format off
     return html`
       <div class='module-container'>
-        <div class='module-toolbar'>
-          ${this.renderControls()}
-        </div>
         <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
-          ${this.renderTable()}
+          ${Object.keys(this.state).map(name => this.renderMethodRow(name))}
         </div>
+        ${this.isRenderImage ? null : this.renderFooter()}
       </div>
     `;
     // clang-format on
@@ -433,21 +558,15 @@ export class SalienceMapModule extends LitModule {
 
     // Ensure there are salience interpreters for loaded models.
     const appState = app.getService(AppState);
-    for (const modelInfo of Object.values(modelSpecs)) {
-      for (let i = 0; i < modelInfo.interpreters.length; i++) {
-        const interpreterName = modelInfo.interpreters[i];
-        if (appState.metadata == null) {
-          return false;
-        }
-        const interpreter = appState.metadata.interpreters[interpreterName];
-        const salienceKeys = findSpecKeys(
-            interpreter.metaSpec, SalienceMapModule.salienceTypes);
-        if (salienceKeys.length !== 0) {
-          return true;
-        }
-      }
-    }
-    return false;
+    if (appState.metadata == null) return false;
+
+    return Object.values(modelSpecs).some(modelInfo =>
+        modelInfo.interpreters.some(name => {
+          const interpreter = appState.metadata.interpreters[name];
+          const salienceKeys =
+              findSpecKeys(interpreter.metaSpec, SUPPORTED_SALIENCE_TYPES);
+          return salienceKeys.length > 0;
+        }));
   }
 }
 

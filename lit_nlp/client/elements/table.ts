@@ -23,6 +23,8 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
+import './checkbox';
+import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
@@ -31,18 +33,26 @@ import {isTemplateResult} from 'lit/directive-helpers';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {action, computed, observable} from 'mobx';
+import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
-import {formatForDisplay} from '../lib/types';
-import {isNumber, randInt} from '../lib/utils';
-
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {formatForDisplay} from '../lib/types';
+import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
+
+import {PopupContainer} from './popup_container';
 import {styles} from './table.css';
+
+/** Function for supplying table entry template result based on row state. */
+export type TemplateResultFn =
+    (isSelected: boolean, isPrimarySelection: boolean,
+     isReferenceSelection: boolean, isFocused: boolean, isStarred: boolean) =>
+        TemplateResult;
 
 type SortableTableEntry = string|number;
 /** Wrapper type for sortable custom data table entries */
 export interface SortableTemplateResult {
-  template: TemplateResult;
+  template: TemplateResult|TemplateResultFn;
   value: SortableTableEntry;
 }
 /** Wrapper types for the data supplied to the data table */
@@ -55,6 +65,11 @@ export interface ColumnHeader {
   name: string;
   html?: TemplateResult;
   rightAlign?: boolean;
+  /**
+   * If vocab provided and search enabled, then the column is searchable
+   *  through selected items from the vocab list.
+   */
+  vocab?: string[];
 }
 
 /** Internal data, including metadata */
@@ -70,6 +85,17 @@ export type OnPrimarySelectCallback = (index: number) => void;
 /** Callback for hover */
 export type OnHoverCallback = (index: number|null) => void;
 
+/** Type for search filters in data headers. */
+export type FilterFn = (entry: SortableTableEntry) => boolean;
+
+/** Info stored for the filter info for each column. */
+interface ColumnFilterInfo {
+  /** The generated filter function. */
+  fn: FilterFn;
+  /** String lists backing the user settings of a search filter. */
+  values: string[];
+}
+
 enum SpanAnchor {
   START,
   END,
@@ -78,6 +104,7 @@ enum SpanAnchor {
 const IMAGE_PREFIX = 'data:image';
 
 const CONTAINER_HEIGHT_CHANGE_DELTA = 20;
+const PAGE_SIZE_INCREMENT = 10;
 
 /**
  * A generic data table component
@@ -97,8 +124,9 @@ export class DataTable extends ReactiveElement {
   // to generate a new reference and force a refresh if needed.
   @observable.struct @property({type: Array}) data: TableData[] = [];
   @observable.struct @property({type: Array})
-  columnNames: Array<string|ColumnHeader> = [];
+      columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) selectedIndices: number[] = [];
+  @observable.struct @property({type: Array}) starredIndices: number[] = [];
   @observable @property({type: Number}) primarySelectedIndex: number = -1;
   @observable @property({type: Number}) referenceSelectedIndex: number = -1;
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
@@ -109,13 +137,19 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) selectionEnabled: boolean = false;
   @observable @property({type: Boolean}) searchEnabled: boolean = false;
   @observable @property({type: Boolean}) paginationEnabled: boolean = false;
+  @observable @property({type: Boolean}) exportEnabled: boolean = false;
+
+  /** Lowest row index of the continguous (i.e., shift-click) selection. */
+  @property({type: Number}) shiftSelectionStartIndex: number = 0;
+  /** Highest row index of the continguous (i.e., shift-click) selection. */
+  @property({type: Number}) shiftSelectionEndIndex: number = 0;
 
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
 
   // Callbacks
-  @property({type: Object}) onClick: OnPrimarySelectCallback|undefined;
-  @property({type: Object}) onHover: OnHoverCallback|undefined;
+  @property({type: Object}) onClick?: OnPrimarySelectCallback;
+  @property({type: Object}) onHover?: OnHoverCallback;
   @property({type: Object}) onSelect: OnSelectCallback = () => {};
   @property({type: Object}) onPrimarySelect: OnPrimarySelectCallback = () => {};
 
@@ -128,56 +162,47 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
-  @observable private readonly columnSearchQueries = new Map<string, string>();
+  // Filters for each column when search is used.
+  @observable
+  private readonly columnFilterInfo = new Map<string, ColumnFilterInfo>();
   @observable private pageNum = 0;
-  @observable private entriesPerPage = 10;
+  @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
-  // Sorted data. We manage updates with a reaction to enable "sticky" behavior,
-  // where subsequent sorts are based on the last sort rather than the original
-  // inputs (i.e. this.data). This way, you can do useful compound sorts like in
-  // a typical spreadsheet program.
-  @observable private stickySortedData?: TableRowInternal[]|null = null;
+  @property({type: String}) downloadFilename: string = 'data.csv';
 
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.adjustEntriesIfHeightChanged();
+  });
   private needsEntriesPerPageRecompute = true;
   private lastContainerHeight = 0;
 
   private selectedIndicesSetForRender = new Set<number>();
-
-  private shiftSelectionStartIndex = 0;
-  private shiftSelectionEndIndex = 0;
   private shiftSpanAnchor = SpanAnchor.START;
   private hoveredIndex: number|null = null;
 
+  // Timeout to not spam hover events as a mouse moves over the table.
+  private readonly HOVER_TIMEOUT_MS = 3;
+  private hoverTimeoutId: number|null = null;
+
   override firstUpdated() {
     const container = this.shadowRoot!.querySelector('.holder')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.adjustEntriesIfHeightChanged();
-    });
     this.resizeObserver.observe(container);
 
     // If inputs changed, re-sort data based on the new inputs.
     this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
-      this.stickySortedData = null;
       this.needsEntriesPerPageRecompute = true;
-      this.pageNum = 0;
       this.requestUpdate();
     });
 
-    // If sort settings are changed, re-sort data optionally using result of
-    // previous sort.
-    const triggerSort = () => [this.sortName, this.sortAscending];
-    this.reactImmediately(triggerSort, () => {
-      this.stickySortedData = this.getSortedData(this.rowFilteredData);
-      this.pageNum = 0;
-      this.requestUpdate();
-    });
     // Reset page number if invalid on change in total pages.
-    const triggerPageChange = () => this.totalPages;
-    this.reactImmediately(triggerPageChange, () => {
-      if (this.pageNum >= this.totalPages) {
-        this.pageNum = 0;
-      }
+    this.reactImmediately(() => this.totalPages, () => {
+      const isPageOverflow = this.pageNum >= this.totalPages;
+      if (isPageOverflow) {this.pageNum = 0;}
+
+      const lastIndexOnPage = this.entriesPerPage * (this.pageNum + 1);
+      const isHoveredInvisible =
+          this.hoveredIndex != null && this.hoveredIndex > lastIndexOnPage;
+      if (isHoveredInvisible) {this.hoveredIndex = null;}
     });
   }
 
@@ -219,8 +244,7 @@ export class DataTable extends ReactiveElement {
   private computeEntriesPerPage() {
     this.needsEntriesPerPageRecompute = false;
 
-    // If pagination is disabled, then ensure all entires can fit on a single
-    // page.
+    // If pagination is disabled, then put all entries on a single page.
     if (!this.paginationEnabled) {
       this.entriesPerPage = this.rowFilteredData.length + 1;
       return;
@@ -234,30 +258,65 @@ export class DataTable extends ReactiveElement {
         this.shadowRoot!.querySelector('tfoot')!.getBoundingClientRect().height;
     const availableHeight =
         Math.max(0, containerHeight - headerHeight - footerHeight);
-    const rows: NodeListOf<HTMLElement> =
-        this.shadowRoot!.querySelectorAll('tbody > tr');
+
+    // Iterate over rows, adding up their heights until they overfill the
+    // container (or run out of rows), to get the number of rows per page.
     let height = 0;
     let i = 0;
+    const rows: NodeListOf<HTMLElement> =
+        this.shadowRoot!.querySelectorAll('tbody > tr.lit-data-table-row');
 
-    // Iterate over rows, adding up their height until they fill the container,
-    // to get the number of rows to display per page.
-    for (i = 0; i < rows.length; i++) {
+    // This function computes entriesPerPage assuming that the current page is
+    // full of rows that it can use to compute entriesPerPage based on the
+    // available page height. The only time that isn't true is if the user is
+    // one the last page of results, in which case computing a new
+    // entriesPerPage value may result in an incorrect computation, so bail out.
+    if (rows.length < this.entriesPerPage) {return;}
+
+    while (height < availableHeight && i < rows.length) {
       height += rows[i].getBoundingClientRect().height;
-      if (height > availableHeight) {
-        this.entriesPerPage = i + 1;
-        break;
+      i += 1;
+    }
+
+    // Calculate how many rows will fit on a page given the available space.
+    let entriesPerPage;
+    if (height === 0 || i === 0) {
+      // No content, calculate how many would fill it assuming minimum row size
+      // given styles, 28px.
+      // div.cell-holder (18px height + 8px padding) + td (2px padding) = 28px
+      entriesPerPage = Math.ceil(availableHeight / 28);
+    } else {
+      const hasFillers =
+          this.shadowRoot!.querySelectorAll('tbody > tr.filler').length > 0;
+
+      if (hasFillers || height === availableHeight) {
+        // The height is exactly the same as the container, which means either
+        // LIT got incredibly lucky (unlikely) or that the browser's table
+        // algorithm is stretching the rows to fill the available space (very
+        // likely). Since it's so likely that the table-row elements are being
+        // stretched to fit the available space, use the median div height
+        // instead of mean row height to calculate how many would fit.
+        const cellHolderSelector = 'tbody > tr > td > div.cell-holder';
+        const cellHolders: NodeListOf<HTMLDivElement> =
+            this.shadowRoot!.querySelectorAll(cellHolderSelector);
+        const cellHolderHeights = [...cellHolders.values()].map(div =>
+            div.getBoundingClientRect().height);
+        const medianHeight = median(cellHolderHeights);
+        entriesPerPage = Math.ceil(availableHeight / medianHeight);
+      } else if (height < availableHeight) {
+        // If there aren't enough entries to fill the container, calculate how
+        // many will fill the container based on the mean height.
+        const meanHeight = height / i;
+        entriesPerPage = Math.ceil(availableHeight / meanHeight);
+      } else {
+        // There are enough entries to fill the container, use i.
+        entriesPerPage = i;
       }
     }
-    if (height === 0) {
-      this.entriesPerPage = 10;
-    } else if (height <= availableHeight) {
-      // If there aren't enough entries to take up the entire container,
-      // calculate how many will fill the container based on the heights so far.
-      const heightPerEntry = height / i;
-      this.entriesPerPage = Math.ceil(availableHeight / heightPerEntry);
-    }
+
     // Round up to the nearest 10.
-    this.entriesPerPage = Math.ceil(this.entriesPerPage / 10) * 10;
+    this.entriesPerPage =
+        Math.ceil(entriesPerPage / PAGE_SIZE_INCREMENT) * PAGE_SIZE_INCREMENT;
   }
 
   private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
@@ -324,10 +383,8 @@ export class DataTable extends ReactiveElement {
    * - getSortedData() is used to sort the data if 1) the user has enabled sort-
    *   by-column by clicking a column header, or 2) a DataTable consumer wants
    *   to impose a context-specific sort behavior (e.g., ClassificationModule
-   *   defining sort based on the Score associated with that class). The result
-   *   is stored in this.stickySortedData so that future sorts can be "stable"
-   *   rather than re-sorting from the input.
-   * - displayData is stickySortedData, or rowFilteredData if that is unset.
+   *   defining sort based on the Score associated with that class).
+   * - displayData is uses sorted rowFilteredData.
    *   This is used to actually render the table.
    */
   @computed
@@ -350,20 +407,12 @@ export class DataTable extends ReactiveElement {
     return this.indexedData.filter((item) => {
       let isShownByTextFilter = true;
       // Apply column search filters
-      for (const [key, value] of this.columnSearchQueries) {
+      for (const [key, info] of this.columnFilterInfo) {
         const index = this.columnStrings.indexOf(key);
         if (index === -1) return;
 
-        const col = item.rowData[index];
-        if (typeof col === 'string') {
-          isShownByTextFilter =
-              isShownByTextFilter && col.search(new RegExp(value)) !== -1;
-        } else if (typeof col === 'number') {
-          // TODO(b/158299036) Support syntax like 1-3,6 for numbers.
-          isShownByTextFilter = isShownByTextFilter && value === '' ?
-              true :
-              col.toString() === value;
-        }
+        const col = this.getSortableEntry(item.rowData[index]);
+        isShownByTextFilter = isShownByTextFilter && info.fn(col);
       }
       return isShownByTextFilter;
     });
@@ -383,11 +432,19 @@ export class DataTable extends ReactiveElement {
 
   @computed
   get displayData(): TableRowInternal[] {
-    if (this.stickySortedData != null) {
-      return this.stickySortedData;
-    } else {
-      return this.getSortedData(this.rowFilteredData);
-    }
+    return this.getSortedData(this.rowFilteredData);
+  }
+
+  getArrayData(): SortableTableEntry[][] {
+    // displayData is the visible data for all pages.
+    return this.displayData.map(
+        (row: TableRowInternal) => row.rowData.map(this.getSortableEntry));
+  }
+
+  getCSVContent(): string {
+    return papa.unparse(
+        {fields: this.columnStrings, data: this.getArrayData()},
+        {newline: '\r\n'});
   }
 
   @computed
@@ -404,8 +461,25 @@ export class DataTable extends ReactiveElement {
   }
 
   @computed
+  get fillerRows(): TemplateResult[] {
+    const rows: TemplateResult[] = [];
+    for(let i = 0; i < (this.entriesPerPage - this.pageData.length); i++) {
+      rows.push(html`<tr class="filler">
+        <td colspan=${this.columnNames.length}>&nbsp;</td>
+      </tr>`);
+    }
+    return rows;
+  }
+
+  @computed
+  get isPaginated(): boolean {
+    return this.paginationEnabled &&
+        (this.displayData.length > this.entriesPerPage);
+  }
+
+  @computed
   get hasFooter(): boolean {
-    return this.displayData.length > this.entriesPerPage;
+    return this.isPaginated || this.exportEnabled;
   }
 
   private setShiftSelectionSpan(startIndex: number, endIndex: number) {
@@ -465,12 +539,10 @@ export class DataTable extends ReactiveElement {
         selectedIndices.add(dataIndex);
       }
       this.setShiftSelectionSpan(rowIndex, rowIndex);
+      this.setPrimarySelectedIndex(rowIndex);
     }
     //  Rather complicated logic for handling shift-click
     else if (e.shiftKey) {
-      // Prevent selecting text on shift-click
-      e.preventDefault();
-
       const isWithinSpan = this.isRowWithinShiftSelectionSpan(rowIndex);
       const startIndex = this.shiftSelectionStartIndex;
       const endIndex = this.shiftSelectionEndIndex;
@@ -495,6 +567,8 @@ export class DataTable extends ReactiveElement {
           this.shiftSpanAnchor = SpanAnchor.END;
         }
       }
+
+      this.setPrimarySelectedIndex(rowIndex);
     }
     // Otherwise, simply select/deselect the index.
     else {
@@ -523,21 +597,32 @@ export class DataTable extends ReactiveElement {
 
   /** Logic for handling row hover */
   private handleRowMouseEnter(e: MouseEvent, dataIndex: number) {
-    this.hoveredIndex = dataIndex;
-    if (this.onHover != null) {
-      this.onHover(this.hoveredIndex);
-      return;
-    }
-  }
-  private handleRowMouseLeave(e: MouseEvent, dataIndex: number) {
-    if (dataIndex === this.hoveredIndex) {
-      this.hoveredIndex = null;
+    if (this.hoverTimeoutId != null) {
+      window.clearTimeout(this.hoverTimeoutId);
     }
 
-    if (this.onHover != null) {
-      this.onHover(this.hoveredIndex);
-      return;
+    this.hoverTimeoutId = window.setTimeout(() => {
+      this.hoveredIndex = dataIndex;
+      if (this.onHover != null) {
+        this.onHover(this.hoveredIndex);
+      }
+    }, this.HOVER_TIMEOUT_MS);
+  }
+
+  private handleRowMouseLeave(e: MouseEvent, dataIndex: number) {
+    if (this.hoverTimeoutId != null) {
+      window.clearTimeout(this.hoverTimeoutId);
     }
+
+    this.hoverTimeoutId = window.setTimeout(() => {
+      if (dataIndex === this.hoveredIndex) {
+        this.hoveredIndex = null;
+      }
+
+      if (this.onHover != null) {
+        this.onHover(this.hoveredIndex);
+      }
+    }, this.HOVER_TIMEOUT_MS);
   }
 
   @action
@@ -559,15 +644,18 @@ export class DataTable extends ReactiveElement {
    */
   @computed
   get isDefaultView() {
-    return this.sortName === undefined && this.columnSearchQueries.size === 0;
+    return this.sortName === undefined && this.columnFilterInfo.size === 0;
+  }
+
+  @computed
+  get isFiltered() {
+    return this.columnFilterInfo.size !== 0;
   }
 
   resetView() {
-    this.columnSearchQueries.clear();
+    this.columnFilterInfo.clear();
     this.sortName = undefined;    // reset to input ordering
     this.showColumnMenu = false;  // hide search bar
-    // Reset sticky sort and re-render from input data.
-    this.stickySortedData = null;
     this.requestUpdate();
   }
 
@@ -581,102 +669,163 @@ export class DataTable extends ReactiveElement {
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
     // clang-format off
-    return html`
-      <div class="holder">
-        <table>
-          <thead>
-            ${this.columnHeaders.map(c => this.renderColumnHeader(c))}
-          </thead>
-          <tbody>
-            ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
-          </tbody>
-          <tfoot>
-            ${this.renderFooter()}
-          </tfoot>
-        </table>
-      </div>
-    `;
+    return html`<div class="holder">
+      <table class=${classMap({'has-footer': this.hasFooter})}>
+        <thead>
+          ${this.columnHeaders.map((c, i) =>
+              this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
+        </thead>
+        <tbody>
+          ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}
+          ${this.hasFooter ? this.fillerRows : null}
+        </tbody>
+        <tfoot>
+          ${this.renderFooter()}
+        </tfoot>
+      </table>
+    </div>`;
     // clang-format on
   }
 
-  renderFooter() {
-    if (!this.hasFooter) {
-      return null;
-    }
-    const pageDisplayNum = this.pageNum + 1;
+  renderPaginationControls() {
     // Use this modulo function so that if pageNum is negative (when
     // decrementing pages), the modulo returns the expected positive value.
     const modPageNumber = (pageNum: number) => {
       return ((pageNum % this.totalPages) + this.totalPages) % this.totalPages;
     };
-    const nextPage = () => {
-      const newPageNum = modPageNumber(this.pageNum + 1);
-      this.pageNum = newPageNum;
-    };
-    const prevPage = () => {
-      const newPageNum = modPageNumber(this.pageNum - 1);
-      this.pageNum = newPageNum;
+
+    const changePage = (offset: number) => {
+      this.pageNum = modPageNumber(this.pageNum + offset);
     };
     const firstPage = () => {
       this.pageNum = 0;
     };
+    const lastPage = () => {
+      this.pageNum = this.totalPages - 1;
+    };
+    const randomPage = () => {
+      this.pageNum = randInt(0, this.totalPages);
+    };
+
     const firstPageButtonClasses = {
       'icon-button': true,
       'disabled': this.pageNum === 0
     };
-    const lastPage = () => {
-      this.pageNum = this.totalPages - 1;
-    };
     const lastPageButtonClasses = {
       'icon-button': true,
-      'disabled': this.pageNum === this.totalPages - 1
+      'disabled': this.pageNum === (this.totalPages - 1)
     };
-    const randomPage = () => {
-      const newPageNum = randInt(0, this.totalPages);
-      this.pageNum = newPageNum;
+
+    // clang-format off
+    return html`
+      <mwc-icon class=${classMap(firstPageButtonClasses)}
+        @click=${firstPage}>
+        first_page
+      </mwc-icon>
+      <mwc-icon class='icon-button'
+        @click=${() => {changePage(-1);}}>
+        chevron_left
+      </mwc-icon>
+      <div>
+       Page
+       <span class="current-page-num">${this.pageNum + 1}</span>
+       of ${this.totalPages}
+      </div>
+      <mwc-icon class='icon-button'
+         @click=${() => {changePage(1);}}>
+        chevron_right
+      </mwc-icon>
+      <mwc-icon class=${classMap(lastPageButtonClasses)}
+        @click=${lastPage}>
+        last_page
+      </mwc-icon>
+      <mwc-icon class='icon-button mdi-outlined'
+        title="Go to a random page" @click=${randomPage}>
+        casino
+      </mwc-icon>
+    `;
+    // clang-format on
+  }
+
+  renderExportControls() {
+    const copyCSV = () => {
+      const csvContent = this.getCSVContent();
+      navigator.clipboard.writeText(csvContent);
     };
+
+    const downloadCSV = () => {
+      const csvContent = this.getCSVContent();
+      const blob = new Blob([csvContent], {type: 'text/csv'});
+      const a = window.document.createElement('a');
+      a.href = window.URL.createObjectURL(blob);
+      a.download = this.downloadFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      const controls: PopupContainer =
+          this.shadowRoot!.querySelector('popup-container.download-popup')!;
+      controls.expanded = false;
+    };
+
+    const updateFilename = (e: Event) => {
+      // tslint:disable-next-line:no-any
+      this.downloadFilename = (e as any).target.value as string;
+    };
+
+    function onEnter(e: KeyboardEvent) {
+      if (e.key === 'Enter') downloadCSV();
+    }
+
+    // clang-format off
+    return html`
+      <mwc-icon class='icon-button'
+        title="Copy ${this.displayData.length} rows as CSV"
+        @click=${copyCSV}>
+        file_copy
+      </mwc-icon>
+      <popup-container class='download-popup'>
+        <mwc-icon class='icon-button' slot='toggle-anchor'
+          title="Download ${this.displayData.length} rows as CSV">
+          file_download
+        </mwc-icon>
+        <div class='download-popup-controls'>
+          <label for="filename">Filename</label>
+          <input type="text" name="filename" value=${this.downloadFilename}
+           @input=${updateFilename} @keydown=${onEnter}>
+          <button class='filled-button nowrap' @click=${downloadCSV}
+            ?disabled=${!this.downloadFilename}>
+            Download ${this.displayData.length} rows
+          </button>
+        </div>
+      </popup-container>
+    `;
+    // clang-format on
+  }
+
+  renderFooter() {
+    if (!this.hasFooter) return null;
+
     // clang-format off
     return html`
       <tr>
         <td colspan=${this.columnNames.length}>
           <div class="footer">
-            <mwc-icon class=${classMap(firstPageButtonClasses)}
-              @click=${firstPage}>
-              first_page
-            </mwc-icon>
-            <mwc-icon class='icon-button'
-              @click=${prevPage}>
-              chevron_left
-            </mwc-icon>
-            <div>
-             Page
-             <span class="current-page-num">${pageDisplayNum}</span>
-             of ${this.totalPages}
-            </div>
-            <mwc-icon class='icon-button'
-               @click=${nextPage}>
-              chevron_right
-            </mwc-icon>
-            <mwc-icon class=${classMap(lastPageButtonClasses)}
-              @click=${lastPage}>
-              last_page
-            </mwc-icon>
-            <mwc-icon class='icon-button mdi-outlined button-extra-margin'
-              @click=${randomPage}>
-              casino
-            </mwc-icon>
+            ${this.isPaginated ? this.renderPaginationControls() : null}
+            <div class='footer-spacer'></div>
+            ${this.exportEnabled ? this.renderExportControls() : null}
           </div>
         </td>
       </tr>`;
     // clang-format on
   }
 
-  renderColumnHeader(header: ColumnHeader) {
-    const title = header.name;
+  private columnNameToId(name: string) {
+    return name.replace(/\s+/g, '');
+  }
 
-    const handleBackgroundClick = (e: Event) => {
-      this.resetView();
-    };
+  renderColumnHeader(header: ColumnHeader, isRightmostHeader: boolean) {
+    const title = header.name;
+    const headerId = this.columnNameToId(title);
 
     const toggleSort = (e: Event) => {
       e.stopPropagation();
@@ -697,25 +846,13 @@ export class DataTable extends ReactiveElement {
       }
     };
 
-    const searchText = this.columnSearchQueries.get(title) ?? '';
-
     const isSearchActive = () => {
-      const searchString = this.columnSearchQueries.get(title);
-      if (searchString ||
-          (this.showColumnMenu && this.columnMenuName === title)) {
-        return true;
-      }
-      return false;
+      const searchValues = this.columnFilterInfo.get(title)?.values;
+      const hasSearchValues =
+          searchValues && searchValues.length > 0 && searchValues[0].length > 0;
+      const {showColumnMenu, columnMenuName} = this;
+      return hasSearchValues || (showColumnMenu && columnMenuName === title);
     };
-
-    const searchMenuStyle = styleMap({
-      'visibility':
-          (this.showColumnMenu && this.columnMenuName === title ? 'visible' :
-                                                                  'hidden'),
-    });
-
-    const menuButtonStyle =
-        styleMap({'outline': (isSearchActive() ? 'auto' : 'none')});
 
     const handleMenuButton = (e: Event) => {
       e.stopPropagation();
@@ -728,15 +865,13 @@ export class DataTable extends ReactiveElement {
       // Focus cursor on newly-shown input box.
       if (this.showColumnMenu) {
         window.requestAnimationFrame(() => {
-          const inputElem = this.shadowRoot!.querySelector(`th#${title} .togglable-menu-holder input`) as HTMLElement;
-          inputElem.focus();
+          const inputElem = this.shadowRoot!.querySelector(
+              `th#${headerId} .togglable-menu-holder input`) as HTMLElement;
+          if (inputElem != null) {
+            inputElem.focus();
+          }
         });
       }
-    };
-
-    const handleSearchChange = (e: KeyboardEvent) => {
-      this.columnSearchQueries.set(
-          title, (e.target as HTMLInputElement)?.value || '');
     };
 
     const isUpActive = this.sortName === title && this.sortAscending;
@@ -744,47 +879,135 @@ export class DataTable extends ReactiveElement {
     const isDownActive = this.sortName === title && !this.sortAscending;
     const isDownInactive = this.sortName === title && this.sortAscending;
 
+    const arrowStyle =
+        styleMap((isDownActive || isUpActive) ? {'display': 'block'} : {});
+    const menuButtonStyle = styleMap(isSearchActive() ?
+        {'display': 'block', 'outline': 'auto'} : {});
+
     const upArrowClasses = classMap({
-      arrow: true,
-      up: true,
-      active: isUpActive,
-      inactive: isUpInactive,
+      'arrow': true,
+      'up': true,
+      'active': isUpActive,
+      'inactive': isUpInactive,
     });
     const downArrowClasses = classMap({
-      arrow: true,
-      down: true,
-      active: isDownActive,
-      inactive: isDownInactive,
+      'arrow': true,
+      'down': true,
+      'active': isDownActive,
+      'inactive': isDownInactive,
     });
     const headerClasses =
         classMap({'column-header': true, 'right-align': header.rightAlign!});
 
     // clang-format off
     return html`
-        <th id=${title} @click=${handleBackgroundClick}>
+        <th id=${headerId}>
           <div class=${headerClasses} title=${title}>
             <div class="header-holder">
               <div @click=${toggleSort}>${header.html!}</div>
               ${this.searchEnabled ? html`
                 <div class="menu-button-container">
                   <mwc-icon class="menu-button" style=${menuButtonStyle}
-                   @click=${handleMenuButton}>search</mwc-icon>
+                   title="Filter" @click=${handleMenuButton}>
+                   filter_alt
+                  </mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}>
-                <mwc-icon class=${upArrowClasses}>arrow_drop_up</mwc-icon>
-                <mwc-icon class=${downArrowClasses}>arrow_drop_down</mwc-icon>
+                <mwc-icon class=${upArrowClasses} style=${arrowStyle}
+                  title="Sort (ascending)">
+                  arrow_drop_up
+                </mwc-icon>
+                <mwc-icon class=${downArrowClasses} style=${arrowStyle}
+                  title="Sort (descending)">
+                  arrow_drop_down
+                </mwc-icon>
               </div>
             </div>
           </div>
-          ${this.searchEnabled ? html`
-            <div class='togglable-menu-holder' style=${searchMenuStyle}>
-                <input type="search" class='search-input'
-                .value=${searchText}
-                placeholder="Search" @input=${handleSearchChange}/>
-            </div>` : null}
+          ${this.searchEnabled ?
+              this.renderSearch(header, isRightmostHeader) : null}
         </th>
       `;
     // clang-format on
+  }
+
+  renderSearch(header: ColumnHeader, isRightmostHeader: boolean) {
+    const searchMenuStyle = styleMap({
+      'display': (
+          this.showColumnMenu && this.columnMenuName === header.name ? 'block' :
+                                                                       'none'),
+    });
+    const searchMenuClasses = classMap({
+      'togglable-menu-holder': true,
+      'checkbox-holder': header.vocab != null,
+      'right-aligned-search': isRightmostHeader
+    });
+
+    if (header.vocab == null) {
+      // If the column has no vocab, then set filter through a free-Text
+      // field with different behavior for string columns vs numeric columns.
+      const handleSearchChange = (e: KeyboardEvent) => {
+        const searchQuery = (e.target as HTMLInputElement)?.value || '';
+        function fn(col: SortableTableEntry) {
+          if (typeof col === 'string') {
+            // String columns use a reg ex search.
+            return col.search(new RegExp(searchQuery)) !== -1;
+          } else if (typeof col === 'number') {
+            // Numeric columns use a range-based search.
+            const matchFn = numberRangeFnFromString(searchQuery);
+            return matchFn(col);
+          } else {
+            return false;
+          }
+        }
+        this.columnFilterInfo.set(header.name, {fn, values: [searchQuery]});
+      };
+
+      const searchText = this.columnFilterInfo.has(header.name) ?
+          this.columnFilterInfo.get(header.name)!.values[0] :
+          '';
+
+      return html`
+        <div class=${searchMenuClasses} style=${searchMenuStyle}>
+            <input type="search" class='search-input'
+            .value=${searchText}
+            placeholder="Filter" @input=${handleSearchChange}/>
+        </div>`;  // clang-format off
+    } else {
+      // For columns with vocabs, use a set of checkboxes, one per each vocab
+      // item.
+      return html`
+        <div class=${searchMenuClasses} style=${searchMenuStyle}>
+          ${header.vocab.map(option => {
+            const isChecked = this.columnFilterInfo.get(
+              header.name)?.values.includes(option) || false;
+            // tslint:disable-next-line:no-any
+            const handleCheck = (e: any) => {
+              let list = this.columnFilterInfo.get(header.name)?.values || [];
+              if (e.target.checked) {
+                list.push(option);
+              } else {
+                list = list.filter(name => name !== option);
+              }
+
+              const fn = (col: SortableTableEntry) => {
+                const checkedItems = this.columnFilterInfo.get(
+                  header.name)?.values || [];
+                // If no items are checked, do not filter the column.
+                if (checkedItems.length === 0) {
+                  return true;
+                }
+                // If any items are checked, only show the items that match
+                // one of the checked vocab values.
+                return checkedItems.includes(col.toString());
+              };
+              this.columnFilterInfo.set(header.name, {fn, values: list});
+            };
+            return html`<lit-checkbox label=${option} ?checked=${isChecked}
+                @change=${handleCheck}></lit-checkbox>`;
+        })}
+        </div>`;  // clang-format off
+    }
   }
 
   renderRow(data: TableRowInternal, rowIndex: number) {
@@ -795,13 +1018,15 @@ export class DataTable extends ReactiveElement {
     const isPrimarySelection = this.primarySelectedIndex === dataIndex;
     const isReferenceSelection = this.referenceSelectedIndex === dataIndex;
     const isFocused = this.focusedIndex === dataIndex;
+    const isStarred = this.starredIndices.indexOf(dataIndex) !== -1;
     const rowClass = classMap({
+      'lit-data-table-row': true,
       'selected': isSelected,
       'primary-selected': isPrimarySelection,
       'reference-selected': isReferenceSelection,
       'focused': isFocused
     });
-    const mouseDown = (e: MouseEvent) => {
+    const onClick = (e: MouseEvent) => {
       if (!this.selectionEnabled) return;
       this.handleRowClick(e, dataIndex, displayDataIndex);
     };
@@ -812,35 +1037,54 @@ export class DataTable extends ReactiveElement {
       this.handleRowMouseLeave(e, dataIndex);
     };
 
-    const formatCellContents = (d: TableEntry) => {
+    // Prevent text highlighting when using shift+click to select rows.
+    const mouseDown = (e: MouseEvent) => {
+      if (e.shiftKey && this.selectionEnabled) {
+        e.preventDefault();
+      }
+    };
+
+    function formatCellContents(d: TableEntry) {
       if (d == null) return null;
 
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
         return html`<img class='table-img' src=${d.toString()}>`;
       }
-      if (isTemplateResult(d) || d.constructor === Object) {
-        const templateResult =
-            isTemplateResult(d) ? d : (d as SortableTemplateResult).template;
+      if (isTemplateResult(d)) {
+        return d;
+      }
+      if (d.constructor === Object) {
+        let templateResult = null;
+        const t = (d as SortableTemplateResult).template;
+        if (typeof t === 'function') {
+          templateResult = t(
+            isSelected,
+            isPrimarySelection,
+            isReferenceSelection,
+            isFocused,
+            isStarred);
+        } else {
+          templateResult = t;
+        }
         return html`${templateResult}`;
       }
 
-      // Text formatting uses pre-wrap, so be sure that this template doesn't
-      // add any extra whitespace inside the div.
+      // Text formatting uses pre-wrap, so be sure that this template
+      // doesn't add any extra whitespace inside the div.
       // clang-format off
       return html`
           <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
       // clang-format on
-    };
+    }
 
     const cellClasses = this.columnHeaders.map(
         h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
-    const cellStyles = styleMap({
-      verticalAlign: this.verticalAlignMiddle ? 'middle' : 'top'
-    });
+    const cellStyles = styleMap(
+        {'vertical-align': this.verticalAlignMiddle ? 'middle' : 'top'});
     // clang-format off
     return html`
-      <tr class="${rowClass}" @mousedown=${mouseDown} @mouseenter=${mouseEnter}
-        @mouseleave=${mouseLeave}>
+      <tr class="${rowClass}" @click=${onClick} @mouseenter=${mouseEnter}
+        @mouseleave=${mouseLeave} @mousedown=${mouseDown}>
         ${data.rowData.map((d, i) =>
             html`<td style=${cellStyles}><div class=${cellClasses[i]}>${
               formatCellContents(d)

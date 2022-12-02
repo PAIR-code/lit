@@ -16,7 +16,10 @@
  */
 
 import 'jasmine';
-import {LitMetadata} from './types';
+
+import {AttentionHeads, BooleanLitType, CategoryLabel, Embeddings, MulticlassPreds, Scalar, TextSegment, TokenGradients, Tokens} from './lit_types';
+import {LitMetadata, SerializedLitMetadata} from './types';
+import {createLitType} from './utils';
 
 /**
  * Cleans state between tests.
@@ -54,75 +57,178 @@ export const mockMetadata: LitMetadata = {
     'sst_0_micro': {
       'spec': {
         'input': {
-          'passage': {
-            '__class__': 'LitType',
-            '__name__': 'TextSegment',
-            '__mro__': ['TextSegment', 'LitType', 'object'],
-            'required': true
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': false,
-            'parent': 'passage'
-          }
+          'passage': createLitType(TextSegment),
+          'passage_tokens':
+              createLitType(Tokens, {'required': false, 'parent': 'passage'}),
+        },
+        'output': {
+          'probabilities': createLitType(
+              MulticlassPreds,
+              {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
+          'pooled_embs': createLitType(Embeddings),
+          'mean_word_embs': createLitType(Embeddings),
+          'tokens': createLitType(Tokens),
+          'passage_tokens': createLitType(Tokens, {'parent': 'passage'}),
+          'passage_grad':
+              createLitType(TokenGradients, {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType(AttentionHeads, {
+            'align_in': 'tokens',
+            'align_out': 'tokens',
+          }),
+          'layer_1/attention': createLitType(AttentionHeads, {
+            'align_in': 'tokens',
+            'align_out': 'tokens',
+          }),
+        }
+      },
+      'datasets': ['sst_dev'],
+      'generators':
+          ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
+      'interpreters':
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+    },
+    'sst_1_micro': {
+      'spec': {
+        'input': {
+          'passage': createLitType(TextSegment),
+          'passage_tokens':
+              createLitType(Tokens, {'required': false, 'parent': 'passage'}),
+        },
+        'output': {
+          'probabilities': createLitType(
+              MulticlassPreds,
+              {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}),
+          'pooled_embs': createLitType(Embeddings),
+          'mean_word_embs': createLitType(Embeddings),
+          'tokens': createLitType(Tokens),
+          'passage_tokens': createLitType(Tokens, {'parent': 'passage'}),
+          'passage_grad':
+              createLitType(TokenGradients, {'align': 'passage_tokens'}),
+          'layer_0/attention': createLitType(AttentionHeads, {
+            'align_in': 'tokens',
+            'align_out': 'tokens',
+          }),
+          'layer_1/attention': createLitType(AttentionHeads, {
+            'align_in': 'tokens',
+            'align_out': 'tokens',
+          })
+        }
+      },
+      'datasets': ['sst_dev'],
+      'generators':
+          ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
+      'interpreters':
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+    }
+  },
+  'datasets': {
+    'sst_dev': {
+      'size': 872,
+      'spec': {
+        'passage': createLitType(TextSegment),
+        'label': createLitType(CategoryLabel, {'vocab': ['0', '1']}),
+      }
+    },
+    'color_test': {
+      'size': 2,
+      'spec': {
+        'testNumFeat0': createLitType(Scalar),
+        'testNumFeat1': createLitType(Scalar),
+        'testFeat0': createLitType(CategoryLabel, {'vocab': ['0', '1']}),
+        'testFeat1': createLitType(CategoryLabel, {'vocab': ['a', 'b', 'c']})
+      }
+    },
+    'penguin_dev': {
+      'size': 10,
+      'spec': {
+        'body_mass_g': createLitType(Scalar, {
+          'step': 1,
+        }),
+        'culmen_depth_mm': createLitType(Scalar, {
+          'step': 1,
+        }),
+        'culmen_length_mm': createLitType(Scalar, {
+          'step': 1,
+        }),
+        'flipper_length_mm': createLitType(Scalar, {
+          'step': 1,
+        }),
+        'island': createLitType(
+            CategoryLabel, {'vocab': ['Biscoe', 'Dream', 'Torgersen']}),
+        'sex': createLitType(CategoryLabel, {'vocab': ['female', 'male']}),
+        'species': createLitType(
+            CategoryLabel, {'vocab': ['Adelie', 'Chinstrap', 'Gentoo']}),
+        'isAlive': createLitType(BooleanLitType, {'required': false})
+      }
+    }
+  },
+  'generators': {
+    'word_replacer': {
+      'configSpec': {
+        'Substitutions':
+            createLitType(TextSegment, {'default': 'great -> terrible'}),
+      },
+      'metaSpec': {}
+    },
+    'scrambler': emptySpec(),
+    'backtranslation': emptySpec(),
+    'hotflip': emptySpec(),
+  },
+  'interpreters': {
+    'grad_norm': emptySpec(),
+    'grad_sum': emptySpec(),
+    'lime': emptySpec(),
+    'metrics': emptySpec(),
+    'pca': emptySpec(),
+    'umap': emptySpec(),
+  },
+  'layouts': {},
+  'demoMode': false,
+  'defaultLayout': 'default',
+  'canonicalURL': undefined,
+  'syncState': false
+};
+
+/**
+ * Mock serialized metadata describing a set of models, datasets, generators,
+ * and intepretators. Corresponds to the mockMetadata above.
+ */
+export const mockSerializedMetadata: SerializedLitMetadata = {
+  'models': {
+    'sst_0_micro': {
+      'spec': {
+        'input': {
+          'passage': {'__name__': 'TextSegment', 'required': true},
+          'passage_tokens':
+              {'__name__': 'Tokens', 'required': false, 'parent': 'passage'}
         },
         'output': {
           'probabilities': {
-            '__class__': 'LitType',
             '__name__': 'MulticlassPreds',
-            '__mro__': ['MulticlassPreds', 'LitType', 'object'],
             'required': true,
             'vocab': ['0', '1'],
             'null_idx': 0,
             'parent': 'label'
           },
-          'pooled_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'mean_word_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': undefined
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': 'passage'
-          },
+          'pooled_embs': {'__name__': 'Embeddings', 'required': true},
+          'mean_word_embs': {'__name__': 'Embeddings', 'required': true},
+          'tokens':
+              {'__name__': 'Tokens', 'required': true, 'parent': undefined},
+          'passage_tokens':
+              {'__name__': 'Tokens', 'required': true, 'parent': 'passage'},
           'passage_grad': {
-            '__class__': 'LitType',
             '__name__': 'TokenGradients',
-            '__mro__': ['TokenGradients', 'LitType', 'object'],
             'required': true,
             'align': 'passage_tokens'
           },
           'layer_0/attention': {
-            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
           },
           'layer_1/attention': {
-            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
@@ -138,75 +244,37 @@ export const mockMetadata: LitMetadata = {
     'sst_1_micro': {
       'spec': {
         'input': {
-          'passage': {
-            '__class__': 'LitType',
-            '__name__': 'TextSegment',
-            '__mro__': ['TextSegment', 'LitType', 'object'],
-            'required': true
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': false,
-            'parent': 'passage'
-          }
+          'passage': {'__name__': 'TextSegment', 'required': true},
+          'passage_tokens':
+              {'__name__': 'Tokens', 'required': false, 'parent': 'passage'}
         },
         'output': {
           'probabilities': {
-            '__class__': 'LitType',
             '__name__': 'MulticlassPreds',
-            '__mro__': ['MulticlassPreds', 'LitType', 'object'],
             'required': true,
             'vocab': ['0', '1'],
             'null_idx': 0,
             'parent': 'label'
           },
-          'pooled_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'mean_word_embs': {
-            '__class__': 'LitType',
-            '__name__': 'Embeddings',
-            '__mro__': ['Embeddings', 'LitType', 'object'],
-            'required': true
-          },
-          'tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': undefined
-          },
-          'passage_tokens': {
-            '__class__': 'LitType',
-            '__name__': 'Tokens',
-            '__mro__': ['Tokens', 'LitType', 'object'],
-            'required': true,
-            'parent': 'passage'
-          },
+          'pooled_embs': {'__name__': 'Embeddings', 'required': true},
+          'mean_word_embs': {'__name__': 'Embeddings', 'required': true},
+          'tokens':
+              {'__name__': 'Tokens', 'required': true, 'parent': undefined},
+          'passage_tokens':
+              {'__name__': 'Tokens', 'required': true, 'parent': 'passage'},
           'passage_grad': {
-            '__class__': 'LitType',
             '__name__': 'TokenGradients',
-            '__mro__': ['TokenGradients', 'LitType', 'object'],
             'required': true,
             'align': 'passage_tokens'
           },
           'layer_0/attention': {
-            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
           },
           'layer_1/attention': {
-            '__class__': 'LitType',
             '__name__': 'AttentionHeads',
-            '__mro__': ['AttentionHeads', 'LitType', 'object'],
             'required': true,
             'align_in': 'tokens',
             'align_out': 'tokens',
@@ -222,79 +290,54 @@ export const mockMetadata: LitMetadata = {
   },
   'datasets': {
     'sst_dev': {
+      'size': 872,
       'spec': {
-        'passage': {
-          '__class__': 'LitType',
-          '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'LitType', 'object'],
-          'required': true
-        },
-        'label': {
-          '__class__': 'LitType',
+        'passage': {'__name__': 'TextSegment', 'required': true},
+        'label':
+            {'__name__': 'CategoryLabel', 'required': true, 'vocab': ['0', '1']}
+      }
+    },
+    'color_test': {
+      'size': 2,
+      'spec': {
+        'testNumFeat0': {'__name__': 'Scalar', 'required': true},
+        'testNumFeat1': {'__name__': 'Scalar', 'required': true},
+        'testFeat0': {
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
           'required': true,
           'vocab': ['0', '1']
+        },
+        'testFeat1': {
+          '__name__': 'CategoryLabel',
+          'required': true,
+          'vocab': ['a', 'b', 'c']
         }
       }
     },
     'penguin_dev': {
+      'size': 10,
       'spec': {
-        'body_mass_g': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'step': 1,
-          'required': true
-        },
-        'culmen_depth_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'step': 1,
-          'required': true
-        },
-        'culmen_length_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'step': 1,
-          'required': true
-        },
-        'flipper_length_mm': {
-          '__class__': 'LitType',
-          '__name__': 'Scalar',
-          '__mro__': ['Scalar', 'LitType', 'object'],
-          'step': 1,
-          'required': true
-        },
+        'body_mass_g': {'__name__': 'Scalar', 'step': 1, 'required': true},
+        'culmen_depth_mm': {'__name__': 'Scalar', 'step': 1, 'required': true},
+        'culmen_length_mm': {'__name__': 'Scalar', 'step': 1, 'required': true},
+        'flipper_length_mm':
+            {'__name__': 'Scalar', 'step': 1, 'required': true},
         'island': {
-          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
           'required': true,
           'vocab': ['Biscoe', 'Dream', 'Torgersen']
         },
         'sex': {
-          '__class__': 'LitType',
-          '__name__': 'Boolean',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
+          '__name__': 'CategoryLabel',
           'required': true,
           'vocab': ['female', 'male']
         },
         'species': {
-          '__class__': 'LitType',
           '__name__': 'CategoryLabel',
-          '__mro__': ['CategoryLabel', 'LitType', 'object'],
           'required': true,
           'vocab': ['Adelie', 'Chinstrap', 'Gentoo']
         },
-        'isAlive': {
-          '__class__': 'LitType',
-          '__name__': 'Boolean',
-          '__mro__': ['Boolean', 'LitType', 'object'],
-          'required': false
-        }
+        'isAlive': {'__name__': 'BooleanLitType', 'required': false}
       }
     }
   },
@@ -302,9 +345,7 @@ export const mockMetadata: LitMetadata = {
     'word_replacer': {
       'configSpec': {
         'Substitutions': {
-          '__class__': 'LitType',
           '__name__': 'TextSegment',
-          '__mro__': ['TextSegment', 'LitType', 'object'],
           'required': true,
           'default': 'great -> terrible'
         }
@@ -326,5 +367,6 @@ export const mockMetadata: LitMetadata = {
   'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
-  'canonicalURL': undefined
+  'canonicalURL': undefined,
+  'syncState': false
 };

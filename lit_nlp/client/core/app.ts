@@ -17,18 +17,17 @@
 
 // Import Services
 // Import and add injection functionality to LitModule
-import {reaction} from 'mobx';
+import {autorun, toJS} from 'mobx';
 
-import {Constructor, LitComponentLayouts} from '../lib/types';
-
+import {Constructor} from '../lib/types';
 import {ApiService} from '../services/api_service';
 import {ClassificationService} from '../services/classification_service';
 import {ColorService} from '../services/color_service';
+import {DataService} from '../services/data_service';
 import {FocusService} from '../services/focus_service';
 import {GroupService} from '../services/group_service';
 import {LitService} from '../services/lit_service';
 import {ModulesService} from '../services/modules_service';
-import {RegressionService} from '../services/regression_service';
 import {SelectionService} from '../services/selection_service';
 import {SettingsService} from '../services/settings_service';
 import {SliceService} from '../services/slice_service';
@@ -49,50 +48,75 @@ export class LitApp {
    * Begins loading data from the LIT server, and computes the layout that
    * the `modules` component will use to render.
    */
-  async initialize(layouts: LitComponentLayouts) {
+  async initialize() {
+    const apiService = this.getService(ApiService);
     const appState = this.getService(AppState);
     const modulesService = this.getService(ModulesService);
-    appState.addLayouts(layouts);
+    const [selectionService, pinnedSelectionService] =
+        this.getServiceArray(SelectionService);
+    const urlService = this.getService(UrlService);
+    const colorService = this.getService(ColorService);
 
-    await appState.initialize();
+    // Load the app metadata before any further initialization
+    appState.metadata = await apiService.getInfo();
+    console.log('[LIT - metadata]', toJS(appState.metadata));
+
+    // Update page title based on metadata
     if (appState.metadata.pageTitle) {
-      document.querySelector('html head title')!.textContent = appState.metadata.pageTitle;
+      document.querySelector('html head title')!.textContent =
+          appState.metadata.pageTitle;
     }
+
+    // Sync app state based on URL search params
+    urlService.syncStateToUrl(appState, modulesService, selectionService,
+        pinnedSelectionService, colorService);
+
+    // Initialize the rest of the app state
+    await appState.initialize();
+
+    // Initilize the module layout
     modulesService.initializeLayout(
         appState.layout, appState.currentModelSpecs,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
-    // Select the initial datapoint, if one was set in the url.
-    const selectionServices = this.getServiceArray(SelectionService);
-    await this.getService(UrlService).syncSelectedDatapointToUrl(appState, selectionServices[0]);
+    // Select the initial datapoint, if one was set in the URL.
+    await urlService.syncSelectedDatapointToUrl(appState, selectionService);
 
-    //  Reaction to sync other selection services to selections of the main one.
-    reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
-      this.syncSelectionServices();
-    }, {fireImmediately: true});
+    // Enabling comparison mode if a datapoint has been pinned
+    if (pinnedSelectionService.primarySelectedId) {
+      appState.compareExamplesEnabled = true;
+    }
+
+    // If enabled, set up state syncing back to Python.
+    if (appState.metadata.syncState) {
+      autorun(() => {
+        apiService.pushState(
+            selectionService.selectedInputData, appState.currentDataset, {
+              'primary_id': selectionService.primarySelectedId,
+              'pinned_id': pinnedSelectionService.primarySelectedId,
+            });
+      });
+    }
   }
 
   private readonly services =
       new Map<Constructor<LitService>, LitService|LitService[]>();
 
-  /** Sync selection services */
-  syncSelectionServices() {
-    const selectionServices = this.getServiceArray(SelectionService);
-    // TODO(lit-dev): can we just copy the object instead, and skip this
-    // logic?
-    selectionServices[1].syncFrom(selectionServices[0]);
-  }
-
   /** Simple DI service system */
-  getService<T extends LitService>(t: Constructor<T>): T {
+  getService<T extends LitService>(t: Constructor<T>, instance?: string): T {
     let service = this.services.get(t);
     /**
      * Modules that don't support example comparison will always get index
      * 0 of selectionService. This way we do not have to edit any module that
-     * does not explicitly support cloning
+     * does not explicitly support cloning. For modules that support comparison,
+     * if the `pinned` instance is specified then return the appropriate
+     * instance.
      */
     if (Array.isArray(service)) {
-      service = service[0];
+      if (instance != null && instance !== 'pinned') {
+        throw new Error(`Invalid service instance name: ${instance}`);
+      }
+      service = service[instance === 'pinned' ? 1 : 0];
     }
     if (service === undefined) {
       throw new Error(`Service is undefined: ${t.name}`);
@@ -122,34 +146,32 @@ export class LitApp {
     const statusService = new StatusService();
     const apiService = new ApiService(statusService);
     const modulesService = new ModulesService();
-    const urlService = new UrlService();
+    const urlService = new UrlService(apiService);
     const appState = new AppState(apiService, statusService);
-    const selectionService0 = new SelectionService(appState);
-    const selectionService1 = new SelectionService(appState);
-    const sliceService = new SliceService(selectionService0, appState);
-    const regressionService = new RegressionService(apiService, appState);
+    const selectionService = new SelectionService(appState);
+    const pinnedSelectionService = new SelectionService(appState);
+    const sliceService = new SliceService(selectionService, appState);
     const settingsService =
-        new SettingsService(appState, modulesService, selectionService0);
-    const groupService = new GroupService(appState);
-    const classificationService =
-        new ClassificationService(apiService, appState, groupService);
-    const colorService = new ColorService(
-        appState, groupService, classificationService, regressionService);
-    const focusService = new FocusService(selectionService0);
-
-    // Initialize url syncing of state
-    urlService.syncStateToUrl(appState, selectionService0, modulesService);
+        new SettingsService(appState, modulesService, selectionService);
+    const classificationService = new ClassificationService(appState);
+    const dataService = new DataService(
+        appState, classificationService, apiService, settingsService);
+    const groupService = new GroupService(appState, dataService);
+    const colorService = new ColorService(groupService, dataService);
+    const focusService = new FocusService(selectionService);
 
     // Populate the internal services map for dependency injection
     this.services.set(ApiService, apiService);
     this.services.set(AppState, appState);
     this.services.set(ClassificationService, classificationService);
     this.services.set(ColorService, colorService);
+    this.services.set(DataService, dataService);
     this.services.set(FocusService, focusService);
     this.services.set(GroupService, groupService);
     this.services.set(ModulesService, modulesService);
-    this.services.set(RegressionService, regressionService);
-    this.services.set(SelectionService, [selectionService0, selectionService1]);
+    this.services.set(SelectionService, [
+      selectionService, pinnedSelectionService
+    ]);
     this.services.set(SettingsService, settingsService);
     this.services.set(SliceService, sliceService);
     this.services.set(StatusService, statusService);

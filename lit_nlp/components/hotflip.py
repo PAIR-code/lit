@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """HotFlip generator that perturbs input tokens to flip the prediction.
 
 A HotFlip is defined as a counterfactual input that alters one or more
@@ -36,7 +35,7 @@ This generator extends ideas from the following papers.
 
 import copy
 import itertools
-from typing import Iterator, List, Optional, Text, Tuple, Type
+from typing import cast, Iterator, Optional, Type
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -51,16 +50,16 @@ JsonDict = types.JsonDict
 Spec = types.Spec
 
 PREDICTION_KEY = "Prediction key"
-NUM_EXAMPLES_KEY = "Number of examples"
+NUM_EXAMPLES_KEY = "Max number of counterfactuals to generate"
 NUM_EXAMPLES_DEFAULT = 5
-MAX_FLIPS_KEY = "Maximum number of token flips"
+MAX_FLIPS_KEY = "Max number of token flips"
 MAX_FLIPS_DEFAULT = 3
-TOKENS_TO_IGNORE_KEY = "Tokens to freeze"
+TOKENS_TO_IGNORE_KEY = "Comma-separated list of tokens to never flip"
 TOKENS_TO_IGNORE_DEFAULT = []
 REGRESSION_THRESH_KEY = "Regression threshold"
 REGRESSION_THRESH_DEFAULT = 0.0
 MAX_FLIPPABLE_TOKENS = 10
-FIELDS_TO_HOTFLIP_KEY = "Fields to hotflip"
+FIELDS_TO_HOTFLIP_KEY = "Fields to flip tokens in"
 
 
 class HotFlip(lit_components.Generator):
@@ -81,9 +80,52 @@ class HotFlip(lit_components.Generator):
   prediction flip.
   """
 
-  def find_fields(
-      self, spec: Spec, typ: Type[types.LitType],
-      align_field: Optional[Text] = None) -> List[Text]:
+  def description(self) -> str:
+    # TODO(lit-dev): Find way to have newlines in the string and have it be
+    # displayed correctly on the front-end.
+    return """Uses token-wise gradients to find minimal tokens changes that
+      cause the model to return a different prediction.\n\nIn the
+      case of classification models, the returned counterfactuals are guaranteed
+      to have a different prediction class as the original example. In the case
+      of regression models, the returned counterfactuals are guaranteed to be on
+      the opposite side of a user-provided threshold as the original example.
+      \n\nCan fail to produce counterfactuals if there is no set of token
+      changes within the scope of the configuration options that cause
+      significant model prediction changes.
+    """
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    """Returns true if the given model is compatible with HotFlip."""
+    del dataset  # Unused by HotFlip
+    get_embedding_table = getattr(model, "get_embedding_table", None)
+    if not callable(get_embedding_table):
+      return False
+    try:
+      table = get_embedding_table()
+      if not isinstance(table, tuple): return False
+      vocab, embs_dims = table
+      if not isinstance(vocab, list): return False
+      if not isinstance(embs_dims, np.ndarray): return False
+      # TODO(lit-dev): Further validate the shape of the embeddings table?
+    except NotImplementedError:
+      return False
+
+    input_spec = model.input_spec()
+    output_spec = model.output_spec()
+
+    for grad_key in utils.find_spec_keys(output_spec, types.TokenGradients):
+      grad_field = cast(types.TokenGradients, output_spec.get(grad_key))
+      aligned_field: Optional[types.LitType] = input_spec.get(grad_field.align)
+      if isinstance(aligned_field, types.Tokens):
+        return True
+
+    return False
+
+  def find_fields(self,
+                  spec: Spec,
+                  typ: Type[types.LitType],
+                  align_field: Optional[str] = None) -> list[str]:
     # Find fields of provided 'typ'.
     fields = utils.find_spec_keys(spec, typ)
 
@@ -95,11 +137,9 @@ class HotFlip(lit_components.Generator):
     return [f for f in fields
             if getattr(spec[f], "align", None) == align_field]
 
-  def _get_tokens_and_gradients(self,
-                                input_spec: JsonDict,
-                                output_spec: JsonDict,
-                                output: JsonDict,
-                                selected_fields: List[str]):
+  def _get_tokens_and_gradients(self, input_spec: JsonDict,
+                                output_spec: JsonDict, output: JsonDict,
+                                selected_fields: list[str]):
     """Returns a dictionary mapping token fields to tokens and gradients."""
     # Find selected token fields.
     input_spec_keys = set(utils.find_spec_keys(input_spec, types.Tokens))
@@ -129,19 +169,20 @@ class HotFlip(lit_components.Generator):
 
   def config_spec(self) -> types.Spec:
     return {
-        NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
-        MAX_FLIPS_KEY: types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
-        TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
-        PREDICTION_KEY: types.FieldMatcher(spec="output",
-                                           types=["MulticlassPreds",
-                                                  "RegressionScore"]),
-        REGRESSION_THRESH_KEY: types.TextSegment(
-            default=str(REGRESSION_THRESH_DEFAULT)),
+        NUM_EXAMPLES_KEY:
+            types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
+        MAX_FLIPS_KEY:
+            types.TextSegment(default=str(MAX_FLIPS_DEFAULT)),
+        TOKENS_TO_IGNORE_KEY:
+            types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
+        PREDICTION_KEY:
+            types.SingleFieldMatcher(
+                spec="output", types=["MulticlassPreds", "RegressionScore"]),
+        REGRESSION_THRESH_KEY:
+            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
         FIELDS_TO_HOTFLIP_KEY:
             types.MultiFieldMatcher(
-                spec="input",
-                types=["Tokens"],
-                select_all=True),
+                spec="input", types=["Tokens"], select_all=True),
     }
 
   def _subset_exists(self, cand_set, sets):
@@ -152,11 +193,8 @@ class HotFlip(lit_components.Generator):
     return False
 
   def _gen_token_idxs_to_flip(
-      self,
-      tokens: List[str],
-      token_grads: np.ndarray,
-      max_flips: int,
-      tokens_to_ignore: List[str]) -> Iterator[Tuple[int, ...]]:
+      self, tokens: list[str], token_grads: np.ndarray, max_flips: int,
+      tokens_to_ignore: list[str]) -> Iterator[tuple[int, ...]]:
     """Generates sets of token positions that are eligible for flipping."""
     # Consider all combinations of tokens upto length max_flips.
     # We will iterate through this list (sortted by cardinality) and at each
@@ -180,22 +218,16 @@ class HotFlip(lit_components.Generator):
       for s in itertools.combinations(token_idxs_to_flip, i+1):
         yield s
 
-  def _flip_tokens(self,
-                   tokens: List[str],
-                   token_idxs: Tuple[int, ...],
-                   replacement_tokens: List[str]) -> List[str]:
+  def _flip_tokens(self, tokens: list[str], token_idxs: tuple[int, ...],
+                   replacement_tokens: list[str]) -> list[str]:
     """Perturbs tokens at the indices specified in 'token_idxs'."""
     modified_tokens = [replacement_tokens[j] if j in token_idxs else t
                        for j, t in enumerate(tokens)]
     return modified_tokens
 
-  def _create_cf(self,
-                 example: JsonDict,
-                 token_field: str,
-                 text_field: str,
-                 tokens: List[str],
-                 token_idxs: Tuple[int, ...],
-                 replacement_tokens: List[str]) -> JsonDict:
+  def _create_cf(self, example: JsonDict, token_field: str, text_field: str,
+                 tokens: list[str], token_idxs: tuple[int, ...],
+                 replacement_tokens: list[str]) -> JsonDict:
     cf = copy.deepcopy(example)
     modified_tokens = self._flip_tokens(
         tokens, token_idxs, replacement_tokens)
@@ -207,13 +239,12 @@ class HotFlip(lit_components.Generator):
     cf[text_field] = " ".join(modified_tokens)
     return cf
 
-  def _get_replacement_tokens(
-      self,
-      embedding_matrix: np.ndarray,
-      inv_vocab: List[Text],
-      token_grads: np.ndarray,
-      orig_output: JsonDict,
-      direction: int = -1) -> List[str]:
+  def _get_replacement_tokens(self,
+                              embedding_matrix: np.ndarray,
+                              inv_vocab: list[str],
+                              token_grads: np.ndarray,
+                              orig_output: JsonDict,
+                              direction: int = -1) -> list[str]:
     """Identifies replacement tokens for each token position."""
     token_grads = token_grads * direction
     # Compute dot product of each input token gradient with the embedding
@@ -231,7 +262,7 @@ class HotFlip(lit_components.Generator):
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Identify minimal sets of token flips that alter the prediction."""
     del dataset  # Unused.
 

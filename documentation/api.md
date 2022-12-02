@@ -1,17 +1,17 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-16' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## Design Overview
 
-LIT is a modular system, consisting of a collection of backend components
-(written in Python) and frontend modules (written in TypeScript). Most users
-will develop against the Python API, which is documented below and allows LIT to
-be extended with custom models, datasets, metrics, counterfactual generators,
-and more. The LIT server and components are provided as a library which users
-can use through their own demo binaries or via Colab.
+LIT is a modular system, comprising a collection of backend components (written
+in Python) and frontend modules (written in TypeScript). Most users will develop
+against the Python API, which is documented below and allows LIT to be extended
+with custom models, datasets, metrics, counterfactual generators, and more. The
+LIT server and components are provided as a library which users can use through
+their own demo binaries or via Colab.
 
 The components can also be used as regular Python classes without starting a
 server; see [below](#using-components-outside-lit) for details.
@@ -26,15 +26,15 @@ simplifies component design and allows interactive use of large models like BERT
 or T5.
 
 The frontend is a stateful single-page app, built using
-[lit-element](https://lit-element.polymer-project.org/)[^1] for modularity and
-[MobX](https://mobx.js.org/) for state management. It consists of a core UI
-framework, a set of shared "services" which manage persistent state, and a set
-of independent modules which render visualizations and support user interaction.
-For more details, see the [UI guide](./ui_guide.md) and the
+[Lit](https://lit.dev/)[^1] for modularity and [MobX](https://mobx.js.org/) for
+state management. It consists of a core UI framework, a set of shared "services"
+which manage persistent state, and a set of independent modules which render
+visualizations and support user interaction. For more details, see the
+[UI guide](./ui_guide.md) and the 
 [frontend developer guide](./frontend_development.md).
 
-[^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
-    not related to the lit-html or lit-element projects.
+[^1]: Naming is just a happy coincidence; the Learning Interpretability Tool is
+      not related to the Lit projects.
 
 ## Adding Models and Data
 
@@ -69,6 +69,24 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 
 For pre-built `demo.py` examples, check out
 https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples
+
+### Validating Models and Data
+
+Datasets and models can optionally be validated by LIT to ensure that dataset
+examples match their spec and that model output values match their spec.
+This can be very helpful during development of new model and dataset wrappers
+to ensure correct behavior in LIT.
+
+At LIT server startup, the `validate` flag can be used to enable validation.
+There are three modes:
+
+*   `--validate=first` will check the first example in each dataset.
+*   `--validate=sample` will validate a sample of 5% of each dataset.
+*   `--validate=all` will run validation on all examples from all datasets.
+
+Additionally, if using LIT datasets and models outside of the LIT server,
+validation can be called directly through the
+[`validation`](../lit_nlp/lib/validation.py) module.
 
 ## Datasets
 
@@ -282,7 +300,7 @@ You can also implement multi-headed models this way: simply add additional
 output fields for each prediction (such as another `MulticlassPreds`), and
 they'll be automatically detected.
 
-See the [type system documentation](#type-system) for more details on avaible
+See the [type system documentation](#type-system) for more details on available
 types and their semantics.
 
 ### Optional inputs
@@ -312,6 +330,55 @@ use these and bypass the tokenizer:
 `required=False` can also be used for label fields (such as `"label":
 lit_types.CategoryLabel(required=False)`), though these can also be omitted from
 the input spec entirely if they are not needed to compute model outputs.
+
+## UI Layouts
+
+You can also specify one or more custom layouts for the frontend UI. To do this,
+pass a dict of `LitCanonicalLayout` objects in `layouts=` when initializing the
+server. These objects represent a tabbed layout of modules, such as:
+
+```python
+LM_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ]
+    },
+    lower={
+        "Predictions": [
+            modules.LanguageModelPredictionModule,
+            modules.ConfusionMatrixModule,
+        ],
+        "Counterfactuals": [modules.GeneratorModule],
+    },
+    description="Custom layout for language models.",
+)
+```
+
+You can pass this to the server as:
+
+```python
+lit_demo = dev_server.Server(
+    models,
+    datasets,
+    # other args...
+    layouts={"lm": LM_LAYOUT},
+    **server_flags.get_flags())
+return lit_demo.serve()
+```
+
+For a full example, see
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py) You
+can see the default layouts as well as the list of available modules in
+[`layout.py`](../lit_nlp/api/layout.py).
+
+To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
+or "default" or the name of a custom layout defined in Python) as a server flag
+when initializing LIT (`--default_layout=<layout>`). Commonly, this is done
+using `FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
+also be set on-the-fly the `layout=` URL param, which will take precedence.
 
 ## Interpretation Components
 
@@ -441,8 +508,8 @@ on the unpacked values.
 ### Generators
 
 Conceptually, a generator is just an interpreter that returns new input
-examples. These may depend on the input only, as for techniques such as
-backtranslation, or can involve feedback from the model, such as for adversarial
+examples. These may depend on the input only, as for techniques such as back-
+translation, or can involve feedback from the model, such as for adversarial
 attacks.
 
 The core generator API is:
@@ -472,7 +539,7 @@ class Generator(Interpreter):
 Where the output is a list of lists: a set of generated examples for each input.
 For convenience, there is also a `generate()` method which takes a single
 example and returns a single list; we provide the more general `generate_all()`
-API to support model-based generators (such as backtranslation) which benefit
+API to support model-based generators (such as back-translation) which benefit
 from batched requests.
 
 As with other interpreter components, a generator can take custom arguments
@@ -496,7 +563,7 @@ backtranlator generator if you pass it as a generator in the Server constructor.
 
 Interpreter components support an optional `config` option to specify run-time
 options, such as the number of samples for LIME or the pivot languages for
-backtranslation. LIT provides a simple DSL to define these options, which will
+back-translation. LIT provides a simple DSL to define these options, which will
 auto-generate a form on the frontend. The DSL uses the same
 [type system](#type-system) as used to define data and model outputs, and the
 `config` argument will be passed a dict with the form values.
@@ -514,9 +581,9 @@ For example, the following spec:
     }
 ```
 
-will give this form to configure backtranslation:
+will give this form to configure back-translation:
 
-![Backtranslation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Back-translation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
 Currently `config_spec()` is supported only for generators and salience methods,
 though any component can support the `config` argument to its `run()` method,
@@ -525,11 +592,12 @@ which can be useful if
 
 The following [types](#available-types) are supported (see
 [interpreter_controls.ts](../lit_nlp/client/elements/interpreter_controls.ts)):
+
 *   `Scalar`, which creates a slider for setting a numeric option. You can
     specify the `min_val`, `max_val`, `default`, and `step`, values for the
     slider through arguments to the `Scalar` constructor.
-*   `Boolean`, which creates a checkbox, with a `default` value to be set in
-    the constructor.
+*   `Boolean` (`BooleanLitType` in TypeScript), which creates a checkbox, with
+    a `default` value to be set in the constructor.
 *   `CategoryLabel`, which creates a dropdown with options specified in the
     `vocab` argument.
 *   `SparseMultilabel`, which creates a series of checkboxes for each option
@@ -539,13 +607,14 @@ The following [types](#available-types) are supported (see
 *   `Tokens`, which creates an input text box for entry of multiple,
     comma-separated strings which are parsed into a list of strings to be
     supplied to the interpreter.
-*   `FieldMatcher`, which acts like a `CategoryLabel` but where the vocab is
-    automatically populated by the names of fields from the data or model spec.
-    For example, `FieldMatcher(spec='dataset', types=['TextSegment'])` will give
-    a dropdown with the names of all `TextSegment` fields in the dataset.
-*   `MultiFieldMatcher` is similar to `FieldMatcher` except it gives a set of
-    checkboxes to select one or more matching field names. The returned value in
-    `config` will be a list of string values.
+*   `SingleFieldMatcher`, which acts like a `CategoryLabel` but where the vocab
+    is automatically populated by the names of fields from the data or model
+    spec. For example, `SingleFieldMatcher(spec='dataset',
+    types=['TextSegment'])` will give a dropdown with the names of all
+    `TextSegment` fields in the dataset.
+*   `MultiFieldMatcher` is similar to `SingleFieldMatcher` except it gives a set
+    of checkboxes to select one or more matching field names. The returned value
+    in `config` will be a list of string values.
 
 The field matching controls can be useful for selecting one or more fields to
 operate on. For example,to choose which input fields to perturb, or which output
@@ -589,15 +658,16 @@ lime.run([dataset.examples[0]], model, dataset)
 # will return {"tokens": ..., "salience": ...} for each example given
 ```
 
-For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
+For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
 
 ## Type System
 
 Input examples and model outputs in LIT are flat records (i.e. Python `dict` and
 JavaScript `object`). Field names (keys) are user-specified strings, and we use
 a system of "specs" to describe the types of the values. This spec system is
-semantic: in addition to defining the datatype (string, float, etc.), spec types
-define how a field should be interpreted by LIT components and frontend modules.
+semantic: in addition to defining the data type (string, float, etc.), spec 
+types define how a field should be interpreted by LIT components and frontend
+modules.
 
 For example, the [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) dataset
 might define the following spec:
@@ -674,7 +744,9 @@ to provide access to model internals. For a more detailed example, see the
 
 The actual spec types, such as `MulticlassLabel`, are simple dataclasses (built
 using [`attr.s`](https://www.attrs.org/en/stable/). They are defined in Python,
-but are available in the [TypeScript client](client.md) as well.
+but are available in
+[TypeScript](../lit_nlp/client/lib/lit_types.ts) as
+well.
 
 [`utils.find_spec_keys()`](../lit_nlp/lib/utils.py)
 (Python) and
@@ -729,6 +801,10 @@ Values can be plain data, NumPy arrays, or custom dataclasses - see
 [serialize.py](../lit_nlp/api/serialize.py) for
 further detail.
 
+*Note: Note that `String`, `Boolean` and `URL` types in Python are represented
+as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
+naming collisions with protected TypeScript keywords.*
+
 ### Conventions
 
 The semantics of each type are defined individually, and documented in
@@ -768,6 +844,12 @@ to `dev_server.Server()`. These include:
     the section below for available layouts.
 *   `demo_mode`: demo / kiosk mode, which disables some functionality (such as
     save/load datapoints) which you may not want to expose to untrusted users.
+*   `inline_doc`: a markdown string that will be rendered in a documentation
+    module in the main LIT panel.
+*   `onboard_start_doc`: a markdown string that will be rendered as the first
+    panel of the LIT onboarding splash-screen.
+*   `onboard_end_doc`: a markdown string that will be rendered as the last
+    panel of the LIT onboarding splash-screen.
 
 For detailed documentation, see
 [server_flags.py](../lit_nlp/server_flags.py).

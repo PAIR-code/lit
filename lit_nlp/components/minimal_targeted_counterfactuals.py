@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Minimal Targeted Counterfactual generator for tabular datasets.
 
 A Minimal Targeted Counterfactual is defined as a counterfactual input that is
@@ -63,7 +62,7 @@ References:
 """
 
 import collections
-from typing import Any, cast, Dict, List, Optional, Text, Tuple
+from typing import Any, cast, Optional
 from absl import logging
 
 from lit_nlp.api import components as lit_components
@@ -120,13 +119,27 @@ class TabularMTC(lit_components.Generator):
   # The nested dictionary key is the name of the example field. The value is
   # either the corresponding standard deviation for a scalar feature or the
   # probability for a categorical feature.
-  _datasets_stats: Dict[Text, Dict[Text, float]] = {}
+  _datasets_stats: dict[str, dict[str, float]] = {}
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    supported_input_types = (lit_types.Boolean, lit_types.CategoryLabel,
+                             lit_types.Scalar)
+    dataset_fields = set(
+        utils.find_spec_keys(dataset.spec(), supported_input_types))
+    model_in_fields = set(
+        utils.find_spec_keys(model.input_spec(), supported_input_types))
+    model_out_fields = utils.spec_contains(
+        model.output_spec(),
+        (lit_types.MulticlassPreds, lit_types.RegressionScore))
+    intersection = dataset_fields.intersection(model_in_fields)
+    return bool(intersection) and model_out_fields
 
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[JsonDict] = None) -> list[JsonDict]:
 
     # Perform validation and retrieve configuration.
     if not model:
@@ -165,7 +178,7 @@ class TabularMTC(lit_components.Generator):
     original_pred = list(model.predict([example]))[0]
 
     # Find dataset examples that are flips.
-    filtered_examples = self._filter_ds_examples(
+    filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
         dataset=dataset,
         dataset_name=dataset_name,
         model=model,
@@ -178,7 +191,7 @@ class TabularMTC(lit_components.Generator):
         model_input_spec=model.input_spec(),
         example=example)
 
-    candidates: List[JsonDict] = []
+    candidates: list[JsonDict] = []
 
     # Iterate through all possible feature combinations.
     combs = utils.find_all_combinations(supported_field_names, 1, max_flips)
@@ -262,11 +275,11 @@ class TabularMTC(lit_components.Generator):
   def _filter_ds_examples(
       self,
       dataset: lit_dataset.IndexedDataset,
-      dataset_name: Text,
+      dataset_name: str,
       model: lit_model.Model,
       reference_output: JsonDict,
-      pred_key: Text,
-      regression_thresh: Optional[float] = None) -> List[JsonDict]:
+      pred_key: str,
+      regression_thresh: Optional[float] = None) -> list[JsonDict]:
     """Reads all dataset examples and returns only those that are flips."""
     if not isinstance(dataset, lit_dataset.IndexedDataset):
       raise ValueError(
@@ -306,7 +319,7 @@ class TabularMTC(lit_components.Generator):
             lit_types.Scalar(
                 min_val=1, max_val=10, default=MAX_FLIPS_DEFAULT, step=1),
         PREDICTION_KEY:
-            lit_types.FieldMatcher(
+            lit_types.SingleFieldMatcher(
                 spec='output', types=['MulticlassPreds', 'RegressionScore']),
         REGRESSION_THRESH_KEY:
             lit_types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
@@ -316,10 +329,10 @@ class TabularMTC(lit_components.Generator):
       self,
       ref_example: JsonDict,
       ds_example: JsonDict,
-      features_to_consider: List[Text],
+      features_to_consider: list[str],
       model: lit_model.Model,
       target_pred: JsonDict,
-      pred_key: Text,
+      pred_key: str,
       dataset: lit_dataset.Dataset,
       interpolate: bool,
       regression_threshold: Optional[float] = None,
@@ -387,7 +400,7 @@ class TabularMTC(lit_components.Generator):
       ref_example: JsonDict,
       known_flip: JsonDict,
       target_pred: JsonDict,
-      pred_key: Text,
+      pred_key: str,
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
       regression_threshold: Optional[float] = None,
@@ -455,8 +468,8 @@ class TabularMTC(lit_components.Generator):
                model: lit_model.Model,
                cf_example: JsonDict,
                orig_output: JsonDict,
-               pred_key: Text,
-               regression_thresh: Optional[float] = None) -> Tuple[bool, Any]:
+               pred_key: str,
+               regression_thresh: Optional[float] = None) -> tuple[bool, Any]:
 
     cf_output = list(model.predict([cf_example]))[0]
     feature_predicted_value = cf_output[pred_key]
@@ -471,7 +484,7 @@ class TabularMTC(lit_components.Generator):
       self,
       ds_spec: lit_dataset.Spec,
       model_input_spec: lit_model.Spec,
-      example: Optional[JsonDict] = None) -> List[Text]:
+      example: Optional[JsonDict] = None) -> list[str]:
     overlapping = set(ds_spec.keys()).intersection(model_input_spec.keys())
     supported = [f for f in overlapping if self._is_supported(ds_spec[f])]
     if example:
@@ -479,7 +492,7 @@ class TabularMTC(lit_components.Generator):
     return supported
 
   def _calculate_stats(self, dataset: lit_dataset.Dataset,
-                       dataset_name: Text) -> None:
+                       dataset_name: str) -> None:
     # Iterate through all examples in the dataset and store column values
     # in individual lists to facilitate future computation.
     field_values = {}
@@ -506,10 +519,10 @@ class TabularMTC(lit_components.Generator):
     # Cache the stats for the given dataset.
     self._datasets_stats[dataset_name] = field_stats
 
-  def _calculate_std_dev(self, values: List[float]) -> float:
+  def _calculate_std_dev(self, values: list[float]) -> float:
     return np.std(values)
 
-  def _calculate_categorical_prob(self, values: List[float]) -> float:
+  def _calculate_categorical_prob(self, values: list[float]) -> float:
     """Returns probability of two values from the list having the same value."""
     counts = collections.Counter(values)
     prob = 0.0
@@ -522,9 +535,9 @@ class TabularMTC(lit_components.Generator):
       example_1: JsonDict,
       example_2: JsonDict,
       dataset: lit_dataset.Dataset,
-      dataset_name: Text,
+      dataset_name: str,
       model: Optional[lit_model.Model] = None,
-      field_names: Optional[List[Text]] = None) -> Tuple[float, List[Text]]:
+      field_names: Optional[list[str]] = None) -> tuple[float, list[str]]:
     """Calculates L1 distance between two input examples.
 
     Only categorical and scalar example features are considered. For categorical
@@ -595,8 +608,8 @@ class TabularMTC(lit_components.Generator):
     return self._is_scalar(field_spec) or self._is_categorical(field_spec)
 
   def _find_dataset_parent(self, model_output_spec: lit_types.Spec,
-                           pred_key: Text,
-                           dataset_spec: lit_types.Spec) -> Optional[Text]:
+                           pred_key: str,
+                           dataset_spec: lit_types.Spec) -> Optional[str]:
     """Finds a field in dataset that is a parent of the model prediction."""
     output_feature = model_output_spec[pred_key]
     parent = getattr(output_feature, 'parent', None)
@@ -605,7 +618,7 @@ class TabularMTC(lit_components.Generator):
     return parent
 
   def _find_dataset_parent_and_set(self, model_output_spec: lit_types.Spec,
-                                   pred_key: Text, dataset_spec: lit_types.Spec,
+                                   pred_key: str, dataset_spec: lit_types.Spec,
                                    example: JsonDict,
                                    predicted_value: Any) -> None:
     """Finds example parent field and assigns prediction value to it."""
@@ -621,10 +634,10 @@ class TabularMTC(lit_components.Generator):
       else:
         example[parent] = predicted_value
 
-  def _sort_and_filter_examples(self, examples: List[JsonDict],
-                                ref_example: JsonDict, fields: List[Text],
+  def _sort_and_filter_examples(self, examples: list[JsonDict],
+                                ref_example: JsonDict, fields: list[str],
                                 dataset: lit_dataset.Dataset,
-                                dataset_name: Text) -> List[JsonDict]:
+                                dataset_name: str) -> list[JsonDict]:
     # Keep only those examples which field values are different from the
     # reference example.
     filtered_examples = []
@@ -654,7 +667,7 @@ class TabularMTC(lit_components.Generator):
 
     # Calculate distances with respect to the reference example taking into
     # consideration only the given fields.
-    distances = []  # type: List[float]
+    distances = []  # type: list[float]
     for example in dedup_examples:
       distance, _ = self._calculate_L1_distance(
           example_1=example,
@@ -670,10 +683,10 @@ class TabularMTC(lit_components.Generator):
     return list(sorted_tuples)
 
   def _add_if_not_strictly_worse(self, example: JsonDict,
-                                 other_examples: List[JsonDict],
+                                 other_examples: list[JsonDict],
                                  ref_example: JsonDict,
                                  dataset: lit_dataset.Dataset,
-                                 dataset_name: Text, model: lit_model.Model):
+                                 dataset_name: str, model: lit_model.Model):
     for other_example in other_examples:
       is_worse = self._is_strictly_worse(
           example_1=example,
@@ -688,7 +701,7 @@ class TabularMTC(lit_components.Generator):
 
   def _is_strictly_worse(self, example_1: JsonDict, example_2: JsonDict,
                          ref_example: JsonDict, dataset: lit_dataset.Dataset,
-                         dataset_name: Text, model: lit_model.Model) -> bool:
+                         dataset_name: str, model: lit_model.Model) -> bool:
     """Calculates whether example_1 is strictly worse (or eq) than example_2."""
 
     # An example is strictly worse than other example if it differs in
@@ -712,6 +725,7 @@ class TabularMTC(lit_components.Generator):
       return True
     return False
 
-  def _create_hash(self, example: JsonDict, fields: List[Text]) -> Text:
-    json_map = {k: v for k, v in example.items() if k in fields}
+  def _create_hash(self, example: JsonDict, fields: list[str]) -> str:
+    json_map = lit_types.Input(
+        {k: v for k, v in example.items() if k in fields})
     return caching.input_hash(json_map)

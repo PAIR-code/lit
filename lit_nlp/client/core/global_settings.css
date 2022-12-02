@@ -27,7 +27,7 @@
   width: 80vw;
   box-sizing: border-box;
   background-color: white;
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  box-shadow: var(--lit-box-shadow);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -48,6 +48,9 @@
   font-size: 18pt;
   line-height: 24pt;
   padding: 12pt;
+  display:flex;
+  align-items:center;
+  column-gap: 4;
 }
 
 #sidebar {
@@ -76,10 +79,6 @@ a {
 a.link-out {
   color: #888;
   padding: 0 5pt;
-}
-
-mwc-icon {
-  padding-right: 5pt;
 }
 
 a:hover {
@@ -162,7 +161,7 @@ a:hover {
 .config-list {
   border: 1px solid #dadce0;
   margin: 12pt;
-  overflow: auto;
+  overflow-y: scroll;
   height: 100%;
 }
 
@@ -172,6 +171,7 @@ a:hover {
   border-bottom: 1px solid #dadce0;
   display: flex;
   justify-content: space-between;
+  gap: 4px;
   align-items: center;
   min-width: 0;
 }
@@ -194,7 +194,6 @@ a:hover {
 
 .expander {
   cursor: pointer;
-  padding-right: 5pt;
 }
 
 .left-offset {
@@ -236,10 +235,14 @@ a:hover {
 }
 
 .expanded-info.open {
+  gap: 4px;
   padding: 6px 6px 6px 0;
   max-height: 25vh;
-  overflow: auto;
   border-bottom: 1px solid #dadce0;
+}
+
+.expanded-info > * {
+  overflow-y: auto;
 }
 
 .expanded-info mwc-icon {
@@ -261,8 +264,8 @@ a:hover {
 }
 
 .info-line {
-  align-items: center;
-  display: flex;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .indent-line {
@@ -286,8 +289,19 @@ a:hover {
   color: #888;
 }
 
+/**
+ * Undo marked's handling of line breaks and restore normal whitespace handling.
+ * This gives much better formatting of descriptions that were designed to be
+ * readable in plaintext / code comments:
+ * - Single newlines don't get <p> tags, but are preserved by pre-wrap.
+ * - Double newlines get <p> tags from marked(), so we strip the extra margins
+ *   and let pre-wrap handle the line break instead.
+ */
 .description-text {
-  white-space: pre-wrap; /* preserve newlines */
+  white-space: pre-wrap;
+}
+.description-text > p {
+  margin-block: 0;
 }
 
 .status {
@@ -301,6 +315,7 @@ a:hover {
   color: #129eaf;
 }
 .status mwc-icon {
+  padding-right: 5px;
 }
 
 .prev-next-buttons {
@@ -323,7 +338,6 @@ button.prev {
   width: 33%;
   flex: 1;
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -334,9 +348,20 @@ button.prev {
   flex-direction: column;
 }
 
-.col-end {
+.fixed-third-col {
+  width: 33%;
+  min-width: 33%;
+}
+
+.flex-col {
+  flex: 1;
+}
+
+.status-col {
+  margin-left: 8px;
+  margin-right: 8px;
   display: flex;
   flex-direction: row;
-  align-items: center;
   justify-content: flex-end;
+  align-items: center;
 }

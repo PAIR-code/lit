@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """LIT model wrapper for pre-computed (offline) predictions."""
-from typing import Optional, Iterable, Iterator, List
+from typing import Iterable, Iterator, Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -28,7 +27,8 @@ class StaticPredictions(lit_model.Model):
   """Implements lit.Model interface for a set of pre-computed predictions."""
 
   def key_fn(self, example: JsonDict) -> str:
-    reduced_example = {k: example[k] for k in self.input_identifier_keys}
+    reduced_example = lit_types.Input(
+        {k: example[k] for k in self.input_identifier_keys})
     return caching.input_hash(reduced_example)
 
   def description(self):
@@ -41,7 +41,7 @@ class StaticPredictions(lit_model.Model):
   def __init__(self,
                inputs: lit_dataset.Dataset,
                preds: lit_dataset.Dataset,
-               input_identifier_keys: Optional[List[str]] = None):
+               input_identifier_keys: Optional[list[str]] = None):
     """Build a static index.
 
     Args:
@@ -82,7 +82,7 @@ class StaticPredictions(lit_model.Model):
   def output_spec(self):
     return self._output_spec
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     return list(self.predict(inputs))
 
   def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:

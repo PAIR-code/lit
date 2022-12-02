@@ -1,11 +1,24 @@
-.dropdown {
-  max-width: fit-content;
+.module-results-area {
+  display: flex;
+  flex-direction: column;
 }
 
-.matrices-holder {
+.non-faceted-matrix {
+  width: calc(100% - 16px);
+  padding: 8px;
   display: flex;
-  flex-flow: wrap;
-  padding: 4px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: start;
+}
+
+.faceted-matrices {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-content: start;
+  padding: 8px;
 }
 
 .matrix {
@@ -13,8 +26,24 @@
   margin-bottom: 16px;
 }
 
-.flex {
+.matrix-update-checkboxes {
   display: flex;
+  flex-direction: row;
+}
+
+.module-toolbar {
+  border-bottom: 1px solid var(--lit-neutral-300);
+}
+
+.matrix-options {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: start;
+  padding: 4px 0;
+  column-gap: 4px;
 }
 
 #create-button {
@@ -22,8 +51,32 @@
   pointer-events: auto;
 }
 
+.dropdown-holder {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
 /* Make the "Rows" and "Columns" labels the same width */
 .dropdown-label {
   display: inline-block;
-  width: 55px;
+  margin: 0 4px;
+}
+
+.spacer {
+  width: 16px;
+}
+
+.confusion-matrix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  padding-bottom: 0;
+  margin-bottom: 4px;
+  max-width: max-content;
+}
+
+.matrix-label {
+  margin-bottom: 4px;
 }

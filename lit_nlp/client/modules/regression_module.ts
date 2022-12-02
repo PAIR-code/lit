@@ -16,23 +16,21 @@
  */
 
 // tslint:disable:no-new-decorators
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
-import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {RegressionScore} from '../lib/lit_types';
+import {IndexedInput, ModelInfoMap, RegressionResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {RegressionService} from '../services/services';
+import {CalculatedColumnType} from '../services/data_service';
+import {DataService} from '../services/services';
 
 import {styles} from './regression_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
-
-interface RegressionResult {
-  [key: string]: number;
-}
 
 /**
  * A LIT module that renders regression results.
@@ -42,26 +40,26 @@ export class RegressionModule extends LitModule {
   static override title = 'Regression Results';
   static override duplicateForExampleComparison = true;
   static override numCols = 3;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<regression-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></regression-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <regression-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </regression-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
   }
 
-  private readonly regressionService = app.getService(RegressionService);
-
-  @observable private result: RegressionResult|null = null;
+  private readonly dataService = app.getService(DataService);
+  @observable private result: RegressionResults|null = null;
 
   override firstUpdated() {
-    const getPrimarySelectedInputData = () =>
-        this.selectionService.primarySelectedInputData;
-    this.reactImmediately(
-        getPrimarySelectedInputData, primarySelectedInputData => {
-          this.updateSelection(primarySelectedInputData);
-        });
+    const getSelectionChanges = () =>
+        [this.selectionService.primarySelectedInputData,
+         this.dataService.dataVals];
+    this.reactImmediately(getSelectionChanges, () => {
+      this.updateSelection(this.selectionService.primarySelectedInputData);
+    });
   }
 
   private async updateSelection(inputData: IndexedInput|null) {
@@ -70,28 +68,22 @@ export class RegressionModule extends LitModule {
       return;
     }
 
-    const dataset = this.appState.currentDataset;
-    const promise = this.regressionService.getRegressionPreds(
-        [inputData], this.model, dataset);
-
-    const results = await this.loadLatest('regressionPreds', promise);
-    if (results === null || results.length === 0) {
-      this.result = null;
-      return;
+    const result: RegressionResults = {};
+    const {output} = this.appState.getModelSpec(this.model);
+    const scoreFields: string[] = findSpecKeys(output, RegressionScore);
+    for (const key of scoreFields) {
+      const predKey = this.dataService.getColumnName(this.model, key);
+      const errorKey = this.dataService.getColumnName(
+          this.model, key, CalculatedColumnType.ERROR);
+      result[key] = {
+        score: this.dataService.getVal(inputData.id, predKey),
+        error: this.dataService.getVal(inputData.id, errorKey)
+      };
     }
-
-    // Extract the single result, as this only is for a single input.
-    const keys = Object.keys(results[0]);
-    for (const key of keys) {
-      const regressionInfo = (await this.regressionService.getResults(
-          [inputData.id], this.model, key))[0];
-      results[0][this.regressionService.getErrorKey(key)] =
-          regressionInfo.error;
-    }
-    this.result = results[0];
+    this.result = result;
   }
 
-  override render() {
+  override renderImpl() {
     if (this.result == null) {
       return null;
     }
@@ -100,7 +92,7 @@ export class RegressionModule extends LitModule {
 
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(spec.output, 'RegressionScore');
+    const scoreFields: string[] = findSpecKeys(spec.output, RegressionScore);
 
 
     const rows: TableData[] = [];
@@ -108,18 +100,14 @@ export class RegressionModule extends LitModule {
     // Per output, display score, and parent field and error if available.
     for (const scoreField of scoreFields) {
       // Add new row for each output from the model.
-      const score = result[scoreField] == null ?
-          '' :
-          result[scoreField].toFixed(4);
+      const score = result[scoreField]?.score?.toFixed(4) || '';
       // Target score to compare against.
-      const parentField = spec.output[scoreField].parent! || '';
-      const parentScore = input.data[parentField] == null ?
-          '' :
-          input.data[parentField].toFixed(4);
+      const parentField =
+          (spec.output[scoreField] as RegressionScore).parent || '';
+      const parentScore = input.data[parentField]?.toFixed(4) || '';
       let errorScore = '';
       if (parentField && parentScore) {
-        const error =
-            result[this.regressionService.getErrorKey(scoreField)];
+        const error = result[scoreField].error;
         if (error != null) {
           hasParent = true;
           errorScore = error.toFixed(4);
@@ -147,7 +135,7 @@ export class RegressionModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'RegressionScore');
+    return doesOutputSpecContain(modelSpecs, RegressionScore);
   }
 }
 

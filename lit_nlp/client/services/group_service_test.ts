@@ -20,8 +20,10 @@
 import 'jasmine';
 
 import {LitApp} from '../core/app';
+import {DataService} from './data_service';
 import {GroupService, FacetingConfig, FacetingMethod} from './group_service';
 import {AppState} from './state_service';
+import {Scalar} from '../lib/lit_types';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput} from '../lib/types';
 import {findSpecKeys} from '../lib/utils';
@@ -136,7 +138,7 @@ describe('GroupService test', () => {
       flipper_length_mm: 231,
       isAlive: true}});
 
-  let appState: AppState, groupService: GroupService;
+  let appState: AppState, groupService: GroupService, dataService: DataService;
 
   beforeEach(async () => {
     // Set up.
@@ -145,15 +147,16 @@ describe('GroupService test', () => {
     inputData.set('penguin_dev', penguinData);
 
     appState = app.getService(AppState);
+    dataService = app.getService(DataService);
     // Stop appState from trying to make the call to the back end
     // to load the data (causes test flakiness.)
     spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('penguin_dev');
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    appState.setCurrentDataset('penguin_dev');
 
-    groupService = new GroupService(appState);
+    groupService = new GroupService(appState, dataService);
   });
 
   it('validates FacetingConfig', () => {
@@ -196,7 +199,7 @@ describe('GroupService test', () => {
 
   it('calculates ranges for all numerical features', () => {
     const dataSpec = appState.currentDatasetSpec;
-    const names = findSpecKeys(dataSpec, 'Scalar');
+    const names = findSpecKeys(dataSpec, Scalar);
 
     for (const name of names) {
       const range = groupService.numericalFeatureRanges[name];
@@ -210,7 +213,7 @@ describe('GroupService test', () => {
   it('generates bins for numerical features', () => {
     const discreteBins = groupService.numericalFeatureBins([discreteConfig]);
     expect(Object.keys(discreteBins[discreteConfig.featureName]).length)
-        .toEqual(9);
+        .toEqual(90);
 
     const eqIntInfBins = groupService.numericalFeatureBins([{
       ...equalIntervalConfig,
@@ -237,7 +240,7 @@ describe('GroupService test', () => {
     const features = validConfigs.map(c => c.featureName);
     const bins = groupService.numericalFeatureBins(validConfigs);
     const label = groupService.numIntersectionsLabel(bins, features);
-    expect(label).toEqual('2x9x3x4x2x3 = 1296');
+    expect(label).toEqual('2x90x3x4x2x3 = 12960');
   });
 
   it('groups the mock penguin data into the correct numeric bins', () => {
@@ -250,6 +253,12 @@ describe('GroupService test', () => {
     ];
 
     for (const config of numericConfigs) {
+      // Skip discrete binning in this test as the number of bins might not
+      // match the grouping as bins without datapoints aren't returned by
+      // the groupExamplesByFeatures method.
+      if (config.method === 'discrete') {
+        continue;
+      }
       const feature = config.featureName;
       const bins = groupService.numericalFeatureBins([config]);
       const facets = Object.keys(bins[feature]);

@@ -19,10 +19,38 @@
  * Shared helper functions used across the app.
  */
 
+// For consistency with types.ts.
+// tslint:disable: enforce-name-casing
+
 import * as d3 from 'd3';  // Used for array helpers.
 
-import {html, TemplateResult} from 'lit';
-import {FacetMap, LitName, LitType, ModelInfoMap, Spec} from './types';
+import {unsafeHTML} from 'lit/directives/unsafe-html.js';
+
+import {marked} from 'marked';
+import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
+import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
+
+/** Calculates the mean for a list of numbers */
+export function mean(values: number[]): number {
+  return values.reduce((a, b) => a + b) / values.length;
+}
+
+/** Calculates the median for a list of numbers. */
+export function median(values: number[]): number {
+  const sorted = [...values].sort();
+  const medIdx = Math.floor(sorted.length / 2);
+  let median: number;
+
+  if (sorted.length % 2 === 0) {
+    const upper = sorted[medIdx];
+    const lower = sorted[medIdx - 1];
+    median = (upper + lower) / 2;
+  } else {
+    median = sorted[medIdx];
+  }
+
+  return median;
+}
 
 /**
  * Random integer in range [min, max), where min and max are integers
@@ -50,40 +78,174 @@ export function arrayContainsSame<T>(arrayA: T[], arrayB: T[]) {
   return setEquals(new Set<T>(arrayA), new Set<T>(arrayB));
 }
 
+/** Determines whether two maps contain the same keys and values. */
+export function mapsContainSame<T>(mapA: Map<string, T>, mapB: Map<string, T>) {
+  const mapAKeys = Array.from(mapA.keys());
+  if (!arrayContainsSame(mapAKeys, Array.from(mapB.keys()))) {
+    return false;
+  }
+  for (const key of mapAKeys) {
+    if (mapA.get(key) !== mapB.get(key)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/** Returns a list of names corresponding to LitTypes. */
+export function getTypeNames(litTypes: LitTypeTypesList) : LitName[] {
+  // TypeScript treats `typeof LitType` as a constructor function.
+  // Cast to any to access the name property.
+  // tslint:disable-next-line:no-any
+  return litTypes.map(t => (t as any).name);
+}
+
+/** Returns a list of LitTypes corresponding to LitNames. */
+// We return the equivalent of LitTypeTypesList, but TypeScript constructor
+// functions do not have the same signature as the types themselves.
+// tslint:disable-next-line:no-any
+export function getTypes(litNames: LitName|LitName[]) : any {
+  if (typeof litNames === 'string') {
+    litNames = [litNames];
+  }
+
+  return litNames.map(litName => LIT_TYPES_REGISTRY[litName]);
+}
+
 /**
- * Check if a spec field (LitType) is an instance of one or more type names.
- * This is analogous to using isinstance(litType, typesToFind) in Python,
- * and relies on exporting the Python class hierarchy in the __mro__ field.
+ * Creates and returns a new LitType instance.
+ * @param litTypeConstructor: A constructor for the LitType instance.
+ * @param constructorParams: A dictionary of properties to set on the LitType.
+ * For example, {'show_in_data_table': true}.
+ *
+ * We use this helper instead of directly creating a new T(), because this
+ * allows creation of LitTypes dynamically from the metadata returned from the
+ * server via the `/get_info` API, and allows updating class properties on
+ * creation time.
  */
-export function isLitSubtype(litType: LitType, typesToFind: LitName|LitName[]) {
-  // TODO(lit-dev): figure out why this is occasionally called on an invalid
-  // spec. Likely due to skew between keys and specs in specific modules when
-  // dataset is changed, but worth diagnosing to make sure this doesn't mask a
-  // larger issue.
+export function createLitType<T>(
+    litTypeConstructor: new () => T,
+    constructorParams: {[key: string]: unknown} = {}): T {
+  const litType = new litTypeConstructor();
+
+  // Temporarily make this LitType generic to set properties dynamically.
+  // tslint:disable-next-line:no-any
+  const genericLitType = litType as any;
+
+  for (const key in constructorParams) {
+    if (key in genericLitType) {
+      genericLitType[key] = constructorParams[key];
+    } else if (key !== '__name__') {  // Ignore __name__ property.
+      throw new Error(`Attempted to set unrecognized property ${key} on ${
+          genericLitType.name}.`);
+    }
+  }
+
+  return genericLitType as T;
+}
+
+/**
+ * Converts serialized LitTypes within a Spec into LitType instances.
+ */
+export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec):
+    Spec {
+  const typedSpec: Spec = {};
+  for (const key of Object.keys(serializedSpec)) {
+    typedSpec[key] = createLitType(
+        LIT_TYPES_REGISTRY[serializedSpec[key].__name__],
+        serializedSpec[key] as {});
+  }
+  return typedSpec;
+}
+
+/**
+ * Returns a deep copy of the given spec.
+ */
+export function cloneSpec(spec: Spec): Spec {
+  const newSpec: Spec = {};
+  for (const [key, fieldSpec] of Object.entries(spec)) {
+    newSpec[key] =
+        createLitType(LIT_TYPES_REGISTRY[fieldSpec.name], fieldSpec as {});
+  }
+  return newSpec;
+}
+
+/**
+ * Converts serialized LitTypes within the LitMetadata into LitType instances.
+ */
+export function deserializeLitTypesInLitMetadata(
+    metadata: SerializedLitMetadata): LitMetadata {
+  for (const model of Object.keys(metadata.models)) {
+    metadata.models[model].spec.input =
+        deserializeLitTypesInSpec(metadata.models[model].spec.input);
+    metadata.models[model].spec.output =
+        deserializeLitTypesInSpec(metadata.models[model].spec.output);
+  }
+
+  for (const dataset of Object.keys(metadata.datasets)) {
+    metadata.datasets[dataset].spec =
+        deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
+  }
+
+  for (const generator of Object.keys(metadata.generators)) {
+    metadata.generators[generator].configSpec =
+        deserializeLitTypesInSpec(metadata.generators[generator].configSpec);
+    metadata.generators[generator].metaSpec =
+        deserializeLitTypesInSpec(metadata.generators[generator].metaSpec);
+  }
+
+  for (const interpreter of Object.keys(metadata.interpreters)) {
+    metadata.interpreters[interpreter].configSpec = deserializeLitTypesInSpec(
+        metadata.interpreters[interpreter].configSpec);
+    metadata.interpreters[interpreter].metaSpec =
+        deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
+  }
+
+  return metadata;
+}
+
+type CandidateLitTypeTypesList = (typeof LitType)|LitTypeTypesList;
+
+function wrapSingletonToList<Type>(candidate: Type|Type[]):
+    Type[] {
+  if (!Array.isArray(candidate)) {
+    candidate = [candidate];
+  }
+
+  return candidate;
+}
+
+/**
+ * Returns whether the litType is a subtype of any of the typesToFind.
+ * @param litType: The LitType to check.
+ * @param typesToFind: Either a single or list of parent LitType candidates.
+ */
+export function isLitSubtype(
+    litType: LitType, typesToFind: CandidateLitTypeTypesList) {
   if (litType == null) return false;
 
-  if (typeof typesToFind === 'string') {
-    typesToFind = [typesToFind];
-  }
-  for (const typeName of typesToFind) {
-    if (litType.__mro__.includes(typeName)) {
+  const typesToFindList = wrapSingletonToList(typesToFind);
+  for (const typeName of typesToFindList) {
+    if (litType instanceof typeName) {
       return true;
     }
   }
   return false;
 }
 
+
 /**
- * Find all keys from the spec which match any of the specified types.
+ * Returns all keys in the given spec that are subtypes of the typesToFind.
+ * @param spec: A Spec object.
+ * @param typesToFind: Either a single or list of parent LitType candidates.
  */
 export function findSpecKeys(
-    spec: Spec, typesToFind: LitName|LitName[]): string[] {
-  if (typeof typesToFind === 'string') {
-    typesToFind = [typesToFind];
-  }
+    spec: Spec, typesToFind: CandidateLitTypeTypesList): string[] {
+  const typesToFindList = wrapSingletonToList(typesToFind);
   return Object.keys(spec).filter(
-      key => isLitSubtype(spec[key], typesToFind as LitName[]));
+      key => isLitSubtype(spec[key], typesToFindList));
 }
+
 
 /**
  * Return a new object with the selected keys from the old one.
@@ -130,30 +292,15 @@ export function handleEnterKey(e: KeyboardEvent, callback: () => void) {
  *  Converts the margin value to the threshold for binary classification.
  */
 export function getThresholdFromMargin(margin: number) {
-  if (margin == null) {
-    return .5;
-  }
-  return margin === 0 ? .5 : 1 / (1 + Math.exp(-margin));
+  return !margin ? .5 : 1 / (1 + Math.exp(-margin));
 }
 
 /**
  *  Converts the threshold value for binary classification to the margin.
  */
 export function getMarginFromThreshold(threshold: number) {
-  const margin = threshold !== 1 ?
-      (threshold !== 0 ? Math.log(threshold / (1 - threshold)) : -5) :
-      5;
-  return margin;
-}
-
-/**
- * Shortens the id of an input data to be displayed in the UI.
- */
-export function shortenId(id: string|null) {
-  if (id == null) {
-    return;
-  }
-  return id.substring(0, 6);
+  return threshold === 1 ?  5 :
+         threshold === 0 ? -5 : Math.log(threshold / (1 - threshold));
 }
 
 /**
@@ -220,7 +367,7 @@ export function compareArrays(a: d3.Primitive[], b: d3.Primitive[]): number {
  * Can be provided a single type string or a list of them.
  */
 export function doesOutputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    models: ModelInfoMap, typesToCheck: CandidateLitTypeTypesList,
     extraCheck?: (litType: LitType) => boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
@@ -248,7 +395,7 @@ export function doesOutputSpecContain(
  * Can be provided a single type string or a list of them.
  */
 export function doesInputSpecContain(
-    models: ModelInfoMap, typesToCheck: LitName|LitName[],
+    models: ModelInfoMap, typesToCheck: CandidateLitTypeTypesList,
     checkRequired: boolean): boolean {
   const modelNames = Object.keys(models);
   for (let modelNum = 0; modelNum < modelNames.length; modelNum++) {
@@ -266,9 +413,17 @@ export function doesInputSpecContain(
 
 /** Returns if a LitType specifies binary classification. */
 export function isBinaryClassification(litType: LitType) {
-    const predictionLabels = litType.vocab!;
-    const nullIdx = litType.null_idx;
-    return predictionLabels.length === 2 && nullIdx != null;
+  if (litType instanceof MulticlassPreds) {
+    const {vocab, null_idx: nullIdx}  = litType;
+    return vocab.length === 2 && nullIdx != null;
+  }
+
+  return false;
+}
+
+/** Returns if a LitType has a parent field. */
+export function hasParent(litType: LitType) {
+    return (litType as LitTypeWithParent).parent != null;
 }
 
 /**
@@ -292,18 +447,6 @@ export function roundToDecimalPlaces(num: number, places: number) {
 }
 
 /**
- * Copies a value to the user's clipboard.
- */
-export function copyToClipboard(value: string) {
-  const tempInput = document.createElement("input");
-  tempInput.value = value;
-  document.body.appendChild(tempInput);
-  tempInput.select();
-  document.execCommand("copy");
-  document.body.removeChild(tempInput);
-}
-
-/**
  * Processes a sentence so that no word exceeds a certain length by
  * chunking a long word into shorter pieces. This is useful when rendering
  * a table-- normally a table will stretch to fit the entire word length
@@ -312,7 +455,7 @@ export function copyToClipboard(value: string) {
  * NPWS will make copy/pasting from the table behave strangely.
  */
 export function chunkWords(sent: string) {
-  const chunkWord = (word: string) => {
+  function chunkWord (word: string) {
     const maxLen = 15;
     const chunks: string[] = [];
     for (let i=0; i<word.length; i+=maxLen) {
@@ -321,32 +464,8 @@ export function chunkWords(sent: string) {
     // This is not an empty string, it is a non-printing space.
     const zeroWidthSpace = '​';
     return chunks.join(zeroWidthSpace);
-  };
-  return sent.split(' ').map(word => chunkWord(word)).join(' ');
-}
-
-/**
- * Converts any URLs into clickable links.
- * TODO(lit-dev): write unit tests for this.
- */
-export function linkifyUrls(
-    text: string,
-    target: '_self'|'_blank'|'_parent'|'_top' = '_self'): TemplateResult {
-  const ret: Array<string|TemplateResult> = [];  // return segments
-  let lastIndex = 0;  // index of last character added to return segments
-  // Find urls and make them real links.
-  // Similar to gmail and other apps, this assumes terminal punctuation is
-  // not part of the url.
-  const matcher = /https?:\/\/[^\s]+[^.?!\s]/g;
-  const formatLink = (url: string) =>
-      html`<a href=${url} target=${target}>${url}</a>`;
-  for (const match of text.matchAll(matcher)) {
-    ret.push(text.slice(lastIndex, match.index));
-    lastIndex = match.index! + match[0].length;
-    ret.push(formatLink(text.slice(match.index, lastIndex)));
   }
-  ret.push(text.slice(lastIndex, text.length));
-  return html`${ret}`;
+  return sent.split(' ').map(word => chunkWord(word)).join(' ');
 }
 
 const CANVAS = document.createElement('canvas');
@@ -390,3 +509,99 @@ export function hashCode(str: string) {
   return hash;
 }
 
+/** Find all matching indices of the val in the provided arr. */
+export function findMatchingIndices(arr: unknown[], val: unknown): number[] {
+  const indices: number[] = [];
+  for(let i = 0; i < arr.length; i++) {
+    if (arr[i] === val) {
+        indices.push(i);
+    }
+  }
+  return indices;
+}
+
+/** Return new string with the Nth instance of orig replaced. */
+export function replaceNth(str: string, orig: string, replacement: string,
+                           n: number) {
+  const escapedOrig = orig.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  return str.replace(
+      RegExp("^(?:.*?" + escapedOrig + "){" + n.toString() + "}"),
+      x => x.replace(RegExp(escapedOrig + "$"), replacement));
+}
+
+/** Return a good step size given a range of values. */
+export function getStepSizeGivenRange(range: number) {
+  // Returns 0.1 for values of at least 1 and less than 10.
+  // Returns 1 for values of at least 10 and less than 100.
+  // Returns 10 for values of at least 100 and less than 1000.
+  // And so on, both for larger ranges and smaller.
+  return Math.pow(10, Math.floor(Math.log10(range)) - 1);
+}
+
+/** Convert a markdown string into an HTML template for rendering. */
+export function getTemplateStringFromMarkdown(markdown: string) {
+
+  // Render Markdown with link target _blank
+  // See https://github.com/markedjs/marked/issues/144
+  // and https://github.com/markedjs/marked/issues/655
+  const renderer = new marked.Renderer();
+  renderer.link = (href, title, text) => {
+    const linkHtml =
+        marked.Renderer.prototype.link.call(renderer, href, title, text);
+    return linkHtml.replace('<a', '<a target=\'_blank\' ');
+  };
+  const htmlStr = marked(markdown, {renderer});
+
+  return unsafeHTML(htmlStr);
+}
+
+/**
+ * Convert a number range from strings to a function to check inclusion.
+ *
+ * Can use commas or spaces to separate individual numbers/ranges. Logic can
+ * handle negative numbers and decimals. Ranges are inclusive.
+ * e.x. "1, 2, 4-6" will match the numbers 1, 2, and numbers between 4 and 6.
+ * e.x. "-.5-1.5 10" will match numbers between -.5 and 1.5 and also 10.
+ */
+export function numberRangeFnFromString(str: string): (num: number) => boolean {
+  // Matches single numbers, including decimals with and without leading zeros,
+  // and negative numbers. Also matches ranges of numbers separated by a hyphen.
+  const regexStr = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
+
+  // Convert the string into a list of ranges of numbers to match.
+  const ranges: Array<[number, number]> = [];
+  for (const [, beginStr, endStr] of str.matchAll(regexStr)) {
+    if (beginStr.length === 0) {
+      continue;
+    }
+    ranges.push([beginStr, endStr || beginStr].map(Number) as [number, number]);
+  }
+
+  // Returns a function that matches numbers against the ranges.
+  return (num: number) => {
+    if (ranges.length === 0) {
+      return true;
+    }
+    for (const range of ranges) {
+      if (num >= range[0] && num <= range[1]) {
+        return true;
+      }
+    }
+    return false;
+  };
+}
+
+/** Return evenly spaced numbers between minValue and maxValue. */
+export function linearSpace(
+    minValue: number, maxValue: number, numSteps: number): number[] {
+  if (minValue > maxValue) {
+    return [];
+  }
+
+  const values = [];
+  const step = (maxValue - minValue) / (numSteps - 1);
+  for (let i = 0; i < numSteps; i++) {
+    values.push(minValue + i * step);
+  }
+  return values;
+}

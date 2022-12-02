@@ -16,41 +16,17 @@
  */
 
 // tslint:disable:no-new-decorators
-import difflib from 'difflib';
-
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {DiffMode, getTextDiff, TextDiff} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {ScoredTextCandidates} from '../lib/dtypes';
 
 import {styles} from './generated_text_vis.css';
-
-// tslint:disable-next-line:no-any difflib does not support Closure imports
-// difflib declare placeholder - DO NOT REMOVE
-
-/**
- * Input data format.
- */
-export type GeneratedTextCandidate = [string, number | null];
-
-/**
- * Mode for diffs against reference text.
- */
-export enum DiffMode {
-  NONE = 'None',
-  WORD = 'Word',
-  CHAR = 'Character',
-}
-
-interface TextDiff {
-  inputStrings: string[];
-  outputStrings: string[];
-  equal: boolean[];
-}
 
 /** Generated text display, with optional diffs. */
 @customElement('generated-text-vis')
@@ -59,9 +35,9 @@ export class GeneratedTextVis extends ReactiveElement {
   @observable @property({type: String}) fieldName?: string;
   @observable
   @property({type: Array})
-  candidates: GeneratedTextCandidate[] = [];
+  candidates: ScoredTextCandidates = [];
   @observable @property({type: String}) referenceFieldName?: string;
-  @observable @property({type: Array}) referenceTexts: GeneratedTextCandidate[] = [];
+  @observable @property({type: Array}) referenceTexts: ScoredTextCandidates = [];
   // Optional model scores for the target texts.
   @observable @property({type: Array}) referenceModelScores: number[] = [];
 
@@ -93,7 +69,7 @@ export class GeneratedTextVis extends ReactiveElement {
   }
 
   @computed
-  get textDiff() {
+  get textDiff(): TextDiff|undefined {
     if (this.referenceTexts === undefined) return;
     if (this.candidates[this.selectedIdx] === undefined) return;
     if (this.diffMode === DiffMode.NONE) return;
@@ -254,54 +230,6 @@ export class GeneratedTextVis extends ReactiveElement {
     // clang-format on
   }
 }
-
-/**
- * Uses difflib library to compute character differences between the input
- * strings and returns a TextDiff object, which contains arrays of parsed
- * segments from both strings and an array of booleans indicating whether the
- * corresponding change type is 'equal.'
- */
-export function getTextDiff(
-    targetText: string, outputText: string, byWord: boolean): TextDiff {
-  // Use difflib library to compute opcodes, which contain a group of changes
-  // between the two input strings. Each opcode contains the change type and
-  // the start/end of the concerned characters/words in each string.
-  const targetWords = targetText.split(' ');
-  const outputWords = outputText.split(' ');
-
-  const matcher = byWord ?
-      new difflib.SequenceMatcher(() => false, targetWords, outputWords) :
-      new difflib.SequenceMatcher(() => false, targetText, outputText);
-  const opcodes = matcher.getOpcodes();
-
-  // Store an array of the parsed segments from both strings and whether
-  // the change type is 'equal.'
-  const inputStrings: string[] = [];
-  const outputStrings: string[] = [];
-  const equal: boolean[] = [];
-
-  for (const opcode of opcodes) {
-    const changeType = opcode[0];
-    const startA = Number(opcode[1]);
-    const endA = Number(opcode[2]);
-    const startB = Number(opcode[3]);
-    const endB = Number(opcode[4]);
-
-    equal.push((changeType === 'equal'));
-
-    if (byWord) {
-      inputStrings.push(targetWords.slice(startA, endA).join(' '));
-      outputStrings.push(outputWords.slice(startB, endB).join(' '));
-    } else {
-      inputStrings.push(targetText.slice(startA, endA));
-      outputStrings.push(outputText.slice(startB, endB));
-    }
-  }
-
-  const textDiff: TextDiff = {inputStrings, outputStrings, equal};
-  return textDiff;
-}
-
 
 declare global {
   interface HTMLElementTagNameMap {

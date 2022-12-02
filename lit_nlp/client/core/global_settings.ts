@@ -36,8 +36,8 @@ import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY} from '../lib/types';
-import {linkifyUrls} from '../lib/utils';
-import {getModuleConstructor} from '../services/modules_service';
+import {getTemplateStringFromMarkdown} from '../lib/utils';
+import {resolveModuleConfig} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {app} from './app';
@@ -165,7 +165,16 @@ export class GlobalSettingsComponent extends MobxLitElement {
         <div id="overlay" class=${hiddenClassMap}
          @click=${() => { this.close(); }}></div>
         <div id="global-settings" class=${hiddenClassMap}>
-        <div id="title-bar">Configure LIT</div>
+        <div id="title-bar">
+          Configure LIT
+          <a target='_blank'
+            href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
+          <span class="large-help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+          </a>
+        </div>
         <div id="holder">
           <div id="sidebar">
             ${this.renderTabs()}
@@ -323,7 +332,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           }
         }
       };
-      const renderSelector = () => html`
+      const selectorHtml = html`
           <mwc-formfield label=${name}>
             <lit-checkbox
               class='checkbox'
@@ -349,7 +358,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
           return html`
             <div class=${classes}>
-              <mwc-icon>${icon}</mwc-icon>
+              <span class='material-icon'>${icon}</span>
               ${datasetDisplayName(datasetName)}
             </div>`;
         })}
@@ -359,15 +368,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         ${Object.keys(ospec).map((fieldName: string) => {
           return html`
             <div class='info-line'>
-              ${fieldName} (${ospec[fieldName].__name__})
+              ${fieldName} (${ospec[fieldName].name})
             </div>`;
         })}
       `;
       // clang-format on
       const description = this.appState.metadata.models[name].description;
       return this.renderLine(
-          name, renderSelector, selected, disabled, expanderOpen,
-          onExpanderClick, false, expandedInfoHtml, description);
+          name, selectorHtml, selected, disabled, expanderOpen, onExpanderClick,
+          false, expandedInfoHtml, description);
     };
 
     const configListHTML = availableModels.map(name => renderModelSelect(name));
@@ -431,7 +440,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
       const onExpanderClick = () => {
           this.toggleInSet(this.openDatasetKeys, name);
         };
-      const renderSelector = () => html`
+      // clang-format off
+      const selectorHtml = html`
             <mwc-formfield label=${displayName}>
               <mwc-radio
                 name="dataset"
@@ -442,20 +452,24 @@ export class GlobalSettingsComponent extends MobxLitElement {
                 @change=${handleDatasetChange}>
               </mwc-radio>
             </mwc-formfield>
-        `;
+      `;
+      // clang-format on
 
       // Expanded info contains available datasets.
-      const spec = this.appState.metadata.datasets[name].spec;
+      const datasetInfo = this.appState.metadata.datasets[name];
       const allModels = [...this.modelCheckboxValues.keys()];
       // clang-format off
       const expandedInfoHtml = html`
         <div class='info-group-title'>
+          ${datasetInfo.size} datapoint${datasetInfo.size !== 1 ? "s" : ""}
+        </div>
+        <div class='info-group-title'>
           Features
         </div>
-        ${Object.keys(spec).map((fieldName: string) => {
+        ${Object.keys(datasetInfo.spec).map((fieldName: string) => {
           return html`
             <div class='info-line'>
-              ${fieldName} (${spec[fieldName].__name__})
+              ${fieldName} (${datasetInfo.spec[fieldName].name})
             </div>`;
         })}
         <div class='info-group-title'>
@@ -469,7 +483,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
         return html`
         <div class=${classes}>
-          <mwc-icon>${icon}</mwc-icon>
+          <span class='material-icon'>${icon}</span>
           ${modelName}
         </div>`;
         })}
@@ -477,8 +491,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
       // clang-format on
       const description = this.appState.metadata.datasets[name].description;
       return this.renderLine(
-          name, renderSelector, selected, disabled, expanderOpen,
-          onExpanderClick, true, expandedInfoHtml, description);
+          name, selectorHtml, selected, disabled, expanderOpen, onExpanderClick,
+          true, expandedInfoHtml, description);
     };
     const configListHTML = allDatasets.map(name => renderDatasetSelect(name));
     // clang-format off
@@ -570,7 +584,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
             </div>
             ${groupLayout[tabName].map(module => html`
               <div class='indent-line'>
-                ${getModuleConstructor(module).title}
+                ${resolveModuleConfig(module).title}
               </div>`)}
           </div>`;
         // clang-format on
@@ -581,7 +595,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         (name: string) => {
           const checked = this.selectedLayout === name;
           // clang-format off
-          const renderSelector = () => html`
+          const selectorHtml = html`
             <mwc-formfield label=${name}>
               <mwc-radio
                 name="layouts"
@@ -611,7 +625,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           // clang-format on
           const description = this.appState.layouts[name].description || '';
           return this.renderLine(
-              name, renderSelector, selected, disabled, expanderOpen,
+              name, selectorHtml, selected, disabled, expanderOpen,
               onExpanderClick, false, expandedInfoHtml, description);
         };
 
@@ -645,7 +659,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   }
 
   private renderLine(
-      name: string, renderSelector: (name: string) => TemplateResult, selected: boolean,
+      name: string, selectorHtml: TemplateResult, selected: boolean,
       disabled: boolean, expanderOpen: boolean, onExpanderClick: () => void,
       renderStatus: boolean, expandedInfoHtml: TemplateResult,
       description = '') {
@@ -660,22 +674,23 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     // In collapsed bar, show the first line only.
     const descriptionPreview = description.split('\n')[0];
+    const formattedPreview = getTemplateStringFromMarkdown(descriptionPreview);
     // Make any links clickable.
-    const formattedDescription = linkifyUrls(description, '_blank');
+    const formattedDescription = getTemplateStringFromMarkdown(description);
 
     const expandedInfoClasses =
         classMap({'expanded-info': true, open: expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
     return html`
-      <div class=${classes}>
-        <div class='one-col'>
-          ${renderSelector(name)}
+      <div class=${classes} title="${name}">
+        <div class='fixed-third-col'>
+          ${selectorHtml}
         </div>
-        <div class='one-col description-preview'>
-         ${linkifyUrls(descriptionPreview, '_blank')}
+        <div class='flex-col description-preview'>
+          ${formattedPreview}
         </div>
-        <div class='one-col col-end'>
-            ${status}
+        <div class='status-col'>
+          ${status}
           <div class=expander>
             <mwc-icon @click=${onExpanderClick}>
               ${expanderIcon}
@@ -715,7 +730,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     // clang-format off
     return html`
      <button class=${classes} @click=${onClick}>
-      <mwc-icon>${icon}</mwc-icon>
+      <span class='material-icon'>${icon}</span>
       ${tab}
     </button>
     `;

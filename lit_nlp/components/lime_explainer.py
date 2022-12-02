@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Gradient-based attribution."""
 
 import copy
 import functools
-from typing import Any, Iterable, List, Optional
+from typing import Any, Iterable, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -33,6 +32,9 @@ import numpy as np
 
 JsonDict = types.JsonDict
 Spec = types.Spec
+
+_SUPPORTED_PRED_TYPES = (types.MulticlassPreds, types.RegressionScore,
+                         types.SparseMultilabelPreds)
 
 TARGET_HEAD_KEY = 'Output field to explain'
 CLASS_KEY = 'Class index to explain'
@@ -138,17 +140,38 @@ def get_class_to_explain(provided_class_to_explain: int, model: Any,
 class LIME(lit_components.Interpreter):
   """Local Interpretable Model-agnostic Explanations (LIME)."""
 
-  def __init__(self):
-    pass
+  def __init__(self,
+               autorun: bool = False,
+               class_index: int = -1,
+               kernel_width: int = 256,
+               mask_token: str = '[MASK]',
+               num_samples: int = 256,
+               seed: Optional[int] = None):
+    """Cretaes an IntegratedGradients interpreter.
+
+    Args:
+      autorun: Determines if this intepreter should run automatically.
+      class_index: Index of the class to explain in the vocabulary.
+      kernel_width: Size of the kernel.
+      mask_token: Mask token from the tokenizer
+      num_samples: Number of samples to take.
+      seed: A seed value for the random seed.
+    """
+    self._autorun: bool = autorun
+    self._class_index: str = str(class_index)
+    self._kernel_width: str = str(kernel_width)
+    self._mask_token: str = mask_token
+    self._num_samples: str = str(num_samples)
+    self._seed: str = str(seed) if seed is not None else ''
 
   def run(
       self,
-      inputs: List[JsonDict],
+      inputs: list[JsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
-      model_outputs: Optional[List[JsonDict]] = None,
+      model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None,
-  ) -> Optional[List[JsonDict]]:
+  ) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))  # update and return
@@ -171,10 +194,7 @@ class LIME(lit_components.Interpreter):
     logging.info('Found text fields for LIME attribution: %s', str(text_keys))
 
     # Find the key of output probabilities field(s).
-    pred_keys = utils.find_spec_keys(
-        model.output_spec(),
-        (types.MulticlassPreds, types.RegressionScore,
-         types.SparseMultilabelPreds))
+    pred_keys = utils.find_spec_keys(model.output_spec(), _SUPPORTED_PRED_TYPES)
     if not pred_keys:
       logging.warning('LIME did not find any supported output fields.')
       return None
@@ -196,9 +216,6 @@ class LIME(lit_components.Interpreter):
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
         input_string = input_[text_key]
-        if not input_string:
-          logging.info('Could not explain empty string for %s', text_key)
-          continue
         logging.info('Explaining: %s', input_string)
 
         # Perturbs the input string, gets model predictions, fits linear model.
@@ -218,31 +235,32 @@ class LIME(lit_components.Interpreter):
         scores = explanation.feature_importance
         # TODO(lit-dev): Move score normalization to the UI.
         scores = citrus_util.normalize_scores(scores)
-        result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
+        result[text_key] = dtypes.TokenSalience(explanation.features, scores)
 
       all_results.append(result)
 
     return all_results
 
   def config_spec(self) -> types.Spec:
-    matcher_types = ['MulticlassPreds', 'SparseMultilabelPreds',
-                     'RegressionScore']
+    matcher_types = [
+        'MulticlassPreds', 'SparseMultilabelPreds', 'RegressionScore'
+    ]
     return {
-        TARGET_HEAD_KEY: types.FieldMatcher(spec='output', types=matcher_types),
-        CLASS_KEY: types.TextSegment(default='-1'),
-        MASK_KEY: types.TextSegment(default='[MASK]'),
-        KERNEL_WIDTH_KEY: types.TextSegment(default='256'),
-        NUM_SAMPLES_KEY: types.TextSegment(default='256'),
-        SEED_KEY: types.TextSegment(default=''),
+        TARGET_HEAD_KEY:
+            types.SingleFieldMatcher(spec='output', types=matcher_types),
+        CLASS_KEY: types.TextSegment(default=self._class_index),
+        MASK_KEY: types.TextSegment(default=self._mask_token),
+        KERNEL_WIDTH_KEY: types.TextSegment(default=self._kernel_width),
+        NUM_SAMPLES_KEY: types.TextSegment(default=self._num_samples),
+        SEED_KEY: types.TextSegment(default=self._seed),
     }
 
-  def is_compatible(self, model: lit_model.Model):
-    text_keys = utils.find_spec_keys(model.input_spec(), types.TextSegment)
-    pred_keys = utils.find_spec_keys(
-        model.output_spec(),
-        (types.MulticlassPreds, types.RegressionScore,
-         types.SparseMultilabelPreds))
-    return len(text_keys) and len(pred_keys)
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model
+    text_keys = utils.spec_contains(model.input_spec(), types.TextSegment)
+    pred_keys = utils.spec_contains(model.output_spec(), _SUPPORTED_PRED_TYPES)
+    return text_keys and pred_keys
 
   def meta_spec(self) -> types.Spec:
-    return {'saliency': types.TokenSalience(autorun=False, signed=True)}
+    return {'saliency': types.TokenSalience(autorun=self._autorun, signed=True)}

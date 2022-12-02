@@ -7,16 +7,8 @@
   outline: none;
 }
 
-.toolbar-container {
-  padding: 2pt 0;
-  justify-content: space-between;
-  position: absolute
-}
-
-.flex-row {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+.hidden-container {
+  display: none;
 }
 
 .container {
@@ -25,9 +17,12 @@
   overflow: hidden;
 }
 
-.selected-nearest-button {
-  margin-top: 10px;
-}
+/* *
+ * TODO(https://github.com/PAIR-code/scatter-gl/issues/113): Remove when fixed.
+ */
+.module-results-area {overflow: hidden}
+
+.module-footer > * { min-width: 0; }
 
 .selected-nearest-button:disabled {
   pointer-events: auto;

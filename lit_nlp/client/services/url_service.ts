@@ -17,10 +17,11 @@
 
 import {autorun} from 'mobx';
 
-import {defaultValueByField, IndexedInput, Input, listFieldTypes, ServiceUser, Spec} from '../lib/types';
-import {isLitSubtype} from '../lib/utils';
+import {ListLitType} from '../lib/lit_types';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitMetadata, ServiceUser, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
+import {ApiService} from './services';
 
 /**
  * Interface for reading/storing app configuration from/to the URL.
@@ -30,6 +31,7 @@ export class UrlConfiguration {
   selectedTabLower?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
+  pinnedSelectedData?: string;
   primarySelectedData?: string;
   /**
    * For datapoints that are not in the original dataset, the fields
@@ -44,6 +46,9 @@ export class UrlConfiguration {
   layoutName?: string;
   /** Path to load a new dataset from, on pageload. */
   newDatasetPath?: string;
+  documentationOpen?: boolean;
+  colorBy?: string;
+  savedDatapointsId?: string;
 }
 
 /**
@@ -60,6 +65,9 @@ export interface StateObservedByUrlService {
   getCurrentInputDataById: (id: string) => IndexedInput | null;
   annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
+  documentationOpen: boolean;
+  layouts: {[name: string]: LitCanonicalLayout};
+  metadata: LitMetadata;
 }
 
 /**
@@ -83,18 +91,29 @@ export interface SelectionObservedByUrlService {
   selectIds: (ids: string[], user: ServiceUser) => void;
 }
 
+/**
+ * Interface describing how the ColorService is synced to the URL service
+ */
+ export interface ColorObservedByUrlService {
+  selectedColorOptionName: string;
+  setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
+ }
+
 const SELECTED_TAB_UPPER_KEY = 'upper_tab';
 const SELECTED_TAB_LOWER_KEY = 'tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
+const PINNED_SELECTED_DATA_KEY = 'pinned';
 const SELECTED_DATASET_KEY = 'dataset';
 const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
-const COMPARE_EXAMPLES_ENABLED_KEY = 'compare_data_mode';
+const DOC_OPEN_KEY = 'doc_open';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
 /** Path to load a new dataset from, on pageload. */
 const NEW_DATASET_PATH = 'new_dataset_path';
+const COLOR_BY_KEY = 'color_by';
+const SAVED_DATAPOINTS_ID = 'saved_datapoints_id';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
@@ -112,6 +131,10 @@ const parseDataFieldKey = (key: string) => {
  * a url.
  */
 export class UrlService extends LitService {
+  constructor(private readonly apiService: ApiService) {
+    super();
+  }
+
   /** Parse arrays in a url param, filtering out empty strings */
   private urlParseArray(encoded: string) {
     if (encoded == null) {
@@ -135,7 +158,7 @@ export class UrlService extends LitService {
   private parseDataFieldValue(fieldKey: string, encoded: string, spec: Spec) {
     const fieldSpec = spec[fieldKey];
     // If array type, unpack as an array.
-    if (isLitSubtype(fieldSpec, listFieldTypes)) {
+    if (fieldSpec instanceof ListLitType) {
       return this.urlParseArray(encoded);
     } else {  // String-like.
       return this.urlParseString(encoded) ??
@@ -154,12 +177,14 @@ export class UrlService extends LitService {
         urlConfiguration.selectedData = this.urlParseArray(value);
       } else if (key === PRIMARY_SELECTED_DATA_KEY) {
         urlConfiguration.primarySelectedData = this.urlParseString(value);
+      } else if (key === PINNED_SELECTED_DATA_KEY) {
+        urlConfiguration.pinnedSelectedData = this.urlParseString(value);
       } else if (key === SELECTED_DATASET_KEY) {
         urlConfiguration.selectedDataset = this.urlParseString(value);
       } else if (key === HIDDEN_MODULES_KEY) {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
-      } else if (key === COMPARE_EXAMPLES_ENABLED_KEY) {
-        urlConfiguration.compareExamplesEnabled = this.urlParseBoolean(value);
+      } else if (key === DOC_OPEN_KEY) {
+        urlConfiguration.documentationOpen = this.urlParseBoolean(value);
       } else if (key === SELECTED_TAB_UPPER_KEY) {
         urlConfiguration.selectedTabUpper = this.urlParseString(value);
       } else if (key === SELECTED_TAB_LOWER_KEY) {
@@ -168,6 +193,8 @@ export class UrlService extends LitService {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
         urlConfiguration.newDatasetPath = this.urlParseString(value);
+      } else if (key === SAVED_DATAPOINTS_ID) {
+        urlConfiguration.savedDatapointsId = this.urlParseString(value);
       } else if (key.startsWith(DATA_FIELDS_KEY_SUBSTRING)) {
         const {fieldKey, dataIndex}: {fieldKey: string, dataIndex: number} =
             parseDataFieldKey(key);
@@ -185,6 +212,8 @@ export class UrlService extends LitService {
               `Warning, data index ${dataIndex} is set more than once.`);
         }
         urlConfiguration.dataFields[dataIndex][fieldKey] = value;
+      } else if (key === COLOR_BY_KEY) {
+        urlConfiguration.colorBy = this.urlParseString(value);
       }
     }
     return urlConfiguration;
@@ -221,28 +250,36 @@ export class UrlService extends LitService {
    */
   syncStateToUrl(
       appState: StateObservedByUrlService,
+      modulesService: ModulesObservedByUrlService,
       selectionService: SelectionObservedByUrlService,
-      modulesService: ModulesObservedByUrlService) {
+      pinnedSelectionService: SelectionObservedByUrlService,
+      colorService: ColorObservedByUrlService) {
     const urlConfiguration = this.getConfigurationFromUrl();
     appState.setUrlConfiguration(urlConfiguration);
     modulesService.setUrlConfiguration(urlConfiguration);
+    colorService.setUrlConfiguration(urlConfiguration);
 
     const urlSelectedIds = urlConfiguration.selectedData || [];
     selectionService.selectIds(urlSelectedIds, this);
 
-    // TODO(lit-dev) Add compared examples to URL parameters.
-    // Only enable compare example mode if both selections and compare mode
-    // exist in URL.
-    if (selectionService.selectedIds.length > 0 &&
-        urlConfiguration.compareExamplesEnabled) {
-      appState.compareExamplesEnabled = true;
+    if (urlConfiguration.pinnedSelectedData) {
+      const {pinnedSelectedData} = urlConfiguration;
+      pinnedSelectionService.selectIds([pinnedSelectedData], this);
     }
+
+    appState.documentationOpen = urlConfiguration.documentationOpen || false;
 
     autorun(() => {
       const urlParams = new URLSearchParams();
 
+      // Check if layoutName is valid. If not, set it to the default layout
+      if (!(appState.layoutName in appState.layouts)) {
+        console.log("Invalid value for layout param:", appState.layoutName);
+        appState.layoutName = appState.metadata.defaultLayout;
+      }
       // Syncing app state
       this.setUrlParam(urlParams, SELECTED_MODELS_KEY, appState.currentModels);
+
       if (selectionService.selectedIds.length <= MAX_IDS_IN_URL_SELECTION) {
         this.setUrlParam(
             urlParams, SELECTED_DATA_KEY, selectionService.selectedIds);
@@ -253,12 +290,19 @@ export class UrlService extends LitService {
           this.setDataFieldURLParams(urlParams, id, appState);
         }
       }
+
+      if (pinnedSelectionService.primarySelectedId) {
+        const id = pinnedSelectionService.primarySelectedId;
+        this.setUrlParam(urlParams, PINNED_SELECTED_DATA_KEY, id);
+        this.setDataFieldURLParams(urlParams, id, appState);
+      }
+
       this.setUrlParam(
           urlParams, SELECTED_DATASET_KEY, appState.currentDataset);
 
-      this.setUrlParam(
-          urlParams, COMPARE_EXAMPLES_ENABLED_KEY,
-          appState.compareExamplesEnabled ? 'true' : 'false');
+      if (appState.documentationOpen) {
+        this.setUrlParam(urlParams, DOC_OPEN_KEY, 'true');
+      }
 
       // Syncing hidden modules
       this.setUrlParam(
@@ -269,6 +313,9 @@ export class UrlService extends LitService {
           urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
       this.setUrlParam(
           urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
+
+      this.setUrlParam(urlParams, COLOR_BY_KEY,
+          colorService.selectedColorOptionName);
 
       if (urlParams.toString() !== '') {
         const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
@@ -307,20 +354,27 @@ export class UrlService extends LitService {
       };
       return datum;
     });
-    // If there are data fields set in the url, make new datapoints
-    // from them and select all passed data points.
-    // TODO(b/185155960) Allow specifying selection for passed examples in url.
+
     if (dataToAdd.length > 0) {
+      // If there are data fields set in the url, make new datapoints
+      // from them and select all passed data points.
+      // TODO(b/185155960) Allow specifying selection for passed examples in url
       const data = await appState.annotateNewData(dataToAdd);
       appState.commitNewDatapoints(data);
       selectionService.selectIds(data.map((d) => d.id), this);
-    }
-    // Otherwise, use the primary selected datapoint url param directly.
-    else {
+    } else {
+      // Otherwise, use the primary selected datapoint url param directly.
       const id = urlConfiguration.primarySelectedData;
       if (id !== undefined) {
         selectionService.setPrimarySelection(id, this);
       }
+    }
+
+    if (urlConfiguration.savedDatapointsId != null) {
+      const dataResponse = await this.apiService.fetchNewData(
+          urlConfiguration.savedDatapointsId);
+      appState.commitNewDatapoints(dataResponse);
+      selectionService.selectIds(dataResponse.map((d) => d.id), this);
     }
   }
 }

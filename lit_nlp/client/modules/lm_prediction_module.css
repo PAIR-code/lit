@@ -6,6 +6,7 @@
 
 .module-toolbar {
   justify-content: space-between;
+  border-bottom: 1px solid rgb(218, 220, 224);
 }
 
 .mode-info {
@@ -68,3 +69,11 @@
   margin: 2px;
 }
 
+.flex-holder {
+  display: flex;
+}
+
+.add-icon-button {
+  margin-top: 6px;
+  margin-right: 4px;
+}

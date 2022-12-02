@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Counterfactual explanations using linear model."""
 
 import copy
-from typing import Any, List, Optional, Text, Dict, Sequence, Iterable
+from typing import Any, Optional, Sequence, Iterable
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -33,7 +32,7 @@ JsonDict = types.JsonDict
 Spec = types.Spec
 
 
-def new_example(original_example: JsonDict, field: Text, new_value: Any):
+def new_example(original_example: JsonDict, field: str, new_value: Any):
   """Deep copies the example and replaces `field` with `new_value`."""
   example = copy.deepcopy(original_example)
   example[field] = new_value
@@ -42,7 +41,7 @@ def new_example(original_example: JsonDict, field: Text, new_value: Any):
 
 # TODO(lit-dev): Change to calling the CachingModelWrapper for predictions
 # instead of using a Dict with the prediction values.
-def make_predict_fn(counterfactuals: Dict[str, Sequence[float]]):
+def make_predict_fn(counterfactuals: dict[str, Sequence[float]]):
   """Makes a predict function that returns pre-computed predictions.
 
   Since LIT already has cached predictions for the counterfactuals, this mapping
@@ -68,14 +67,20 @@ class LEMON(lit_components.Interpreter):
   def __init__(self):
     pass
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model
+    return utils.spec_contains(model.input_spec(), types.TextSegment)
+
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
-    if not inputs: return
+    if not (inputs and config):
+      return None
 
     # Find keys of input (text) segments to explain.
     # Search in the input spec, since it's only useful to look at ones that are
@@ -86,12 +91,16 @@ class LEMON(lit_components.Interpreter):
       return None
     logging.info('Found text fields for LEMON attribution: %s', str(text_keys))
 
-    pred_key = config['pred_key']
+    pred_key = config.get('pred_key')
+    if not pred_key:
+      logging.error('LEMON requires a "pred_key" field in its config')
+      return None
+
     output_probs = np.array([output[pred_key] for output in model_outputs])
 
     # Explain the input given counterfactuals.
 
-    # Dict[field name -> interpretations]
+    # dict[field name -> interpretations]
     result = {}
 
     # Explain each text segment in the input, keeping the others constant.
@@ -121,7 +130,6 @@ class LEMON(lit_components.Interpreter):
 
       # Normalize feature values.
       scores = citrus_utils.normalize_scores(scores)
-
-      result[text_key] = dtypes.TokenSalience(input_string.split(), scores)
+      result[text_key] = dtypes.TokenSalience(explanation.features, scores)
 
     return [result]

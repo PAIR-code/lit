@@ -1,4 +1,3 @@
-# Lint as: python3
 """Language modeling datasets."""
 
 import glob

@@ -29,12 +29,12 @@
     "allowUnreachableCode": false,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noImplicitThis": true,
     "strictBindCallApply": true,
     "strictFunctionTypes": true,
-    "strictNullChecks": true,
-    "strictPropertyInitialization": true
+    "strictNullChecks": false,
+    "strictPropertyInitialization": false
   },
   "include": ["./client", "./examples"],
   "compileOnSave": false

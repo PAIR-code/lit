@@ -18,8 +18,9 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, toJS} from 'mobx';
 
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, LitType, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
+import {FieldMatcher, ImageBytes} from '../lib/lit_types';
+import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {getTypes, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -31,6 +32,8 @@ type Id = string;
 type DatasetName = string;
 type IndexedInputMap = Map<Id, IndexedInput>;
 
+/** Function type to get callbacks for newly added datapoints. **/
+export type NewDatapointsFn = (datapoints: IndexedInput[]) => void;
 
 /**
  * App state singleton, responsible for coordinating shared state between
@@ -50,11 +53,17 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @observable initialized = false;
 
+  @observable documentationOpen = false;
+  // TODO(b/204677206): While cleaning up console warnings, find a better way to
+  // initialize the app so that we don't need this non-null assertion here
+  // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled: boolean = false;
   @observable layoutName!: string;
   @observable layouts: {[name: string]: LitCanonicalLayout} = {};
+  private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
+
   @computed
   get layout(): LitCanonicalLayout {
     return this.layouts[this.layoutName];
@@ -91,7 +100,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @computed
   get datasetHasImages(): boolean {
-    return findSpecKeys(this.currentDatasetSpec, 'ImageBytes').length > 0;
+    return findSpecKeys(this.currentDatasetSpec, ImageBytes).length > 0;
   }
 
   @observable
@@ -224,14 +233,14 @@ export class AppState extends LitService implements StateObservedByUrlService {
   /**
    * Get the spec keys matching the info from the provided FieldMatcher.
    */
-  getSpecKeysFromFieldMatcher(matcher: LitType, modelName: string) {
+  getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
       spec = this.currentModelSpecs[modelName].spec.output;
     } else if (matcher.spec === 'input') {
       spec = this.currentModelSpecs[modelName].spec.input;
     }
-    return findSpecKeys(spec, matcher.types!);
+    return findSpecKeys(spec, getTypes(matcher.types));
   }
 
   //=================================== Generation logic
@@ -245,6 +254,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return this.apiService.annotateNewData(data, this.currentDataset);
   }
 
+  addNewDatapointsCallback(callback: NewDatapointsFn) {
+    this.newDatapointsCallbacks.push(callback);
+  }
 
   /**
    * Atomically commit new datapoints to the active dataset.
@@ -254,18 +266,23 @@ export class AppState extends LitService implements StateObservedByUrlService {
    */
   @action
   commitNewDatapoints(datapoints: IndexedInput[]) {
-    datapoints.forEach(entry => {
+    const committedDatapoints: IndexedInput[] = [];
+    for (const entry of datapoints) {
       // If the new datapoint already exists in the input data, do not overwrite
       // it with this new copy, as that will cause issues with datapoint parent
       // tracking (an infinite loop of parent pointers).
       if (this.currentInputDataById.has(entry.id)) {
         console.log(
             'Attempted to add existing datapoint, ignoring add request.',
-            entry);
+            toJS(entry));
       } else {
         this.currentInputDataById.set(entry.id, entry);
+        committedDatapoints.push(entry);
       }
-    });
+    }
+    for (const callback of this.newDatapointsCallbacks) {
+      callback(datapoints);
+    }
   }
 
 
@@ -278,23 +295,22 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   @action
   async initialize() {
+    // TODO(b/160480922) Move away from AppState being the source of truth for
+    // URL configuration data.
     const {urlConfiguration} = this;
     console.log('[LIT - url configuration]', urlConfiguration);
-
-    const info = await this.apiService.getInfo();
-    console.log('[LIT - metadata]', toJS(info));
-    this.metadata = info;
     // Add any custom layouts that were specified in Python.
     this.addLayouts(this.metadata.layouts);
     this.layoutName = urlConfiguration.layoutName || this.metadata.defaultLayout;
 
+    // TODO(b/160480922) Move away from AppState being the source of truth for
+    // URL configuration data.
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
     this.setCurrentDataset(
         await this.determineCurrentDatasetFromUrl(urlConfiguration),
         /** should Load Data */ false);
 
     await this.loadData();
-
     this.initialized = true;
   }
 
@@ -391,5 +407,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
   getUrlConfiguration() {
     return this.urlConfiguration;
+  }
+
+  /**
+   * Get best URL for this server.
+   */
+  getBestURL() {
+    const urlBase = (this.metadata.canonicalURL || window.location.origin);
+    return new URL(`${urlBase}${window.location.search}`).href;
   }
 }

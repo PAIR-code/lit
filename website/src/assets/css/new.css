@@ -544,7 +544,9 @@ h5 {
   margin-bottom: 20px;
 }
 
-.info-box-text, .info-box-text p {
+.info-box-text,
+.info-box-text p,
+.info-box-text ul {
   font-family: "Open Sans";
   font-style: normal;
   font-weight: normal;

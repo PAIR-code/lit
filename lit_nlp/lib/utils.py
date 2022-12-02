@@ -12,16 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Miscellaneous helper functions."""
 
-import copy
 import itertools
 import queue
 import threading
 import time
-
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
+import uuid
+import numpy as np
 
 T = TypeVar('T')
 K = TypeVar('K')
@@ -54,11 +53,9 @@ def filter_by_keys(d: Dict[K, V], predicate: Callable[[K], bool]) -> Dict[K, V]:
   return {k: v for k, v in d.items() if predicate(k)}
 
 
-def copy_and_update(d: Dict[K, Any], patch: Dict[K, Any]) -> Dict[K, Any]:
-  """Make a copy of d and apply the patch to a subset of fields."""
-  ret = copy.copy(d)
-  ret.update(patch)
-  return ret
+def spec_contains(d: dict[str, Any], types) -> bool:
+  """Returns true if the spec contains any field with one of these types."""
+  return bool(find_spec_keys(d, types))
 
 
 def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
@@ -171,6 +168,29 @@ def find_all_combinations(l: List[Any], min_element_count: int,
   for element_count in range(min_element_count, max_element_count + 1):
     result.extend(list(x) for x in itertools.combinations(l, element_count))
   return result
+
+
+def coerce_real(vals: np.ndarray, limit=0.0001):
+  """Return a copy of the array with only the real numbers, with a check.
+
+  If any of the imaginary part of a value is greater than the provided limit,
+  then assert an error.
+
+  Args:
+    vals: The array to convert
+    limit: The limit above which any imaginary part of a value causes an error.
+
+  Returns:
+    The array with only the real portions of the numbers.
+  """
+  assert np.all(np.imag(vals) < limit), (
+      'Array contains imaginary part out of acceptable limits.')
+  return np.real(vals)
+
+
+def get_uuid():
+  """Return a randomly-generated UUID hex string."""
+  return uuid.uuid4().hex
 
 
 class TaskQueue(queue.Queue):

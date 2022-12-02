@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Simple scrambling test generator."""
 
 import copy
 import random
-from typing import List, Text, Optional
+from typing import Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -30,14 +29,14 @@ JsonDict = types.JsonDict
 FIELDS_TO_SCRAMBLE_KEY = 'Fields to scramble'
 
 
+def _scramble(val: str) -> str:
+  words = val.split(' ')
+  random.shuffle(words)
+  return ' '.join(words)
+
+
 class Scrambler(lit_components.Generator):
   """Scramble all words in an example to generate a new example."""
-
-  @staticmethod
-  def scramble(val: Text) -> Text:
-    words = val.split(' ')
-    random.shuffle(words)
-    return ' '.join(words)
 
   def config_spec(self) -> types.Spec:
     return {
@@ -48,11 +47,16 @@ class Scrambler(lit_components.Generator):
                 select_all=True),
     }
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del model  # Unused by Scrambler
+    return utils.spec_contains(dataset.spec(), types.TextSegment)
+
   def generate(self,
                example: JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Naively scramble all words in an example.
 
     Note: Even if more than one field is to be scrambled, only a single example
@@ -79,13 +83,15 @@ class Scrambler(lit_components.Generator):
 
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
-    text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
+    text_keys = [
+        key for key in utils.find_spec_keys(dataset.spec(), types.TextSegment)
+        if key in fields_to_scramble
+    ]
+
     if not text_keys:
       return []
 
-    text_keys = [key for key in text_keys if key in fields_to_scramble]
-
     new_example = copy.deepcopy(example)
     for text_key in text_keys:
-      new_example[text_key] = self.scramble(example[text_key])
+      new_example[text_key] = _scramble(example[text_key])
     return [new_example]

@@ -12,146 +12,74 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Metric component and implementations."""
 
-import abc
 import collections
-import numbers
-from typing import cast, Dict, List, Sequence, Tuple, Text, Optional, Callable, Any, Union
+from typing import Any, Callable, Optional, Sequence, Union, cast
 
 from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
-from lit_nlp.lib import utils
+from lit_nlp.components import classification_results
 import numpy as np
 import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
 
+from rouge_score import rouge_scorer
+
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
+LitType = types.LitType
 Spec = types.Spec
-
-BLEU_SMOOTHING_VAL = 0.1
 
 
 def map_pred_keys(
-    data_spec: lit_model.Spec, model_output_spec: lit_model.Spec,
-    predicate: Callable[[types.LitType], bool]) -> Dict[Text, Text]:
-  """Find output fields matching predicate, and return a mapping to input fields."""
+    data_spec: Spec, model_output_spec: Spec,
+    predicate: Callable[[LitType, Optional[LitType]], bool]) -> dict[str, str]:
+  """Returns a map of compatible output fields and their parent input fields."""
   ret = {}
-  for pred_key in utils.find_keys(model_output_spec, predicate):
-    pred_field_spec = model_output_spec[pred_key]
-    label_key = getattr(pred_field_spec, 'parent', None)
-    if label_key is None:
-      logging.warning("Pred key '%s' has no parent field. Skipping.", pred_key)
-      continue  # skip fields with no pointer
-    if label_key not in data_spec:
-      # This may be intentional, if running on unlabeled data.
-      logging.warning(
-          "Pred key '%s' points to missing label field '%s'. Skipping.",
-          pred_key, label_key)
+  for pred_key, pred_spec in model_output_spec.items():
+    parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
+    if parent_key is None:
+      logging.info("Skipping '%s': No parent provided.", pred_key)
       continue
-    ret[pred_key] = label_key
+
+    parent_spec: Optional[LitType] = data_spec.get(parent_key)
+    if predicate(pred_spec, parent_spec):
+      ret[pred_key] = parent_key
+    else:
+      logging.info("Skipping '%s': incompatible parent '%s'.", pred_key,
+                   parent_key)
+      continue
   return ret
 
 
-def get_margin_for_input(margin_config: Optional[JsonDict] = None,
-                         inp: Optional[JsonDict] = None):
-  """Get margin given a margin config and input example."""
-  if not margin_config:
-    return 0
-
-  for margin_entry in margin_config.values():
-    facet_info = (margin_entry['facetData']['facets']
-                  if 'facetData' in margin_entry else {})
-    match = True
-    if inp:
-      for feat, facet_info in facet_info.items():
-        value = facet_info['val']
-        if (isinstance(inp[feat], numbers.Number) and
-            not isinstance(inp[feat], bool)):
-          # If the facet is a numeric range string, extract the min and max
-          # and check the value against that range.
-          min_val = value[0]
-          max_val = value[1]
-          if not (inp[feat] >= min_val and inp[feat] < max_val):
-            match = False
-        # If the facet is a standard value, check the feature value for
-        # equality to it.
-        elif inp[feat] != value:
-          match = False
-    if match:
-      return margin_entry['margin']
-  return 0
+def nan_to_none(metrics: dict[str, float]) -> dict[str, Optional[float]]:
+  # NaN is not a valid JSON value, so replace with None which will be
+  # serialized as null.
+  # TODO(lit-dev): consider moving this logic to serialize.py?
+  return {k: (v if not np.isnan(v) else None) for k, v in metrics.items()}
 
 
-def get_classifications(
-    preds: Sequence[np.ndarray], pred_spec: types.MulticlassPreds,
-    margin_config: Optional[Sequence[float]] = None) -> Sequence[int]:
-  """Get classified indices given prediction scores and configs."""
-  # If there is a margin set for the prediction, take the log of the prediction
-  # scores and add the margin to the null indexes value before taking argmax
-  # to find the predicted class.
-  if margin_config is not None:
-    multiclass_pred_spec = cast(types.MulticlassPreds, pred_spec)
-    null_idx = multiclass_pred_spec.null_idx
-    pred_idxs = []
-    for p, margin in zip(preds, margin_config):
-      logit_mask = margin * np.eye(len(multiclass_pred_spec.vocab))[null_idx]
-      pred_idx = np.argmax(np.log(p) + logit_mask)
-      pred_idxs.append(pred_idx)
-  else:
-    pred_idxs = [np.argmax(p) for p in preds]
-  return pred_idxs
-
-
-class SimpleMetrics(lit_components.Interpreter):
-  """Base class for simple metrics, which should render in the main metrics table."""
-
-  @abc.abstractmethod
-  def is_compatible(self, field_spec: types.LitType) -> bool:
-    """Return true if compatible with this field."""
-    pass
-
-  def compute(self,
-              labels: Sequence[Any],
-              preds: Sequence[Any],
-              label_spec: types.LitType,
-              pred_spec: types.LitType,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """Compute metric(s) between labels and predictions."""
-    raise NotImplementedError(
-        'Subclass should implement this, or override compute_with_metadata() directly.'
-    )
-
-  def compute_with_metadata(
-      self,
-      labels: Sequence[Any],
-      preds: Sequence[Any],
-      label_spec: types.LitType,
-      pred_spec: types.LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """As compute(), but has access to indices and metadata."""
-    return self.compute(labels, preds, label_spec, pred_spec, config)
+class SimpleMetrics(lit_components.Metrics):
+  """Base class for built-in metrics rendered in the main metrics table."""
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: Sequence[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
+          model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     if model_outputs is None:
       model_outputs = list(model.predict(inputs))
 
     spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output, self.is_compatible)
+    field_map = map_pred_keys(dataset.spec(), spec.output,
+                              self.is_field_compatible)
     ret = []
     for pred_key, label_key in field_map.items():
       # Extract fields
@@ -164,17 +92,11 @@ class SimpleMetrics(lit_components.Interpreter):
           label_spec=dataset.spec()[label_key],
           pred_spec=spec.output[pred_key],
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -182,8 +104,8 @@ class SimpleMetrics(lit_components.Interpreter):
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[List[JsonDict]] = None,
-                        config: Optional[JsonDict] = None) -> List[JsonDict]:
+                        model_outputs: Optional[list[JsonDict]] = None,
+                        config: Optional[JsonDict] = None) -> list[JsonDict]:
     if model_outputs is None:
       model_outputs = list(model.predict_with_metadata(indexed_inputs))
 
@@ -191,7 +113,8 @@ class SimpleMetrics(lit_components.Interpreter):
     # This would require passing a model name to this function so we can
     # reference a pre-computed list.
     spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output, self.is_compatible)
+    field_map = map_pred_keys(dataset.spec(), spec.output,
+                              self.is_field_compatible)
     ret = []
     for pred_key, label_key in field_map.items():
       # Extract fields
@@ -208,17 +131,11 @@ class SimpleMetrics(lit_components.Interpreter):
           indices=indices,
           metas=metas,
           config=config.get(pred_key) if config else None)
-      # NaN is not a valid JSON value, so replace with None which will be
-      # serialized as null.
-      # TODO(lit-team): move this logic into serialize.py somewhere instead?
-      metrics = {
-          k: (v if not np.isnan(v) else None) for k, v in metrics.items()
-      }
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
           'label_key': label_key,
-          'metrics': metrics
+          'metrics': nan_to_none(metrics)
       })
     return ret
 
@@ -235,24 +152,36 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
   def __init__(self, metrics: SimpleMetrics):
     self._metrics = metrics
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    """Metrics should always return false for Model-level compatibility."""
+    return self._metrics.is_compatible(model, dataset)
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return self._metrics.is_compatible(field_spec)
+    return self._metrics.is_field_compatible(pred_spec, parent_spec)
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return self._metrics.meta_spec()
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
+          model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
     field_map = map_pred_keys(dataset.spec(),
-                              model.spec().output, self.is_compatible)
+                              model.spec().output, self.is_field_compatible)
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
     return self._metrics.run(inputs, model, dataset, model_outputs,
                              margin_config)
@@ -261,40 +190,92 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                         indexed_inputs: Sequence[IndexedInput],
                         model: lit_model.Model,
                         dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[List[JsonDict]] = None,
-                        config: Optional[JsonDict] = None) -> List[JsonDict]:
+                        model_outputs: Optional[list[JsonDict]] = None,
+                        config: Optional[JsonDict] = None) -> list[JsonDict]:
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(
-        dataset.spec(), model.spec().output, self.is_compatible)
+    field_map = map_pred_keys(dataset.spec(),
+                              model.spec().output, self.is_field_compatible)
     margin_config = {}
     for pred_key in field_map:
       inputs = [ex['data'] for ex in indexed_inputs]
       field_config = config.get(pred_key) if config else None
-      margins = [get_margin_for_input(field_config, inp) for inp in inputs]
+      margins = [
+          classification_results.get_margin_for_input(field_config, inp)
+          for inp in inputs
+      ]
       margin_config[pred_key] = margins
-    return self._metrics.run_with_metadata(
-        indexed_inputs, model, dataset, model_outputs, margin_config)
+    return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
+                                           model_outputs, margin_config)
 
 
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.RegressionScore)
+    del parent_spec
+    return isinstance(pred_spec, types.RegressionScore)
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'mse': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='Mean squared error: Estimates the mean of the '
+                        'square of the differences between the estimated value '
+                        'and the actual value. Closer to 0 is better.'),
+        'pearsonr': types.MetricResult(
+            description="Pearson's R: Measures the linear correlation between "
+                        "the estimated value and the actual value. Values "
+                        "closer to 1 indicate a strong positive correlation "
+                        "and values closee to -1 indicate a strong negative "
+                        "correlation."),
+        'spearmanr': types.MetricResult(
+            description="Spearman's Rho: Measures the rank correlation between "
+                        "the estimated and actual values. Values closer to 1 "
+                        "indicate a strong positive correlation and values "
+                        "closer to -1 indicate a strong negative correlation."),
+    }
 
   def compute(self,
               labels: Sequence[float],
               preds: Sequence[float],
-              label_spec: types.Scalar,
-              pred_spec: types.RegressionScore,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """Compute metric(s) between labels and predictions."""
+              label_spec: LitType,
+              pred_spec: LitType,
+              config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute the MSE and Pearson's & Spearman's R for regression predictions.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted regression scores, aligned with `labels`.
+      label_spec: A Scalar spec for the model's label field.
+      pred_spec: A RegressionScore spec for the model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the mean squared error (key=`mse`), Pearson's R
+      (key=`pearsonr`) and Spearmean's R (key=`spearmanr`) for each prediction.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `label_spec` is not a `Scalar` or `pred_spec` is not a
+        `RegressionScore`. Note overriding the type information in the method
+        signature will produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del config
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(label_spec, types.Scalar):
+      raise TypeError('label_spec must be a Scalar, received '
+                      f'{type(label_spec).__name__}')
+
+    if not isinstance(pred_spec, types.RegressionScore):
+      raise TypeError('pred_spec must be a RegressionScore, received '
+                      f'{type(pred_spec).__name__}')
 
     mse = sklearn_metrics.mean_squared_error(labels, preds)
     if len(labels) < 2:  # Check if only one point selected.
@@ -310,15 +291,20 @@ class MulticlassMetricsImpl(SimpleMetrics):
 
   def get_all_metrics(self,
                       y_true: Sequence[int],
-                      y_pred: Sequence[int],
-                      vocab: Sequence[Text],
+                      y_pred_probs: Sequence[np.ndarray],
+                      pred_spec: types.MulticlassPreds,
+                      config: Optional[JsonDict] = None,
                       null_idx: Optional[int] = None):
+
     # Filter out unlabeled examples before calculating metrics.
     total_len = len(y_true)
     labeled_example_indices = [
         index for index, y in enumerate(y_true) if y != -1
     ]
     y_true = [y_true[i] for i in labeled_example_indices]
+    y_pred_probs = [y_pred_probs[i] for i in labeled_example_indices]
+    y_pred = classification_results.get_classifications(y_pred_probs, pred_spec,
+                                                        config)
     y_pred = [y_pred[i] for i in labeled_example_indices]
 
     ret = collections.OrderedDict()
@@ -329,7 +315,9 @@ class MulticlassMetricsImpl(SimpleMetrics):
     # null_idx as the negative / "other" class.
     if null_idx is not None:
       # Note: labels here are indices.
-      labels: List[int] = [i for i in range(len(vocab)) if i != null_idx]
+      labels: list[int] = [
+          i for i in range(len(pred_spec.vocab)) if i != null_idx
+      ]
       ret['precision'] = sklearn_metrics.precision_score(
           y_true, y_pred, labels=labels, average='micro')
       ret['recall'] = sklearn_metrics.recall_score(
@@ -337,22 +325,89 @@ class MulticlassMetricsImpl(SimpleMetrics):
       ret['f1'] = sklearn_metrics.f1_score(
           y_true, y_pred, labels=labels, average='micro')
 
+      # The target type used in computing metrics will be 'binary'.
+      # Reshape predictions to only include those of the positive class.
+      if len(pred_spec.vocab) == 2:
+        y_score = [1 - p[null_idx] for p in y_pred_probs
+                  ]  # <float[]>[num_examples]
+
+        y_true_indicators = [y != null_idx for y in y_true]
+        # AUC is not defined when there is only 1 unique class.
+        if len(np.unique(y_true)) > 1:
+          ret['auc'] = sklearn_metrics.roc_auc_score(
+              y_true_indicators, y_score, average='micro')
+        ret['aucpr'] = sklearn_metrics.average_precision_score(
+            y_true_indicators, y_score, average='micro')
+
     if len(labeled_example_indices) != total_len:
       ret['num_missing_labels'] = total_len - len(labeled_example_indices)
 
     return ret
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.MulticlassPreds)
+    del parent_spec
+    return isinstance(pred_spec, types.MulticlassPreds)
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'accuracy': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct labels predicted by the '
+                        'model. Closer to 1 is better.'),
+        'precision': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct predictions for this class '
+                        'out of all predictions of this class. Closer to 1 is '
+                        'better.'),
+        'recall': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of correct predictions for this class '
+                        'out of all datapoints in this class. Closer to 1 is '
+                        'better.'),
+        'f1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The performance of the model as the harmonic mean of '
+                        'precision and recall. Closer to 1 is better.'),
+        'auc': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='Area under the ROC curve. Closer to 1 is better.'),
+        'aucpr': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='Area under the PR curve. Closer to 1 is better.'),
+        'num_missing_labels': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of predictions that did not have ground '
+                        'truth labels. Closer to 0 is better.'),
+    }
 
   def compute(self,
-              labels: Sequence[Text],
+              labels: Sequence[str],
               preds: Sequence[np.ndarray],
-              label_spec: types.CategoryLabel,
-              pred_spec: types.MulticlassPreds,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """Compute metric(s) between labels and predictions."""
+              label_spec: LitType,
+              pred_spec: LitType,
+              config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute standard metrics for multiclass predictions.
+
+    Args:
+      labels: Ground truth class for each prediction.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from super class
+      pred_spec: A MulticlassPreds spec for the model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the `accuracy`, `precission`, `recall`, `f1`, `auc`,
+      `aucpr`, and `num_missing_labels` scores for the provided predictions.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     # TODO(lit-dev): compare on strings instead of converting to indices?
     # This should be more robust to skew in label sets.
     del label_spec  # Unused; get vocab from pred_spec.
@@ -360,13 +415,20 @@ class MulticlassMetricsImpl(SimpleMetrics):
     if not labels or not preds:
       return {}
 
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
+
     label_idxs = [
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
         for label in labels
     ]
-    pred_idxs = get_classifications(preds, pred_spec, config)
     return self.get_all_metrics(
-        label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
+        label_idxs,
+        preds,
+        pred_spec,
+        null_idx=pred_spec.null_idx,
+        config=config)
 
 
 class MulticlassMetrics(ClassificationMetricsWrapper):
@@ -384,13 +446,30 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
   the model to the perturbations.
   """
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def meta_spec(self) -> types.Spec:
+    return {
+        'num_pairs': types.MetricResult(
+            description='The number of pairs found/analyzed.'),
+        'swap_rate': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The proportion of time the prediction differs between '
+                        'the pair of examples. Closer to 0 is better.'),
+        'mean_jsd': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='Mean Jensen-Shannon distance measures the similarity '
+                        'between two probability distributions. Closer to 0 is '
+                        'better.'),
+    }
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec, types.MulticlassPreds)
+    del parent_spec
+    return isinstance(pred_spec, types.MulticlassPreds)
 
   @staticmethod
   def find_pairs(indices: Sequence[types.ExampleId],
-                 metas: Sequence[JsonDict]) -> List[Tuple[int, int]]:
+                 metas: Sequence[JsonDict]) -> list[tuple[int, int]]:
     """Find valid pairs in the current selection, and return list indices."""
     id_to_position = {example_id: i for i, example_id in enumerate(indices)}
     pairs = []  # (i,j) relative to labels and preds lists
@@ -407,11 +486,32 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       self,
       labels: Sequence[Any],
       preds: Sequence[Any],
-      label_spec: types.LitType,
-      pred_spec: types.MulticlassPreds,
+      label_spec: LitType,
+      pred_spec: LitType,
       indices: Sequence[types.ExampleId],
       metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> Dict[Text, float]:
+      config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute standard paired metrics for multiclass predictions.
+
+    Args:
+      labels: Unused list of ground truth values from the super class.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from the super class.
+      pred_spec: A MulticlassPreds spec for the model's prediction field.
+      indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
+      metas: The metadata for each Input, aligned with `preds` and `labels`.
+      config: Optional margins for computing classification results.
+
+    Returns:
+      A dict containing the `num_pairs`, `swap_rate`, and `mean_jsd` values for
+      the provided `preds`. If `num_pairs` is 0, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del labels  # Unused; we only care about preds.
     del label_spec  # Unused; we only care about preds.
 
@@ -422,11 +522,16 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
     if ret['num_pairs'] == 0:
       return {}
 
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
+
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     # 'swapped' just means the prediction changed.
-    is_swapped = [(pred_idxs[i] == pred_idxs[j]) for i, j in pairs]
-    ret['swap_rate'] = 1 - np.mean(is_swapped)
+    is_swapped = [(pred_idxs[i] != pred_idxs[j]) for i, j in pairs]
+    ret['swap_rate'] = np.mean(is_swapped)
 
     # Jensen-Shannon divergence, as a soft measure of prediction change.
     jsds = [
@@ -446,32 +551,158 @@ class MulticlassPairedMetrics(ClassificationMetricsWrapper):
 class CorpusBLEU(SimpleMetrics):
   """Corpus BLEU score using SacreBLEU."""
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  BLEU_SMOOTHING_VAL = 0.1
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if compatible with this field."""
-    return isinstance(field_spec,
-                      (types.GeneratedText, types.GeneratedTextCandidates))
+    is_pred_comaptible = isinstance(
+        pred_spec, (types.GeneratedText, types.GeneratedTextCandidates))
+    is_parent_compatible = isinstance(parent_spec, types.StringLitType)
+    return is_pred_comaptible and is_parent_compatible
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'corpus_bleu': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='BLEU score, a measure of text quality, over an entire '
+                        'corpus. Closer to 1 is better.'),
+        'corpus_bleu@1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='BLEU score, a measure of text quality, over an entire '
+                        'corpus for the top predicted candidate. Closer to 1 '
+                        'is better.'),
+    }
 
   def compute(self,
-              labels: Sequence[Text],
-              preds: Sequence[Union[Text, types.ScoredTextCandidates]],
-              label_spec: types.TextSegment,
-              pred_spec: Union[types.GeneratedText,
-                               types.GeneratedTextCandidates],
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """Compute metric(s) between labels and predictions."""
+              labels: Sequence[str],
+              preds: Sequence[Union[str, types.ScoredTextCandidates]],
+              label_spec: LitType,
+              pred_spec: LitType,
+              config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute CorpusBLEU score using the SacreBLEU library.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted values, aligned with `labels`.
+      label_spec: Unused field spec from super class.
+      pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
+        model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the CorpusBLEU score for each prediction, stored in the
+      `corpus_bleu` key if `pred_spec` is `GeneratedText` or the
+      `corpus_bleu@1` key if `pred_spec` is `GeneratedTextCandidates`.
+      If `preds` or `labels` are empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `GeneratedText`/`GeneratedTextCandidates`.
+        Note overriding the type information in the method signature will
+        produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del label_spec
     del config
 
     if not labels or not preds:
       return {}
 
+    if not isinstance(pred_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates)):
+      raise TypeError('pred_spec must be a GeneratedText or '
+                      'GeneratedTextCandidates, received '
+                      f'{type(pred_spec).__name__}')
+
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
       preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
       name_suffix = '@1'
-    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], BLEU_SMOOTHING_VAL)
+    bleu = sacrebleu.raw_corpus_bleu(preds, [labels], self.BLEU_SMOOTHING_VAL)
 
     return {'corpus_bleu' + name_suffix: bleu.score}
+
+
+class RougeL(SimpleMetrics):
+  """RougeL score for generation tasks."""
+
+  def __init__(self, *args, **kw):
+    super().__init__(*args, **kw)
+    self._scorer = rouge_scorer.RougeScorer(['rougeL'], use_stemmer=True)
+
+  def _score(self, reference, prediction):
+    return self._scorer.score(
+        target=reference, prediction=prediction)['rougeL'].fmeasure
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
+    """Return true if compatible with this field."""
+    is_pred_comaptible = isinstance(
+        pred_spec, (types.GeneratedText, types.GeneratedTextCandidates))
+    is_parent_compatible = isinstance(parent_spec, types.StringLitType)
+    return is_pred_comaptible and is_parent_compatible
+
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'rougeL': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='ROUGE score, a measure of text quality, for the '
+                        'longest common subsequence in the text. Closer to 1 '
+                        'is better.'),
+        'rougeL@1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='ROUGE score, a measure of text quality, for the '
+                        'longest common subsequence in the text for the top '
+                        'predicted candidate. Closer to 1 is better.')
+    }
+
+  def compute(self,
+              labels: Sequence[str],
+              preds: Sequence[Union[str, types.ScoredTextCandidates]],
+              label_spec: LitType,
+              pred_spec: LitType,
+              config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute the RougeL score using the RougeScorer library.
+
+    Args:
+      labels: Ground truth values for each prediction.
+      preds: The models predicted values, aligned with `labels`.
+      label_spec: Unused field spec from super class.
+      pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
+        model's prediction field.
+      config: Unused configuration dict inherited from super class.
+
+    Returns:
+      A dict containing the RougeL score for each prediction, stored in the
+      `rougeL` key if `pred_spec` is `GeneratedText` or the `rougeL@1` key if
+      `pred_spec` is `GeneratedTextCandidates`. If `preds` or `labels` are
+      empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `GeneratedText`/`GeneratedTextCandidates`.
+        Note overriding the type information in the method signature will
+        produce a signature mismatch error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
+    del label_spec
+    del config
+
+    if not labels or not preds:
+      return {}
+
+    if not isinstance(pred_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates)):
+      raise TypeError('pred_spec must be a GeneratedText or '
+                      'GeneratedTextCandidates, received '
+                      f'{type(pred_spec).__name__}')
+
+    name_suffix = ''
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
+    scores = list(map(self._score, labels, preds))
+
+    return {'rougeL' + name_suffix: np.mean(scores)}
 
 
 class BinaryConfusionMetricsImpl(SimpleMetrics):
@@ -480,7 +711,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
   def get_all_metrics(self,
                       y_true: Sequence[int],
                       y_pred: Sequence[int],
-                      vocab: Sequence[Text],
+                      vocab: Sequence[str],
                       null_idx: Optional[int] = None):
     # Filter out unlabeled examples before calculating metrics.
     labeled_example_indices = [
@@ -498,24 +729,69 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     ret['TP'] = matrix[1][1]
     return ret
 
-  def is_compatible(self, field_spec: types.LitType) -> bool:
+  def meta_spec(self) -> dict[str, types.LitType]:
+    return {
+        'FN': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of false negatives predicted by the model. '
+                        'Closer to 0 is better.'),
+        'FP': types.MetricResult(
+            best_value=types.MetricBestValue.ZERO,
+            description='The number of false positives predicted by the model. '
+                        'Closer to 0 is better.'),
+        'TN': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The number of true negatives predicted by the model. '
+                        'Higher is better.'),
+        'TP': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The number of true positives predicted by the model. '
+                        'Hugher is better.'),
+    }
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
     """Return true if binary classification with ground truth."""
-    if not isinstance(field_spec, types.MulticlassPreds):
+    if not (isinstance(pred_spec, types.MulticlassPreds) and
+            isinstance(parent_spec, types.CategoryLabel)):
       return False
-    class_spec = cast(types.MulticlassPreds, field_spec)
-    return len(class_spec.vocab) == 2 and class_spec.parent
+    class_spec = cast(types.MulticlassPreds, pred_spec)
+    return len(class_spec.vocab) == 2
 
   def compute(self,
-              labels: Sequence[Text],
+              labels: Sequence[str],
               preds: Sequence[np.ndarray],
-              label_spec: types.CategoryLabel,
-              pred_spec: types.MulticlassPreds,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
-    """Compute metric(s) between labels and predictions."""
+              label_spec: LitType,
+              pred_spec: LitType,
+              config: Optional[JsonDict] = None) -> dict[str, float]:
+    """Compute binary classification metrics using Scikit-Learn.
+
+    Args:
+      labels: Ground truth class label for each prediction.
+      preds: The models predicted class label, aligned with `labels`.
+      label_spec: Unused field spec from the super class.
+      pred_spec: A `MulticlassPreds` spec for the model's prediction field.
+      config: Optional margins for computing classification results.
+
+    Returns:
+      A dict containing the true negative (`TN`), false positive (`FP`), false
+      negative (`FN`), and true positive (`TN`) scores. If `labels` or `preds`
+      is empty, returns an empty dict.
+
+    Raises:
+      TypeError: `pred_spec` is not `MulticlassPreds`. Note overriding the type
+        information in the method signature will produce a signature mismatch
+        error in PyType, see
+        https://google.github.io/pytype/errors.html#signature-mismatch
+    """
     del label_spec  # Unused; get vocab from pred_spec.
 
     if not labels or not preds:
       return {}
+
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError('pred_spec must be a MulticlassPreds, received '
+                      f'{type(pred_spec).__name__}')
 
     label_idxs = [
         pred_spec.vocab.index(label) if label in pred_spec.vocab else -1
@@ -523,7 +799,8 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     ]
     # Get classifications using possible margin value to control threshold
     # of positive classification.
-    pred_idxs = get_classifications(preds, pred_spec, config)
+    pred_idxs = classification_results.get_classifications(
+        preds, pred_spec, config)
 
     return self.get_all_metrics(
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)
@@ -533,3 +810,107 @@ class BinaryConfusionMetrics(ClassificationMetricsWrapper):
 
   def __init__(self):
     ClassificationMetricsWrapper.__init__(self, BinaryConfusionMetricsImpl())
+
+
+class ExactMatchMetrics(SimpleMetrics):
+  """Exact match metrics for text generations."""
+
+  def meta_spec(self) -> types.Spec:
+    """Returns the spec for the Exact Match metrics.
+
+    Returns
+      A dict of MetricResult specs for the metrics computed by this class.
+    """
+    return {
+        'exactmatch': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of exact matches. Closer to 1 is '
+                        'better.',
+        ),
+        'exactmatch@1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description='The proportion of exact matches for the top predicted '
+                        'candidate. Closer to 1 is better.',
+        )
+    }
+
+  def is_field_compatible(self, pred_spec: LitType,
+                          parent_spec: Optional[LitType]) -> bool:
+    """Return true if compatible with this field.
+
+    Args:
+      pred_spec: The field in the model's output spec containing the generated
+          text, must be of type GeneratedText or GeneratedTextCandidates.
+      parent_spec: The field in the dataset containing the ground truth, must be
+          of type MultiSegmentAnnotations or TextSegment.
+
+    Returns:
+      True if the pred_spec and parent_spec pair are compatible.
+    """
+    pred_supported = isinstance(pred_spec, (types.GeneratedText,
+                                            types.GeneratedTextCandidates))
+    parent_supported = isinstance(parent_spec, (types.TextSegment,
+                                                types.MultiSegmentAnnotations))
+    return pred_supported and parent_supported
+
+  def compute(
+      self,
+      labels: Sequence[Any],
+      preds: Sequence[Any],
+      label_spec: types.LitType,
+      pred_spec: types.LitType,
+      config: Optional[JsonDict] = None) -> lit_components.MetricsDict:
+    """Compute exact matches between labels and predictions.
+
+    Args:
+      labels: Ground truth against which predictions are compared.
+      preds: The predictions made by the model.
+      label_spec: A `MultiSegmentAnnotations` or `TextSegment` spec  describing
+          the types of elements in `labels`.
+      pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec describing
+          the types of elements in `preds`.
+      config: unused parameter from base class.
+
+    Returns:
+      A dict containing the proportion of exact matches in the predictions,
+      stored in the `exactmatch` key if `pred_spec` is `GeneratedText` or the
+      `exactmatch@1` key if `pred_spec` is `GeneratedTextCandidates`.
+    """
+    del config
+
+    if not labels or not preds:
+      return {}
+
+    if not isinstance(label_spec,
+                      (types.TextSegment, types.MultiSegmentAnnotations)):
+      raise TypeError('label_spec must be a TextSegment or '
+                      'MultiSegmentAnnotations, received '
+                      f'{type(pred_spec).__name__}')
+
+    if not isinstance(pred_spec,
+                      (types.GeneratedText, types.GeneratedTextCandidates)):
+      raise TypeError('pred_spec must be a GeneratedText or '
+                      'GeneratedTextCandidates, received '
+                      f'{type(pred_spec).__name__}')
+
+    if isinstance(pred_spec, types.GeneratedTextCandidates):
+      texts = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      name_suffix = '@1'
+    else:
+      texts = preds
+      name_suffix = ''
+
+    matches = 0
+    for label, pred in zip(labels, texts):
+      if isinstance(label_spec, types.MultiSegmentAnnotations):
+        # MultiSegmentAnnotations means that labels is a
+        # Sequence[api.dtypes.AnnotationCluster].
+        answers = [annotation.label for annotation in label]
+        if any(pred == answer for answer in answers):
+          matches += 1
+      else:
+        # Otherwise, labels is a Sequence[str].
+        if pred == label:
+          matches += 1
+
+    return {f'exactmatch{name_suffix}': matches/len(preds)}

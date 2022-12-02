@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Tests for lit_nlp.lib.model."""
 
 from absl.testing import absltest
@@ -25,7 +24,7 @@ class CachingTest(absltest.TestCase):
 
   def test_preds_cache(self):
     """Test with an exact match."""
-    cache = caching.PredsCache()
+    cache = caching.PredsCache("test")
     self.assertEqual("0", cache.info())
     cache.put("test", None)
     self.assertEqual("0", cache.info())
@@ -55,6 +54,7 @@ class CachingTest(absltest.TestCase):
     results = wrapper.predict_with_metadata(examples, "dataset")
     self.assertEqual(1, model.count)
     self.assertEqual({"score": 1}, results[0])
+    self.assertEmpty(wrapper._cache._pred_locks)
 
   def test_caching_model_wrapper_not_cached(self):
     model = testing_utils.TestIdentityRegressionModel()
@@ -101,6 +101,64 @@ class CachingTest(absltest.TestCase):
     self.assertEqual({"score": 0}, results[0])
     self.assertEqual({"score": 1}, results[1])
     self.assertEqual({"score": 2}, results[2])
+
+  def test_pred_lock_key(self):
+    cache = caching.PredsCache("test")
+    cache_key = [("a", "1"), ("a", "2")]
+
+    self.assertIsNone(cache.pred_lock_key(cache_key))
+
+    cache.get_pred_lock(cache_key)
+    expected_cache_key = frozenset(cache_key)
+    self.assertEqual(expected_cache_key, cache.pred_lock_key(cache_key))
+
+    sub_cache_key = [("a", "1")]
+    self.assertEqual(expected_cache_key, cache.pred_lock_key(sub_cache_key))
+
+    mismatch_cache_key = [("b", "1")]
+    self.assertIsNone(cache.pred_lock_key(mismatch_cache_key))
+
+  def test_pred_lock_key_no_concurrent_predictions(self):
+    cache = caching.PredsCache("test", False)
+    cache_key = [("a", "1"), ("a", "2")]
+
+    self.assertIsNone(cache.pred_lock_key(cache_key))
+
+    cache.get_pred_lock(cache_key)
+    expected_cache_key = frozenset(
+        [caching.PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS])
+    self.assertEqual(expected_cache_key, cache.pred_lock_key(cache_key))
+
+    sub_cache_key = [("a", "1")]
+    self.assertEqual(expected_cache_key, cache.pred_lock_key(sub_cache_key))
+
+    mismatch_cache_key = [("b", "1")]
+    self.assertEqual(expected_cache_key, cache.pred_lock_key(
+        mismatch_cache_key))
+
+  def test_delete_pred_lock(self):
+    cache = caching.PredsCache("test")
+    cache_key = [("a", "1"), ("a", "2")]
+
+    self.assertIsNone(cache.delete_pred_lock(cache_key))
+
+    lock = cache.get_pred_lock(cache_key)
+    self.assertEqual(lock, cache.delete_pred_lock(cache_key))
+
+    self.assertIsNone(cache.delete_pred_lock(cache_key))
+
+  def test_get_pred_lock(self):
+    cache = caching.PredsCache("test")
+    cache_key = [("a", "1"), ("a", "2")]
+
+    lock = cache.get_pred_lock(cache_key)
+    self.assertIsNotNone(lock)
+
+    sub_cache_key = [("a", "2")]
+    self.assertEqual(lock, cache.get_pred_lock(sub_cache_key))
+
+    mismatch_cache_key = [("b", "2")]
+    self.assertNotEqual(lock, cache.get_pred_lock(mismatch_cache_key))
 
 
 if __name__ == "__main__":

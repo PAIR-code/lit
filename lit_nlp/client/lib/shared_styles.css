@@ -164,6 +164,10 @@
   /* For field names, etc. like preds (MulticlassPreds) */
   --lit-bold-label-color: var(--lit-majtonal-nv-800);
   --lit-light-label-color: var(--lit-majtonal-nv-600);
+
+  --lit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14),
+                    0 3px 1px -2px rgba(0, 0, 0, .2),
+                    0 1px 5px 0 rgba(0, 0, 0, .12);
 }
 
 button {
@@ -337,7 +341,7 @@ mwc-textfield {
   border-color: #098591;
 }
 
-.token-chip-label:hover {
+.token-chip-label:not(:only-child):hover {
   background: #e4f7fb;
 }
 
@@ -376,6 +380,11 @@ mwc-textfield {
 .hairline-button.xl {
   font-size: 14px;
   line-height: 24px;
+}
+
+.filled-button .material-icon:first-child,
+.hairline-button .material-icon:first-child {
+  margin-right: 4px;
 }
 
 /**
@@ -425,10 +434,34 @@ mwc-textfield {
   border: 1px solid var(--lit-neutral-200);
 }
 
-.hairline-button:active {
+.hairline-button:active,
+.hairline-button.active {
   background-color: var(--lit-mintonal-p-4);
   border: 1px solid var(--lit-cyea-500);
   color: var(--lit-cyea-500);
+}
+
+.pin-icon {
+  height: 14px;
+  width: 14px;
+  min-width: 14px;
+  --mdc-icon-size: 14px;
+  user-select: none;
+  color: var(--lit-cyea-500);
+  margin-right: 2px;
+}
+
+.icon-button.cyea {
+  color: var(--lit-cyea-500);
+}
+
+.icon {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  user-select: none;
+  color: var(--lit-neutral-700);
 }
 
 /**
@@ -461,6 +494,51 @@ mwc-icon.disabled{
 
 mwc-icon.mdi-outlined {
   --mdc-icon-font: "Material Icons Outlined";
+}
+
+.span-outlined {
+  font-family: "Material Icons Outlined";
+}
+
+.icon-button.large-icon {
+  height: 20px;
+  width: 20px;
+  min-width: 20px;
+  --mdc-icon-size: 20px;
+  padding: 0x 2px 0px 2px;
+}
+
+.icon-button.white-icon {
+  color: var(--lit-neutral-100);
+}
+
+.icon-button.white-icon:hover {
+  color: var(--lit-neutral-400);
+}
+
+.icon-button.cyea-icon {
+  color: var(--lit-cyea-800);
+}
+
+.icon-button.cyea-icon:hover {
+  color: var(--lit-cyea-600);
+}
+
+.large-help-icon{
+  position: relative;
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  margin: auto;
+}
+
+.help-icon{
+  cursor: pointer;
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-size: 12px;
 }
 
 /**
@@ -502,20 +580,20 @@ mwc-icon.mdi-outlined {
 
 .module-footer {
   align-items: center;
-  border-top: 1px solid #dadce0;
+  border-top: 1px solid var(--viz-color-grey-1);
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
   flex-grow: 0;
   flex-shrink: 0;
   justify-content: space-between;
-  min-height: 36px;
+  height: 36px;
   padding: 0 4px;
 }
 
 /** Status text in a module footer. **/
 .module-status {
-  color: #3c4043;
+  color: var(--lit-neutral-800);
   font-style: italic;
   font-weight: normal;
   margin: 0 0.5em;
@@ -548,11 +626,35 @@ mwc-icon.mdi-outlined {
 }
 
 mwc-switch {
-  --mdc-ripple-hover-opacity: 0;
-  --mdc-ripple-press-opacity: 0;
-  --mdc-ripple-focus-opacity: 0;
+  /* Revert to old teal color, the new purple is ugly. */
+  --mdc-switch-selected-hover-handle-color: teal;
+  --mdc-switch-selected-hover-track-color: lightseagreen;
+  --mdc-switch-selected-focus-handle-color: teal;
+  --mdc-switch-selected-focus-track-color: lightseagreen;
+  --mdc-switch-selected-pressed-handle-color: teal;
+  --mdc-switch-selected-pressed-track-color: lightseagreen;
+  --mdc-switch-selected-handle-color: teal;
+  --mdc-switch-selected-track-color: lightseagreen;
+  /* Hide the ripple effect. */
+  --mdc-switch-selected-focus-state-layer-opacity: 0;
+  --mdc-switch-selected-hover-state-layer-opacity: 0;
+  --mdc-switch-selected-pressed-state-layer-opacity: 0;
+  --mdc-switch-unselected-focus-state-layer-opacity: 0;
+  --mdc-switch-unselected-hover-state-layer-opacity: 0;
+  --mdc-switch-unselected-pressed-state-layer-opacity: 0;
 }
 
 mwc-icon.outlined {
   --mdc-icon-font: "Material Icons Outlined";
+}
+
+/* TODO(b/254783802): consolidate this with <popup-container> */
+.popup-container {
+  background: white;
+  border: 1px solid var(--lit-neutral-600);
+  box-shadow: var(--lit-box-shadow);
+}
+
+.nowrap {
+  white-space: nowrap;
 }

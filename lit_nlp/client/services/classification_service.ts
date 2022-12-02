@@ -16,48 +16,17 @@
  */
 
 // tslint:disable:no-new-decorators
-import * as d3 from 'd3';
 import {action, computed, observable, reaction} from 'mobx';
 
-import {ColorOption, D3Scale, FacetedData, GroupedExamples, IndexedInput, Preds, Spec} from '../lib/types';
-import {findSpecKeys} from '../lib/utils';
-import {BINARY_POS_NEG, CATEGORICAL_NORMAL} from '../lib/colors';
+import {MulticlassPreds} from '../lib/lit_types';
+import {FacetedData, GroupedExamples, Spec} from '../lib/types';
+import {getMarginFromThreshold} from '../lib/utils';
 
 import {LitService} from './lit_service';
-import {ApiService, AppState, GroupService} from './services';
-import {FacetingConfig, FacetingMethod} from './group_service';
+import {AppState} from './state_service';
 
-interface AllClassificationInfo {
-  [id: string]: PerExampleClassificationInfo;
-}
-
-interface PerExampleClassificationInfo {
-  [model: string]: PerExamplePerModelClassificationInfo;
-}
-
-interface PerExamplePerModelClassificationInfo {
-  [predKey: string]: ClassificationInfo;
-}
-
-/**
- * Info about individual classifications including computed properties.
- * These interface field names should be in sync with the
- * fieldsToDisplayNames Map.
- */
-export interface ClassificationInfo {
-  predictions: number[];
-  predictedClassIdx: number;
-  predictionCorrect?: boolean;
-}
-
-/**
- * A map from classification info field names to their display names.
- */
-const classificationDisplayNames = new Map([
-  ['predictions', 'predictions'],
-  ['predictedClassIdx', 'predicted class index'],
-  ['predictionCorrect', 'prediction correct'],
-]);
+/** Identifier for the default facet. */
+const GLOBAL_FACET = '';
 
 /**
  * A margin setting is the margin value and the facet information for which
@@ -92,108 +61,32 @@ export interface MarginSettings {
 }
 
 /**
- * Given an example and the margins for a field, return the appropriate margin
- * to use for the example.
- */
-function getMarginSettingForExample(
-    input: IndexedInput, marginsPerFacet: MarginsPerFacet,
-    groupService?: GroupService) {
-  // If there is an empty string entry, this represents the margin for the
-  // entire dataset.
-  if ("" in marginsPerFacet) {
-    return marginsPerFacet[""];
-  }
-  // Find the facet that matches the example provided.
-  for (const group of Object.values(marginsPerFacet)) {
-    let matches = true;
-    for (const field of Object.keys(group.facetData!.facets!)) {
-      if (groupService != null &&
-          groupService.numericalFeatureNames.includes(field)) {
-        const facetConfig: FacetingConfig = {
-          featureName: field,
-          method: FacetingMethod.EQUAL_INTERVAL,
-          numBins: 0
-        };
-        const bins = groupService.numericalFeatureBins([facetConfig]);
-        const bin = groupService.getNumericalBinForExample(bins, input, field)!;
-        const groupRange = group.facetData!.facets![field].val as number[];
-        if (bin[0] !== groupRange[0] || bin[1] !== groupRange[1]) {
-          matches = false;
-          break;
-        }
-      } else if (input.data[field] !== group.facetData!.facets![field].val) {
-        matches = false;
-        break;
-      }
-    }
-    if (matches) {
-      return group;
-    }
-  }
-  return null;
-}
-
-/**
- * Return the predicted class index given prediction scores and settings.
- */
-export function getPredictionClass(
-    scores: number[], predKey: string, outputSpec: Spec, input: IndexedInput,
-    groupService?: GroupService, margins?: MarginsPerField) {
-  let margin = 0;
-  if (margins?.[predKey] != null) {
-    const group = getMarginSettingForExample(
-        input, margins[predKey], groupService);
-    if (group != null) {
-      margin = margins[predKey][group.facetData?.displayName || ""].margin;
-    }
-  }
-  const nullIdx = outputSpec[predKey].null_idx;
-  let maxScore = -Infinity;
-  let maxIndex = 0;
-  // Find max of the log prediction scores, adding any provided margin
-  // to the null class, if there is one set.
-  for (let i = 0; i < scores.length; i++) {
-    let score = Math.log(scores[i]);
-    if (nullIdx === i) {
-      score += margin;
-    }
-    if (maxScore < score) {
-      maxScore = score;
-      maxIndex = i;
-    }
-  }
-  return maxIndex;
-}
-
-/**
- * A singleton class that handles calculating and storing per-input
- * classification response information.
+ * A singleton class that stores margin settings for classification tasks,
+ * including margins for dataset facets.
  */
 export class ClassificationService extends LitService {
-  @observable classificationInfo: AllClassificationInfo = {};
   @observable marginSettings: MarginSettings = {};
 
-  // Stores list of possible labels for a given model/prediction-key
-  // combination.
-  @observable
-  private readonly labelNames: {[modelAndKey: string]: string[]} = {};
-
-  constructor(
-      private readonly apiService: ApiService,
-      private readonly appState: AppState,
-      private readonly groupService: GroupService) {
+  constructor(private readonly appState: AppState) {
     super();
-    reaction(() => this.allMarginSettings, margins => {
-      this.updateClassifications();
-    });
-    reaction(() => appState.currentModels, currentModels => {
-      this.reset();
-    });
+
+    // Reset classification margins when the models change.
+    reaction(() => this.appState.currentModels, (models) => {
+      if (models.length === 0) {return;}
+      const modelOutputSpecMap: {[model: string]: Spec} = {};
+      for (const model of models) {
+        modelOutputSpecMap[model] =
+            this.appState.currentModelSpecs[model].spec.output;
+      }
+      this.resetMargins(modelOutputSpecMap);
+    }, {fireImmediately: true});
   }
 
-  // Returns all margin settings for use as a reaction input function when
-  // setting up observers.
-  // TODO(lit-team): Remove need for this intermediate object (b/156100081)
+  /**
+   * Returns all margin settings for use as a reaction input function when
+   * setting up observers.
+   */
+  // TODO(b/156100081): Remove need for this intermediate object
   @computed
   get allMarginSettings(): number[] {
     const res: number[] = [];
@@ -217,37 +110,71 @@ export class ClassificationService extends LitService {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
-    this.marginSettings[model][fieldName] = {};
-    for (const group of Object.values(groupedExamples)) {
-      this.marginSettings[model][fieldName][group.displayName!] =
-          {facetData: group, margin: 0};
+    if (this.marginSettings[model][fieldName] == null) {
+      this.marginSettings[model][fieldName] = {};
+    }
+    const {output} = this.appState.currentModelSpecs[model].spec;
+    const fieldSpec = output[fieldName];
+    if (!(fieldSpec instanceof MulticlassPreds)) return;
+    const margin = fieldSpec.threshold != null ?
+        getMarginFromThreshold(fieldSpec.threshold) : 0;
+    for (const facetData of Object.values(groupedExamples)) {
+      this.marginSettings[model][fieldName][facetData.displayName!] =
+          {facetData, margin};
     }
   }
 
   @action
-  setMargin(model: string, fieldName: string, value: number,
-            facet?: FacetedData) {
-    console.log('setMargin');
+  resetMargins(modelOutputSpecMap: {[model: string]: Spec}) {
+    const marginSettings: MarginSettings = {};
+
+    for (const [model, output] of Object.entries(modelOutputSpecMap)) {
+      marginSettings[model] = {};
+      for (const [fieldName, fieldSpec] of Object.entries(output)) {
+        if (!(fieldSpec instanceof MulticlassPreds) ||
+            fieldSpec.null_idx == null || !fieldSpec.vocab.length) continue;
+
+        const margin = fieldSpec.threshold != null ?
+            getMarginFromThreshold(fieldSpec.threshold) : 0;
+        marginSettings[model][fieldName] = {[GLOBAL_FACET]: {margin}};
+
+        if (this.marginSettings[model] == null ||
+            this.marginSettings[model][fieldName] == null) continue;
+
+        const facets = Object.keys(this.marginSettings[model][fieldName]);
+        for (const facet of facets) {
+          const {facetData} = this.marginSettings[model][fieldName][facet];
+          marginSettings[model][fieldName][facet] = {facetData, margin};
+        }
+      }
+    }
+
+    this.marginSettings = marginSettings;
+  }
+
+  @action
+  setMargin(model: string, fieldName: string, margin: number,
+            facetData?: FacetedData) {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
     if (this.marginSettings[model][fieldName] == null) {
       this.marginSettings[model][fieldName] = {};
     }
-    if (facet == null) {
+    if (facetData == null) {
       // If no facet provided, then update the facet for the entire dataset
       // if one exists, otherwise update all facets with the provided margin.
-      if ("" in this.marginSettings[model][fieldName]) {
-        this.marginSettings[model][fieldName][""] =
-            {facetData: facet, margin: value};
+      if (GLOBAL_FACET in this.marginSettings[model][fieldName]) {
+        this.marginSettings[model][fieldName][GLOBAL_FACET] =
+            {facetData, margin};
       } else {
         for (const key of Object.keys(this.marginSettings[model][fieldName])) {
-          this.marginSettings[model][fieldName][key].margin = value;
+          this.marginSettings[model][fieldName][key].margin = margin;
         }
       }
     } else {
-      this.marginSettings[model][fieldName][facet.displayName!] =
-          {facetData: facet, margin: value};
+      this.marginSettings[model][fieldName][facetData.displayName!] =
+          {facetData, margin};
     }
   }
 
@@ -256,197 +183,13 @@ export class ClassificationService extends LitService {
         this.marginSettings[model][fieldName] == null) {
       return 0;
     }
+    const fieldMargins = this.marginSettings[model][fieldName];
     if (facet == null) {
-      if (this.marginSettings[model][fieldName][""] == null) {
-        return 0;
-      }
-      return this.marginSettings[model][fieldName][""].margin;
+      return fieldMargins[GLOBAL_FACET]?.margin || 0;
+    } else if (facet.displayName != null) {
+      return fieldMargins[facet.displayName]?.margin || 0;
     } else {
-      if (this.marginSettings[model][fieldName][facet.displayName!] == null) {
-        return 0;
-      }
-      return this.marginSettings[model][fieldName][facet.displayName!].margin;
+      return 0;
     }
-  }
-
-  /**
-   * Calls the server to get multiclass predictions and calculate related info.
-   * @param inputs inputs to run model on
-   * @param model model to query
-   * @param datasetName current dataset (for caching)
-   */
-  async getClassificationPreds(
-      inputs: IndexedInput[], model: string,
-      datasetName: string): Promise<Preds[]> {
-    // TODO(lit-team): Use client-side cache when available.
-    const result = this.apiService.getPreds(
-        inputs, model, datasetName, ['MulticlassPreds']);
-    const preds = await result;
-    if (preds != null && preds.length > 0) {
-      this.processNewPreds(inputs, model, preds);
-    }
-    return result;
-  }
-
-  /**
-   * Get labels list for a given prediction task.
-   */
-  getLabelNames(model: string, predKey: string) {
-    return this.labelNames[`${model}:${predKey}`];
-  }
-
-  getInfoFields() {
-    return Array.from(classificationDisplayNames.keys());
-  }
-
-  getDisplayNames() {
-    return Array.from(classificationDisplayNames.values());
-  }
-
-  private updateClassifications() {
-    for (const input of this.appState.currentInputData) {
-      const info = this.classificationInfo[input.id];
-      if (info == null) {
-        continue;
-      }
-      const models = Object.keys(info);
-      for (const model of models) {
-        const predKeys = Object.keys(info[model]);
-        for (const predKey of predKeys) {
-          const fields = info[model][predKey];
-          this.updateClassification(fields, input, predKey, model);
-        }
-      }
-    }
-  }
-
-  private updateClassification(
-      fields: ClassificationInfo, input: IndexedInput, predKey: string,
-      model: string) {
-    const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-    fields.predictedClassIdx = getPredictionClass(
-        fields.predictions, predKey, outputSpec, input, this.groupService,
-        this.marginSettings[model]);
-    // If there are labels, use those. Otherwise just use prediction
-    // array indices.
-    const labelKey = `${model}:${predKey}`;
-    if (this.labelNames[labelKey] == null) {
-      this.labelNames[labelKey] = outputSpec[predKey].vocab ||
-          Array.from({length: fields.predictions.length}, (v, k) => `${k}`);
-    }
-    const labelField = outputSpec[predKey].parent;
-    if (labelField != null) {
-      fields.predictionCorrect = input.data[labelField] ===
-          this.labelNames[labelKey][fields.predictedClassIdx];
-    }
-  }
-
-  /**
-   * Reset stored info. Used when active models change.
-   */
-  reset() {
-    this.classificationInfo = {};
-  }
-
-  /**
-   * Gets stored results for the given datapoints and predictions.
-   */
-  async getResults(ids: string[], model: string, predKey: string):
-      Promise<ClassificationInfo[]> {
-    // TODO(lit-dev): rate-limit this and batch requests, otherwise if this is
-    // called on individual datapoints it will make a massive number of backend
-    // requests.
-
-    const unstoredIds: string[] = [];
-
-    ids.forEach((id) => {
-      if (this.classificationInfo[ids[0]]?.[model]?.[predKey] == null) {
-        unstoredIds.push(id);
-      }
-    });
-
-    // If any results aren't yet stored in the front-end, then get them.
-    if (unstoredIds.length > 0) {
-      await this.getClassificationPreds(
-          this.appState.getExamplesById(unstoredIds), model,
-          this.appState.currentDataset);
-    }
-
-    const results: ClassificationInfo[] = [];
-    ids.forEach((id) => {
-      const classificationInfo =
-          this.classificationInfo[id]?.[model]?.[predKey];
-      if (classificationInfo != null) {
-        results.push(classificationInfo);
-      }
-    });
-    return results;
-  }
-
-  private processNewPreds(
-      inputs: IndexedInput[], model: string, preds: Preds[]) {
-    const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-    const multiclassKeys = findSpecKeys(outputSpec, 'MulticlassPreds');
-    const predictedKeys = Object.keys(preds[0]);
-
-    for (let i = 0; i < preds.length; i++) {
-      const input = inputs[i];
-      const pred = preds[i];
-      if (this.classificationInfo[input.id] == null) {
-        this.classificationInfo[input.id] = {} as PerExampleClassificationInfo;
-      }
-      if (this.classificationInfo[input.id][model] == null) {
-        this.classificationInfo[input.id][model] = {} as
-            PerExamplePerModelClassificationInfo;
-      }
-      for (let predIndex = 0; predIndex < predictedKeys.length; predIndex++) {
-        const predKey = predictedKeys[predIndex];
-        if (!multiclassKeys.includes(predKey)) {
-          continue;
-        }
-        const fields = {} as ClassificationInfo;
-        fields.predictions = pred[predKey] as number[];
-        this.updateClassification(fields, input, predKey, model);
-        if (this.classificationInfo[input.id][model][predKey] == null) {
-          this.classificationInfo[input.id][model][predKey] = fields;
-        }
-      }
-    }
-  }
-
-  @computed
-  get colorOptions(): ColorOption[] {
-    const ids = Object.keys(this.classificationInfo);
-    if (ids.length === 0) {
-      return [];
-    }
-    const options: ColorOption[] = [];
-    const info = this.classificationInfo[ids[0]];
-    const models = Object.keys(info);
-    for (const model of models) {
-      const predKeys = Object.keys(info[model]);
-      for (const predKey of predKeys) {
-        options.push({
-          name: `${model}:${predKey} class`,
-          getValue: (input: IndexedInput) =>
-              this.labelNames[`${model}:${predKey}`]
-                             [this.classificationInfo[input.id][model][predKey]
-                                  .predictedClassIdx],
-          scale: d3.scaleOrdinal(CATEGORICAL_NORMAL)
-                   .domain(this.labelNames[`${model}:${predKey}`]) as D3Scale
-        });
-        if (info[model][predKey].predictionCorrect != null) {
-          options.push({
-            name: `${model}:${predKey} correct`,
-            getValue: (input: IndexedInput) =>
-                this.classificationInfo[input.id][model][predKey]
-                    .predictionCorrect ? 'correct' : 'incorrect',
-            scale: d3.scaleOrdinal(BINARY_POS_NEG)
-                     .domain(['correct', 'incorrect']) as D3Scale
-          });
-        }
-      }
-    }
-    return options;
   }
 }

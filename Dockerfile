@@ -1,6 +1,6 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
-FROM python:3.7-slim
+FROM python:3.9-slim
 
 # Update Ubuntu packages and install basic utils
 RUN apt-get update

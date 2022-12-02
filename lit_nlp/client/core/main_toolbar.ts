@@ -19,22 +19,21 @@
  * LIT App selection controls toolbar
  */
 
+import '../elements/popup_container';
 import '@material/mwc-icon';
-import '@material/mwc-switch';
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
+import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
-import {computed, observable} from 'mobx';
+import {computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {compareArrays, flatten, randInt, shortenId} from '../lib/utils';
+import {compareArrays, flatten, randInt} from '../lib/utils';
 import {AppState, ColorService, SelectionService, SliceService} from '../services/services';
-import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {app} from './app';
 import {styles} from './main_toolbar.css';
@@ -162,7 +161,7 @@ export class LitMainMenu extends MobxLitElement {
         displayIcon: isSelected,
         menu: [],
         onClick: () => {
-          this.colorService.selectedColorOption = option;
+          this.colorService.selectedColorOptionName = option.name;
         },
         disabled: false,
       };
@@ -220,10 +219,9 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   private readonly appState = app.getService(AppState);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
   private readonly selectionService = app.getService(SelectionService);
-  private readonly sliceService = app.getService(SliceService);
-
-  @observable private displayTooltip: boolean = false;
 
   /**
    * ID pairs, as [child, parent], from current selection or the whole dataset.
@@ -233,20 +231,6 @@ export class LitMainToolbar extends MobxLitElement {
     const data = this.selectionService.selectedOrAllInputData;
     return data.filter(d => d.meta['parentId'])
         .map(d => [d.id, d.meta['parentId']!]);
-  }
-
-  private isStarred(id: string|null): boolean {
-    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
-  }
-
-  private toggleStarred() {
-    const primaryId = this.selectionService.primarySelectedId;
-    if (primaryId == null) return;
-    if (this.isStarred(primaryId)) {
-      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [primaryId]);
-    } else {
-      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [primaryId]);
-    }
   }
 
   /**
@@ -268,38 +252,53 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-
   /**
-   * Controls to page through the dataset.
-   * Assume exactly one point is selected.
+   * Controls to navigate through the dataset.
    */
-  renderSelectionDisplay(numSelected: number, numTotal: number) {
-    const primaryId = this.selectionService.primarySelectedId;
-    const selectedIndex =
-        this.appState.currentInputData.findIndex(ex => ex.id === primaryId);
-    const numExamples = this.appState.currentInputData.length;
+  renderDatapointNavigation() {
+    const numTotalDatapoints = this.appState.currentInputData.length;
 
-    // Set the selected set to the previous (-1) or next (1) example in the
-    // dataset.
-    const selectOffset = (offset: number) => {
-      const nextIndex = (selectedIndex + offset + numExamples) % numExamples;
+    const primaryId = this.selectionService.primarySelectedId;
+    let selectedIndex =
+        this.appState.currentInputData.findIndex(ex => ex.id === primaryId);
+
+    // Controls navigate through all datapoints by default.
+    let propertyText = 'datapoints';
+    let selectOffset = (offset: number) => {
+      const nextIndex = primaryId == null ?
+          0 :
+          (selectedIndex + offset + numTotalDatapoints) % numTotalDatapoints;
       const nextId = this.appState.currentInputData[nextIndex].id;
       this.selectionService.selectIds([nextId]);
     };
-    const arrowsDisabled = numSelected === 0;
-    const iconClass =
-        classMap({'icon-button': true, 'disabled': arrowsDisabled});
+
+    const numSelected = this.selectionService.selectedIds.length;
+    // If multiple items are selected, navigate through the selection instead.
+    if (numSelected > 1 && primaryId !== null) {
+      selectedIndex =
+          this.selectionService.selectedIds.findIndex(id => id === primaryId);
+      propertyText = 'selected';
+      selectOffset = (offset: number) => {
+        const nextIndex = (selectedIndex + offset + numSelected) % numSelected;
+        const nextId = this.selectionService.selectedIds[nextIndex];
+        this.selectionService.setPrimarySelection(nextId);
+      };
+    }
+
+    // Set the selected set to the previous (-1) or next (1) example in
+    // the dataset.
+    const iconClass = classMap({'icon-button': true});
     // clang-format off
     return html`
       <mwc-icon class=${iconClass} id='ds-select-prev'
-        @click=${arrowsDisabled ? null: () => {selectOffset(-1);}}>
+        @click=${() => {selectOffset(-1);}}>
         chevron_left
       </mwc-icon>
       <div id='number-selected'>
-        <span id='num-selected-text'>${numSelected}</span> of <span>${numTotal}</span> selected
+        <span id='num-selected-text'>${numSelected}</span> of <span>${numTotalDatapoints}</span> ${propertyText}
       </div>
       <mwc-icon class=${iconClass} id='ds-select-next'
-        @click=${arrowsDisabled ? null: () => {selectOffset(1);}}>
+        @click=${() => {selectOffset(1);}}>
         chevron_right
       </mwc-icon>
     `;
@@ -307,46 +306,29 @@ export class LitMainToolbar extends MobxLitElement {
   }
 
   /**
-   * Primary selection display, including controls
-   * to page the primary selection through the selected set.
+   * Render a Slices button to show the Slice Editor.
    */
-  renderPrimarySelectControls() {
-    const numSelected = this.selectionService.selectedIds.length;
-    const primaryId = this.selectionService.primarySelectedId;
-    if (primaryId == null) return;
-
-    const displayedPrimaryId = shortenId(primaryId);
-    const primaryIndex = this.appState.indicesById.get(primaryId);
-
-    const selectedIndex =
-        this.selectionService.selectedIds.findIndex(id => id === primaryId);
-    // Set the primary selection to the previous (-1) or next (1) example in the
-    // current selected list.
-    const selectOffset = (offset: number) => {
-      const nextIndex = (selectedIndex + offset + numSelected) % numSelected;
-      const nextId = this.selectionService.selectedIds[nextIndex];
-      this.selectionService.setPrimarySelection(nextId);
-    };
+  renderSlices() {
+    // Left-anchor the Slice Editor popup.
+    const popupStyle = styleMap({'--popup-top': '4px'});
     // clang-format off
     return html`
-      <div id='primary-selection-status' class='selection-status-group'>
-        (${numSelected > 1 ? html`
-          <mwc-icon class='icon-button' id='select-prev'
-            @click=${() => {selectOffset(-1);}}>
-            chevron_left
-          </mwc-icon>
-        ` : null}
-        <span id='primary-text'>
-          primary:&nbsp;<span class='monospace'> ${displayedPrimaryId}</span>
-          ... [<span class='monospace'>${primaryIndex}</span>]
-        </span>
-        ${numSelected > 1 ? html`
-          <mwc-icon class='icon-button' id='select-next'
-            @click=${() => {selectOffset(1);}}>
-            chevron_right
-          </mwc-icon>
-        ` : null})
+    <popup-container style=${popupStyle}>
+      <button class='hairline-button xl' slot='toggle-anchor-closed'>
+        <span class='material-icon-outlined'>dataset</span>
+        &nbsp;Slices&nbsp;
+        <span class='material-icon'>expand_more</span>
+      </button>
+      <button class='hairline-button xl' slot='toggle-anchor-open'>
+          <span class='material-icon-outlined'>dataset</span>
+          &nbsp;Slices&nbsp;
+          <span class='material-icon'>expand_less</span>
+        </button>
+      <div class='slice-container'>
+        <lit-slice-module model="unused" shouldReact=1 selectionServiceIndex=0>
+        </lit-slice-module>
       </div>
+    </popup-container>
     `;
     // clang-format on
   }
@@ -358,7 +340,8 @@ export class LitMainToolbar extends MobxLitElement {
     const idPairs = this.selectedIdPairs;
     if (idPairs.length === 0) return null;
 
-    const referenceSelectionService = app.getServiceArray(SelectionService)[1];
+    const referenceSelectionService =
+        app.getService(SelectionService, 'pinned');
     const maybeGetIndex = (id: string|null) =>
         id != null ? this.appState.indicesById.get(id) : null;
     // ID pairs, as [child, parent]
@@ -425,84 +408,79 @@ export class LitMainToolbar extends MobxLitElement {
     // clang-format on
   }
 
-  renderStarButton(numSelected: number) {
-    const highlightStar =
-        this.isStarred(this.selectionService.primarySelectedId);
-
-    const disabled = numSelected === 0;
-    const iconClass = classMap({'icon-button': true, 'disabled': disabled});
-
-    const starOnClick = () => {
-      this.toggleStarred();
-    };
-    // clang-format off
-    return html`
-      <mwc-icon class=${iconClass} id='star-button' @click=${starOnClick}>
-        ${highlightStar ? 'star' : 'star_border'}
-      </mwc-icon>`;
-    // clang-format on
-  }
-
   override render() {
     const clearSelection = () => {
       this.selectionService.selectIds([]);
     };
+    const selectAll = () => {
+      const allIds = this.appState.currentInputData.map(example => example.id);
+      this.selectionService.selectIds(allIds);
+    };
     const numSelected = this.selectionService.selectedIds.length;
-    const numTotal = this.appState.currentInputData.length;
     const primaryId = this.selectionService.primarySelectedId;
+    const primaryIndex =
+        primaryId == null ? -1 : this.appState.indicesById.get(primaryId)!;
 
-    const toggleExampleComparison = () => {
-      this.appState.compareExamplesEnabled =
-          !this.appState.compareExamplesEnabled;
+    const updatePinnedDatapoint = () => {
+      if (this.pinnedSelectionService.primarySelectedId) {
+        this.pinnedSelectionService.selectIds([]);
+        this.appState.compareExamplesEnabled = false;
+      } else if (primaryId) {
+        this.pinnedSelectionService.selectIds([primaryId]);
+        this.appState.compareExamplesEnabled = true;
+      }
     };
-    const compareDisabled =
-        !this.appState.compareExamplesEnabled && numSelected === 0;
-    const compareTextClass = classMap(
-        {'toggle-example-comparison': true, 'text-disabled': compareDisabled});
-    const tooltipStyle =
-        styleMap({visibility: this.displayTooltip ? 'visible' : 'hidden'});
-    const disableClicked = () => {
-      this.displayTooltip = true;
-    };
-    const disableMouseout = () => {
-      this.displayTooltip = false;
-    };
+
+    let pinnedIndex = -1;
+    if (this.appState.compareExamplesEnabled &&
+        this.pinnedSelectionService.primarySelectedId) {
+      pinnedIndex = this.appState.indicesById.get(
+          this.pinnedSelectionService.primarySelectedId)!;
+    }
+
+    const title = this.appState.compareExamplesEnabled ?
+        `Unpin datapoint ${pinnedIndex}` :
+        primaryId == null ? 'Pin selected datapoint' :
+                            `Pin datapoint ${primaryIndex}`;
+    const pinDisabled =
+        !this.appState.compareExamplesEnabled && primaryId == null;
+    const pinClasses = classMap({
+      'material-icon': true,
+      'span-outlined': !this.appState.compareExamplesEnabled
+    });
+    const buttonClasses = classMap({
+      'hairline-button': true,
+      'xl': true,
+      'pin-button': true,
+      'active': this.appState.compareExamplesEnabled
+    });
     // clang-format off
     return html`
     <div class='toolbar main-toolbar'>
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
-        <div class='compare-container'
-          @click=${compareDisabled ? null : toggleExampleComparison}
-          @mouseover=${compareDisabled ? disableClicked : null}
-          @mouseout=${compareDisabled ? disableMouseout : null}>
-          <div class=${compareTextClass}>
-            Compare datapoints
+        ${this.renderSlices()}
+        <button class="${buttonClasses}" title=${title}
+                ?disabled=${pinDisabled} @click=${updatePinnedDatapoint}>
+          <div class="pin-button-content">
+            <span class="${pinClasses}">push_pin</span>
+            <div class="pin-button-text">${title}</div>
           </div>
-          <mwc-switch id='compare-switch'
-            ?disabled='${compareDisabled}'
-            .checked=${this.appState.compareExamplesEnabled}
-          >
-          </mwc-switch>
-        </div>
-        <div class='compare-tooltip tooltip' style=${tooltipStyle}>
-          <mwc-icon class='tooltip-icon'>error_outline</mwc-icon>
-          <span class='tooltip-text'>
-            Select a datapoint to use this feature.
-          </span>
-        </div>
+        </button>
         ${this.renderPairControls()}
       </div>
       <div id='right-container'>
-        ${primaryId !== null ? this.renderPrimarySelectControls() :  null}
-        ${this.renderStarButton(numSelected)}
-        ${this.renderSelectionDisplay(numSelected, numTotal)}
+        ${this.renderDatapointNavigation()}
+        <button id="select-all" class="hairline-button xl"
+          @click=${selectAll}>
+          Select all
+        </button>
+        ${this.renderLuckyButton()}
         <button id="clear-selection" class="hairline-button xl"
           @click=${clearSelection}
           ?disabled="${numSelected === 0}">
           Clear selection
         </button>
-        ${this.renderLuckyButton()}
       </div>
     </div>
     `;

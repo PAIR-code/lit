@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
-import '@material/mwc-icon-button-toggle';
+import {html, LitElement} from 'lit';
 // tslint:disable:no-new-decorators
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
-import {styles} from './data_matrix.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
+
 import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+
+import {styles} from './data_matrix.css';
 
 
 // Custom color ramp for the Data Matrix
@@ -40,8 +42,14 @@ const COLOR_RAMP = ramp([...MAJOR_TONAL_COLORS.primary.slice(LOW, HIGH)
  * Stores information for each confusion matrix cell.
  */
 export interface MatrixCell {
-  ids: string[];
+  size: number;
   selected: boolean;
+}
+
+/** Custom selection event interface for DataMatrix */
+export interface MatrixSelection {
+  // A list of the cells selected in the data matrix, by row and column index.
+  cells: Array<[number, number]>;
 }
 
 /**
@@ -63,11 +71,9 @@ export class DataMatrix extends LitElement {
 
   @computed get totalIds(): number {
     let totalIds = 0;
-    for (let rowIndex = 0; rowIndex < this.matrixCells.length; rowIndex++) {
-      const row = this.matrixCells[rowIndex];
-      for (let colIndex = 0; colIndex < row.length; colIndex++) {
-        const cell = row[colIndex];
-        totalIds += cell.ids.length;
+    for (const row of this.matrixCells) {
+      for (const cell of row) {
+        totalIds += cell.size;
       }
     }
     return totalIds;
@@ -83,22 +89,25 @@ export class DataMatrix extends LitElement {
   }
 
   private updateSelection() {
-    let ids: string[] = [];
-    for (const cellInfo of this.matrixCells.flat()) {
-      if (cellInfo.selected) {
-        ids = ids.concat(cellInfo.ids);
+    const selectedCells: Array<[number, number]> = [];
+    for (let i = 0; i < this.matrixCells.length; i++) {
+      for (let j = 0; j < this.matrixCells[i].length; j++) {
+        const cellInfo = this.matrixCells[i][j];
+        if (cellInfo.selected) {
+          selectedCells.push([i, j]);
+        }
       }
     }
-    const event = new CustomEvent('matrix-selection', {
+    const event = new CustomEvent<MatrixSelection>('matrix-selection', {
       detail: {
-        ids,
+        cells: selectedCells,
       }
     });
     this.dispatchEvent(event);
   }
 
-  private renderColHeader(label: string, colIndex: number,
-                          colsWithNonZeroCounts: Set<string>) {
+  private renderColHeader(
+      label: string, colIndex: number, colsWithNonZeroCounts: Set<string>) {
     const onColClick = () => {
       const cells = this.matrixCells.map((cells) => cells[colIndex]);
       const allSelected = cells.every((cell) => cell.selected);
@@ -126,8 +135,8 @@ export class DataMatrix extends LitElement {
   }
 
   // Render a clickable confusion matrix cell.
-  private renderCell(rowIndex: number, colIndex: number,
-                     colsWithNonZeroCounts: Set<string>) {
+  private renderCell(
+      rowIndex: number, colIndex: number, colsWithNonZeroCounts: Set<string>) {
     if (this.matrixCells[rowIndex]?.[colIndex] == null) {
       return null;
     }
@@ -141,30 +150,32 @@ export class DataMatrix extends LitElement {
         !colsWithNonZeroCounts.has(this.colLabels[colIndex])) {
       return null;
     }
-    const backgroundColor = this.colorScale(cellInfo.ids.length);
-    const percentage = cellInfo.ids.length / this.totalIds * 100;
+    const backgroundColor = this.colorScale(cellInfo.size);
+    const percentage = cellInfo.size / this.totalIds * 100;
     const textColor = percentage > COLOR_FLIP_PCT ? 'white' : 'black';
-    const border = cellInfo.selected ?
-        '2px solid #12B5CB' : '2px solid transparent';
+    const border = '2px solid';
+    const borderColor =
+        cellInfo.selected ? 'var(--lit-cyea-400)' : 'transparent';
     const cellStyle = styleMap({
-      background: `${backgroundColor}`,
-      color: `${textColor}`,
-      border
+      'background': `${backgroundColor}`,
+      'color': `${textColor}`,
+      'border': border,
+      'border-color': borderColor,
     });
     return html`
         <td class="cell" style=${cellStyle} @click=${onCellClick}>
           <div class="cell-container">
             <div class="percentage">${percentage.toFixed(1)}%</div>
-            <div class="val">(${cellInfo.ids.length})</div>
+            <div class="val">(${cellInfo.size})</div>
           </div>
         </td>`;
   }
 
   // Render a row of the confusion matrix, starting with the clickable
   // row header.
-  private renderRow(rowLabel: string, rowIndex: number,
-                    rowsWithNonZeroCounts: Set<string>,
-                    colsWithNonZeroCounts: Set<string>) {
+  private renderRow(
+      rowLabel: string, rowIndex: number, rowsWithNonZeroCounts: Set<string>,
+      colsWithNonZeroCounts: Set<string>) {
     const onRowClick = () => {
       const cells = this.matrixCells[rowIndex];
       const allSelected = cells.every((cell) => cell.selected);
@@ -179,7 +190,7 @@ export class DataMatrix extends LitElement {
     }
     let totalRowIds = 0;
     for (const cell of this.matrixCells[rowIndex]) {
-      totalRowIds += cell.ids.length;
+      totalRowIds += cell.size;
     }
     // clang-format off
     return html`
@@ -209,7 +220,7 @@ export class DataMatrix extends LitElement {
   private renderColTotalCell(colIndex: number) {
     let totalColIds = 0;
     for (const row of this.matrixCells) {
-      totalColIds += row[colIndex].ids.length;
+      totalColIds += row[colIndex].size;
     }
     return this.renderTotalCell(totalColIds);
   }
@@ -240,27 +251,10 @@ export class DataMatrix extends LitElement {
 
     // clang-format off
     return html`
-      <mwc-icon-button-toggle class="icon-button"
+      <mwc-icon class="icon-button"
         title="Rotate column labels"
-        onIcon="text_rotate_up" offIcon="text_rotation_none"
-        ?on="${this.verticalColumnLabels}"
-        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}"
-        @icon-button-toggle-change="${toggleVerticalColumnLabels}">
-      </mwc-icon-button-toggle>
-    `;
-    // clang-format on
-  }
-
-  private renderDeleteButton() {
-    const deleteMatrix = () => {
-      const event = new CustomEvent('delete-matrix', {});
-      this.dispatchEvent(event);
-    };
-
-    // clang-format off
-    return html`
-      <mwc-icon class="icon-button" @click=${deleteMatrix}>
-        delete_outline
+        @click="${toggleVerticalColumnLabels}">
+        ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
       </mwc-icon>
     `;
     // clang-format on
@@ -277,17 +271,15 @@ export class DataMatrix extends LitElement {
       const row = this.matrixCells[rowIndex];
       for (let colIndex = 0; colIndex < row.length; colIndex++) {
         const cell = row[colIndex];
-        if (cell.ids.length > 0) {
+        if (cell.size > 0) {
           rowsWithNonZeroCounts.add(this.rowLabels[rowIndex]);
           colsWithNonZeroCounts.add(this.colLabels[colIndex]);
         }
       }
     }
 
-    const totalColumnClasses = classMap({
-        'total-title-cell': true,
-        'align-bottom': this.verticalColumnLabels
-      });
+    const totalColumnClasses = classMap(
+        {'total-title-cell': true, 'align-bottom': this.verticalColumnLabels});
 
     const colsLabelSpan = this.hideEmptyLabels ? colsWithNonZeroCounts.size :
                                                  this.colLabels.length;
@@ -305,7 +297,7 @@ export class DataMatrix extends LitElement {
           <td class='axis-title' colspan=${colsLabelSpan}>
             ${this.colTitle}
           </td>
-          <th class="delete-cell">${this.renderDeleteButton()}</th>
+          <th></th>
         </tr>
         <tr>
           <td class='axis-title label-vertical' rowspan=${rowsLabelSpan}>

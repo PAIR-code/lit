@@ -24,11 +24,11 @@ import 'jasmine';
 import {LitApp} from '../core/app';
 import {IndexedInput} from '../lib/types';
 import {DEFAULT, CATEGORICAL_NORMAL} from '../lib/colors';
+import {mockMetadata} from '../lib/testing_utils';
 
-import {ClassificationService} from './classification_service';
 import {ColorService, SignedSalienceCmap, UnsignedSalienceCmap} from './color_service';
+import {DataService} from './data_service';
 import {GroupService} from './group_service';
-import {RegressionService} from './regression_service';
 import {AppState} from './state_service';
 
 describe('Color service test', () => {
@@ -40,6 +40,7 @@ describe('Color service test', () => {
     'testNumFeat0': [-5, 5],
     'testNumFeat1': [0, 1],
   };
+  const booleanFeatureNames: string[] = ['testBool'];
   const categoricalFeatureNames = Object.keys(categoricalFeatures);
   const numericalFeatureNames = Object.keys(numericalFeatureRanges);
   // It seems you can't mock mobx @computed values since they're read-only, so
@@ -47,6 +48,7 @@ describe('Color service test', () => {
   const mockGroupService = {
     categoricalFeatureNames,
     numericalFeatureNames,
+    booleanFeatureNames,
     categoricalFeatures,
     numericalFeatureRanges
   } as unknown as GroupService;
@@ -54,15 +56,14 @@ describe('Color service test', () => {
 
   const app = new LitApp();
   const colorService = new ColorService(
-      app.getService(AppState), mockGroupService,
-      app.getService(ClassificationService), app.getService(RegressionService));
+      mockGroupService, app.getService(DataService));
 
   it('Tests colorableOption', () => {
     const opts = colorService.colorableOptions;
 
-    // Default value + two cat features + 2 numerical features = 3 options
-    // total.
-    expect(opts.length).toBe(5);
+    // Default value + two cat features + 2 numerical features +
+    // 1 bool feature = 6 options total.
+    expect(opts.length).toBe(6);
 
     // Test a categorical option.
     const colorOpt = opts[0];
@@ -78,11 +79,25 @@ describe('Color service test', () => {
   });
 
   it('Tests getDatapointColor(), selectedColorOption, and reset()', () => {
+    const dataMap = new Map<string, IndexedInput>();
     const mockInput: IndexedInput = {
       id: 'xxxxxxx',
       data: {'testFeat0': 1, 'testNumFeat0': 0},
       meta: {}
     };
+    dataMap.set('xxxxxxx', mockInput);
+
+    const inputData = new Map<string, Map<string, IndexedInput>>();
+    inputData.set('color_test', dataMap);
+
+    const appState = app.getService(AppState);
+    // Stop appState from trying to make the call to the back end
+    // to load the data (causes test flakiness.)
+    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
+    // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
+    spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    appState.metadata = mockMetadata;
+    appState.setCurrentDataset('color_test');
 
     // With no change in settings, the color should be the default color.
     let color = colorService.getDatapointColor(mockInput);
@@ -90,19 +105,16 @@ describe('Color service test', () => {
 
     // When the settings are updated, getDatapointColor() should reflect the
     // update.
-    colorService.selectedColorOption = colorService.colorableOptions[0];
+    colorService.selectedColorOptionName =
+        colorService.colorableOptions[0].name;
     color = colorService.getDatapointColor(mockInput);
     expect(color).toEqual(CATEGORICAL_NORMAL[1]);
 
     // Updating to a numerical color scheme.
-    colorService.selectedColorOption = colorService.colorableOptions[2];
+    colorService.selectedColorOptionName =
+        colorService.colorableOptions[2].name;
     color = colorService.getDatapointColor(mockInput);
     expect(color).toEqual('rgb(51, 138, 163)');
-
-    // After resetting, getDatapointColor() should reset.
-    colorService.reset();
-    color = colorService.getDatapointColor(mockInput);
-    expect(color).toEqual(DEFAULT);
   });
 
   it('provides color map classes for salience viz', () => {

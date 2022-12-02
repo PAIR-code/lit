@@ -17,23 +17,26 @@
 
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
+import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {TemplateResult} from 'lit';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {BatchRequestCache} from '../lib/caching';
 import {getBrandColor} from '../lib/colors';
+import {CategoryLabel, Embeddings, ImageBytes, Scalar, StringLitType, TextSegment} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
-import {ColorService, FocusService} from '../services/services';
+import {ColorService, DataService, FocusService, SelectionService} from '../services/services';
 
 import {styles} from './embeddings_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 interface ProjectorOptions {
   displayName: string;
@@ -47,6 +50,12 @@ interface ProjectionBackendResult {
 
 interface NearestNeighborsResult {
   id: string;
+}
+
+interface EmbeddingOptions {
+  // modelName is the empty string for embeddings that don't use a model.
+  modelName: string;
+  fieldName: string;
 }
 
 const NN_INTERPRETER_NAME = 'nearest neighbors';
@@ -63,9 +72,15 @@ const SPRITE_THUMBNAIL_SIZE = 48;
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
   static override title = 'Embeddings';
-  static override template = () => {
-    return html`<embeddings-module></embeddings-module>`;
-  };
+  static override referenceURL =
+      'https://github.com/PAIR-code/lit/wiki/components.md#embedding-projector';
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => {
+        return html`
+      <embeddings-module model=${model} .shouldReact=${shouldReact}
+        selectionServiceIndex=${selectionServiceIndex}>
+      </embeddings-module>`;
+      };
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -79,6 +94,9 @@ export class EmbeddingsModule extends LitModule {
   };
 
   static override numCols = 3;
+
+  @observable
+  private isLoading: boolean = false;
 
   // Selection of one of the above configs.
   @observable private projectorName: string = 'umap';
@@ -94,9 +112,39 @@ export class EmbeddingsModule extends LitModule {
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
-  private resizeObserver!: ResizeObserver;
+  private readonly dataService = app.getService(DataService);
+  private readonly pinnedSelectionService =
+      app.getService(SelectionService, 'pinned');
+  private readonly resizeObserver = new ResizeObserver(() => {
+    // Protect against resize when container isn't rendered, which can happen
+    // during model switching.
+    const resultsArea = this.shadowRoot!.querySelector('.module-results-area');
+    const container = this.shadowRoot!.getElementById('scatter-gl-container');
+    if (resultsArea == null || container == null) {return;}
 
-  private scatterGL!: ScatterGL;
+    /**
+     * While investigating the jitter, we found that this callback function was
+     * being called twice for every selection change. After the first call, the
+     * `container.offsetHeight` would always be less than
+     * `resultsArea.offsetHeight`, and after the second they would be the same.
+     * We were unable to figure out why this is happening because of the
+     * opqueness of the ResizeObserver API's triggers.
+     *
+     * Thus we added this guard to only resize ScatterGL when the heights are
+     * the same, i.e., when container is meeting its `height: 100%;` style rule.
+     *
+     * TODO(b/257440141): Figure out why this callback is happening twice
+     */
+    const resultsAreaRect = resultsArea.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width && containerRect.height &&
+        containerRect.width === resultsAreaRect.width &&
+        containerRect.height === resultsAreaRect.height) {
+      this.scatterGL?.resize();
+    }
+  });
+
+  private scatterGL?: ScatterGL;
 
   /**
    * Cache for embeddings, so we don't need to retrieve the entire
@@ -123,12 +171,17 @@ export class EmbeddingsModule extends LitModule {
   }
 
   @computed
-  get embeddingOptions() {
-    return this.appState.currentModels.flatMap((modelName: string) => {
-      const modelSpec = this.appState.metadata.models[modelName].spec;
-      const embKeys = findSpecKeys(modelSpec.output, 'Embeddings');
-      return embKeys.map((fieldName) => ({modelName, fieldName}));
-    });
+  get embeddingOptions(): EmbeddingOptions[] {
+    const modelOptions: EmbeddingOptions[] =
+        this.appState.currentModels.flatMap((modelName: string) => {
+          const modelSpec = this.appState.metadata.models[modelName].spec;
+          const embKeys = findSpecKeys(modelSpec.output, Embeddings);
+          return embKeys.map((fieldName) => ({modelName, fieldName}));
+        });
+    const datasetOptions =
+        findSpecKeys(this.appState.currentDatasetSpec, Embeddings).map(
+            key => ({modelName: '', fieldName: key}));
+    return datasetOptions.concat(modelOptions);
   }
 
   /**
@@ -137,7 +190,13 @@ export class EmbeddingsModule extends LitModule {
   @computed
   get embeddingOptionNames() {
     return this.embeddingOptions.map(
-        option => `${option.modelName}:${option.fieldName}`);
+        option => {
+          if (option.modelName === '') {
+            return `${option.fieldName}`;
+          } else {
+            return `${option.modelName}:${option.fieldName}`;
+          }
+        });
   }
 
   @computed
@@ -156,9 +215,7 @@ export class EmbeddingsModule extends LitModule {
 
   @computed
   get scatterGLDataset(): Dataset|null {
-    if (this.projectedPoints.length === 0) {
-      return null;
-    }
+    if (this.projectedPoints.length === 0) {return null;}
     const labels = this.displayLabels.slice(0, this.projectedPoints.length);
     const dataset = new Dataset(this.projectedPoints, labels);
 
@@ -181,15 +238,16 @@ export class EmbeddingsModule extends LitModule {
     const key = `${dataset}:${model}:${projector}:${JSON.stringify(config)}`;
     if (!this.embeddingCache.has(key)) {
       // Not found, create a new one.
-      const keyFn = (d: IndexedInput) => d['id'];
       const requestFn =
-          async(inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
-        return this.apiService.getInterpretations(
-            inputs, model, dataset, projector, config, 'Fetching projections');
-      };
-      const cache = new BatchRequestCache(requestFn, keyFn);
+        async (inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
+          return this.apiService.getInterpretations(
+              inputs, model, dataset, projector, config,
+              'Fetching projections');
+        };
+      const cache = new BatchRequestCache(requestFn, (d: IndexedInput) => d.id);
       this.embeddingCache.set(key, cache);
     }
+
     return this.embeddingCache.get(key)!;
   }
 
@@ -197,11 +255,13 @@ export class EmbeddingsModule extends LitModule {
       example: IndexedInput, numNeighbors: number = DEFAULT_NUM_NEAREST) {
     const {modelName, fieldName} =
         this.embeddingOptions[this.selectedEmbeddingsIndex];
+    const useInput = modelName === '';
     const datasetName = this.appState.currentDataset;
     const config: CallConfig = {
       'dataset_name': datasetName,
       'embedding_name': fieldName,
       'num_neighbors': numNeighbors,
+      'use_input': useInput,
     };
 
     // All indexed inputs in the dataset are passed in, with the main example
@@ -214,9 +274,7 @@ export class EmbeddingsModule extends LitModule {
     if (result === null) return;
 
     const nearestIds = result[0]['nearest_neighbors'].map(
-        (neighbor: NearestNeighborsResult) => {
-          return neighbor['id'];
-        });
+        (neighbor: NearestNeighborsResult) => neighbor.id);
 
     this.selectionService.selectIds(nearestIds);
   }
@@ -230,10 +288,10 @@ export class EmbeddingsModule extends LitModule {
   }
 
   override firstUpdated() {
-    const scatterContainer =
+    const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
-    this.scatterGL = new ScatterGL(scatterContainer, {
+    this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
       onSelect: this.onSelect.bind(this),
@@ -249,21 +307,7 @@ export class EmbeddingsModule extends LitModule {
     this.setupReactions();
 
     // Resize the scatter GL container.
-    const container = this.shadowRoot!.getElementById('scatter-gl-container')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
-    });
     this.resizeObserver.observe(container);
-  }
-
-  private handleResize() {
-    // Protect against resize when container isn't rendered, which can happen
-    // during model switching.
-    const scatterContainer =
-        this.shadowRoot!.getElementById('scatter-gl-container')!;
-    if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL.resize();
-    }
   }
 
   /**
@@ -271,20 +315,10 @@ export class EmbeddingsModule extends LitModule {
    */
   private setupReactions() {
     // Don't react immediately; we'll wait and make a single update.
-    const getColorAll = () => this.colorService.all;
-    this.react(getColorAll, allColorOptions => {
-      // pointColorer uses the latest settings from colorService automatically,
-      // so to pick up the colors we just need to trigger a rerender on
-      // scatterGL.
+    this.react(() => this.dataService.dataVals, () => {
       this.updateScatterGL();
     });
-    this.react(() => this.focusService.focusData, focusData => {
-      this.updateScatterGL();
-    });
-    this.react(() => this.selectionService.primarySelectedId, primaryId => {
-      this.updateScatterGL();
-    });
-    this.react(() => this.selectedSpriteIndex, focusData => {
+    this.react(() => this.selectedSpriteIndex, () => {
       this.computeSpriteMap();
     });
 
@@ -301,24 +335,35 @@ export class EmbeddingsModule extends LitModule {
     }, {delay: 0.2});
 
     // Actually render the points.
-    this.reactImmediately(() => this.scatterGLDataset, dataset => {
-      this.updateScatterGL();
-    });
+    const dataChanges = () => [
+      this.scatterGLDataset, this.colorService.selectedColorOption
+    ];
+    this.reactImmediately(dataChanges, () => {this.updateScatterGL();});
 
     this.reactImmediately(
-        () => this.selectionService.selectedIds, selectedIds => {
+        () => this.selectionService.selectedIds,
+        (selectedIds) => {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
-          this.scatterGL.select(selectedIndices);
+          this.scatterGL?.select(selectedIndices);
         });
+    this.reactImmediately(() => this.focusService.focusData, () => {
+      const hoveredId = this.focusService.focusData?.datapointId;
+      if (hoveredId != null) {
+        const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];
+        this.scatterGL?.setHoverPointIndex(hoveredIdx);
+      } else {
+        this.scatterGL?.setHoverPointIndex(null);
+      }
+    });
   }
 
   private updateScatterGL() {
     if (this.scatterGLDataset) {
-      this.scatterGL.render(this.scatterGLDataset);
+      this.scatterGL?.render(this.scatterGLDataset);
       if (this.spriteImage) {
-        this.scatterGL.setSpriteRenderMode();
+        this.scatterGL?.setSpriteRenderMode();
       } else {
-        this.scatterGL.setPointRenderMode();
+        this.scatterGL?.setPointRenderMode();
       }
     }
   }
@@ -331,6 +376,8 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private async computeProjectedEmbeddings() {
+    this.isLoading = true;
+
     // Clear projections if dataset is empty.
     if (!this.appState.currentInputData.length) {
       this.projectedPoints = [];
@@ -344,10 +391,12 @@ export class EmbeddingsModule extends LitModule {
     const {modelName, fieldName} = embeddingsInfo;
 
     const datasetName = this.appState.currentDataset;
+    const useInput = modelName === '';
     const projConfig = {
       'dataset_name': datasetName,
       'model_name': modelName,
       'field_name': fieldName,
+      'use_input': useInput,
       'proj_kw': {'n_components': 3},
     };
     // Projections will be returned for the whole dataset, including generated
@@ -368,18 +417,19 @@ export class EmbeddingsModule extends LitModule {
     }
 
     this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
+
+    // Add an artificial timeout to indicate that the display has changed.
+    setTimeout(() => this.isLoading = false, 400);
   }
 
   private getLabelByFields() {
-    const inputData = this.appState.currentInputData;
-    const noData = inputData === null || inputData.length === 0;
-    let options: string[] = noData ? [] : Object.keys(inputData[0].data);
-    options = options.filter((key) => !this.getImageFields().includes(key));
-    return options;
+    return findSpecKeys(
+        this.appState.currentDatasetSpec,
+        [TextSegment, Scalar, StringLitType, CategoryLabel]);
   }
 
   private getImageFields() {
-    return findSpecKeys(this.appState.currentDatasetSpec, 'ImageBytes');
+    return findSpecKeys(this.appState.currentDatasetSpec, ImageBytes);
   }
 
   private computeSpriteMap() {
@@ -403,7 +453,9 @@ export class EmbeddingsModule extends LitModule {
     canvas.width = imgPerSide * imgSize;
     canvas.height = imgPerSide * imgSize;
     const ctx = canvas.getContext('2d')!;
-    for (let i = 0; i < this.appState.currentInputData.length; i++) {
+    let numLoaded = 0;
+    const numToLoad = this.appState.currentInputData.length;
+    for (let i = 0; i < numToLoad; i++) {
       const datapoint = this.appState.currentInputData[i];
       const x = i % imgPerSide;
       const y = Math.floor(i / imgPerSide);
@@ -413,7 +465,8 @@ export class EmbeddingsModule extends LitModule {
 
         // Once last datapoint is drawn to the canvas, create an image element
         // from it for use by scatter-gl.
-        if (i === this.appState.currentInputData.length - 1) {
+        numLoaded++;
+        if (numLoaded === numToLoad) {
           const image = document.createElement("img");
           image.src = canvas.toDataURL("image/jpeg");
           this.spriteImage = image;
@@ -442,9 +495,11 @@ export class EmbeddingsModule extends LitModule {
     const isHovered = this.focusService.focusData != null &&
         this.focusService.focusData.datapointId === currentPoint.id &&
         this.focusService.focusData.io == null;
+    const isPinned = currentPoint != null &&
+        this.pinnedSelectionService.primarySelectedId === currentPoint.id;
 
-    if (isHovered) {
-      color = getBrandColor('mage', '300').color;
+    if (isHovered || isPinned) {
+      color = getBrandColor('mage', '400').color;
     }
 
     // Do not add color to rendered images unless they are hovered or selected.
@@ -484,38 +539,76 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
+  // Overriding render directly instead of renderImpl to avoid WebGL losing
+  // context when the module is collapsed and re-opened. Rendered elements will
+  // persist in the background and continue to update via reactions. This may
+  // cause performance issues with lage datasets, but the specific impacts of
+  // this are unknown at this time. There is a way to rearchitect this so that
+  // ScatterGL can be used with `renderImpl()` and thus avoid potential
+  // performance penalties for updating off screen.
+  // TODO(b/260699752): Rearchitect to use `renderImpl()`
   override render() {
+    // check the type of the labels.
+    const domain = this.colorService.selectedColorOption.scale.domain();
+    const sequentialScale = typeof domain[0] === 'number';
+    const legendType =
+        sequentialScale ? LegendType.SEQUENTIAL: LegendType.CATEGORICAL;
+
     const onSelectNearest = () => {
       if (this.selectionService.primarySelectedInputData != null) {
         this.getNearestNeighbors(
             this.selectionService.primarySelectedInputData);
       }
     };
+    const onClickReset = () => {this.scatterGL?.resetZoom();};
+
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
-      <div class="container">
-        <div class="toolbar-container flex-row">
+      <div class="module-container">
+        <div class="module-toolbar">
           ${this.renderProjectorSelect()}
           ${this.renderEmbeddingsSelect()}
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
+          <div>
+            <mwc-icon class="icon-button mdi-outlined"
+              title="Reset view"
+              @click=${onClickReset}>view_in_ar</mwc-icon>
+          </div>
         </div>
-        <div class="toolbar-container flex-row" id="select-button-container">
+        <div class="module-results-area">
+          ${this.renderResultsArea()}
+        </div>
+        <div class="module-footer">
+          <color-legend legendType=${legendType}
+            selectedColorName=${this.colorService.selectedColorOption.name}
+            .scale=${this.colorService.selectedColorOption.scale}>
+          </color-legend>
           <button class="hairline-button selected-nearest-button"
             ?disabled=${disabled}
             @click=${onSelectNearest}
             title=${disabled ? 'Select a single point to use this feature' : ''}
           >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
         </div>
-        <div id="scatter-gl-container"></div>
       </div>
+    `;
+  }
+
+  renderResultsArea() {
+    // The container is referenced when rendering and resizing the ScatterGL.
+    // We hide the container when loading occurs, but it is still present.
+    // See cl/449599579 for more context.
+    return html`
+     ${this.isLoading ? this.renderSpinner() : null}
+     <div class=${this.isLoading ? 'hidden-container' : ''}
+      id="scatter-gl-container"></div>
     `;
   }
 
   renderSpinner() {
     return html`
       <div class="spinner-container">
-        <lit-spinner size=${36} color="var(--app-dark-color)"></lit-spinner>
+        <lit-spinner size=${20} color="var(--app-secondary-color)"></lit-spinner>
       </div>`;
   }
 
@@ -609,9 +702,12 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Check if there are Embeddings in the input data.
+    if (findSpecKeys(datasetSpec, Embeddings).length > 0) return true;
+
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
-    if (!doesOutputSpecContain(modelSpecs, 'Embeddings')) {
+    if (!doesOutputSpecContain(modelSpecs, Embeddings)) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {

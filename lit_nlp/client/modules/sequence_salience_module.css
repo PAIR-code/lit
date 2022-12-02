@@ -9,6 +9,17 @@ table.field-table th {
   text-align: start;
 }
 
+lit-slider {
+  max-width: 72px;
+}
+
+.color-legend-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 16px;
+}
+
 .subfield-title {
   padding-top: 6px; /* align title with first row of content */
 }
@@ -158,27 +169,10 @@ table.field-table th {
   margin: 0 8px;
 }
 
-.cmap-blocks-holder {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin: 0 4px;
-}
-
-.cmap-block {
-  width: 28px;
-  height: 20px;
-  border: 1px solid gray;
-  border-radius: 3px;
-  text-align: center;
-  vertical-align: middle;
-  margin: 0 2px;
-}
-
-.cmap-block-wide {
-  width: 32px;
-}
-
 .gamma-value {
   min-width: 32px;
 }
+
+.module-footer > * { min-width: 0; }
+
+.controls-group > * { min-width: 0; }

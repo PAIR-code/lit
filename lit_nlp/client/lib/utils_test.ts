@@ -20,8 +20,31 @@
  */
 
 import 'jasmine';
+
+import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
+import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {Spec} from '../lib/types';
+
 import * as utils from './utils';
+
+describe('mean test', () => {
+  it('computes a mean', () => {
+    const values = [1, 3, 2, 5, 4];
+    expect(utils.mean(values)).toEqual(3);
+  });
+});
+
+describe('median test', () => {
+  it('computes a median for a list of integers with odd length', () => {
+    const values = [1, 3, 2, 5, 4];
+    expect(utils.median(values)).toEqual(3);
+  });
+
+  it('computes a median for a list of integers with even length', () => {
+    const values = [1, 3, 2, 5, 4, 6];
+    expect(utils.median(values)).toEqual(3.5);
+  });
+});
 
 describe('randInt test', () => {
   it('generates random integers in a given range', async () => {
@@ -118,91 +141,198 @@ describe('arrayContainsSame test', () => {
      });
 });
 
+describe('convert lit types to names tests', () => {
+  it('converts types to names', () => {
+    const types = [Scalar, StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypeNames(types);
+    expect(result).toEqual(names);
+  });
+
+  it('converts names to types', () => {
+    const testTypes = [Scalar, StringLitType];
+    const names = ['Scalar', 'StringLitType'];
+
+    const result = utils.getTypes(names);
+    expect(result).toEqual(testTypes);
+    expect(utils.createLitType(StringLitType) instanceof result[1])
+        .toBe(true);
+
+  });
+});
+
+describe('createLitType test', () => {
+  it('creates a type as expected', () => {
+    const expected = new Scalar();
+    expected.show_in_data_table = false;
+
+    const result = utils.createLitType(Scalar);
+    expect(result.name).toEqual('Scalar');
+    expect(result).toEqual(expected);
+    expect(result instanceof Scalar).toEqual(true);
+  });
+
+  it('creates with constructor params', () => {
+    const expected = new StringLitType();
+    expected.default = 'foo';
+    expected.show_in_data_table = true;
+
+    const result = utils.createLitType(
+        StringLitType, {'show_in_data_table': true, 'default': 'foo'});
+    expect(result).toEqual(expected);
+  });
+
+  it('creates a modifiable lit type', () => {
+    const result = utils.createLitType(Scalar);
+    result.min_val = 5;
+    expect(result.min_val).toEqual(5);
+  });
+
+  it('handles invalid constructor params', () => {
+    expect(() => utils.createLitType(StringLitType, {
+      'notAStringParam': true
+    })).toThrowError();
+  });
+
+  it('creates with constructor params and custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel =
+        utils.createLitType(CategoryLabel, {'vocab': vocab});
+    expect(categoryLabel.vocab).toEqual(vocab);
+  });
+
+  it('allows modification of custom properties', () => {
+    const vocab = ['vocab1', 'vocab2'];
+    const categoryLabel = utils.createLitType(CategoryLabel);
+    categoryLabel.vocab = vocab;
+    expect(categoryLabel.vocab).toEqual(vocab);
+  });
+});
+
+describe('deserializeLitTypesInSpec test', () => {
+  const testSpec = {
+    'probabilities': {
+      '__name__': 'MulticlassPreds',
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    },
+    'pooled_embs': {
+      '__name__': 'Embeddings',
+      'required': true
+    }
+  };
+
+  it('returns serialized littypes', () => {
+    expect(testSpec['probabilities'] instanceof MulticlassPreds)
+        .toBe(false);
+    const result = utils.deserializeLitTypesInSpec(testSpec);
+    expect(result['probabilities'])
+        .toEqual(utils.createLitType(
+            MulticlassPreds,
+            {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
+    expect(result['probabilities'] instanceof MulticlassPreds)
+        .toBe(true);
+  });
+});
+
+describe('deserializeLitTypesInLitMetadata test', () => {
+  it('deserializes lit metadata', () => {
+    const result =
+        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
+    expect(result).toEqual(mockMetadata);
+  });
+});
+
+describe('cloneSpec test', () => {
+  const testSpec = {
+    'probabilities': utils.createLitType(MulticlassPreds, {
+      'required': true,
+      'vocab': ['0', '1'],
+      'null_idx': 0,
+      'parent': 'label'
+    })
+  };
+
+  it('deeply copies', () => {
+    const testSpec2 = utils.cloneSpec(testSpec);
+
+    const oldProbs = testSpec['probabilities'];
+    const newProbs = testSpec2['probabilities'] as MulticlassPreds;
+
+    newProbs.null_idx = 1;
+    expect(oldProbs.null_idx).toEqual(0);
+    expect(newProbs.null_idx).toEqual(1);
+
+    expect(testSpec2['probabilities'] instanceof MulticlassPreds)
+        .toBe(true);
+  });
+});
+
 describe('isLitSubtype test', () => {
+  it('checks is lit subtype', () => {
+    const testType = utils.createLitType(StringLitType);
+    expect(utils.isLitSubtype(testType, StringLitType)).toBe(true);
+    expect(utils.isLitSubtype(testType, [Scalar])).toBe(false);
+  });
+
   it('finds a subclass', () => {
     const spec: Spec = {
-      'score': {
-        __class__: 'LitType',
-        __name__: 'RegressionScore',
-        __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-      },
+      'score': utils.createLitType(RegressionScore),
     };
 
-    expect(utils.isLitSubtype(spec['score'], 'RegressionScore')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'Scalar')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'LitType')).toBe(true);
-    expect(utils.isLitSubtype(spec['score'], 'TextSegment')).toBe(false);
+    expect(utils.isLitSubtype(spec['score'], [RegressionScore])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [Scalar])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [LitType])).toBe(true);
+    expect(utils.isLitSubtype(spec['score'], [TextSegment])).toBe(false);
   });
 });
 
 describe('findSpecKeys test', () => {
   const spec: Spec = {
-    'score': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'probabilities': {
-      __class__: 'LitType',
-      __name__: 'MulticlassPreds',
-      __mro__: ['MulticlassPreds', 'LitType', 'object'],
-      null_idx: 0
-    },
-    'score2': {
-      __class__: 'LitType',
-      __name__: 'RegressionScore',
-      __mro__: ['RegressionScore', 'Scalar', 'LitType', 'object']
-    },
-    'scalar_foo': {
-      __class__: 'LitType',
-      __name__: 'Scalar',
-      __mro__: ['Scalar', 'LitType', 'object']
-    },
-    'segment': {
-      __class__: 'LitType',
-      __name__: 'TextSegment',
-      __mro__: ['TextSegment', 'LitType', 'object']
-    },
-    'generated_text': {
-      __class__: 'LitType',
-      __name__: 'GeneratedText',
-      __mro__: ['GeneratedText', 'TextSegment', 'LitType', 'object'],
-      parent: 'segment'
-    }
+    'score': utils.createLitType(RegressionScore),
+    'probabilities': utils.createLitType(MulticlassPreds, {'null_idx': 0}),
+    'score2': utils.createLitType(RegressionScore),
+    'scalar_foo': utils.createLitType(Scalar),
+    'segment': utils.createLitType(TextSegment),
+    'generated_text':
+        utils.createLitType(GeneratedText, {'parent': 'segment'}),
   };
 
   it('finds all spec keys that match the specified types', () => {
     // Key is in spec.
-    expect(utils.findSpecKeys(spec, 'RegressionScore')).toEqual([
+    expect(utils.findSpecKeys(spec, RegressionScore)).toEqual([
       'score', 'score2'
     ]);
-    expect(utils.findSpecKeys(spec, 'MulticlassPreds')).toEqual([
+    expect(utils.findSpecKeys(spec, [MulticlassPreds])).toEqual([
       'probabilities'
     ]);
 
     // Keys are in spec.
     expect(utils.findSpecKeys(spec, [
-      'MulticlassPreds', 'RegressionScore'
+      MulticlassPreds, RegressionScore
     ])).toEqual(['score', 'probabilities', 'score2']);
-    expect(utils.findSpecKeys(spec, ['GeneratedText'])).toEqual([
+    expect(utils.findSpecKeys(spec, [GeneratedText])).toEqual([
       'generated_text'
     ]);
 
     // Key is not in spec.
-    expect(utils.findSpecKeys(spec, ['TokenGradients'])).toEqual([]);
+    expect(utils.findSpecKeys(spec, [TokenGradients])).toEqual([]);
   });
 
   it('identifies subclass fields', () => {
-    expect(utils.findSpecKeys(spec, 'LitType')).toEqual(Object.keys(spec));
-    expect(utils.findSpecKeys(spec, 'TextSegment')).toEqual([
+    expect(utils.findSpecKeys(spec, LitType)).toEqual(Object.keys(spec));
+    expect(utils.findSpecKeys(spec, [TextSegment])).toEqual([
       'segment', 'generated_text'
     ]);
-    expect(utils.findSpecKeys(spec, 'Scalar')).toEqual([
-      'score', 'score2', 'scalar_foo'
-    ]);
+  });
+
+  it('handles empty spec keys', () => {
+    expect(utils.findSpecKeys(spec, [])).toEqual([]);
   });
 });
-
 
 describe('flatten test', () => {
   it('flattens a nested array by a single level', async () => {
@@ -257,18 +387,6 @@ describe('getThresholdFromMargin test', () => {
   });
   it('Behaves correctly for 0 input', () => {
     expect(utils.getThresholdFromMargin(0)).toEqual(.5);
-  });
-});
-
-describe('shortenID test', () => {
-  it('Shortens an id to 6 characters, for display', () => {
-    expect(utils.shortenId('b6ea684bec7bb1d4b9f2736b749c3030'))
-        .toEqual('b6ea68');
-    expect(utils.shortenId('924d4976b4ac56d053ed956671652892'))
-        .toEqual('924d49');
-  });
-  it('Behaves correctly for null input', () => {
-    expect(utils.shortenId(null)).toEqual(undefined);
   });
 });
 
@@ -396,5 +514,180 @@ describe('roundToDecimalPlaces test', () => {
 
   it('does not round when given negative places', () => {
     expect(utils.roundToDecimalPlaces(4.22, -1)).toEqual(4.22);
+  });
+});
+
+describe('findMatchingIndices test', () => {
+  it('returns empty list when appropriate', () => {
+    expect(utils.findMatchingIndices([1, 2, 3], 4)).toEqual([]);
+    expect(utils.findMatchingIndices(['a', 'b', 'c'], 'aa')).toEqual([]);
+  });
+
+  it('returns one match correctly', () => {
+    expect(utils.findMatchingIndices([1, 2, 3], 1)).toEqual([0]);
+    expect(utils.findMatchingIndices(['a', 'b', 'c'], 'b')).toEqual([1]);
+  });
+
+  it('returns multiple matches correctly', () => {
+    expect(utils.findMatchingIndices([1, 2, 3, 1, 1], 1)).toEqual([0, 3, 4]);
+  });
+});
+
+describe('replaceNth test', () => {
+  it('returns same string when no match', () => {
+    expect(utils.replaceNth('hello world', 'no', 'yes', 1))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 2))
+        .toEqual('hello world');
+    expect(utils.replaceNth('hello world', 'world', 'yes', 0))
+        .toEqual('hello world');
+  });
+
+  it('returns correct string on single match', () => {
+    expect(utils.replaceNth('hello world', 'world', 'yes', 1))
+        .toEqual('hello yes');
+  });
+
+  it('can handle strings with special regex chars', () => {
+    expect(utils.replaceNth('hello [MASK]', '[MASK]', 'yes', 1))
+        .toEqual('hello yes');
+  });
+
+  it('returns correct string with multiple matches', () => {
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 1))
+        .toEqual('hello yes world');
+    expect(utils.replaceNth('hello world world', 'world', 'yes', 2))
+        .toEqual('hello world yes');
+  });
+});
+
+describe('getStepSizeGivenRange test', () => {
+  it('Works as expected in the basic case', () => {
+    expect(utils.getStepSizeGivenRange(0.9)).toEqual(0.01);
+    expect(utils.getStepSizeGivenRange(1)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(9.9)).toEqual(0.1);
+    expect(utils.getStepSizeGivenRange(10)).toEqual(1);
+    expect(utils.getStepSizeGivenRange(100)).toEqual(10);
+    expect(utils.getStepSizeGivenRange(101)).toEqual(10);
+  });
+  it('Behaves correctly for 0 range', () => {
+    expect(utils.getStepSizeGivenRange(0)).toEqual(0);
+  });
+  it('Behaves correctly for negative range', () => {
+    expect(utils.getStepSizeGivenRange(-1)).toBeNaN();
+  });
+});
+
+describe('mapsContainSame test', () => {
+  it('correctly determines that empty maps contain the same items', () => {
+    const emptyA = new Map<string, string>();
+    const emptyB = new Map<string, string>();
+    expect(utils.mapsContainSame(emptyA, emptyB)).toBe(true);
+  });
+
+  it('correctly determines maps with different values are different', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB =
+        new Map<string, string>([['keyA', 'valA'], ['keyB', 'valBAlt']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(false);
+  });
+
+  it('correctly determines maps with different keys are different', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB =
+        new Map<string, string>([['keyA', 'valA'], ['keyBAlt', 'valB']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(false);
+  });
+
+  it('correctly determines identical maps are the same', () => {
+    const mapA = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    const mapB = new Map<string, string>([['keyA', 'valA'], ['keyB', 'valB']]);
+    expect(utils.mapsContainSame(mapA, mapB)).toBe(true);
+  });
+});
+
+describe('numberRangeFnFromString test', () => {
+  it('handles single items', () => {
+    const input = '1, 2 -3';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(true);
+    expect(fn(-3)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(-1)).toBe(false);
+    expect(fn(3)).toBe(false);
+  });
+
+  it('handles ranges', () => {
+    const input = '-20--10, -4-4 10-20';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(-19)).toBe(true);
+    expect(fn(-10)).toBe(true);
+    expect(fn(-9)).toBe(false);
+    expect(fn(0)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(9)).toBe(false);
+    expect(fn(12)).toBe(true);
+  });
+
+  it('handles mix of singles and ranges', () => {
+    const input = '1, 3-5';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(1)).toBe(true);
+    expect(fn(2)).toBe(false);
+    expect(fn(3)).toBe(true);
+    expect(fn(4)).toBe(true);
+    expect(fn(5)).toBe(true);
+    expect(fn(6)).toBe(false);
+  });
+
+  it('ignores invalid settings', () => {
+    const input = 'not a number';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-20)).toBe(true);
+    expect(fn(0)).toBe(true);
+    expect(fn(100)).toBe(true);
+  });
+
+  it('handles decimal numbers with and without leading zeros', () => {
+    const input = '-11.23--5.5, 0.45-.49, .99-1.4';
+    const fn = utils.numberRangeFnFromString(input);
+    expect(fn(-11.4)).toBe(false);
+    expect(fn(-6.5)).toBe(true);
+    expect(fn(0)).toBe(false);
+    expect(fn(0.451)).toBe(true);
+    expect(fn(0.5)).toBe(false);
+    expect(fn(1)).toBe(true);
+    expect(fn(1.4)).toBe(true);
+    expect(fn(1.5)).toBe(false);
+  });
+});
+
+describe('linearSpace test', () => {
+  it('returns evenly spaced numbers between minValue and maxValue', () => {
+    let minValue = 0;
+    let maxValue = 1;
+    let numSteps = 5;
+    let result = [0, 0.25, 0.5, 0.75, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = -1;
+    maxValue = 1;
+    numSteps = 5;
+    result = [-1, -0.5, 0, 0.5, 1];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 0.25;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [0.25, 0.5, 0.75];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+
+    minValue = 1;
+    maxValue = 0.75;
+    numSteps = 3;
+    result = [];
+    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
   });
 });

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Partial dependence plot interpreter.
 
 Runs a model on a set of edited examples to see the effect of changing a
@@ -24,7 +23,7 @@ The front-end can display these as charts.
 
 import copy
 import functools
-from typing import cast, List, Optional
+from typing import cast, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -34,9 +33,16 @@ from lit_nlp.api import types
 from lit_nlp.lib import utils
 import numpy as np
 
+_SUPPORTED_PRED_TYPES = (types.MulticlassPreds, types.RegressionScore)
+
 
 class PdpInterpreter(lit_components.Interpreter):
   """Partial Dependence Plot interpreter."""
+
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by PDP
+    return utils.spec_contains(model.output_spec(), _SUPPORTED_PRED_TYPES)
 
   @functools.lru_cache()
   def get_vals_to_test(self, feat, dataset: lit_dataset.IndexedDataset):
@@ -54,10 +60,10 @@ class PdpInterpreter(lit_components.Interpreter):
     return np.linspace(min_val, max_val, 10)
 
   def run(self,
-          inputs: List[types.JsonDict],
+          inputs: list[types.JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[types.JsonDict]] = None,
+          model_outputs: Optional[list[types.JsonDict]] = None,
           config: Optional[types.JsonDict] = None):
     """Create PDP chart info using provided inputs.
 
@@ -69,23 +75,29 @@ class PdpInterpreter(lit_components.Interpreter):
       config: optional runtime config.
 
     Returns:
-      a dict of alternate feature values to model outputs. The model
-      outputs will be a number for regression models and a list of numbers for
+      A dict of alternate feature values to model outputs. The model outputs
+      will be a number for regression models and a list of numbers for
       multiclass models.
+
+    Raises:
+      KeyError: `config` does not have a value for `feature`
+      TypeError: `config` is missing
     """
 
-    pred_keys = utils.find_spec_keys(
-        model.output_spec(), (types.MulticlassPreds, types.RegressionScore))
+    if not config:
+      raise TypeError('config must be provided')
+
+    feature = config.get('feature')
+    if not feature:
+      raise KeyError('Config must have a "feature" field')
+
+    pred_keys = utils.find_spec_keys(model.output_spec(), _SUPPORTED_PRED_TYPES)
     if not pred_keys:
       logging.warning('PDP did not find any supported output fields.')
       return None
 
-    assert 'feature' in config, 'No feature to test provided'
-    feature = config['feature']
-    provided_range = config['range'] if 'range' in config else []
-    edited_outputs = {}
-    for pred_key in pred_keys:
-      edited_outputs[pred_key] = {}
+    provided_range = config.get('range', [])
+    edited_outputs = {pred_key: {} for pred_key in pred_keys}
 
     # If a range was provided, use that to create the possible values.
     vals_to_test = (
@@ -110,9 +122,8 @@ class PdpInterpreter(lit_components.Interpreter):
 
       # Store the mean of the prediction for the alternate value.
       for pred_key in pred_keys:
-        numeric = isinstance(
-            model.output_spec()[pred_key], types.RegressionScore)
-        if numeric:
+        field_spec = model.output_spec().get(pred_key)
+        if isinstance(field_spec, types.RegressionScore):
           edited_outputs[pred_key][new_val] = np.mean(
               [output[pred_key] for output in outputs])
         else:
@@ -120,4 +131,3 @@ class PdpInterpreter(lit_components.Interpreter):
               [output[pred_key] for output in outputs], axis=0)
 
     return edited_outputs
-

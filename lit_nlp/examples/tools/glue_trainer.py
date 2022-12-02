@@ -1,4 +1,3 @@
-# Lint as: python3
 r"""Lightweight trainer script to fine-tune on a GLUE or GLUE-like task.
 
 Usage:
@@ -19,6 +18,8 @@ AutoTokenizer, AutoConfig, and TFAutoModelForSequenceClassification, and can
 load anything compatible with those classes.
 """
 import os
+from typing import Sequence
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -29,16 +30,18 @@ from lit_nlp.examples.models import glue_models
 from lit_nlp.lib import serialize
 import tensorflow as tf
 
-flags.DEFINE_string("encoder_name", "bert-base-uncased",
-                    "Model name or path to pretrained (base) encoder.")
-flags.DEFINE_string("task", "sst2", "Name of task to fine-tune on.")
-flags.DEFINE_string("train_path", "/tmp/hf_demo",
-                    "Path to save fine-tuned model.")
+_ENCODER_NAME = flags.DEFINE_string(
+    "encoder_name", "bert-base-uncased",
+    "Model name or path to pretrained (base) encoder.")
+_TASK = flags.DEFINE_string("task", "sst2", "Name of task to fine-tune on.")
+_TRAIN_PATH = flags.DEFINE_string("train_path", "/tmp/hf_demo",
+                                  "Path to save fine-tuned model.")
 
-flags.DEFINE_integer(
+_NUM_EPOCHS = flags.DEFINE_integer(
     "num_epochs", 3, "Number of epochs to train for.", lower_bound=1)
-flags.DEFINE_bool("save_intermediates", False,
-                  "If true, save intermediate weights after each epoch.")
+_SAVE_INTERMEDIATES = flags.DEFINE_bool(
+    "save_intermediates", False,
+    "If true, save intermediate weights after each epoch.")
 
 FLAGS = flags.FLAGS
 
@@ -106,30 +109,32 @@ def train_and_save(model,
                "\n  ".join(os.listdir(train_path)))
 
 
-def main(_):
+def main(argv: Sequence[str]) -> None:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
 
   ##
   # Pick the model and datasets
   # TODO(lit-dev): add remaining GLUE tasks? These three cover all the major
   # features (single segment, two segment, classification, regression).
-  if FLAGS.task == "sst2":
+  if _TASK.value == "sst2":
     train_data = glue.SST2Data("train")
     val_data = glue.SST2Data("validation")
-    model = glue_models.SST2Model(FLAGS.encoder_name)
-  elif FLAGS.task == "mnli":
+    model = glue_models.SST2Model(_ENCODER_NAME.value)
+  elif _TASK.value == "mnli":
     train_data = glue.MNLIData("train")
     val_data = glue.MNLIData("validation_matched")
-    model = glue_models.MNLIModel(FLAGS.encoder_name)
-  elif FLAGS.task == "stsb":
+    model = glue_models.MNLIModel(_ENCODER_NAME.value)
+  elif _TASK.value == "stsb":
     train_data = glue.STSBData("train")
     val_data = glue.STSBData("validation")
-    model = glue_models.STSBModel(FLAGS.encoder_name)
-  elif FLAGS.task == "toxicity":
+    model = glue_models.STSBModel(_ENCODER_NAME.value)
+  elif _TASK.value == "toxicity":
     train_data = classification.ToxicityData("train")
     val_data = classification.ToxicityData("test")
-    model = glue_models.ToxicityModel(FLAGS.encoder_name)
+    model = glue_models.ToxicityModel(_ENCODER_NAME.value)
   else:
-    raise ValueError(f"Unrecognized task name: '{FLAGS.task:s}'")
+    raise ValueError(f"Unrecognized task name: '{_TASK.value:s}'")
 
   ##
   # Run training and save model.
@@ -137,9 +142,9 @@ def main(_):
       model,
       train_data,
       val_data,
-      FLAGS.train_path,
-      save_intermediates=FLAGS.save_intermediates,
-      num_epochs=FLAGS.num_epochs)
+      _TRAIN_PATH.value,
+      save_intermediates=_SAVE_INTERMEDIATES.value,
+      num_epochs=_NUM_EPOCHS.value)
 
 
 if __name__ == "__main__":

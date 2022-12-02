@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-7-15' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -115,8 +115,9 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
     field should set the `parent=` attribute to the name of this field.
 *   A negative class can be designated using the `null_idx` attribute of
     `MulticlassPreds` (most commonly, `null_idx=0`), and metrics such as
-    precision, recall, and F1 will be computed for the remaining classes. For an
-    example, see the
+    precision, recall, F1 will be computed for the remaining classes. AUC and
+    AUCPR will be computed for binary classification tasks. For an example, see
+    the
     [comment toxicity model](../lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be
@@ -215,13 +216,21 @@ and otherwise to different parts of the input.
 
 ### Tabular data
 
-While many uses of LIT involve natural language inputs, data can also contain or
-consist of categorical or scalar features using the `CategoryLabel` or `Scalar`
-types. LIT can be used as a replacement for the [What-If Tool](https://whatif-tool.dev),
-containing a similar feature set but with more extensibility.
+LIT can be used as a replacement for the [What-If Tool](https://whatif-tool.dev)
+but with more extensibility, when working with predictions over tabular data.
 
-*   For a demo using a penguin stats dataset/binary classification task, see
-    [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py).
+Some interpreters, such as Kernel SHAP, require models that use tabular data. In
+these cases, LIT validates model compatibility by checking that:
+
+*   The model inputs (`input_spec()`) are exclusively categorical
+    (`CategoryLabel`) or numeric (`Scalar`), and none of these are marked as
+    optional (`required=False`).
+*   The model outputs include at least one classification (`MulticlassPreds`),
+    regression (`RegressionScore` or `Scalar`), or multilabel
+    (`SparseMultilabel`) field.
+
+For a demo using a penguin stats dataset/binary classification task, see
+google3/third_party/py/lit_nlp/examples/penguin_demo.py.
 
 ### Images
 
@@ -259,8 +268,9 @@ soon. Available methods include:
 ### Gradient Norm
 
 This is a simple method, in which salience scores are proportional to the L2
-norm of the gradient, i.e. the score for token $$i$$ is $$ S(i) \propto
-||\nabla_{x_i} \hat{y}||_2 $$.
+norm of the gradient, i.e. the score for token $i$ is:
+
+$$S(i) \propto ||\nabla_{x_i} \hat{y}||_2$$
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -270,22 +280,25 @@ To enable this method, your model should, as part of the
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`). Values should be arrays
     of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
-    $$\hat{y}$$.
+    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
+    $\hat{y}$.
 
 Because LIT is framework-agnostic, the model code is responsible for performing
 the gradient computation and returning the result as a NumPy array. The choice
-of $$\hat{y}$$ is up to the developer; typically for regression/scoring this is
+of $\hat{y}$ is up to the developer; typically for regression/scoring this is
 the raw score and for classification this is the score of the predicted (argmax)
 class.
 
 ### Gradient-dot-Input
 
 In this method, salience scores are proportional to the dot product of the input
-embeddings and their gradients, i.e. for token $$i$$ we take $$ S(i) \propto x_i
-\cdot \nabla_{x_i} \hat{y}$$. Compared to grad-norm, this gives directional
+embeddings and their gradients, i.e. for token $i$ we compute:
+
+$$S(i) \propto x_i \cdot \nabla_{x_i} \hat{y}$$
+
+Compared to grad-norm, this gives directional
 scores: a positive score is can be interpreted as that token having a positive
-influence on the prediction $$\hat{y}$$, while a negative score suggests that
+influence on the prediction $\hat{y}$, while a negative score suggests that
 the prediction would be stronger if that token was removed.
 
 To enable this method, your model should, as part of the
@@ -294,13 +307,13 @@ To enable this method, your model should, as part of the
 *   Return a `Tokens` field with values (as `List[str]`) containing the
     tokenized input.
 *   Return a `TokenEmbeddings` field with values as arrays of shape
-    `<float>[num_tokens, emb_dim]` containing the input embeddings $$x$$.
+    `<float>[num_tokens, emb_dim]` containing the input embeddings $x$.
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`), and the `grad_for`
     attribute pointing to the name of the `TokenEmbeddings` field. Values should
     be arrays of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
-    $$\hat{y}$$.
+    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
+    $\hat{y}$.
 
 As with grad-norm, the model should return embeddings and gradients as NumPy
 arrays. The LIT `GradientDotInput` component will compute the dot products and
@@ -326,7 +339,7 @@ needed for grad-dot-input, and also to *accept* modified embeddings as input.
 *   The model should have an additional field ("grad_class", below) which is
     used to pin the gradients to a particular target class. This is necessary
     because we want to integrate gradients with respect to a single target
-    $$\hat{y}$$, but the argmax prediction may change over the integration path.
+    $\hat{y}$, but the argmax prediction may change over the integration path.
     This field can be any type, though for classification models it is typically
     a `CategoryLabel`. The value of this on the original input (usually, the
     argmax class) is stored and fed back in to the model during integration.
@@ -381,6 +394,21 @@ can increase the number of samples:
 LIME works out-of-the-box with any classification (`MulticlassPreds`) or
 regression/scoring (`RegressionScore`) model.
 
+### Salience Clustering
+
+LIT includes a basic implementation of the salience clustering method from
+[Ebert et al. 2022](https://arxiv.org/abs/2211.05485), which uses k-means on a
+salience-weighted bag-of-words representation to find patterns in model
+behavior. This method is available using any of the token-based salience methods
+above, and if enabled will appear in the "Salience Clustering" tab:
+
+![Salience clustering UI](./images/components/salience-clustering.png)
+
+To run clustering, select a group of examples or the entire dataset, choose a
+salience method, and run using the "Apply" button. The result will be a set of
+top tokens for each cluster, as in Table 6 of
+[the paper](https://arxiv.org/pdf/2211.05485.pdf).
+
 ## Pixel-based Salience
 
 LIT also supports pixel-based salience methods, for models that take images as
@@ -410,9 +438,9 @@ your model should, as part of the
 
 A variety of image saliency techniques are implemented for models that return
 image gradients, through use of the
-[PAIR-code saliency library](https://github.com/PAIR-code/saliency), including *
-Integrated gradients * Guided integrated gradients * Blurred integrated
-gradients * XRAI
+[PAIR-code saliency library](https://github.com/PAIR-code/saliency), including
+integrated gradients, guided integrated gradients, blurred integrated gradients,
+and XRAI.
 
 Each of these techniques returns a saliency map image as a base64-encoded string
 through the `ImageSalience` type.
@@ -603,6 +631,33 @@ datapoints, giving a global view of feature effects.
 
 ![Partial Dependence Plots Module](./images/components/lit-pdps.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
 
+### Dive
+
+Dive is a visualization module, inspired by our prior work on
+[Facets Dive](https://pair-code.github.io/facets/) and its use in the
+[What-If Tool](https://pair-code.github.io/what-if-tool/), that enables
+exploration of data subsets grouped by feature values.
+
+![Dive module](./images/components/dive.png)<!-- DO NOT REMOVE {style="max-width:500px"} -->
+
+Data are displayed in a matrix of groups based on feature values, with each
+group containing the datapoints at the intersection of the feature values for
+that column and row. Use the drop-downs at the top to select the feature to use
+for the rows and columns in the matrix. You can use the "Color By" drop-down in
+the main toolbar to change the feature by which datapoints are colored in the
+matrix.
+
+This visualization is powered by
+[Megaplot](https://github.com/PAIR-code/megaplot), which allows it to support up
+to 100k datapoints. Dive support mouse-based zoom (scroll) and pan (drag)
+interactions to help you navigate these very large datasets. You can also use
+the "zoom in", "zoom out", and "reset view" buttons in the module toolbar to
+help navigate with more precision.
+
+Dive is currently integrated in the
+[Penguins demo](https://pair-code.github.io/lit/demos/penguins.html), and will
+be supported in other demos in future releases.
+
 ## TCAV
 
 Many interpretability methods provide importance values per input feature (e.g,
@@ -672,8 +727,8 @@ CAVs using the selected concept slice and random splits of the same size from
 the remainder of the dataset. We also generate 15 random CAVs using random
 splits against random splits. We then do a t-test to check if these two sets of
 scores are from the same distribution and reject CAVs as insignificant if the
-p-value is greater than 0.05. (If this happens, a warning is displayed in place of
-the TCAV score in the UI.)
+p-value is greater than 0.05. (If this happens, a warning is displayed in place
+of the TCAV score in the UI.)
 
 For relative TCAV, users would ideally test concepts with at least ~100 examples
 each so we can perform ~15 runs on unique subsets. In practice, users may not

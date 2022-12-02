@@ -21,8 +21,12 @@ To run the demo:
 Then navigate to localhost:5432 to access the demo UI.
 """
 import sys
+from typing import Optional, Sequence
+
 from absl import app
 from absl import flags
+from absl import logging
+
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 import lit_nlp.api.dataset as lit_dataset
@@ -37,53 +41,59 @@ FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-flags.DEFINE_list(
+_SEQUENCE_TASKS = flags.DEFINE_list(
     "sequence_tasks",
     ["upos", "xpos", "lemma"],
     "Sequence tasks to load and use for prediction. Defaults to all sequence tasks",
 )
 
-flags.DEFINE_list(
+_SPAN_TASKS = flags.DEFINE_list(
     "span_tasks",
     ["mention"],
     "Span tasks to load and use for prediction. Only mentions are included in this demo",
 )
 
-flags.DEFINE_list(
+_EDGE_TASKS = flags.DEFINE_list(
     "edge_tasks",
     ["deps"],
     "Span tasks to load and use for prediction. Only deps are included in this demo",
 )
 
-flags.DEFINE_string("language", "en", "Language to load for Stanza model.")
+_LANGUAGE = flags.DEFINE_string("language", "en",
+                                "Language to load for Stanza model.")
 
-flags.DEFINE_integer(
-    "max_examples", None, "Maximum number of examples to load into LIT."
-)
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    "max_examples", None, "Maximum number of examples to load into LIT.")
 
 
-def get_wsgi_app():
+def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("stanza_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
-def main(_):
+def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
+
   # Set Tasks as a dictionary with task groups as
   # keys and values as lists of strings of Stanza task names
   tasks = {
-      "sequence": FLAGS.sequence_tasks,
-      "span": FLAGS.span_tasks,
-      "edge": FLAGS.edge_tasks,
+      "sequence": _SEQUENCE_TASKS.value,
+      "span": _SPAN_TASKS.value,
+      "edge": _EDGE_TASKS.value,
   }
 
   # Get the correct model for the language
-  stanza.download(FLAGS.language)
-  pretrained_model = stanza.Pipeline(FLAGS.language)
+  stanza.download(_LANGUAGE.value)
+  pretrained_model = stanza.Pipeline(_LANGUAGE.value)
   models = {
       "stanza": stanza_models.StanzaTagger(pretrained_model, tasks),
   }
@@ -92,7 +102,7 @@ def main(_):
   # TODO(nbroestl): Use the UD dataset
   # (https://huggingface.co/datasets/universal_dependencies)
   datasets = {
-      "SST2": glue.SST2Data(split="validation").slice[: FLAGS.max_examples],
+      "SST2": glue.SST2Data(split="validation").slice[:_MAX_EXAMPLES.value],
       "blank": lit_dataset.Dataset({"text": lit_types.TextSegment()}, []),
   }
 

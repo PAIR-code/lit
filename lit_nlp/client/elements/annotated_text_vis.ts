@@ -13,8 +13,10 @@ import {computed, observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
+import {SpanLabel} from '../lib/dtypes';
+import {URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatSpanLabel, SpanLabel} from '../lib/types';
+import {formatSpanLabel} from '../lib/types';
 
 import {styles} from './annotated_text_vis.css';
 
@@ -194,7 +196,7 @@ export class AnnotatedTextVis extends ReactiveElement {
   renderTextSegment(name: string) {
     const text = this.segments[name];
     const spans = this.activeAnnotations[name];
-    const isURL = this.segmentSpec[name].__name__ === 'URL';
+    const isURL = this.segmentSpec[name] instanceof URLLitType;
     return html`
       <div class='group'>
         <div class='group-title'>${name}</div>

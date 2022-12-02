@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """WSGI servers to power the LIT backend."""
 
 import socket
@@ -26,6 +25,10 @@ import portpicker
 from werkzeug import serving as werkzeug_serving
 
 
+# TODO(b/231171830): Create abstract base class for the WSGI Server flavors.
+
+
+# TODO(b/231171830): Update to inherit from WSGI Server ABC.
 class BasicDevServer(object):
   """Basic development server; not recommended for deployment."""
 
@@ -55,6 +58,7 @@ class WsgiServerIpv6(wsgiref.simple_server.WSGIServer):
   address_family = socket.AF_INET6
 
 
+# TODO(b/231171830): Update to inherit from WSGI Server ABC.
 class NotebookWsgiServer(object):
   """WSGI server for notebook environments."""
 
@@ -72,6 +76,10 @@ class NotebookWsgiServer(object):
     self._port = port
     self._server_thread = None
     self.can_act_as_model_server = False
+
+  @property
+  def app(self):
+    return self._app
 
   @property
   def port(self):

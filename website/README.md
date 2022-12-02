@@ -1,6 +1,6 @@
-# Language Interpretability Tool Website
+# Learning Interpretability Tool Website
 
-This directory contains the code for the Language Interpretability Tool website, which is hosted as a github page.
+This directory contains the code for the Learning Interpretability Tool website, which is hosted as a github page.
 
 If you wish to help make changes to our website, you've come to the right place. **NOTE**, any updates should be made in a feature branch to the `/website/src/` content. You can then make a pull request to the "dev" branch, and it will be committed to the repo and deployed by a member of the LIT team.
 

@@ -1,78 +1,26 @@
-.label {
-  margin-bottom: 4px;
+.scatterplot {
+  position: relative;
+  margin: 8px;
+  min-height: 112px;
 }
 
-.primary-selected-point {
-  r: 6px;
-  opacity: 1.0;
-  stroke-width: 1px;
-  stroke: #000;
+.scatterplot .axes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 100%;
 }
 
-.hovered-point {
-  r: 6px;
-  opacity: 1.0;
-  /* !important required to override explicit element.fill attr set by D3 */
-  fill: var(--lit-mage-300) !important;
+.scatterplot .scene {
+  min-height: 100px;
+  height: 100px;
+  max-height: 100px;
+  max-width: calc(100% - 40px);
+  margin-left: 32px;
+  cursor: crosshair;
+}
+
+#regression-line,
+#threshold-line {
   stroke-width: 2px;
-  stroke: var(--lit-mage-300);
-  cursor: pointer;
-}
-
-.selected-point {
-  r: 5px;
-  fill-opacity: 0.8;
-  stroke-width: 2px;
-  stroke: #fff;
-}
-
-.point {
-  r: 4px;
-  opacity: .25;
-}
-
-.plot-holder {
-  border-top: 1px solid rgb(232, 234, 237);
-  border-bottom: 1px solid rgb(232, 234, 237);
-}
-
-.collapse-bar {
-  width: 100%;
-  height: 30px;
-  cursor: pointer;
-  padding: 2px 8px;
-  width: 100%;
-  outline: none;
-  display: flex;
-  justify-content: space-between;
-  box-sizing: border-box;
-}
-
-.scatterplot-background {
-  padding-bottom: 15px;
-  padding-top: 5px;
-}
-
-.axis-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex: 1;
-}
-
-.selected-value {
-  padding-right: 8px;
-}
-
-/**
- * d3.brush() sets up some questionable CSS styles, like pointer-events: all,
- * which will cause this module to respond to clicks in surprising ways even
- * when it is hidden. So, override this to 'visible' keep this from happening.
- */
-g#brushGroup {
-  pointer-events: visible !important;
-}
-
-#brushGroup .overlay {
-  pointer-events: visible !important;
 }

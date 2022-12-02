@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Development wrapper for LIT server."""
 import importlib
 import inspect
+from typing import Optional, Union
 
 from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp.lib import wsgi_serving
+
+LitServerType = Union[lit_app.LitApp, wsgi_serving.BasicDevServer,
+                      wsgi_serving.NotebookWsgiServer]
 
 WSGI_SERVERS = {}
 WSGI_SERVERS['basic'] = wsgi_serving.BasicDevServer
@@ -73,7 +76,7 @@ class Server(object):
     self._server_kw = kw
     self._server_type = server_type
 
-  def serve(self):
+  def serve(self) -> Optional[LitServerType]:
     """Run server, with optional reload loop and cache saving.
 
     If the server type is 'external', then the app is returned instead of

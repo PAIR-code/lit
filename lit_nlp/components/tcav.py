@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Quantitative Testing with Concept Activation Vectors (TCAV)."""
 
 import math
 import random
-from typing import Any, List, Optional, Sequence, Text, cast
+from typing import Any, cast, Optional, Sequence
 
 import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
-
 from lit_nlp.api import types
+from lit_nlp.lib import utils
+
 import numpy as np
 import scipy.stats
 import sklearn.linear_model
@@ -43,14 +43,16 @@ MIN_SPLITS = 2
 @attr.s(auto_attribs=True, kw_only=True)
 class TCAVConfig(object):
   """Config options for TCAV component."""
-  concept_set_ids: List[str] = []
-  class_to_explain: Any = ''
-  grad_layer: Text = ''
+  concept_set_ids: list[str] = []
+  class_to_explain: str = ''
+  grad_layer: str = ''
   dataset_name: str = ''
   # Percentage of the example set to use in the test set when training the LM.
   test_size: Optional[float] = 0.33
   random_state: Optional[int] = 42
-  negative_set_ids: List[str] = []
+  negative_set_ids: list[str] = []
+  # Optional pre-computed CAV to use by interpreter.
+  cav: Optional[Any] = None
 
 
 class TCAV(lit_components.Interpreter):
@@ -87,13 +89,18 @@ class TCAV(lit_components.Interpreter):
     _, p_val = scipy.stats.ttest_ind(scores, random_scores)
     return p_val
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused by TCAV
+    return utils.spec_contains(model.output_spec(), types.Gradients)
+
   def run_with_metadata(
       self,
       indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[List[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Runs the TCAV method given the params in the inputs and config.
 
     Args:
@@ -113,42 +120,62 @@ class TCAV(lit_components.Interpreter):
     Returns:
       A JsonDict containing the TCAV scores, directional derivatives,
       statistical test p-values, and LM accuracies.
+
+    Raises:
+      ValueError: configured `grad_layer` is not actually of type `Gradients`
     """
-    config = TCAVConfig(**config)
+    if not config:
+      raise TypeError('config must be provided')
+
+    tcav_config = TCAVConfig(**(config or {}))
     # TODO(b/171513556): get these from the Dataset object once indices are
     # available there.
     dataset_examples = indexed_inputs
 
     # Get this layer's output spec keys for gradients and embeddings.
-    grad_layer = config.grad_layer
+    grad_layer = tcav_config.grad_layer
     output_spec = model.output_spec()
-    emb_layer = cast(types.Gradients, output_spec[grad_layer]).grad_for
+    field_spec = output_spec.get(grad_layer)
 
+    if not isinstance(field_spec, types.Gradients):
+      raise ValueError(f'Configured grad_layer, {grad_layer}, must be a '
+                       'Gradients field')
+
+    field_spec = cast(types.Gradients, field_spec)
+    emb_layer = field_spec.grad_for
     # Get the class that the gradients were computed for.
-    grad_class_key = cast(types.Gradients,
-                          output_spec[grad_layer]).grad_target_field_key
-
-    ids_set = set(config.concept_set_ids)
-    concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
-    non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
+    grad_class_key = field_spec.grad_target_field_key
 
     # Get outputs using model.predict().
     dataset_outputs = list(
         model.predict_with_metadata(
-            dataset_examples, dataset_name=config.dataset_name))
+            dataset_examples, dataset_name=tcav_config.dataset_name))
 
-    if config.negative_set_ids:
-      negative_ids_set = set(config.negative_set_ids)
+    # If CAV is provided in config, then only calculate CAV similarity for
+    # provided datapoints.
+    if tcav_config.cav is not None:
+      return [{
+          'cos_sim':
+              self._get_cos_sim(
+                  np.array(tcav_config.cav), dataset_outputs, emb_layer)
+      }]
+
+    ids_set = set(tcav_config.concept_set_ids)
+    concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
+    non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
+
+    if tcav_config.negative_set_ids:
+      negative_ids_set = set(tcav_config.negative_set_ids)
       negative_set = [
           ex for ex in dataset_examples if ex['id'] in negative_ids_set
       ]
       return self._run_relative_tcav(grad_layer, emb_layer, grad_class_key,
                                      concept_set, negative_set, dataset_outputs,
-                                     model, config)
+                                     model, tcav_config)
     else:
       return self._run_default_tcav(grad_layer, emb_layer, grad_class_key,
                                     concept_set, non_concept_set,
-                                    dataset_outputs, model, config)
+                                    dataset_outputs, model, tcav_config)
 
   def _subsample(self, examples, n):
     return random.sample(examples, n) if n < len(examples) else examples
@@ -324,14 +351,19 @@ class TCAV(lit_components.Interpreter):
          np.ones(len(concept_outputs))])
     return x, y
 
+  def _get_cos_sim(self, cav, datapoints_output: list[JsonDict],
+                   emb_layer: str):
+    cos_sim, _ = self.compute_local_scores(cav, datapoints_output, emb_layer)
+    return cos_sim
+
   def _run_tcav(self,
-                concept_outputs: List[JsonDict],
-                comparison_outputs: List[JsonDict],
-                dataset_outputs: List[JsonDict],
+                concept_outputs: list[JsonDict],
+                comparison_outputs: list[JsonDict],
+                dataset_outputs: list[JsonDict],
                 class_to_explain: Any,
-                emb_layer: Text,
-                grad_layer: Text,
-                grad_class_key: Text,
+                emb_layer: str,
+                grad_layer: str,
+                grad_class_key: str,
                 test_size: float,
                 random_state=None):
     """Returns directional derivatives, tcav score, and LM accuracy."""
@@ -355,7 +387,8 @@ class TCAV(lit_components.Interpreter):
         'score': tcav_score,
         'cos_sim': cos_sim,
         'dot_prods': dot_prods,
-        'accuracy': accuracy
+        'accuracy': accuracy,
+        'cav': cav
     }
 
   def get_trained_cav(self, x, y, test_size, random_state=None):

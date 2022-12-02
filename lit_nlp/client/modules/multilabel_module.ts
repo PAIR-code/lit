@@ -24,6 +24,7 @@ import {observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {SparseMultilabelPreds} from '../lib/lit_types';
 import {formatBoolean, IndexedInput, ModelInfoMap, NumericResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {SelectionService} from '../services/services';
@@ -48,9 +49,11 @@ export class MultilabelModule extends LitModule {
   static override title = 'Multilabel Results';
   static override duplicateForModelComparison = false;
   static override numCols = 3;
-  static override template = () => {
-    return html`<multilabel-module></multilabel-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <multilabel-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </multilabel-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -98,10 +101,10 @@ export class MultilabelModule extends LitModule {
 
     // Run predictions on all models.
     const models = this.appState.currentModels;
-    const results = await Promise.all(models.map(async model =>
-      this.apiService.getPreds(
-        datapoints, model, this.appState.currentDataset,
-        ['SparseMultilabelPreds'])));
+    const results = await Promise.all(models.map(
+        async model => this.apiService.getPreds(
+            datapoints, model, this.appState.currentDataset,
+            [SparseMultilabelPreds])));
     if (results === null) {
       this.resultsInfo = {};
       return;
@@ -111,9 +114,10 @@ export class MultilabelModule extends LitModule {
     this.groundTruthLabels.clear();
     for (const model of models) {
       const outputSpec = this.appState.currentModelSpecs[model].spec.output;
-      const predKeys = findSpecKeys(outputSpec, 'SparseMultilabelPreds');
+      const predKeys = findSpecKeys(outputSpec, SparseMultilabelPreds);
       for (const predKey of predKeys) {
-        const labelField = outputSpec[predKey].parent;
+        const labelField =
+            (outputSpec[predKey] as SparseMultilabelPreds).parent;
         if (labelField != null) {
           this.groundTruthLabels.add(labelField);
         }
@@ -140,7 +144,7 @@ export class MultilabelModule extends LitModule {
             let key = `${models[modelIdx]}`;
             // If there are two datapoints, then label them.
             if (results[modelIdx].length > 1) {
-              key += (datapointIdx === 0) ? ' main' : ' reference';
+              key += (datapointIdx === 0) ? ' selected' : ' pinned';
             }
             allResults[predKey][label][key] = score;
             if (this.maxValues[predKey] == null) {
@@ -156,7 +160,7 @@ export class MultilabelModule extends LitModule {
     this.resultsInfo = allResults;
   }
 
-  override render() {
+  override renderImpl() {
     const keys = Object.keys(this.resultsInfo);
     return html`
         <div class="top-holder">
@@ -181,7 +185,7 @@ export class MultilabelModule extends LitModule {
       for (const label of this.groundTruthLabels) {
         let labelColName = label;
         if (this.datapoints.length > 1) {
-          labelColName += i === 0 ? ' main' : ' reference';
+          labelColName += i === 0 ? ' selected' : ' pinned';
         }
         columnNames.push(labelColName);
       }
@@ -211,7 +215,9 @@ export class MultilabelModule extends LitModule {
       for (let i = 0; i < this.datapoints.length; i++) {
         const ex = this.datapoints[i];
         for (const label of this.groundTruthLabels.keys()) {
-          row.push(formatBoolean(ex.data[label] === className));
+          // TODO(lit-dev): consider making a Set() for faster membership
+          // checking if we have a large # of labels.
+          row.push(formatBoolean(ex.data[label].includes(className)));
         }
       }
       let baselineScore = 0;
@@ -235,12 +241,13 @@ export class MultilabelModule extends LitModule {
           <lit-data-table
             .columnNames=${columnNames}
             .data=${rows}
+            searchEnabled
           ></lit-data-table>
         </div>`;
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, 'SparseMultilabelPreds');
+    return doesOutputSpecContain(modelSpecs, SparseMultilabelPreds);
   }
 }
 

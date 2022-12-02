@@ -15,18 +15,21 @@
  * limitations under the License.
  */
 
+// tslint:disable:no-new-decorators
 import '../elements/checkbox';
 import '../elements/spinner';
 import '@material/mwc-icon-button-toggle';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html, LitElement} from 'lit';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
+import {observable} from 'mobx';
 
+import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {RenderConfig} from '../services/modules_service';
 import {ModulesService} from '../services/services';
@@ -35,27 +38,31 @@ import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles as widgetStyles} from './widget.css';
 import {styles as widgetGroupStyles} from './widget_group.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
-/** Minimum width for a widget group. */
-export const MIN_GROUP_WIDTH_PX = 100;
-
-// Width changes below this delta aren't bubbled up, to avoid unnecssary width
-// recalculations.
-const MIN_GROUP_WIDTH_DELTA_PX = 10;
+/** Type for custom widget minimize event. */
+export interface WidgetMinimizedChange {
+  isMinimized: boolean;
+}
+/** Type for custom widget scroll event. */
+export interface WidgetScroll {
+  scrollTop: number;
+  scrollLeft: number;
+}
 
 /**
  * Renders a group of widgets (one per model, and one per datapoint if
  * compareDatapoints is enabled) for a single component.
  */
 @customElement('lit-widget-group')
-export class WidgetGroup extends LitElement {
+export class WidgetGroup extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
-  @property({ type: Array }) configGroup: RenderConfig[] = [];
-  @property({ type: Boolean, reflect: true }) minimized = false;
-  @property({ type: Boolean, reflect: true }) maximized = false;
-  @property({ type: Boolean, reflect: true }) dragging = false;
-  @property({ type: Number}) width = 0;
+  @property({type: Array}) configGroup: RenderConfig[] = [];
+  @property({type: Boolean, reflect: true}) duplicateAsRow = false;
+  @property({type: Boolean, reflect: true}) minimized = false;
+  @property({type: Boolean, reflect: true}) maximized = false;
+  @property({type: Boolean, reflect: true}) dragging = false;
+  @observable @property({type: Boolean, reflect: true}) visible = false;
+  @property({type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
   // Not set as @observable since re-renders were not occuring when changed.
@@ -69,6 +76,10 @@ export class WidgetGroup extends LitElement {
   override firstUpdated() {
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
+
+    this.reactImmediately(() => this.configGroup, configGroup => {
+      this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
+    });
   }
 
   override render() {
@@ -76,10 +87,26 @@ export class WidgetGroup extends LitElement {
   }
 
   /**
+   * Renders the reference URL.
+   */
+  renderReferenceURL(referenceURL: string) {
+    return html`
+         <a href=${referenceURL} style=${styleMap({'text-decoration': 'none'})}
+          target='_blank'>
+          <span class="help-icon material-icon-outlined icon-button"
+            title="Go to reference">
+            help_outline
+          </span>
+         </a>
+      `;
+  }
+
+  /**
    * Renders the header, including the minimize/maximize logic.
    */
   renderHeader(configGroup: RenderConfig[]) {
     const title = configGroup[0].moduleType.title;
+    const referenceURL = configGroup[0].moduleType.referenceURL;
 
     // Maximization.
     const onMaxClick = () => {
@@ -101,16 +128,33 @@ export class WidgetGroup extends LitElement {
       }
     };
 
+    const renderDirectionControl = () => {
+      const toggleDirection = () => {
+        this.duplicateAsRow = !this.duplicateAsRow;
+        this.requestUpdate();
+      };
+      return html`
+        <mwc-icon-button-toggle
+          class="icon-button large-icon direction-toggle"
+          title="Toggle layout direction"
+          onIcon="view_week" offIcon="table_rows"
+          ?on="${this.duplicateAsRow}"
+          @MDCIconButtonToggle:change="${toggleDirection}"
+          @icon-button-toggle-change="${toggleDirection}">
+        </mwc-icon-button-toggle>`;
+    };
+
     const renderScrollSyncControl = () => {
       const toggleSyncScrolling = () => {
         this.syncScrolling = !this.syncScrolling;
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle class="icon-button scroll-toggle"
+        <mwc-icon-button-toggle
+          class="icon-button large-icon scroll-toggle"
           title="Toggle scroll sync"
-          onIcon="sync_disabled" offIcon="sync"
-          ?on="${!this.syncScrolling}"
+          onIcon="sync" offIcon="sync_disabled"
+          ?on="${this.syncScrolling}"
           @MDCIconButtonToggle:change="${toggleSyncScrolling}"
           @icon-button-toggle-change="${toggleSyncScrolling}">
         </mwc-icon-button-toggle>`;
@@ -119,15 +163,20 @@ export class WidgetGroup extends LitElement {
     // clang-format off
     return html`
       <div class=header>
-        <div class="title" @click=${onTitleClick}>${title}</div>
-        ${this.minimized || configGroup.length < 2 ?
-          null :
-          renderScrollSyncControl()
-        }
-        <mwc-icon class="icon-button min-button" @click=${onMinClick} title="Minimize">
-          ${this.minimized ? 'maximize' : 'minimize'}
+        <div class="title" @click=${onTitleClick}>
+          ${title}
+          ${!this.minimized && referenceURL !== '' ?
+            this.renderReferenceURL(referenceURL) : null}
+        </div>
+        ${this.minimized || configGroup.length < 2 ? null : [
+          renderDirectionControl(), renderScrollSyncControl()
+        ]}
+        <mwc-icon class="icon-button large-icon min-button" @click=${onMinClick}
+          title=${this.minimized ? 'Expand' : 'Collapse'}>
+          ${this.minimized ? 'call_made' : 'call_received'}
         </mwc-icon>
-        <mwc-icon class="icon-button" @click=${onMaxClick} title="Maximize">
+        <mwc-icon class="icon-button large-icon" @click=${onMaxClick}
+          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
         </mwc-icon>
       </div>`;
@@ -139,7 +188,6 @@ export class WidgetGroup extends LitElement {
    */
   renderModules(configGroup: RenderConfig[]) {
     const modulesInGroup = configGroup.length > 1;
-    const duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
 
     // Set width properties based on provided width.
     const host = this.shadowRoot!.host as HTMLElement;
@@ -153,14 +201,14 @@ export class WidgetGroup extends LitElement {
     });
 
     const holderClasses = classMap({
-      'component-row': modulesInGroup && duplicateAsRow,
-      'component-column': modulesInGroup && !duplicateAsRow,
+      'component-row': modulesInGroup && this.duplicateAsRow,
+      'component-column': modulesInGroup && !this.duplicateAsRow,
       'holder': true,
     });
 
     // Set sub-component dimensions based on the container.
     const widgetStyle = {width: '100%', height: '100%'};
-    if (duplicateAsRow) {
+    if (this.duplicateAsRow) {
       widgetStyle['width'] = `${100 / configGroup.length}%`;
     } else {
       widgetStyle['height'] = `${100 / configGroup.length}%`;
@@ -186,7 +234,6 @@ export class WidgetGroup extends LitElement {
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
             ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
-            ${this.renderExpander()}
           </div>
         </div>
        </div>
@@ -199,24 +246,24 @@ export class WidgetGroup extends LitElement {
       config: RenderConfig, styles: {[key: string]: string},
       showSubtitle: boolean) {
     const moduleType = config.moduleType;
-    const modelName = config.modelName;
-    const selectionServiceIndex = config.selectionServiceIndex;
-
+    const modelName = config.modelName || '';
+    const selectionServiceIndex = config.selectionServiceIndex || 0;
+    const shouldReact = this.visible && !this.minimized;
     let subtitle = modelName ?? '';
     /**
-     * If defined, modules show "Main" for 0 and "Reference for 1,
+     * If defined, modules show "Selected" for 0 and "Pinned" for 1,
      * If undefined, modules do not show selectionService related info in their
      * titles (when compare examples mode is disabled)."
      */
-    if (typeof selectionServiceIndex !== 'undefined' && moduleType.duplicateForExampleComparison) {
+    if (moduleType.duplicateForExampleComparison) {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
-        selectionServiceIndex ? 'Reference' : 'Main'}`);
+          selectionServiceIndex ? 'Pinned' : 'Selected'}`);
     }
     // Track scolling changes to the widget and request a rerender.
-    const widgetScrollCallback = (e: CustomEvent) => {
+    const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
       if (this.syncScrolling) {
-        this.widgetScrollLeft = e.detail['scrollLeft'];
-        this.widgetScrollTop = e.detail['scrollTop'];
+        this.widgetScrollLeft = event.detail.scrollLeft;
+        this.widgetScrollTop = event.detail.scrollTop;
         this.requestUpdate();
       }
     };
@@ -231,47 +278,11 @@ export class WidgetGroup extends LitElement {
         widgetScrollTop=${this.widgetScrollTop}
         style=${styleMap(styles)}
       >
-        ${moduleType.template(modelName, selectionServiceIndex)}
+        ${moduleType.template(modelName, selectionServiceIndex,
+          shouldReact ? 1 : 0)}
       </lit-widget>
     `;
     // clang-format on
-  }
-
-  renderExpander() {
-
-    const dragged = (e: DragEvent) => {
-      const holder = this.shadowRoot!.querySelector('.holder')!;
-      const left = holder.getBoundingClientRect().left;
-      const dragWidth = e.clientX - left;
-
-      if (dragWidth > MIN_GROUP_WIDTH_PX &&
-          Math.abs(dragWidth - this.width) > MIN_GROUP_WIDTH_DELTA_PX) {
-        const event = new CustomEvent('widget-group-drag', {
-          detail: {
-            dragWidth,
-          }
-        });
-        this.dispatchEvent(event);
-      }
-    };
-
-    const dragStarted  = () => {
-      this.dragging = true;
-    };
-
-    if (!this.maximized && !this.minimized) {
-      return html`
-        <div class="expander">
-          <div class="expander-drag-target" draggable='true'
-            @drag=${(e: DragEvent) => { dragged(e); }}
-            @dragstart=${() => { dragStarted(); }}
-            @dragend=${() => { this.dragging = false; }}>
-          </div>
-        </div>
-      `;
-    } else {
-      return html``;
-    }
   }
 
   private initMinimized() {
@@ -283,11 +294,9 @@ export class WidgetGroup extends LitElement {
     const config = this.configGroup[0];
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
-    const event = new CustomEvent('widget-group-minimized-changed', {
-      detail: {
-        isMinimized
-      }
-    });
+    const event = new CustomEvent<WidgetMinimizedChange>(
+        'widget-group-minimized-changed',
+        {detail: {isMinimized}});
     this.dispatchEvent(event);
   }
 }
@@ -323,25 +332,22 @@ export class LitWidget extends MobxLitElement {
     const scrollElems = module.shadowRoot!.querySelectorAll(
         `.${SCROLL_SYNC_CSS_CLASS}`);
     if (scrollElems.length > 0) {
-      scrollElems.forEach(elem => {
-        const scrollElement = elem as HTMLElement;
+      for (const scrollElement of scrollElems as NodeListOf<HTMLElement>) {
         scrollElement.scrollTop = this.widgetScrollTop;
         scrollElement.scrollLeft = this.widgetScrollLeft;
 
         // Track content scrolling and pass the scrolling information back to
         // the widget group for sync'ing between duplicated widgets.
         const scrollCallback = () => {
-          const event = new CustomEvent('widget-scroll', {
-            detail: {
-              scrollTop: scrollElement.scrollTop,
-              scrollLeft: scrollElement.scrollLeft,
-            }
+          const {scrollLeft, scrollTop} = scrollElement;
+          const event = new CustomEvent<WidgetScroll>('widget-scroll', {
+            detail: {scrollTop, scrollLeft}
           });
           this.dispatchEvent(event);
         };
         module.onSyncScroll = scrollCallback;
         module.requestUpdate();
-      });
+      }
     } else {
       // If a module doesn't have its own scroll element set, then scroll it
       // appropriately through the content div that contains the module.
@@ -362,7 +368,6 @@ export class LitWidget extends MobxLitElement {
     });
     const holderClasses = classMap({
       holder: true,
-      highlight: this.highlight,
     });
     // Track content scrolling and pass the scrolling information back to the
     // widget group for sync'ing between duplicated widgets. This covers the
@@ -370,7 +375,7 @@ export class LitWidget extends MobxLitElement {
     // mechanimsm tagged with the SCROLL_SYNC_CSS_CLASS.
     const scrollCallback = () => {
       const content = this.shadowRoot!.querySelector('.content')!;
-      const event = new CustomEvent('widget-scroll', {
+      const event = new CustomEvent<WidgetScroll>('widget-scroll', {
         detail: {
           scrollTop: content.scrollTop,
           scrollLeft: content.scrollLeft,
@@ -406,6 +411,10 @@ export class LitWidget extends MobxLitElement {
   renderHeader() {
     return html`
     <div class=header>
+      ${this.highlight ?
+        html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
+        html`<div class="pin-spacer"></div>`
+      }
       <span class="subtitle">${this.subtitle}</span>
     </div>
     `;

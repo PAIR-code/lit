@@ -1,15 +1,11 @@
-.bordered {
-  border: 1px solid #e8eaed;
-}
-
 .description {
   font-size: 8pt;
   color: rgb(60, 64, 67);
-  padding-top: 10px;
 }
 
-.collapsible {
-  cursor: pointer;
+/* Reduce excess whitespace after markdown-formatted descriptions */
+.description > p:last-child {
+  margin-block-end: 0.25em;
 }
 
 .header {
@@ -25,11 +21,18 @@
   align-items: center;
 }
 
+.header .title {
+  color: var(--lit-majtonal-nv-800);
+  font-family: Roboto;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
 .content {
-  padding: 0 8px;
+  padding-left: 8px;
   overflow: hidden;
   transition: max-height 0.2s ease-out;
-  background-color: #F8F9FA;
   box-sizing: border-box;
 }
 
@@ -96,4 +99,5 @@
 
 .slider-value {
   min-width: 2em;
+  text-align: right;
 }

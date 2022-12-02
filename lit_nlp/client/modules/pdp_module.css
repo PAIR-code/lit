@@ -1,26 +1,4 @@
-.collapse-bar {
-  width: 100%;
-  height: 30px;
-  cursor: pointer;
-  padding: 2px 8px;
-  width: 100%;
-  border: 1px solid rgb(232, 234, 237);
-  outline: none;
-  display: flex;
-  justify-content: space-between;
-  box-sizing: border-box;
-}
-
-.pdp-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex: 1;
-}
-
 .pdp-background {
-  background: rgb(248, 249, 250);
-  border: 1px solid rgb(232, 234, 237);
   padding: 5px;
 }
 

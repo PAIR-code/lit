@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Base classes for LIT models."""
 import abc
 import inspect
@@ -106,6 +105,18 @@ class Model(metaclass=abc.ABCMeta):
   def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model."""
     return 1
+
+  @property
+  def supports_concurrent_predictions(self):
+    """Indcates support for multiple concurrent predict calls across threads.
+
+    Defaults to false.
+
+    Returns:
+      (bool) True if the model can handle multiple concurrent calls to its
+      `predict_minibatch` method.
+    """
+    return False
 
   @abc.abstractmethod
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
@@ -240,11 +251,16 @@ class ModelWrapper(Model):
   def max_minibatch_size(self) -> int:
     return self.wrapped.max_minibatch_size()
 
+  @property
+  def supports_concurrent_predictions(self):
+    return self.wrapped.supports_concurrent_predictions
+
   def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
-    return self.wrapped.predict(inputs, **kw)
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
+    return self.wrapped.predict(inputs, *args, **kw)
 
   # NOTE: if a subclass modifies predict(), it should also override this to
   # call the custom predict() method - otherwise this will delegate to the
@@ -297,7 +313,8 @@ class BatchedRemoteModel(Model):
     self._max_qps = max_qps
     self._pool = multiprocessing.pool.ThreadPool(max_concurrent_requests)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *unused_args,
+              **unused_kwargs) -> Iterator[JsonDict]:
     batches = utils.batch_iterator(
         inputs, max_batch_size=self.max_minibatch_size())
     batches = utils.rate_limit(batches, self._max_qps)
@@ -307,6 +324,11 @@ class BatchedRemoteModel(Model):
   def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model. Subclass can override this."""
     return 1
+
+  @property
+  def supports_concurrent_predictions(self):
+    """Remote models can handle concurrent predictions by default."""
+    return True
 
   @abc.abstractmethod
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:

@@ -1,4 +1,3 @@
-# Lint as: python3
 """Local Interpretable Model-agnostic Explanations (LIME).
 
 LIME was proposed in the following paper:
@@ -28,14 +27,17 @@ prediction function only outputs a scalar for each input sentence.
 import functools
 from typing import Any, Callable, Iterable, Optional, Sequence
 from lit_nlp.components.citrus import helpers
+from lit_nlp.components.citrus import utils
 import numpy as np
 from sklearn import linear_model
 from sklearn import metrics
 
-DEFAULT_KERNEL_WIDTH = 25
 DEFAULT_MASK_TOKEN = '<unk>'
 DEFAULT_NUM_SAMPLES = 3000
 DEFAULT_SOLVER = 'cholesky'
+
+DEFAULT_KERNEL_WIDTH = utils.DEFAULT_KERNEL_WIDTH
+exponential_kernel = utils.exponential_kernel
 
 
 def sample_masks(num_samples: int,
@@ -73,12 +75,6 @@ def get_perturbations(tokens: Sequence[str],
     yield ' '.join(parts)
 
 
-def exponential_kernel(
-    distance: float, kernel_width: float = DEFAULT_KERNEL_WIDTH) -> np.ndarray:
-  """The exponential kernel."""
-  return np.sqrt(np.exp(-(distance**2) / kernel_width**2))
-
-
 def explain(
     sentence: str,
     predict_fn: Callable[[Iterable[str]], np.ndarray],
@@ -88,7 +84,7 @@ def explain(
     mask_token: str = DEFAULT_MASK_TOKEN,
     alpha: float = 1.0,
     solver: str = DEFAULT_SOLVER,
-    kernel: Callable[..., np.ndarray] = exponential_kernel,
+    kernel: Callable[..., np.ndarray] = utils.exponential_kernel,
     distance_fn: Callable[..., np.ndarray] = functools.partial(
         metrics.pairwise.pairwise_distances, metric='cosine'),
     distance_scale: float = 100.,
@@ -124,7 +120,7 @@ def explain(
     solver: Solver to use in the linear approximation model. See
       `sklearn.linear_model.Ridge` for details.
     kernel: A kernel function to be used on the distance function. By default,
-      the exponential kernel (with kernel width DEFAULT_KERNEL_WIDTH) is used.
+      use the exponential kernel with kernel width utils.DEFAULT_KERNEL_WIDTH.
     distance_fn: A distance function to use in range [0, 1]. Default: cosine.
     distance_scale: A scalar factor multiplied with the distances before the
       kernel is applied.
@@ -140,6 +136,10 @@ def explain(
   """
   # TODO(bastings): Provide sentence already tokenized to reduce split/join ops.
   tokens = tokenizer(sentence)
+
+  if not tokens:
+    return helpers.PosthocExplanation(
+        features=[], feature_importance=np.array([], dtype=np.float32))
 
   masks = sample_masks(num_samples + 1, len(tokens), seed=seed)
   assert masks.shape[0] == num_samples + 1, 'Expected num_samples + 1 masks.'
@@ -164,7 +164,9 @@ def explain(
           masks, outputs, sample_weight=distances)
 
   explanation = helpers.PosthocExplanation(
-      feature_importance=model.coef_, intercept=model.intercept_)
+      features=tokens,
+      feature_importance=model.coef_,
+      intercept=model.intercept_)
 
   if return_model:
     explanation.model = model

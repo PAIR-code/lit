@@ -17,71 +17,61 @@
 
 import 'jasmine';
 
+// These are needed to preserve the import, as they are referenced indirectly.
+// through the names of elements they define.
+// tslint:disable-next-line:no-unused-variable
 import {ClassificationModule} from '../modules/classification_module';
+// tslint:disable-next-line:no-unused-variable
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 
 import {canonicalizeLayout, formatForDisplay, LitCanonicalLayout, LitComponentLayout} from './types';
 
 describe('formatForDisplay test', () => {
 
-  it('formats string for display', () => {
-    const testString = 'test';
-    const formatted = formatForDisplay(testString);
-    expect(formatted).toBe(testString);
-  });
+  const tests: Array<[string, unknown, string|number]> = [
+    ['boolean literal true', true, '✔'],
+    ['boolean literal false', false, ' '],
+    ['number', 1.234567, 1.235],
+    ['number[]', [1.23456789, 2.3456789], '1.235, 2.346'],
+    ['scored text candidate w/ score', ['text', 2.3456789], 'text (2.346)'],
+    ['scored text candidate no score', ['text', null], 'text'],
+    ['scored text candidates', [['1st', 1], ['2nd', 2]], '1st (1)\n\n2nd (2)'],
+    ['string', 'test', 'test'],
+    ['string[]', ['a', 'b', 'cd'], 'a, b, cd'],
+    ['Array<string | number>', ['a', 1.23456789, 2.3456789], 'a, 1.235, 2.346']
+  ];
 
-  it('formats number for display', () => {
-    const formatted = formatForDisplay(1.23456789);
-    expect(formatted).toBe('1.2346');
-  });
-
-  it('formats boolean for display', () => {
-    let formatted = formatForDisplay(true);
-    expect(formatted).toBe('✔');
-
-    formatted = formatForDisplay(false);
-    expect(formatted).toBe(' ');
-  });
-
-  it('formats array for display', () => {
-    // number array.
-    let formatted = formatForDisplay([1.23456789, 2.3456789]);
-    expect(formatted).toBe('1.2346, 2.3457');
-
-    // number|string array.
-    formatted = formatForDisplay(['a', 1.23456789, 2.3456789]);
-    expect(formatted).toBe('a, 1.2346, 2.3457');
-
-    // string array
-    formatted = formatForDisplay(['a', 'b', 'cd']);
-    expect(formatted).toBe('a, b, cd');
+  tests.forEach(([name, value, expected]: [string, unknown, string|number]) => {
+    it(`formats ${name} for display`, () => {
+      expect(formatForDisplay(value)).toBe(expected);
+    });
   });
 });
 
 const MOCK_LAYOUT: LitComponentLayout = {
   components: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      ClassificationModule
+      'classification-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
   description: 'Mock layout for testing.'
 };
 
-const CANONICAL_MOCK_LAYOUT: LitCanonicalLayout = {
+const CANONICAL_LAYOUT: LitCanonicalLayout = {
   upper: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
   },
   lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      ClassificationModule
+      'classification-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
@@ -89,13 +79,13 @@ const CANONICAL_MOCK_LAYOUT: LitCanonicalLayout = {
 };
 
 describe('canonicalizeLayout test', () => {
-  it('correctly converts a legacy layout', () => {
-    const converted = canonicalizeLayout(MOCK_LAYOUT);
-    expect(converted).toEqual(CANONICAL_MOCK_LAYOUT);
-  });
+  type LitLayout = LitComponentLayout|LitCanonicalLayout;
+  const tests: Array<[string, LitLayout, LitCanonicalLayout]> = [
+    ['converts a legacy layout', MOCK_LAYOUT, CANONICAL_LAYOUT],
+    ['leaves canonical layouts alone', CANONICAL_LAYOUT,  CANONICAL_LAYOUT],
+  ];
 
-  it('does not modify an already canonical layout', () => {
-    const converted = canonicalizeLayout(CANONICAL_MOCK_LAYOUT);
-    expect(converted).toEqual(CANONICAL_MOCK_LAYOUT);
+  tests.forEach(([name, layout, expected]) => {
+    it(name, () => {expect(canonicalizeLayout(layout)).toEqual(expected);});
   });
 });

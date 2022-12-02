@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, observable} from 'mobx';
 
-import {LayoutSettings, LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitTabGroupLayout, ModelInfoMap, Spec} from '../lib/types';
+import {LayoutSettings, LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitModuleConfig, LitTabGroupLayout, ModelInfoMap, ResolvedModuleConfig, Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
@@ -63,17 +63,33 @@ type RenderModulesCallback = () => void;
  * Look up any module names given as strings, and return the
  * constructor object.
  */
-export function getModuleConstructor(moduleType: LitComponentSpecifier):
-    LitModuleClass {
-  if (typeof moduleType === 'string') {
-    const moduleClass = window.customElements.get(moduleType);
-    if (moduleClass === undefined) {
-      throw (new Error(
-          `Malformed layout; unable to find element '${moduleType}'`));
-    }
-    return moduleClass as unknown as LitModuleClass;
+function getModuleConstructor(moduleName: string): LitModuleClass {
+  const moduleClass = window.customElements.get(moduleName);
+  if (moduleClass === undefined) {
+    throw (
+        new Error(`Malformed layout; unable to find element '${moduleName}'`));
   }
-  return moduleType;
+  return moduleClass as unknown as LitModuleClass;
+}
+
+/**
+ * Create a canonical module config from a specifier, which may just be a
+ * string.
+ * TODO(lit-dev): run this when canonicalizing layout?
+ */
+export function resolveModuleConfig(specifier: LitComponentSpecifier):
+    ResolvedModuleConfig {
+  if (typeof specifier === 'string') {
+    specifier = {module: specifier} as LitModuleConfig;
+  }
+  const constructor = getModuleConstructor(specifier.module);
+  return Object.assign(
+      {
+        constructor,
+        title: constructor.title,
+        requiredForTab: specifier.requiredForTab ?? false
+      },
+      specifier);
 }
 
 /**
@@ -185,14 +201,12 @@ export class ModulesService extends LitService implements
       datasetSpec: Spec, compareExamples: boolean) {
     const tabGroupConfig: LitTabGroupConfig = {};
     for (const tabName of Object.keys(groupContents)) {
-      const components = groupContents[tabName];
-      // Look up classes for this group, if anything is given as a string.
-      const componentClasses = components.map(getModuleConstructor);
+      const moduleConfigs = groupContents[tabName].map(resolveModuleConfig);
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
       // TODO: use a globally unique path instead of just the tab name.
       const configs = this.getRenderConfigs(
-          componentClasses, currentModelSpecs, datasetSpec, compareExamples,
+          moduleConfigs, currentModelSpecs, datasetSpec, compareExamples,
           tabName);
       if (configs.length !== 0) {
         tabGroupConfig[tabName] = configs;
@@ -243,21 +257,30 @@ export class ModulesService extends LitService implements
   }
 
   /**
+   * Process module configs for a single tab.
+   *
    * Generates module renderConfig object or objects for a given LIT module
    * depending on the model specs. Since some modules can render one copy per
    * model, this method specifies the configurations for those multiple modules
    * to render.
    */
   private getRenderConfigs(
-      modules: LitModuleClass[], currentModelSpecs: ModelInfoMap,
+      modules: ResolvedModuleConfig[], currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean,
       tabName: string): RenderConfig[][] {
     const renderConfigs: RenderConfig[][] = [];
     // Iterate over all modules to generate render config objects, expanding
     // modules that display one per model.
-    for (const moduleType of modules) {
+    for (const moduleConfig of modules) {
+      const moduleType = moduleConfig.constructor;
       if (!moduleType.shouldDisplayModule(currentModelSpecs, datasetSpec)) {
-        continue;
+        if (moduleConfig.requiredForTab) {
+          // Abort this tab if a required module is not compatible.
+          return [];
+        } else {
+          // Otherwise, skip this module and continue with others.
+          continue;
+        }
       }
 
       const configs: RenderConfig[] = [];
@@ -285,7 +308,13 @@ export class ModulesService extends LitService implements
               key, moduleType, modelName, compareExamples ? 0 : undefined));
         }
       }
-      renderConfigs.push(configs);
+      // Don't push empty configs, e.g. if there is no model selected.
+      if (configs.length > 0) {
+        renderConfigs.push(configs);
+      } else {
+        console.warn(`LIT layout: no compatible configs for module '${
+            moduleType.title}' in tab '${tabName}'`);
+      }
     }
 
     return renderConfigs;

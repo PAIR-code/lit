@@ -22,7 +22,7 @@ import {toJS} from 'mobx';
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
 import {LitCanonicalLayout} from '../lib/types';
-import {ClassificationModule} from '../modules/classification_module';
+import {AttentionModule} from '../modules/attention_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 
 import {ApiService} from './api_service';
@@ -32,20 +32,20 @@ import {AppState} from './state_service';
 const MOCK_LAYOUT: LitCanonicalLayout = {
   upper: {
     'Main': [
-      DatapointEditorModule,
+      'datapoint-editor-module',
     ],
   },
   lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      ClassificationModule
+      'attention-module',
     ],
   },
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
   description: 'Mock layout for testing.'
 };
 
-describe('modules service test', async () => {
+describe('modules service test', () => {
   let appState: AppState, modulesService: ModulesService;
   beforeEach(async () => {
     // Set up.
@@ -96,7 +96,7 @@ describe('modules service test', async () => {
     // allModuleKeys.
     const keys =
         new Set([`Main_${DatapointEditorModule.title}`,
-                 `internals_${ClassificationModule.title}`]);
+                 `internals_${AttentionModule.title}`]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 

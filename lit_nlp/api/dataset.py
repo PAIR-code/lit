@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Base classes for LIT models."""
 import glob
 import inspect
 import os
 import random
 from types import MappingProxyType  # pylint: disable=g-importing-member
-from typing import cast, List, Dict, Optional, Callable, Mapping, Sequence
+from typing import cast, Optional, Callable, Mapping, Sequence
 
 from absl import logging
 
@@ -47,20 +46,16 @@ class SliceWrapper(object):
 
 
 class Dataset(object):
-  """Base class for LIT datasets.
-
-  We recommend pre-loading the data in the constructor, but you can also stream
-  on the fly in Dataset.examples() if desired.
-  """
+  """Base class for LIT datasets."""
 
   _spec: Spec = {}
-  _examples: List[JsonDict] = []
+  _examples: list[JsonDict] = []
   _description: Optional[str] = None
   _base: Optional['Dataset'] = None
 
   def __init__(self,
                spec: Optional[Spec] = None,
-               examples: Optional[List[JsonDict]] = None,
+               examples: Optional[list[JsonDict]] = None,
                description: Optional[str] = None,
                base: Optional['Dataset'] = None):
     """Base class constructor.
@@ -83,8 +78,8 @@ class Dataset(object):
       # In case user child class requires the instance to convert examples
       # this makes sure the user class is preserved. We cannot do this below
       # as the default method is static and does not require instance.
-      self.lit_example_to_bytes = self._base.lit_example_to_bytes
-      self.bytes_to_lit_example = self._base.bytes_to_lit_example
+      self.bytes_from_lit_example = self._base.bytes_from_lit_example
+      self.lit_example_from_bytes = self._base.lit_example_from_bytes
 
     # Override from direct arguments.
     self._examples = examples if examples is not None else self._examples
@@ -116,7 +111,7 @@ class Dataset(object):
       return self._base.load(path)
     pass
 
-  def save(self, examples: List[IndexedInput], path: str):
+  def save(self, examples: list[IndexedInput], path: str):
     """Save newly-created datapoints to disk in a dataset-specific format.
 
     Subclasses should override this method if they wish to save new, persisted
@@ -139,7 +134,7 @@ class Dataset(object):
     return self._spec
 
   @property
-  def examples(self) -> List[JsonDict]:
+  def examples(self) -> list[JsonDict]:
     """Return examples, in format described by spec."""
     return self._examples
 
@@ -167,24 +162,28 @@ class Dataset(object):
       examples = list(self.examples)
     return Dataset(examples=examples, base=self)
 
+  def filter(self, predicate: Callable[[JsonDict], bool]):
+    selected_examples = list(filter(predicate, self.examples))
+    return Dataset(examples=selected_examples, base=self)
+
   def shuffle(self, seed=42):
     """Return a new dataset with randomized example order."""
     # random.shuffle will shuffle in-place; use sample to make a new list.
     return self.sample(n=len(self), seed=seed)
 
-  def remap(self, field_map: Dict[str, str]):
+  def remap(self, field_map: dict[str, str]):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
     return Dataset(new_spec, new_examples, base=self)
 
   @staticmethod
-  def bytes_to_lit_example(input_bytes: bytes) -> Optional[JsonDict]:
+  def lit_example_from_bytes(input_bytes: bytes) -> Optional[JsonDict]:
     """Convert bytes representation to LIT example."""
     return serialize.from_json(input_bytes.decode('utf-8'))
 
   @staticmethod
-  def lit_example_to_bytes(lit_example: JsonDict) -> bytes:
+  def bytes_from_lit_example(lit_example: JsonDict) -> bytes:
     """Convert LIT example to bytes representation."""
     return serialize.to_json(lit_example).encode('utf-8')
 
@@ -195,19 +194,24 @@ IdFnType = Callable[[types.Input], ExampleId]
 class IndexedDataset(Dataset):
   """Dataset with additional indexing information."""
 
-  _index: Dict[ExampleId, IndexedInput] = {}
+  _index: dict[ExampleId, IndexedInput] = {}
 
-  def index_inputs(self, examples: List[types.Input]) -> List[IndexedInput]:
+  def index_inputs(self, examples: list[types.Input]) -> list[IndexedInput]:
     """Create indexed versions of inputs."""
+    # pylint: disable=g-complex-comprehension not complex, just a line-too-long
     return [
-        IndexedInput({'data': example, 'id': self.id_fn(example), 'meta': {}})
+        IndexedInput(
+            data=example,
+            id=self.id_fn(example),
+            meta=types.InputMetadata(added=None, parentId=None, source=None))
         for example in examples
-    ]  # pyformat: disable
+    ]
+    # pylint: enable=g-complex-comprehension
 
   def __init__(self,
                *args,
                id_fn: Optional[IdFnType] = None,
-               indexed_examples: Optional[List[IndexedInput]] = None,
+               indexed_examples: Optional[list[IndexedInput]] = None,
                **kw):
     super().__init__(*args, **kw)
     assert id_fn is not None, 'id_fn must be specified.'
@@ -218,6 +222,18 @@ class IndexedDataset(Dataset):
     else:
       self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}
+
+  @property
+  def slice(self):
+    """Syntactic sugar, allows .slice[i:j] to return a new IndexedDataset."""
+
+    def _slicer(slice_obj):
+      return IndexedDataset(
+          indexed_examples=self.indexed_examples[slice_obj],
+          id_fn=self.id_fn,
+          base=self)
+
+    return SliceWrapper(_slicer)
 
   @classmethod
   def index_all(cls, datasets: Mapping[str, Dataset], id_fn: IdFnType):
@@ -233,7 +249,7 @@ class IndexedDataset(Dataset):
     """Return a read-only view of the index."""
     return MappingProxyType(self._index)
 
-  def save(self, examples: List[IndexedInput], path: str):
+  def save(self, examples: list[IndexedInput], path: str):
     """Save newly-created datapoints to disk.
 
     Args:

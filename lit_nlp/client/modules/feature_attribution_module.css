@@ -1,0 +1,40 @@
+.module-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.module-toolbar {
+  border-bottom: 1px solid var(--lit-neutral-300);
+}
+
+.module-results-area {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: row;
+}
+
+.side-navigation {
+  border-right: 1px solid var(--lit-neutral-300);
+  max-width: 300px;
+  min-width: 300px;
+  overflow-y: auto;
+}
+
+.main-content {
+  max-width: calc(100% - 300px);
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.module-results {
+  flex: 1 0 auto;
+  overflow-y: scroll;
+}
+
+.color-legend-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 16px;
+}

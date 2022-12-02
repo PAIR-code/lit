@@ -1,6 +1,6 @@
 # Demos
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-07-14' }
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-09-08' }
       css: "//depot/google3/third_party/py/lit_nlp/g3doc/includes/demos.css"
 *-->
 
@@ -162,3 +162,4 @@ https://pair-code.github.io/lit/tutorials/coref
 *   Showing using of LIT on image data.
 *   Explore results of multiple gradient-based image saliency techniques in the
     Salience Maps module.
+

@@ -26,13 +26,14 @@ import '../elements/span_graph_vis_vertical';
 
 import {customElement} from 'lit/decorators';
 import {css, html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
-import {EdgeLabel, IndexedInput, Input, LitName, ModelInfoMap, Preds, SpanLabel, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {EdgeLabel, SpanLabel} from '../lib/dtypes';
+import {EdgeLabels, SequenceTags, SpanLabels, LitTypeTypesList, LitTypeWithAlign, TextSegment, Tokens} from '../lib/lit_types';
+import {IndexedInput, Input, ModelInfoMap, Preds, Spec} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
@@ -63,15 +64,15 @@ const moduleStyles = css`
   }
 `;
 
-const supportedPredTypes: LitName[] =
-    ['SequenceTags', 'SpanLabels', 'EdgeLabels'];
+const supportedPredTypes: LitTypeTypesList =
+    [SequenceTags, SpanLabels, EdgeLabels];
 
 /**
  * Convert sequence tags to a list of length-1 span labels.
  */
 function tagsToEdges(tags: string[]): EdgeLabel[] {
   return tags.map((label: string, i: number) => {
-    return {span1: [i, i + 1], label};
+    return {span1: [i, i + 1], label} as EdgeLabel;
   });
 }
 
@@ -79,20 +80,24 @@ function tagsToEdges(tags: string[]): EdgeLabel[] {
  * Convert span labels to single-sided edge labels.
  */
 function spansToEdges(spans: SpanLabel[]): EdgeLabel[] {
-  return spans.map(d => ({span1: [d.start, d.end], label: d.label}));
+  return spans.map(
+      d => ({span1: [d.start, d.end], label: d.label as string} as EdgeLabel));
 }
 
 function mapTokenToTags(spec: Spec): FieldNameMultimap {
   const tagKeys = findSpecKeys(spec, supportedPredTypes);
+  const tokenKeys = findSpecKeys(spec, Tokens);
 
-  const tokenKeys = findSpecKeys(spec, 'Tokens');
   // Make a mapping of token keys to one or more tag sets
-  const tokenToTags = {} as FieldNameMultimap;
-  for (const tokenKey of tokenKeys) {
-    tokenToTags[tokenKey] = [];
-  }
+  const tokenToTags: FieldNameMultimap = {};
   for (const tagKey of tagKeys) {
-    const tokenKey = spec[tagKey].align as string;
+    const {align: tokenKey} = spec[tagKey] as LitTypeWithAlign;
+    if (!tokenKeys.includes(tokenKey)) {
+      continue;
+    }
+    if (tokenToTags[tokenKey] == null) {
+      tokenToTags[tokenKey] = [];
+    }
     tokenToTags[tokenKey].push(tagKey);
   }
   return tokenToTags;
@@ -115,10 +120,10 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
       if (edges.length === 0) {
         edges = [];
       }
-      if (isLitSubtype(spec[tagKey], 'SequenceTags')) {
+      if (spec[tagKey] instanceof SequenceTags) {
         edges = tagsToEdges(edges);
         hideBracket = true;
-      } else if (isLitSubtype(spec[tagKey], 'SpanLabels')) {
+      } else if (spec[tagKey] instanceof SpanLabels) {
         edges = spansToEdges(edges);
       }
       annotationLayers.push({name: tagKey, edges, hideBracket});
@@ -126,7 +131,7 @@ function parseInput(data: Input|Preds, spec: Spec): Annotations {
     // Try to infer tokens from text, if that field is empty.
     let tokens = data[tokenKey];
     if (tokens.length === 0) {
-      const textKey = findSpecKeys(spec, 'TextSegment')[0];
+      const textKey = findSpecKeys(spec, TextSegment)[0];
       tokens = data[textKey].split();
     }
     ret[tokenKey] = {tokens, layers: annotationLayers};
@@ -169,10 +174,11 @@ export class SpanGraphGoldModule extends LitModule {
   static override duplicateForModelComparison = false;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<span-graph-gold-module selectionServiceIndex=${
-        selectionServiceIndex}></span-graph-gold-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <span-graph-gold-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </span-graph-gold-module>`;
   static orientation = 'horizontal';
 
   @computed
@@ -195,7 +201,7 @@ export class SpanGraphGoldModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  override render() {
+  override renderImpl() {
     // If more than one model is selected, SpanGraphModule will be offset
     // vertically due to the model name header, while this one won't be.
     // So, add an offset so that the content still aligns when there is a
@@ -217,7 +223,7 @@ export class SpanGraphGoldModule extends LitModule {
   // tslint:enable:no-any
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    const hasTokens = findSpecKeys(datasetSpec, 'Tokens').length > 0;
+    const hasTokens = findSpecKeys(datasetSpec, Tokens).length > 0;
     const hasSupportedPreds =
         findSpecKeys(datasetSpec, supportedPredTypes).length > 0;
     return (hasTokens && hasSupportedPreds);
@@ -231,10 +237,11 @@ export class SpanGraphModule extends LitModule {
   static override duplicateForExampleComparison = true;
   static override duplicateAsRow = false;
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<span-graph-module model=${model} selectionServiceIndex=${
-        selectionServiceIndex}></span-graph-module>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <span-graph-module model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </span-graph-module>`;
   static orientation = 'horizontal';
 
   @computed
@@ -251,7 +258,7 @@ export class SpanGraphModule extends LitModule {
     } else {
       const promise = this.apiService.getPreds(
           [input], this.model, this.appState.currentDataset,
-          ['Tokens'].concat(supportedPredTypes));
+          [Tokens, ...supportedPredTypes]);
 
       const results = await this.loadLatest('getPreds', promise);
       if (!results) return;
@@ -272,7 +279,7 @@ export class SpanGraphModule extends LitModule {
   }
 
   // tslint:disable:no-any
-  override render() {
+  override renderImpl() {
     return html`
       <div id="pred-group" class='outer-container'>
         ${
@@ -288,7 +295,7 @@ export class SpanGraphModule extends LitModule {
     const models = Object.keys(modelSpecs);
     for (let modelNum = 0; modelNum < models.length; modelNum++) {
       const spec = modelSpecs[models[modelNum]].spec;
-      const hasTokens = findSpecKeys(spec.output, 'Tokens').length > 0;
+      const hasTokens = findSpecKeys(spec.output, Tokens).length > 0;
       const hasSupportedPreds =
           findSpecKeys(spec.output, supportedPredTypes).length > 0;
       if (hasTokens && hasSupportedPreds) {
@@ -307,10 +314,11 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
   static override duplicateAsRow = true;
   static override orientation = 'vertical';
   static override numCols = 4;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<span-graph-gold-module-vertical selectionServiceIndex=${
-        selectionServiceIndex}></span-graph-gold-module-vertical>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <span-graph-gold-module-vertical model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </span-graph-gold-module-vertical>`;
 }
 
 /** Model output module class. */
@@ -318,11 +326,11 @@ export class SpanGraphGoldModuleVertical extends SpanGraphGoldModule {
 export class SpanGraphModuleVertical extends SpanGraphModule {
   static override duplicateAsRow = true;
   static override orientation = 'vertical';
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<span-graph-module-vertical model=${
-        model} selectionServiceIndex=${
-        selectionServiceIndex}></span-graph-module-vertical>`;
-  };
+  static override template =
+      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
+  <span-graph-module-vertical model=${model} .shouldReact=${shouldReact}
+    selectionServiceIndex=${selectionServiceIndex}>
+  </span-graph-module-vertical>`;
 }
 
 // tslint:enable:class-as-namespace

@@ -39,8 +39,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="lit-nlp",
-    version="0.4.1",
-    description="Language Interpretability Tool.",
+    version="0.5.0",
+    description="Learning Interpretability Tool.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/pair-code/lit",

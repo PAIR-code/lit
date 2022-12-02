@@ -1,0 +1,48 @@
+.clustering-salience-mapper {
+  padding: 8px;
+}
+
+.grad-key-label {
+  padding: 4px;
+  text-align: start;
+  vertical-align: baseline;
+  width: 150px;
+}
+
+.grad-key-row {
+  padding: 8px;
+}
+
+.selection-warning {
+  color: var(--google-red-500);
+}
+
+.module-toolbar.footer {
+  width: 100%;
+  padding: 0;
+}
+
+.clustering-controls-container {
+  max-height: 100%;
+  width: 400px;
+  max-width: 400px;
+  overflow-y: auto;
+  border-right: 1px solid var(--lit-neutral-300);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+}
+
+.clustering-results-container {
+  flex: 1 1 auto;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.controls-and-results-container {
+  max-height: 100%;
+  height: 100%;
+  display: flex;
+}

@@ -41,6 +41,7 @@ class PcaTest(absltest.TestCase):
     output_np = np.array([o['z'] for o in outputs_list])
     shape = output_np.shape
     expected_shape = (n, 3)
+    self.assertFalse(np.any(np.iscomplex(output_np)))
     self.assertEqual(shape, expected_shape)
 
   def test_predict_minibatch(self):
@@ -58,6 +59,7 @@ class PcaTest(absltest.TestCase):
     # Test that we can now predict a minibatch.
     output = pca_model.predict_minibatch(inputs)
     output_shape = np.array(list(output)[0]['z']).shape
+    self.assertFalse(np.any(np.iscomplex(output)))
     self.assertEqual(output_shape, (3,))
 
 

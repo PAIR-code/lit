@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Lint as: python3
 """Tests for lit_nlp.components.gradient_maps."""
 
-from typing import List
 from absl.testing import absltest
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.api.model import JsonDict
 from lit_nlp.components import image_gradient_maps
 from lit_nlp.lib import image_utils
 import numpy as np
 from PIL import Image as PILImage
+
+JsonDict = lit_types.JsonDict
 
 
 class ClassificationTestModel(lit_model.Model):
@@ -35,7 +34,7 @@ class ClassificationTestModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     return 10
 
-  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
     result = []
     for i, _ in enumerate(inputs):
       result.append({
@@ -71,7 +70,7 @@ class RegressionTestModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     return 10
 
-  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
     """Simulates regression of x1 + 2 * x2 using elements of the image array."""
     result = []
     for example in inputs:
@@ -103,7 +102,8 @@ class ImageGradientsMapsTest(absltest.TestCase):
   def test_interpreter(self):
     interpreter = image_gradient_maps.VanillaGradients()
     model = ClassificationTestModel()
-    self.assertTrue(interpreter.is_compatible(model))
+    self.assertTrue(interpreter.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
     pil_image = PILImage.new(mode='RGB', size=(300, 200))
     inp = {'image': image_utils.convert_pil_to_image_str(pil_image)}
@@ -116,7 +116,8 @@ class ImageGradientsMapsTest(absltest.TestCase):
   def test_regression(self):
     interpreter = image_gradient_maps.GuidedIG()
     model = RegressionTestModel()
-    self.assertTrue(interpreter.is_compatible(model))
+    self.assertTrue(interpreter.is_compatible(
+        model, lit_dataset.NoneDataset({'test': model})))
 
     input_image_array = np.zeros(shape=[20, 15, 3], dtype=np.uint8)
     input_image_array[0, 0, 0] = 10
