@@ -22,6 +22,7 @@ import transformers  # for path caching
 FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
+FLAGS.set_default("page_title", "Input Salience Evaluation Demo")
 
 _MODELS = flags.DEFINE_list(
     "models", [
