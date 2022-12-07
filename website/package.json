@@ -7,7 +7,7 @@
   "author": "People + AI Research",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@11ty/eleventy-plugin-syntaxhighlight": "^3.0.4",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^3.2.2",
     "markdown-it": "^11.0.0"
   }
 }
