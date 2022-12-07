@@ -71,8 +71,8 @@ color: "#49596c"
       c-title: "Evaluating input salience methods",
       link: "/demos/is_eval.html",
       c-data-source: "Stanford Sentiment Treebank, Toxicity",
-      c-copy: "Explore the faithfulness of input salience methods across different datasets and artificial shortcuts.",
-      tags: "salience, evaluation",
+      c-copy: "Explore the faithfulness of input salience methods on a BERT-base model across different datasets and artificial shortcuts.",
+      tags: "BERT, salience, evaluation",
       external:"true" %}
   </div>
 </div>
