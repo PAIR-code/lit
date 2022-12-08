@@ -14,6 +14,6 @@
 # ==============================================================================
 """Config for gunicorn for cloud-hosted demos."""
 
-timeout = 500
+timeout = 3600
 threads = 8
 worker_class = 'gthread'

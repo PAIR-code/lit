@@ -23,10 +23,10 @@ ENV PATH /opt/anaconda3/bin:$PATH
 # Copy local code to the container image.
 ENV APP_HOME /app
 WORKDIR $APP_HOME
-COPY . ./
 
 # Set up conda environment with production dependencies
 # This step is slow as it installs many packages.
+COPY ./environment.yml ./
 RUN conda env create -f environment.yml
 
 # Workaround for 'conda activate' depending on shell features
@@ -43,6 +43,7 @@ ENV CONDA_SHLVL "1"
 ENV CONDA_DEFAULT_ENV "lit-nlp"
 
 # Build front-end with yarn
+COPY . ./
 WORKDIR lit_nlp/client
 RUN yarn && yarn build && rm -rf node_modules/*
 WORKDIR $APP_HOME
