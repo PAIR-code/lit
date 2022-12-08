@@ -468,9 +468,9 @@ export class ScalarModule extends LitModule {
           this.containerSelector(id));
       if (container == null || info.hidden) continue;
 
-      const {brush, scene, model, key, points, xScale, yScale} = info;
+      const {brush, scene, key, points, xScale, yScale} = info;
       if (brush == null || scene == null || key == null || points == null ||
-          model == null || xScale == null || yScale == null) continue;
+          xScale == null || yScale == null) continue;
 
       // Update the xScale range  width of div.axes
       const sceneDiv = container.querySelector<HTMLDivElement>('.scene')!;
