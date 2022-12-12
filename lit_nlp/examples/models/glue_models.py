@@ -1,4 +1,6 @@
 """Wrapper for fine-tuned HuggingFace models in LIT."""
+# TODO(b/261736863): Update to PEP 585 typings, consider using f-strings, and
+# make common substrings into module CONSTANTS.
 
 import os
 import re
@@ -33,6 +35,8 @@ class GlueModelConfig(object):
   labels: Optional[List[str]] = None  # set to None for regression
   null_label_idx: Optional[int] = None
   compute_grads: bool = True  # if True, compute and return gradients.
+  output_attention: bool = True
+  output_embeddings: bool = True
 
 
 class GlueModel(lit_model.Model):
@@ -71,6 +75,7 @@ class GlueModel(lit_model.Model):
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
         return_dict=False,  # default for training; overridden for predict
+        output_attentions=self.config.output_attention,
     )
     self.model = model_utils.load_pretrained(
         transformers.TFAutoModelForSequenceClassification,
@@ -199,14 +204,17 @@ class GlueModel(lit_model.Model):
       output["tokens_" + self.config.text_b_name] = output["tokens"][slicer_b]
 
     # Embeddings for each segment, individually.
-    output["input_embs_" + self.config.text_a_name] = (
-        output["input_embs"][slicer_a])
-    if self.config.text_b_name:
-      output["input_embs_" + self.config.text_b_name] = (
-          output["input_embs"][slicer_b])
+    if self.config.output_embeddings:
+      output["input_embs_" + self.config.text_a_name] = (
+          output["input_embs"][slicer_a])
+      if self.config.text_b_name:
+        output["input_embs_" + self.config.text_b_name] = (
+            output["input_embs"][slicer_b])
 
     # Gradients for each segment, individually.
     if self.config.compute_grads:
+      # Gradients for the CLS token.
+      output["cls_grad"] = output["input_emb_grad"][0]
       output["token_grad_" +
              self.config.text_a_name] = output["input_emb_grad"][slicer_a]
       if self.config.text_b_name:
@@ -218,11 +226,11 @@ class GlueModel(lit_model.Model):
         # Return the label corresponding to the class index used for gradients.
         output["grad_class"] = self.config.labels[output["grad_class"]]
 
-    # Gradients for the CLS token.
-    output["cls_grad"] = output["input_emb_grad"][0]
+      # Remove "input_emb_grad" since it's not in the output spec.
+      del output["input_emb_grad"]
 
-    # Remove "input_emb_grad" since it's not in the output spec.
-    del output["input_emb_grad"]
+    if not self.config.output_attention:
+      return output
 
     # Process attention.
     for key in output:
@@ -363,25 +371,40 @@ class GlueModel(lit_model.Model):
           "input_ids": encoded_input["input_ids"],
           "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
           "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
-          "input_embs": input_embs,
       }
 
-      # First entry is embeddings, then output from each transformer layer.
-      assert len(out.hidden_states) == self.model.config.num_hidden_layers + 1
-      # <float32>[batch_size, num_tokens, 1]
-      token_mask = tf.expand_dims(
-          tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
-      # <float32>[batch_size, 1]
-      denom = tf.reduce_sum(token_mask, axis=1)
-      for i, layer_output in enumerate(out.hidden_states):
-        # layer_output is <float32>[batch_size, num_tokens, emb_dim]
-        # average over tokens to get <float32>[batch_size, emb_dim]
-        batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
-            layer_output * token_mask, axis=1) / denom
+      if self.config.output_embeddings:
+        batched_outputs["input_embs"] = input_embs
 
-      assert len(out.attentions) == self.model.config.num_hidden_layers
-      for i, layer_attention in enumerate(out.attentions):
-        batched_outputs[f"layer_{i+1}/attention"] = layer_attention
+        # First entry is embeddings, then output from each transformer layer.
+        expected_hidden_states_len = self.model.config.num_hidden_layers + 1
+        actual_hidden_states_len = len(out.hidden_states)
+        if actual_hidden_states_len != expected_hidden_states_len:
+          raise ValueError("Unexpected size of hidden_states. Should be one "
+                           "more than the number of hidden layers to account "
+                           "for the embeddings. Expected "
+                           f"{expected_hidden_states_len}, got "
+                           f"{actual_hidden_states_len}.")
+
+        # <float32>[batch_size, num_tokens, 1]
+        token_mask = tf.expand_dims(
+            tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
+        # <float32>[batch_size, 1]
+        denom = tf.reduce_sum(token_mask, axis=1)
+        for i, layer_output in enumerate(out.hidden_states):
+          # layer_output is <float32>[batch_size, num_tokens, emb_dim]
+          # average over tokens to get <float32>[batch_size, emb_dim]
+          batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
+              layer_output * token_mask, axis=1) / denom
+
+      if self.config.output_attention:
+        if len(out.attentions) != self.model.config.num_hidden_layers:
+          raise ValueError("Unexpected size of attentions. Should be the same "
+                           "size as the number of hidden layers. Expected "
+                           f"{self.model.config.num_hidden_layers}, got "
+                           f"{len(out.attentions)}.")
+        for i, layer_attention in enumerate(out.attentions):
+          batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
         # <tf.float32>[batch_size]
@@ -427,21 +450,27 @@ class GlueModel(lit_model.Model):
     ret[self.config.text_a_name] = lit_types.TextSegment()
     ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
         parent=self.config.text_a_name, required=False)
+
     if self.config.text_b_name:
       ret[self.config.text_b_name] = lit_types.TextSegment()
       ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
           parent=self.config.text_b_name, required=False)
+
     if self.is_regression:
       ret[self.config.label_name] = lit_types.RegressionScore(required=False)
     else:
       ret[self.config.label_name] = lit_types.CategoryLabel(
           required=False, vocab=self.config.labels)
-    # The input_embs_ and grad_class fields are used for Integrated Gradients.
-    ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
-        align="tokens", required=False)
-    if self.config.text_b_name:
-      ret["input_embs_" + self.config.text_b_name] = lit_types.TokenEmbeddings(
+
+    if self.config.output_embeddings:
+      # The input_embs_ and grad_class fields are used for Integrated Gradients.
+      text_a_embs = "input_embs_" + self.config.text_a_name
+      ret[text_a_embs] = lit_types.TokenEmbeddings(
           align="tokens", required=False)
+      if self.config.text_b_name:
+        text_b_embs = "input_embs_" + self.config.text_b_name
+        ret[text_b_embs] = lit_types.TokenEmbeddings(
+            align="tokens", required=False)
     ret["grad_class"] = lit_types.CategoryLabel(required=False,
                                                 vocab=self.config.labels)
     return ret
@@ -460,39 +489,45 @@ class GlueModel(lit_model.Model):
           parent=self.config.label_name,
           vocab=self.config.labels,
           null_idx=self.config.null_label_idx)
-    ret["cls_emb"] = lit_types.Embeddings()
-    # Average embeddings, one per layer including embeddings.
-    for i in range(1 + self.model.config.num_hidden_layers):
-      ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
 
-    ret["cls_grad"] = lit_types.Gradients(
-        grad_for="cls_emb", grad_target_field_key="grad_class")
+    if self.config.output_embeddings:
+      ret["cls_emb"] = lit_types.Embeddings()
+      # Average embeddings, one per layer including embeddings.
+      for i in range(1 + self.model.config.num_hidden_layers):
+        ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
 
-    # The input_embs_ and grad_class fields are used for Integrated Gradients.
-    ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
-        align="tokens_" + self.config.text_a_name)
-    if self.config.text_b_name:
-      ret["input_embs_" + self.config.text_b_name] = lit_types.TokenEmbeddings(
-          align="tokens_" + self.config.text_b_name)
+      # The input_embs_ and grad_class fields are used for Integrated Gradients.
+      ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
+          align="tokens_" + self.config.text_a_name)
+      if self.config.text_b_name:
+        text_b_embs = "input_embs_" + self.config.text_b_name
+        ret[text_b_embs] = lit_types.TokenEmbeddings(align="tokens_" +
+                                                     self.config.text_b_name)
 
     # Gradients, if requested.
     if self.config.compute_grads:
+      ret["cls_grad"] = lit_types.Gradients(
+          grad_for="cls_emb", grad_target_field_key="grad_class")
       ret["grad_class"] = lit_types.CategoryLabel(required=False,
                                                   vocab=self.config.labels)
-      ret["token_grad_" + self.config.text_a_name] = lit_types.TokenGradients(
-          align="tokens_" + self.config.text_a_name,
-          grad_for="input_embs_" + self.config.text_a_name,
-          grad_target_field_key="grad_class")
-      if self.config.text_b_name:
-        ret["token_grad_" + self.config.text_b_name] = lit_types.TokenGradients(
-            align="tokens_" + self.config.text_b_name,
-            grad_for="input_embs_" + self.config.text_b_name,
+      if self.config.output_embeddings:
+        text_a_token_grads = "token_grad_" + self.config.text_a_name
+        ret[text_a_token_grads] = lit_types.TokenGradients(
+            align="tokens_" + self.config.text_a_name,
+            grad_for="input_embs_" + self.config.text_a_name,
             grad_target_field_key="grad_class")
+        if self.config.text_b_name:
+          text_b_token_grads = "token_grad_" + self.config.text_b_name
+          ret[text_b_token_grads] = lit_types.TokenGradients(
+              align="tokens_" + self.config.text_b_name,
+              grad_for="input_embs_" + self.config.text_b_name,
+              grad_target_field_key="grad_class")
 
-    # Attention heads, one field for each layer.
-    for i in range(self.model.config.num_hidden_layers):
-      ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
-          align_in="tokens", align_out="tokens")
+    if self.config.output_attention:
+      # Attention heads, one field for each layer.
+      for i in range(self.model.config.num_hidden_layers):
+        ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
+            align_in="tokens", align_out="tokens")
     return ret
 
 
