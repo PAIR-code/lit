@@ -1,5 +1,4 @@
 # Copyright 2020 Google LLC
-#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -20,7 +19,6 @@ from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model
 from lit_nlp.api import types
-from lit_nlp.lib import testing_utils
 
 
 class CompatibilityTestModel(model.Model):
@@ -38,6 +36,33 @@ class CompatibilityTestModel(model.Model):
   def predict_minibatch(self,
                         inputs: list[model.JsonDict]) -> list[model.JsonDict]:
     return []
+
+
+class TestBatchingModel(model.Model):
+  """A model for testing batched predictions with a minibatch size of 3."""
+
+  def __init__(self):
+    self._count = 0
+
+  @property
+  def count(self):
+    """Returns the number of times predict_minibatch has been called."""
+    return self._count
+
+  # LIT API implementation
+  def max_minibatch_size(self):
+    return 3
+
+  def input_spec(self):
+    return {"value": types.Scalar()}
+
+  def output_spec(self):
+    return {"scores": types.RegressionScore()}
+
+  def predict_minibatch(self, inputs: list[model.JsonDict], **kw):
+    assert len(inputs) <= self.max_minibatch_size()
+    self._count += 1
+    return map(lambda x: {"scores": x["value"]}, inputs)
 
 
 class ModelTest(parameterized.TestCase):
@@ -115,40 +140,46 @@ class ModelTest(parameterized.TestCase):
     ctm = CompatibilityTestModel(input_spec)
     self.assertEqual(ctm.is_compatible_with_dataset(dataset), expected)
 
-  def test_predict(self):
-    """Tests predict() for a model with max batch size of 3."""
-
-    # Input of less than 1 batch.
-    test_model = testing_utils.TestModelBatched()
-    result = test_model.predict([{"value": 1}, {"value": 2}])
-
-    self.assertListEqual(list(result), [{"scores": 1},
-                                        {"scores": 2}])
-    self.assertEqual(test_model.count, 1)
-
-    # Between 1 and 2 full batches.
-    test_model = testing_utils.TestModelBatched()
-    result = test_model.predict([{"value": 1}, {"value": 2}, {"value": 3},
-                                 {"value": 4}])
-
-    self.assertListEqual(list(result), [{"scores": 1},
-                                        {"scores": 2},
-                                        {"scores": 3},
-                                        {"scores": 4}])
-    self.assertEqual(test_model.count, 2)
-
-    # Input of 2 full batches.
-    test_model = testing_utils.TestModelBatched()
-    result = test_model.predict([{"value": 1}, {"value": 2}, {"value": 3},
-                                 {"value": 4}, {"value": 5}, {"value": 6}])
-
-    self.assertListEqual(list(result), [{"scores": 1},
-                                        {"scores": 2},
-                                        {"scores": 3},
-                                        {"scores": 4},
-                                        {"scores": 5},
-                                        {"scores": 6}])
-    self.assertEqual(test_model.count, 2)
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="one_full_batch",
+          inputs=[{"value": 1}, {"value": 2}, {"value": 3}],
+          expected_outputs=[{"scores": 1}, {"scores": 2}, {"scores": 3}],
+          expected_run_count=1,
+      ),
+      dict(
+          testcase_name="one_partial_batch",
+          inputs=[{"value": 1}],
+          expected_outputs=[{"scores": 1}],
+          expected_run_count=1,
+      ),
+      dict(
+          testcase_name="multiple_full_batches",
+          inputs=[{"value": 1}, {"value": 2}, {"value": 3},
+                  {"value": 4}, {"value": 5}, {"value": 6}],
+          expected_outputs=[{"scores": 1}, {"scores": 2}, {"scores": 3},
+                            {"scores": 4}, {"scores": 5}, {"scores": 6}],
+          expected_run_count=2,
+      ),
+      dict(
+          testcase_name="multiple_partial_batches",
+          inputs=[{"value": 1}, {"value": 2}, {"value": 3},
+                  {"value": 4}],
+          expected_outputs=[{"scores": 1}, {"scores": 2}, {"scores": 3},
+                            {"scores": 4}],
+          expected_run_count=2,
+      ),
+  )
+  def test_batched_predict(self, inputs: list[model.JsonDict],
+                           expected_outputs: list[model.JsonDict],
+                           expected_run_count: int):
+    """Tests predict() for a model with a batch size of 3."""
+    # Note that TestModelBatched
+    test_model = TestBatchingModel()
+    result = list(test_model.predict(inputs))
+    self.assertListEqual(result, expected_outputs)
+    self.assertEqual(len(result), len(inputs))
+    self.assertEqual(test_model.count, expected_run_count)
 
 
 if __name__ == "__main__":

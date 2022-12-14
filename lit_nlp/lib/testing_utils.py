@@ -150,35 +150,6 @@ class TestModelClassification(lit_model.Model):
     return map(lambda x: output, inputs)
 
 
-class TestModelBatched(lit_model.Model):
-  """Implements lit.Model interface for testing with a max minibatch size of 3.
-  """
-
-  def __init__(self):
-    self._count = 0
-
-  # LIT API implementation
-  def max_minibatch_size(self):
-    return 3
-
-  def input_spec(self):
-    return {'value': lit_types.Scalar()}
-
-  def output_spec(self):
-    return {'scores': lit_types.RegressionScore()}
-
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
-    assert len(inputs) <= self.max_minibatch_size()
-    self._count += 1
-
-    return map(lambda x: {'scores': x['value']}, inputs)
-
-  @property
-  def count(self):
-    """Returns the number of times predict_minibatch has been called."""
-    return self._count
-
-
 def fake_projection_input(n, num_dims):
   """Generates random embeddings in the correct format."""
   rng = np.random.RandomState(42)
