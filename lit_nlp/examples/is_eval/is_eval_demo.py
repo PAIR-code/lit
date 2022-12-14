@@ -12,8 +12,9 @@ from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import layout
 from lit_nlp.examples.is_eval import datasets
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.is_eval import models as is_eval_models
 
 import transformers  # for path caching
 
@@ -56,11 +57,46 @@ DATASETS = {
         "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_simple_order-dev.100syn.tsv",
 }
 
+modules = layout.LitModuleName
+IS_EVAL_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [
+            modules.DocumentationModule,
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ]
+    },
+    lower={
+        "Predictions": [
+            modules.ClassificationModule,
+            modules.SalienceMapModule,
+            modules.ScalarModule,
+        ],
+        "Salience Clustering": [modules.SalienceClusteringModule],
+        "Metrics": [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.CurvesModule,
+            modules.ThresholderModule,
+        ],
+        "Counterfactuals": [
+            modules.GeneratorModule,
+            modules.CounterfactualExplainerModule,
+        ],
+    },
+    description="Custom layout for evaluating input salience methods.")
+CUSTOM_LAYOUTS = {"is_eval": IS_EVAL_LAYOUT}
+# You can change this back via URL param, e.g. localhost:5432/?layout=default
+FLAGS.set_default("default_layout", "is_eval")
+
 
 def get_wsgi_app():
   """Return WSGI app for container-hosted demos."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
+  FLAGS.set_default("warm_start", 1.0)
+  FLAGS.set_default("max_examples", 1000)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
@@ -85,12 +121,14 @@ def main(_):
       path = transformers.file_utils.cached_path(
           path, extract_compressed_file=True)
     # Load the model from disk.
-    models[name] = glue_models.SST2Model(path)
+    models[name] = is_eval_models.ISEvalModel(
+        name, path, output_attention=False)
 
   logging.info("Loading data for SST-2 task.")
   for data_key, url in DATASETS.items():
     path = transformers.file_utils.cached_path(url)
-    loaded_datasets[data_key] = datasets.SingleInputClassificationFromTSV(path)
+    loaded_datasets[data_key] = datasets.SingleInputClassificationFromTSV(
+        path, data_key)
 
   # Truncate datasets if --max_examples is set.
   for name in loaded_datasets:
@@ -101,8 +139,11 @@ def main(_):
     logging.info("  truncated to %d examples", len(loaded_datasets[name]))
 
   # Start the LIT server. See server_flags.py for server options.
-  lit_demo = dev_server.Server(models, loaded_datasets,
-                               **server_flags.get_flags())
+  lit_demo = dev_server.Server(
+      models,
+      loaded_datasets,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 
