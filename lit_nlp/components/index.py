@@ -69,10 +69,10 @@ class Indexer(object):
     self._models = models
 
     # Create/Load indices.
-    for model_name, model_info in self._models.items():
+    for model_name, model in self._models.items():
       compatible_datasets = [
-          dname for dname, ds in self.datasets.items()
-          if model_info.spec().is_compatible_with_dataset(ds.spec())
+          dataset_name for dataset_name, dataset in self.datasets.items()
+          if model.is_compatible_with_dataset(dataset)
       ]
       for dataset in compatible_datasets:
         self._create_empty_indices(model_name, dataset)

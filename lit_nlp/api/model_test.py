@@ -15,84 +15,105 @@
 """Tests for lit_nlp.lib.model."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model
 from lit_nlp.api import types
 from lit_nlp.lib import testing_utils
 
 
-class SpecTest(absltest.TestCase):
+class CompatibilityTestModel(model.Model):
+  """Dummy model for testing Model.is_compatible_with_dataset()."""
 
-  def test_compatibility_fullmatch(self):
-    """Test with an exact match."""
-    mspec = model.ModelSpec(
-        input={
-            "text_a": types.TextSegment(),
-            "text_b": types.TextSegment(),
-        },
-        output={})
-    dspec = mspec.input
-    self.assertTrue(mspec.is_compatible_with_dataset(dspec))
+  def __init__(self, input_spec: types.Spec):
+    self._input_spec = input_spec
 
-  def test_compatibility_mismatch(self):
-    """Test with specs that don't match."""
-    mspec = model.ModelSpec(
-        input={
-            "text_a": types.TextSegment(),
-            "text_b": types.TextSegment(),
-        },
-        output={})
-    dspec = {"premise": types.TextSegment(), "hypothesis": types.TextSegment()}
-    self.assertFalse(mspec.is_compatible_with_dataset(dspec))
+  def input_spec(self) -> types.Spec:
+    return self._input_spec
 
-  def test_compatibility_extrafield(self):
-    """Test with an extra field in the dataset."""
-    mspec = model.ModelSpec(
-        input={
-            "text_a": types.TextSegment(),
-            "text_b": types.TextSegment(),
-        },
-        output={})
-    dspec = {
-        "text_a": types.TextSegment(),
-        "text_b": types.TextSegment(),
-        "label": types.CategoryLabel(vocab=["0", "1"]),
-    }
-    self.assertTrue(mspec.is_compatible_with_dataset(dspec))
+  def output_spec(self) -> types.Spec:
+    return {}
 
-  def test_compatibility_optionals(self):
-    """Test with optionals in the model spec."""
-    mspec = model.ModelSpec(
-        input={
-            "text": types.TextSegment(),
-            "tokens": types.Tokens(parent="text", required=False),
-            "label": types.CategoryLabel(vocab=["0", "1"], required=False),
-        },
-        output={})
-    dspec = {
-        "text": types.TextSegment(),
-        "label": types.CategoryLabel(vocab=["0", "1"]),
-    }
-    self.assertTrue(mspec.is_compatible_with_dataset(dspec))
-
-  def test_compatibility_optionals_mismatch(self):
-    """Test with optionals that don't match metadata."""
-    mspec = model.ModelSpec(
-        input={
-            "text": types.TextSegment(),
-            "tokens": types.Tokens(parent="text", required=False),
-            "label": types.CategoryLabel(vocab=["0", "1"], required=False),
-        },
-        output={})
-    dspec = {
-        "text": types.TextSegment(),
-        # This label field doesn't match the one the model expects.
-        "label": types.CategoryLabel(vocab=["foo", "bar"]),
-    }
-    self.assertFalse(mspec.is_compatible_with_dataset(dspec))
+  def predict_minibatch(self,
+                        inputs: list[model.JsonDict]) -> list[model.JsonDict]:
+    return []
 
 
-class ModelTest(absltest.TestCase):
+class ModelTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="full_match",
+          input_spec={
+              "text_a": types.TextSegment(),
+              "text_b": types.TextSegment(),
+          },
+          dataset_spec={
+              "text_a": types.TextSegment(),
+              "text_b": types.TextSegment(),
+          },
+          expected=True,
+      ),
+      dict(
+          testcase_name="mismatch",
+          input_spec={
+              "text_a": types.TextSegment(),
+              "text_b": types.TextSegment(),
+          },
+          dataset_spec={
+              "premise": types.TextSegment(),
+              "hypothesis": types.TextSegment(),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name="extra_field",
+          input_spec={
+              "text_a": types.TextSegment(),
+              "text_b": types.TextSegment(),
+          },
+          dataset_spec={
+              "text_a": types.TextSegment(),
+              "text_b": types.TextSegment(),
+              "label": types.CategoryLabel(vocab=["0", "1"]),
+          },
+          expected=True,
+      ),
+      dict(
+          testcase_name="optionals",
+          input_spec={
+              "text": types.TextSegment(),
+              "tokens": types.Tokens(parent="text", required=False),
+              "label": types.CategoryLabel(vocab=["0", "1"], required=False),
+          },
+          dataset_spec={
+              "text": types.TextSegment(),
+              "label": types.CategoryLabel(vocab=["0", "1"]),
+          },
+          expected=True,
+      ),
+      dict(
+          testcase_name="optionals_mismatch",
+          input_spec={
+              "text": types.TextSegment(),
+              "tokens": types.Tokens(parent="text", required=False),
+              "label": types.CategoryLabel(vocab=["0", "1"], required=False),
+          },
+          dataset_spec={
+              "text": types.TextSegment(),
+              # This label field doesn't match the one the model expects.
+              "label": types.CategoryLabel(vocab=["foo", "bar"]),
+          },
+          expected=False,
+      ),
+  )
+  def test_compatibility(self, input_spec: types.Spec, dataset_spec: types.Spec,
+                         expected: bool):
+    """Test spec compatibility between models and datasets."""
+    dataset = lit_dataset.Dataset(spec=dataset_spec)
+    ctm = CompatibilityTestModel(input_spec)
+    self.assertEqual(ctm.is_compatible_with_dataset(dataset), expected)
 
   def test_predict(self):
     """Tests predict() for a model with max batch size of 3."""

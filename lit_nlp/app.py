@@ -56,20 +56,19 @@ class LitApp(object):
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
     model_info = {}
-    for name, m in self._models.items():
-      mspec: lit_model.ModelSpec = m.spec()
+    for name, model in self._models.items():
       info = {
-          'description': m.description(),
+          'description': model.description(),
           'spec': {
-              'input': mspec.input,
-              'output': mspec.output
+              'input': model.input_spec(),
+              'output': model.output_spec(),
           }
       }
 
       # List compatible datasets.
       info['datasets'] = [
           name for name, dataset in self._datasets.items()
-          if mspec.is_compatible_with_dataset(dataset.spec())
+          if model.is_compatible_with_dataset(dataset)
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
@@ -81,11 +80,11 @@ class LitApp(object):
         dataset: lit_dataset.Dataset = self._datasets[d]
         compat_gens.update([
             name for name, gen in self._generators.items()
-            if gen.is_compatible(model=m, dataset=dataset)
+            if gen.is_compatible(model=model, dataset=dataset)
         ])
         compat_interps.update([
             name for name, interp in self._interpreters.items()
-            if interp.is_compatible(model=m, dataset=dataset)
+            if interp.is_compatible(model=model, dataset=dataset)
         ])
 
       info['generators'] = [name for name in self._generators.keys()

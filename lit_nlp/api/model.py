@@ -17,9 +17,10 @@ import abc
 import inspect
 import itertools
 import multiprocessing  # for ThreadPool
-from typing import List, Tuple, Iterable, Iterator, Text, Union
+from typing import Iterable, Iterator, Union
 
 import attr
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types
 from lit_nlp.lib import utils
 import numpy as np
@@ -71,21 +72,6 @@ class ModelSpec(object):
   input: Spec
   output: Spec
 
-  def is_compatible_with_dataset(self, dataset_spec: Spec) -> bool:
-    """Return true if this model is compatible with the dataset spec."""
-    for key, field_spec in self.input.items():
-      if key in dataset_spec:
-        # If the field is in the dataset, make sure it's compatible.
-        if not dataset_spec[key].is_compatible(field_spec):
-          return False
-      else:
-        # If the field isn't in the dataset, only allow if the model marks as
-        # optional.
-        if field_spec.required:
-          return False
-
-    return True
-
 
 class Model(metaclass=abc.ABCMeta):
   """Base class for LIT models."""
@@ -106,6 +92,22 @@ class Model(metaclass=abc.ABCMeta):
     """Maximum minibatch size for this model."""
     return 1
 
+  def is_compatible_with_dataset(self, dataset: lit_dataset.Dataset) -> bool:
+    """Return true if this model is compatible with the dataset spec."""
+    dataset_spec = dataset.spec()
+    for key, field_spec in self.input_spec().items():
+      if key in dataset_spec:
+        # If the field is in the dataset, make sure it's compatible.
+        if not dataset_spec[key].is_compatible(field_spec):
+          return False
+      else:
+        # If the field isn't in the dataset, only allow if the model marks as
+        # optional.
+        if field_spec.required:
+          return False
+
+    return True
+
   @property
   def supports_concurrent_predictions(self):
     """Indcates support for multiple concurrent predict calls across threads.
@@ -119,7 +121,7 @@ class Model(metaclass=abc.ABCMeta):
     return False
 
   @abc.abstractmethod
-  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
     """Run prediction on a batch of inputs.
 
     Args:
@@ -163,7 +165,7 @@ class Model(metaclass=abc.ABCMeta):
   def spec(self) -> ModelSpec:
     return ModelSpec(input=self.input_spec(), output=self.output_spec())
 
-  def get_embedding_table(self) -> Tuple[List[Text], np.ndarray]:
+  def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     """Return the full vocabulary and embedding table.
 
     Implementing this is optional, but needed for some techniques such as
@@ -175,7 +177,7 @@ class Model(metaclass=abc.ABCMeta):
     raise NotImplementedError('get_embedding_table() not implemented for ' +
                               self.__class__.__name__)
 
-  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict]):
+  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
     """For internal use by UMAP and other sklearn-based models."""
     raise NotImplementedError(
         'fit_transform_with_metadata() not implemented for ' +
@@ -255,7 +257,7 @@ class ModelWrapper(Model):
   def supports_concurrent_predictions(self):
     return self.wrapped.supports_concurrent_predictions
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict], **kw) -> list[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
   def predict(self, inputs: Iterable[JsonDict], *args,
@@ -288,10 +290,10 @@ class ModelWrapper(Model):
 
   ##
   # Special methods
-  def get_embedding_table(self) -> Tuple[List[Text], np.ndarray]:
+  def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     return self.wrapped.get_embedding_table()
 
-  def fit_transform_with_metadata(self, indexed_inputs: List[JsonDict]):
+  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
     return self.wrapped.fit_transform_with_metadata(indexed_inputs)
 
 
@@ -331,7 +333,7 @@ class BatchedRemoteModel(Model):
     return True
 
   @abc.abstractmethod
-  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
     """Run prediction on a batch of inputs.
 
     Subclass should implement this.

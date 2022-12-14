@@ -6,7 +6,6 @@ from lit_nlp.api import model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import imagenet_labels
 from lit_nlp.lib import image_utils
-from lit_nlp.lib import utils as lit_utils
 import numpy as np
 import tensorflow as tf
 
@@ -16,13 +15,6 @@ IMAGE_SHAPE = (224, 224, 3)
 
 class MobileNet(model.Model):
   """MobileNet model trained on ImageNet dataset."""
-
-  class MobileNetSpec(model.ModelSpec):
-
-    def is_compatible_with_dataset(self, dataset_spec: lit_types.Spec) -> bool:
-      image_field_names = lit_utils.find_spec_keys(dataset_spec,
-                                                   lit_types.ImageBytes)
-      return bool(image_field_names)
 
   def __init__(self) -> None:
     # Initialize imagenet labels.
@@ -89,7 +81,3 @@ class MobileNet(model.Model):
         'grad_target':
             lit_types.CategoryLabel(vocab=self.labels)
     }
-
-  def spec(self) -> model.ModelSpec:
-    return self.MobileNetSpec(
-        input=self.input_spec(), output=self.output_spec())
