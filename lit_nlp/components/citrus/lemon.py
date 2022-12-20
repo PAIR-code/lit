@@ -165,7 +165,7 @@ def explain(
 
   masks = get_masks(
       counterfactual_tokens, vocab_to_indices)
-  all_true_mask = np.ones_like(masks[0], dtype=np.bool)
+  all_true_mask = np.ones_like(masks[0], dtype=bool)
 
   probs = predict_fn(counterfactuals)
   probs = probs[:, class_to_explain]  # We are only interested in 1 class.

@@ -143,7 +143,7 @@ def explain(
 
   masks = sample_masks(num_samples + 1, len(tokens), seed=seed)
   assert masks.shape[0] == num_samples + 1, 'Expected num_samples + 1 masks.'
-  all_true_mask = np.ones_like(masks[0], dtype=np.bool)
+  all_true_mask = np.ones_like(masks[0], dtype=bool)
   masks[0] = all_true_mask  # First mask is the full sentence.
 
   perturbations = list(get_perturbations(tokens, masks, mask_token))
