@@ -89,8 +89,11 @@ interface PlotInfo {
 export class ScalarModule extends LitModule {
   static override duplicateForModelComparison = false;
   static override title = 'Scalars';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#scalar-plots';
+  static override infoMarkdown =
+      `Visualize the distribution of scalar (\`Scalar\`, \`RegressionScore\`,
+      or \`MulticlassPreds\`) features over their range - for example, to find
+      examples near the decision boundary.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#scalar-plots)`;
   static override numCols = 4;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>

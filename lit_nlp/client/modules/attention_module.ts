@@ -44,8 +44,9 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#attention';
+  static override infoMarkdown =
+      `Visualize \`AttentionHeads\`-type fields from your model.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#attention)`;
   static override numCols = 3;
   static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;

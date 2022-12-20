@@ -97,8 +97,10 @@ const LEGEND_INFO_TITLE_UNSIGNED =
 @customElement('salience-map-module')
 export class SalienceMapModule extends LitModule {
   static override title = 'Salience Maps';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#token-based-salience';
+  static override infoMarkdown =
+      `Input salience methods try to explain model predictions as a heatmap
+      over input features, such as tokens.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#token-based-salience)`;
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
   static override template = (model: string, selectionServiceIndex: number, shouldReact: number) => {

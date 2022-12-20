@@ -1,0 +1,38 @@
+/* Tooltip */
+.lit-tooltip {
+  display: inline-block;
+}
+
+/* Tooltip text */
+.lit-tooltip .tooltip-text {
+  visibility: hidden;
+
+  max-width: 232px;
+
+  background-color: #202124;
+  opacity: 0.9;
+  border-radius: 4px;
+  color: #fff;
+  padding: 0px 8px;
+
+  position: absolute;
+  z-index: 9999;
+  white-space: normal;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 16px;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lit-tooltip .tooltip-text a {
+  color: #7bcccc;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.lit-tooltip:hover .tooltip-text {
+  visibility: visible;
+}

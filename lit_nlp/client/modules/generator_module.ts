@@ -87,8 +87,9 @@ export class GeneratedRowControls extends MobxLitElement {
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#generators';
+  static override infoMarkdown =
+      `Automatically generate counterfactuals using various techniques.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#generators)`;
   static override numCols = 10;
 
   static override template =

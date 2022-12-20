@@ -365,3 +365,7 @@ button.prev {
   justify-content: flex-end;
   align-items: center;
 }
+
+#configure-lit-icon {
+  margin-left: 8px;
+}

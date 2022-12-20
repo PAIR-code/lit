@@ -59,8 +59,10 @@ export abstract class LitModule extends ReactiveElement {
   // Name of this module, to show in the UI.
   static title: string = '';
 
-  // A URL to the reference documentation.
-  static referenceURL: string = '';
+  /**
+   * Information about this module that displays on hover.
+   */
+  static infoMarkdown = '';
 
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;

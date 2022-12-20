@@ -16,6 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
+import '../elements/tooltip';
 import '../elements/checkbox';
 import '../elements/spinner';
 import '@material/mwc-icon-button-toggle';
@@ -87,26 +88,11 @@ export class WidgetGroup extends ReactiveElement {
   }
 
   /**
-   * Renders the reference URL.
-   */
-  renderReferenceURL(referenceURL: string) {
-    return html`
-         <a href=${referenceURL} style=${styleMap({'text-decoration': 'none'})}
-          target='_blank'>
-          <span class="help-icon material-icon-outlined icon-button"
-            title="Go to reference">
-            help_outline
-          </span>
-         </a>
-      `;
-  }
-
-  /**
    * Renders the header, including the minimize/maximize logic.
    */
   renderHeader(configGroup: RenderConfig[]) {
     const title = configGroup[0].moduleType.title;
-    const referenceURL = configGroup[0].moduleType.referenceURL;
+    const infoMarkdown = configGroup[0].moduleType.infoMarkdown;
 
     // Maximization.
     const onMaxClick = () => {
@@ -160,13 +146,14 @@ export class WidgetGroup extends ReactiveElement {
         </mwc-icon-button-toggle>`;
     };
 
+    const tooltipHtml =
+        html`<lit-tooltip .content=${infoMarkdown}></lit-tooltip>`;
     // clang-format off
     return html`
       <div class=header>
         <div class="title" @click=${onTitleClick}>
           ${title}
-          ${!this.minimized && referenceURL !== '' ?
-            this.renderReferenceURL(referenceURL) : null}
+          ${!this.minimized && infoMarkdown !== '' ?  tooltipHtml : null}
         </div>
         ${this.minimized || configGroup.length < 2 ? null : [
           renderDirectionControl(), renderScrollSyncControl()

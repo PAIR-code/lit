@@ -76,8 +76,10 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#tcav';
+  static override infoMarkdown =
+      `TCAV estimates the importance of high-level concepts (e.g., color,
+      gender, race) for a prediction class.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#tcav)`;
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 

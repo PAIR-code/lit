@@ -526,10 +526,10 @@ mwc-icon.mdi-outlined {
 
 .large-help-icon{
   position: relative;
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
+  height: 14px;
+  width: 14px;
+  min-width: 14px;
+  --mdc-icon-size: 14px;
   margin: auto;
 }
 

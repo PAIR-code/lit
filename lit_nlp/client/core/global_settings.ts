@@ -169,10 +169,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
           Configure LIT
           <a target='_blank'
             href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
-          <span class="large-help-icon material-icon-outlined icon-button"
+          <mwc-icon class="icon-button large-icon" id="configure-lit-icon"
             title="Go to reference">
-            help_outline
-          </span>
+            open_in_new
+          </mwc-icon>
           </a>
         </div>
         <div id="holder">

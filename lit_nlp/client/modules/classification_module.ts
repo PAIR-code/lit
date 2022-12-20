@@ -55,8 +55,10 @@ interface LabeledPredictions {
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
   static override title = 'Classification Results';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#classification';
+  static override infoMarkdown =
+      `Classification results are displayed for labels of \`MulticlassPreds\`
+      and \`SparseMultilabelPreds\` type.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#classification)`;
   static override duplicateForExampleComparison = false;
   static override duplicateForModelComparison = false;
   static override numCols = 3;

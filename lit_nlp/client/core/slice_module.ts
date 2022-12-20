@@ -44,8 +44,6 @@ export class SliceModule extends LitModule {
   }
 
   static override title = 'Slice Editor';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/ui_guide.md#slices';
   static override numCols = 2;
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
