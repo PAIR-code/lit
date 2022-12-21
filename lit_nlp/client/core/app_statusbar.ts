@@ -55,6 +55,10 @@ export class StatusbarComponent extends MobxLitElement {
       'no-progress-line': !this.statusService.isLoading
     });
 
+    const bugLink = 'https://github.com/PAIR-code/lit/issues';
+    const docLink = 'https://github.com/PAIR-code/lit/wiki';
+    const helpLink = 'mailto:lit-dev@google.com';
+
     // clang-format off
     return html`
       <div id="at-bottom">
@@ -65,13 +69,24 @@ export class StatusbarComponent extends MobxLitElement {
             </div>
             <div class="signature">
               <div>Made with <img src="static/favicon.png" class="emoji"> by the LIT team</div>
-              <div title="Send feedback" id="feedback">
-                <a href="mailto:lit-dev@google.com" target="_blank">
-                  <mwc-icon class="icon-button cyea-icon">
-                    feedback
-                  </mwc-icon>
-                </a>
-              </div>
+
+              <a title="File a bug" class="link-icon" href=${bugLink} target="_blank">
+                <mwc-icon class="icon-button cyea-icon">
+                  bug_report
+                </mwc-icon>
+              </a>
+
+              <a title="View docs" class="link-icon" href=${docLink} target="_blank">
+                <mwc-icon class="icon-button cyea-icon">
+                  plagiarism
+                </mwc-icon>
+              </a>
+
+              <a title="Get help" class="link-icon" href=${helpLink} target="_blank">
+                <mwc-icon class="icon-button cyea-icon">
+                  feedback
+                </mwc-icon>
+              </a>
             </div>
           </div>
           <div class=${progressClass}></div>
