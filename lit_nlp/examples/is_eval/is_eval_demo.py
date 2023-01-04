@@ -25,6 +25,16 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 FLAGS.set_default("page_title", "Input Salience Evaluation Demo")
 
+_DOC_STRING = (
+    "# Input Salience Evaluation Demo\nThis demo accompanies our "
+    "[paper](https://arxiv.org/abs/2211.05485) and "
+    "[blogpost](https://ai.googleblog.com/2022/12/will-you-find-these-shortcuts.html)"
+    " \"Will you find these shortcuts?\". We manually inserted one out of "
+    "three artificial data artifacts (shortcuts) into two datasets (SST2, "
+    "Toxicity). In the \"Explanations\" tab you can observe how different "
+    "input salience methods put different weights on the nonsense tokens "
+    "*zeroa*, *onea*, *synt*.")
+
 _MODELS = flags.DEFINE_list(
     "models", [
         "sst2_single_token:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_single_token_bert.tar.gz",
@@ -143,6 +153,7 @@ def main(_):
       models,
       loaded_datasets,
       layouts=CUSTOM_LAYOUTS,
+      onboard_end_doc=_DOC_STRING,
       **server_flags.get_flags())
   return lit_demo.serve()
 
