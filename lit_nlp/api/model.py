@@ -17,8 +17,9 @@ import abc
 import inspect
 import itertools
 import multiprocessing  # for ThreadPool
-from typing import Iterable, Iterator, Union
+from typing import Iterable, Iterator, Optional, Union
 
+from absl import logging
 import attr
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types
@@ -91,6 +92,31 @@ class Model(metaclass=abc.ABCMeta):
   def max_minibatch_size(self) -> int:
     """Maximum minibatch size for this model."""
     return 1
+
+  def init_spec(self) -> Optional[Spec]:
+    """Attempts to infer a Spec describing a Model's constructor parameters.
+
+    The Model base class attempts to infer a Spec for the constructor using
+    `lit_nlp.api.types.infer_spec_for_func()`.
+
+    If successful, this function will return a `dict[str, LitType]`. If
+    unsucessful (i.e., the inferencer raises a `TypeError` because it encounters
+    a parameter that it not supported by `infer_spec_for_func()`), this function
+    will return None, log a warning describing where and how the inferencing
+    failed, and LIT users **will not** be able to load new instances of this
+    model from the UI.
+
+    Returns:
+      A Spec representation of the Model's constructor, or None if a Spec could
+      not be inferred.
+    """
+    try:
+      spec = types.infer_spec_for_func(self.__init__)
+    except TypeError as e:
+      spec = None
+      logging.warning("Unable to infer init spec for model '%s'. %s",
+                      self.__class__.__name__, str(e), exc_info=True)
+    return spec
 
   def is_compatible_with_dataset(self, dataset: lit_dataset.Dataset) -> bool:
     """Return true if this model is compatible with the dataset spec."""

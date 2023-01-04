@@ -65,6 +65,22 @@ class TestBatchingModel(model.Model):
     return map(lambda x: {"scores": x["value"]}, inputs)
 
 
+class TestSavedModel(model.Model):
+  """A dummy model imitating saved model semantics for testing init_spec()."""
+
+  def __init__(self, path: str, *args, compute_embs: bool = False, **kwargs):
+    pass
+
+  def input_spec(self) -> types.Spec:
+    return {}
+
+  def output_spec(self) -> types.Spec:
+    return {}
+
+  def predict_minibatch(self, *args, **kwargs) -> list[types.JsonDict]:
+    return []
+
+
 class ModelTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
@@ -180,6 +196,28 @@ class ModelTest(parameterized.TestCase):
     self.assertListEqual(result, expected_outputs)
     self.assertEqual(len(result), len(inputs))
     self.assertEqual(test_model.count, expected_run_count)
+
+  def test_init_spec_empty(self):
+    mdl = TestBatchingModel()
+    self.assertEmpty(mdl.init_spec())
+
+  def test_init_spec_populated(self):
+    mdl = TestSavedModel("test/path")
+    self.assertEqual(mdl.init_spec(), {
+        "path": types.String(),
+        "compute_embs": types.Boolean(default=False, required=False),
+    })
+
+  @parameterized.named_parameters(
+      ("bad_args", CompatibilityTestModel({})),
+      # All ModelWrapper instances should return None, regardless of the model
+      # the instance is wrapping.
+      ("wrap_bad_args", model.ModelWrapper(CompatibilityTestModel({}))),
+      ("wrap_good_args", model.ModelWrapper(TestSavedModel("test/path"))),
+      ("wrap_no_args", model.ModelWrapper(TestBatchingModel())),
+  )
+  def test_init_spec_none(self, mdl: model.Model):
+    self.assertIsNone(mdl.init_spec())
 
 
 if __name__ == "__main__":
