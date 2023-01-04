@@ -98,6 +98,31 @@ class Dataset(object):
     """
     return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
+  def init_spec(self) -> Optional[Spec]:
+    """Attempts to infer a Spec describing a Dataset's constructor parameters.
+
+    The Dataset base class attempts to infer a Spec for the constructor using
+    `lit_nlp.api.types.infer_spec_for_func()`.
+
+    If successful, this function will return a `dict[str, LitType]`. If
+    unsucessful (i.e., the inferencer raises a `TypeError` because it encounters
+    a parameter that it not supported by `infer_spec_for_func()`), this function
+    will return None, log a warning describing where and how the inferencing
+    failed, and LIT users **will not** be able to load new instances of this
+    Dataset from the UI.
+
+    Returns:
+      A Spec representation of the Dataset's constructor, or None if a Spec
+      could not be inferred.
+    """
+    try:
+      spec = types.infer_spec_for_func(self.__init__)
+    except TypeError as e:
+      spec = None
+      logging.warning("Unable to infer init spec for model '%s'. %s",
+                      self.__class__.__name__, str(e), exc_info=True)
+    return spec
+
   def load(self, path: str):
     """Load and return additional previously-saved datapoints for this dataset.
 
