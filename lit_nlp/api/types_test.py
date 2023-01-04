@@ -1,6 +1,6 @@
 """Tests for types."""
 
-from typing import Any
+from typing import Any, Callable, Optional, Union
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dtypes
@@ -573,6 +573,223 @@ class TypesTest(parameterized.TestCase):
     self.assertRaises(
         ValueError, bad_attn.validate_output, np.array([[[.1]], [[.2]]]),
         out_spec, output, ds_spec, ds_spec, example)
+
+
+class InferSpecTarget(object):
+  """A dummy class for testing infer_spec_for_func against a class."""
+
+  def __init__(self, arg: bool = True):
+    self._arg = arg
+
+
+# The following is a series of identity functions used to test
+# types.infer_spec_for_func(Callable[..., Any]). These need to exist in this way
+# because other options (e.g., lambdas) do not support annotation, which is
+# required to test infer_spec_for_func() success cases.
+
+
+def _bool_param(param: bool = True) -> bool:
+  return param
+
+
+def _float_param(param: float = 1.2345) -> float:
+  return param
+
+
+def _int_param(param: int = 1) -> int:
+  return param
+
+
+def _many_params(
+    param_1: bool,
+    param_2: Optional[float],
+    param_3: int = 1,
+    param_4: Optional[str] = None
+) -> tuple[bool, Optional[float], int, Optional[str]]:
+  return (param_1, param_2, param_3, param_4)
+
+
+def _no_annotation(param="param") -> str:
+  return param
+
+
+def _no_annotation_or_default(param) -> Any:
+  return param
+
+
+def _no_args() -> Any:
+  return {}
+
+
+def _no_default(param: str) -> str:
+  return param
+
+
+def _object_param(param: object) -> object:
+  return param
+
+
+def _optional_bool_param(param: Optional[bool]) -> Optional[bool]:
+  return param
+
+
+def _optional_float_param(param: Optional[float]) -> Optional[float]:
+  return param
+
+
+def _optional_int_param(param: Optional[int]) -> Optional[int]:
+  return param
+
+
+def _optional_scalar_param(
+    param: Optional[Union[float, int]] = 1.2345) -> Optional[Union[float, int]]:
+  return param
+
+
+def _optional_str_param(param: Optional[str]) -> Optional[str]:
+  return param
+
+
+def _scalar_param(param: Union[float, int]) -> Union[float, int]:
+  return param
+
+
+def _str_param(param: str = "str") -> str:
+  return param
+
+
+class InferSpecTests(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="class",
+          func=InferSpecTarget,
+          expected_spec={"arg": types.Boolean(default=True, required=False)},
+      ),
+      dict(
+          testcase_name="class_init",
+          func=InferSpecTarget.__init__,
+          expected_spec={"arg": types.Boolean(default=True, required=False)},
+      ),
+      dict(
+          testcase_name="class_instance_init",
+          func=InferSpecTarget().__init__,
+          expected_spec={"arg": types.Boolean(default=True, required=False)},
+      ),
+      dict(
+          testcase_name="empty_spec",
+          func=_no_args,
+          expected_spec={},
+      ),
+      dict(
+          testcase_name="many_params",
+          func=_many_params,
+          expected_spec={
+              "param_1": types.Boolean(required=True),
+              "param_2": types.Scalar(required=True),
+              "param_3": types.Integer(default=1, required=False, step=1),
+              "param_4": types.String(default=None, required=False),
+          },
+      ),
+      dict(
+          testcase_name="no_annotation",
+          func=_no_annotation,
+          expected_spec={
+              "param": types.String(default="param", required=False),
+          },
+      ),
+      dict(
+          testcase_name="no_default",
+          func=_no_default,
+          expected_spec={
+              "param": types.String(default="", required=True),
+          },
+      ),
+      dict(
+          testcase_name="optional_bool",
+          func=_optional_bool_param,
+          expected_spec={
+              "param": types.Boolean(required=True),
+          },
+      ),
+      dict(
+          testcase_name="optional_float",
+          func=_optional_float_param,
+          expected_spec={
+              "param": types.Scalar(required=True),
+          },
+      ),
+      dict(
+          testcase_name="optional_int",
+          func=_optional_int_param,
+          expected_spec={
+              "param": types.Integer(required=True),
+          },
+      ),
+      dict(
+          testcase_name="optional_scalar",
+          func=_optional_scalar_param,
+          expected_spec={
+              "param": types.Scalar(default=1.2345, required=False),
+          },
+      ),
+      dict(
+          testcase_name="optional_str",
+          func=_optional_str_param,
+          expected_spec={
+              "param": types.String(required=True),
+          },
+      ),
+      dict(
+          testcase_name="single_bool",
+          func=_bool_param,
+          expected_spec={
+              "param": types.Boolean(default=True, required=False),
+          },
+      ),
+      dict(
+          testcase_name="single_float",
+          func=_float_param,
+          expected_spec={
+              "param": types.Scalar(default=1.2345, required=False),
+          },
+      ),
+      dict(
+          testcase_name="single_int",
+          func=_int_param,
+          expected_spec={
+              "param": types.Integer(default=1, required=False),
+          },
+      ),
+      dict(
+          testcase_name="single_scalar",
+          func=_scalar_param,
+          expected_spec={
+              "param": types.Scalar(required=True),
+          },
+      ),
+      dict(
+          testcase_name="single_str",
+          func=_str_param,
+          expected_spec={
+              "param": types.String(default="str", required=False),
+          },
+      ),
+  )
+  def test_infer_spec_for_func(self, func: Callable[..., Any],
+                               expected_spec: types.Spec):
+    spec = types.infer_spec_for_func(func)
+    self.assertEqual(spec, expected_spec)
+
+  @parameterized.named_parameters(
+      ("class_instance", InferSpecTarget()),
+      ("lambda", lambda x: x),
+      ("no_annotation_or_default", _no_annotation_or_default),
+      ("not_a_callable", "not_a_callable"),
+      ("unsupported_type", _object_param),
+  )
+  def test_infer_spec_for_func_errors(self, func: Any):
+    self.assertRaises(TypeError, types.infer_spec_for_func, func)
 
 
 if __name__ == "__main__":

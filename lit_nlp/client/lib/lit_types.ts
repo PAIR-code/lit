@@ -225,6 +225,14 @@ export class Scalar extends LitType {
 }
 
 /**
+ * An integer value
+ */
+@registered
+export class Integer extends Scalar {
+  override step: number = 1;
+}
+
+/**
  * Regression score, a single float.
  */
 @registered

@@ -26,9 +26,10 @@ should be rendered.
 """
 import abc
 import enum
+import inspect
 import math
 import numbers
-from typing import Any, NewType, Optional, Sequence, Type, TypedDict, Union
+from typing import Any, Callable, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
 from lit_nlp.api import dtypes
@@ -894,6 +895,11 @@ class MetricResult(LitType):
   best_value: MetricBestValue = MetricBestValue.NONE
 
 
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Integer(Scalar):
+  step: int = 1
+
+
 # LINT.ThenChange(../client/lib/lit_types.ts)
 
 # Type aliases for backend use.
@@ -908,3 +914,112 @@ def get_type_by_name(typename: str) -> Type[LitType]:
   cls = globals()[typename]
   assert issubclass(cls, LitType)
   return cls
+
+
+# A map from Python's native type annotations to their LitType corollary for use
+# by infer_spec_for_func().
+_INFERENCE_TYPES_TO_LIT_TYPES: dict[Type[Any], Callable[..., LitType]] = {
+    bool: Boolean,
+    Optional[bool]: Boolean,
+    float: Scalar,
+    Optional[float]: Scalar,
+    Union[float, int]: Scalar,
+    Optional[Union[float, int]]: Scalar,
+    int: Integer,
+    Optional[int]: Integer,
+    str: String,
+    Optional[str]: String,
+}
+
+
+def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
+  """Infers a Spec from the arguments of a Callable's signature.
+
+  LIT uses
+  [Specs](https://github.com/PAIR-code/lit/blob/main/documentation/api.md#type-system)
+  as a mechanism to communicate how the web app should construct user interface
+  elements to enable user input for certain tasks, such as parameterizing an
+  Interpreter or loading a Model or Dataset at runtime. This includes
+  information about the type, default value (if any), required status, etc. of
+  the arguments to enable robust construction of HTML input elements.
+
+  As many LIT components are essentially Python functions that can be
+  parameterized and run via the LIT web app, this function exists to automate
+  the creation of Specs for some use cases, e.g., the `init_spec()` API of
+  `lit_nlp.api.dataset.Dataset` and `lit_nlp.api.model.Model` classes. It
+  attempts to infer a Spec for the Callable passed in as the value of `func` by:
+
+  1.  Using `inspect.signature()` to retreive the Callable's signature info;
+  2.  Processing `signature.parameters` to transform them into a corollary
+      `LitType` object that is consumable by the web app, either using
+      `Parameter.annotation` or by inferring a type from `Parameter.default`;
+  3.  Adding an entry to a `Spec` dictionary where the key is `Paramater.name`
+      and the value is the `LitType`; and then
+  4.  Returning the `Spec` dictionary after all arguments are processed.
+
+  Due to limitations of LIT's typing system and front-end support for these
+  types, this function is only able to infer Specs for Callables with arguments
+  of the following types (or `Optional` variants thereof) at this time. Support
+  for additional types may be added in the future. A `TypeError` will be raised
+  if this function encounters a type aside from those listed below.
+
+  * `bool` ==> `Boolean()`
+  * `float` ==> `Scalar()`
+  * `int` ==> `Integer()`
+  * `Union[float, int]` ==> `Scalar()`
+  * `str` ==> `String()`
+
+  Specs inferred by this function will not include entries for the `self`
+  parameter of instance methods of classes as this is unnecessary/implied, or
+  for `*args`- or `**kwargs`-like parameters of any funciton as we cannot safely
+  infer how variable arguments will be mutated, passed, or used.
+
+  Args:
+    func: The Callable for which a spec will be inferred.
+
+  Returns:
+    A Spec object where the keys are the parameter names and the values are the
+    `LitType` representation of that parameter (its type, default value, and
+    whether or not it is required).
+
+  Raises:
+    TypeError: If unable to infer a type, the type is not supported, or `func`
+      is not a `Callable`.
+  """
+  if not callable(func):
+    raise TypeError("Attempted to infer a spec for a non-'Callable', "
+                    f"'{type(func)}'.")
+
+  signature = inspect.signature(func)
+  spec: Spec = {}
+
+  for param in signature.parameters.values():
+    if (param.name == "self" or
+        param.kind is param.VAR_KEYWORD or
+        param.kind is param.VAR_POSITIONAL):
+      continue  # self, *args, and **kwargs are not returned in inferred Specs.
+
+    # Otherwise, attempt to infer a type from the Paramater object.
+    if param.annotation is param.empty and param.default is param.empty:
+      raise TypeError(f"Unable to infer a type for parameter '{param.name}' "
+                      f"of '{func.__name__}'. Please add a type hint or "
+                      "default value, or implement a Spec literal.")
+
+    if param.annotation is param.empty:
+      param_type = type(param.default)
+    else:
+      param_type = param.annotation
+
+    if param_type in _INFERENCE_TYPES_TO_LIT_TYPES:
+      lit_type_cstr = _INFERENCE_TYPES_TO_LIT_TYPES[param_type]
+      lit_type_params = {"required": param.default is param.empty,}
+      if param.default is not param.empty:
+        lit_type_params["default"] = param.default
+      spec[param.name] = lit_type_cstr(**lit_type_params)
+    else:
+      raise TypeError(f"Unsupported type '{param_type}' for parameter "
+                      f"'{param.name}' of '{func.__name__}'. If possible "
+                      "(e.g., this parameter is Optional), please implement a "
+                      "spec literal instead of using inferencing.")
+
+  return spec
