@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '../elements/tooltip';
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
@@ -565,6 +566,9 @@ export class EmbeddingsModule extends LitModule {
     const onClickReset = () => {this.scatterGL?.resetZoom();};
 
     const disabled = this.selectionService.selectedIds.length !== 1;
+    const resetHtml = html`
+      <mwc-icon class="icon-button mdi-outlined"
+                @click=${onClickReset}>view_in_ar</mwc-icon>`;
     return html`
       <div class="module-container">
         <div class="module-toolbar">
@@ -573,9 +577,9 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined"
-              title="Reset view"
-              @click=${onClickReset}>view_in_ar</mwc-icon>
+            <lit-tooltip .hoverElementHtml=${resetHtml} 
+              .enableSticky=${false}
+              .content=${'Reset view'}></lit-tooltip>
           </div>
         </div>
         <div class="module-results-area">

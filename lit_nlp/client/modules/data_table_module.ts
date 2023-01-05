@@ -310,20 +310,33 @@ export class DataTableModule extends LitModule {
 
           if (isPrimarySelection || isFocused || isReferenceSelection ||
               isStarred) {
-            return html`
+            const pinIcon = html`
               <mwc-icon style="${getActionStyle(isReferenceSelection)}"
                 class="${getActionClass(isReferenceSelection)}"
-                @click=${pinClick}
-                title=${`${isReferenceSelection ? 'Pin' : 'Unpin'} datapoint`}>
+                @click=${pinClick}>
                 push_pin
-              </mwc-icon>
-              <mwc-icon style="${getActionStyle(isStarred)}" @click=${starClick}
+              </mwc-icon>`;
+            const pinTitle =
+                isReferenceSelection ? 'Unpin datapoint' : 'Pin datapoint';
+            const starIcon = html`<mwc-icon style="${
+                getActionStyle(isStarred)}" @click=${starClick}
                 class="${getActionClass(isStarred)}"
-                title=${isStarred ? 'Remove from starred slice' :
-                                    'Add to starred slice'}>
+                >
                 ${isStarred ? 'star' : 'star_border'}
               </mwc-icon>`;
-          }
+            const starTitle = isStarred ? 'Remove from starred slice' :
+                                          'Add to starred slice';
+
+            // clang-format off
+            return html`
+              <lit-tooltip .hoverElementHtml=${pinIcon} .content=${pinTitle}
+                .enableSticky=${false}>
+              </lit-tooltip>
+              <lit-tooltip .hoverElementHtml=${starIcon} .content=${
+                starTitle} .enableSticky=${false}></lit-tooltip>`;
+            // clang-format on
+
+                     }
           return null;
         }
 

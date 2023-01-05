@@ -82,8 +82,7 @@ interface InterpreterState {
 const LEGEND_INFO_TITLE_SIGNED =
     "Salience is relative to the model's prediction of a class. A positive " +
     "score (more green) for a token means that token influenced the model to " +
-    "predict that class, whereas a negaitve score (more pink) means the " +
-    "token influenced the model to not predict that class.";
+    "predict that class.";
 
 const LEGEND_INFO_TITLE_UNSIGNED =
     "Salience is relative to the model's prediction of a class. A larger " +
@@ -312,6 +311,9 @@ export class SalienceMapModule extends LitModule {
     function scale(val: number) { return colorMap.bgCmap(val); }
     scale.domain = () => colorMap.colorScale.domain();
 
+    const colorTitle = colorName === 'Signed' ? LEGEND_INFO_TITLE_SIGNED :
+                                                 LEGEND_INFO_TITLE_UNSIGNED;
+
     return html`
         <div class="color-legend-container">
           <color-legend legendType=${LegendType.SEQUENTIAL}
@@ -319,11 +321,8 @@ export class SalienceMapModule extends LitModule {
             .scale=${scale}
             numBlocks=${numBlocks}>
           </color-legend>
-          <mwc-icon class="icon material-icon-outlined"
-                title=${colorName === 'Signed' ? LEGEND_INFO_TITLE_SIGNED :
-                                                 LEGEND_INFO_TITLE_UNSIGNED}>
-            info_outline
-          </mwc-icon>
+          <lit-tooltip .content=${colorTitle} .tooltipPosition=${'above'}>
+          </lit-tooltip>
         </div>`;
   }
 
@@ -352,10 +351,12 @@ export class SalienceMapModule extends LitModule {
 
     // reuse the slider from the squence salience module
     return html`
-      <label for="gamma-slider"
-        title="A larger gamma value makes lower salience tokens more visibile">
-        Gamma:
-      </label>
+      <lit-tooltip .hoverElementHtml=${
+        html`<label for="gamma-slider">Gamma:</label>`}
+        .tooltipPosition=${'above'}
+        .content=${
+          "A larger gamma value makes lower salience tokens more visible."}>
+      </lit-tooltip>
       <lit-slider min="0.25" max="6" step="0.25"
         val="${this.cmapGamma}" .onInput=${onChangeGamma}></lit-slider>
       <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>`;

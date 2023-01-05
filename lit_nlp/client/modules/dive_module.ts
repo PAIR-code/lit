@@ -536,7 +536,7 @@ export class DiveModule extends LitModule {
         <div class="dropdown-holder">
           <label class="dropdown-label">${label}</label>
           <select class="dropdown limit-width" @change=${onChange}
-                  title=${this.groupService.denseFeatureNames[index]}>
+                  aria-label=${this.groupService.denseFeatureNames[index]}>
             ${this.groupService.denseFeatureNames.map((feature, i) => html`
               <option value=${i} ?selected=${index === i}>
                 ${feature}

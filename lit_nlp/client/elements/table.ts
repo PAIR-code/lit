@@ -739,10 +739,11 @@ export class DataTable extends ReactiveElement {
         @click=${lastPage}>
         last_page
       </mwc-icon>
-      <mwc-icon class='icon-button mdi-outlined'
-        title="Go to a random page" @click=${randomPage}>
-        casino
-      </mwc-icon>
+      <lit-tooltip .content=${"Go to a random page"} .tooltipPosition=${"above"}
+        .enableSticky=${false}
+        .hoverElementHtml=${html`
+          <mwc-icon class='icon-button mdi-outlined' @click=${randomPage}>
+          casino</mwc-icon>`}></lit-tooltip>
     `;
     // clang-format on
   }

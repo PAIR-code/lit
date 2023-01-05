@@ -5,8 +5,6 @@
 
 /* Tooltip text */
 .lit-tooltip .tooltip-text {
-  visibility: hidden;
-
   max-width: 232px;
 
   background-color: #202124;
@@ -28,11 +26,14 @@
   overflow: hidden;
 }
 
-.lit-tooltip .tooltip-text a {
-  color: #7bcccc;
+.above {
+  bottom: 36px;
 }
 
-/* Show the tooltip text when you mouse over the tooltip container */
-.lit-tooltip:hover .tooltip-text {
-  visibility: visible;
+.hidden {
+  visibility: hidden;
+}
+
+.lit-tooltip .tooltip-text a {
+  color: #7bcccc;
 }
