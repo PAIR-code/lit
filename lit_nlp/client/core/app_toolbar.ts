@@ -261,13 +261,6 @@ export class ToolbarComponent extends MobxLitElement {
       ${this.appState.initialized ? this.renderDatasetInfo() : null}
       <div class='vertical-separator'></div>
       ${this.renderLayoutInfo()}
-      <div class='vertical-separator'></div>
-      <div title="Configure models, dataset, and UI." id="config">
-        <mwc-icon class="icon-button large-icon white-icon icon-margin"
-          @click=${this.toggleGlobalSettings}>
-          settings
-        </mwc-icon>
-      </div>
     `;
     // clang-format on
   }
@@ -278,6 +271,14 @@ export class ToolbarComponent extends MobxLitElement {
 
   renderRightCorner() {
     // clang-format off
+    const settingsButton = html`
+      <button class='headline-button unbordered' id="config"
+        title="Configure models, dataset, and UI."
+        @click=${this.toggleGlobalSettings}>
+        <span class='material-icon'>settings</span>
+        &nbsp;Configure
+      </button>`;
+
     const docButton = this.appState.metadata != null ?
         html`
           <mwc-icon class="icon-button large-icon white-icon icon-margin"
@@ -286,12 +287,13 @@ export class ToolbarComponent extends MobxLitElement {
             help_outline
           </mwc-icon>` : null;
     return html`
-      ${docButton}
+      ${settingsButton}
       <button class='headline-button unbordered' title="Copy link to this page"
         @click=${this.onClickCopyLink}>
         <span class='material-icon'>link</span>
         &nbsp;Copy Link
       </button>
+      ${docButton}
     `;
     // clang-format on
   }
