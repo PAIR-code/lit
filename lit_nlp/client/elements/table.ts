@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import './export_controls';
 /**
  * A generic Data Table component that can be reused across the
  * Data Table / Metrics Modules
@@ -40,7 +41,6 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
 
-import {PopupContainer} from './popup_container';
 import {styles} from './table.css';
 
 /** Function for supplying table entry template result based on row state. */
@@ -49,7 +49,8 @@ export type TemplateResultFn =
      isReferenceSelection: boolean, isFocused: boolean, isStarred: boolean) =>
         TemplateResult;
 
-type SortableTableEntry = string|number;
+/** Wrapper type for sortable data table entries */
+export type SortableTableEntry = string|number;
 /** Wrapper type for sortable custom data table entries */
 export interface SortableTemplateResult {
   template: TemplateResult|TemplateResultFn;
@@ -747,61 +748,6 @@ export class DataTable extends ReactiveElement {
     // clang-format on
   }
 
-  renderExportControls() {
-    const copyCSV = () => {
-      const csvContent = this.getCSVContent();
-      navigator.clipboard.writeText(csvContent);
-    };
-
-    const downloadCSV = () => {
-      const csvContent = this.getCSVContent();
-      const blob = new Blob([csvContent], {type: 'text/csv'});
-      const a = window.document.createElement('a');
-      a.href = window.URL.createObjectURL(blob);
-      a.download = this.downloadFilename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      const controls: PopupContainer =
-          this.shadowRoot!.querySelector('popup-container.download-popup')!;
-      controls.expanded = false;
-    };
-
-    const updateFilename = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.downloadFilename = (e as any).target.value as string;
-    };
-
-    function onEnter(e: KeyboardEvent) {
-      if (e.key === 'Enter') downloadCSV();
-    }
-
-    // clang-format off
-    return html`
-      <mwc-icon class='icon-button'
-        title="Copy ${this.displayData.length} rows as CSV"
-        @click=${copyCSV}>
-        file_copy
-      </mwc-icon>
-      <popup-container class='download-popup'>
-        <mwc-icon class='icon-button' slot='toggle-anchor'
-          title="Download ${this.displayData.length} rows as CSV">
-          file_download
-        </mwc-icon>
-        <div class='download-popup-controls'>
-          <label for="filename">Filename</label>
-          <input type="text" name="filename" value=${this.downloadFilename}
-           @input=${updateFilename} @keydown=${onEnter}>
-          <button class='filled-button nowrap' @click=${downloadCSV}
-            ?disabled=${!this.downloadFilename}>
-            Download ${this.displayData.length} rows
-          </button>
-        </div>
-      </popup-container>
-    `;
-    // clang-format on
-  }
-
   renderFooter() {
     if (!this.hasFooter) return null;
 
@@ -812,7 +758,10 @@ export class DataTable extends ReactiveElement {
           <div class="footer">
             ${this.isPaginated ? this.renderPaginationControls() : null}
             <div class='footer-spacer'></div>
-            ${this.exportEnabled ? this.renderExportControls() : null}
+            ${this.exportEnabled ? html`
+              <export-controls .data=${this.getArrayData()}
+                  .columnNames=${this.columnStrings}
+                  .popupPosition=${'above'}></export-controls>` : null}
           </div>
         </td>
       </tr>`;

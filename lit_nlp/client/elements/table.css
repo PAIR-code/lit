@@ -235,17 +235,6 @@ tbody td {
   flex: 1;
 }
 
-popup-container.download-popup {
-  --popup-bottom: 28px;
-  --popup-right: 0;
-}
-
-.download-popup-controls {
-  display: flex;
-  align-items: center;
-  column-gap: 4px;
-}
-
 .current-page-num {
   display: inline-block;
   text-align: center;

@@ -1,5 +1,5 @@
 :host {
-  --slice-selector-right-col-width: 140px;
+  --slice-selector-right-col-width: 200px;
 }
 
 .module-container {
@@ -80,10 +80,14 @@
   overflow: auto;
 }
 
-.number-label {
+.right-action-menu {
   float: right;
   color: #5f6368;
   max-width: var(--slice-selector-right-col-width);
+}
+
+.number-label {
+  padding-right: 8px;
 }
 
 .selector-item .icon-button {
@@ -91,12 +95,6 @@
   vertical-align: middle;
   margin-left: 3px;
   margin-bottom: 5px;
-}
-
-.selector-item .icon-button.disabled {
-  pointer-events: none;
-  cursor: auto;
-  opacity: .2;
 }
 
 .hidden {

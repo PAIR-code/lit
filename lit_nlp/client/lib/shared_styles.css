@@ -484,8 +484,9 @@ mwc-textfield {
 
 .icon-button:disabled,
 mwc-icon.disabled{
+  pointer-events: none;
   cursor: default;
-  color: var(--lit-neutral-300);
+  color: var(--lit-neutral-200);
 }
 
 .icon-button:active {
