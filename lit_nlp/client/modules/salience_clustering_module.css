@@ -46,3 +46,11 @@
   height: 100%;
   display: flex;
 }
+
+.color-legend-container {
+  display: flex;
+}
+
+.color-legend-container color-legend {
+  margin: 0 5px;
+}

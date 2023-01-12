@@ -17,7 +17,7 @@
 
 import '../elements/expansion_panel';
 
-import {html} from 'lit';
+import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
 import {styleMap} from 'lit/directives/style-map';
@@ -32,14 +32,17 @@ import {CategoryLabel, FieldMatcher, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap} from '../lib/types';
 import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
-import {SalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
+import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
 import {styles} from './salience_clustering_module.css';
 
 const SALIENCE_MAPPER_KEY = 'Salience Mapper';
-const N_CLUSTERS_KEY = 'Number of Clusters';
+const N_CLUSTERS_KEY = 'Number of clusters';
+const TOP_K_TOKENS_KEY =
+    'Number of top salient tokens to consider per data point';
+const N_TOKENS_TO_DISPLAY_KEY = 'Number of tokens to display per cluster';
 const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'Salience Clustering';
 const REUSE_CLUSTERING = 'reuse_clustering';
 
@@ -55,6 +58,8 @@ interface ClusteringState {
   clusterInfos: {[gradKey: string]: ClusterInfo[]};
   topTokenInfosByClusters: {[gradKey: string]: TopTokenInfosByCluster[]};
   isLoading: boolean;
+  colorMap: {[gradKey: string]: SalienceCmap};
+  clusteringConfig: {[gradKey: string]: CallConfig};
 }
 
 // Clustering assignment result for each data point.
@@ -95,17 +100,25 @@ export class SalienceClusteringModule extends LitModule {
     return [sharedStyles, styles];
   }
 
+  // For color legend
+  private readonly cmapGamma: number = 2.0;
+  private readonly signedCmap = new SignedSalienceCmap(this.cmapGamma);
+  private readonly unsignedCmap = new UnsignedSalienceCmap(this.cmapGamma);
+
   // Mapping from salience mapper to clustering results.
-  @observable private state: ModuleState = {
-      dataColumns: [],
+  @observable
+  private state: ModuleState = {
+    dataColumns: [],
+    clusteringConfig: {},
+    salienceConfigs: {},
+    clusteringState: {
+      clusterInfos: {},
+      topTokenInfosByClusters: {},
+      isLoading: false,
+      colorMap: {},
       clusteringConfig: {},
-      salienceConfigs: {},
-      clusteringState: {
-        clusterInfos: {},
-        topTokenInfosByClusters: {},
-        isLoading: false,
-      },
-    };
+    },
+  };
 
   override firstUpdated() {
     const state: ModuleState = {
@@ -116,6 +129,8 @@ export class SalienceClusteringModule extends LitModule {
         clusterInfos: {},
         topTokenInfosByClusters: {},
         isLoading: false,
+        colorMap: {},
+        clusteringConfig: {},
       },
     };
 
@@ -168,11 +183,14 @@ export class SalienceClusteringModule extends LitModule {
       // Store per-example cluster IDs.
       const clusterInfos: ClusterInfo[] = [];
       const clusterIds = clusteringResult['cluster_ids'][gradKey];
-      const featName = 'Cluster IDs: ' +
-          `${this.state.clusteringConfig[SALIENCE_MAPPER_KEY]}, ` +
-          `${this.state.clusteringConfig[N_CLUSTERS_KEY]}, ${gradKey}, ` +
-          `${this.runCount}`;
+      const featName = 'saliency cluster index (' +
+          `${this.state.clusteringConfig[SALIENCE_MAPPER_KEY]}, ${gradKey}, ` +
+          `${this.state.clusteringConfig[N_CLUSTERS_KEY]}, ` +
+          `${this.state.clusteringConfig[TOP_K_TOKENS_KEY]}, ` +
+          `${this.runCount})`;
       const dataMap: ColumnData = new Map();
+      this.state.clusteringState.clusteringConfig[gradKey] = {
+          ...this.state.clusteringConfig};
 
       for (let i = 0; i < clusterIds.length; i++) {
         const clusterInfo:
@@ -206,6 +224,13 @@ export class SalienceClusteringModule extends LitModule {
         this.state.clusteringState.topTokenInfosByClusters[gradKey].push(
             topTokenInfosByCluster);
       }
+
+      // Determine color map.
+      const interpreters = this.appState.metadata.interpreters;
+      const salienceSpecInfo =
+          interpreters[salienceMapper].metaSpec['saliency'] as TokenSalience;
+      this.state.clusteringState.colorMap[gradKey] =
+          !!salienceSpecInfo.signed ? this.signedCmap : this.unsignedCmap;
     }
     this.runCount++;
   }
@@ -242,14 +267,12 @@ export class SalienceClusteringModule extends LitModule {
   // Render a table that lists clusters with their top tokens.
   private renderSingleGradKeyTopTokenInfos(
       gradKey: string, topTokenInfosByClusters: TopTokenInfosByCluster[],
-      clusterInfos: ClusterInfo[]) {
-    const unsignedCmap = new UnsignedSalienceCmap();
-
+      clusterInfos: ClusterInfo[], colorMap: SalienceCmap) {
     const rowsByClusters: TableData[] =
         topTokenInfosByClusters.map((topTokenInfos, clusterIdx) => {
           const tokensDom = topTokenInfos.topTokenInfos.map(
               tokenInfo => this.renderToken(
-                  tokenInfo.token, tokenInfo.weight, unsignedCmap, gradKey));
+                  tokenInfo.token, tokenInfo.weight, colorMap, gradKey));
           return [clusterIdx, html`${tokensDom}`];
         });
 
@@ -260,12 +283,18 @@ export class SalienceClusteringModule extends LitModule {
       this.selectionService.selectIds(dataPointIds, this);
     };
 
+    const numTokensPerCluster =
+        this.state.clusteringState
+            .clusteringConfig[gradKey][N_TOKENS_TO_DISPLAY_KEY];
+
     // clang-format off
     return html`
       <div class="grad-key-row">
         <div class="grad-key-label">${gradKey}</div>
         <lit-data-table
-          .columnNames=${['Cluster Index', 'Top Tokens']}
+          .columnNames=${[
+            'Cluster index',
+            `Tokens with high average saliency (up to ${numTokensPerCluster})`]}
           .data=${rowsByClusters}
           selectionEnabled
           .onSelect=${onSelectClusters}
@@ -275,13 +304,15 @@ export class SalienceClusteringModule extends LitModule {
   }
 
   renderTopTokens() {
-    const {topTokenInfosByClusters, clusterInfos} = this.state.clusteringState;
+    const {topTokenInfosByClusters, clusterInfos, colorMap} =
+        this.state.clusteringState;
     const gradKeys = Object.keys(topTokenInfosByClusters);
     // clang-format off
     return html`
       ${gradKeys.map(
           gradKey => this.renderSingleGradKeyTopTokenInfos(
-            gradKey, topTokenInfosByClusters[gradKey], clusterInfos[gradKey]))}
+            gradKey, topTokenInfosByClusters[gradKey], clusterInfos[gradKey],
+            colorMap[gradKey]))}
       ${this.state.clusteringState.isLoading ? this.renderSpinner() : null}`;
     // clang-format on
   }
@@ -380,9 +411,8 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format on
   }
 
-  private renderColorLegend() {
-    const colorMap = new UnsignedSalienceCmap();
-
+  private renderColorLegend(
+      colorName: string, colorMap: SalienceCmap, numBlocks: number) {
     // TODO(b/263270935): Use a toColorLegend method to avoid D3-like style.
     function scale(val: number) {
       return colorMap.bgCmap(val);
@@ -391,28 +421,45 @@ export class SalienceClusteringModule extends LitModule {
 
     // clang-format off
     return html`
-        <div class="color-legend-container">
-          <color-legend legendType=${LegendType.SEQUENTIAL}
-            .scale=${scale}
-            numBlocks=5}>
-          </color-legend>
-        </div>`;
+        <color-legend legendType=${LegendType.SEQUENTIAL}
+          selectedColorName=${colorName}
+          .scale=${scale}
+          numBlocks=${numBlocks}>
+        </color-legend>`;
     // clang-format on
+  }
+
+  private renderColorLegends() {
+    // Determine which color maps are currently used.
+    const enabledColorMaps: {[key: string]: TemplateResult} = {};
+    for (const gradKey of Object.keys(this.state.clusteringState.colorMap)) {
+      if (this.state.clusteringState.colorMap[gradKey] === this.signedCmap) {
+        enabledColorMaps['Signed'] =
+            this.renderColorLegend('Signed', this.signedCmap, 7);
+      }
+      if (this.state.clusteringState.colorMap[gradKey] === this.unsignedCmap) {
+        enabledColorMaps['Unsigned'] =
+            this.renderColorLegend('Unsigned', this.unsignedCmap, 5);
+      }
+    }
+    return Object.values(enabledColorMaps);
   }
 
   override renderImpl() {
     // clang-format off
     return html`
-      <div class='module-container'>
-        <div class='module-results-area'>
+      <div class="module-container">
+        <div class="module-results-area">
           ${this.renderControlsAndResults()}
         </div>
         <div class="module-footer">
           <p class="module-status">
-            ${this.canRunClustering ? null : this.renderSelectionWarning()}
+            ${this.canRunClustering ? '' : this.renderSelectionWarning()}
             ${this.statusMessage}
           </p>
-          ${this.renderColorLegend()}
+          <div class="color-legend-container">
+            ${this.renderColorLegends()}
+          </div>
         </div>
       </div>`;
     // clang-format on

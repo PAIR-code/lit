@@ -153,12 +153,13 @@ class SalienceClusteringTest(parameterized.TestCase):
     clustering_component = salience_clustering.SalienceClustering(
         self.salience_mappers)
     vocab_lookup = {'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4, 'f': 5}
+    top_k = 2
     representations = clustering_component._compute_fixed_length_representation(
-        token_saliencies, vocab_lookup)
+        token_saliencies, vocab_lookup, top_k)
     expected = [
         {
             'token_grad_sentence':
-                np.array([0.1, 0.2, 0.3, 0.0, 0.0, 0.0]) / np.sqrt(0.14)
+                np.array([0.0, 0.2, 0.3, 0.0, 0.0, 0.0]) / np.sqrt(0.13)
         },
         {
             'token_grad_sentence':
@@ -176,7 +177,7 @@ class SalienceClusteringTest(parameterized.TestCase):
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: salience_mapper,
         salience_clustering.N_CLUSTERS_KEY: 2,
-        salience_clustering.N_TOP_TOKENS_KEY: 2
+        salience_clustering.TOP_K_TOKENS_KEY: 2
     }
     result, clustering_component, *_ = (
         self._call_classification_model_on_standard_input(config, grad_key))
@@ -208,7 +209,7 @@ class SalienceClusteringTest(parameterized.TestCase):
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
         salience_clustering.N_CLUSTERS_KEY: 2,
-        salience_clustering.N_TOP_TOKENS_KEY: 2
+        salience_clustering.TOP_K_TOKENS_KEY: 2
     }
     grad_key = 'input_embs_grad'
     _, clustering_component, inputs, model, dataset, model_outputs = (
@@ -224,7 +225,7 @@ class SalienceClusteringTest(parameterized.TestCase):
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
         salience_clustering.N_CLUSTERS_KEY: 2,
-        salience_clustering.N_TOP_TOKENS_KEY: 2
+        salience_clustering.TOP_K_TOKENS_KEY: 2
     }
     grad_key = 'input_embs_grad'
     _, clustering_component, inputs, model, dataset, model_outputs = (
@@ -242,17 +243,20 @@ class SalienceClusteringTest(parameterized.TestCase):
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
         salience_clustering.N_CLUSTERS_KEY: 2,
-        salience_clustering.N_TOP_TOKENS_KEY: 2
+        salience_clustering.TOP_K_TOKENS_KEY: 2,
+        salience_clustering.N_TOKENS_TO_DISPLAY_KEY: 2
     }
     result, *_ = self._call_classification_model_on_standard_input(
         config, 'input_embs_grad')
     # Clustering isn't deterministic so we don't know if examples 1 and 2 are
     # in cluster 0 or 1.
+    top_token_results = result[
+        salience_clustering.TOP_TOKEN_KEY]['input_embs_grad']
     for cluster_id in range(config[salience_clustering.N_CLUSTERS_KEY]):
-      top_tokens = [
-          token_with_weight[0] for token_with_weight in result[
-              salience_clustering.TOP_TOKEN_KEY]['input_embs_grad'][cluster_id]
-      ]
+      top_tokens_with_weights = top_token_results[cluster_id][:config[
+          salience_clustering.N_TOKENS_TO_DISPLAY_KEY]]
+      top_tokens = [token_with_weight[0] for token_with_weight in
+                    top_tokens_with_weights]
       subset_cd = ['c', 'd']
       subset_ef = ['e', 'f']
       top_tokens_are_set_cd = subset_cd == top_tokens
@@ -264,12 +268,32 @@ class SalienceClusteringTest(parameterized.TestCase):
     config = {
         salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
         salience_clustering.N_CLUSTERS_KEY: '2',
-        salience_clustering.N_TOP_TOKENS_KEY: 2
+        salience_clustering.TOP_K_TOKENS_KEY: 2
     }
     result, *_ = self._call_classification_model_on_standard_input(
         config, 'input_embs_grad')
     self.assertIsNotNone(result)
 
+  @parameterized.named_parameters(
+      ('n_tokens_to_display = 1', 1),
+      ('n_tokens_to_display = 2', 2),
+      ('n_tokens_to_display = 10', 10),
+  )
+  def test_n_tokens_to_display(self, n_tokens_to_display):
+    """Tests results contain n or less tokens per cluster."""
+    config = {
+        salience_clustering.SALIENCE_MAPPER_KEY: 'Grad L2 Norm',
+        salience_clustering.N_CLUSTERS_KEY: 2,
+        salience_clustering.TOP_K_TOKENS_KEY: 2,
+        salience_clustering.N_TOKENS_TO_DISPLAY_KEY: n_tokens_to_display
+    }
+    result, *_ = self._call_classification_model_on_standard_input(
+        config, 'input_embs_grad')
+    top_token_results = result[
+        salience_clustering.TOP_TOKEN_KEY]['input_embs_grad']
+    for results_for_cluster in top_token_results:
+      self.assertTrue(results_for_cluster)
+      self.assertLessEqual(len(results_for_cluster), n_tokens_to_display)
 
 if __name__ == '__main__':
   absltest.main()
