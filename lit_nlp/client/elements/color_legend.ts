@@ -61,7 +61,9 @@ export class ColorLegend extends ReactiveElement {
   @observable @property({type: Object}) scale: D3Scale =
       d3.scaleOrdinal([DEFAULT]).domain(['all']) as D3Scale;
   @property({type: String}) legendType = LegendType.CATEGORICAL;
-  @property({type: String}) selectedColorName = '';
+  @property({type: String}) label = '';
+  /** Optional hover tooltip text on the color palette icon. */
+  @property({type: String}) paletteTooltipText = '';
   /** Width of the container. Used to determine if blocks should be labeled. */
   @property({type: Number}) legendWidth = 150;
 
@@ -187,11 +189,16 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
         <div class="legend-container">
-          <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
-          <div class="color-label" title=${this.selectedColorName}
+          <lit-tooltip .content=${this.paletteTooltipText}
+            .tooltipPosition=${'above'}>
+            <mwc-icon class="icon material-icon-outlined"
+              slot="tooltip-anchor">palette</mwc-icon>
+          </lit-tooltip>
+          <div class="color-label" title=${this.label}
             name="color-name">
-            ${this.selectedColorName}
+            ${this.label}
           </div>
+
           ${this.scale.domain().map(
               (val: string|number) => this.renderLegendBlock(val, hideLabels))}
         </div>
@@ -211,15 +218,19 @@ export class ColorLegend extends ReactiveElement {
     // round it to an integer if the value is greater than or equal to 5
     rangeUnit = rangeUnit >= 5 ? Math.round(rangeUnit) : rangeUnit;
 
-
     // clang-format off
     return html`
         <div class="legend-container">
-          <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
-          <div class="color-label" title=${this.selectedColorName}
+          <lit-tooltip .content=${this.paletteTooltipText}
+            .tooltipPosition=${'above'}>
+            <mwc-icon class="icon material-icon-outlined"
+              slot="tooltip-anchor">palette</mwc-icon>
+          </lit-tooltip>
+          <div class="color-label" title=${this.label}
             name="color-name">
-            ${this.selectedColorName}
+            ${this.label}
           </div>
+
           <div class='legend-label'>${this.toStringValue(minValue)}</div>
           ${domain.map((colorVal: number) => {
             if (colorVal !== minValue) {

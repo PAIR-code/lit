@@ -310,6 +310,8 @@ export class DataTableModule extends LitModule {
 
           if (isPrimarySelection || isFocused || isReferenceSelection ||
               isStarred) {
+            // TODO(b/255799266): Add fast tooltips to icons.
+            // There's an issue with table resizing and mwc-icon interactions.
             return html`
               <mwc-icon style="${getActionStyle(isReferenceSelection)}"
                 class="${getActionClass(isReferenceSelection)}"

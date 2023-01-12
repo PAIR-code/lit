@@ -561,7 +561,7 @@ export class ScalarModule extends LitModule {
       </div>
       <div class="module-footer">
         <color-legend legendType=${legendType} .scale=${colorOption.scale}
-          selectedColorName=${colorOption.name}>
+          label=${colorOption.name}>
         </color-legend>
       </div>
     </div>`;

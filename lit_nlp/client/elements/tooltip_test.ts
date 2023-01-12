@@ -27,5 +27,20 @@ describe('tooltip test', () => {
     expect(tooltipText.innerHTML).toContain('Test content');
     const style = window.getComputedStyle(tooltipText);
     expect(style.getPropertyValue('visibility')).toEqual('hidden');
+    expect(tooltipText).not.toHaveClass('above');
+  });
+
+  it('conditionally renders aria label', async () => {
+    expect(tooltip.renderAriaLabel()).not.toEqual(``);
+    tooltip.shouldRenderAriaLabel = false;
+    expect(tooltip.renderAriaLabel()).toEqual(``);
+  });
+
+  it('conditionally updates tooltip position', async () => {
+    tooltip.tooltipPosition = 'above';
+    await tooltip.updateComplete;
+    const tooltipText =
+        tooltip.renderRoot.querySelector<HTMLSpanElement>('span.tooltip-text')!;
+    expect(tooltipText).toHaveClass('above');
   });
 });

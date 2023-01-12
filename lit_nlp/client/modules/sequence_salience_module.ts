@@ -384,7 +384,7 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format off
     return html`<div class="color-legend-container">
       <color-legend legendType=${LegendType.SEQUENTIAL}
-        selectedColorName=${labelName}
+        label=${labelName}
         ?alignRight=${true}
         .scale=${scale}
         numBlocks=${isSigned ? 7 : 5}>

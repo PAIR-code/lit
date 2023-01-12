@@ -28,6 +28,10 @@
   overflow: hidden;
 }
 
+.above {
+  bottom: 28px;
+}
+
 .lit-tooltip .tooltip-text a {
   color: #7bcccc;
 }

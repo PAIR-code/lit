@@ -478,7 +478,7 @@ export class FeatureAttributionModule extends LitModule {
         </div>
         <div class="module-footer">
           <div class="color-legend-container">
-            <color-legend selectedColorName="Salience" .scale=${scale}
+            <color-legend label="Salience" .scale=${scale}
                 legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
             </color-legend>
             <mwc-icon class="icon material-icon-outlined"

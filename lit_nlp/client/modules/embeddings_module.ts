@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '../elements/tooltip';
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
@@ -573,9 +574,12 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined"
-              title="Reset view"
-              @click=${onClickReset}>view_in_ar</mwc-icon>
+            <lit-tooltip .content=${'Reset view'}>
+              <mwc-icon class="icon-button mdi-outlined"
+                @click=${onClickReset} slot="tooltip-anchor">
+                view_in_ar
+              </mwc-icon>
+            </lit-tooltip>
           </div>
         </div>
         <div class="module-results-area">
@@ -583,7 +587,7 @@ export class EmbeddingsModule extends LitModule {
         </div>
         <div class="module-footer">
           <color-legend legendType=${legendType}
-            selectedColorName=${this.colorService.selectedColorOption.name}
+            label=${this.colorService.selectedColorOption.name}
             .scale=${this.colorService.selectedColorOption.scale}>
           </color-legend>
           <button class="hairline-button selected-nearest-button"

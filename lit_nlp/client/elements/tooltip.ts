@@ -20,15 +20,25 @@
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map';
+
+import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {getTemplateStringFromMarkdown} from '../lib/utils';
 
 import {styles} from './tooltip.css';
-import {ReactiveElement} from '../lib/elements';
-import {getTemplateStringFromMarkdown} from '../lib/utils';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
- * An element that displays a header with a label and a toggle to expand or
- * collapse the subordinate content.
+ * A tooltip element that displays on hover and on click.
+ *
+ * Use the `tooltip-anchor` slot for the control; this will be rendered where
+ * the <lit-tooltip> element is placed.
+ *
+ * Usage:
+ *   <lit-tooltip style=${tooltipStyle> .content=${tooltipMarkdown}>
+ *     <button slot="tooltip-anchor">
+ *     </button>
+ *   </lit-tooltip>
  */
 @customElement('lit-tooltip')
 export class LitTooltip extends ReactiveElement {
@@ -38,25 +48,36 @@ export class LitTooltip extends ReactiveElement {
 
   // Markdown that shows on hover.
   @property({type: String}) content = '';
+  @property({type: String}) tooltipPosition: string = '';
+  @property({type: Boolean}) shouldRenderAriaLabel = true;
+
+  renderAriaLabel() {
+    return this.shouldRenderAriaLabel ? html`aria-label=${this.content}` : '';
+  }
 
   /**
-   * Renders the reference tooltip with text and optional URL.
+   * Renders the reference tooltip.
    */
   override render() {
-    if (this.content === '') {
-      return html``;
-    }
+    const tooltipClass = classMap({
+      'tooltip-text': true,
+      'above': this.tooltipPosition === 'above'
+    });
 
     return html`
-        <div class='lit-tooltip'>
-          <span class="help-icon material-icon-outlined icon-button">
-            help_outline
-          </span>
-          <span class='tooltip-text'>
-            ${getTemplateStringFromMarkdown(this.content)}
-          </span>
-        </div>
-      `;
+      <div class='lit-tooltip'>
+        <slot name="tooltip-anchor">
+          ${this.content === '' ? '' : html`
+            <span class="help-icon material-icon-outlined icon-button">
+              help_outline
+            </span>`}
+        </slot>
+        ${this.content === '' ? '' : html`
+          <span class=${tooltipClass} ${this.renderAriaLabel()}>
+              ${getTemplateStringFromMarkdown(this.content)}
+          </span>`}
+      </div>
+    `;
   }
 }
 

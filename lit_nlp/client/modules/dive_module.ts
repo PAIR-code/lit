@@ -536,7 +536,7 @@ export class DiveModule extends LitModule {
         <div class="dropdown-holder">
           <label class="dropdown-label">${label}</label>
           <select class="dropdown limit-width" @change=${onChange}
-                  title=${this.groupService.denseFeatureNames[index]}>
+                  aria-label=${this.groupService.denseFeatureNames[index]}>
             ${this.groupService.denseFeatureNames.map((feature, i) => html`
               <option value=${i} ?selected=${index === i}>
                 ${feature}
@@ -569,7 +569,7 @@ export class DiveModule extends LitModule {
 
     // clang-format off
     return html`<color-legend legendType=${legendType}
-      selectedColorName=${this.colorService.selectedColorOption.name}
+      label=${this.colorService.selectedColorOption.name}
       .scale=${this.colorService.selectedColorOption.scale}>
     </color-legend>`;
     // clang-format on
