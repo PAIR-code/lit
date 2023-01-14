@@ -545,3 +545,75 @@ export const DIVERGING_6: string[] = [
   BRAND_COLORS.cyea[3].color,
   BRAND_COLORS.cyea[5].color
 ];
+
+/** Color map for salience maps. */
+export abstract class SalienceCmap {
+  /**
+   * An RGB interpolated color scale for one of the continuous LAB ramps from
+   * VizColor, which have been linearized.
+   */
+  protected myColorScale: d3.ScaleSequential<string>;
+
+  get colorScale() {
+    return this.myColorScale;
+  }
+
+  // Exponent for computing luminance values from salience scores.
+  // A higher value gives higher contrast for small (close to 0) salience
+  // scores.
+  // See https://en.wikipedia.org/wiki/Gamma_correction
+  constructor(protected gamma: number = 1.0, protected domain: [
+    number, number
+  ] = [0, 1]) {
+    this.myColorScale =
+        d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
+  }
+
+  /**
+   * Determine the correct text color -- black or white -- given the lightness
+   * for this datum
+   */
+  textCmap(d: number): string {
+    return (this.lightness(d) < 0.5) ? 'black' : 'white';
+  }
+
+  /** Clamps the value of d to the color scale's domain */
+  clamp(d: number): number {
+    const [min, max] = this.myColorScale.domain();
+    return Math.max(min, Math.min(max, d));
+  }
+
+  /** Gamma corrected lightness in the range [0, 1]. */
+  lightness(d: number): number {
+    d = Math.abs(this.clamp(d));
+    // Gamma correction to increase visibility of low salience datapoints
+    d = (1 - d) ** this.gamma;
+    // Invert direction because HSL and our color scales place white on opposite
+    // ends of the [0, 1] range
+    return 1 - d;
+  }
+
+  /** Color mapper. More extreme salience values get darker colors. */
+  abstract bgCmap(d: number): string;
+}
+
+/** Color map for unsigned (positive) salience maps. */
+export class UnsignedSalienceCmap extends SalienceCmap {
+  bgCmap(d: number): string {
+    return this.myColorScale(this.lightness(d));
+  }
+}
+
+/** Color map for signed salience maps. */
+export class SignedSalienceCmap extends SalienceCmap {
+  constructor(gamma: number = 1.0, domain: [number, number] = [-1, 1]) {
+    super(gamma, domain);
+    this.myColorScale =
+        d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
+  }
+
+  bgCmap(d: number): string {
+    const direction = d < 0 ? -1 : 1;
+    return this.myColorScale(this.lightness(d) * direction);
+  }
+}

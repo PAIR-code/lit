@@ -1,0 +1,19 @@
+.tokens-group {
+  position: relative;
+}
+
+.tokens-holder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.salient-token {
+  /* color and background set individually vis styleMap */
+  font-family: 'Roboto';
+  border-radius: 2px;
+  border: 1px solid transparent; /* for spacing */
+  padding: 2px 4px; /* wider horizontally */
+  margin: 3px;
+  width: fit-content;
+}

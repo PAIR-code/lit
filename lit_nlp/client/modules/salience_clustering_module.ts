@@ -15,12 +15,9 @@
  * limitations under the License.
  */
 
-import '../elements/expansion_panel';
-
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -28,6 +25,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {TableData} from '../elements/table';
+import {TokenWithWeight} from '../elements/token_chips';
 import {CategoryLabel, FieldMatcher, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap} from '../lib/types';
@@ -70,13 +68,7 @@ interface ClusterInfo {
 
 // Top token information per cluster, sorted by the ascending by cluster IDs.
 interface TopTokenInfosByCluster {
-  topTokenInfos: TopTokenInfo[];
-}
-
-// Data for 1 top token instance.
-interface TopTokenInfo {
-  token: string;
-  weight: number;
+  topTokenInfos: TokenWithWeight[];
 }
 
 /**
@@ -245,36 +237,21 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format on
   }
 
-  // Render token chip.
-  // TODO(b/204887716): This needs to be replaced with a custom element.
-  private renderToken(token: string, weight: number, cmap: SalienceCmap,
-    gradKey: string) {
-    const tokenStyle = styleMap({
-      'background-color': cmap.bgCmap(weight),
-      'border-radius': '2px',
-      'color': cmap.textCmap(weight),
-      'margin': '2px 5px',
-      'padding': '1px 3px'
-    });
-
-    return html`
-      <div class="salient-token-for-cluster" style=${tokenStyle}
-        title=${weight.toPrecision(3)} data-gradkey=${gradKey}>
-        ${token}
-      </div>`;
-  }
-
   // Render a table that lists clusters with their top tokens.
   private renderSingleGradKeyTopTokenInfos(
       gradKey: string, topTokenInfosByClusters: TopTokenInfosByCluster[],
       clusterInfos: ClusterInfo[], colorMap: SalienceCmap) {
+    // clang-format off
     const rowsByClusters: TableData[] =
-        topTokenInfosByClusters.map((topTokenInfos, clusterIdx) => {
-          const tokensDom = topTokenInfos.topTokenInfos.map(
-              tokenInfo => this.renderToken(
-                  tokenInfo.token, tokenInfo.weight, colorMap, gradKey));
-          return [clusterIdx, html`${tokensDom}`];
-        });
+      topTokenInfosByClusters.map((topTokenInfos, clusterIdx) => {
+        return [clusterIdx, html`
+          <lit-token-chips
+            .tokensWithWeights=${topTokenInfos.topTokenInfos}
+            .cmap=${colorMap}>
+          </lit-token-chips>`
+        ];
+      });
+    // clang-format on
 
     const onSelectClusters = (clusterIdxs: number[]) => {
       const dataPointIds: string[] = clusterInfos
@@ -422,7 +399,7 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format off
     return html`
         <color-legend legendType=${LegendType.SEQUENTIAL}
-          selectedColorName=${colorName}
+          label=${colorName}
           .scale=${scale}
           numBlocks=${numBlocks}>
         </color-legend>`;

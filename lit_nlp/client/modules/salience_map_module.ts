@@ -374,7 +374,7 @@ export class SalienceMapModule extends LitModule {
       </div>`;
   }
 
-  // TODO(lit-dev): consider moving this to a standalone viz class.
+  // TODO(b/204887716): Consider using the <lit-token-chips> element.
   renderTokens(salience: TokenSalienceResult, gradKey: string,
                cmap: SalienceCmap) {
     const tokens = salience[gradKey].tokens;
