@@ -13,6 +13,7 @@ MULTICLASS_PRED_WITH_THRESHOLD.null_idx = 0;
 MULTICLASS_PRED_WITH_THRESHOLD.vocab = ['0', '1'];
 MULTICLASS_PRED_WITH_THRESHOLD.threshold = 0.3;
 const MULTICLASS_SPEC_WITH_THRESHOLD: ModelSpec = {
+  init: null,
   input: {},
   output: {[FIELD_NAME]: MULTICLASS_PRED_WITH_THRESHOLD}
 };
@@ -21,6 +22,7 @@ const MULTICLASS_PRED_WITHOUT_THRESHOLD = new MulticlassPreds();
 MULTICLASS_PRED_WITHOUT_THRESHOLD.null_idx = 0;
 MULTICLASS_PRED_WITHOUT_THRESHOLD.vocab = ['0', '1'];
 const MULTICLASS_SPEC_WITHOUT_THRESHOLD: ModelSpec = {
+  init: null,
   input: {},
   output: {[FIELD_NAME]: MULTICLASS_PRED_WITHOUT_THRESHOLD}
 };
@@ -28,6 +30,7 @@ const MULTICLASS_SPEC_WITHOUT_THRESHOLD: ModelSpec = {
 const MULTICLASS_PRED_NO_VOCAB = new MulticlassPreds();
 MULTICLASS_PRED_NO_VOCAB.null_idx = 0;
 const INVALID_SPEC_NO_VOCAB: ModelSpec = {
+  init: null,
   input: {},
   output: {[FIELD_NAME]: MULTICLASS_PRED_NO_VOCAB}
 };
@@ -35,11 +38,13 @@ const INVALID_SPEC_NO_VOCAB: ModelSpec = {
 const MULTICLASS_PRED_NO_NULL_IDX = new MulticlassPreds();
 MULTICLASS_PRED_NO_NULL_IDX.vocab = ['0', '1'];
 const INVALID_SPEC_NO_NULL_IDX: ModelSpec = {
+  init: null,
   input: {},
   output: {[FIELD_NAME]: MULTICLASS_PRED_NO_NULL_IDX}
 };
 
 const INVALID_SPEC_NO_MULTICLASS_PRED: ModelSpec = {
+  init: null,
   input: {},
   output: {}
 };

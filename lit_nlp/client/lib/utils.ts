@@ -175,14 +175,17 @@ export function cloneSpec(spec: Spec): Spec {
  */
 export function deserializeLitTypesInLitMetadata(
     metadata: SerializedLitMetadata): LitMetadata {
+
   for (const model of Object.keys(metadata.models)) {
-    metadata.models[model].spec.input =
-        deserializeLitTypesInSpec(metadata.models[model].spec.input);
-    metadata.models[model].spec.output =
-        deserializeLitTypesInSpec(metadata.models[model].spec.output);
+    const {spec} = metadata.models[model];
+    spec.init = spec.init ? deserializeLitTypesInSpec(spec.init) : null;
+    spec.input = deserializeLitTypesInSpec(spec.input);
+    spec.output = deserializeLitTypesInSpec(spec.output);
   }
 
   for (const dataset of Object.keys(metadata.datasets)) {
+    metadata.datasets[dataset].initSpec = metadata.datasets[dataset].initSpec ?
+        deserializeLitTypesInSpec(metadata.datasets[dataset].initSpec) : null;
     metadata.datasets[dataset].spec =
         deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
   }

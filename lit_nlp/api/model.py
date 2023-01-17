@@ -115,7 +115,7 @@ class Model(metaclass=abc.ABCMeta):
     except TypeError as e:
       spec = None
       logging.warning("Unable to infer init spec for model '%s'. %s",
-                      self.__class__.__name__, str(e), exc_info=True)
+                      self.__class__.__name__, str(e))
     return spec
 
   def is_compatible_with_dataset(self, dataset: lit_dataset.Dataset) -> bool:

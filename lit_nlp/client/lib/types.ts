@@ -46,6 +46,7 @@ export interface ComponentInfo {
 
 export interface DatasetInfo {
   size: number;
+  initSpec: Spec | null;  // using null here because None ==> null in Python
   spec: Spec;
   description?: string;
 }
@@ -64,6 +65,7 @@ export interface CallConfig {
 }
 
 export interface ModelSpec {
+  init: Spec | null;  // using null here because None ==> null in Python
   input: Spec;
   output: Spec;
 }

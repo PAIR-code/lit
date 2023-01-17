@@ -60,6 +60,7 @@ class LitApp(object):
       info = {
           'description': model.description(),
           'spec': {
+              'initSpec': self._model_init_specs[name],
               'input': model.input_spec(),
               'output': model.output_spec(),
           }
@@ -96,6 +97,7 @@ class LitApp(object):
     dataset_info = {}
     for name, ds in self._datasets.items():
       dataset_info[name] = {
+          'init': self._dataset_init_specs[name],
           'spec': ds.spec(),
           'description': ds.description(),
           'size': len(ds),
@@ -285,7 +287,7 @@ class LitApp(object):
                    dataset_name: Optional[str] = None,
                    **unused_kw) -> list[IndexedInput]:
     """Attempt to get dataset, or override with a specific path."""
-    return self._datasets[dataset_name].indexed_examples
+    return list(self._datasets[dataset_name].indexed_examples)
 
   def _create_dataset(self,
                       unused_data,
@@ -549,30 +551,38 @@ class LitApp(object):
     # client code to manually merge when this is the desired behavior.
     self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
 
-    # Wrap models in caching wrapper
-    self._models = {
-        name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
-        for name, model in models.items()
-    }
+    self._model_init_specs: dict[str, Optional[types.Spec]] = {}
+    self._models: dict[str, caching.CachingModelWrapper] = {}
+    for name, model in models.items():
+      # We need to extract and store the results of the original
+      # model.init_spec() here so that we don't lose access to those fields
+      # after LIT wraps the model in a CachingModelWrapper.
+      self._model_init_specs[name] = model.init_spec()
+      # Wrap model in caching wrapper and add it to the app
+      self._models[name] = caching.CachingModelWrapper(model, name,
+                                                       cache_dir=data_dir)
 
-    self._datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
-    # TODO(b/202210900): get rid of this, just dynamically create the empty
-    # dataset on the frontend.
-    self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
-
-    self._annotators = annotators or []
-
+    self._annotators: list[lit_components.Annotator] = annotators or []
     self._saved_datapoints = {}
     self._saved_datapoints_lock = threading.Lock()
 
-    # Run annotation on each dataset, creating an annotated dataset and
-    # replace the datasets with the annotated versions.
-    for ds_key, ds in self._datasets.items():
-      self._datasets[ds_key] = self._run_annotators(ds)
+    tmp_datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
+    # TODO(b/202210900): get rid of this, just dynamically create the empty
+    # dataset on the frontend.
+    tmp_datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
 
-    # Index all datasets
-    self._datasets = lit_dataset.IndexedDataset.index_all(
-        self._datasets, caching.input_hash)
+    self._dataset_init_specs: dict[str, Optional[types.Spec]] = {}
+    self._datasets: dict[str, lit_dataset.IndexedDataset] = {}
+    for name, ds in tmp_datasets.items():
+      # We need to extract and store the results of the original
+      # dataset.init_spec() here so that we don't lose access to those fields
+      # after LIT goes through the dataset annotation and indexing process.
+      self._dataset_init_specs[name] = ds.init_spec()
+      # Anotate the dataset
+      annotated_ds = self._run_annotators(ds)
+      # Index the annotated dataset and add it to the app
+      self._datasets[name] = lit_dataset.IndexedDataset(
+          base=annotated_ds, id_fn=caching.input_hash)
 
     # Generator initialization
     if generators is not None:
