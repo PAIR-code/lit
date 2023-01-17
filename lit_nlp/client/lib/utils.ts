@@ -555,6 +555,25 @@ export function getTemplateStringFromMarkdown(markdown: string) {
   return unsafeHTML(htmlStr);
 }
 
+// Matches single numbers, including decimals with and without leading zeros,
+// and negative numbers. Also matches ranges of numbers separated by a hyphen.
+const NUMBER_RANGE_REGEX_STR = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
+
+/**
+ * Returns whether a string can be interpreted as a single number range.
+ *
+ * Some valid examples: '4', '-10', '10-20', '-10--5', '0.5-1.0'.
+ * Unlike `numberRangeFnFromString`, comma-separated ranges are not supported
+ * here.
+ */
+export function canParseNumberRangeFnFromString(str: string): boolean {
+  const supportedRegex = /^[0-9\s,-]+$/;
+  if (!supportedRegex.test(str)) return false;
+
+  const matches = str.match(NUMBER_RANGE_REGEX_STR);
+  return matches !== null && matches.filter(i => i).length > 0;
+}
+
 /**
  * Convert a number range from strings to a function to check inclusion.
  *
@@ -564,13 +583,9 @@ export function getTemplateStringFromMarkdown(markdown: string) {
  * e.x. "-.5-1.5 10" will match numbers between -.5 and 1.5 and also 10.
  */
 export function numberRangeFnFromString(str: string): (num: number) => boolean {
-  // Matches single numbers, including decimals with and without leading zeros,
-  // and negative numbers. Also matches ranges of numbers separated by a hyphen.
-  const regexStr = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
-
   // Convert the string into a list of ranges of numbers to match.
   const ranges: Array<[number, number]> = [];
-  for (const [, beginStr, endStr] of str.matchAll(regexStr)) {
+  for (const [, beginStr, endStr] of str.matchAll(NUMBER_RANGE_REGEX_STR)) {
     if (beginStr.length === 0) {
       continue;
     }

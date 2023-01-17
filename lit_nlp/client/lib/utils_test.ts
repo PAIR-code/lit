@@ -606,6 +606,24 @@ describe('mapsContainSame test', () => {
   });
 });
 
+
+describe('canParseNumberRange test', () => {
+  let numberRanges = ['1', '-3', '-20--10', '-4-4 10-20', '1, 3-5'];
+  for (const range of numberRanges) {
+    it('can parse valid number ranges', () => {
+      expect(utils.canParseNumberRangeFnFromString(range)).toBe(true);
+    });
+  }
+
+  numberRanges = ['', 'not numeric', '123x', '3.*4'];
+  for (const range of numberRanges) {
+    it('cannot parse invalid number ranges', () => {
+      expect(utils.canParseNumberRangeFnFromString(range)).toBe(false);
+    });
+  }
+});
+
+
 describe('numberRangeFnFromString test', () => {
   it('handles single items', () => {
     const input = '1, 2 -3';

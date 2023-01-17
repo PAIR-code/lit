@@ -2,17 +2,35 @@
   justify-content: space-between;
 }
 
-#toolbar-buttons{
+#toolbar-buttons {
   display: flex;
   flex-direction: row;
   margin-left: 0;
   margin-right: 0;
 }
 
-.toggles-row {
+.search-container {
   display: flex;
   flex-direction: row;
-  column-gap: 16px;
+  flex-grow: 1;
+  align-items: center;
+  min-height: 32px;
+  max-width: 60%;
+  margin-left: 0;
+  margin-right: 0;
+  overflow-y: clip;
+}
+
+#search-input{
+  width: calc(100% - 24px);
+  margin-left: 4px;
+  margin-right: 4px
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  column-gap: 4px;
 }
 
 popup-container.column-dropdown-container {

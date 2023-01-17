@@ -28,7 +28,8 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, DataTable, TableData} from '../elements/table';
+import {DataTable} from '../elements/table';
+import {ColumnHeader, TableData} from '../elements/table';
 import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
@@ -66,7 +67,7 @@ export class DataTableModule extends LitModule {
       app.getService(SelectionService, 'pinned');
 
   @observable columnVisibility = new Map<string, boolean>();
-  @observable searchText = '';
+  @observable globalSearchText = '';
 
   // Module options / configuration state
   @observable private onlyShowGenerated: boolean = false;
@@ -425,12 +426,10 @@ export class DataTableModule extends LitModule {
     return html`
       <popup-container class='column-dropdown-container'>
         <button class='hairline-button' slot='toggle-anchor-closed'>
-          <span class='material-icon-outlined'>view_column</span>
           &nbsp;Columns&nbsp;
           <span class='material-icon'>expand_more</span>
         </button>
         <button class='hairline-button' slot='toggle-anchor-open'>
-          <span class='material-icon-outlined'>view_column</span>
           &nbsp;Columns&nbsp;
           <span class='material-icon'>expand_less</span>
         </button>
@@ -443,26 +442,33 @@ export class DataTableModule extends LitModule {
   }
 
   renderControls() {
-    const onClickResetView = () => {this.table?.resetView();};
+    const onClickResetView = () => {
+      this.table?.resetView();
+      this.globalSearchText = '';
+    };
 
     const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
+    };
+    const toggleSelectedCheckbox = () => {
+      this.onlyShowSelected = !this.onlyShowSelected;
+    };
+    const toggleGeneratedCheckbox = () => {
+      this.onlyShowGenerated = !this.onlyShowGenerated;
     };
 
     // clang-format off
     return html`
       ${this.renderColumnDropdown()}
-      <div class="toggles-row">
-        <div class='switch-container'
-            @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
-          <div>Show selected</div>
-          <mwc-switch ?selected=${this.onlyShowSelected}></mwc-switch>
-        </div>
-        <div class='switch-container'
-            @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
-          <div>Show generated</div>
-          <mwc-switch ?selected=${this.onlyShowGenerated}></mwc-switch>
-        </div>
+      <div class="checkbox-row">
+        <lit-checkbox label="Show selected"
+                  ?checked=${this.onlyShowSelected}
+                  @change=${toggleSelectedCheckbox}>
+        </lit-checkbox>
+        <lit-checkbox label="Show generated"
+              ?checked=${this.onlyShowGenerated}
+              @change=${toggleGeneratedCheckbox}>
+        </lit-checkbox>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
@@ -476,6 +482,27 @@ export class DataTableModule extends LitModule {
       </div>
     `;
     // clang-format on
+  }
+
+  renderSearch() {
+    const handleGlobalSearchChange = (e: KeyboardEvent) => {
+      // Trigger an update on "enter" key.
+      if(e.key=== "Enter") {
+        const searchQuery = (e.target as HTMLInputElement)?.value || '';
+        this.globalSearchText = searchQuery;
+      }
+    };
+
+    const tooltipContent = `Search using text, regex, numerical ranges,
+      and column-name prefixes. Use AND and OR for joint queries. For example,
+      'query AND ^query2 OR columnName:1-10.'`;
+    return html`
+      <div class='search-container'>
+        <mwc-icon class='icon material-icon-outlined'>search</mwc-icon>
+        <input type="search" id="search-input" .value=${this.globalSearchText}
+          @keydown=${handleGlobalSearchChange} placeholder="Search"/>
+        <lit-tooltip content=${tooltipContent}></lit-tooltip>
+      </div>`;
   }
 
   renderTable() {
@@ -497,6 +524,7 @@ export class DataTableModule extends LitModule {
         .referenceSelectedIndex=${this.referenceSelectedIndex}
         .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
+        .globalSearchText=${this.globalSearchText}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
         .onHover=${(i: number|null)=> { this.onHover(i); }}
@@ -519,7 +547,9 @@ export class DataTableModule extends LitModule {
           <div class='module-toolbar'>
             ${this.renderControls()}
           </div>
-        ` : null}
+          <div class='module-toolbar'>
+            ${this.renderSearch()}
+          </div>` : null}
         <div class='module-results-area'>
           ${this.renderTable()}
         </div>

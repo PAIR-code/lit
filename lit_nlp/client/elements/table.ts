@@ -41,6 +41,9 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
 
+import {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal} from './table_types';
+import {filterDataByQueries, getSortableEntry, parseSearchTextIntoQueries} from './table_utils';
+
 import {styles} from './table.css';
 
 /** Function for supplying table entry template result based on row state. */
@@ -49,35 +52,8 @@ export type TemplateResultFn =
      isReferenceSelection: boolean, isFocused: boolean, isStarred: boolean) =>
         TemplateResult;
 
-/** Wrapper type for sortable data table entries */
-export type SortableTableEntry = string|number;
-/** Wrapper type for sortable custom data table entries */
-export interface SortableTemplateResult {
-  template: TemplateResult|TemplateResultFn;
-  value: SortableTableEntry;
-}
-/** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number|TemplateResult|SortableTemplateResult;
-/** Wrapper types for the data supplied to the data table */
-export type TableData = TableEntry[]|{[key: string]: TableEntry};
-
-/** Wrapper type for column header with optional custom template. */
-export interface ColumnHeader {
-  name: string;
-  html?: TemplateResult;
-  rightAlign?: boolean;
-  /**
-   * If vocab provided and search enabled, then the column is searchable
-   *  through selected items from the vocab list.
-   */
-  vocab?: string[];
-}
-
-/** Internal data, including metadata */
-interface TableRowInternal {
-  inputIndex: number; /* index in original this.data */
-  rowData: TableEntry[];
-}
+/** Export types from ./table_types. */
+export {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal};
 
 /** Callback for selection */
 export type OnSelectCallback = (selectedIndices: number[]) => void;
@@ -133,6 +109,7 @@ export class DataTable extends ReactiveElement {
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
   // instead of triggering a full re-render.
   @observable @property({type: Number}) focusedIndex: number = -1;
+  @observable @property({type: String}) globalSearchText: string = '';
 
   // Mode controls
   @observable @property({type: Boolean}) selectionEnabled: boolean = false;
@@ -320,19 +297,6 @@ export class DataTable extends ReactiveElement {
         Math.ceil(entriesPerPage / PAGE_SIZE_INCREMENT) * PAGE_SIZE_INCREMENT;
   }
 
-  private getSortableEntry(colEntry: TableEntry): SortableTableEntry {
-    // Passthrough values if TableEntry is number or string. If it is
-    // TemplateResult return 0 for sorting purposes. If it is a sortable
-    // tempate result then sort by the underlying sortable value.
-    if (typeof colEntry === 'string' || isNumber(colEntry)) {
-      return colEntry as SortableTableEntry;
-    }
-    if (isTemplateResult(colEntry)) {
-      return 0;
-    }
-    return (colEntry as SortableTemplateResult).value;
-  }
-
   @computed
   get sortIndex(): number|undefined {
     return this.sortName != null ? this.columnStrings.indexOf(this.sortName) :
@@ -399,20 +363,29 @@ export class DataTable extends ReactiveElement {
       return {inputIndex, rowData};
     });
   }
+  /**
+   * This computed returns the data filtered by global search.
+   */
+  @computed
+  get globalSearchFilteredData(): TableRowInternal[] {
+    const filters =
+        parseSearchTextIntoQueries(this.globalSearchText, this.columnStrings);
+    return filterDataByQueries(this.indexedData, this.columnStrings, filters);
+  }
 
   /**
    * This computed returns the data filtered by row.
    */
   @computed
   get rowFilteredData(): TableRowInternal[] {
-    return this.indexedData.filter((item) => {
+    return this.globalSearchFilteredData.filter((item) => {
       let isShownByTextFilter = true;
       // Apply column search filters
       for (const [key, info] of this.columnFilterInfo) {
         const index = this.columnStrings.indexOf(key);
         if (index === -1) return;
 
-        const col = this.getSortableEntry(item.rowData[index]);
+        const col = getSortableEntry(item.rowData[index]);
         isShownByTextFilter = isShownByTextFilter && info.fn(col);
       }
       return isShownByTextFilter;
@@ -424,8 +397,8 @@ export class DataTable extends ReactiveElement {
       const sorter = this.sortAscending ? ascending : descending;
 
       return source.slice().sort((a, b) => sorter(
-        this.getSortableEntry(a.rowData[this.sortIndex!]),
-        this.getSortableEntry(b.rowData[this.sortIndex!])));
+        getSortableEntry(a.rowData[this.sortIndex!]),
+        getSortableEntry(b.rowData[this.sortIndex!])));
     }
 
     return source;
@@ -439,7 +412,7 @@ export class DataTable extends ReactiveElement {
   getArrayData(): SortableTableEntry[][] {
     // displayData is the visible data for all pages.
     return this.displayData.map(
-        (row: TableRowInternal) => row.rowData.map(this.getSortableEntry));
+        (row: TableRowInternal) => row.rowData.map(getSortableEntry));
   }
 
   getCSVContent(): string {
@@ -645,12 +618,13 @@ export class DataTable extends ReactiveElement {
    */
   @computed
   get isDefaultView() {
-    return this.sortName === undefined && this.columnFilterInfo.size === 0;
+    return this.sortName === undefined && this.columnFilterInfo.size === 0 &&
+        this.globalSearchText === '';
   }
 
   @computed
   get isFiltered() {
-    return this.columnFilterInfo.size !== 0;
+    return this.columnFilterInfo.size !== 0 || this.globalSearchText !== '';
   }
 
   resetView() {
@@ -797,7 +771,7 @@ export class DataTable extends ReactiveElement {
       }
     };
 
-    const isSearchActive = () => {
+    const isLocalSearchActive = () => {
       const searchValues = this.columnFilterInfo.get(title)?.values;
       const hasSearchValues =
           searchValues && searchValues.length > 0 && searchValues[0].length > 0;
@@ -832,7 +806,7 @@ export class DataTable extends ReactiveElement {
 
     const arrowStyle =
         styleMap((isDownActive || isUpActive) ? {'display': 'block'} : {});
-    const menuButtonStyle = styleMap(isSearchActive() ?
+    const menuButtonStyle = styleMap(isLocalSearchActive() ?
         {'display': 'block', 'outline': 'auto'} : {});
 
     const upArrowClasses = classMap({
