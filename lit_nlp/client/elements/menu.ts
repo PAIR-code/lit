@@ -177,7 +177,7 @@ export class LitMenu extends LitElement {
           <mwc-icon slot='graphic' class='check' style=${iconStyle}>
             ${hasSubmenu ? 'arrow_right' : 'check'}
           </mwc-icon>
-          <span title=${item.itemText} class=${itemTextClass}>
+          <span class=${itemTextClass}>
             ${item.itemText.slice(0, MAX_TEXT_LENGTH) +
             ((item.itemText.length > MAX_TEXT_LENGTH) ? '...': '')}
           </span>

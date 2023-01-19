@@ -251,11 +251,12 @@ export class DataMatrix extends LitElement {
 
     // clang-format off
     return html`
-      <mwc-icon class="icon-button"
-        title="Rotate column labels"
-        @click="${toggleVerticalColumnLabels}">
-        ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
-      </mwc-icon>
+      <lit-tooltip content="Rotate column labels">
+        <mwc-icon class="icon-button" slot="tooltip-anchor"
+          @click="${toggleVerticalColumnLabels}">
+          ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
+        </mwc-icon>
+      </lit-tooltip>
     `;
     // clang-format on
   }

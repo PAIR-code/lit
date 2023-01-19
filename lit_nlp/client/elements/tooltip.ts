@@ -48,6 +48,7 @@ export class LitTooltip extends ReactiveElement {
 
   // Markdown that shows on hover.
   @property({type: String}) content = '';
+  // Space-separated tooltip position attributes, e.g. 'above' or 'right'.
   @property({type: String}) tooltipPosition: string = '';
   @property({type: Boolean}) shouldRenderAriaLabel = true;
 
@@ -61,7 +62,8 @@ export class LitTooltip extends ReactiveElement {
   override render() {
     const tooltipClass = classMap({
       'tooltip-text': true,
-      'above': this.tooltipPosition === 'above'
+      'above': this.tooltipPosition.indexOf('above') !== -1,
+      'left': this.tooltipPosition.indexOf('left') !== -1,
     });
 
     return html`

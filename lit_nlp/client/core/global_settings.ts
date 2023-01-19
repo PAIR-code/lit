@@ -167,13 +167,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         <div id="global-settings" class=${hiddenClassMap}>
         <div id="title-bar">
           Configure LIT
-          <a target='_blank'
-            href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
-          <mwc-icon class="icon-button large-icon" id="configure-lit-icon"
-            title="Go to reference">
-            open_in_new
-          </mwc-icon>
-          </a>
+
+          <lit-tooltip content="Go to reference">
+            <a slot="tooltip-anchor" target='_blank'
+              href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
+            <mwc-icon class="icon-button large-icon" id="configure-lit-icon">
+              open_in_new
+            </mwc-icon>
+            </a>
+          </lit-tooltip>
         </div>
         <div id="holder">
           <div id="sidebar">
@@ -682,7 +684,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         classMap({'expanded-info': true, open: expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
     return html`
-      <div class=${classes} title="${name}">
+      <div class=${classes}>
         <div class='fixed-third-col'>
           ${selectorHtml}
         </div>

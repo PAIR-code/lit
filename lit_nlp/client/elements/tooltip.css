@@ -32,6 +32,10 @@
   bottom: 28px;
 }
 
+.left {
+  right: 12px;
+}
+
 .lit-tooltip .tooltip-text a {
   color: #7bcccc;
 }

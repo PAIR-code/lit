@@ -6,6 +6,7 @@ import {LitElement} from 'lit';
 import {LitApp} from '../core/app';
 import {LitCheckbox} from '../elements/checkbox';
 import {PopupContainer} from '../elements/popup_container';
+import {LitTooltip} from '../elements/tooltip';
 import {mockMetadata} from '../lib/testing_utils';
 import {AppState, DataService, GroupService} from '../services/services';
 
@@ -58,7 +59,7 @@ describe('faceting control test', () => {
     expect(facetingInfo instanceof HTMLDivElement).toBeTrue();
     expect((facetingInfo as HTMLDivElement).className).toEqual('faceting-info');
     const [facetButton, facetList] = facetingInfo.children;
-    expect(facetButton instanceof HTMLButtonElement).toBeTrue();
+    expect(facetButton instanceof LitTooltip).toBeTrue();
     expect(facetList instanceof HTMLDivElement).toBeTrue();
     expect((facetList as HTMLDivElement).className).toEqual(' active-facets ');
     expect(configPanel instanceof HTMLDivElement).toBeTrue();

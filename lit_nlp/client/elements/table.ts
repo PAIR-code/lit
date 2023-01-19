@@ -737,7 +737,8 @@ export class DataTable extends ReactiveElement {
             ${this.exportEnabled ? html`
               <export-controls .data=${this.getArrayData()}
                   .columnNames=${this.columnStrings}
-                  .popupPosition=${'above'}></export-controls>` : null}
+                  .popupPosition=${'above'}
+                  .tooltipPosition=${'above left'}></export-controls>` : null}
           </div>
         </td>
       </tr>`;

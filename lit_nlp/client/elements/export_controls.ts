@@ -46,9 +46,10 @@ export class ExportControls extends ReactiveElement {
   /** A list of rows of data to download. */
   @property({type: Object}) data: SortableTableEntry[][] = [];
   /** Column names. */
-  @observable @property({type: Object}) columnNames: string[] = [];
+  @property({type: Object}) columnNames: string[] = [];
   /** Download popup position defaults to below the download icon. */
   @property({type: String}) popupPosition: string = 'below';
+  @property({type: String}) tooltipPosition: string = 'left';
   /** If true, disable controls. */
   @property({type: Boolean}) disabled = false;
 
@@ -104,21 +105,25 @@ export class ExportControls extends ReactiveElement {
       'disabled': this.disabled,
     });
 
+    // TODO(b/265978596): Consider a better place for download tooltips.
     // clang-format off
     return html`
       <div id='export-controls'>
-        <mwc-icon class=${iconClass}
-          title="Copy ${this.data.length} rows as CSV"
-          @click=${copyCSV}>
-          file_copy
-        </mwc-icon>
+        <lit-tooltip content="Copy ${this.data.length} rows as CSV"
+          tooltipPosition=${this.tooltipPosition}>
+          <mwc-icon class=${iconClass} slot="tooltip-anchor"
+            @click=${copyCSV}>
+            file_copy
+          </mwc-icon>
+        </lit-tooltip>
 
         <popup-container class='${this.getPopupClasses()}'>
-          <mwc-icon class=${iconClass} slot='toggle-anchor'
-            title="Download ${this.data.length} rows as CSV">
-            file_download
-          </mwc-icon>
-
+          <lit-tooltip content="Download ${this.data.length} rows as CSV"
+            tooltipPosition="${this.tooltipPosition}" slot="toggle-anchor">
+            <mwc-icon class=${iconClass} slot="tooltip-anchor">
+              file_download
+            </mwc-icon>
+          </lit-tooltip>
           <div class='download-popup-controls'>
             <label for="filename">Filename</label>
             <input type="text" name="filename" value=${this.downloadFilename}

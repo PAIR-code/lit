@@ -330,15 +330,18 @@ export class FacetingControl extends ReactiveElement {
       'disabled': this.disabled
     });
 
+    // TODO(b/265957070): Consider custom vertical padding for tooltips.
     // clang-format off
     return html`
       <popup-container>
         <div class="faceting-info" slot='toggle-anchor'>
-          <button class="hairline-button" title=${title}
-                  ?disabled=${this.disabled}>
-            <span class="material-icon">dashboard</span>
-            Facets
-          </button>
+          <lit-tooltip content=${title}>
+            <button class="hairline-button" slot="tooltip-anchor"
+                    ?disabled=${this.disabled}>
+              <span class="material-icon">dashboard</span>
+              Facets
+            </button>
+          </lit-tooltip>
           <div class=${activeFacetsClass}
            @click=${(e: Event) => { e.stopPropagation(); }}>
             : ${facetsList}

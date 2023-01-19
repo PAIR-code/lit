@@ -223,6 +223,7 @@ export class SliceModule extends LitModule {
       this.sliceService.removeIdsFromSlice(sliceName, ids);
     };
 
+    // TODO(b/265952155): Consider whether we want tooltips on disabled icons.
     // clang-format off
     return html`
       <div class=${itemClass}>
@@ -232,20 +233,25 @@ export class SliceModule extends LitModule {
             ${numDatapoints} ${numDatapoints === 1 ? 'datapoint' : 'datapoints'}
           </span>
 
-          <mwc-icon class=${appendIconClass} @click=${appendClicked}
-           title="Add selected to this slice">
-           add_circle_outline
-          </mwc-icon>
+          <lit-tooltip content="Add selected to slice" tooltipPosition="left">
+            <mwc-icon class=${appendIconClass} @click=${appendClicked}
+             slot="tooltip-anchor">
+             add_circle_outline
+            </mwc-icon>
+          </lit-tooltip>
 
           ${sliceName === STARRED_SLICE_NAME ?
-            html`<mwc-icon class=${clearIconClass} @click=${clearClicked}
-                  title="Reset this slice">
-                   clear
-                 </mwc-icon>` :
-            html`<mwc-icon class='icon-button selector-item-icon-button'
-                  @click=${deleteClicked} title="Delete this slice">
+            html`<lit-tooltip content="Reset this slice" tooltipPosition="left">
+                   <mwc-icon class=${clearIconClass} @click=${clearClicked}
+                     slot="tooltip-anchor">
+                     clear
+                   </mwc-icon></lit-tooltip>` :
+            html`<lit-tooltip content="Delete this slice"
+                  tooltipPosition="left">
+                  <mwc-icon class='icon-button selector-item-icon-button'
+                  @click=${deleteClicked} slot="tooltip-anchor">
                    delete_outline
-                 </mwc-icon>`}
+                 </mwc-icon></lit-tooltip>`}
           <export-controls ?disabled=${shouldDisableIcons}
               .data=${this.getArrayData(sliceName)}
               .downloadFilename="${

@@ -334,21 +334,27 @@ export class LitModules extends ReactiveElement {
               </div>
             </div>
             <div class="preset-buttons">
-              <mwc-icon class="icon-button" title="Maximize lower area"
-                        ?disabled=${lower === this.mainSectionHeight}
-                        @click=${() => {this.setMainSectionHeight('lower');}}>
-                vertical_align_top
-              </mwc-icon>
-              <mwc-icon class="icon-button" title="Split screen"
-                        ?disabled=${split === this.mainSectionHeight}
-                        @click=${() => {this.setMainSectionHeight('split');}}>
-                vertical_align_center
-              </mwc-icon>
-              <mwc-icon class="icon-button" title="Maximize upper area"
-                        ?disabled=${upper === this.mainSectionHeight}
-                        @click=${() => {this.setMainSectionHeight('upper');}}>
-                vertical_align_bottom
-              </mwc-icon>
+              <lit-tooltip content="Maximize lower area" tooltipPosition="left">
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
+                          ?disabled=${lower === this.mainSectionHeight}
+                          @click=${() => {this.setMainSectionHeight('lower');}}>
+                  vertical_align_top
+                </mwc-icon>
+              </lit-tooltip>
+              <lit-tooltip content="Split screen" tooltipPosition="left">
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
+                          ?disabled=${split === this.mainSectionHeight}
+                          @click=${() => {this.setMainSectionHeight('split');}}>
+                  vertical_align_center
+                </mwc-icon>
+              </lit-tooltip>
+              <lit-tooltip content="Maximize upper area" tooltipPosition="left">
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
+                          ?disabled=${upper === this.mainSectionHeight}
+                          @click=${() => {this.setMainSectionHeight('upper');}}>
+                  vertical_align_bottom
+                </mwc-icon>
+              </lit-tooltip>
             </div>
           </div>
           <div id='lower-group-area'>

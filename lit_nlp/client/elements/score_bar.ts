@@ -100,13 +100,16 @@ export class AnnotatedScoreBar extends LitElement {
   override render() {
     return html`<div class="annotated-cell">
       <score-bar score=${this.value} maxScore=${1}></score-bar>
-      <div class="indicator" title=${PRED_TITLE}>
-        ${this.isPredicted ? 'P' : null}
-      </div>
+      <lit-tooltip content="${PRED_TITLE}">
+        <div class="indicator" slot="tooltip-anchor">
+          ${this.isPredicted ? 'P' : null}
+        </div>
+      </lit-tooltip>
       ${this.hasTruth ?
-          html`<div class="indicator" title=${TRUTH_TITLE}>
+          html`<lit-tooltip content=${TRUTH_TITLE}>
+          <div class="indicator" slot="tooltip-anchor">
             ${this.isTruth ? 'T' : null}
-          </div>` : null}
+          </div></lit-tooltip>` : null}
     </div>`;
   }
 }

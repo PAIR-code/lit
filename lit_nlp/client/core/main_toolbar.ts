@@ -460,7 +460,7 @@ export class LitMainToolbar extends MobxLitElement {
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
         ${this.renderSlices()}
-        <button class="${buttonClasses}" title=${title}
+        <button class="${buttonClasses}"
                 ?disabled=${pinDisabled} @click=${updatePinnedDatapoint}>
           <div class="pin-button-content">
             <span class="${pinClasses}">push_pin</span>

@@ -358,9 +358,8 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      const spec = metaSpec[name] as MetricResult;
       return {name, rightAlign: true, html: html`
-        <div class="header-text" title=${spec.description}>${name}</div>`
+        <div class="header-text">${name}</div>`
       };
     });
 
