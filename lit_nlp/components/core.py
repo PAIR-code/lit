@@ -32,10 +32,14 @@ from lit_nlp.components import projection
 from lit_nlp.components import regression_results
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
-from lit_nlp.components import shap_explainer
+# TODO(b/265983153): Removing from core while we sort out a solution to the
+# upstream breakages. Might re-enable once those are resolved.
+# from lit_nlp.components import shap_explainer
 from lit_nlp.components import tcav
 from lit_nlp.components import thresholder
-from lit_nlp.components import umap
+# TODO(b/265983153): Removing from core while we sort out a solution to the
+# upstream breakages. Might re-enable once those are resolved.
+# from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 
 ComponentGroup = lit_components.ComponentGroup
@@ -67,7 +71,9 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       # Embedding projectors expose a standard interface, but get special
       # handling so we can precompute the projections if requested.
       'pca': projection.ProjectionManager(pca.PCAModel),
-      'umap': projection.ProjectionManager(umap.UmapModel),
+      # TODO(b/265983153): Removing from core while we sort out a solution to
+      # the upstream breakages. Might re-enable once those are resolved.
+      # 'umap': projection.ProjectionManager(umap.UmapModel),
   }
   gradient_map_interpreters: dict[str, Interpreter] = {
       'Grad L2 Norm': gradient_maps.GradientNorm(),
@@ -91,7 +97,9 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
           gradient_map_interpreters),
-      'Tabular SHAP': shap_explainer.TabularShapExplainer(),
+      # TODO(b/265983153): Removing from core while we sort out a solution to
+      # the upstream breakages. Might re-enable once those are resolved.
+      # 'Tabular SHAP': shap_explainer.TabularShapExplainer(),
   }
   # pyformat: enable
   interpreters.update(**gradient_map_interpreters,

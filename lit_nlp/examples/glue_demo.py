@@ -17,6 +17,9 @@ from absl import flags
 from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.components import core
+from lit_nlp.components import projection
+from lit_nlp.components import umap
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
 import transformers  # for path caching
@@ -125,8 +128,16 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
     logging.info("  truncated to %d examples", len(datasets[name]))
 
+  # TODO(b/265983153): Explicitly adding UMAP here while we sort out a solution
+  # to recurrent upstream breakages. This code may become obsolete depending on
+  # the reoslution to this bug.
+  interpreters = core.default_interpreters(models)
+  interpreters["umap"] = projection.ProjectionManager(umap.UmapModel)
+
   # Start the LIT server. See server_flags.py for server options.
-  lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+  lit_demo = dev_server.Server(models, datasets,
+                               interpreters=interpreters,
+                               **server_flags.get_flags())
   return lit_demo.serve()
 
 

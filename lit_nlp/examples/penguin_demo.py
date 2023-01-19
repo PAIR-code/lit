@@ -16,7 +16,9 @@ from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
+from lit_nlp.components import core
 from lit_nlp.components import minimal_targeted_counterfactuals
+from lit_nlp.components import shap_explainer
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
 
@@ -69,10 +71,18 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       'Minimal Targeted Counterfactuals':
           minimal_targeted_counterfactuals.TabularMTC()
   }
+
+  # TODO(b/265983153): Explicitly adding SHAP here while we sort out a solution
+  # to recurrent upstream breakages. This code may become obsolete depending on
+  # the reoslution to this bug.
+  interpreters = core.default_interpreters(models)
+  interpreters['Tabular SHAP'] = shap_explainer.TabularShapExplainer()
+
   lit_demo = dev_server.Server(
       models,
       datasets,
       generators=generators,
+      interpreters=interpreters,
       layouts=CUSTOM_LAYOUTS,
       **server_flags.get_flags())
   return lit_demo.serve()

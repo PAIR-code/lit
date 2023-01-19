@@ -21,6 +21,9 @@ from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
+from lit_nlp.components import core
+from lit_nlp.components import projection
+from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
@@ -41,13 +44,22 @@ _TOP_K = flags.DEFINE_integer(
     "top_k", 10, "Rank to which the output distribution is pruned.")
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 1000,
-    "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
+    "max_examples",
+    1000,
+    (
+        "Maximum number of examples to load from each evaluation set. Set to"
+        " None to load the full set."
+    ),
 )
 
 _LOAD_BWB = flags.DEFINE_bool(
-    "load_bwb", False,
-    "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
+    "load_bwb",
+    False,
+    (
+        "If true, will load examples from the Billion Word Benchmark dataset."
+        " This may download a lot of data the first time you run it, so disable"
+        " by default for the quick-start example."
+    ),
 )
 
 # Custom frontend layout; see api/layout.py
@@ -105,9 +117,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       models[model_name] = pretrained_lms.GPT2LanguageModel(
           model_name_or_path, top_k=_TOP_K.value)
     else:
-      raise ValueError(
-          f"Unsupported model name '{model_name}' from path '{model_name_or_path}'"
-      )
+      raise ValueError(f"Unsupported model name '{model_name}' from path "
+                       f"'{model_name_or_path}'")
 
   datasets = {
       # Single sentences from movie reviews (SST dev set).
@@ -128,11 +139,18 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
     logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
 
+  # TODO(b/265983153): Explicitly adding UMAP here while we sort out a solution
+  # to recurrent upstream breakages. This code may become obsolete depending on
+  # the reoslution to this bug.
+  interpreters = core.default_interpreters(models)
+  interpreters["umap"] = projection.ProjectionManager(umap.UmapModel)
+
   generators = {"word_replacer": word_replacer.WordReplacer()}
 
   lit_demo = dev_server.Server(
       models,
       datasets,
+      interpreters=interpreters,
       generators=generators,
       layouts=CUSTOM_LAYOUTS,
       **server_flags.get_flags())
