@@ -17,13 +17,13 @@
  * limitations under the License.
  */
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
 import {html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators';
 import {styleMap} from 'lit/directives/style-map';
 
 import {styles} from './slider.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+
 
 /** A slider with LIT Brand-compliant styles. */
 @customElement('lit-slider')
@@ -42,14 +42,24 @@ export class Slider extends LitElement {
     return [sharedStyles, styles];
   }
 
-  override render () {
+
+
+  override render() {
     const normalizedValue = (this.val - this.min) / (this.max - this.min);
     const styles = {'background-size': `${normalizedValue * 100}% 100%`};
-    return html`<input type="range" class="slider" style=${styleMap(styles)}
-                  min="${this.min}" max="${this.max}" step="${this.step}"
-                  .value="${this.val.toString()}"
-                  @input=${this.onInput}
-                  @change=${this.onChange}>`;
+
+    // clang-format off
+    return html`
+      <div class='slider-label start'>${this.min}</div>
+      <input type="range" class="slider" style=${styleMap(styles)}
+        min="${this.min}" max="${this.max}" step="${this.step}"
+        .value="${this.val.toString()}"
+        @input=${this.onInput}
+        @change=${this.onChange}>
+      <div class='slider-label'>${this.max}</div>
+      <div class='slider-value'>${this.val.toString()}</div>
+    `;
+    // clang-format on
   }
 }
 

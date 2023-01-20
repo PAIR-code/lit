@@ -196,15 +196,10 @@ export class InterpreterControls extends ReactiveElement {
 
       // clang-format off
       return html`
-        <div class='slider-holder'>
-          <div class='slider-label slider-label-start'>${minVal}</div>
-          <lit-slider class="slider"
+        <lit-slider class="slider-holder"
                       min="${minVal}" max="${maxVal}" step="${step}"
                       val="${+this.settings[name]}"
                       .onInput=${updateSettings}></lit-slider>
-          <div class='slider-label'>${maxVal}</div>
-          <div class='slider-value'>${this.settings[name]}</div>
-        </div>
       `;
       // clang-format on
     } else if (controlType instanceof BooleanLitType) {

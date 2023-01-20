@@ -1,4 +1,9 @@
 /** Slider styles for Chrome */
+:host {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
 input[type='range'].slider {
   -webkit-appearance: none;
   max-width: calc(100% - 4px);
@@ -50,4 +55,26 @@ input[type="range"].slider::-ms-fill-upper {
 
 input[type="range"].slider::-ms-thumb {
   background-color: var(--lit-cyea-600);
+}
+
+.slider {
+  min-width: 60px;
+  flex: 1;
+}
+
+.slider-label {
+  color: var(--lit-neutral-600);
+  font-size: 11px;
+  min-width: 3em;
+}
+
+.slider-label.start {
+  text-align: end;
+  min-width: 1em;
+}
+
+.slider-value {
+  color: var(--lit-neutral-900);
+  min-width: 2em;
+  text-align: right;
 }

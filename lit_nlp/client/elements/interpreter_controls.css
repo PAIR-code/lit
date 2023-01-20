@@ -81,23 +81,3 @@
   width: 50%;
 }
 
-.slider {
-  min-width: 60px;
-  flex: 1;
-}
-
-.slider-label {
-  color: var(--lit-neutral-600);
-  font-size: 8pt;
-  min-width: 3em;
-}
-
-.slider-label-start {
-  text-align: end;
-  min-width: 1em;
-}
-
-.slider-value {
-  min-width: 2em;
-  text-align: right;
-}

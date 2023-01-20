@@ -56,13 +56,6 @@ export class ThresholdSlider extends LitElement {
         .text-no-controls {
           padding-top: 2px;
         }
-
-        .slider-val {
-          color: var(--lit-neutral-600);
-          margin-top: -3px; /*Accounts for custom thumb offset in lit-slider*/
-          margin-left: 2px;
-          width: 30px;
-        }
     `];
   }
 
@@ -130,11 +123,6 @@ export class ThresholdSlider extends LitElement {
       'text-with-controls': this.showControls,
       'text-no-controls': !this.showControls
     };
-    const valClasses = {
-      'text-with-controls': this.showControls,
-      'text-no-controls': !this.showControls,
-      'slider-val': true
-    };
 
     const renderLabel = () => {
       if (this.showControls) {
@@ -150,7 +138,6 @@ export class ThresholdSlider extends LitElement {
           ${renderLabel()}
           <lit-slider min="${min}" max="${max}" step="${step}" val="${val}"
                       .onChange=${onChange}></lit-slider>
-          <div class=${classMap(valClasses)}>${val}</div>
           ${this.showControls ?
               html`<button class='hairline-button reset-button' @click=${reset}
                    ?disabled="${isDefaultValue}">Reset</button>` : null}
