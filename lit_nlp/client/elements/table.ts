@@ -39,10 +39,10 @@ import * as papa from 'papaparse';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
-import {isNumber, median, numberRangeFnFromString, randInt} from '../lib/utils';
+import {isNumber, median, randInt} from '../lib/utils';
 
 import {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal} from './table_types';
-import {filterDataByQueries, getSortableEntry, parseSearchTextIntoQueries} from './table_utils';
+import {filterDataByQueries, getSortableEntry, itemMatchesText, parseSearchTextIntoQueries} from './table_utils';
 
 import {styles} from './table.css';
 
@@ -878,16 +878,7 @@ export class DataTable extends ReactiveElement {
       const handleSearchChange = (e: KeyboardEvent) => {
         const searchQuery = (e.target as HTMLInputElement)?.value || '';
         function fn(col: SortableTableEntry) {
-          if (typeof col === 'string') {
-            // String columns use a reg ex search.
-            return col.search(new RegExp(searchQuery)) !== -1;
-          } else if (typeof col === 'number') {
-            // Numeric columns use a range-based search.
-            const matchFn = numberRangeFnFromString(searchQuery);
-            return matchFn(col);
-          } else {
-            return false;
-          }
+          return itemMatchesText(col, searchQuery);
         }
         this.columnFilterInfo.set(header.name, {fn, values: [searchQuery]});
       };
