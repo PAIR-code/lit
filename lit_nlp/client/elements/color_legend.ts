@@ -146,7 +146,9 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
       <div class='legend-line'>
-        <div class='legend-box' title=${val} style=${style}></div>
+        <lit-tooltip content=${val} tooltipPosition="above">
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+        </lit-tooltip>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
       </div>
     `;
@@ -169,11 +171,12 @@ export class ColorLegend extends ReactiveElement {
     const background = this.scale(colorVal);
     const style = styleMap({'background': background});
 
-    // TODO(b/237418328): Add a custom tooltip for a faster display time.
     // clang-format off
     return html`
       <div class='legend-line'>
-        <div class='legend-box' title=${title} style=${style}></div>
+        <lit-tooltip content=${title} tooltipPosition="above">
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+        </lit-tooltip>
       </div>
     `;
     // clang-format on
@@ -194,8 +197,7 @@ export class ColorLegend extends ReactiveElement {
             <mwc-icon class="icon material-icon-outlined"
               slot="tooltip-anchor">palette</mwc-icon>
           </lit-tooltip>
-          <div class="color-label" title=${this.label}
-            name="color-name">
+          <div class="color-label" name="color-name">
             ${this.label}
           </div>
 
@@ -226,8 +228,7 @@ export class ColorLegend extends ReactiveElement {
             <mwc-icon class="icon material-icon-outlined"
               slot="tooltip-anchor">palette</mwc-icon>
           </lit-tooltip>
-          <div class="color-label" title=${this.label}
-            name="color-name">
+          <div class="color-label" name="color-name">
             ${this.label}
           </div>
 

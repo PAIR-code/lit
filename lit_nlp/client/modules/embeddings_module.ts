@@ -590,11 +590,15 @@ export class EmbeddingsModule extends LitModule {
             label=${this.colorService.selectedColorOption.name}
             .scale=${this.colorService.selectedColorOption.scale}>
           </color-legend>
-          <button class="hairline-button selected-nearest-button"
-            ?disabled=${disabled}
-            @click=${onSelectNearest}
-            title=${disabled ? 'Select a single point to use this feature' : ''}
-          >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
+          <lit-tooltip content=${disabled ?
+            'Select nearest neighbors for the current datapoint. To enable, select a single datapoint.' : ''}
+            tooltipPosition="above">
+            <button class="hairline-button selected-nearest-button"
+              ?disabled=${disabled}
+              @click=${onSelectNearest}
+              slot="tooltip-anchor"
+            >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
+          </lit-tooltip>
         </div>
       </div>
     `;

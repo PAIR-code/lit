@@ -148,6 +148,8 @@ export class WidgetGroup extends ReactiveElement {
 
     const tooltipHtml =
         html`<lit-tooltip .content=${infoMarkdown}></lit-tooltip>`;
+    // TODO(b/255799266): Add fast tooltips to module controls without
+    // rotating on collapse.
     // clang-format off
     return html`
       <div class=header>

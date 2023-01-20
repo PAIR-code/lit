@@ -147,25 +147,32 @@ export class ToolbarComponent extends MobxLitElement {
           this.settingsService.updateSettings({'models': [...modelSet]});
           this.requestUpdate();
         };
+
+        const tooltip = `${isSelected ? 'Unselect' : 'Select'} model ${name}`;
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title="${name}"
-            @click=${updateModelSelection}>
-            <span class='material-icon'>${icon}</span>
-            &nbsp;
-            <span class='headline-button-text' title=${name}>${name}</span>
-          </button>
+          <lit-tooltip content=${tooltip}>
+            <button class=${classMap(classes)}
+              slot='tooltip-anchor'
+              @click=${updateModelSelection}>
+              <span class='material-icon'>${icon}</span>
+              &nbsp;
+              <span class='headline-button-text'>${name}</span>
+            </button>
+          </lit-tooltip>
         `;
         // clang-format on
       });
       // clang-format off
       return html`
         ${modelChips}
-        <button class='headline-button' title="Select model(s)"
-          @click=${() => { this.jumpToSettingsTab("Models"); }}>
-          <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;<span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select model(s)">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Models"); }}>
+            <span class='material-icon-outlined'>smart_toy</span>
+            &nbsp;<span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     } else {
@@ -173,14 +180,16 @@ export class ToolbarComponent extends MobxLitElement {
       const buttonText = this.appState.currentModels.join(', ');
       // clang-format off
       return html`
-        <button class='headline-button' title="Select model(s)"
-          @click=${() => { this.jumpToSettingsTab("Models"); }}>
-          <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;
-          <span class='headline-button-text'>${buttonText}</span>
-          &nbsp;
-          <span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select model(s)">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Models"); }}>
+            <span class='material-icon-outlined'>smart_toy</span>
+            &nbsp;
+            <span class='headline-button-text'>${buttonText}</span>
+            &nbsp;
+            <span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     }
@@ -191,14 +200,16 @@ export class ToolbarComponent extends MobxLitElement {
     // clang-format off
     return html`
       <div class='vertical-separator'></div>
-      <button class='headline-button' title="Select dataset"
-        @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
-        <span class='material-icon'>storage</span>
-        &nbsp;
-        <span class='headline-button-text'>${buttonText}</span>
-        &nbsp;
-        <span class='material-icon'>arrow_drop_down</span>
-      </button>
+      <lit-tooltip content="Select dataset">
+        <button class='headline-button' slot="tooltip-anchor"
+          @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
+          <span class='material-icon'>storage</span>
+          &nbsp;
+          <span class='headline-button-text'>${buttonText}</span>
+          &nbsp;
+          <span class='material-icon'>arrow_drop_down</span>
+        </button>
+      </lit-tooltip>
     `;
     // clang-format on
   }
@@ -225,12 +236,14 @@ export class ToolbarComponent extends MobxLitElement {
         };
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title='Select ${name} layout'
-            @click=${updateLayoutSelection}>
-            <span class=${iconClass}>view_compact</span>
-            &nbsp;
-            <span class='headline-button-text'>${name}</span>
-          </button>
+          <lit-tooltip content="Select ${name} layout">
+            <button class=${classMap(classes)} slot="tooltip-anchor"
+              @click=${updateLayoutSelection}>
+              <span class=${iconClass}>view_compact</span>
+              &nbsp;
+              <span class='headline-button-text'>${name}</span>
+            </button>
+          </lit-tooltip>
         `;
         // clang-format on
       });
@@ -241,14 +254,16 @@ export class ToolbarComponent extends MobxLitElement {
       // Otherwise, give a regular button that opens the layouts menu.
       // clang-format off
       return html`
-        <button class='headline-button' title="Select UI layout."
-          @click=${() => { this.jumpToSettingsTab("Layout"); }}>
-          <span class='material-icon'>view_compact</span>
-          &nbsp;
-          <span class='headline-button-text' title=${currentLayout}>${currentLayout}</span>
-          &nbsp;
-          <span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select UI layout.">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Layout"); }}>
+            <span class='material-icon'>view_compact</span>
+            &nbsp;
+            <span class='headline-button-text'>${currentLayout}</span>
+            &nbsp;
+            <span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     }
@@ -272,27 +287,34 @@ export class ToolbarComponent extends MobxLitElement {
   renderRightCorner() {
     // clang-format off
     const settingsButton = html`
-      <button class='headline-button unbordered' id="config"
-        title="Configure models, dataset, and UI."
-        @click=${this.toggleGlobalSettings}>
-        <span class='material-icon'>settings</span>
-        &nbsp;Configure
-      </button>`;
+      <lit-tooltip content="Configure models, datasets, and UI.">
+        <button class='headline-button unbordered' id="config"
+          slot="tooltip-anchor"
+          @click=${this.toggleGlobalSettings}>
+          <span class='material-icon'>settings</span>
+          &nbsp;Configure
+        </button>
+      </lit-tooltip>`;
 
     const docButton = this.appState.metadata != null ?
         html`
+        <lit-tooltip content="Go to documentation" tooltipPosition="left">
           <mwc-icon class="icon-button large-icon white-icon icon-margin"
-            title="Documentation"
+            slot="tooltip-anchor"
             @click=${this.toggleDocumentation}>
             help_outline
-          </mwc-icon>` : null;
+          </mwc-icon>
+        </lit-tooltip>` : null;
+
     return html`
       ${settingsButton}
-      <button class='headline-button unbordered' title="Copy link to this page"
-        @click=${this.onClickCopyLink}>
-        <span class='material-icon'>link</span>
-        &nbsp;Copy Link
-      </button>
+      <lit-tooltip content="Copy link to this page" tooltipPosition="left">
+        <button class='headline-button unbordered' slot="tooltip-anchor"
+          @click=${this.onClickCopyLink}>
+          <span class='material-icon'>link</span>
+          &nbsp;Copy Link
+        </button>
+      </lit-tooltip>
       ${docButton}
     `;
     // clang-format on

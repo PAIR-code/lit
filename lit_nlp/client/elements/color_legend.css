@@ -19,6 +19,9 @@
   margin: 2px;
   border: 1px solid gray;
   border-radius: 1px;
+  /* This helps to offset a rendering differential between
+   * tooltip and color blocks. */
+  transform: translateY(2px);
 }
 
 .legend-label {

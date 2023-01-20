@@ -825,10 +825,13 @@ export class DataTable extends ReactiveElement {
     const headerClasses =
         classMap({'column-header': true, 'right-align': header.rightAlign!});
 
+
+    // TODO(b/255799266): Add fast tooltips to icons.
+    // There's some rendering trickiness around the table element and tooltips.
     // clang-format off
     return html`
         <th id=${headerId}>
-          <div class=${headerClasses} title=${title}>
+          <div class=${headerClasses}>
             <div class="header-holder">
               <div @click=${toggleSort}>${header.html!}</div>
               ${this.searchEnabled ? html`

@@ -118,7 +118,7 @@ lit-widget {
   max-width: var(--lit-group-header-height);
 }
 
-:host([minimized]) .header {
+:host([minimized]) .header:not(.tooltip-text){
   padding-top: 8px;
   padding-bottom: 2px; /* top icon should align with horizontal toolbar */
   padding-left: 0;

@@ -271,7 +271,7 @@ export class TCAVModule extends LitModule {
         this.selectedLayers.size;
 
     const disabledText =
-        `select a slice with ${MIN_EXAMPLES_LENGTH} or more examples`;
+        `Select a slice with ${MIN_EXAMPLES_LENGTH} or more examples.`;
 
     // The width of the SVG increase by 60px for each additional entry after
     // the first bar, so their labels don't overlap.
@@ -306,10 +306,12 @@ export class TCAVModule extends LitModule {
                     this.selectedLayers.size === 0 &&
                     this.selectedSlices.size === 0 &&
                     this.negativeSlices.size === 0}>Clear</button>
-                <button id='submit'
-                  class="hairline-button" title=${shouldDisable() ? disabledText: ''}
-                  @click=${() => this.runTCAV()} ?disabled=${
-                   shouldDisable()}>Run TCAV</button>
+                <lit-tooltip content=${shouldDisable() ? disabledText: ''}>
+                  <button id='submit'
+                    class="hairline-button" slot="tooltip-anchor"
+                    @click=${() => this.runTCAV()} ?disabled=${
+                     shouldDisable()}>Run TCAV</button>
+                </lit-tooltip>
               </div>
             </div>
           </div>
