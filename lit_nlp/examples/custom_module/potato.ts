@@ -2,8 +2,10 @@
  * @fileoverview They're red, they're white, they're brown,
  * they get that way under-ground...
  *
- * This defines a custom module, which we'll import in main.ts to include in
- * the LIT app.
+ * This defines a custom module. The @customElement decorator registers
+ * this and makes it available to the LIT framework, which can then construct it
+ * from the tag name ('potato-module') when this is specified in the LIT layout
+ * (see demo.py).
  */
 
 // tslint:disable:no-new-decorators
