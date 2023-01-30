@@ -262,7 +262,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   def _get_results_from_cache(self, input_keys: list[str]):
     with self._cache.lock:
-      return [self._cache.get(input_key) for input_key in input_keys]
+      return [self._cache.get(input_key) for input_key in input_keys]  # pytype: disable=wrong-arg-types  # always-use-return-annotations
 
   def _predict_with_metadata(
       self,
