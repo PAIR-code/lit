@@ -70,15 +70,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
   private readonly appState = app.getService(AppState);
   private readonly settingsService = app.getService(SettingsService);
 
-  @observable private selectedDataset: string = '';
-  @observable private selectedLayout: string = '';
+  @observable private selectedDataset = '';
+  @observable private selectedLayout = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
   @observable selectedTab: TabName = 'Models';
 
-  @observable private pathForDatapoints: string = '';
-  @observable private datapointsStatus: string = '';
-  @observable private pathForModel: string = '';
-  @observable private modelStatus: string = '';
+  @observable private pathForDatapoints = '';
+  @observable private datapointsStatus = '';
+  @observable private pathForModel = '';
+  @observable private modelStatus = '';
 
   // tslint:disable:no-inferrable-new-expression
   @observable private readonly openModelKeys: Set<string> = new Set();
@@ -158,7 +158,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   }
 
   override render() {
-    const hiddenClassMap = classMap({hide: !this.isOpen});
+    const hiddenClassMap = classMap({'hide': !this.isOpen});
     // clang-format off
     return html`
       <div id="global-settings-holder">
@@ -198,7 +198,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const tabs: TabName[] = ['Models', 'Dataset', 'Layout'];
     const renderTab = (tab: TabName) => {
       const click = () => this.selectedTab = tab;
-      const classes = classMap({tab: true, selected: this.selectedTab === tab});
+      const classes = classMap({
+        'tab': true,
+        'selected': this.selectedTab === tab
+      });
       return html`<div class=${classes} @click=${click}>${tab}</div>`;
     };
     return html`
@@ -236,15 +239,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         this.selectedDataset, this.selectedModels);
 
     const modelClasses = classMap({
-      info: true,
-      disabled: !this.selectedModels.length,
-      error: noModelsSelected
+      'info': true,
+      'disabled': !this.selectedModels.length,
+      'error': noModelsSelected
     });
     const modelsStr = this.selectedModels.length ?
         this.selectedModels.join(', ') :
         'No models selected';
 
-    const datasetClasses = classMap({info: true, error: !datasetValid});
+    const datasetClasses = classMap({'info': true, 'error': !datasetValid});
 
     return html`
     <div id="bottombar">
@@ -272,8 +275,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     const submit = () => {
       this.submitSettings();
-      this.selectedTab = 'Models';
-      this.close();
+      cancel();
     };
 
     const submitDisabled = noModelsSelected || !datasetValid;
@@ -356,7 +358,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const compatible = this.settingsService.isDatasetValidForModels(
             datasetName, [name]);
           const error = !compatible && (this.selectedDataset === datasetName);
-          const classes = classMap({compatible, error, 'info-line': true});
+          const classes = classMap({
+            'compatible': compatible,
+            'error': error,
+            'info-line': true
+          });
           const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
           return html`
             <div class=${classes}>
@@ -481,7 +487,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
         const compatible = this.settingsService.isDatasetValidForModels(
           name, [modelName]);
         const error = !compatible && (this.selectedModels.includes(modelName));
-        const classes = classMap({compatible, error, 'info-line': true});
+        const classes = classMap({
+          'compatible': compatible,
+          'error': error,
+          'info-line': true
+        });
         const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
         return html`
         <div class=${classes}>
@@ -648,7 +658,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
         SELECTED_TXT :
         (disabled ? INCOMPATIBLE_TXT : COMPATIBLE_TXT);
 
-    const statusClasses = classMap({status: true, selected, error: disabled});
+    const statusClasses = classMap({
+      'status': true,
+      'selected': selected,
+      'error': disabled
+    });
     // clang-format off
     return html`
     <div class=${statusClasses}>
@@ -670,8 +684,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     const classes = classMap({
       'config-line': true,
-      selected,
-      disabled,
+      'selected': selected,
+      'disabled': disabled,
     });
 
     // In collapsed bar, show the first line only.
@@ -681,7 +695,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const formattedDescription = getTemplateStringFromMarkdown(description);
 
     const expandedInfoClasses =
-        classMap({'expanded-info': true, open: expanderOpen});
+        classMap({'expanded-info': true, 'open': expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
     return html`
       <div class=${classes}>
