@@ -1,3 +1,7 @@
+:host {
+  --tooltip-max-width: 232px;
+}
+
 /* Tooltip */
 .lit-tooltip {
   display: inline-block;
@@ -7,7 +11,7 @@
 .lit-tooltip .tooltip-text {
   visibility: hidden;
 
-  max-width: 232px;
+  max-width: var(--tooltip-max-width);
 
   background-color: #202124;
   opacity: 0.9;

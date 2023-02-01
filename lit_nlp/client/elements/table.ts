@@ -331,7 +331,10 @@ export class DataTable extends ReactiveElement {
           {name: colInfo} :
           {...colInfo};
       header.html =
-          header.html ?? html`<div class="header-text">${header.name}</div>`;
+          header.html ?? html`
+          <lit-tooltip style="--tooltip-max-width: 500px;" content=${header.name}>
+            <div slot="tooltip-anchor" class="header-text">${header.name}</div>
+          </lit-tooltip>`;
       header.rightAlign =
           header.rightAlign ?? this.shouldRightAlignColumn(index);
       return header;
