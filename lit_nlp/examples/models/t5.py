@@ -46,6 +46,17 @@ class T5ModelConfig(object):
   token_top_k: int = 10
   output_attention: bool = False
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "inference_batch_size": lit_types.Integer(default=4, required=False),
+        "beam_size": lit_types.Integer(default=4, required=False),
+        "max_gen_length": lit_types.Integer(default=50, required=False),
+        "num_to_generate": lit_types.Integer(default=1, required=False),
+        "token_top_k": lit_types.Integer(default=10, required=False),
+        "output_attention": lit_types.Boolean(default=False, required=False),
+    }
+
 
 def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
   """Validate that a given model looks like a T5 model.
@@ -111,6 +122,13 @@ class T5SavedModel(lit_model.Model):
     return [{
         "output_text": m.decode("utf-8")
     } for m in model_outputs["outputs"].numpy()]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "saved_model_path": lit_types.String(),
+        **T5ModelConfig.init_spec(),
+    }
 
   def input_spec(self):
     return {
@@ -313,6 +331,13 @@ class T5HFModel(lit_model.Model):
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
     return list(map(self._postprocess, unbatched_outputs))
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }
 
   def input_spec(self):
     return {

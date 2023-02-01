@@ -21,6 +21,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import dataset as lit_dataset
@@ -148,7 +149,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           model_name=model_name_or_path,
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
-          output_attention=False)
+          output_attention=False,
+      )
+
+  model_loaders: lit_app.ModelLoadersMap = {
+      "T5 Saved Model": (t5.T5SavedModel, t5.T5SavedModel.init_spec()),
+      "T5 HF Model": (t5.T5HFModel, t5.T5HFModel.init_spec()),
+  }
 
   ##
   # Load eval sets and model wrappers for each task.
@@ -156,7 +163,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # and post-processing code.
   models = {}
   datasets = {}
-
+  dataset_loaders: lit_app.DatasetLoadersMap = {}
   if "summarization" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_summarization"] = t5.SummarizationWrapper(m)
@@ -166,6 +173,11 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     else:
       datasets["CNNDM"] = summarization.CNNDMData(
           split="validation", max_examples=_MAX_EXAMPLES.value)
+
+    dataset_loaders["CNN DailyMail"] = (
+        summarization.CNNDMData,
+        summarization.CNNDMData.init_spec(),
+    )
 
   if "mt" in _TASKS.value:
     for k, m in base_models.items():
@@ -182,6 +194,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           version="fr-en", reverse=True, filepath=_WMT14_FR_EN_HOSTED_URL)
     else:
       datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
+
+    dataset_loaders["WMT 14"] = (mt.WMT14Data, mt.WMT14Data.init_spec())
 
   # Truncate datasets if --max_examples is set.
   for name in datasets:
@@ -207,7 +221,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Actually start the LIT server, using the models, datasets, and other
   # components constructed above.
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      model_loaders=model_loaders,
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 
