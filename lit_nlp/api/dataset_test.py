@@ -42,26 +42,28 @@ class TestDatasetInitWithArgs(lit_dataset.Dataset):
 class DatasetTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
-      ("empty_init", TestDatasetEmptyInit()),
-      ("pass_thru_init", TestDatasetPassThroughInit()),
+      ("empty_init", TestDatasetEmptyInit),
+      ("pass_thru_init", TestDatasetPassThroughInit),
   )
   def test_init_spec_empty(self, dataset: lit_dataset.Dataset):
     self.assertEmpty(dataset.init_spec())
 
   def test_init_spec_populated(self):
-    dataset = TestDatasetInitWithArgs("test/path")
-    self.assertEqual(dataset.init_spec(), {
-        "path": types.String(),
-        "max_examples": types.Integer(default=200, required=False),
-        "max_qps": types.Scalar(default=1.0, required=False),
-    })
+    self.assertEqual(
+        TestDatasetInitWithArgs.init_spec(),
+        {
+            "path": types.String(),
+            "max_examples": types.Integer(default=200, required=False),
+            "max_qps": types.Scalar(default=1.0, required=False),
+        },
+    )
 
   @parameterized.named_parameters(
       # All base Dataset classes are incompatible with automated spec inference
       # due to the complexity of their arguments, thus return None.
-      ("dataset", lit_dataset.Dataset()),
-      ("indexed_dataset", lit_dataset.IndexedDataset(id_fn=lambda x: x)),
-      ("none_dataset", lit_dataset.NoneDataset(models={})),
+      ("dataset", lit_dataset.Dataset),
+      ("indexed_dataset", lit_dataset.IndexedDataset),
+      ("none_dataset", lit_dataset.NoneDataset),
   )
   def test_init_spec_none(self, dataset: lit_dataset.Dataset):
     self.assertIsNone(dataset.init_spec())

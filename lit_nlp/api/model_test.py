@@ -198,23 +198,22 @@ class ModelTest(parameterized.TestCase):
     self.assertEqual(test_model.count, expected_run_count)
 
   def test_init_spec_empty(self):
-    mdl = TestBatchingModel()
-    self.assertEmpty(mdl.init_spec())
+    self.assertEmpty(TestBatchingModel.init_spec())
 
   def test_init_spec_populated(self):
-    mdl = TestSavedModel("test/path")
-    self.assertEqual(mdl.init_spec(), {
-        "path": types.String(),
-        "compute_embs": types.Boolean(default=False, required=False),
-    })
+    self.assertEqual(
+        TestSavedModel.init_spec(),
+        {
+            "path": types.String(),
+            "compute_embs": types.Boolean(default=False, required=False),
+        },
+    )
 
   @parameterized.named_parameters(
-      ("bad_args", CompatibilityTestModel({})),
+      ("bad_args", CompatibilityTestModel),
       # All ModelWrapper instances should return None, regardless of the model
       # the instance is wrapping.
-      ("wrap_bad_args", model.ModelWrapper(CompatibilityTestModel({}))),
-      ("wrap_good_args", model.ModelWrapper(TestSavedModel("test/path"))),
-      ("wrap_no_args", model.ModelWrapper(TestBatchingModel())),
+      ("wrapper", model.ModelWrapper),
   )
   def test_init_spec_none(self, mdl: model.Model):
     self.assertIsNone(mdl.init_spec())

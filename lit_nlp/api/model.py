@@ -93,7 +93,8 @@ class Model(metaclass=abc.ABCMeta):
     """Maximum minibatch size for this model."""
     return 1
 
-  def init_spec(self) -> Optional[Spec]:
+  @classmethod
+  def init_spec(cls) -> Optional[Spec]:
     """Attempts to infer a Spec describing a Model's constructor parameters.
 
     The Model base class attempts to infer a Spec for the constructor using
@@ -111,11 +112,12 @@ class Model(metaclass=abc.ABCMeta):
       not be inferred.
     """
     try:
-      spec = types.infer_spec_for_func(self.__init__)
+      spec = types.infer_spec_for_func(cls.__init__)
     except TypeError as e:
       spec = None
-      logging.warning("Unable to infer init spec for model '%s'. %s",
-                      self.__class__.__name__, str(e))
+      logging.warning(
+          "Unable to infer init spec for model '%s'. %s", cls.__name__, str(e)
+      )
     return spec
 
   def is_compatible_with_dataset(self, dataset: lit_dataset.Dataset) -> bool:

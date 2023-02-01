@@ -98,7 +98,8 @@ class Dataset(object):
     """
     return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
-  def init_spec(self) -> Optional[types.Spec]:
+  @classmethod
+  def init_spec(cls) -> Optional[types.Spec]:
     """Attempts to infer a Spec describing a Dataset's constructor parameters.
 
     The Dataset base class attempts to infer a Spec for the constructor using
@@ -116,11 +117,12 @@ class Dataset(object):
       could not be inferred.
     """
     try:
-      spec = types.infer_spec_for_func(self.__init__)
+      spec = types.infer_spec_for_func(cls.__init__)
     except TypeError as e:
       spec = None
-      logging.warning("Unable to infer init spec for dataset '%s'. %s",
-                      self.__class__.__name__, str(e))
+      logging.warning(
+          "Unable to infer init spec for dataset '%s'. %s", cls.__name__, str(e)
+      )
     return spec
 
   def load(self, path: str):
