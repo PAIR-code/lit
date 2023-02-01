@@ -15,6 +15,7 @@ from typing import Optional, Sequence
 from absl import app
 from absl import flags
 from absl import logging
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import glue
@@ -87,7 +88,10 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     logging.info("Quick-start mode; overriding --models and --max_examples.")
 
   models = {}
+  model_loaders: lit_app.ModelLoadersMap = {}
+
   datasets = {}
+  dataset_loaders: lit_app.DatasetLoadersMap = {}
 
   tasks_to_load = set()
   for model_string in _MODELS.value:
@@ -103,30 +107,49 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # Load the model from disk.
     models[name] = MODELS_BY_TASK[task](path)
     tasks_to_load.add(task)
+    if task not in model_loaders:
+      # Adds the model loader info. Since task-specific GLUE models set specific
+      # __init__() values, we use the GlueModelConfig.init_spec() here because
+      # it is limited to only those paramaters that will not override or
+      # interfere with the parameters set by task-specific model subclasses.
+      model_loaders[task] = (
+          MODELS_BY_TASK[task],
+          glue_models.GlueModelConfig.init_spec(),
+      )
 
   ##
   # Load datasets for each task that we have a model for
   if "sst2" in tasks_to_load:
     logging.info("Loading data for SST-2 task.")
     datasets["sst_dev"] = glue.SST2Data("validation")
+    dataset_loaders["sst2"] = (glue.SST2Data, glue.SST2Data.init_spec())
 
   if "stsb" in tasks_to_load:
     logging.info("Loading data for STS-B task.")
     datasets["stsb_dev"] = glue.STSBData("validation")
+    dataset_loaders["stsb"] = (glue.STSBData, glue.STSBData.init_spec())
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
     datasets["mnli_dev"] = glue.MNLIData("validation_matched")
     datasets["mnli_dev_mm"] = glue.MNLIData("validation_mismatched")
+    dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
 
   # Truncate datasets if --max_examples is set.
-  for name in datasets:
-    logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
-    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
-    logging.info("  truncated to %d examples", len(datasets[name]))
+  if _MAX_EXAMPLES.value is not None:
+    for name in datasets:
+      logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
+      datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
+      logging.info("  truncated to %d examples", len(datasets[name]))
 
   # Start the LIT server. See server_flags.py for server options.
-  lit_demo = dev_server.Server(models, datasets, **server_flags.get_flags())
+  lit_demo = dev_server.Server(
+      models,
+      datasets,
+      model_loaders=model_loaders,
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 

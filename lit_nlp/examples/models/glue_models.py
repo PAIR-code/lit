@@ -18,7 +18,9 @@ import transformers
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
-TFSequenceClassifierOutput = transformers.modeling_tf_outputs.TFSequenceClassifierOutput
+TFSequenceClassifierOutput = (
+    transformers.modeling_tf_outputs.TFSequenceClassifierOutput
+)
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -37,6 +39,19 @@ class GlueModelConfig(object):
   compute_grads: bool = True  # if True, compute and return gradients.
   output_attention: bool = True
   output_embeddings: bool = True
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name_or_path": lit_types.String(
+            default="bert-base-uncased", required=False
+        ),
+        "max_seq_length": lit_types.Integer(default=128, required=False),
+        "inference_batch_size": lit_types.Integer(default=32, required=False),
+        "compute_grads": lit_types.Boolean(default=True, required=False),
+        "output_attention": lit_types.Boolean(default=True, required=False),
+        "output_embeddings": lit_types.Boolean(default=True, required=False),
+    }
 
 
 class GlueModel(lit_model.Model):

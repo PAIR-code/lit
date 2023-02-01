@@ -55,14 +55,25 @@ class SST2Data(lit_dataset.Dataset):
   """
 
   LABELS = ['0', '1']
+  AVAILABLE_SPLITS = ['test', 'train', 'validation']
 
   def __init__(self, split: str):
+    if split not in self.AVAILABLE_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: "
+          f'{self.AVAILABLE_SPLITS}'
+      )
+
     self._examples = []
     for ex in load_tfds('glue/sst2', split=split):
       self._examples.append({
           'sentence': ex['sentence'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
 
   def spec(self):
     return {
@@ -129,7 +140,15 @@ class STSBData(lit_dataset.Dataset):
   See https://www.tensorflow.org/datasets/catalog/glue#gluestsb.
   """
 
+  AVAILABLE_SPLITS = ['test', 'train', 'validation']
+
   def __init__(self, split: str):
+    if split not in self.AVAILABLE_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: "
+          f'{self.AVAILABLE_SPLITS}'
+      )
+
     self._examples = []
     for ex in load_tfds('glue/stsb', split=split):
       self._examples.append({
@@ -137,6 +156,10 @@ class STSBData(lit_dataset.Dataset):
           'sentence2': ex['sentence2'].decode('utf-8'),
           'label': ex['label'],
       })
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
 
   def spec(self):
     return {
@@ -153,8 +176,21 @@ class MNLIData(lit_dataset.Dataset):
   """
 
   LABELS = ['entailment', 'neutral', 'contradiction']
+  AVAILABLE_SPLITS = [
+      'test_matched',
+      'test_mismatched',
+      'train',
+      'validation_matched',
+      'validation_mismatched',
+  ]
 
   def __init__(self, split: str):
+    if split not in self.AVAILABLE_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: "
+          f'{self.AVAILABLE_SPLITS}'
+      )
+
     self._examples = []
     for ex in load_tfds('glue/mnli', split=split):
       self._examples.append({
@@ -162,6 +198,10 @@ class MNLIData(lit_dataset.Dataset):
           'hypothesis': ex['hypothesis'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
 
   def spec(self):
     return {
