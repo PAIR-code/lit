@@ -173,19 +173,19 @@ export function cloneSpec(spec: Spec): Spec {
 /**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
+// TODO(b/267200697): Explore optimizing this function using the reviver
+// parameter of JSON.parse().
 export function deserializeLitTypesInLitMetadata(
     metadata: SerializedLitMetadata): LitMetadata {
 
   for (const model of Object.keys(metadata.models)) {
-    const {spec} = metadata.models[model];
-    spec.init = spec.init ? deserializeLitTypesInSpec(spec.init) : null;
-    spec.input = deserializeLitTypesInSpec(spec.input);
-    spec.output = deserializeLitTypesInSpec(spec.output);
+    metadata.models[model].spec.input =
+        deserializeLitTypesInSpec(metadata.models[model].spec.input);
+    metadata.models[model].spec.output =
+        deserializeLitTypesInSpec(metadata.models[model].spec.output);
   }
 
   for (const dataset of Object.keys(metadata.datasets)) {
-    metadata.datasets[dataset].initSpec = metadata.datasets[dataset].initSpec ?
-        deserializeLitTypesInSpec(metadata.datasets[dataset].initSpec) : null;
     metadata.datasets[dataset].spec =
         deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
   }
@@ -202,6 +202,18 @@ export function deserializeLitTypesInLitMetadata(
         metadata.interpreters[interpreter].configSpec);
     metadata.interpreters[interpreter].metaSpec =
         deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
+  }
+
+  for (const dataset of Object.keys(metadata.initSpecs.datasets)) {
+    if (metadata.initSpecs.datasets[dataset] == null) continue;
+    metadata.initSpecs.datasets[dataset] =
+        deserializeLitTypesInSpec(metadata.initSpecs.datasets[dataset]);
+  }
+
+  for (const model of Object.keys(metadata.initSpecs.models)) {
+    if (metadata.initSpecs.models[model] == null) continue;
+    metadata.initSpecs.models[model] =
+        deserializeLitTypesInSpec(metadata.initSpecs.models[model]);
   }
 
   return metadata;

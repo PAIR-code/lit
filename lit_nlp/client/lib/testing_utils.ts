@@ -56,7 +56,6 @@ export const mockMetadata: LitMetadata = {
   'models': {
     'sst_0_micro': {
       'spec': {
-        'init': {},
         'input': {
           'passage': createLitType(TextSegment),
           'passage_tokens':
@@ -90,7 +89,6 @@ export const mockMetadata: LitMetadata = {
     },
     'sst_1_micro': {
       'spec': {
-        'init': {},
         'input': {
           'passage': createLitType(TextSegment),
           'passage_tokens':
@@ -125,9 +123,6 @@ export const mockMetadata: LitMetadata = {
   },
   'datasets': {
     'sst_dev': {
-      'initSpec': {
-        'split': createLitType(StringLitType),
-      },
       'size': 872,
       'spec': {
         'passage': createLitType(TextSegment),
@@ -135,7 +130,6 @@ export const mockMetadata: LitMetadata = {
       }
     },
     'color_test': {
-      'initSpec': null,
       'size': 2,
       'spec': {
         'testNumFeat0': createLitType(Scalar),
@@ -145,7 +139,6 @@ export const mockMetadata: LitMetadata = {
       }
     },
     'penguin_dev': {
-      'initSpec': {},
       'size': 10,
       'spec': {
         'body_mass_g': createLitType(Scalar, {
@@ -189,6 +182,17 @@ export const mockMetadata: LitMetadata = {
     'pca': emptySpec(),
     'umap': emptySpec(),
   },
+  'initSpecs': {
+    'datasets': {
+      'sst_dev': {'split': createLitType(StringLitType)},
+      'color_test': null,
+      'penguin_dev': {}
+    },
+    'models': {
+      'sst_0_micro': {},
+      'sst_1_micro': {},
+    },
+  },
   'layouts': {},
   'demoMode': false,
   'defaultLayout': 'default',
@@ -204,7 +208,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
   'models': {
     'sst_0_micro': {
       'spec': {
-        'init': {},
         'input': {
           'passage': {'__name__': 'TextSegment', 'required': true},
           'passage_tokens':
@@ -251,7 +254,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     },
     'sst_1_micro': {
       'spec': {
-        'init':  {},
         'input': {
           'passage': {'__name__': 'TextSegment', 'required': true},
           'passage_tokens':
@@ -299,9 +301,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
   },
   'datasets': {
     'sst_dev': {
-      'initSpec':  {
-        'split':{'__name__': 'StringLitType', 'required': true}
-      },
       'size': 872,
       'spec': {
         'passage': {'__name__': 'TextSegment', 'required': true},
@@ -310,7 +309,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
       }
     },
     'color_test': {
-      'initSpec': null,
       'size': 2,
       'spec': {
         'testNumFeat0': {'__name__': 'Scalar', 'required': true},
@@ -328,7 +326,6 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
       }
     },
     'penguin_dev': {
-      'initSpec': {},
       'size': 10,
       'spec': {
         'body_mass_g': {'__name__': 'Scalar', 'step': 1, 'required': true},
@@ -377,6 +374,19 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'metrics': emptySpec(),
     'pca': emptySpec(),
     'umap': emptySpec(),
+  },
+  'initSpecs': {
+    'datasets': {
+      'sst_dev': {
+        'split': {'__name__': 'StringLitType', 'required': true}
+      },
+      'color_test': null,
+      'penguin_dev': {}
+    },
+    'models': {
+      'sst_0_micro': {},
+      'sst_1_micro': {},
+    },
   },
   'layouts': {},
   'demoMode': false,

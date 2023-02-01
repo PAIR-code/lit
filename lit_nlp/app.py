@@ -49,6 +49,12 @@ PredsCache = caching.PredsCache
 
 ProgressIndicator = Callable[[Iterable], Iterable]
 
+DatasetLoader = tuple[Callable[..., lit_dataset.Dataset], Optional[types.Spec]]
+DatasetLoadersMap = dict[str, DatasetLoader]
+
+ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
+ModelLoadersMap = dict[str, ModelLoader]
+
 
 class LitApp(object):
   """LIT WSGI application."""
@@ -60,7 +66,6 @@ class LitApp(object):
       info = {
           'description': model.description(),
           'spec': {
-              'initSpec': self._model_init_specs[name],
               'input': model.input_spec(),
               'output': model.output_spec(),
           }
@@ -97,7 +102,6 @@ class LitApp(object):
     dataset_info = {}
     for name, ds in self._datasets.items():
       dataset_info[name] = {
-          'init': self._dataset_init_specs[name],
           'spec': ds.spec(),
           'description': ds.description(),
           'size': len(ds),
@@ -119,6 +123,11 @@ class LitApp(object):
           'description': interpreter.description()
       }
 
+    init_specs = {
+        'datasets': {n: s for n, (_, s) in self._dataset_loaders.items()},
+        'models': {n: s for n, (_, s) in self._model_loaders.items()},
+    }
+
     return {
         # Component info and specs
         'models': model_info,
@@ -135,6 +144,7 @@ class LitApp(object):
         'onboardStartDoc': self._onboard_start_doc,
         'onboardEndDoc': self._onboard_end_doc,
         'syncState': self.ui_state_tracker is not None,
+        'initSpecs': init_specs,
     }
 
   def _get_model_spec(self, name: str):
@@ -513,11 +523,14 @@ class LitApp(object):
       interpreters: Optional[Mapping[str, lit_components.Interpreter]] = None,
       annotators: Optional[list[lit_components.Annotator]] = None,
       layouts: Optional[layout.LitComponentLayouts] = None,
+      dataset_loaders: Optional[DatasetLoadersMap] = None,
+      model_loaders: Optional[ModelLoadersMap] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[str] = None,
       warm_start: float = 0.0,
-      warm_start_progress_indicator: Optional[ProgressIndicator] = tqdm
-      .tqdm,  # not in server_flags
+      warm_start_progress_indicator: Optional[
+          ProgressIndicator
+      ] = tqdm.tqdm,  # not in server_flags
       warm_projections: bool = False,
       client_root: Optional[str] = None,
       demo_mode: bool = False,
@@ -551,13 +564,13 @@ class LitApp(object):
     # client code to manually merge when this is the desired behavior.
     self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
 
-    self._model_init_specs: dict[str, Optional[types.Spec]] = {}
+    self._model_loaders: ModelLoadersMap = model_loaders or {}
     self._models: dict[str, caching.CachingModelWrapper] = {}
     for name, model in models.items():
-      # We need to extract and store the results of the original
-      # model.init_spec() here so that we don't lose access to those fields
-      # after LIT wraps the model in a CachingModelWrapper.
-      self._model_init_specs[name] = model.init_spec()
+      if model_loaders is None:
+        # Attempt to infer an init spec for the model before we lose access to
+        # the original after wrapping it in a CachingModelWrapper.
+        self._model_loaders[name] = (type(model), model.init_spec())
       # Wrap model in caching wrapper and add it to the app
       self._models[name] = caching.CachingModelWrapper(model, name,
                                                        cache_dir=data_dir)
@@ -571,13 +584,13 @@ class LitApp(object):
     # dataset on the frontend.
     tmp_datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
 
-    self._dataset_init_specs: dict[str, Optional[types.Spec]] = {}
+    self._dataset_loaders: DatasetLoadersMap = dataset_loaders or {}
     self._datasets: dict[str, lit_dataset.IndexedDataset] = {}
     for name, ds in tmp_datasets.items():
-      # We need to extract and store the results of the original
-      # dataset.init_spec() here so that we don't lose access to those fields
-      # after LIT goes through the dataset annotation and indexing process.
-      self._dataset_init_specs[name] = ds.init_spec()
+      if dataset_loaders is None:
+        # Attempt to infer an init spec for the dataset before we lose access to
+        # the original during dataset annotation and indexing.
+        self._dataset_loaders[name] = (type(ds), ds.init_spec())
       # Anotate the dataset
       annotated_ds = self._run_annotators(ds)
       # Index the annotated dataset and add it to the app
