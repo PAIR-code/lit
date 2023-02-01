@@ -10,10 +10,10 @@ import tensorflow_datasets as tfds
 class PlaintextSents(lit_dataset.Dataset):
   """Load sentences from a flat text file."""
 
-  def __init__(self, path_or_glob, skiplines=0):
+  def __init__(self, path_or_glob: str, skiplines: int = 0):
     self._examples = self.load_datapoints(path_or_glob, skiplines=skiplines)
 
-  def load_datapoints(self, path_or_glob: str, skiplines=0):
+  def load_datapoints(self, path_or_glob: str, skiplines: int = 0):
     examples = []
     for path in glob.glob(path_or_glob):
       with open(path) as fd:
@@ -36,7 +36,9 @@ class PlaintextSents(lit_dataset.Dataset):
 class BillionWordBenchmark(lit_dataset.Dataset):
   """Billion Word Benchmark (lm1b); see http://www.statmt.org/lm-benchmark/."""
 
-  def __init__(self, split='train', max_examples=1000):
+  AVAILABLE_SPLITS = ['test', 'train']
+
+  def __init__(self, split: str = 'train', max_examples: int = 1000):
     ds = tfds.load('lm1b', split=split)
     if max_examples is not None:
       # Normally we can just slice the resulting dataset, but lm1b is very large
@@ -46,6 +48,13 @@ class BillionWordBenchmark(lit_dataset.Dataset):
     self._examples = [{
         'text': ex['text'].decode('utf-8')
     } for ex in raw_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS),
+        'max_examples': lit_types.Integer(default=1000),
+    }
 
   def spec(self) -> lit_types.Spec:
     return {'text': lit_types.TextSegment()}

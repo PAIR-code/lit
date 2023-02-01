@@ -149,6 +149,7 @@ class IMDBData(lit_dataset.Dataset):
   """IMDB reviews dataset; see http://ai.stanford.edu/~amaas/data/sentiment/."""
 
   LABELS = ["0", "1"]
+  AVAILABLE_SPLITS = ["test", "train", "unsupervised"]
 
   def __init__(self, split="test", max_seq_len=500):
     """Dataset constructor, loads the data into memory."""
@@ -157,13 +158,22 @@ class IMDBData(lit_dataset.Dataset):
     for record in raw_examples:
       # format and truncate from the end to max_seq_len tokens.
       truncated_text = " ".join(
-          record["text"].decode("utf-8")\
-                        .replace("<br />", "")\
-                        .split()[-max_seq_len:])
+          record["text"]
+          .decode("utf-8")
+          .replace("<br />", "")
+          .split()[-max_seq_len:]
+      )
       self._examples.append({
           "text": truncated_text,
           "label": self.LABELS[record["label"]],
       })
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "split": lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS),
+        "max_seq_len": lit_types.Integer(default=500),
+    }
 
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""

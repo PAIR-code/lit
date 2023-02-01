@@ -18,6 +18,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
@@ -41,13 +42,22 @@ _TOP_K = flags.DEFINE_integer(
     "top_k", 10, "Rank to which the output distribution is pruned.")
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 1000,
-    "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
+    "max_examples",
+    1000,
+    (
+        "Maximum number of examples to load from each evaluation set. Set to"
+        " None to load the full set."
+    ),
 )
 
 _LOAD_BWB = flags.DEFINE_bool(
-    "load_bwb", False,
-    "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
+    "load_bwb",
+    False,
+    (
+        "If true, will load examples from the Billion Word Benchmark dataset."
+        " This may download a lot of data the first time you run it, so disable"
+        " by default for the quick-start example."
+    ),
 )
 
 # Custom frontend layout; see api/layout.py
@@ -106,7 +116,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           model_name_or_path, top_k=_TOP_K.value)
     else:
       raise ValueError(
-          f"Unsupported model name '{model_name}' from path '{model_name_or_path}'"
+          f"Unsupported model name '{model_name}' from path '"
+          f"{model_name_or_path}'"
       )
 
   datasets = {
@@ -117,12 +128,29 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       # Empty dataset, if you just want to type sentences into the UI.
       "blank": lm.PlaintextSents(""),
   }
+
+  dataset_loaders: lit_app.DatasetLoadersMap = {
+      "sst_dev": (glue.SST2Data, glue.SST2Data.init_spec()),
+      "imdb_train": (
+          classification.IMDBData,
+          classification.IMDBData.init_spec(),
+      ),
+      "plain_text_sentences": (
+          lm.PlaintextSents,
+          lm.PlaintextSents.init_spec(),
+      ),
+  }
+
   # Guard this with a flag, because TFDS will download and process 1.67 GB
   # of data if you haven't loaded `lm1b` before.
   if _LOAD_BWB.value:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
     datasets["bwb"] = lm.BillionWordBenchmark(
         "train", max_examples=_MAX_EXAMPLES.value)
+    dataset_loaders["bwb"] = (
+        lm.BillionWordBenchmark,
+        lm.BillionWordBenchmark.init_spec(),
+    )
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
@@ -135,7 +163,9 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       datasets,
       generators=generators,
       layouts=CUSTOM_LAYOUTS,
-      **server_flags.get_flags())
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 
