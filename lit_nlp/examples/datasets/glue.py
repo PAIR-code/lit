@@ -1,4 +1,4 @@
-"""GLUE benchmark datasets, using TFDS.
+"""GLUE benchmark datasets, using TFDS or from CSV.
 
 See https://gluebenchmark.com/ and
 https://www.tensorflow.org/datasets/catalog/glue
@@ -9,7 +9,10 @@ datasets just contain regular Python/NumPy data.
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 
+import pandas as pd
 import tensorflow_datasets as tfds
+
+from google3.pyglib import gfile
 
 
 def load_tfds(*args, do_sort=True, **kw):
@@ -55,25 +58,41 @@ class SST2Data(lit_dataset.Dataset):
   """
 
   LABELS = ['0', '1']
-  AVAILABLE_SPLITS = ['test', 'train', 'validation']
+  TFDS_SPLITS = ['test', 'train', 'validation']
 
-  def __init__(self, split: str):
-    if split not in self.AVAILABLE_SPLITS:
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
       raise ValueError(
-          f"Unsupported split '{split}'. Allowed values: "
-          f'{self.AVAILABLE_SPLITS}'
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
       )
+    df['label'] = df.label.map(str)
+    return df.to_dict(orient='records')
 
-    self._examples = []
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/sst2', split=split):
-      self._examples.append({
+      ret.append({
           'sentence': ex['sentence'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+    return ret
+
+  def __init__(self, path_or_splitname: str):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
+    return {'path_or_splitname': lit_types.String()}
 
   def spec(self):
     return {
@@ -139,27 +158,42 @@ class STSBData(lit_dataset.Dataset):
 
   See https://www.tensorflow.org/datasets/catalog/glue#gluestsb.
   """
+  TFDS_SPLITS = ['test', 'train', 'validation']
 
-  AVAILABLE_SPLITS = ['test', 'train', 'validation']
-
-  def __init__(self, split: str):
-    if split not in self.AVAILABLE_SPLITS:
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
       raise ValueError(
-          f"Unsupported split '{split}'. Allowed values: "
-          f'{self.AVAILABLE_SPLITS}'
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
       )
+    df['label'] = df.label.map(float)
+    return df.to_dict(orient='records')
 
-    self._examples = []
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/stsb', split=split):
-      self._examples.append({
+      ret.append({
           'sentence1': ex['sentence1'].decode('utf-8'),
           'sentence2': ex['sentence2'].decode('utf-8'),
           'label': ex['label'],
       })
+    return ret
+
+  def __init__(self, path_or_splitname: str):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
+    return {'path_or_splitname': lit_types.String()}
 
   def spec(self):
     return {
@@ -176,7 +210,7 @@ class MNLIData(lit_dataset.Dataset):
   """
 
   LABELS = ['entailment', 'neutral', 'contradiction']
-  AVAILABLE_SPLITS = [
+  TFDS_SPLITS = [
       'test_matched',
       'test_mismatched',
       'train',
@@ -184,24 +218,40 @@ class MNLIData(lit_dataset.Dataset):
       'validation_mismatched',
   ]
 
-  def __init__(self, split: str):
-    if split not in self.AVAILABLE_SPLITS:
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
       raise ValueError(
-          f"Unsupported split '{split}'. Allowed values: "
-          f'{self.AVAILABLE_SPLITS}'
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
       )
+    df['label'] = df.label.map(str)
+    return df.to_dict(orient='records')
 
-    self._examples = []
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/mnli', split=split):
-      self._examples.append({
+      ret.append({
           'premise': ex['premise'].decode('utf-8'),
           'hypothesis': ex['hypothesis'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+    return ret
+
+  def __init__(self, path_or_splitname: str):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS)}
+    return {'path_or_splitname': lit_types.String()}
 
   def spec(self):
     return {

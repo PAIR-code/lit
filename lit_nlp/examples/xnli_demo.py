@@ -43,9 +43,12 @@ _LANGUAGES = flags.DEFINE_list(
 _MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/mbert_mnli.tar.gz",
-    "Path to fine-tuned model files. Expects model to be in standard "
-    "transformers format, e.g. as saved by model.save_pretrained() and "
-    "tokenizer.save_pretrained().")
+    (
+        "Path to fine-tuned model files. Expects model to be in standard "
+        "transformers format, e.g. as saved by model.save_pretrained() and "
+        "tokenizer.save_pretrained()."
+    ),
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", None, "Maximum number of examples to load into LIT. "

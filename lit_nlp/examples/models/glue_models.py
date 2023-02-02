@@ -5,7 +5,7 @@
 import os
 import re
 import threading
-from typing import Optional, Dict, List, Iterable
+from typing import Optional, Dict, List, Iterable, Sequence, Any
 
 import attr
 from lit_nlp.api import model as lit_model
@@ -69,6 +69,20 @@ class GlueModel(lit_model.Model):
   For a more minimal example, see ../simple_tf2_demo.py.
   """
 
+  def _verify_num_layers(self, hidden_states: Sequence[Any]):
+    """Verify correct # of layer activations returned."""
+    # First entry is embeddings, then output from each transformer layer.
+    expected_hidden_states_len = self.model.config.num_hidden_layers + 1
+    actual_hidden_states_len = len(hidden_states)
+    if actual_hidden_states_len != expected_hidden_states_len:
+      raise ValueError(
+          "Unexpected size of hidden_states. Should be one "
+          "more than the number of hidden layers to account "
+          "for the embeddings. Expected "
+          f"{expected_hidden_states_len}, got "
+          f"{actual_hidden_states_len}."
+      )
+
   @property
   def is_regression(self) -> bool:
     return self.config.labels is None
@@ -82,6 +96,13 @@ class GlueModel(lit_model.Model):
 
   def _load_model(self, model_name_or_path):
     """Load model. Can be overridden for testing."""
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = transformers.file_utils.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name_or_path)
     self.vocab = self.tokenizer.convert_ids_to_tokens(
@@ -391,15 +412,7 @@ class GlueModel(lit_model.Model):
       if self.config.output_embeddings:
         batched_outputs["input_embs"] = input_embs
 
-        # First entry is embeddings, then output from each transformer layer.
-        expected_hidden_states_len = self.model.config.num_hidden_layers + 1
-        actual_hidden_states_len = len(out.hidden_states)
-        if actual_hidden_states_len != expected_hidden_states_len:
-          raise ValueError("Unexpected size of hidden_states. Should be one "
-                           "more than the number of hidden layers to account "
-                           "for the embeddings. Expected "
-                           f"{expected_hidden_states_len}, got "
-                           f"{actual_hidden_states_len}.")
+        self._verify_num_layers(out.hidden_states)
 
         # <float32>[batch_size, num_tokens, 1]
         token_mask = tf.expand_dims(

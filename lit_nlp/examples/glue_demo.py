@@ -20,7 +20,6 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
-import transformers  # for path caching
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -33,16 +32,21 @@ _QUICKSTART = flags.DEFINE_bool(
     "Quick-start mode, loads smaller models and a subset of the full data.")
 
 _MODELS = flags.DEFINE_list(
-    "models", [
+    "models",
+    [
         "sst2-tiny:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
         "sst2-base:sst2:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_base.tar.gz",
         "stsb:stsb:https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_base.tar.gz",
         "mnli:mnli:https://storage.googleapis.com/what-if-tool-resources/lit-models/mnli_base.tar.gz",
-    ], "List of models to load, as <name>:<task>:<path>. "
-    "See MODELS_BY_TASK for available tasks. Path should be the output of "
-    "saving a transformers model, e.g. model.save_pretrained(path) and "
-    "tokenizer.save_pretrained(path). Remote .tar.gz files will be downloaded "
-    "and cached locally.")
+    ],
+    (
+        "List of models to load, as <name>:<task>:<path>. See MODELS_BY_TASK"
+        " for available tasks. Path should be the output of saving a"
+        " transformers model, e.g. model.save_pretrained(path) and"
+        " tokenizer.save_pretrained(path). Remote .tar.gz files will be"
+        " downloaded and cached locally."
+    ),
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", None, "Maximum number of examples to load into LIT. "
@@ -99,13 +103,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # containing 'https://'
     name, task, path = model_string.split(":", 2)
     logging.info("Loading model '%s' for task '%s' from '%s'", name, task, path)
-    # Normally path is a directory; if it's an archive file, download and
-    # extract to the transformers cache.
-    if path.endswith(".tar.gz"):
-      path = transformers.file_utils.cached_path(
-          path, extract_compressed_file=True)
-    # Load the model from disk.
-    models[name] = MODELS_BY_TASK[task](path)
+    models[name] = MODELS_BY_TASK[task](path)  # load model weights
     tasks_to_load.add(task)
     if task not in model_loaders:
       # Adds the model loader info. Since task-specific GLUE models set specific
@@ -121,18 +119,20 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load datasets for each task that we have a model for
   if "sst2" in tasks_to_load:
     logging.info("Loading data for SST-2 task.")
-    datasets["sst_dev"] = glue.SST2Data("validation")
+    split = "validation"  # will read from TFDS
+    datasets["sst_dev"] = glue.SST2Data(split)
     dataset_loaders["sst2"] = (glue.SST2Data, glue.SST2Data.init_spec())
 
   if "stsb" in tasks_to_load:
     logging.info("Loading data for STS-B task.")
-    datasets["stsb_dev"] = glue.STSBData("validation")
+    split = "validation"  # will read from TFDS
+    datasets["stsb_dev"] = glue.STSBData(split)
     dataset_loaders["stsb"] = (glue.STSBData, glue.STSBData.init_spec())
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
-    datasets["mnli_dev"] = glue.MNLIData("validation_matched")
-    datasets["mnli_dev_mm"] = glue.MNLIData("validation_mismatched")
+    split = "validation_matched"  # will read from TFDS
+    datasets["mnli_dev"] = glue.MNLIData(split)
     dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
 
   # Truncate datasets if --max_examples is set.
