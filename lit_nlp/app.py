@@ -605,7 +605,7 @@ class LitApp(object):
 
     # Interpreter initialization
     if interpreters is not None:
-      self._interpreters = interpreters
+      self._interpreters = core.required_interpreters() | interpreters
     else:
       self._interpreters = core.default_interpreters(self._models)
 

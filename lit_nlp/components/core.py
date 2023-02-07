@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 """Helpers for getting default values for LitApp configurations."""
-from typing import Union
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import model as lit_model
 from lit_nlp.components import ablation_flip
@@ -54,13 +53,28 @@ def default_generators() -> dict[str, Generator]:
   }
 
 
+def required_interpreters() -> dict[str, Interpreter]:
+  """Returns a dict of required interpreters.
+
+  These are used by multiple core modules, and without them the frontend will
+  likely throw errors.
+  """
+  # Ensure the prediction analysis interpreters are included.
+  prediction_analysis_interpreters: dict[str, Interpreter] = {
+      'classification': classification_results.ClassificationInterpreter(),
+      'regression': regression_results.RegressionInterpreter(),
+  }
+  return prediction_analysis_interpreters
+
+
 def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
   """Returns a dict of the default interpreters (and metrics) used in a LitApp.
 
   Args:
     models: A dictionary of models that included in the LitApp that may provide
-      thier own salience information.
+      their own salience information.
   """
+  interpreters = required_interpreters()
   # Ensure the embedding-based interpreters are included.
   embedding_based_interpreters: dict[str, Interpreter] = {
       'nearest neighbors': nearest_neighbors.NearestNeighbors(),
@@ -75,13 +89,8 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'Integrated Gradients': gradient_maps.IntegratedGradients(),
       'LIME': lime_explainer.LIME(),
   }
-  # Ensure the prediction analysis interpreters are included.
-  prediction_analysis_interpreters: dict[str, Interpreter] = {
-      'classification': classification_results.ClassificationInterpreter(),
-      'regression': regression_results.RegressionInterpreter(),
-  }
   # pyformat: disable
-  interpreters: dict[str, Union[ComponentGroup, Interpreter]] = {
+  core_interpreters: dict[str, Interpreter] = {
       'Model-provided salience': model_salience.ModelSalience(models),
       'counterfactual explainer': lemon_explainer.LEMON(),
       'tcav': tcav.TCAV(),
@@ -94,9 +103,11 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'Tabular SHAP': shap_explainer.TabularShapExplainer(),
   }
   # pyformat: enable
-  interpreters.update(**gradient_map_interpreters,
-                      **prediction_analysis_interpreters,
-                      **embedding_based_interpreters)
+  interpreters.update(
+      **core_interpreters,
+      **gradient_map_interpreters,
+      **embedding_based_interpreters
+  )
   return interpreters
 
 
