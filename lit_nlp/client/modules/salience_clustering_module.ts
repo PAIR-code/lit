@@ -131,7 +131,6 @@ export class SalienceClusteringModule extends LitModule {
 
   private async runInterpreter() {
     const salienceMapper = this.state.clusteringConfig[SALIENCE_MAPPER_KEY];
-    this.state.clusteringState.clusterInfos = {};
     const inputs = this.selectionService.selectedOrAllInputData;
     if (!this.canRunClustering) {
       return;
@@ -241,10 +240,15 @@ export class SalienceClusteringModule extends LitModule {
   private renderSingleGradKeyTopTokenInfos(
       gradKey: string, topTokenInfosByClusters: TopTokenInfosByCluster[],
       clusterInfos: ClusterInfo[], colorMap: SalienceCmap) {
+    // TODO(b/268221058): Compute number of data points per cluster from backend
     // clang-format off
     const rowsByClusters: TableData[] =
       topTokenInfosByClusters.map((topTokenInfos, clusterIdx) => {
-        return [clusterIdx, html`
+        return [
+          clusterIdx,
+          clusterInfos.filter(
+            clusterInfo => clusterInfo.clusterId === clusterIdx).length,
+          html`
           <lit-token-chips
             .tokensWithWeights=${topTokenInfos.topTokenInfos}
             .cmap=${colorMap}>
@@ -271,7 +275,9 @@ export class SalienceClusteringModule extends LitModule {
         <lit-data-table
           .columnNames=${[
             'Cluster index',
-            `Tokens with high average saliency (up to ${numTokensPerCluster})`]}
+            'N',
+            `Tokens with high average saliency (up to ${numTokensPerCluster})`
+          ]}
           .data=${rowsByClusters}
           selectionEnabled
           .onSelect=${onSelectClusters}
