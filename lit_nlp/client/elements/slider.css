@@ -4,6 +4,7 @@
   flex-direction: row;
   align-items: center;
 }
+
 input[type='range'].slider {
   -webkit-appearance: none;
   max-width: calc(100% - 4px);
@@ -57,6 +58,11 @@ input[type="range"].slider::-ms-thumb {
   background-color: var(--lit-cyea-600);
 }
 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
 .slider {
   min-width: 60px;
   flex: 1;
@@ -65,16 +71,26 @@ input[type="range"].slider::-ms-thumb {
 .slider-label {
   color: var(--lit-neutral-600);
   font-size: 11px;
-  min-width: 3em;
+  min-width: 2em;
 }
 
 .slider-label.start {
   text-align: end;
   min-width: 1em;
+  margin-left: 3px;
 }
 
 .slider-value {
   color: var(--lit-neutral-900);
   min-width: 2em;
   text-align: right;
+  width: 6ch;
+}
+
+.slider-value.error {
+  color: var(--google-red-600);
+  background-color: var(--google-red-50);
+  border-color: var(--google-red-600);
+  border-style: solid;
+  border-radius: 2px;
 }

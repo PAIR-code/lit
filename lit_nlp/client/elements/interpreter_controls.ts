@@ -190,16 +190,15 @@ export class InterpreterControls extends ReactiveElement {
       const {step, min_val: minVal, max_val: maxVal} = controlType;
 
       const updateSettings = (e: Event) => {
-        const input = (e.target as HTMLInputElement);
-        this.settings[name] = input.value;
+        const {value} = (e.target as HTMLInputElement);
+        this.settings[name] = value;
       };
 
       // clang-format off
       return html`
-        <lit-slider class="slider-holder"
-                      min="${minVal}" max="${maxVal}" step="${step}"
-                      val="${+this.settings[name]}"
-                      .onInput=${updateSettings}></lit-slider>
+        <lit-slider class="slider-holder" min="${minVal}" max="${maxVal}"
+            step="${step}" value="${+this.settings[name]}"
+            @change=${updateSettings}></lit-slider>
       `;
       // clang-format on
     } else if (controlType instanceof BooleanLitType) {

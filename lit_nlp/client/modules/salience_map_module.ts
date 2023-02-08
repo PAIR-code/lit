@@ -356,8 +356,7 @@ export class SalienceMapModule extends LitModule {
         <label for="gamma-slider" slot="tooltip-anchor">Gamma:</label>
       </lit-tooltip>
       <lit-slider min="0.25" max="6" step="0.25"
-        val="${this.cmapGamma}" .onInput=${onChangeGamma}></lit-slider>
-      <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>`;
+        value="${this.cmapGamma}" @change=${onChangeGamma}></lit-slider>`;
   }
 
   renderFooter() {

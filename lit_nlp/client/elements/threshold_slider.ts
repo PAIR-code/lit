@@ -69,8 +69,8 @@ export class ThresholdSlider extends LitElement {
     // from -5 to 5, and can be converted the threshold through the equation
     // margin = ln(threshold / (1 - threshold)).
     const onChange = (e: Event) => {
-      const newThresh = +(e.target as HTMLInputElement).value;
-      const newMargin = getMarginFromThreshold(newThresh);
+      const newThresh = (e.target as HTMLInputElement).value;
+      const newMargin = getMarginFromThreshold(Number(newThresh));
       const event = new CustomEvent<ThresholdChange>('threshold-changed', {
         detail: {
           label,
@@ -136,8 +136,8 @@ export class ThresholdSlider extends LitElement {
     return html`
         <div class="slider-row">
           ${renderLabel()}
-          <lit-slider min="${min}" max="${max}" step="${step}" val="${val}"
-                      .onChange=${onChange}></lit-slider>
+          <lit-slider min="${min}" max="${max}" step="${step}" value="${val}"
+                      @change=${onChange}></lit-slider>
           ${this.showControls ?
               html`<button class='hairline-button reset-button' @click=${reset}
                    ?disabled="${isDefaultValue}">Reset</button>` : null}

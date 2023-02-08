@@ -427,9 +427,8 @@ export class SequenceSalienceModule extends LitModule {
       <div class="controls-group">
         ${this.renderColorLegend()}
         <label for="gamma-slider">Gamma:</label>
-        <lit-slider min="0.25" max="6" step="0.25" val="${this.cmapGamma}"
-                    .onInput=${onChangeGamma}></lit-slider>
-        <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>
+        <lit-slider min="0.25" max="6" step="0.25" value="${this.cmapGamma}"
+                    @change=${onChangeGamma}></lit-slider>
       </div>`;
     // clang-format on
   }
