@@ -430,8 +430,8 @@ export declare interface LayoutSettings {
 
 /**
  * Convert a layout to canonical form.
- * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
- * TODO(lit-dev): move this to Python.
+ * TODO(b/265218467): deprecate this once we convert all client and demo layouts.
+ * TODO(b/265218467): move this to Python.
  */
 export function canonicalizeLayout(layout: LitComponentLayout|
                                    LitCanonicalLayout): LitCanonicalLayout {
