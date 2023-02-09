@@ -77,9 +77,10 @@ class SimpleMetrics(lit_components.Metrics):
     if model_outputs is None:
       model_outputs = list(model.predict(inputs))
 
-    spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output,
-                              self.is_field_compatible)
+    output_spec = model.output_spec()
+    field_map = map_pred_keys(
+        dataset.spec(), output_spec, self.is_field_compatible
+    )
     ret = []
     for pred_key, label_key in field_map.items():
       # Extract fields
@@ -90,8 +91,9 @@ class SimpleMetrics(lit_components.Metrics):
           labels,
           preds,
           label_spec=dataset.spec()[label_key],
-          pred_spec=spec.output[pred_key],
-          config=config.get(pred_key) if config else None)
+          pred_spec=output_spec[pred_key],
+          config=config.get(pred_key) if config else None,
+      )
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
@@ -112,9 +114,10 @@ class SimpleMetrics(lit_components.Metrics):
     # TODO(lit-team): pre-compute this mapping in constructor?
     # This would require passing a model name to this function so we can
     # reference a pre-computed list.
-    spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output,
-                              self.is_field_compatible)
+    output_spec = model.output_spec()
+    field_map = map_pred_keys(
+        dataset.spec(), output_spec, self.is_field_compatible
+    )
     ret = []
     for pred_key, label_key in field_map.items():
       # Extract fields
@@ -127,10 +130,11 @@ class SimpleMetrics(lit_components.Metrics):
           labels,
           preds,
           label_spec=dataset.spec()[label_key],
-          pred_spec=spec.output[pred_key],
+          pred_spec=output_spec[pred_key],
           indices=indices,
           metas=metas,
-          config=config.get(pred_key) if config else None)
+          config=config.get(pred_key) if config else None,
+      )
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
@@ -173,8 +177,9 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
           config: Optional[JsonDict] = None):
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(dataset.spec(),
-                              model.spec().output, self.is_field_compatible)
+    field_map = map_pred_keys(
+        dataset.spec(), model.output_spec(), self.is_field_compatible
+    )
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
@@ -194,8 +199,9 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                         config: Optional[JsonDict] = None) -> list[JsonDict]:
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(dataset.spec(),
-                              model.spec().output, self.is_field_compatible)
+    field_map = map_pred_keys(
+        dataset.spec(), model.output_spec(), self.is_field_compatible
+    )
     margin_config = {}
     for pred_key in field_map:
       inputs = [ex['data'] for ex in indexed_inputs]

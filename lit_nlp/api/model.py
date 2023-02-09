@@ -20,7 +20,6 @@ import multiprocessing  # for ThreadPool
 from typing import Iterable, Iterator, Optional, Union
 
 from absl import logging
-import attr
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types
 from lit_nlp.lib import utils
@@ -30,7 +29,7 @@ JsonDict = types.JsonDict
 Spec = types.Spec
 
 
-def maybe_copy(arr):
+def maybe_copy_np(arr):
   """Decide if we should make a copy of an array in order to release memory.
 
   NumPy arrays may be views into other array objects, by which a small array can
@@ -63,15 +62,8 @@ def maybe_copy(arr):
 
 
 def scrub_numpy_refs(output: JsonDict) -> JsonDict:
-  """Scrub problematic pointers. See maybe_copy() and Model.predict()."""
-  return {k: maybe_copy(v) for k, v in output.items()}
-
-
-@attr.s(auto_attribs=True, frozen=True)
-class ModelSpec(object):
-  """Model spec."""
-  input: Spec
-  output: Spec
+  """Scrub numpy pointers; see maybe_copy_np() and Model.predict()."""
+  return {k: maybe_copy_np(v) for k, v in output.items()}
 
 
 class Model(metaclass=abc.ABCMeta):
@@ -189,10 +181,6 @@ class Model(metaclass=abc.ABCMeta):
     """Return a spec describing model outputs."""
     return
 
-  # TODO(lit-dev): annotate as @final once we migrate to python 3.8+
-  def spec(self) -> ModelSpec:
-    return ModelSpec(input=self.input_spec(), output=self.output_spec())
-
   def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     """Return the full vocabulary and embedding table.
 
@@ -213,29 +201,24 @@ class Model(metaclass=abc.ABCMeta):
 
   ##
   # Concrete implementations of common functions.
-  def predict(self,
-              inputs: Iterable[JsonDict],
-              scrub_arrays=True,
-              **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
     """Run prediction on a dataset.
 
     This uses minibatch inference for efficiency, but yields per-example output.
 
+    This will also copy some NumPy arrays if they look like slices of a larger
+    tensor. This adds some overhead, but reduces memory leaks by allowing the
+    source tensor (which may be a large padded matrix) to be garbage collected.
+
     Args:
       inputs: iterable of input dicts
-      scrub_arrays: if True, will copy some returned NumPy arrays in order to
-        allow garbage collection of intermediate data. Strongly recommended if
-        results will not be immediately consumed and discarded, as otherwise the
-        common practice of slicing arrays returned by e.g. TensorFlow can result
-        in large memory leaks.
       **kw: additional kwargs passed to predict_minibatch()
 
     Returns:
       model outputs, for each input
     """
     results = self._batched_predict(inputs, **kw)
-    if scrub_arrays:
-      results = (scrub_numpy_refs(res) for res in results)
+    results = (scrub_numpy_refs(res) for res in results)
     return results
 
   def _batched_predict(self, inputs: Iterable[JsonDict],
@@ -253,8 +236,9 @@ class Model(metaclass=abc.ABCMeta):
       yield from self.predict_minibatch(minibatch, **kw)
 
   # TODO(b/171513556): remove this method.
-  def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
-                            **kw) -> Iterator[JsonDict]:
+  def predict_with_metadata(
+      self, indexed_inputs: Iterable[JsonDict], **kw
+  ) -> Iterable[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     return self.predict((ex['data'] for ex in indexed_inputs), **kw)
 
@@ -288,8 +272,9 @@ class ModelWrapper(Model):
   def predict_minibatch(self, inputs: list[JsonDict], **kw) -> list[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
-  def predict(self, inputs: Iterable[JsonDict], *args,
-              **kw) -> Iterator[JsonDict]:
+  def predict(
+      self, inputs: Iterable[JsonDict], *args, **kw
+  ) -> Iterable[JsonDict]:
     return self.wrapped.predict(inputs, *args, **kw)
 
   # NOTE: if a subclass modifies predict(), it should also override this to
@@ -298,8 +283,9 @@ class ModelWrapper(Model):
   # incorrect results.
   # b/171513556 will solve this problem by removing the need for any
   # *_with_metadata() methods.
-  def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict],
-                            **kw) -> Iterator[JsonDict]:
+  def predict_with_metadata(
+      self, indexed_inputs: Iterable[JsonDict], **kw
+  ) -> Iterable[JsonDict]:
     return self.wrapped.predict_with_metadata(indexed_inputs, **kw)
 
   def load(self, path: str):
@@ -312,9 +298,6 @@ class ModelWrapper(Model):
 
   def output_spec(self) -> types.Spec:
     return self.wrapped.output_spec()
-
-  def spec(self) -> ModelSpec:
-    return ModelSpec(input=self.input_spec(), output=self.output_spec())
 
   ##
   # Special methods
