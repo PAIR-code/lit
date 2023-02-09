@@ -696,34 +696,37 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`
-      <mwc-icon class=${classMap(firstPageButtonClasses)}
-        @click=${firstPage}>
-        first_page
-      </mwc-icon>
-      <mwc-icon class='icon-button'
-        @click=${() => {changePage(-1);}}>
-        chevron_left
-      </mwc-icon>
-      <div>
-       Page
-       <span class="current-page-num">${this.pageNum + 1}</span>
-       of ${this.totalPages}
-      </div>
-      <mwc-icon class='icon-button'
-         @click=${() => {changePage(1);}}>
-        chevron_right
-      </mwc-icon>
-      <mwc-icon class=${classMap(lastPageButtonClasses)}
-        @click=${lastPage}>
-        last_page
-      </mwc-icon>
-      <lit-tooltip .content=${"Go to a random page"}
-        .tooltipPosition=${"above"}>
-        <mwc-icon class='icon-button mdi-outlined' @click=${randomPage}
-          slot="tooltip-anchor">
-          casino
+      <div class='pagination-controls-group'>
+        <mwc-icon class=${classMap(firstPageButtonClasses)}
+          @click=${firstPage}>
+          first_page
         </mwc-icon>
-      </lit-tooltip>`;
+        <mwc-icon class='icon-button'
+          @click=${() => {changePage(-1);}}>
+          chevron_left
+        </mwc-icon>
+        <div>
+        Page
+        <span class="current-page-num">${this.pageNum + 1}</span>
+        of ${this.totalPages}
+        </div>
+        <mwc-icon class='icon-button'
+          @click=${() => {changePage(1);}}>
+          chevron_right
+        </mwc-icon>
+        <mwc-icon class=${classMap(lastPageButtonClasses)}
+          @click=${lastPage}>
+          last_page
+        </mwc-icon>
+        <lit-tooltip .content=${"Go to a random page"}
+          .tooltipPosition=${"above"}>
+          <mwc-icon class='icon-button mdi-outlined icon-button-fix-offset'
+            @click=${randomPage}
+            slot="tooltip-anchor">
+            casino
+          </mwc-icon>
+        </lit-tooltip>
+      </div>`;
     // clang-format on
   }
 
@@ -738,10 +741,13 @@ export class DataTable extends ReactiveElement {
             ${this.isPaginated ? this.renderPaginationControls() : null}
             <div class='footer-spacer'></div>
             ${this.exportEnabled ? html`
-              <export-controls .data=${this.getArrayData()}
-                  .columnNames=${this.columnStrings}
-                  .popupPosition=${'above'}
-                  .tooltipPosition=${'above left'}></export-controls>` : null}
+              <div class='export-controls-group'>
+                <export-controls .data=${this.getArrayData()}
+                    .columnNames=${this.columnStrings}
+                    .popupPosition=${'above'}
+                    .tooltipPosition=${'above left'}>
+                </export-controls>
+              </div>` : null}
           </div>
         </td>
       </tr>`;
