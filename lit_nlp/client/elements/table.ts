@@ -330,9 +330,13 @@ export class DataTable extends ReactiveElement {
       const header: ColumnHeader = (typeof colInfo === 'string') ?
           {name: colInfo} :
           {...colInfo};
+
+      const shouldDisplayTooltip = header.name.length > 20;
+
       header.html =
           header.html ?? html`
-          <lit-tooltip style="--tooltip-max-width: 500px;" content=${header.name}>
+          <lit-tooltip style="--tooltip-max-width: 500px;"
+            content=${shouldDisplayTooltip ? header.name : ""}>
             <div slot="tooltip-anchor" class="header-text">${header.name}</div>
           </lit-tooltip>`;
       header.rightAlign =

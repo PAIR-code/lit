@@ -69,6 +69,7 @@
   max-height: 100%;
   direction: rtl;
   max-width: 20ch;
+  white-space: nowrap;
 }
 
 .arrow-container {

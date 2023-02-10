@@ -148,9 +148,9 @@ models.
 ## Comparing Datapoints
 
 Pinning a datapoint, through either the toolbar button or controls in modules
-(e.g., the pin icons in Data Table rows), puts LIT into 
+(e.g., the pin icons in Data Table rows), puts LIT into
 **datapoint comparison mode**. In this mode, the pinned datapoint is used as a
-reference to compare the primary selection. The pinned datapoint is indicated 
+reference to compare the primary selection. The pinned datapoint is indicated
 by a pin icon in modules that support datapoint comparison, such as the Data
 Table. Any changes to the primary selection will update datapoint comparison
 visualizations in all supporting modules.
@@ -189,10 +189,10 @@ set to "1".
 Many states of the LIT app, such as models and datasets loaded, datapoints
 selected, and modules minimized, are all stored in URL parameters. In this way,
 if a user wants to share the tool with a specific view set up with someone else,
-they can copy the URL (either manually or via the share link button) as a means 
+they can copy the URL (either manually or via the share link button) as a means
 of sharing it.
 
-The base url that will be copied with the share link button can be configured by 
+The base url that will be copied with the share link button can be configured by
 passing the `--canonical_url=<url base>` flag to the server.
 
 ## Module Details
@@ -259,11 +259,14 @@ what the data table shows. Model predictions can be added as columns through
 this dropdown, but they are not shown in the data table by default, in order to
 keep the table decluttered.
 
+Column names that exceed the maximum length are truncated with an ellipsis to
+the left, and can be viewed in their entirety when hovered over.
+
 The below data table shows one sorted by the "label" field, with the "passage"
 field being filtered to only those datapoints that contain the word "sound" in
 them.
 
-A datapoint can be pinned to enable comparison by clicking the pin icon on the 
+A datapoint can be pinned to enable comparison by clicking the pin icon on the
 left side of the datapoint's table entry when the datapoint is hovered over or
 selected. A pinned datapoint can be unpinned by clicking on its pin icon again.
 
@@ -479,7 +482,7 @@ Does a system encode gendered associations, which might lead to incorrect
 predictions? We load a coreference model trained on OntoNotes, and load the
 Winogender dataset into LIT for evaluation. Each Winogender example has a
 pronoun and two candidate referents, one a occupation term like (“technician”)
-and one is an “other participant” (like “customer”). Our model predicts 
+and one is an “other participant” (like “customer”). Our model predicts
 coreference probabilities for each candidate. We can explore the model’s
 sensitivity to pronouns by comparing two examples side-by-side (see structured
 predictions in screenshot). We can see how commonly the model makes similar
