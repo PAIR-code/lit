@@ -2,6 +2,7 @@
   --table-header-height: 24px;
   --table-footer-height: 20px;
   --table-cell-padding: 2px 8px;
+  --header-text-max-width: none;
 }
 
 .holder {
@@ -68,7 +69,7 @@
   overflow: hidden;
   max-height: 100%;
   direction: rtl;
-  max-width: 20ch;
+  max-width: var(--header-text-max-width);
   white-space: nowrap;
 }
 

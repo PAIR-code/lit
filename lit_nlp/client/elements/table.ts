@@ -124,6 +124,7 @@ export class DataTable extends ReactiveElement {
 
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle: boolean = false;
+  @property({type: Number}) headerTextMaxWidth: number|null = null;
 
   // Callbacks
   @property({type: Object}) onClick?: OnPrimarySelectCallback;
@@ -331,13 +332,20 @@ export class DataTable extends ReactiveElement {
           {name: colInfo} :
           {...colInfo};
 
-      const shouldDisplayTooltip = header.name.length > 20;
+      const shouldDisplayTooltip = this.headerTextMaxWidth != null ?
+        header.name.length > this.headerTextMaxWidth : false;
+
+      const headerWidthStyles = styleMap({
+        '--header-text-max-width': this.headerTextMaxWidth ?
+          `${this.headerTextMaxWidth}ch` : 'none',
+      });
 
       header.html =
           header.html ?? html`
           <lit-tooltip style="--tooltip-max-width: 500px;"
             content=${shouldDisplayTooltip ? header.name : ""}>
-            <div slot="tooltip-anchor" class="header-text">${header.name}</div>
+              <div slot="tooltip-anchor" style=${headerWidthStyles}
+              class="header-text">${header.name}</div>
           </lit-tooltip>`;
       header.rightAlign =
           header.rightAlign ?? this.shouldRightAlignColumn(index);

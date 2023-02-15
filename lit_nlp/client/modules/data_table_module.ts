@@ -514,6 +514,8 @@ export class DataTableModule extends LitModule {
     const shiftSelectEndRowIndex = this.datasetIndexToRowIndex(
         this.selectionService.shiftSelectionEndIndex);
 
+    const headerTextMaxWidth = 20; //Units: ch
+
     // clang-format off
     return html`
       <lit-data-table
@@ -524,6 +526,7 @@ export class DataTableModule extends LitModule {
         .referenceSelectedIndex=${this.referenceSelectedIndex}
         .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
+        .headerTextMaxWidth=${headerTextMaxWidth}
         .globalSearchText=${this.globalSearchText}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
