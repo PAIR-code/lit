@@ -55,6 +55,7 @@
 
 .candidate-text {
   flex-grow: 1;
+  white-space: pre-wrap;
 }
 
 .reference-score {
