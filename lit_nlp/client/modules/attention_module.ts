@@ -191,7 +191,7 @@ export class AttentionModule extends LitModule {
       if (this.clearFocusTimer != null) {
         clearTimeout(this.clearFocusTimer);
       }
-      this.clearFocusTimer = setTimeout(() => {
+      this.clearFocusTimer = window.setTimeout(() => {
         this.focusService.clearFocus();
       }, 500) as unknown as number;
     };

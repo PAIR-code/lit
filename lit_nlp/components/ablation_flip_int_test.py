@@ -50,9 +50,8 @@ class SST2ModelWithPredictCounter(glue_models.SST2Model):
 
   def predict(self,
               inputs: Iterable[types.JsonDict],
-              scrub_arrays=True,
               **kw) -> Iterator[types.JsonDict]:
-    results = super().predict(inputs, scrub_arrays, **kw)
+    results = super().predict(inputs, **kw)
     self.predict_counter += 1
     return results
 

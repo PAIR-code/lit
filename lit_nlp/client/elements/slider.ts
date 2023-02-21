@@ -67,7 +67,7 @@ export class Slider extends LitElement {
         roundValue();
       } else {
         if (this.roundingTimeoutId) {clearTimeout(this.roundingTimeoutId);}
-        this.roundingTimeoutId = setTimeout(
+        this.roundingTimeoutId = window.setTimeout(
           roundValue, this.ROUNDING_TIMEOUT_MS);
       }
     };

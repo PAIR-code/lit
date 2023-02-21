@@ -18,7 +18,7 @@ dependencies:
     - pip
     - pip:
         - absl-py
-        - numpy
+        - numpy==1.23.5
         - scipy
         - pandas
         - scikit-learn==1.0.2

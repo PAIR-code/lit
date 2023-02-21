@@ -422,7 +422,7 @@ export class EmbeddingsModule extends LitModule {
     this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
 
     // Add an artificial timeout to indicate that the display has changed.
-    setTimeout(() => this.isLoading = false, 400);
+    window.setTimeout(() => this.isLoading = false, 400);
   }
 
   private getLabelByFields() {

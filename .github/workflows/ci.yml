@@ -29,9 +29,10 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and test (${{ matrix.python-version }})
+    name: Build and test (Python ${{ matrix.python-version }}, Node ${{ matrix.node-version }})
     strategy:
       matrix:
+        node-version: [16]
         python-version: ["3.9"]
     defaults:
       run:
@@ -54,6 +55,8 @@ jobs:
 
       # Build front-end.
       - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
       - run: pushd lit_nlp && yarn && yarn build && popd
 
-      # TODO(jwexler): Test front-end
+      # TODO(b/235626637): Add front-end unit and e2e tests

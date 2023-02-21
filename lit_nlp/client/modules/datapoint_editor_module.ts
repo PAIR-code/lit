@@ -695,7 +695,7 @@ export class DatapointEditorModule extends LitModule {
       const handleTokenFocusOut = (e: Event) => {
         // Reset our editingTokenIndex after a timeout so as to allow for
         // the delete token button to be pressed, as that also removes focus.
-        setTimeout(() => {
+        window.setTimeout(() => {
           if (this.editingTokenIndex === i) {
             this.editingTokenIndex = -1;
           }
