@@ -52,6 +52,11 @@
   border-spacing: 0px;
 }
 
+#output-words {
+  min-width: 190px;
+  width: 20%;
+}
+
 .output-row {
   display: flex;
   flex-direction: row;
