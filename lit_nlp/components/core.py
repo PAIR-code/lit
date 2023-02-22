@@ -31,11 +31,25 @@ from lit_nlp.components import projection
 from lit_nlp.components import regression_results
 from lit_nlp.components import salience_clustering
 from lit_nlp.components import scrambler
-from lit_nlp.components import shap_explainer
 from lit_nlp.components import tcav
 from lit_nlp.components import thresholder
-from lit_nlp.components import umap
 from lit_nlp.components import word_replacer
+
+# pytype: disable=import-error # pylint: disable=g-import-not-at-top
+try:
+  from lit_nlp.components import shap_explainer
+
+  _SHAP_AVAILABLE = True
+except (ModuleNotFoundError, ImportError):
+  _SHAP_AVAILABLE = False
+
+try:
+  from lit_nlp.components import umap
+
+  _UMAP_AVAILABLE = True
+except (ModuleNotFoundError, ImportError):
+  _UMAP_AVAILABLE = False
+# pytype: enable=import-error # pylint: enable=g-import-not-at-top
 
 ComponentGroup = lit_components.ComponentGroup
 Generator = lit_components.Generator
@@ -75,20 +89,27 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       their own salience information.
   """
   interpreters = required_interpreters()
+
   # Ensure the embedding-based interpreters are included.
-  embedding_based_interpreters: dict[str, Interpreter] = {
+  embedding_interpreters: dict[str, Interpreter] = {
       'nearest neighbors': nearest_neighbors.NearestNeighbors(),
       # Embedding projectors expose a standard interface, but get special
       # handling so we can precompute the projections if requested.
       'pca': projection.ProjectionManager(pca.PCAModel),
-      'umap': projection.ProjectionManager(umap.UmapModel),
   }
+
+  if _UMAP_AVAILABLE:
+    embedding_interpreters['umap'] = projection.ProjectionManager(
+        umap.UmapModel
+    )
+
   gradient_map_interpreters: dict[str, Interpreter] = {
       'Grad L2 Norm': gradient_maps.GradientNorm(),
       'Grad ⋅ Input': gradient_maps.GradientDotInput(),
       'Integrated Gradients': gradient_maps.IntegratedGradients(),
       'LIME': lime_explainer.LIME(),
   }
+
   # pyformat: disable
   core_interpreters: dict[str, Interpreter] = {
       'Model-provided salience': model_salience.ModelSalience(models),
@@ -99,14 +120,15 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
       'metrics': default_metrics(),
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
-          gradient_map_interpreters),
-      'Tabular SHAP': shap_explainer.TabularShapExplainer(),
+          dict(gradient_map_interpreters)),
   }
   # pyformat: enable
+
+  if _SHAP_AVAILABLE:
+    core_interpreters['Tabular SHAP'] = shap_explainer.TabularShapExplainer()
+
   interpreters.update(
-      **core_interpreters,
-      **gradient_map_interpreters,
-      **embedding_based_interpreters
+      **core_interpreters, **gradient_map_interpreters, **embedding_interpreters
   )
   return interpreters
 
