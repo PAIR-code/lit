@@ -13,6 +13,17 @@
   padding: 8px;
 }
 
+#toolbar-buttons {
+  display: flex;
+  flex-direction: row;
+  margin-left: 0;
+  margin-right: 0;
+  justify-content: flex-end;
+  width: 20%;
+  white-space: nowrap;
+}
+
+
 .selection-warning {
   color: var(--google-red-500);
 }

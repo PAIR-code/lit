@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import '../elements/showmore';
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators';
@@ -55,6 +56,7 @@ interface ModuleState {
 interface ClusteringState {
   clusterInfos: {[gradKey: string]: ClusterInfo[]};
   topTokenInfosByClusters: {[gradKey: string]: TopTokenInfosByCluster[]};
+  topTokenVisible: {[gradKey: string]:boolean[]};
   isLoading: boolean;
   colorMap: {[gradKey: string]: SalienceCmap};
   clusteringConfig: {[gradKey: string]: CallConfig};
@@ -107,10 +109,14 @@ export class SalienceClusteringModule extends LitModule {
       clusterInfos: {},
       topTokenInfosByClusters: {},
       isLoading: false,
+      topTokenVisible: {},
       colorMap: {},
       clusteringConfig: {},
     },
   };
+
+  private expandDisabled = false;
+  private collapseDisabled = true;
 
   override firstUpdated() {
     const state: ModuleState = {
@@ -121,6 +127,7 @@ export class SalienceClusteringModule extends LitModule {
         clusterInfos: {},
         topTokenInfosByClusters: {},
         isLoading: false,
+        topTokenVisible: {},
         colorMap: {},
         clusteringConfig: {},
       },
@@ -171,6 +178,7 @@ export class SalienceClusteringModule extends LitModule {
     };
 
     for (const gradKey of Object.keys(clusteringResult['cluster_ids'])) {
+      const visible = [];
       // Store per-example cluster IDs.
       const clusterInfos: ClusterInfo[] = [];
       const clusterIds = clusteringResult['cluster_ids'][gradKey];
@@ -208,12 +216,16 @@ export class SalienceClusteringModule extends LitModule {
         const topTokenInfosByCluster: TopTokenInfosByCluster = {
             topTokenInfos: []};
 
+        visible.push(false);
+
         for (const topTokenTuple of topTokenInfosByClusters[clusterId]) {
           topTokenInfosByCluster.topTokenInfos.push(
               {token: topTokenTuple[0], weight: topTokenTuple[1]});
         }
         this.state.clusteringState.topTokenInfosByClusters[gradKey].push(
             topTokenInfosByCluster);
+
+      this.state.clusteringState.topTokenVisible[gradKey] = visible;
       }
 
       // Determine color map.
@@ -244,15 +256,37 @@ export class SalienceClusteringModule extends LitModule {
     // clang-format off
     const rowsByClusters: TableData[] =
       topTokenInfosByClusters.map((topTokenInfos, clusterIdx) => {
+
+        const defaultLength = 5;
+
+        const onChange = (e:Event) => {
+          this.state.clusteringState.topTokenVisible[gradKey][clusterIdx] = true;
+          this.collapseDisabled = false;
+        };
+
+        const renderedTokens =
+          this.state.clusteringState.topTokenVisible[gradKey][clusterIdx] ?
+          topTokenInfos.topTokenInfos :
+          topTokenInfos.topTokenInfos.slice(0,
+            Math.min(defaultLength, topTokenInfos.topTokenInfos.length));
+
+        const renderShowMore =
+          renderedTokens.length === topTokenInfos.topTokenInfos.length ?
+          "" :
+          html`<lit-showmore
+            @show-more=${onChange}>
+            </lit-showmore>`;
+
         return [
           clusterIdx,
           clusterInfos.filter(
             clusterInfo => clusterInfo.clusterId === clusterIdx).length,
           html`
           <lit-token-chips
-            .tokensWithWeights=${topTokenInfos.topTokenInfos}
+            .tokensWithWeights=${renderedTokens}
             .cmap=${colorMap}>
-          </lit-token-chips>`
+          </lit-token-chips>
+          ${renderShowMore}`
         ];
       });
     // clang-format on
@@ -314,6 +348,7 @@ export class SalienceClusteringModule extends LitModule {
     }
     return names;
   }
+
 
   renderControlsAndResults() {
     if (this.state.clusteringState == null ||
@@ -429,6 +464,27 @@ export class SalienceClusteringModule extends LitModule {
   }
 
   override renderImpl() {
+    const updateVisible = (visible: boolean) => {
+      for (const gradKey of Object.keys(this.state.clusteringState.topTokenVisible)) {
+        const numClusters = this.state.clusteringState.topTokenVisible[gradKey].length;
+        for (let i = 0; i < numClusters; i++) {
+          this.state.clusteringState.topTokenVisible[gradKey][i] = visible;
+        }
+      }
+    };
+
+    const onClickExpand = () => {
+      updateVisible(true);
+      this.expandDisabled = true;
+      this.collapseDisabled = false;
+    };
+
+    const onClickCollapse = () => {
+      updateVisible(false);
+      this.collapseDisabled = true;
+      this.expandDisabled = false;
+
+    };
     // clang-format off
     return html`
       <div class="module-container">
@@ -442,6 +498,14 @@ export class SalienceClusteringModule extends LitModule {
           </p>
           <div class="color-legend-container">
             ${this.renderColorLegends()}
+          </div>
+          <div id="toolbar-buttons">
+            <button class='hairline-button' @click=${onClickCollapse} ?disabled="${this.collapseDisabled}">
+              Collapse all
+            </button>
+            <button class='hairline-button' @click=${onClickExpand} ?disabled="${this.expandDisabled}">
+              Expand all
+            </button>
           </div>
         </div>
       </div>`;
