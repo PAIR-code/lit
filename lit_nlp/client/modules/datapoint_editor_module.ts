@@ -62,7 +62,10 @@ export class DatapointEditorModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.resize();
+  });
+
   private isShiftPressed = false; /** Newline edits are shift + enter */
 
   protected addButtonText = 'Add';
@@ -182,13 +185,6 @@ export class DatapointEditorModule extends LitModule {
   }
 
   override firstUpdated() {
-    const container = this.shadowRoot!.querySelector('.module-container')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
-    });
-    this.resizeObserver.observe(container);
-
-
     const getCurrentDataset = () => this.appState.currentDataset;
     this.reactImmediately(getCurrentDataset, () => {
       when(() => this.appState.currentInputDataIsLoaded, () => {
@@ -204,6 +200,16 @@ export class DatapointEditorModule extends LitModule {
 
   override updated() {
     super.updated();
+
+    // Resize observer only if element is rendered.
+    // TODO(lit-dev): consider moving this logic to the LitModule base class,
+    // where the decision to render or not is made.
+    const container = this.shadowRoot!.querySelector('.module-container')!;
+    if (container != null) {
+      this.resizeObserver.observe(container);
+    } else {
+      this.resizeObserver.disconnect();
+    }
 
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
     // update the displayed value of textareas. See
@@ -262,6 +268,7 @@ export class DatapointEditorModule extends LitModule {
 
   private resetEditedData() {
     this.editingTokenIndex = -1;
+    this.editingTokenField = undefined;
     this.dataEdits = {};
   }
 
