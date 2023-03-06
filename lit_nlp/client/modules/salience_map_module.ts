@@ -374,8 +374,9 @@ export class SalienceMapModule extends LitModule {
   }
 
   // TODO(b/204887716): Consider using the <lit-token-chips> element.
-  renderTokens(salience: TokenSalienceResult, gradKey: string,
-               cmap: SalienceCmap) {
+  renderTokens(
+      salience: TokenSalienceResult, gradKey: string, cmap: SalienceCmap,
+      title?: string) {
     const tokens = salience[gradKey].tokens;
     const saliences = salience[gradKey].salience;
     const tokensDOM = tokens.map(
@@ -385,9 +386,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format off
     return html`
       <div class="tokens-group">
-        <div class="tokens-group-title">
-          ${gradKey}
-        </div>
+        ${title? html`<div class="tokens-group-title">${title}</div>` : null}
         <div class="tokens-holder">
           ${tokensDOM}
         </div>
@@ -397,8 +396,9 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  renderFeatureSalience(salience: FeatureSalienceResult, gradKey: string,
-                        cmap: SalienceCmap) {
+  renderFeatureSalience(
+      salience: FeatureSalienceResult, gradKey: string, cmap: SalienceCmap,
+      title?: string) {
     const saliences = salience[gradKey].salience;
     const features = Object.keys(saliences).sort(
         (a, b) => saliences[b] - saliences[a]);
@@ -413,9 +413,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format off
     return html`
       <div class="tokens-group">
-        <div class="tokens-group-title">
-          ${gradKey}
-        </div>
+        ${title? html`<div class="tokens-group-title">${title}</div>` : null}
         <div class="tokens-holder">
           ${tokensDOM}
         </div>
@@ -425,17 +423,18 @@ export class SalienceMapModule extends LitModule {
     // clang-format on
   }
 
-  renderGroup(salience: SalienceResult, spec: Spec, gradKey: string,
-              cmap: SalienceCmap) {
+  renderGroup(
+      salience: SalienceResult, spec: Spec, gradKey: string, cmap: SalienceCmap,
+      title?: string) {
     if (spec[gradKey] instanceof ImageGradients) {
       salience = salience as ImageSalienceResult;
       return this.renderImage(salience, gradKey);
     } else if (spec[gradKey] instanceof FeatureSalience) {
       salience = salience as FeatureSalienceResult;
-      return this.renderFeatureSalience(salience, gradKey, cmap);
+      return this.renderFeatureSalience(salience, gradKey, cmap, title);
     } else {
       salience = salience as TokenSalienceResult;
-      return this.renderTokens(salience, gradKey, cmap);
+      return this.renderTokens(salience, gradKey, cmap, title);
     }
   }
 
@@ -510,9 +509,11 @@ export class SalienceMapModule extends LitModule {
       this.state[name].autorun = !this.state[name].autorun;
     };
 
+    const onlyOneGroup = Object.keys(salience).length === 1;
     const salienceContent = Object.keys(salience).map(
-        gradKey =>
-            this.renderGroup(salience, spec, gradKey, this.state[name].cmap));
+        gradKey => this.renderGroup(
+            salience, spec, gradKey, this.state[name].cmap,
+            /* title */ onlyOneGroup ? undefined : gradKey));
 
     // The "bar-content" slot in <expansion-panel> renders inline between
     // the label and the expander toggle.
