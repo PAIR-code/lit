@@ -16,12 +16,13 @@
 
 import socket
 import threading
-from typing import Optional, Text, List
+from typing import Optional
 from wsgiref import validate
 import wsgiref.simple_server
 
 from absl import logging
 import portpicker
+import termcolor
 from werkzeug import serving as werkzeug_serving
 
 
@@ -32,8 +33,9 @@ from werkzeug import serving as werkzeug_serving
 class BasicDevServer(object):
   """Basic development server; not recommended for deployment."""
 
-  def __init__(self, wsgi_app, port: int = 4321, host: Text = '127.0.0.1',
-               **unused_kw):
+  def __init__(
+      self, wsgi_app, port: int = 4321, host: str = '127.0.0.1', **unused_kw
+  ):
     self._port = port
     self._host = host
     self._app = wsgi_app
@@ -41,9 +43,16 @@ class BasicDevServer(object):
 
   def serve(self):
     """Start serving."""
-    logging.info(('\n\nStarting Server on port %d'
-                  '\nYou can navigate to %s:%d\n\n'), self._port, self._host,
-                 self._port)
+    logging.info(
+        termcolor.colored(
+            (
+                f'\n\nStarting Server on port {self._port}'
+                f'\nYou can navigate to http://{self._host}:{self._port}\n\n'
+            ),
+            'green',
+            attrs=['bold'],
+        )
+    )
     werkzeug_serving.run_simple(
         self._host,
         self._port,
@@ -62,8 +71,13 @@ class WsgiServerIpv6(wsgiref.simple_server.WSGIServer):
 class NotebookWsgiServer(object):
   """WSGI server for notebook environments."""
 
-  def __init__(self, wsgi_app, host: Text = 'localhost',
-               port: Optional[int] = None, **unused_kw):
+  def __init__(
+      self,
+      wsgi_app,
+      host: str = 'localhost',
+      port: Optional[int] = None,
+      **unused_kw,
+  ):
     """Initialize the WSGI server.
 
     Args:

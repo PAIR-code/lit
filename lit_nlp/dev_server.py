@@ -20,6 +20,7 @@ from typing import Optional, Union
 from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp.lib import wsgi_serving
+import termcolor
 
 LitServerType = Union[lit_app.LitApp, wsgi_serving.BasicDevServer,
                       wsgi_serving.NotebookWsgiServer]
@@ -88,8 +89,10 @@ class Server(object):
     """
 
     while True:
-      logging.info(get_lit_logo())
-      logging.info('Starting LIT server...')
+      logging.info(termcolor.colored(get_lit_logo(), 'red', attrs=['bold']))
+      logging.info(
+          termcolor.colored('Starting LIT server...', 'green', attrs=['bold'])
+      )
       app = lit_app.LitApp(*self._app_args, **self._app_kw)
 
       # If using a separate server program to serve the app, such as gunicorn,
