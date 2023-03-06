@@ -43,6 +43,11 @@ def map_pred_keys(
   """Returns a map of compatible output fields and their parent input fields."""
   ret = {}
   for pred_key, pred_spec in model_output_spec.items():
+    if not hasattr(pred_spec, 'parent'):
+      # Skip fields like AttentionHeads that don't define parent= at all.
+      # Don't log for these as this can be very spammy.
+      continue
+
     parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
     if parent_key is None:
       logging.info("Skipping '%s': No parent provided.", pred_key)
