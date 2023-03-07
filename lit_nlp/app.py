@@ -455,21 +455,24 @@ class LitApp(object):
 
   def _warm_projections(self, interpreters: list[str]):
     """Pre-compute UMAP/PCA projections with default arguments."""
-    for model, model_info in self._info['models'].items():
-      for dataset_name in model_info['datasets']:
-        embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
-                                                types.Embeddings)
-        # Only warm-start on the first embedding field, since if models return
-        # many different embeddings this can take a long time.
-        for field_name in embedding_fields[:1]:
-          config = dict(
-              dataset_name=dataset_name,
-              model_name=model,
-              field_name=field_name,
-              use_input=False,
-              proj_kw={'n_components': 3})
-          data = {'inputs': [], 'config': config}
-          for interpreter_name in interpreters:
+    for interpreter_name in interpreters:
+      if interpreter_name not in self._interpreters:
+        continue
+
+      for model, model_info in self._info['models'].items():
+        for dataset_name in model_info['datasets']:
+          embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
+                                                  types.Embeddings)
+          # Only warm-start on the first embedding field, since if models return
+          # many different embeddings this can take a long time.
+          for field_name in embedding_fields[:1]:
+            config = dict(
+                dataset_name=dataset_name,
+                model_name=model,
+                field_name=field_name,
+                use_input=False,
+                proj_kw={'n_components': 3})
+            data = {'inputs': [], 'config': config}
             _ = self._get_interpretations(
                 data, model, dataset_name, interpreter=interpreter_name)
 
