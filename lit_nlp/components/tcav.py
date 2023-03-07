@@ -147,9 +147,10 @@ class TCAV(lit_components.Interpreter):
     grad_class_key = field_spec.grad_target_field_key
 
     # Get outputs using model.predict().
-    dataset_outputs = list(
-        model.predict_with_metadata(
-            dataset_examples, dataset_name=tcav_config.dataset_name))
+    if model_outputs is None:
+      predictions = list(model.predict_with_metadata(dataset_examples))
+    else:
+      predictions = model_outputs
 
     # If CAV is provided in config, then only calculate CAV similarity for
     # provided datapoints.
@@ -157,12 +158,11 @@ class TCAV(lit_components.Interpreter):
       return [{
           'cos_sim':
               self._get_cos_sim(
-                  np.array(tcav_config.cav), dataset_outputs, emb_layer)
+                  np.array(tcav_config.cav), predictions, emb_layer)
       }]
 
     ids_set = set(tcav_config.concept_set_ids)
     concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
-    non_concept_set = [ex for ex in dataset_examples if ex['id'] not in ids_set]
 
     if tcav_config.negative_set_ids:
       negative_ids_set = set(tcav_config.negative_set_ids)
@@ -170,12 +170,15 @@ class TCAV(lit_components.Interpreter):
           ex for ex in dataset_examples if ex['id'] in negative_ids_set
       ]
       return self._run_relative_tcav(grad_layer, emb_layer, grad_class_key,
-                                     concept_set, negative_set, dataset_outputs,
+                                     concept_set, negative_set, predictions,
                                      model, tcav_config)
     else:
+      non_concept_set = [
+          ex for ex in dataset_examples if ex['id'] not in ids_set
+      ]
       return self._run_default_tcav(grad_layer, emb_layer, grad_class_key,
-                                    concept_set, non_concept_set,
-                                    dataset_outputs, model, tcav_config)
+                                    concept_set, non_concept_set, predictions,
+                                    model, tcav_config)
 
   def _subsample(self, examples, n):
     return random.sample(examples, n) if n < len(examples) else examples
