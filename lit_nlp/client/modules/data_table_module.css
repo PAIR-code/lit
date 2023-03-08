@@ -21,10 +21,21 @@
   overflow-y: clip;
 }
 
-#search-input{
+.search-input-container {
   width: calc(100% - 24px);
-  margin-left: 4px;
-  margin-right: 4px
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.search-input-container input {
+  width: 100%;
+  background-color: unset; /* transparent */
+  border-width: 1px;
+  border-radius: 3px;
+}
+
+.search-container-edited .search-input-container {
+  background: var(--lit-bric-50);
 }
 
 .checkbox-row {

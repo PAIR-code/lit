@@ -68,10 +68,12 @@ export class DataTableModule extends LitModule {
 
   @observable columnVisibility = new Map<string, boolean>();
   @observable globalSearchText = '';
+  // If text box has been edited but not yet applied.
+  @observable globalSearchEdited = false;
 
   // Module options / configuration state
-  @observable private onlyShowGenerated: boolean = false;
-  @observable private onlyShowSelected: boolean = false;
+  @observable private onlyShowGenerated = false;
+  @observable private onlyShowSelected = false;
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -485,22 +487,37 @@ export class DataTableModule extends LitModule {
   }
 
   renderSearch() {
-    const handleGlobalSearchChange = (e: KeyboardEvent) => {
+    const handleGlobalSearchInput = (e: KeyboardEvent) => {
+      // Check for update, for highlighting purposes
+      const searchQuery = (e.target as HTMLInputElement)?.value || '';
+      this.globalSearchEdited = (searchQuery !== this.globalSearchText);
+    };
+
+    const handleGlobalSearchEnter = (e: KeyboardEvent) => {
       // Trigger an update on "enter" key.
       if(e.key=== "Enter") {
         const searchQuery = (e.target as HTMLInputElement)?.value || '';
         this.globalSearchText = searchQuery;
+        this.globalSearchEdited = false;
       }
     };
+
+    const containerClasses = classMap({
+      'search-container': true,
+      'search-container-edited': this.globalSearchEdited,
+    });
 
     const tooltipContent = `Search using text, regex, numerical ranges,
       and column-name prefixes. Use AND and OR for joint queries. For example,
       'query AND ^query2 OR columnName:1-10.'`;
     return html`
-      <div class='search-container'>
+      <div class=${containerClasses}>
         <mwc-icon class='icon material-icon-outlined'>search</mwc-icon>
-        <input type="search" id="search-input" .value=${this.globalSearchText}
-          @keydown=${handleGlobalSearchChange} placeholder="Search"/>
+        <div class='search-input-container'>
+          <input type="search" id="search-input" .value=${this.globalSearchText}
+            @input=${handleGlobalSearchInput}
+            @keydown=${handleGlobalSearchEnter} placeholder="Search"/>
+        </div>
         <lit-tooltip content=${tooltipContent}></lit-tooltip>
       </div>`;
   }
