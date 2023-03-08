@@ -23,6 +23,7 @@ from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
+from lit_nlp.lib import caching
 from lit_nlp.lib import utils
 
 import numpy as np
@@ -148,7 +149,12 @@ class TCAV(lit_components.Interpreter):
 
     # Get outputs using model.predict().
     if model_outputs is None:
-      predictions = list(model.predict_with_metadata(dataset_examples))
+      pred_kw = {}
+      if isinstance(model, caching.CachingModelWrapper):
+        pred_kw['dataset_name'] = tcav_config.dataset_name
+      predictions = list(
+          model.predict_with_metadata(dataset_examples, **pred_kw)
+      )
     else:
       predictions = model_outputs
 
