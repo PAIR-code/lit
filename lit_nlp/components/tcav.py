@@ -81,6 +81,10 @@ class TCAV(lit_components.Interpreter):
         were computed for. This is usually a CategoryLabel, but can be anything
         since it will just be fed back into the model.
       - MulticlassPreds (`probas`)
+
+  **Note: TCAV calls the model multiple times. It is _strongly_ recommended that
+  you use a caching model (i.e., wrap your model in a `CachingModelWrapper`) to
+  optimize performance.**
   """
 
   def hyp_test(self, scores, random_scores):
@@ -192,13 +196,13 @@ class TCAV(lit_components.Interpreter):
   def _run_default_tcav(self, grad_layer, emb_layer, grad_class_key,
                         concept_set, non_concept_set, dataset_outputs, model,
                         config):
-
-    concept_outputs = list(
-        model.predict_with_metadata(
-            concept_set, dataset_name=config.dataset_name))
+    pred_kw = {}
+    if isinstance(model, caching.CachingModelWrapper):
+      pred_kw['dataset_name'] = config.dataset_name
+    concept_outputs = list(model.predict_with_metadata(concept_set, **pred_kw))
     non_concept_outputs = list(
-        model.predict_with_metadata(
-            non_concept_set, dataset_name=config.dataset_name))
+        model.predict_with_metadata(non_concept_set, **pred_kw)
+    )
 
     concept_results = []
     # If there are more concept set examples than non-concept set examples, we
@@ -253,12 +257,13 @@ class TCAV(lit_components.Interpreter):
   def _run_relative_tcav(self, grad_layer, emb_layer, grad_class_key,
                          concept_set, negative_set, dataset_outputs, model,
                          config):
-    positive_outputs = list(
-        model.predict_with_metadata(
-            concept_set, dataset_name=config.dataset_name))
+    pred_kw = {}
+    if isinstance(model, caching.CachingModelWrapper):
+      pred_kw['dataset_name'] = config.dataset_name
+    positive_outputs = list(model.predict_with_metadata(concept_set, **pred_kw))
     negative_outputs = list(
-        model.predict_with_metadata(
-            negative_set, dataset_name=config.dataset_name))
+        model.predict_with_metadata(negative_set, **pred_kw)
+    )
 
     # Ideally, for relative TCAV, users would test concepts with at least ~100
     # examples each so we can perform ~15 runs on unique subsets.
