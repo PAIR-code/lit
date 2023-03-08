@@ -137,6 +137,7 @@ def default_metrics() -> ComponentGroup:
   return ComponentGroup({
       'regression': metrics.RegressionMetrics(),
       'multiclass': metrics.MulticlassMetrics(),
+      'multilabel': metrics.MultilabelMetrics(),
       'paired': metrics.MulticlassPairedMetrics(),
       'bleu': metrics.CorpusBLEU(),
       'rouge': metrics.RougeL(),

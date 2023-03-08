@@ -292,6 +292,377 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
     testing_utils.assert_deep_almost_equal(self, result, {})
 
 
+_MULTI_LABEL_VOCAB = ['1', '2', '3', '4', '5']
+
+
+class MultilabelMetricsTest(parameterized.TestCase):
+
+  def setUp(self):
+    super(MultilabelMetricsTest, self).setUp()
+    self.metrics = metrics.MultilabelMetrics()
+
+  @parameterized.named_parameters(
+      ('bad_parent', types.SparseMultilabelPreds(), types.Scalar(), False),
+      ('bad_pred', types.RegressionScore(), types.SparseMultilabel(), False),
+      ('yes', types.SparseMultilabelPreds(), types.SparseMultilabel(), True),
+  )
+  def test_is_field_compatible(
+      self, pred: LitType, parent: LitType, expected: bool
+  ):
+    self.assertEqual(self.metrics.is_field_compatible(pred, parent), expected)
+
+  def test_meta_spec(self):
+    meta_spec = self.metrics.meta_spec()
+    self.assertLen(meta_spec, 4)
+    self.assertIn('exactmatch', meta_spec)
+    self.assertIn('precision', meta_spec)
+    self.assertIn('recall', meta_spec)
+    self.assertIn('f1', meta_spec)
+    for spec in meta_spec.values():
+      self.assertIsInstance(spec, types.MetricResult)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='all_correct_inferred_full_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('2', 0.0), ('3', 1.0), ('4', 0.0), ('5', 0.0)],
+              [('1', 0.0), ('2', 1.0), ('3', 0.0), ('4', 1.0), ('5', 0.0)],
+              [('1', 0.0), ('2', 0.0), ('3', 0.0), ('4', 0.0), ('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(vocab=_MULTI_LABEL_VOCAB),
+          expected={
+              'exactmatch': 1,
+              'precision': 1,
+              'recall': 1,
+              'f1': 1,
+          },
+      ),
+      dict(
+          testcase_name='all_correct_inferred_sparse_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('3', 1.0)],
+              [('2', 1.0), ('4', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 1,
+              'precision': 1,
+              'recall': 1,
+              'f1': 1,
+          },
+      ),
+      dict(
+          testcase_name='all_correct_label_spec_vocab',
+          labels=[
+              ['1'],
+              ['2'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0)],
+              [('2', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(vocab=_MULTI_LABEL_VOCAB),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 1,
+              'precision': 1,
+              'recall': 1,
+              'f1': 1,
+          },
+      ),
+      dict(
+          testcase_name='all_correct_pred_spec_vocab',
+          labels=[
+              ['1'],
+              ['2'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0)],
+              [('2', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(vocab=_MULTI_LABEL_VOCAB),
+          expected={
+              'exactmatch': 1,
+              'precision': 1,
+              'recall': 1,
+              'f1': 1,
+          },
+      ),
+      dict(
+          testcase_name='all_wrong_inferred_disjoint_vocab',
+          labels=[['1']],
+          preds=[[('3', 1.0), ('4', 1.0)]],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0,
+              'precision': 0,
+              'recall': 0,
+              'f1': 0,
+          },
+      ),
+      dict(
+          testcase_name='all_wrong_inferred_full_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 0.0), ('2', 0.0), ('3', 0.0), ('4', 0.0), ('5', 0.5)],
+              [('1', 0.9), ('2', 0.0), ('3', 0.9), ('4', 0.0), ('5', 0.0)],
+              [('1', 0.0), ('2', 1.0), ('3', 0.0), ('4', 1.0), ('5', 0.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0,
+              'precision': 0,
+              'recall': 0,
+              'f1': 0,
+          },
+      ),
+      dict(
+          testcase_name='all_wrong_inferred_sparse_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('5', 0.5)],
+              [('1', 0.9), ('3', 0.9)],
+              [('2', 1.0), ('4', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0,
+              'precision': 0,
+              'recall': 0,
+              'f1': 0,
+          },
+      ),
+      dict(
+          testcase_name='mixed_inferred_disjoint_vocab',
+          labels=[
+              ['1', '3'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('4', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0,
+              'precision': 0.25,
+              'recall': 0.25,
+              'f1': 0.25,
+          },
+      ),
+      dict(
+          testcase_name='mixed_inferred_full_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('2', 0.0), ('3', 0.0), ('4', 1.0), ('5', 0.0)],
+              [('1', 0.0), ('2', 1.0), ('3', 0.0), ('4', 0.0), ('5', 0.0)],
+              [('1', 0.0), ('2', 0.0), ('3', 0.0), ('4', 0.0), ('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0.3333,
+              'precision': 0.8333,
+              'recall': 0.6667,
+              'f1': 0.7222,
+          },
+      ),
+      dict(
+          testcase_name='mixed_inferred_sparse_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('2', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0.3333,
+              'precision': 0.8333,
+              'recall': 0.6667,
+              'f1': 0.7222,
+          },
+      ),
+      dict(
+          testcase_name='mixed_label_spec_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('2', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(vocab=_MULTI_LABEL_VOCAB),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0.3333,
+              'precision': 0.8333,
+              'recall': 0.6667,
+              'f1': 0.7222,
+          },
+      ),
+      dict(
+          testcase_name='mixed_label_spec_vocab_superset_of_observed_vocab',
+          labels=[
+              ['1', '3'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('4', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(vocab=_MULTI_LABEL_VOCAB),
+          pred_spec=types.SparseMultilabelPreds(),
+          expected={
+              'exactmatch': 0,
+              'precision': 0.25,
+              'recall': 0.25,
+              'f1': 0.25,
+          },
+      ),
+      dict(
+          testcase_name='mixed_pred_spec_vocab',
+          labels=[
+              ['1', '3'],
+              ['2', '4'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('2', 1.0)],
+              [('5', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(vocab=_MULTI_LABEL_VOCAB),
+          expected={
+              'exactmatch': 0.3333,
+              'precision': 0.8333,
+              'recall': 0.6667,
+              'f1': 0.7222,
+          },
+      ),
+      dict(
+          testcase_name='mixed_pred_spec_vocab_superset_of_observed_vocab',
+          labels=[
+              ['1', '3'],
+              ['5']
+          ],
+          preds=[
+              [('1', 1.0), ('4', 1.0)],
+              [('4', 1.0)],
+          ],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(vocab=_MULTI_LABEL_VOCAB),
+          expected={
+              'exactmatch': 0,
+              'precision': 0.25,
+              'recall': 0.25,
+              'f1': 0.25,
+          },
+      ),
+  )
+  def test_compute(self, labels, preds, label_spec, pred_spec, expected):
+    result = self.metrics.compute(labels, preds, label_spec, pred_spec)
+    testing_utils.assert_deep_almost_equal(self, result, expected)
+
+  @parameterized.named_parameters(
+      ('no_labels', [], [('1', 0.1)]),
+      ('no_labels_no_preds', ['1'], []),
+      ('no_preds', [], []),
+  )
+  def test_compute_empty(self, labels, preds):
+    self.assertEmpty(
+        self.metrics.compute(
+            labels,
+            preds,
+            types.SparseMultilabel(),
+            types.SparseMultilabelPreds(),
+        )
+    )
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='bad_label_spec',
+          error_type=TypeError,
+          labels=[['1']],
+          preds=[[('1', 0.1)]],
+          label_spec=types.CategoryLabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+      ),
+      dict(
+          testcase_name='bad_pred_spec',
+          error_type=TypeError,
+          labels=[['1']],
+          preds=[[('1', 0.1)]],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.MulticlassPreds(vocab=[]),
+      ),
+      dict(
+          testcase_name='more_labels_than_preds',
+          error_type=ValueError,
+          labels=[['1'], ['2']],
+          preds=[[('1', 0.1)]],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+      ),
+      dict(
+          testcase_name='more_preds_than_labels',
+          error_type=ValueError,
+          labels=[['1']],
+          preds=[[('1', 0.1)], [('2', 0.2)]],
+          label_spec=types.SparseMultilabel(),
+          pred_spec=types.SparseMultilabelPreds(),
+      ),
+  )
+  def test_compute_errors(
+      self, error_type, labels, preds, label_spec, pred_spec
+  ):
+    with self.assertRaises(error_type):
+      self.metrics.compute(labels, preds, label_spec, pred_spec)
+
+
 class CorpusBLEUTest(parameterized.TestCase):
 
   def setUp(self):
