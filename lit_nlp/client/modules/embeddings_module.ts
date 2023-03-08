@@ -60,11 +60,19 @@ interface EmbeddingOptions {
 }
 
 const NN_INTERPRETER_NAME = 'nearest neighbors';
-// TODO(lit-dev): Make the number of nearest neighbors configurable in the UI.
+// TODO(b/272281218): Make the number of nearest neighbors configurable in the
+// UI.
 const DEFAULT_NUM_NEAREST = 10;
 
 // Pixel width and height of thumbnails for datapoints with image features.
 const SPRITE_THUMBNAIL_SIZE = 48;
+
+// TODO(b/272281218): consolidate these, can just store a mapping of
+// interpreterName --> displayName
+const PROJECTOR_CHOICES: {[key: string]: ProjectorOptions} = {
+  'pca': {displayName: 'PCA', interpreterName: 'pca'},
+  'umap': {displayName: 'UMAP', interpreterName: 'umap'},
+};
 
 /**
  * A LIT module showing a Scatter-GL rendering of the projected embeddings
@@ -91,10 +99,7 @@ export class EmbeddingsModule extends LitModule {
 
   static override duplicateForModelComparison = false;
 
-  static projectorChoices: {[key: string]: ProjectorOptions} = {
-    'pca': {displayName: 'PCA', interpreterName: 'pca'},
-    'umap': {displayName: 'UMAP', interpreterName: 'umap'},
-  };
+  private readonly projectorChoices: {[key: string]: ProjectorOptions} = {};
 
   static override numCols = 3;
 
@@ -102,10 +107,10 @@ export class EmbeddingsModule extends LitModule {
   private isLoading: boolean = false;
 
   // Selection of one of the above configs.
-  @observable private projectorName: string = 'umap';
+  @observable private projectorName: string;
   @computed
   get projector(): ProjectorOptions {
-    return EmbeddingsModule.projectorChoices[this.projectorName];
+    return this.projectorChoices[this.projectorName];
   }
 
   // Actual projected points.
@@ -284,9 +289,33 @@ export class EmbeddingsModule extends LitModule {
 
   constructor() {
     super();
-    // Default to PCA on large datasets.
-    if (this.appState.currentInputData.length > 1000) {
+
+    // Filter to only available projectors.
+    // TODO(b/272281218): configure this from metadata instead of using a
+    // hard-coded PROJECTOR_CHOICES list.
+    const interpreters = this.appState.metadata.interpreters;
+    for (const [key, value] of Object.entries(PROJECTOR_CHOICES)) {
+      if (interpreters.hasOwnProperty(value.interpreterName)) {
+        this.projectorChoices[key] = value;
+      }
+    }
+
+    if (Object.keys(this.projectorChoices).length <= 0) {
+      throw new Error('Embeddings module: no projection methods available.');
+    }
+
+    // Set default projection method.
+    if (this.appState.currentInputData.length > 1000 &&
+        this.projectorChoices.hasOwnProperty('pca')) {
+      // Default to PCA on large datasets.
       this.projectorName = 'pca';
+    } else if (this.projectorChoices.hasOwnProperty('umap')) {
+      // Otherwise, use UMAP if available.
+      // TODO(b/272281218): use order from backend rather than special defaults
+      // here.
+      this.projectorName = 'umap';
+    } else {
+      this.projectorName = Object.keys(this.projectorChoices)[0];
     }
   }
 
@@ -623,7 +652,7 @@ export class EmbeddingsModule extends LitModule {
   }
 
   renderProjectorSelect() {
-    const options = EmbeddingsModule.projectorChoices;
+    const options = this.projectorChoices;
     const htmlOptions = Object.keys(options).map((key) => {
       return html`
         <option value=${key} ?selected=${key === this.projectorName}>
@@ -721,9 +750,10 @@ export class EmbeddingsModule extends LitModule {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('umap') !== -1 ||
-          modelInfo.interpreters.indexOf('pca') !== -1) {
-        return true;
+      for (const key of Object.keys(PROJECTOR_CHOICES)) {
+        if (modelInfo.interpreters.indexOf(key) !== -1) {
+          return true;
+        }
       }
     }
     return false;
