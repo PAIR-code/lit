@@ -346,7 +346,7 @@ class LitApp(object):
     generator: lit_components.Generator = self._generators[generator_name]
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: list[list[Input]] = generator.run_with_metadata(
+    all_generated: list[list[Input]] = generator.run_with_metadata(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
         data['inputs'], self._models[model], dataset, config=data.get('config'))
 
     # Annotate datapoints
