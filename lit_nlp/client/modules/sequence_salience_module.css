@@ -10,7 +10,7 @@ table.field-table th {
 }
 
 lit-numeric-input {
-  max-width: 72px;
+  max-width: 200px;
 }
 
 .color-legend-container {
