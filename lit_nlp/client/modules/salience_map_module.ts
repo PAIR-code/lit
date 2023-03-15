@@ -20,6 +20,7 @@
  */
 
 import '../elements/spinner';
+import '../elements/numeric_input';
 import '../elements/popup_container';
 
 import {html} from 'lit';
@@ -355,8 +356,9 @@ export class SalienceMapModule extends LitModule {
           "A larger gamma value makes lower salience tokens more visible."}>
         <label for="gamma-slider" slot="tooltip-anchor">Gamma:</label>
       </lit-tooltip>
-      <lit-slider min="0.25" max="6" step="0.25"
-        value="${this.cmapGamma}" @change=${onChangeGamma}></lit-slider>`;
+      <lit-numeric-input min="0.25" max="6" step="0.25"
+        value="${this.cmapGamma}" @change=${onChangeGamma}>
+      </lit-numeric-input>`;
   }
 
   renderFooter() {

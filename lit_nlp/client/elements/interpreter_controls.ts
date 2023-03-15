@@ -17,6 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import './checkbox';
+import '../elements/numeric_input';
 
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
@@ -196,9 +197,9 @@ export class InterpreterControls extends ReactiveElement {
 
       // clang-format off
       return html`
-        <lit-slider class="slider-holder" min="${minVal}" max="${maxVal}"
+        <lit-numeric-input class="slider-holder" min="${minVal}" max="${maxVal}"
             step="${step}" value="${+this.settings[name]}"
-            @change=${updateSettings}></lit-slider>
+            @change=${updateSettings}></lit-numeric-input>
       `;
       // clang-format on
     } else if (controlType instanceof BooleanLitType) {

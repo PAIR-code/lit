@@ -18,7 +18,6 @@
  */
 
 import '../elements/popup_container';
-import '../elements/slider';
 
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators

@@ -21,14 +21,13 @@ import {html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators';
 import {styleMap} from 'lit/directives/style-map';
 
-import {styles} from './slider.css';
+import {styles} from './numeric_input.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 
 /** A slider with LIT Brand-compliant styles. */
-//TODO(b/267161352) rename lit-slider to reflect new text input option.
-@customElement('lit-slider')
-export class Slider extends LitElement {
+@customElement('lit-numeric-input')
+export class NumericInput extends LitElement {
   @property({type: Number}) min = 0;
   @property({type: Number}) max = 1;
   @property({type: Number}) step = 0.1;
@@ -104,6 +103,6 @@ export class Slider extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lit-slider': Slider;
+    'lit-numeric-input': NumericInput;
   }
 }

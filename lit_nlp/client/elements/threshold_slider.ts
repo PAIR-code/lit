@@ -136,8 +136,8 @@ export class ThresholdSlider extends LitElement {
     return html`
         <div class="slider-row">
           ${renderLabel()}
-          <lit-slider min="${min}" max="${max}" step="${step}" value="${val}"
-                      @change=${onChange}></lit-slider>
+          <lit-numeric-input min="${min}" max="${max}" step="${step}"
+            value="${val}" @change=${onChange}></lit-numeric-input>
           ${this.showControls ?
               html`<button class='hairline-button reset-button' @click=${reset}
                    ?disabled="${isDefaultValue}">Reset</button>` : null}

@@ -3,7 +3,7 @@
  */
 
 import '@material/mwc-switch';
-import '../elements/slider';
+import '../elements/numeric_input';
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
@@ -427,8 +427,9 @@ export class SequenceSalienceModule extends LitModule {
       <div class="controls-group">
         ${this.renderColorLegend()}
         <label for="gamma-slider">Gamma:</label>
-        <lit-slider min="0.25" max="6" step="0.25" value="${this.cmapGamma}"
-                    @change=${onChangeGamma}></lit-slider>
+        <lit-numeric-input min="0.25" max="6" step="0.25"
+          value="${this.cmapGamma}" @change=${onChangeGamma}>
+        </lit-numeric-input>
       </div>`;
     // clang-format on
   }

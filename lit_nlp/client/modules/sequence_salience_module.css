@@ -9,7 +9,7 @@ table.field-table th {
   text-align: start;
 }
 
-lit-slider {
+lit-numeric-input {
   max-width: 72px;
 }
 
