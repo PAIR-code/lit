@@ -97,7 +97,26 @@ class TCAV(lit_components.Interpreter):
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
     del dataset  # Unused by TCAV
-    return utils.spec_contains(model.output_spec(), types.Gradients)
+    output_spec = model.output_spec()
+    gradient_fields = utils.find_spec_keys(output_spec, types.Gradients)
+
+    if not gradient_fields:
+      return False
+
+    for grad_field in gradient_fields:
+      field_spec = cast(types.Gradients, output_spec.get(grad_field))
+      preds = output_spec.get(field_spec.align)
+      compat_preds = isinstance(preds, types.MulticlassPreds)
+      grad_for = output_spec.get(field_spec.grad_for)
+      compat_grad_for = isinstance(grad_for, types.Embeddings)
+      # TODO(b/205996131): remove grad_target_field_key and just use
+      # ground-truth labels.
+      grad_target = output_spec.get(field_spec.grad_target_field_key)
+      compat_grad_target = isinstance(grad_target, types.CategoryLabel)
+      if compat_preds and compat_grad_for and compat_grad_target:
+        return True
+
+    return False
 
   def run_with_metadata(
       self,

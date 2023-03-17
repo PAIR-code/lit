@@ -17,7 +17,9 @@
 import random
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
+from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.components import tcav
 # TODO(lit-dev): Move glue_models out of lit_nlp/examples
@@ -30,11 +32,30 @@ import numpy as np
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
 
+_TEST_VOCAB = ['0', '1']
 
 BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
 import transformers
 BERT_TINY_PATH = transformers.file_utils.cached_path(BERT_TINY_PATH,
 extract_compressed_file=True)
+
+
+class VariableOutputSpecModel(lit_model.Model):
+  """A dummy model used for testing interpreter compatibility."""
+
+  def __init__(self, output_spec: lit_types.Spec):
+    self._output_spec = output_spec
+
+  def output_spec(self) -> lit_types.Spec:
+    return self._output_spec
+
+  def input_spec(self) -> lit_types.Spec:
+    return {}
+
+  def predict_minibatch(
+      self, inputs: list[lit_model.JsonDict]
+  ) -> list[lit_model.JsonDict]:
+    return []
 
 
 class ModelBasedTCAVTest(absltest.TestCase):
@@ -539,12 +560,163 @@ class ModelBasedTCAVTest(absltest.TestCase):
     testing_utils.assert_deep_almost_equal(self, expected, result, places=3)
 
 
-class TCAVTest(absltest.TestCase):
+class TCAVTest(parameterized.TestCase):
 
   def setUp(self):
     super(TCAVTest, self).setUp()
     self.tcav = tcav.TCAV()
     self.model = glue_models.SST2Model(BERT_TINY_PATH)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='compatible',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=True,
+      ),
+      dict(
+          testcase_name='incompatible_align_not_in_spec',
+          output_spec={
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_align_undefined',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_align_wrong_type',
+          output_spec={
+              'probas': lit_types.RegressionScore(),
+              'embs': lit_types.Scalar(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_embeddings_not_in_spec',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_embeddings_undefined',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_embeddings_wrong_type',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Scalar(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_gradients_not_in_spec',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_gradient_target_not_in_spec',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_gradient_target_undefined',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+              ),
+              'grad_target': lit_types.CategoryLabel(vocab=_TEST_VOCAB),
+          },
+          expected=False,
+      ),
+      dict(
+          testcase_name='incompatible_gradient_target_wrong_type',
+          output_spec={
+              'probas': lit_types.MulticlassPreds(vocab=_TEST_VOCAB),
+              'embs': lit_types.Embeddings(),
+              'grads': lit_types.Gradients(
+                  align='probas',
+                  grad_for='embs',
+                  grad_target_field_key='grad_target',
+              ),
+              'grad_target': lit_types.Scalar(),
+          },
+          expected=False,
+      ),
+  )
+  def test_is_comaptible(self, output_spec: lit_types.Spec, expected: bool):
+    test_model = VariableOutputSpecModel(output_spec)
+    test_dataset = lit_dataset.NoneDataset({'test': test_model})
+    is_compatible = self.tcav.is_compatible(test_model, test_dataset)
+    self.assertEqual(is_compatible, expected)
 
   def test_hyp_test(self):
     # t-test where p-value != 1.
