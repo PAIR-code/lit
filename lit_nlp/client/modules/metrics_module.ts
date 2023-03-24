@@ -358,8 +358,12 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      return {name, rightAlign: true, html: html`
-        <div class="header-text">${name}</div>`
+      const [group, metric] = name.split(': ');
+      return {
+        name,
+        rightAlign: true,
+        html: html`<div class="header-text">${group}<br>${metric}</div>`,
+        width: '100px'
       };
     });
 

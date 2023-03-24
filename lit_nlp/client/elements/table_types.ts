@@ -51,6 +51,12 @@ export interface ColumnHeader {
    *  through selected items from the vocab list.
    */
   vocab?: string[];
+  /** The maximum width of the column, must be a valid CSS string. */
+  maxWidth?: string;
+  /** The minimum width of the column, must be a valid CSS string */
+  minWidth?: string;
+  /** The width of the column, must be a valid CSS string */
+  width?: string;
 }
 
 /** Internal data, including metadata */

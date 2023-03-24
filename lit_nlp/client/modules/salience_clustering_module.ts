@@ -269,8 +269,8 @@ export class SalienceClusteringModule extends LitModule {
         <div class="grad-key-label">${gradKey}</div>
         <lit-data-table
           .columnNames=${[
-            'Cluster index',
-            'N',
+            {'name':'Cluster index', 'width': '125px'},
+            {'name': 'N', 'width': '75px'},
             `Tokens with high average saliency (up to ${numTokensPerCluster})`
           ]}
           .data=${rowsByClusters}

@@ -658,9 +658,19 @@ export class DataTable extends ReactiveElement {
     // in the row render method
     this.selectedIndicesSetForRender = new Set<number>(this.selectedIndices);
 
+    const cols = this.columnHeaders.map((header) => {
+      const styles = styleMap({
+        'max-width': header.maxWidth || 'unset',
+        'min-width': header.minWidth || 'unset',
+        'width': header.width || 'unset',
+      });
+      return html`<col span="1" style=${styles}>`;
+    });
+
     // clang-format off
     return html`<div class="holder">
       <table class=${classMap({'has-footer': this.hasFooter})}>
+        <colgroup>${cols}</colgroup>
         <thead>
           ${this.columnHeaders.map((c, i) =>
               this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
@@ -846,12 +856,11 @@ export class DataTable extends ReactiveElement {
     const headerClasses =
         classMap({'column-header': true, 'right-align': header.rightAlign!});
 
-
     // TODO(b/255799266): Add fast tooltips to icons.
     // There's some rendering trickiness around the table element and tooltips.
     // clang-format off
     return html`
-        <th id=${headerId}>
+        <th id=${headerId} scope="col">
           <div class=${headerClasses}>
             <div class="header-holder">
               <div @click=${toggleSort}>${header.html!}</div>

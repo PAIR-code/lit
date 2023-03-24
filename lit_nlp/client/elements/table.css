@@ -62,6 +62,11 @@
   padding: var(--table-cell-padding);
 }
 
+.header-holder lit-tooltip {
+  display: flex;
+  align-items: center;
+}
+
 .header-text {
   flex: 1;
   text-align: center;
@@ -71,6 +76,10 @@
   direction: rtl;
   max-width: var(--header-text-max-width);
   white-space: nowrap;
+}
+
+.column-header.right-align .header-text {
+  text-align: right;
 }
 
 .arrow-container {
@@ -182,7 +191,6 @@ tbody tr.focused {
 
 tbody td {
   vertical-align: top;
-  min-width: 80px;
   box-sizing: border-box;
 }
 
@@ -199,6 +207,11 @@ tbody td {
 
 .cell-holder.right-align {
   justify-content: flex-end;
+  padding-right: 24px;
+}
+
+:host([searchenabled]) .cell-holder.right-align {
+  padding-right: 46px;
 }
 
 .text-cell {
