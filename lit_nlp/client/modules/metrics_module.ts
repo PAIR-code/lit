@@ -110,7 +110,7 @@ export class MetricsModule extends LitModule {
   @observable private selectedFacetBins: NumericFeatureBins = {};
 
   @observable private metricsMap: MetricsMap = {};
-  @observable private facetBySlice: boolean = false;
+  @observable private facetBySlice = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
   @query('#metrics-table') private readonly table?: DataTable;

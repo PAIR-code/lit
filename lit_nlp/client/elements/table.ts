@@ -109,21 +109,21 @@ export class DataTable extends ReactiveElement {
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
   // instead of triggering a full re-render.
   @observable @property({type: Number}) focusedIndex: number = -1;
-  @observable @property({type: String}) globalSearchText: string = '';
+  @observable @property({type: String}) globalSearchText = '';
 
   // Mode controls
-  @observable @property({type: Boolean}) selectionEnabled: boolean = false;
-  @observable @property({type: Boolean}) searchEnabled: boolean = false;
-  @observable @property({type: Boolean}) paginationEnabled: boolean = false;
-  @observable @property({type: Boolean}) exportEnabled: boolean = false;
+  @observable @property({type: Boolean}) selectionEnabled = false;
+  @observable @property({type: Boolean}) searchEnabled = false;
+  @observable @property({type: Boolean}) paginationEnabled = false;
+  @observable @property({type: Boolean}) exportEnabled = false;
 
   /** Lowest row index of the continguous (i.e., shift-click) selection. */
-  @property({type: Number}) shiftSelectionStartIndex: number = 0;
+  @property({type: Number}) shiftSelectionStartIndex = 0;
   /** Highest row index of the continguous (i.e., shift-click) selection. */
-  @property({type: Number}) shiftSelectionEndIndex: number = 0;
+  @property({type: Number}) shiftSelectionEndIndex = 0;
 
   // Style overrides
-  @property({type: Boolean}) verticalAlignMiddle: boolean = false;
+  @property({type: Boolean}) verticalAlignMiddle = false;
   @property({type: Number}) headerTextMaxWidth: number|null = null;
 
   // Callbacks
@@ -147,7 +147,7 @@ export class DataTable extends ReactiveElement {
   @observable private pageNum = 0;
   @observable private entriesPerPage = PAGE_SIZE_INCREMENT;
 
-  @property({type: String}) downloadFilename: string = 'data.csv';
+  @property({type: String}) downloadFilename = 'data.csv';
 
   private readonly resizeObserver = new ResizeObserver(() => {
     this.adjustEntriesIfHeightChanged();
