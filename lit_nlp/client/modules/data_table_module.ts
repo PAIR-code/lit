@@ -39,6 +39,13 @@ import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
 
+const CATEGORY_WIDTHS: {[key: string]: string}  = {
+  "TextSegment": "220px",
+  "CategoryLabel": "60px",
+  "BooleanLitType": "60px",
+  "Scalar": "60px"
+};
+
 /**
  * A LIT module showing a table containing the InputData examples. Allows the
  * user to sort, filter, and select examples.
@@ -87,7 +94,9 @@ export class DataTableModule extends LitModule {
   @computed
   get keys(): ColumnHeader[] {
     function createColumnHeader(name: string, type: LitType) {
-      const header = {name, vocab: (type as LitTypeWithVocab).vocab};
+      const minWidth = CATEGORY_WIDTHS[type.name];
+      const header = {name, vocab: (type as LitTypeWithVocab).vocab, minWidth};
+
       if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
       }
@@ -121,7 +130,7 @@ export class DataTableModule extends LitModule {
   // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): ColumnHeader[] {
-    return [{name: 'index'}, ...this.keys];
+    return [{name: 'index', minWidth: '60px'}, ...this.keys];
   }
 
   @computed
