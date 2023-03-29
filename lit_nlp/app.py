@@ -246,7 +246,7 @@ class LitApp(object):
       example['data'] = annotated_dataset.examples[i]
       example['id'] = caching.input_hash(example['data'])
 
-    return data['inputs']
+    return data['inputs']  # pytype: disable=bad-return-type  # always-use-return-annotations
 
   def _post_new_data(
       self, data, dataset_name: Optional[str] = None,
