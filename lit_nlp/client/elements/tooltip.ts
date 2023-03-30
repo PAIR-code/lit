@@ -46,7 +46,7 @@ export class LitTooltip extends ReactiveElement {
   // Markdown that shows on hover.
   @property({type: String}) content = '';
   // Space-separated tooltip position attributes, e.g. 'above' or 'right'.
-  @property({type: String}) tooltipPosition: string = '';
+  @property({type: String}) tooltipPosition = '';
   @property({type: Boolean}) shouldRenderAriaLabel = true;
 
   renderAriaLabel() {

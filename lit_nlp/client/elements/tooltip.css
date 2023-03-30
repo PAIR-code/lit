@@ -1,5 +1,6 @@
 :host {
   --tooltip-max-width: 232px;
+  --tooltip-width: auto;
 }
 
 /* Tooltip */
@@ -12,6 +13,7 @@
   visibility: hidden;
 
   max-width: var(--tooltip-max-width);
+  width: var(--tooltip-width);
 
   background-color: #202124;
   opacity: 0.9;
