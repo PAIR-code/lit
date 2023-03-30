@@ -335,8 +335,7 @@ export class FacetingControl extends ReactiveElement {
       <popup-container>
         <div class="faceting-info" slot='toggle-anchor'>
           <lit-tooltip content=${title}>
-            <button class="hairline-button" slot="tooltip-anchor"
-                    ?disabled=${this.disabled}>
+            <button class="hairline-button" ?disabled=${this.disabled}>
               <span class="material-icon">dashboard</span>
               Facets
             </button>

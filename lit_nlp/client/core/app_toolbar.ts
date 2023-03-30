@@ -152,9 +152,7 @@ export class ToolbarComponent extends MobxLitElement {
         // clang-format off
         return html`
           <lit-tooltip content=${tooltip}>
-            <button class=${classMap(classes)}
-              slot='tooltip-anchor'
-              @click=${updateModelSelection}>
+            <button class=${classMap(classes)} @click=${updateModelSelection}>
               <span class='material-icon'>${icon}</span>
               &nbsp;
               <span class='headline-button-text'>${name}</span>
@@ -167,7 +165,7 @@ export class ToolbarComponent extends MobxLitElement {
       return html`
         ${modelChips}
         <lit-tooltip content="Select model(s)">
-          <button class='headline-button' slot="tooltip-anchor"
+          <button class='headline-button'
             @click=${() => { this.jumpToSettingsTab("Models"); }}>
             <span class='material-icon-outlined'>smart_toy</span>
             &nbsp;<span class='material-icon'>arrow_drop_down</span>
@@ -181,7 +179,7 @@ export class ToolbarComponent extends MobxLitElement {
       // clang-format off
       return html`
         <lit-tooltip content="Select model(s)">
-          <button class='headline-button' slot="tooltip-anchor"
+          <button class='headline-button'
             @click=${() => { this.jumpToSettingsTab("Models"); }}>
             <span class='material-icon-outlined'>smart_toy</span>
             &nbsp;
@@ -201,7 +199,7 @@ export class ToolbarComponent extends MobxLitElement {
     return html`
       <div class='vertical-separator'></div>
       <lit-tooltip content="Select dataset">
-        <button class='headline-button' slot="tooltip-anchor"
+        <button class='headline-button'
           @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
           <span class='material-icon'>storage</span>
           &nbsp;
@@ -237,8 +235,7 @@ export class ToolbarComponent extends MobxLitElement {
         // clang-format off
         return html`
           <lit-tooltip content="Select ${name} layout">
-            <button class=${classMap(classes)} slot="tooltip-anchor"
-              @click=${updateLayoutSelection}>
+            <button class=${classMap(classes)} @click=${updateLayoutSelection}>
               <span class=${iconClass}>view_compact</span>
               &nbsp;
               <span class='headline-button-text'>${name}</span>
@@ -255,7 +252,7 @@ export class ToolbarComponent extends MobxLitElement {
       // clang-format off
       return html`
         <lit-tooltip content="Select UI layout.">
-          <button class='headline-button' slot="tooltip-anchor"
+          <button class='headline-button'
             @click=${() => { this.jumpToSettingsTab("Layout"); }}>
             <span class='material-icon'>view_compact</span>
             &nbsp;
@@ -289,7 +286,6 @@ export class ToolbarComponent extends MobxLitElement {
     const settingsButton = html`
       <lit-tooltip content="Configure models, datasets, and UI.">
         <button class='headline-button unbordered' id="config"
-          slot="tooltip-anchor"
           @click=${this.toggleGlobalSettings}>
           <span class='material-icon'>settings</span>
           &nbsp;Configure
@@ -300,7 +296,6 @@ export class ToolbarComponent extends MobxLitElement {
         html`
         <lit-tooltip content="Go to documentation" tooltipPosition="left">
           <mwc-icon class="icon-button large-icon white-icon icon-margin"
-            slot="tooltip-anchor"
             @click=${this.toggleDocumentation}>
             help_outline
           </mwc-icon>
@@ -309,7 +304,7 @@ export class ToolbarComponent extends MobxLitElement {
     return html`
       ${settingsButton}
       <lit-tooltip content="Copy link to this page" tooltipPosition="left">
-        <button class='headline-button unbordered' slot="tooltip-anchor"
+        <button class='headline-button unbordered'
           @click=${this.onClickCopyLink}>
           <span class='material-icon'>link</span>
           &nbsp;Copy Link

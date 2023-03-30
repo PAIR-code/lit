@@ -256,14 +256,13 @@ export class ThresholderModule extends LitModule {
     return html`
         ${this.facetingControl}
         <lit-tooltip content=${costRatioTooltip}>
-          <div slot="tooltip-anchor">Cost ratio (FP/FN):</div>
+          <div>Cost ratio (FP/FN):</div>
         </lit-tooltip>
         <input type=number class="cost-ratio-input" step="0.1" min=0 max=20
                .value=${this.costRatio.toString()}
                @input=${handleCostRatioInput}>
         <lit-tooltip content=${calculateTooltip}>
-          <button class='hairline-button' slot="tooltip-anchor"
-             @click=${this.calculateThresholds}>
+          <button class='hairline-button' @click=${this.calculateThresholds}>
             Get optimal thresholds
           </button>
         </lit-tooltip>`;

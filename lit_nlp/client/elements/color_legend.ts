@@ -41,7 +41,7 @@ export enum LegendType {
 }
 
 // default width of a character
-const DEFAULT_CHAR_WIDTH: number = 5.7;
+const DEFAULT_CHAR_WIDTH = 5.7;
 
 /** Removes non-digit chars from a style value and converts it to a number. */
 function stylePropToNumber(styles: CSSStyleDeclaration,
@@ -68,19 +68,19 @@ export class ColorLegend extends ReactiveElement {
   @property({type: Number}) legendWidth = 150;
 
   // font attributes used to compute whether or not to show the text labels
-  private fontFamily: string = '';
-  private fontStyle: string = '';
-  private fontSize: string = '';
+  private fontFamily = '';
+  private fontStyle = '';
+  private fontSize = '';
 
   // label margin values will be updated to be correct one in firstUpdated
-  private labelMarginLeft: number = 3;
-  private labelMarginRight: number = 2;
+  private labelMarginLeft = 3;
+  private labelMarginRight = 2;
 
-  private boxWidth: number = 13;
-  private boxMargin: number = 2;
+  private boxWidth = 13;
+  private boxMargin = 2;
 
-  private selectedColorLabelWidth: number = 46;
-  private iconWidth: number = 16;
+  private selectedColorLabelWidth = 46;
+  private iconWidth = 16;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -147,7 +147,7 @@ export class ColorLegend extends ReactiveElement {
     return html`
       <div class='legend-line'>
         <lit-tooltip content=${val} tooltipPosition="above">
-          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+          <div class='legend-box' style=${style}></div>
         </lit-tooltip>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
       </div>
@@ -164,7 +164,7 @@ export class ColorLegend extends ReactiveElement {
    * @param {boolean} includeMax - whether to include the max value in a range
    */
   private renderSequentialBlock(startVal: string|number, endVal: number|string,
-    colorVal: string|number, includeMax: boolean = false) {
+    colorVal: string|number, includeMax = false) {
     const title = startVal === endVal ? startVal :
             includeMax ? `[${startVal}, ${endVal}]`
                        : `[${startVal}, ${endVal})`;
@@ -175,7 +175,7 @@ export class ColorLegend extends ReactiveElement {
     return html`
       <div class='legend-line'>
         <lit-tooltip content=${title} tooltipPosition="above">
-          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+          <div class='legend-box' style=${style}></div>
         </lit-tooltip>
       </div>
     `;
@@ -194,8 +194,7 @@ export class ColorLegend extends ReactiveElement {
         <div class="legend-container">
           <lit-tooltip .content=${this.paletteTooltipText}
             .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined"
-              slot="tooltip-anchor">palette</mwc-icon>
+            <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
           </lit-tooltip>
           <div class="color-label" name="color-name">
             ${this.label}
@@ -225,8 +224,7 @@ export class ColorLegend extends ReactiveElement {
         <div class="legend-container">
           <lit-tooltip .content=${this.paletteTooltipText}
             .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined"
-              slot="tooltip-anchor">palette</mwc-icon>
+            <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
           </lit-tooltip>
           <div class="color-label" name="color-name">
             ${this.label}

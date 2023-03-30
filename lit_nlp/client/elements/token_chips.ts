@@ -57,7 +57,7 @@ export class TokenChips extends LitElement {
     return html`
       <div class="salient-token" style=${tokenStyle}>
         <lit-tooltip content=${weight.toPrecision(3)}>
-          <span slot="tooltip-anchor">${token}</span>
+          <span>${token}</span>
         </lit-tooltip>
       </div>`;
     // clang-format on

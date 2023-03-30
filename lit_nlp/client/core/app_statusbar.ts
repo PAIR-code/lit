@@ -71,29 +71,22 @@ export class StatusbarComponent extends MobxLitElement {
               <div>Made with <img src="static/favicon.png" class="emoji"> by the LIT team</div>
 
               <lit-tooltip content="File a bug" tooltipPosition="above left">
-                <a slot="tooltip-anchor" class="link-icon" href=${bugLink}
+                <a class="link-icon" href=${bugLink}
                   target="_blank">
-                  <mwc-icon class="icon-button cyea-icon">
-                    bug_report
-                  </mwc-icon>
+                  <mwc-icon class="icon-button cyea-icon">bug_report</mwc-icon>
                 </a>
               </lit-tooltip>
 
               <lit-tooltip content="View docs" tooltipPosition="above left">
-                <a slot="tooltip-anchor" class="link-icon" href=${docLink}
+                <a class="link-icon" href=${docLink}
                   target="_blank">
-                  <mwc-icon class="icon-button cyea-icon">
-                    plagiarism
-                  </mwc-icon>
+                  <mwc-icon class="icon-button cyea-icon">plagiarism</mwc-icon>
                 </a>
               </lit-tooltip>
 
               <lit-tooltip content="Get help" tooltipPosition="above left">
-                <a class="link-icon" href=${helpLink} target="_blank"
-                  slot="tooltip-anchor">
-                  <mwc-icon class="icon-button cyea-icon">
-                    feedback
-                  </mwc-icon>
+                <a href=${helpLink} target="_blank">
+                  <mwc-icon class="icon-button cyea-icon">feedback</mwc-icon>
                 </a>
               </lit-tooltip>
             </div>

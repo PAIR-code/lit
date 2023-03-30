@@ -78,10 +78,13 @@ export class NumericInput extends LitElement {
 
     const renderNumericInput = html`
       <lit-tooltip content=${toolTipContent}>
-        <input slot="tooltip-anchor" type="number"
+        <input
+          type="number"
           class="slider-value ${throwError? "error": ""}"
-          step="${this.step}" min=${this.min} max=${this.max}
-          .value="${this.value.toString()}"
+          step=${this.step}
+          min=${this.min}
+          max=${this.max}
+          value=${this.value.toString()}
           @input=${onInput}
           @change=${onInputImmediate}
           @keypress=${onKeypress}
@@ -91,9 +94,14 @@ export class NumericInput extends LitElement {
     // clang-format off
     return html`
       <div class='slider-label start'>${this.min}</div>
-      <input type="range" class="slider" style=${styleMap(styles)}
-        min="${this.min}" max="${this.max}" step="${this.step}"
-        .value="${this.value.toString()}"
+      <input
+        type="range"
+        class="slider"
+        style=${styleMap(styles)}
+        min=${this.min}
+        max=${this.max}
+        step=${this.step}
+        value=${this.value.toString()}
         @change=${onInputImmediate}>
       <div class='slider-label'>${this.max}</div>
       ${renderNumericInput}`;

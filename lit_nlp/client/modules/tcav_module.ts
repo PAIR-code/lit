@@ -95,7 +95,7 @@ export class TCAVModule extends LitModule {
   @observable private readonly selectedLayers = new Set<string>();
   @observable private readonly selectedClasses = new Set<string>();
   @observable private readonly negativeSlices = new Set<string>();
-  @observable private isLoading: boolean = false;
+  @observable private isLoading = false;
 
   private resultsTableData: TableData[] = [];
   private cavCounter = 0;
@@ -180,7 +180,7 @@ export class TCAVModule extends LitModule {
 
   renderCollapseBar(
       title: string, items: string[], columnName: string,
-      selectSet: Set<string>, secondSelectName: string = '',
+      selectSet: Set<string>, secondSelectName = '',
       secondSelectSet: Set<string>|null = null) {
     function changeForSet(set: Set<string>): (e: Event, i: string) => void {
       return (e: Event, item: string) => {
@@ -307,10 +307,9 @@ export class TCAVModule extends LitModule {
                     this.selectedSlices.size === 0 &&
                     this.negativeSlices.size === 0}>Clear</button>
                 <lit-tooltip content=${shouldDisable() ? disabledText: ''}>
-                  <button id='submit'
-                    class="hairline-button" slot="tooltip-anchor"
-                    @click=${() => this.runTCAV()} ?disabled=${
-                     shouldDisable()}>Run TCAV</button>
+                  <button id='submit' class="hairline-button"
+                    @click=${() => this.runTCAV()} ?disabled=${shouldDisable()}
+                    >Run TCAV</button>
                 </lit-tooltip>
               </div>
             </div>

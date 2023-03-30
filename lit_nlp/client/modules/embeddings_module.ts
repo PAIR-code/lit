@@ -104,7 +104,7 @@ export class EmbeddingsModule extends LitModule {
   static override numCols = 3;
 
   @observable
-  private isLoading: boolean = false;
+  private isLoading = false;
 
   // Selection of one of the above configs.
   @observable private projectorName: string;
@@ -604,8 +604,7 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderSpriteBySelect()}
           <div>
             <lit-tooltip .content=${'Reset view'}>
-              <mwc-icon class="icon-button mdi-outlined"
-                @click=${onClickReset} slot="tooltip-anchor">
+              <mwc-icon class="icon-button mdi-outlined" @click=${onClickReset}>
                 view_in_ar
               </mwc-icon>
             </lit-tooltip>
@@ -625,7 +624,6 @@ export class EmbeddingsModule extends LitModule {
             <button class="hairline-button selected-nearest-button"
               ?disabled=${disabled}
               @click=${onSelectNearest}
-              slot="tooltip-anchor"
             >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
           </lit-tooltip>
         </div>

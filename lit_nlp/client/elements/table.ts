@@ -344,7 +344,7 @@ export class DataTable extends ReactiveElement {
           header.html ?? html`
           <lit-tooltip style="--tooltip-max-width: 500px;"
             content=${shouldDisplayTooltip ? header.name : ""}>
-              <div slot="tooltip-anchor" style=${headerWidthStyles}
+              <div style=${headerWidthStyles}
               class="header-text">${header.name}</div>
           </lit-tooltip>`;
       header.rightAlign =
@@ -743,8 +743,7 @@ export class DataTable extends ReactiveElement {
         <lit-tooltip .content=${"Go to a random page"}
           .tooltipPosition=${"above"}>
           <mwc-icon class='icon-button mdi-outlined icon-button-fix-offset'
-            @click=${randomPage}
-            slot="tooltip-anchor">
+            @click=${randomPage}>
             casino
           </mwc-icon>
         </lit-tooltip>

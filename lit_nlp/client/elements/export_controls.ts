@@ -42,14 +42,14 @@ export class ExportControls extends ReactiveElement {
   }
 
   /** The default file download name. */
-  @observable @property({type: String}) downloadFilename: string = 'data.csv';
+  @observable @property({type: String}) downloadFilename = 'data.csv';
   /** A list of rows of data to download. */
   @property({type: Object}) data: SortableTableEntry[][] = [];
   /** Column names. */
   @property({type: Object}) columnNames: string[] = [];
   /** Download popup position defaults to below the download icon. */
-  @property({type: String}) popupPosition: string = 'below';
-  @property({type: String}) tooltipPosition: string = 'left';
+  @property({type: String}) popupPosition = 'below';
+  @property({type: String}) tooltipPosition = 'left';
   /** If true, disable controls. */
   @property({type: Boolean}) disabled = false;
 
@@ -111,8 +111,7 @@ export class ExportControls extends ReactiveElement {
       <div id='export-controls'>
         <lit-tooltip content="Copy ${this.data.length} rows as CSV"
           tooltipPosition=${this.tooltipPosition}>
-          <mwc-icon class=${iconClass} slot="tooltip-anchor"
-            @click=${copyCSV}>
+          <mwc-icon class=${iconClass} @click=${copyCSV}>
             file_copy
           </mwc-icon>
         </lit-tooltip>
@@ -120,14 +119,14 @@ export class ExportControls extends ReactiveElement {
         <popup-container class='${this.getPopupClasses()}'>
           <lit-tooltip content="Download ${this.data.length} rows as CSV"
             tooltipPosition="${this.tooltipPosition}" slot="toggle-anchor">
-            <mwc-icon class=${iconClass} slot="tooltip-anchor">
+            <mwc-icon class=${iconClass}>
               file_download
             </mwc-icon>
           </lit-tooltip>
           <div class='download-popup-controls'>
             <label for="filename">Filename</label>
             <input type="text" name="filename" value=${this.downloadFilename}
-             @input=${updateFilename} @keydown=${onEnter}>
+                   @input=${updateFilename} @keydown=${onEnter}>
             <button class='download-button filled-button nowrap'
               @click=${downloadCSV}
               ?disabled=${!this.downloadFilename}>
