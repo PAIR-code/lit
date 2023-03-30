@@ -535,7 +535,10 @@ class GlueModel(lit_model.Model):
     # Gradients, if requested.
     if self.config.compute_grads:
       ret["cls_grad"] = lit_types.Gradients(
-          grad_for="cls_emb", grad_target_field_key="grad_class")
+          align=("score" if self.is_regression else "probas"),
+          grad_for="cls_emb",
+          grad_target_field_key="grad_class"
+      )
       ret["grad_class"] = lit_types.CategoryLabel(required=False,
                                                   vocab=self.config.labels)
       if self.config.output_embeddings:
