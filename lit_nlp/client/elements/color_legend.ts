@@ -147,7 +147,7 @@ export class ColorLegend extends ReactiveElement {
     return html`
       <div class='legend-line'>
         <lit-tooltip content=${val} tooltipPosition="above">
-          <div class='legend-box' style=${style}></div>
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
         </lit-tooltip>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
       </div>
@@ -175,7 +175,7 @@ export class ColorLegend extends ReactiveElement {
     return html`
       <div class='legend-line'>
         <lit-tooltip content=${title} tooltipPosition="above">
-          <div class='legend-box' style=${style}></div>
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
         </lit-tooltip>
       </div>
     `;
@@ -194,7 +194,8 @@ export class ColorLegend extends ReactiveElement {
         <div class="legend-container">
           <lit-tooltip .content=${this.paletteTooltipText}
             .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
+            <mwc-icon class="icon material-icon-outlined"
+              slot="tooltip-anchor">palette</mwc-icon>
           </lit-tooltip>
           <div class="color-label" name="color-name">
             ${this.label}
@@ -224,7 +225,8 @@ export class ColorLegend extends ReactiveElement {
         <div class="legend-container">
           <lit-tooltip .content=${this.paletteTooltipText}
             .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined">palette</mwc-icon>
+            <mwc-icon class="icon material-icon-outlined"
+              slot="tooltip-anchor">palette</mwc-icon>
           </lit-tooltip>
           <div class="color-label" name="color-name">
             ${this.label}

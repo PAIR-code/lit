@@ -354,7 +354,7 @@ export class SalienceMapModule extends LitModule {
       <lit-tooltip .tooltipPosition=${'above'}
         .content=${
           "A larger gamma value makes lower salience tokens more visible."}>
-        <label for="gamma-slider">Gamma:</label>
+        <label for="gamma-slider" slot="tooltip-anchor">Gamma:</label>
       </lit-tooltip>
       <lit-numeric-input min="0.25" max="6" step="0.25"
         value="${this.cmapGamma}" @change=${onChangeGamma}>

@@ -111,7 +111,7 @@ export class ExportControls extends ReactiveElement {
       <div id='export-controls'>
         <lit-tooltip content="Copy ${this.data.length} rows as CSV"
           tooltipPosition=${this.tooltipPosition}>
-          <mwc-icon class=${iconClass} @click=${copyCSV}>
+          <mwc-icon class=${iconClass} slot="tooltip-anchor" @click=${copyCSV}>
             file_copy
           </mwc-icon>
         </lit-tooltip>
@@ -119,14 +119,14 @@ export class ExportControls extends ReactiveElement {
         <popup-container class='${this.getPopupClasses()}'>
           <lit-tooltip content="Download ${this.data.length} rows as CSV"
             tooltipPosition="${this.tooltipPosition}" slot="toggle-anchor">
-            <mwc-icon class=${iconClass}>
+            <mwc-icon class=${iconClass} slot="tooltip-anchor">
               file_download
             </mwc-icon>
           </lit-tooltip>
           <div class='download-popup-controls'>
             <label for="filename">Filename</label>
             <input type="text" name="filename" value=${this.downloadFilename}
-                   @input=${updateFilename} @keydown=${onEnter}>
+              @input=${updateFilename} @keydown=${onEnter}>
             <button class='download-button filled-button nowrap'
               @click=${downloadCSV}
               ?disabled=${!this.downloadFilename}>

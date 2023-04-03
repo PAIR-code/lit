@@ -365,7 +365,9 @@ export class MetricsModule extends LitModule {
         html: html`
             <lit-tooltip tooltipPosition="left" content=${spec.description}
               style="--tooltip-max-width: 500px; --tooltip-width: 200px">
-              <div class="header-text">${group}<br>${metric}</div>
+              <div class="header-text" slot="tooltip-anchor">
+                ${group}<br>${metric}
+              </div>
             </lit-tooltip>`,
         rightAlign: true,
         width: '100px'

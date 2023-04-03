@@ -78,8 +78,7 @@ export class NumericInput extends LitElement {
 
     const renderNumericInput = html`
       <lit-tooltip content=${toolTipContent}>
-        <input
-          type="number"
+        <input slot="tooltip-anchor" type="number"
           class="slider-value ${throwError? "error": ""}"
           step=${this.step}
           min=${this.min}

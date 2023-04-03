@@ -546,19 +546,19 @@ export class DiveModule extends LitModule {
       </div>
       <div class="view-controls">
         <lit-tooltip content="Zoom in" tooltipPosition="left">
-          <span class="material-icon-outlined icon-button"
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
                 @click=${() =>{zoomChange(ZOOM_IN_FACTOR);}}>
             zoom_in
           </span>
         </lit-tooltip>
         <lit-tooltip content="Zoom out" tooltipPosition="left">
-          <span class="material-icon-outlined icon-button"
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
                 @click=${() =>{zoomChange(ZOOM_OUT_FACTOR);}}>
             zoom_out
           </span>
         </lit-tooltip>
         <lit-tooltip content="Reset view" tooltipPosition="left">
-          <span class="material-icon-outlined icon-button"
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
                 @click=${() =>{this.resetScale();}}>
             view_in_ar
           </span>

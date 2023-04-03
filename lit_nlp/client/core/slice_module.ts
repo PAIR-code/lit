@@ -234,22 +234,26 @@ export class SliceModule extends LitModule {
           </span>
 
           <lit-tooltip content="Add selected to slice" tooltipPosition="left">
-            <mwc-icon class=${appendIconClass} @click=${appendClicked}>
+            <mwc-icon class=${appendIconClass} @click=${appendClicked}
+             slot="tooltip-anchor">
              add_circle_outline
             </mwc-icon>
           </lit-tooltip>
 
           ${sliceName === STARRED_SLICE_NAME ?
             html`<lit-tooltip content="Reset this slice" tooltipPosition="left">
-                   <mwc-icon class=${clearIconClass} @click=${clearClicked}>
-                     clear
-                   </mwc-icon></lit-tooltip>` :
+              <mwc-icon class=${clearIconClass} @click=${clearClicked}
+                slot="tooltip-anchor">
+                clear
+              </mwc-icon>
+            </lit-tooltip>` :
             html`<lit-tooltip content="Delete this slice"
-                  tooltipPosition="left">
-                  <mwc-icon class='icon-button selector-item-icon-button'
-                  @click=${deleteClicked}>
-                   delete_outline
-                 </mwc-icon></lit-tooltip>`}
+              tooltipPosition="left">
+              <mwc-icon class='icon-button selector-item-icon-button'
+                @click=${deleteClicked} slot="tooltip-anchor">
+                delete_outline
+              </mwc-icon>
+            </lit-tooltip>`}
           <export-controls ?disabled=${shouldDisableIcons}
               .data=${this.getArrayData(sliceName)}
               .downloadFilename="${

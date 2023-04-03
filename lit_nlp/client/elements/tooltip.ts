@@ -31,10 +31,13 @@ import {styles} from './tooltip.css';
 /**
  * A tooltip element that displays on hover and on click.
  *
- * Usage:
+ * Use the `tooltip-anchor` slot for the control; this will be rendered where
+ * the <lit-tooltip> element is placed.
  *
- *   <lit-tooltip .content=${tooltipMarkdown}>
- *     <button></button>
+ * Usage:
+ *   <lit-tooltip style=${tooltipStyle> .content=${tooltipMarkdown}>
+ *     <button slot="tooltip-anchor">
+ *     </button>
  *   </lit-tooltip>
  */
 @customElement('lit-tooltip')
@@ -65,7 +68,7 @@ export class LitTooltip extends ReactiveElement {
 
     return html`
       <div class='lit-tooltip'>
-        <slot>
+        <slot name="tooltip-anchor">
           ${this.content === '' ? '' : html`
             <span class="help-icon material-icon-outlined icon-button">
               help_outline

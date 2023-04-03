@@ -307,9 +307,10 @@ export class TCAVModule extends LitModule {
                     this.selectedSlices.size === 0 &&
                     this.negativeSlices.size === 0}>Clear</button>
                 <lit-tooltip content=${shouldDisable() ? disabledText: ''}>
-                  <button id='submit' class="hairline-button"
-                    @click=${() => this.runTCAV()} ?disabled=${shouldDisable()}
-                    >Run TCAV</button>
+                  <button id='submit'
+                    class="hairline-button" slot="tooltip-anchor"
+                    @click=${() => this.runTCAV()} ?disabled=${
+                     shouldDisable()}>Run TCAV</button>
                 </lit-tooltip>
               </div>
             </div>

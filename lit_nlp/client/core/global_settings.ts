@@ -105,7 +105,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
   @computed
   get newDatapoints() {
-   return this.appState.currentInputData.filter(input => input.meta['added']);
+   return this.appState.currentInputData.filter(input => input.meta.added);
   }
 
   @computed
@@ -169,7 +169,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           Configure LIT
 
           <lit-tooltip content="Go to reference">
-            <a target='_blank'
+            <a slot="tooltip-anchor" target='_blank'
               href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
             <mwc-icon class="icon-button large-icon" id="configure-lit-icon">
               open_in_new

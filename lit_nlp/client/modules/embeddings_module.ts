@@ -216,7 +216,7 @@ export class EmbeddingsModule extends LitModule {
         const labelKey = labelByFields[this.selectedLabelIndex];
         label = d.data[labelKey];
       }
-      const added = d.meta['added'] ? 1 : 0;
+      const added = d.meta.added ? 1 : 0;
       return {label, added};
     });
   }
@@ -448,7 +448,7 @@ export class EmbeddingsModule extends LitModule {
       this.spriteImage = undefined;
     }
 
-    this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
+    this.projectedPoints = results.map((d: {z: Point3D}) => d.z);
 
     // Add an artificial timeout to indicate that the display has changed.
     window.setTimeout(() => this.isLoading = false, 400);
@@ -604,7 +604,8 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderSpriteBySelect()}
           <div>
             <lit-tooltip .content=${'Reset view'}>
-              <mwc-icon class="icon-button mdi-outlined" @click=${onClickReset}>
+              <mwc-icon class="icon-button mdi-outlined" slot="tooltip-anchor"
+                @click=${onClickReset}>
                 view_in_ar
               </mwc-icon>
             </lit-tooltip>
@@ -624,6 +625,7 @@ export class EmbeddingsModule extends LitModule {
             <button class="hairline-button selected-nearest-button"
               ?disabled=${disabled}
               @click=${onSelectNearest}
+              slot="tooltip-anchor"
             >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
           </lit-tooltip>
         </div>

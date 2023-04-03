@@ -35,7 +35,6 @@ import {ModulesService} from '../services/services';
 import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
-import {LitWidget} from './widget_group';
 
 // Width of a minimized widget group. Set to the value of
 // --lit-group-header-height when :host([minimized]) in widget_group.css.
@@ -243,7 +242,7 @@ export class LitModules extends ReactiveElement {
       const litModuleElement = widgetElement.children[0];
       if (litModuleElement instanceof LitModule) {
         litModuleElement.setIsLoading = (isLoading: boolean) => {
-          (widgetElement as LitWidget).isLoading = isLoading;
+          widgetElement.isLoading = isLoading;
         };
       }
     });
@@ -335,21 +334,21 @@ export class LitModules extends ReactiveElement {
             </div>
             <div class="preset-buttons">
               <lit-tooltip content="Maximize lower area" tooltipPosition="left">
-                <mwc-icon class="icon-button"
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
                           ?disabled=${lower === this.mainSectionHeight}
                           @click=${() => {this.setMainSectionHeight('lower');}}>
                   vertical_align_top
                 </mwc-icon>
               </lit-tooltip>
               <lit-tooltip content="Split screen" tooltipPosition="left">
-                <mwc-icon class="icon-button"
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
                           ?disabled=${split === this.mainSectionHeight}
                           @click=${() => {this.setMainSectionHeight('split');}}>
                   vertical_align_center
                 </mwc-icon>
               </lit-tooltip>
               <lit-tooltip content="Maximize upper area" tooltipPosition="left">
-                <mwc-icon class="icon-button"
+                <mwc-icon class="icon-button" slot="tooltip-anchor"
                           ?disabled=${upper === this.mainSectionHeight}
                           @click=${() => {this.setMainSectionHeight('upper');}}>
                   vertical_align_bottom
@@ -398,7 +397,10 @@ export class LitModules extends ReactiveElement {
     return Object.keys(layout).map((tabName, i) => {
       const configs: RenderConfig[][] = layout[tabName];
       const selected = tabToSelect === tabName;
-      const classes = classMap({selected, 'components-group-holder': true});
+      const classes = classMap({
+        'components-group-holder': true,
+        'selected': selected,
+      });
       return html`
         <div class=${classes}>
           ${
@@ -426,7 +428,7 @@ export class LitModules extends ReactiveElement {
         this.requestUpdate();
       };
       const selected = tabToSelect === tabName;
-      const classes = classMap({selected, tab: true});
+      const classes = classMap({'selected': selected, 'tab': true});
       return html`<div class=${classes} @click=${onclick}>${tabName}</div>`;
     });
   }
