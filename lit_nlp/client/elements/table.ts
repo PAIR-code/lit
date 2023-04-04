@@ -332,23 +332,36 @@ export class DataTable extends ReactiveElement {
           {name: colInfo} :
           {...colInfo};
 
-      const shouldDisplayTooltip = this.headerTextMaxWidth != null ?
-        header.name.length > this.headerTextMaxWidth : false;
-
       const headerWidthStyles = styleMap({
         '--header-text-max-width': this.headerTextMaxWidth ?
           `${this.headerTextMaxWidth}ch` : 'none',
       });
 
-      header.html =
-          header.html ?? html`
-          <lit-tooltip style="--tooltip-max-width: 500px;"
-            content=${shouldDisplayTooltip ? header.name : ""}>
-            <div slot="tooltip-anchor" style=${headerWidthStyles}
-              class="header-text">${header.name}</div>
-          </lit-tooltip>`;
-      header.rightAlign =
-          header.rightAlign ?? this.shouldRightAlignColumn(index);
+      // If undefined, generate the HTML for this header from ColumnHeader.name.
+      header.html ??= html`<div slot="tooltip-anchor" class="header-text"
+         style=${headerWidthStyles}>
+        ${header.name}
+      </div>`;
+
+      // If undefined, determine if the header should be right aligned.
+      header.rightAlign ??= this.shouldRightAlignColumn(index);
+
+      // Determine if the HTML should be wrapped in a LitTooltip. If so, do it.
+      const doesTextOverflow = this.headerTextMaxWidth != null ?
+          header.name.length > this.headerTextMaxWidth : false;
+      const shouldDisplayTooltip = header.tooltip != null || doesTextOverflow;
+      if (shouldDisplayTooltip) {
+        const tooltipPlacement = header.rightAlign ? 'left' : '';
+        const tooltipStyles = styleMap({
+          '--tooltip-max-width': header.tooltipMaxWidth ?? '500px',
+          '--tooltip-width': header.tooltipWidth ?? 'auto',
+        });
+        header.html = html`<lit-tooltip content=${header.tooltip ?? header.name}
+          style=${tooltipStyles} tooltipPosition=${tooltipPlacement}>
+          ${header.html}
+        </lit-tooltip>`;
+      }
+
       return header;
     });
   }

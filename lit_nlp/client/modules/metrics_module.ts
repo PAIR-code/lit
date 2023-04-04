@@ -362,14 +362,12 @@ export class MetricsModule extends LitModule {
       const [group, metric] = name.split(': ');
       return {
         name,
-        html: html`
-            <lit-tooltip tooltipPosition="left" content=${spec.description}
-              style="--tooltip-max-width: 500px; --tooltip-width: 200px">
-              <div class="header-text" slot="tooltip-anchor">
-                ${group}<br>${metric}
-              </div>
-            </lit-tooltip>`,
+        html: html`<div slot="tooltip-anchor" class="header-text">
+          ${group}<br>${metric}
+        </div>`,
         rightAlign: true,
+        tooltip: spec.description,
+        tooltipWidth: '200px',
         width: '100px'
       };
     });

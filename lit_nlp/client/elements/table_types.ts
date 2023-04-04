@@ -57,6 +57,15 @@ export interface ColumnHeader {
   minWidth?: string;
   /** The width of the column, must be a valid CSS string */
   width?: string;
+  /**
+   * If defined, the table will provide a LitTooltip for this header and pass
+   * this value to that tooltip via its content= attribute.
+   */
+  tooltip?: string;
+  /** A value passed to --tooltip-width via the tooltip's styles= attr. */
+  tooltipWidth?: string;
+  /** A value passed to --tooltip-max-width via the tooltip's styles= attr. */
+  tooltipMaxWidth?: string;
 }
 
 /** Internal data, including metadata */
