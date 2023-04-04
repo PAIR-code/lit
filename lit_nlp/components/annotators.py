@@ -20,7 +20,6 @@ import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types
-from lit_nlp.lib import caching
 from lit_nlp.lib import utils
 
 
@@ -65,46 +64,3 @@ class PerFieldAnnotator(lit_components.Annotator):
         # Update all examples with annotator output.
         for example, output in zip(inputs, outputs):
           example[field_name] = output[output_name]
-
-
-class TrainingOrTestSetMembershipAnnotator(lit_components.Annotator):
-  """Annotator for a field that differentiates training and test set examples.
-
-  It creates a new field 'is_train_or_test' and determines the source of each
-  example (i.e., train or test) using the hash created based on the field values
-  on input_spec. For generated examples (e.g., from TracIn), their values will
-  be None, and they can be assigned from the client side if needed.
-  """
-
-  def __init__(
-      self,
-      *unused_args,
-      training_dataset: lit_dataset.Dataset,
-      test_dataset: lit_dataset.Dataset,
-  ):
-    self._training_dataset_hashes: set[str] = {
-        caching.input_hash(types.Input(ex))
-        for ex in training_dataset.examples
-    }
-    self._test_dataset_hashes: set[str] = {
-        caching.input_hash(types.Input(ex))
-        for ex in test_dataset.examples
-    }
-
-  def annotate(
-      self,
-      inputs: list[JsonDict],
-      dataset: lit_dataset.Dataset,
-      dataset_spec_to_annotate: Optional[Spec] = None,
-  ):
-    for inp in inputs:
-      input_hash = caching.input_hash(types.Input(inp))
-      if input_hash in self._training_dataset_hashes:
-        inp['is_train_or_test'] = 'train'
-      elif input_hash in self._test_dataset_hashes:
-        inp['is_train_or_test'] = 'test'
-
-    if dataset_spec_to_annotate:
-      dataset_spec_to_annotate['is_train_or_test'] = types.CategoryLabel(
-          vocab=('train', 'test')
-      )
