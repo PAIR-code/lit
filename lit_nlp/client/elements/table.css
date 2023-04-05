@@ -74,8 +74,13 @@
   overflow: hidden;
   max-height: 100%;
   direction: rtl;
-  max-width: var(--header-text-max-width);
+  max-width: calc(var(--header-text-max-width) - 16px);   /* 16px for arrows */
   white-space: nowrap;
+}
+
+:host([searchenabled]) .header-text {
+  /* Adjust max-width down by 40px to account for search (24) + arrows (16). */
+  max-width: calc(var(--header-text-max-width) - 40px);
 }
 
 .column-header.right-align .header-text {

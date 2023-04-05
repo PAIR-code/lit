@@ -39,11 +39,12 @@ import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
 
-const CATEGORY_WIDTHS: {[key: string]: string}  = {
-  "TextSegment": "220px",
-  "CategoryLabel": "60px",
-  "BooleanLitType": "60px",
-  "Scalar": "60px"
+/** A map of LitType class names to their minimum widths, in px.  */
+const CATEGORY_WIDTHS: {[key: string]: number}  = {
+  "TextSegment": 220,
+  "CategoryLabel": 60,
+  "BooleanLitType": 60,
+  "Scalar": 60
 };
 
 /**
@@ -95,7 +96,15 @@ export class DataTableModule extends LitModule {
   get keys(): ColumnHeader[] {
     function createColumnHeader(name: string, type: LitType) {
       const minWidth = CATEGORY_WIDTHS[type.name];
-      const header = {name, vocab: (type as LitTypeWithVocab).vocab, minWidth};
+      const maxWidth = type instanceof BooleanLitType ?
+          (1.5 * CATEGORY_WIDTHS[type.name]) : undefined;
+      const header = {
+        name,
+        maxWidth,
+        minWidth,
+        width: maxWidth,
+        vocab: (type as LitTypeWithVocab).vocab
+      };
 
       if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
@@ -130,7 +139,7 @@ export class DataTableModule extends LitModule {
   // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): ColumnHeader[] {
-    return [{name: 'index', minWidth: '60px'}, ...this.keys];
+    return [{name: 'index', minWidth: 60}, ...this.keys];
   }
 
   @computed
@@ -540,8 +549,6 @@ export class DataTableModule extends LitModule {
     const shiftSelectEndRowIndex = this.datasetIndexToRowIndex(
         this.selectionService.shiftSelectionEndIndex);
 
-    const headerTextMaxWidth = 20; //Units: ch
-
     // clang-format off
     return html`
       <lit-data-table
@@ -552,7 +559,7 @@ export class DataTableModule extends LitModule {
         .referenceSelectedIndex=${this.referenceSelectedIndex}
         .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
-        .headerTextMaxWidth=${headerTextMaxWidth}
+        .headerTextMaxWidth=${150}
         .globalSearchText=${this.globalSearchText}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}

@@ -51,21 +51,21 @@ export interface ColumnHeader {
    *  through selected items from the vocab list.
    */
   vocab?: string[];
-  /** The maximum width of the column, must be a valid CSS string. */
-  maxWidth?: string;
-  /** The minimum width of the column, must be a valid CSS string */
-  minWidth?: string;
-  /** The width of the column, must be a valid CSS string */
-  width?: string;
+  /** The maximum width of the column, in px. */
+  maxWidth?: number;
+  /** The minimum width of the column, in px. */
+  minWidth?: number;
+  /** The width of the column, in px. */
+  width?: number;
   /**
    * If defined, the table will provide a LitTooltip for this header and pass
    * this value to that tooltip via its content= attribute.
    */
   tooltip?: string;
-  /** A value passed to --tooltip-width via the tooltip's styles= attr. */
-  tooltipWidth?: string;
-  /** A value passed to --tooltip-max-width via the tooltip's styles= attr. */
-  tooltipMaxWidth?: string;
+  /** A value (in px) passed to --tooltip-width via the styles= attr. */
+  tooltipWidth?: number;
+  /** A value (in px) passed to --tooltip-max-width via the styles= attr. */
+  tooltipMaxWidth?: number;
 }
 
 /** Internal data, including metadata */

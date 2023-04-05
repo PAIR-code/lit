@@ -83,8 +83,8 @@ export class SalienceClusteringModule extends LitModule {
   </salience-clustering-module>`;
 
   private readonly dataService = app.getService(DataService);
-  private runCount: number = 0;
-  private statusMessage: string = '';
+  private runCount = 0;
+  private statusMessage = '';
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -269,8 +269,8 @@ export class SalienceClusteringModule extends LitModule {
         <div class="grad-key-label">${gradKey}</div>
         <lit-data-table
           .columnNames=${[
-            {'name':'Cluster index', 'width': '125px'},
-            {'name': 'N', 'width': '75px'},
+            {'name':'Cluster index', 'width': 125},
+            {'name': 'N', 'width': 75},
             `Tokens with high average saliency (up to ${numTokensPerCluster})`
           ]}
           .data=${rowsByClusters}

@@ -14,17 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import './export_controls';
 /**
- * A generic Data Table component that can be reused across the
- * Data Table / Metrics Modules
+ * @fileoverview A generic, reusable Data Table component. See its uses in the
+ * Data Table, Metrics, and Salience Clustering Modules.
  */
 
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import '@material/mwc-icon';
 import './checkbox';
+import './export_controls';
 import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
@@ -39,7 +38,7 @@ import * as papa from 'papaparse';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
-import {isNumber, median, randInt} from '../lib/utils';
+import {isNumber, median, measureTextLength, randInt} from '../lib/utils';
 
 import {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal} from './table_types';
 import {filterDataByQueries, getSortableEntry, itemMatchesText, parseSearchTextIntoQueries} from './table_utils';
@@ -124,6 +123,7 @@ export class DataTable extends ReactiveElement {
 
   // Style overrides
   @property({type: Boolean}) verticalAlignMiddle = false;
+  /** The maximum width of a <th> element's text before truncation. */
   @property({type: Number}) headerTextMaxWidth: number|null = null;
 
   // Callbacks
@@ -332,29 +332,54 @@ export class DataTable extends ReactiveElement {
           {name: colInfo} :
           {...colInfo};
 
-      const headerWidthStyles = styleMap({
-        '--header-text-max-width': this.headerTextMaxWidth ?
-          `${this.headerTextMaxWidth}ch` : 'none',
-      });
+      /**
+       * If true, the text will overflow its continaer and should be truncated
+       * and wrapped in a LitTooltip to display the full text on hover.
+       */
+      let doesTextOverflow = false;
 
       // If undefined, generate the HTML for this header from ColumnHeader.name.
-      header.html ??= html`<div slot="tooltip-anchor" class="header-text"
-         style=${headerWidthStyles}>
-        ${header.name}
-      </div>`;
+      if (header.html == null) {
+        // Compute the maximum width for this column as the smaller of the
+        // specified maxWidth from the column header and global max-width
+        // specified on this DataTable instance. If neither of these values are
+        // set, then allow the browser's Table layout to allocate size as it
+        // sees fit.
+        const columnMaxWidth = header.maxWidth ?? 0;
+        const globalMaxWidth = this.headerTextMaxWidth ?? 0;
+        const maxWidth =
+            columnMaxWidth === 0 && globalMaxWidth === 0 ? 0 :
+            columnMaxWidth === 0 && globalMaxWidth !== 0 ? globalMaxWidth :
+            columnMaxWidth !== 0 && globalMaxWidth === 0 ? columnMaxWidth :
+            Math.min(columnMaxWidth, globalMaxWidth);
+        const textWidth = measureTextLength(header.name);
+        doesTextOverflow = maxWidth > 0 && textWidth > maxWidth;
 
-      // If undefined, determine if the header should be right aligned.
+        // Passing the maximum width in via a style= attribute localizes the
+        // scope of this value, allowing columns with specified widths to play
+        // nicely with columns without.
+        const headerWidthStyles = styleMap({
+          '--header-text-max-width': maxWidth > 0 ? `${maxWidth}px` : 'none'
+        });
+
+        header.html ??= html`<div slot="tooltip-anchor" class="header-text"
+          style=${headerWidthStyles}>
+          ${header.name}
+        </div>`;
+      }
+
+      // If undefined, infer if the header should be right aligned.
       header.rightAlign ??= this.shouldRightAlignColumn(index);
 
-      // Determine if the HTML should be wrapped in a LitTooltip. If so, do it.
-      const doesTextOverflow = this.headerTextMaxWidth != null ?
-          header.name.length > this.headerTextMaxWidth : false;
       const shouldDisplayTooltip = header.tooltip != null || doesTextOverflow;
       if (shouldDisplayTooltip) {
-        const tooltipPlacement = header.rightAlign ? 'left' : '';
+        const tooltipPlacement =
+            (header.rightAlign || index === this.columnNames.length - 1) ?
+            'left' : '';
         const tooltipStyles = styleMap({
-          '--tooltip-max-width': header.tooltipMaxWidth ?? '500px',
-          '--tooltip-width': header.tooltipWidth ?? 'auto',
+          '--tooltip-max-width': `${header.tooltipMaxWidth ?? 500}px`,
+          '--tooltip-width': header.tooltipWidth != null ?
+              `${header.tooltipWidth}px` : 'auto',
         });
         header.html = html`<lit-tooltip content=${header.tooltip ?? header.name}
           style=${tooltipStyles} tooltipPosition=${tooltipPlacement}>
@@ -673,9 +698,9 @@ export class DataTable extends ReactiveElement {
 
     const cols = this.columnHeaders.map((header) => {
       const styles = styleMap({
-        'max-width': header.maxWidth || 'unset',
-        'min-width': header.minWidth || 'unset',
-        'width': header.width || 'unset',
+        'max-width': header.maxWidth != null ? `${header.maxWidth}px` : 'unset',
+        'min-width': header.minWidth != null ? `${header.minWidth}px` : 'unset',
+        'width': header.width != null ? `${header.width}px` : 'unset',
       });
       return html`<col span="1" style=${styles}>`;
     });

@@ -683,29 +683,62 @@ describe('numberRangeFnFromString test', () => {
 });
 
 describe('linearSpace test', () => {
-  it('returns evenly spaced numbers between minValue and maxValue', () => {
-    let minValue = 0;
-    let maxValue = 1;
-    let numSteps = 5;
-    let result = [0, 0.25, 0.5, 0.75, 1];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+  [
+    {
+      testcaseName: '[0, 1] @ 5 steps',
+      minValue: 0,
+      maxValue: 1,
+      numSteps: 5,
+      result: [0, 0.25, 0.5, 0.75, 1]
+    },
+    {
+      testcaseName: '[-1, 1] @ 5 steps',
+      minValue: -1,
+      maxValue: 1,
+      numSteps: 5,
+      result: [-1, -0.5, 0, 0.5, 1]
+    },
+    {
+      testcaseName: '[0.25, 0.75] @ 3 steps',
+      minValue: 0.25,
+      maxValue: 0.75,
+      numSteps: 3,
+      result: [0.25, 0.5, 0.75]
+    },
+    {
+      testcaseName: '[1, 0.75] @ 3 steps',
+      minValue: 1,
+      maxValue: 0.75,
+      numSteps: 3,
+      result: []
+    }
+  ].forEach(({testcaseName, minValue, maxValue, numSteps, result}) => {
+    it(`returns evenly spaced numbers between ${testcaseName}`, () => {
+      expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+    });
+  });
+});
 
-    minValue = -1;
-    maxValue = 1;
-    numSteps = 5;
-    result = [-1, -0.5, 0, 0.5, 1];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
-
-    minValue = 0.25;
-    maxValue = 0.75;
-    numSteps = 3;
-    result = [0.25, 0.5, 0.75];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
-
-    minValue = 1;
-    maxValue = 0.75;
-    numSteps = 3;
-    result = [];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+describe('measureTextLength test', () => {
+  [
+    {
+      testcaseName: 'an empty string',
+      text: '',
+      expected: 0,
+    },
+    {
+      testcaseName: 'a short string',
+      text: 'hi',
+      expected: 11,
+    },
+    {
+      testcaseName: 'a long string',
+      text: 'a fairly long string containing 65 letters/numbers/spaces. So fun',
+      expected: 345,
+    }
+  ].forEach(({testcaseName, text, expected}) => {
+    it(`should correctly measure the length of ${testcaseName}`, () => {
+      expect(utils.measureTextLength(text)).toEqual(expected);
+    });
   });
 });

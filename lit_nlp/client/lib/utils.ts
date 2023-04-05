@@ -635,3 +635,20 @@ export function linearSpace(
   }
   return values;
 }
+
+const MEASUREMENT_CANVAS = document.createElement('canvas');
+const MEASUREMENT_CTX = MEASUREMENT_CANVAS.getContext('2d')!;
+/**
+ * Measures the length of a string using CanvasRenderingContext2D.measureText().
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText
+ *
+ * @param text The string to measure.
+ * @param font A CSS font string describing font properties the context should
+ *    use when rendering. Defaults to LIT's normal font, 13px Roboto.
+ */
+export function measureTextLength(text: string, font = '13px Roboto'): number {
+  MEASUREMENT_CTX.font = font;
+  const measures = MEASUREMENT_CTX.measureText(text);
+  return measures.width;
+}

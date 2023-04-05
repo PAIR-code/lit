@@ -367,8 +367,8 @@ export class MetricsModule extends LitModule {
         </div>`,
         rightAlign: true,
         tooltip: spec.description,
-        tooltipWidth: '200px',
-        width: '100px'
+        tooltipWidth: 200,
+        width: 100
       };
     });
 
