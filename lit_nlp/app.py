@@ -728,10 +728,12 @@ class LitApp(object):
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,
     }
+    wrapped_handlers = {k: self.make_handler(v) for k, v in handlers.items()}
+    wrapped_handlers['/load_and_go'] = self._load_and_go
 
     self._wsgi_app = wsgi_app.App(
         # Wrap endpoint fns to take (handler, request, environ)
-        handlers={k: self.make_handler(v) for k, v in handlers.items()},
+        handlers=wrapped_handlers,
         project_root=client_root,
         index_file='static/index.html',
     )
