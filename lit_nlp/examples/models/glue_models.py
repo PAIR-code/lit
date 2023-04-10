@@ -271,7 +271,7 @@ class GlueModel(lit_model.Model):
         output["grad_class"] = None  # pytype: disable=container-type-mismatch
       else:
         # Return the label corresponding to the class index used for gradients.
-        output["grad_class"] = self.config.labels[output["grad_class"]]
+        output["grad_class"] = self.config.labels[output["grad_class"]]  # pytype: disable=container-type-mismatch
 
       # Remove "input_emb_grad" since it's not in the output spec.
       del output["input_emb_grad"]
