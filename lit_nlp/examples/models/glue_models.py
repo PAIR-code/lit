@@ -44,10 +44,21 @@ class GlueModelConfig(object):
   def init_spec(cls) -> lit_types.Spec:
     return {
         "model_name_or_path": lit_types.String(
-            default="bert-base-uncased", required=False
+            default="bert-base-uncased",
+            required=False,
         ),
-        "max_seq_length": lit_types.Integer(default=128, required=False),
-        "inference_batch_size": lit_types.Integer(default=32, required=False),
+        "max_seq_length": lit_types.Integer(
+            default=128,
+            max_val=512,
+            min_val=1,
+            required=False,
+        ),
+        "inference_batch_size": lit_types.Integer(
+            default=32,
+            max_val=64,
+            min_val=1,
+            required=False,
+        ),
         "compute_grads": lit_types.Boolean(default=True, required=False),
         "output_attention": lit_types.Boolean(default=True, required=False),
         "output_embeddings": lit_types.Boolean(default=True, required=False),

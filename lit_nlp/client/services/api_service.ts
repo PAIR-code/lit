@@ -54,15 +54,17 @@ export class ApiService extends LitService {
    * fetched to the frontend separately using getDataset().
    * Returns (updated metadata, name of just-loaded dataset)
    * @param dataset name of (base) dataset to dispatch to load()
-   * @param datasetPath path to load from
+   * @param config a dictionary continaing the values for parameterizing the
+   *    initialization of the Dataset. The keys of this dictionary should align
+   *    with and satisfy the requirements of the `Dataset.init_spec()`.
    */
-  async createDataset(dataset: string, datasetPath: string):
+  async createDataset(dataset: string, config: CallConfig):
       Promise<[LitMetadata, string]> {
     const loadMessage = 'Creating new dataset';
     return this.queryServer(
         '/create_dataset',
-        {'dataset_name': dataset, 'dataset_path': datasetPath},
-        [], loadMessage);
+        {'dataset_name': dataset},
+        [], loadMessage, config);
   }
 
   /**
@@ -70,15 +72,17 @@ export class ApiService extends LitService {
    * Loads the model on the backend.
    * Returns (updated metadata, name of just-loaded model)
    * @param model name of (base) model to dispatch to load()
-   * @param modelPath path to load from
+   * @param config a dictionary continaing the values for parameterizing the
+   *    initialization of the Model. The keys of this dictionary should align
+   *    with and satisfy the requirements of the `Model.init_spec()`.
    */
-  async createModel(model: string, modelPath: string):
+  async createModel(model: string, config: CallConfig):
       Promise<[LitMetadata, string]> {
     const loadMessage = 'Loading new model';
     return this.queryServer(
         '/create_model',
-        {'model_name': model, 'model_path': modelPath},
-        [], loadMessage);
+        {'model_name': model},
+        [], loadMessage, config);
   }
 
   /**
@@ -200,7 +204,7 @@ export class ApiService extends LitService {
     return this.queryServer(
         '/save_datapoints', {
           'dataset_name': datasetName,
-          path,
+          'path': path,
         },
         inputs, loadMessage);
   }
@@ -215,7 +219,7 @@ export class ApiService extends LitService {
     return this.queryServer(
         '/load_datapoints', {
           'dataset_name': datasetName,
-          path,
+          'path': path,
         },
         [], loadMessage);
   }
@@ -239,17 +243,24 @@ export class ApiService extends LitService {
    * @param endpoint server endpoint, like /get_preds
    * @param params query params
    * @param inputs input examples
+   * @param loadMessage an optional string to display via the StatusService
+   *    describing the API call.
+   * @param config an optional dictionary passed as the `config` property of the
+   *    POST requests body.
    */
   private async queryServer<T>(
-      endpoint: string, params: {[key: string]: string}, inputs: IndexedInput[],
-      loadMessage: string = '', config?: CallConfig): Promise<T> {
+      endpoint: string,
+      params: {[key: string]: string},
+      inputs: IndexedInput[],
+      loadMessage = '',
+      config?: CallConfig): Promise<T> {
     const finished = this.statusService.startLoading(loadMessage);
     // For a smaller request, replace known (original) examples with their IDs;
     // we can simply look these up on the server.
     // TODO: consider sending the metadata as well, since this might be changed
     // from the frontend.
     const processedInputs: Array<IndexedInput|string> = inputs.map(input => {
-      if (!input.meta['added']) {
+      if (!input.meta.added) {
         return input.id;
       }
       return input;

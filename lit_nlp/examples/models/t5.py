@@ -49,11 +49,21 @@ class T5ModelConfig(object):
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
     return {
-        "inference_batch_size": lit_types.Integer(default=4, required=False),
-        "beam_size": lit_types.Integer(default=4, required=False),
-        "max_gen_length": lit_types.Integer(default=50, required=False),
-        "num_to_generate": lit_types.Integer(default=1, required=False),
-        "token_top_k": lit_types.Integer(default=10, required=False),
+        "inference_batch_size": lit_types.Integer(
+            default=4, min_val=1, max_val=16, required=False
+        ),
+        "beam_size": lit_types.Integer(
+            default=4, min_val=1, max_val=32, required=False
+        ),
+        "max_gen_length": lit_types.Integer(
+            default=50, min_val=1, max_val=100, required=False
+        ),
+        "num_to_generate": lit_types.Integer(
+            default=1, min_val=1, max_val=10, required=False
+        ),
+        "token_top_k": lit_types.Integer(
+            default=10, min_val=1, max_val=25, required=False
+        ),
         "output_attention": lit_types.Boolean(default=False, required=False),
     }
 

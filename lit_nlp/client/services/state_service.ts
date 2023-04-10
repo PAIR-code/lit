@@ -59,7 +59,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
-  @observable compareExamplesEnabled: boolean = false;
+  @observable compareExamplesEnabled = false;
   @observable layoutName!: string;
   @observable layouts: {[name: string]: LitCanonicalLayout} = {};
   private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
@@ -73,7 +73,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Enforce setting currentDataset through the setCurrentDataset method by
    * making the currentDatasetInternal private...
    */
-  @observable private currentDatasetInternal: string = '';
+  @observable private currentDatasetInternal = '';
   @computed
   get currentDataset(): string {
     return this.currentDatasetInternal;
@@ -193,7 +193,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const ret: string[] = [];
     while (id) {
       ret.push(id);
-      id = this.getCurrentInputDataById(id)?.meta['parentId'];
+      id = this.getCurrentInputDataById(id)?.meta.parentId;
     }
     return ret;
   }
@@ -392,7 +392,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     urlNewDatasetPath: string){
     try {
       const newInfo = await this.apiService.createDataset(
-        urlSelectedDataset, urlNewDatasetPath);
+        urlSelectedDataset, {});
       this.metadata = newInfo[0];
       return newInfo[1];
     } catch {

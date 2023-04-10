@@ -160,9 +160,9 @@ a:hover {
 
 .config-list {
   border: 1px solid #dadce0;
+  flex: 1 1;
   margin: 12pt;
   overflow-y: scroll;
-  height: 100%;
 }
 
 .config-line {
@@ -198,6 +198,74 @@ a:hover {
 
 .left-offset {
   margin-left: 40pt;
+}
+
+.model-dataset-loading {
+  flex: 1 1;
+  margin: 0 12pt;
+  width: calc(100% - 24pt);
+}
+
+.model-dataset-loading .controls {
+  border: 1px solid var(--lit-neutral-300);
+  display: flex;
+  flex-grow: 1;
+  flex-direction: row;
+  padding: 16px;
+}
+
+.model-dataset-loading .controls .actions {
+  align-items: end;
+  row-gap: 4px;
+}
+
+.model-dataset-loading .controls .actions,
+.model-dataset-loading .controls .selector {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.model-dataset-loading .controls .options {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: scroll;
+  padding: 0 12pt;
+  row-gap: 8px;
+}
+
+.model-dataset-loading .controls .options .option-entry {
+  align-items: center;
+  column-gap: 4px;
+  display: flex;
+  flex-direction: row;
+}
+
+/* The first child of .options is always the new_name field, which is special */
+.model-dataset-loading .controls .options .option-entry:first-child {
+  border-bottom: 1px solid var(--lit-neutral-300);
+  padding-bottom: 8px;
+}
+
+.model-dataset-loading .controls .options .option-entry label {
+  flex: 0 0 200px;
+}
+
+.model-dataset-loading .controls .options .option-entry lit-input-field {
+  flex-grow: 1;
+}
+
+.model-dataset-loading .header {
+  color: var(--lit-neutral-700);
+  font-size: 16px;
+  margin-bottom: 12pt;
+}
+
+#bottombar .status-area {
+  color: var(--google-red-500);
 }
 
 .expanded-info {

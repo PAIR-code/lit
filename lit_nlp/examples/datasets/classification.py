@@ -172,7 +172,7 @@ class IMDBData(lit_dataset.Dataset):
   def init_spec(cls) -> lit_types.Spec:
     return {
         "split": lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS),
-        "max_seq_len": lit_types.Integer(default=500),
+        "max_seq_len": lit_types.Integer(default=500, min_val=1, max_val=1024),
     }
 
   def spec(self) -> lit_types.Spec:

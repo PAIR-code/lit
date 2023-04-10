@@ -28,6 +28,13 @@ class BertMLM(lit_model.Model):
   def max_seq_length(self):
     return self.model.config.max_position_embeddings
 
+  @classmethod
+  def init_spec(cls) -> lit_model.Spec:
+    return {
+        "model_name": lit_types.String(default="bert-base-uncased"),
+        "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
+    }
+
   def __init__(self, model_name="bert-base-uncased", top_k=10):
     super().__init__()
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -141,6 +148,13 @@ class GPT2LanguageModel(lit_model.Model):
   @property
   def num_layers(self):
     return self.model.config.n_layer
+
+  @classmethod
+  def init_spec(cls) -> lit_model.Spec:
+    return {
+        "model_name": lit_types.String(default="gpt2"),
+        "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
+    }
 
   def __init__(self, model_name="gpt2", top_k=10):
     """Constructor for GPT2LanguageModel.

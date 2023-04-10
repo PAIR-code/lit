@@ -17,7 +17,6 @@
 import functools
 import glob
 import math
-import os
 import random
 import threading
 import time
@@ -54,6 +53,39 @@ DatasetLoadersMap = dict[str, DatasetLoader]
 
 ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
 ModelLoadersMap = dict[str, ModelLoader]
+
+
+# TODO(b/277249726): Move this function to utils.py, add tests, and expand usage
+# across HTTP and Interpreter APIs.
+def _validate_config_against_spec(config: JsonDict, spec: types.Spec):
+  """Validates that the provided config is compatible with the Spec.
+
+  Args:
+    config: The configuration parameters, typically extracted from the data of
+      an HTTP Request, that are to be used in a function call.
+    spec: A Spec defining the shape of allowed configuration parameters for the
+      associated LIT component.
+
+  Raises:
+    KeyError: Under two conditions: 1) the `config` is missing one or more
+      required fields defined in the `spec`, or 2) the `config` contains fields
+      not defined in the `spec`. Either of these conditions would likely result
+      in a TypeError (for missing or unexpected arguments) if the `config` was
+      used in a call.
+  """
+  missing_required_keys = [
+      param_name for param_name, param_type in spec.items()
+      if param_type.required and param_name not in config
+  ]
+  if missing_required_keys:
+    raise KeyError(f'Missing required parameters: {missing_required_keys}')
+
+  unsupported_keys = [
+      param_name for param_name in config
+      if param_name not in spec
+  ]
+  if unsupported_keys:
+    raise KeyError(f'Received unsupported parameters: {unsupported_keys}')
 
 
 class LitApp(object):
@@ -300,44 +332,68 @@ class LitApp(object):
     return list(self._datasets[dataset_name].indexed_examples)
 
   def _create_dataset(self,
-                      unused_data,
+                      data: JsonDict,
                       dataset_name: Optional[str] = None,
-                      dataset_path: Optional[str] = None,
                       **unused_kw):
-    """Create dataset from a path, updating and returning the metadata."""
+    """Create a dataset, updating and returning the metadata."""
+    if dataset_name is None:
+      raise ValueError('No base dataset specified.')
 
-    assert dataset_name is not None, 'No dataset specified.'
-    assert dataset_path is not None, 'No dataset path specified.'
+    config: Optional[JsonDict] = data.get('config')
+    if config is None:
+      raise ValueError('No config specified.')
 
-    new_dataset = self._datasets[dataset_name].load(dataset_path)
-    if new_dataset is not None:
-      new_dataset_name = dataset_name + '-' + os.path.basename(dataset_path)
-      self._datasets[new_dataset_name] = new_dataset
-      self._info = self._build_metadata()
-      return (self._info, new_dataset_name)
-    else:
-      logging.error('Not able to load: %s', dataset_name)
-      return None
+    new_name: Optional[str] = config.pop('new_name', None)
+    if new_name is None:
+      raise ValueError('No name provided for the new dataset.')
+
+    if (loader_info := self._dataset_loaders.get(dataset_name)) is None:
+      raise ValueError(
+          f'No loader information (Cls + init_spec) found for {dataset_name}')
+
+    dataset_cls, dataset_init_spec = loader_info
+
+    if dataset_init_spec is not None:
+      _validate_config_against_spec(config, dataset_init_spec)
+
+    new_dataset = dataset_cls(**config)
+    annotated_dataset = self._run_annotators(new_dataset)
+    self._datasets[new_name] = lit_dataset.IndexedDataset(
+        base=annotated_dataset, id_fn=caching.input_hash
+    )
+    self._info = self._build_metadata()
+    return (self._info, new_name)
 
   def _create_model(self,
-                    unused_data,
+                    data: JsonDict,
                     model_name: Optional[str] = None,
-                    model_path: Optional[str] = None,
                     **unused_kw):
-    """Create model from a path, updating and returning the metadata."""
+    """Create a model, updating and returning the metadata."""
+    if model_name is None:
+      raise ValueError('No base model specified.')
 
-    assert model_name is not None, 'No model specified.'
-    assert model_path is not None, 'No model path specified.'
-    # Load using the underlying model class, then wrap explicitly in a cache.
-    new_model = self._models[model_name].wrapped.load(model_path)
-    if new_model is not None:
-      new_model_name = model_name + ':' + os.path.basename(model_path)
-      self._models[new_model_name] = caching.CachingModelWrapper(
-          new_model, new_model_name, cache_dir=self._data_dir)
-      self._info = self._build_metadata()
-      return (self._info, new_model_name)
-    else:
-      return None
+    config: Optional[JsonDict] = data.get('config')
+    if config is None:
+      raise ValueError('No config specified.')
+
+    new_name: Optional[str] = config.pop('new_name', None)
+    if new_name is None:
+      raise ValueError('No name provided for the new model.')
+
+    if (loader_info := self._model_loaders.get(model_name)) is None:
+      raise ValueError(
+          f'No loader information (Cls + init_spec) found for {model_name}')
+
+    model_cls, model_init_spec = loader_info
+
+    if model_init_spec is not None:
+      _validate_config_against_spec(config, model_init_spec)
+
+    new_model = model_cls(**config)
+    self._models[new_name] = caching.CachingModelWrapper(
+        new_model, new_name, cache_dir=self._data_dir)
+    self._info = self._build_metadata()
+    return (self._info, new_name)
 
   def _get_generated(self, data, model: str, dataset_name: str, generator: str,
                      **unused_kw):
@@ -505,12 +561,19 @@ class LitApp(object):
       # but for requests from Python we may want to use the invertible encoding
       # so that datatypes from remote models are the same as local ones.
       response_simple_json = utils.coerce_bool(
-          kw.pop('response_simple_json', True))
+          kw.pop('response_simple_json', True)
+      )
       data = serialize.from_json(request.data) if len(request.data) else None
       # Special handling to dereference IDs.
-      if data and 'inputs' in data.keys() and 'dataset_name' in kw:
-        data['inputs'] = self._reconstitute_inputs(data['inputs'],
-                                                   kw['dataset_name'])
+      if (
+          data
+          and 'inputs' in data.keys()
+          and len(data.get('inputs'))
+          and 'dataset_name' in kw
+      ):
+        data['inputs'] = self._reconstitute_inputs(
+            data['inputs'], kw['dataset_name']
+        )
 
       outputs = fn(data, **kw)
       response_body = serialize.to_json(outputs, simple=response_simple_json)

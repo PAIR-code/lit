@@ -13,6 +13,13 @@ class PlaintextSents(lit_dataset.Dataset):
   def __init__(self, path_or_glob: str, skiplines: int = 0):
     self._examples = self.load_datapoints(path_or_glob, skiplines=skiplines)
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'path_or_glob': lit_types.String(),
+        'skiplines': lit_types.Integer(default=0, max_val=25),
+    }
+
   def load_datapoints(self, path_or_glob: str, skiplines: int = 0):
     examples = []
     for path in glob.glob(path_or_glob):
@@ -53,7 +60,9 @@ class BillionWordBenchmark(lit_dataset.Dataset):
   def init_spec(cls) -> lit_types.Spec:
     return {
         'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS),
-        'max_examples': lit_types.Integer(default=1000),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=-1, max_val=10_000
+        ),
     }
 
   def spec(self) -> lit_types.Spec:

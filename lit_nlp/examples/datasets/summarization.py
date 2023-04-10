@@ -21,6 +21,15 @@ class GigawordData(lit_dataset.Dataset):
           "reference": record["summary"].numpy().decode("utf-8"),
       })
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "split": lit_types.String(default="validation"),
+        "max_examples": lit_types.Integer(
+            default=1000, min_val=-1, max_val=10_000
+        ),
+    }
+
   def spec(self) -> lit_types.Spec:
     """Dataset spec, which should match the model"s input_spec()."""
     return {
@@ -64,6 +73,17 @@ class CNNDMData(lit_dataset.Dataset):
         examples.append({"document": document, "reference": reference})
 
     self._examples = examples
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "split": lit_types.String(default="validation"),
+        "max_examples": lit_types.Integer(
+            default=1000, min_val=-1, max_val=10_000
+        ),
+        "max_seq_len": lit_types.Integer(default=500, min_val=1, max_val=1024),
+        "filepath": lit_types.String(required=False),
+    }
 
   def load_datapoints(self,
                       path: str,
