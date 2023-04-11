@@ -16,7 +16,6 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
 import '../elements/checkbox';
 import '../elements/popup_container';
 

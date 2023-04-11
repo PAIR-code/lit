@@ -4,7 +4,7 @@ import {LitElement} from 'lit';
 import {LitCheckbox} from './checkbox';
 
 
-describe('faceting control test', () => {
+describe('checkbox test', () => {
   let checkbox: LitCheckbox;
 
   beforeEach(async () => {
