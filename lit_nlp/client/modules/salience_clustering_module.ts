@@ -389,17 +389,11 @@ export class SalienceClusteringModule extends LitModule {
 
   private renderColorLegend(
       colorName: string, colorMap: SalienceCmap, numBlocks: number) {
-    // TODO(b/263270935): Use a toColorLegend method to avoid D3-like style.
-    function scale(val: number) {
-      return colorMap.bgCmap(val);
-    }
-    scale.domain = () => colorMap.colorScale.domain();
-
     // clang-format off
     return html`
         <color-legend legendType=${LegendType.SEQUENTIAL}
           label=${colorName}
-          .scale=${scale}
+          .scale=${colorMap.asScale()}
           numBlocks=${numBlocks}>
         </color-legend>`;
     // clang-format on

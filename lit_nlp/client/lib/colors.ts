@@ -25,6 +25,8 @@
 
 import * as d3 from 'd3';
 
+import {D3Scale} from './types';
+
 /** Color informaiton for LIT */
 export interface ColorEntry {
   color: string;
@@ -562,11 +564,18 @@ export abstract class SalienceCmap {
   // A higher value gives higher contrast for small (close to 0) salience
   // scores.
   // See https://en.wikipedia.org/wiki/Gamma_correction
-  constructor(protected gamma: number = 1.0, protected domain: [
-    number, number
-  ] = [0, 1]) {
-    this.myColorScale =
-        d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain(domain);
+  constructor(
+      protected gamma = 1.0, protected domain: [number, number] = [0, 1],
+      protected cRamp = CONTINUOUS_UNSIGNED_LAB) {
+    this.myColorScale = d3.scaleSequential(cRamp).domain(domain);
+  }
+
+  /** Mimic a D3 scale for use with <color-legend> */
+  asScale(): D3Scale {
+    // This will always be called on number, since domain is [number, number]
+    const scale = (val: number|string) => this.bgCmap(val as number);
+    scale.domain = () => this.myColorScale.domain();
+    return scale;
   }
 
   /**
@@ -583,37 +592,36 @@ export abstract class SalienceCmap {
     return Math.max(min, Math.min(max, d));
   }
 
+  /** Scale factor (signed) to convert from [0, 1] to original domain. */
+  scale(d: number): number {
+    const [min, max] = this.myColorScale.domain();
+    return this.clamp(d) < 0 ? min : max;
+  }
+
   /** Gamma corrected lightness in the range [0, 1]. */
   lightness(d: number): number {
-    d = Math.abs(this.clamp(d));
+    d = this.clamp(d) / this.scale(d);
     // Gamma correction to increase visibility of low salience datapoints
     d = (1 - d) ** this.gamma;
     // Invert direction because HSL and our color scales place white on opposite
-    // ends of the [0, 1] range
+    // ends of the [0, 1] range.
     return 1 - d;
   }
 
   /** Color mapper. More extreme salience values get darker colors. */
-  abstract bgCmap(d: number): string;
+  bgCmap(d: number): string {
+    return this.myColorScale(this.lightness(d) * this.scale(d));
+  }
 }
 
 /** Color map for unsigned (positive) salience maps. */
-export class UnsignedSalienceCmap extends SalienceCmap {
-  bgCmap(d: number): string {
-    return this.myColorScale(this.lightness(d));
-  }
-}
+export class UnsignedSalienceCmap extends SalienceCmap {}
 
 /** Color map for signed salience maps. */
 export class SignedSalienceCmap extends SalienceCmap {
-  constructor(gamma: number = 1.0, domain: [number, number] = [-1, 1]) {
-    super(gamma, domain);
-    this.myColorScale =
-        d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain(domain);
-  }
-
-  bgCmap(d: number): string {
-    const direction = d < 0 ? -1 : 1;
-    return this.myColorScale(this.lightness(d) * direction);
+  constructor(
+      gamma = 1.0, domain: [number, number] = [-1, 1],
+      cRamp = CONTINUOUS_SIGNED_LAB) {
+    super(gamma, domain, cRamp);
   }
 }

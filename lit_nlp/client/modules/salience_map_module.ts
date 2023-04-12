@@ -306,24 +306,22 @@ export class SalienceMapModule extends LitModule {
     return html`<img src='${salienceImage}'></img>`;
   }
 
-  renderColorLegend(legendLabel: string, colorMap: SalienceCmap,
-    numBlocks: number) {
-
-    function scale(val: number) { return colorMap.bgCmap(val); }
-    scale.domain = () => colorMap.colorScale.domain();
-
+  renderColorLegend(
+      legendLabel: string, colorMap: SalienceCmap, numBlocks: number) {
     const tooltipText = legendLabel === 'Signed' ? LEGEND_INFO_TITLE_SIGNED :
                                                  LEGEND_INFO_TITLE_UNSIGNED;
 
+    // clang-format off
     return html`
         <div class="color-legend-container">
           <color-legend legendType=${LegendType.SEQUENTIAL}
             label=${legendLabel}
             .paletteTooltipText=${tooltipText}
-            .scale=${scale}
+            .scale=${colorMap.asScale()}
             numBlocks=${numBlocks}>
           </color-legend>
         </div>`;
+    // clang-format on
   }
 
   // TODO(b/242164240): Refactor the code once we decide how to address

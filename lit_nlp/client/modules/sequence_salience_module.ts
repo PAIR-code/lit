@@ -14,15 +14,16 @@ import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
+import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
-import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 
 import {styles} from './sequence_salience_module.css';
 
+// TODO(b/277793239): remove this and use the one in dtypes.ts
 interface SequenceSalienceMap {
   sourceTokens: string[];
   targetTokens: string[];
@@ -377,23 +378,20 @@ export class SequenceSalienceModule extends LitModule {
   renderColorLegend() {
     const cmap = this.cmap;
     const isSigned = (cmap instanceof SignedSalienceCmap);
-    function scale(val: number) {return cmap.bgCmap(val);}
-    scale.domain = () => cmap.colorScale.domain();
     const labelName = "Token Salience";
+
+    const tooltipText =
+        isSigned ? LEGEND_INFO_TITLE_SIGNED : LEGEND_INFO_TITLE_UNSIGNED;
 
     // clang-format off
     return html`<div class="color-legend-container">
       <color-legend legendType=${LegendType.SEQUENTIAL}
         label=${labelName}
         ?alignRight=${true}
-        .scale=${scale}
-        numBlocks=${isSigned ? 7 : 5}>
+        .scale=${cmap.asScale()}
+        numBlocks=${isSigned ? 7 : 5}
+        .paletteTooltipText=${tooltipText}>
       </color-legend>
-      <mwc-icon class="icon material-icon-outlined"
-                title=${isSigned ? LEGEND_INFO_TITLE_SIGNED :
-                                   LEGEND_INFO_TITLE_UNSIGNED}>
-        info_outline
-      </mwc-icon>
     </div>`;
     // clang-format on
   }
