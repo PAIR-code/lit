@@ -27,6 +27,16 @@ FLAGS.set_default('development_demo', True)
 FLAGS.set_default('warm_start', 1)
 FLAGS.set_default('page_title', 'LIT Image Demo')
 
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    'max_examples',
+    None,
+    (
+        'Maximum number of examples to load into LIT. Note: MNLI eval set is'
+        ' 10k examples, so will take a while to run and may be slow on older'
+        ' machines. Set --max_examples=200 for a quick start.'
+    ),
+)
+
 
 def get_wsgi_app():
   """Returns a LitApp instance for consumption by gunicorn."""
@@ -62,6 +72,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     raise app.UsageError('Too many command-line arguments.')
 
   datasets = {'imagenette': imagenette.ImagenetteDataset()}
+  # Truncate datasets if --max_examples is set.
+  if _MAX_EXAMPLES.value is not None:
+    for name in datasets:
+      logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
+      datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
+      logging.info('  truncated to %d examples', len(datasets[name]))
+
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
       'classification': classification_results.ClassificationInterpreter(),

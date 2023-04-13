@@ -16,8 +16,8 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
 import '../elements/score_bar';
+import '../elements/switch';
 
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
@@ -221,10 +221,11 @@ export class ClassificationModule extends LitModule {
         <annotated-score-bar-legend ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar-legend>
         ${allowSparseMode ? html`
-            <div class='switch-container' @click=${onClickSwitch}>
-              <div>Only show classes above ${SPARSE_MODE_THRESHOLD}</div>
-              <mwc-switch ?selected=${this.sparseMode}></mwc-switch>
-            </div>` : null}
+            <lit-switch
+              labelLeft="Only show classes above ${SPARSE_MODE_THRESHOLD}"
+              ?selected=${this.sparseMode}
+              @change=${onClickSwitch}>
+            </lit-switch>` : null}
       </div>
     </div>`;
     // clang-format on

@@ -611,40 +611,6 @@ mwc-icon.mdi-outlined {
   margin-top: 24px; /* match .header height from widget.css */
 }
 
-
-/* Disable Material ripple */
-.switch-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: 32px; /* make the actual switch visible */
-  overflow-y: clip; /* keep mwc-switch overdraw from messing up layout */
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
-}
-
-mwc-switch {
-  /* Revert to old teal color, the new purple is ugly. */
-  --mdc-switch-selected-hover-handle-color: teal;
-  --mdc-switch-selected-hover-track-color: lightseagreen;
-  --mdc-switch-selected-focus-handle-color: teal;
-  --mdc-switch-selected-focus-track-color: lightseagreen;
-  --mdc-switch-selected-pressed-handle-color: teal;
-  --mdc-switch-selected-pressed-track-color: lightseagreen;
-  --mdc-switch-selected-handle-color: teal;
-  --mdc-switch-selected-track-color: lightseagreen;
-  /* Hide the ripple effect. */
-  --mdc-switch-selected-focus-state-layer-opacity: 0;
-  --mdc-switch-selected-hover-state-layer-opacity: 0;
-  --mdc-switch-selected-pressed-state-layer-opacity: 0;
-  --mdc-switch-unselected-focus-state-layer-opacity: 0;
-  --mdc-switch-unselected-hover-state-layer-opacity: 0;
-  --mdc-switch-unselected-pressed-state-layer-opacity: 0;
-}
-
 mwc-icon.outlined {
   --mdc-icon-font: "Material Icons Outlined";
 }
