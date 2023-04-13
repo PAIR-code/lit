@@ -38,12 +38,22 @@ import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
 
-/** A map of LitType class names to their minimum widths, in px.  */
-const CATEGORY_WIDTHS: {[key: string]: number}  = {
-  "TextSegment": 220,
-  "CategoryLabel": 60,
-  "BooleanLitType": 60,
-  "Scalar": 60
+type ColWidths = [minWidth?: number, maxWidth?: number];
+/** A map of LitType class names to their minimum and maximum widths, in px.  */
+const LIT_TYPE_MIN_MAX_WIDTHS: {[key: string]: ColWidths} = {
+  "TextSegment": [220, 600],
+  "CategoryLabel": [60, 100],
+  "BooleanLitType": [60, 100],
+  "MulticlassPreds": [60, 200],
+  "Scalar": [60, 100],
+  "RegressionScore": [60, 100],
+  "ImageBytes": [60, undefined],
+  "SearchQuery": [220, 600],
+  "Tokens": [220, 600],
+  "SequenceTags": [100, 600],
+  "SpanLabels": [150, 200],
+  "EdgeLabels": [150, 200],
+  "MultiSegmentAnnotations": [60, 200]
 };
 
 /**
@@ -94,9 +104,9 @@ export class DataTableModule extends LitModule {
   @computed
   get keys(): ColumnHeader[] {
     function createColumnHeader(name: string, type: LitType) {
-      const minWidth = CATEGORY_WIDTHS[type.name];
-      const maxWidth = type instanceof BooleanLitType ?
-          (1.5 * CATEGORY_WIDTHS[type.name]) : undefined;
+      const [minWidth, maxWidth] = type.name in LIT_TYPE_MIN_MAX_WIDTHS ?
+        LIT_TYPE_MIN_MAX_WIDTHS[type.name] : [];
+
       const header = {
         name,
         maxWidth,
@@ -138,7 +148,8 @@ export class DataTableModule extends LitModule {
   // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): ColumnHeader[] {
-    return [{name: 'index', minWidth: 60}, ...this.keys];
+    return [{name: 'index', minWidth: 75, maxWidth: 105, width: 75},
+      ...this.keys];
   }
 
   @computed
