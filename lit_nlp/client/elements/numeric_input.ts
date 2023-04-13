@@ -35,6 +35,7 @@ export class NumericInput extends LitElement {
 
   private readonly ROUNDING_TIMEOUT_MS = 3000;
   private roundingTimeoutId: number|null = null;
+  private readonly precision = this.step.toString().split(".")[1]?.length || 0;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -46,7 +47,8 @@ export class NumericInput extends LitElement {
 
     const roundValue = () => {
       if (this.roundingTimeoutId) {clearTimeout(this.roundingTimeoutId);}
-      this.value = Math.round(this.value / this.step) * this.step;
+      const rawValue = Math.round(this.value / this.step) * this.step;
+      this.value = Number(rawValue.toFixed(this.precision));
       this.dispatchEvent(new Event('change'));
     };
 
