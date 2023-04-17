@@ -1,7 +1,7 @@
 """Contains utility methods used by the image demo app."""
 import base64
 import io
-from typing import Tuple
+from typing import Optional
 
 import matplotlib.cm as plt_cm
 import numpy as np
@@ -16,16 +16,36 @@ def convert_image_str_to_pil(image_str: str) -> PILImage.Image:
   return PILImage.open(io.BytesIO(img_bytes))
 
 
-def convert_image_str_to_array(image_str: str, shape: Tuple[int, int,
-                                                            int]) -> np.ndarray:
-  """Converts a base64 encoded image to numpy array."""
+def convert_image_str_to_array(
+    image_str: str,
+    shape: tuple[int, int, Optional[int]],
+    mode: str = 'RGB',
+    normalize: bool = True,
+) -> np.ndarray:
+  """Converts a base64 encoded image to numpy array.
+
+  Args:
+    image_str: the base64 encoded image string to decode.
+    shape: the (height, width, unused) of the image that will be decoded.
+    mode: The PIL Mode to use when decoding. Defaults to RGB. See
+      https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+        for more info on the modes supported by PIL.
+    normalize: If true, normalizes the 8-bit channel values in the returned
+      array to the range [0, 1].
+
+  Returns:
+    An ndarray of shape (shape[0], )
+  """
   pil_image = convert_image_str_to_pil(image_str)
   # Resize image to match the model internal image size.
   pil_image = pil_image.resize((shape[1], shape[0]), PILImage.BILINEAR)
   # Convert image to the model format.
-  pil_image = pil_image.convert(mode='RGB')
+  pil_image = pil_image.convert(mode=mode)
   # Return image data as an array.
-  return np.asarray(pil_image, dtype=np.float32) / 255
+  if normalize:
+    return np.asarray(pil_image, dtype=np.float32) / 255
+  else:
+    return np.asarray(pil_image, dtype=np.uint8)
 
 
 def convert_pil_to_image_str(pil_image: PILImage.Image) -> str:
