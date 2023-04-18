@@ -352,8 +352,14 @@ export class DataTable extends ReactiveElement {
             columnMaxWidth === 0 && globalMaxWidth !== 0 ? globalMaxWidth :
             columnMaxWidth !== 0 && globalMaxWidth === 0 ? columnMaxWidth :
             Math.min(columnMaxWidth, globalMaxWidth);
+        // div.header-text width is computed as the maxWidth less the space for
+        // the sorting arrows (16px, always shown) and the search icon (24px,
+        // shown only if searchEnabled). Thus, adjust maxWidth down accordingly.
+        const labelWidth = maxWidth - (this.searchEnabled ? 40 : 16);
         const textWidth = measureTextLength(header.name);
-        doesTextOverflow = maxWidth > 0 && textWidth > maxWidth;
+        // Only add the tooltip if there is a max-width for the column and the
+        // header text for that column will overflow the available space.
+        doesTextOverflow = maxWidth !== 0 && textWidth > labelWidth;
 
         // Passing the maximum width in via a style= attribute localizes the
         // scope of this value, allowing columns with specified widths to play
@@ -702,7 +708,7 @@ export class DataTable extends ReactiveElement {
         'min-width': header.minWidth != null ? `${header.minWidth}px` : 'unset',
         'width': header.width != null ? `${header.width}px` : 'unset',
       });
-      return html`<col span="1" style=${styles}>`;
+      return html`<col id=${`${header.name}-col`} span="1" style=${styles}>`;
     });
 
     // clang-format off
