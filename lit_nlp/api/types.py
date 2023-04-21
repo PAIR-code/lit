@@ -29,9 +29,11 @@ import enum
 import inspect
 import math
 import numbers
-from typing import Any, Callable, NewType, Optional, Sequence, Type, TypedDict, Union
+import os
+from typing import Any, Callable, get_args, get_origin, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
+from etils import epath
 from lit_nlp.api import dtypes
 import numpy as np
 
@@ -929,6 +931,10 @@ _INFERENCE_TYPES_TO_LIT_TYPES: dict[Type[Any], Callable[..., LitType]] = {
     Optional[int]: Integer,
     str: String,
     Optional[str]: String,
+    epath.PathLike: String,
+    Optional[epath.PathLike]: String,
+    os.PathLike[str]: String,
+    Optional[os.PathLike[str]]: String,
 }
 
 
@@ -993,6 +999,11 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
   signature = inspect.signature(func)
   spec: Spec = {}
 
+  def is_param_optional(parameter: inspect.Parameter) -> bool:
+    is_union = get_origin(parameter.annotation) is Union
+    can_be_none = type(None) in get_args(parameter.annotation)
+    return is_union and can_be_none
+
   for param in signature.parameters.values():
     if (param.name == "self" or
         param.kind is param.VAR_KEYWORD or
@@ -1012,8 +1023,10 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
 
     if param_type in _INFERENCE_TYPES_TO_LIT_TYPES:
       lit_type_cstr = _INFERENCE_TYPES_TO_LIT_TYPES[param_type]
-      lit_type_params = {"required": param.default is param.empty,}
-      if param.default is not param.empty:
+      is_default_empty = param.default is param.empty
+      is_optional = is_param_optional(param) or not is_default_empty
+      lit_type_params = {"required": not is_optional}
+      if not is_default_empty:
         lit_type_params["default"] = param.default
       spec[param.name] = lit_type_cstr(**lit_type_params)
     else:

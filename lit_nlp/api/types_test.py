@@ -1,8 +1,10 @@
 """Tests for types."""
 
+import os
 from typing import Any, Callable, Optional, Union
 from absl.testing import absltest
 from absl.testing import parameterized
+from etils import epath
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
 import numpy as np
@@ -592,6 +594,12 @@ def _bool_param(param: bool = True) -> bool:
   return param
 
 
+def _epath_pathlike_param(
+    param: epath.PathLike = "/path/to/something",
+) -> epath.PathLike:
+  return param
+
+
 def _float_param(param: float = 1.2345) -> float:
   return param
 
@@ -633,6 +641,12 @@ def _optional_bool_param(param: Optional[bool]) -> Optional[bool]:
   return param
 
 
+def _optional_epath_pathlike_param(
+    param: Optional[epath.PathLike],
+) -> Optional[epath.PathLike]:
+  return param
+
+
 def _optional_float_param(param: Optional[float]) -> Optional[float]:
   return param
 
@@ -641,12 +655,25 @@ def _optional_int_param(param: Optional[int]) -> Optional[int]:
   return param
 
 
+def _optional_os_pathlike_param(
+    param: Optional[os.PathLike[str]],
+) -> Optional[os.PathLike[str]]:
+  return param
+
+
 def _optional_scalar_param(
-    param: Optional[Union[float, int]] = 1.2345) -> Optional[Union[float, int]]:
+    param: Optional[Union[float, int]]
+) -> Optional[Union[float, int]]:
   return param
 
 
 def _optional_str_param(param: Optional[str]) -> Optional[str]:
+  return param
+
+
+def _os_pathlike_param(
+    param: os.PathLike[str] = "/path/to/something",
+) -> os.PathLike[str]:
   return param
 
 
@@ -686,8 +713,8 @@ class InferSpecTests(parameterized.TestCase):
           func=_many_params,
           expected_spec={
               "param_1": types.Boolean(required=True),
-              "param_2": types.Scalar(required=True),
-              "param_3": types.Integer(default=1, required=False, step=1),
+              "param_2": types.Scalar(required=False),
+              "param_3": types.Integer(default=1, required=False),
               "param_4": types.String(default=None, required=False),
           },
       ),
@@ -709,35 +736,35 @@ class InferSpecTests(parameterized.TestCase):
           testcase_name="optional_bool",
           func=_optional_bool_param,
           expected_spec={
-              "param": types.Boolean(required=True),
+              "param": types.Boolean(required=False),
           },
       ),
       dict(
           testcase_name="optional_float",
           func=_optional_float_param,
           expected_spec={
-              "param": types.Scalar(required=True),
+              "param": types.Scalar(required=False),
           },
       ),
       dict(
           testcase_name="optional_int",
           func=_optional_int_param,
           expected_spec={
-              "param": types.Integer(required=True),
+              "param": types.Integer(required=False),
           },
       ),
       dict(
           testcase_name="optional_scalar",
           func=_optional_scalar_param,
           expected_spec={
-              "param": types.Scalar(default=1.2345, required=False),
+              "param": types.Scalar(required=False),
           },
       ),
       dict(
           testcase_name="optional_str",
           func=_optional_str_param,
           expected_spec={
-              "param": types.String(required=True),
+              "param": types.String(required=False),
           },
       ),
       dict(
@@ -773,6 +800,38 @@ class InferSpecTests(parameterized.TestCase):
           func=_str_param,
           expected_spec={
               "param": types.String(default="str", required=False),
+          },
+      ),
+      dict(
+          testcase_name="etils_pathlike",
+          func=_epath_pathlike_param,
+          expected_spec={
+              "param": types.String(
+                  default="/path/to/something", required=False
+              ),
+          },
+      ),
+      dict(
+          testcase_name="etils_optional_pathlike",
+          func=_optional_epath_pathlike_param,
+          expected_spec={
+              "param": types.String(required=False),
+          },
+      ),
+      dict(
+          testcase_name="os_pathlike",
+          func=_os_pathlike_param,
+          expected_spec={
+              "param": types.String(
+                  default="/path/to/something", required=False
+              ),
+          },
+      ),
+      dict(
+          testcase_name="os_optional_pathlike",
+          func=_optional_os_pathlike_param,
+          expected_spec={
+              "param": types.String(required=False),
           },
       ),
   )

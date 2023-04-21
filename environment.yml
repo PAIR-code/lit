@@ -45,3 +45,4 @@ dependencies:
         - gunicorn==20.1.0
         - jinja2
         - termcolor
+        - etils[epath]
