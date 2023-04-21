@@ -66,8 +66,7 @@ export class LitTooltip extends ReactiveElement {
       'left': this.tooltipPosition.indexOf('left') !== -1,
     });
 
-    return html`
-      <div class='lit-tooltip'>
+    return html`<div class='lit-tooltip'>
         <slot name="tooltip-anchor">
           ${this.content === '' ? '' : html`
             <span class="help-icon material-icon-outlined icon-button">

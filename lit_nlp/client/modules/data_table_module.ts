@@ -578,6 +578,7 @@ export class DataTableModule extends LitModule {
         selectionEnabled
         paginationEnabled
         exportEnabled
+        showMoreEnabled
         shiftSelectionStartIndex=${shiftSelectStartRowIndex}
         shiftSelectionEndIndex=${shiftSelectEndRowIndex}
       ></lit-data-table>

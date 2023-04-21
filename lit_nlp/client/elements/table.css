@@ -223,6 +223,7 @@ tbody td {
   max-height: 150px;
   overflow: auto;
   white-space: pre-wrap;
+  display: inline;
 }
 
 /* TODO(lit-dev): Make the table image width configurable. */

@@ -28,7 +28,7 @@ import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property, queryAll} from 'lit/decorators';
 import {isTemplateResult} from 'lit/directive-helpers';
 import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
@@ -40,6 +40,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay} from '../lib/types';
 import {isNumber, median, measureTextLength, randInt} from '../lib/utils';
 
+import {LitTableTextCell} from './table_text_cell';
 import {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal} from './table_types';
 import {filterDataByQueries, getSortableEntry, itemMatchesText, parseSearchTextIntoQueries} from './table_utils';
 
@@ -115,6 +116,8 @@ export class DataTable extends ReactiveElement {
   @observable @property({type: Boolean}) searchEnabled = false;
   @observable @property({type: Boolean}) paginationEnabled = false;
   @observable @property({type: Boolean}) exportEnabled = false;
+  @observable @property({type: Boolean}) showMoreEnabled = false;
+
 
   /** Lowest row index of the continguous (i.e., shift-click) selection. */
   @property({type: Number}) shiftSelectionStartIndex = 0;
@@ -125,6 +128,8 @@ export class DataTable extends ReactiveElement {
   @property({type: Boolean}) verticalAlignMiddle = false;
   /** The maximum width of a <th> element's text before truncation. */
   @property({type: Number}) headerTextMaxWidth: number|null = null;
+
+  @observable private hasExpandedCells = false;
 
   // Callbacks
   @property({type: Object}) onClick?: OnPrimarySelectCallback;
@@ -671,6 +676,8 @@ export class DataTable extends ReactiveElement {
     this.onPrimarySelect(primaryIndex);
   }
 
+  @queryAll('lit-table-text-cell') tableTextCells?: LitTableTextCell[];
+
   /**
    * Imperative controls, intended to be used by a containing module
    * such as data_table_module.ts
@@ -678,7 +685,7 @@ export class DataTable extends ReactiveElement {
   @computed
   get isDefaultView() {
     return this.sortName === undefined && this.columnFilterInfo.size === 0 &&
-        this.globalSearchText === '';
+        this.globalSearchText === '' && this.hasExpandedCells;
   }
 
   @computed
@@ -691,6 +698,8 @@ export class DataTable extends ReactiveElement {
     this.sortName = undefined;    // reset to input ordering
     this.showColumnMenu = false;  // hide search bar
     this.requestUpdate();
+    this.hasExpandedCells = false;
+    this.tableTextCells?.forEach(t => {t.expanded = false;});
   }
 
   getVisibleDataIdxs(): number[] {
@@ -1037,7 +1046,11 @@ export class DataTable extends ReactiveElement {
       }
     };
 
-    function formatCellContents(d: TableEntry) {
+    const expand = (e:Event) => {
+      this.hasExpandedCells = true;
+    };
+
+    const formatCellContents = (d: TableEntry, maxWidth: number) => {
       if (d == null) return null;
 
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
@@ -1065,13 +1078,25 @@ export class DataTable extends ReactiveElement {
       // Text formatting uses pre-wrap, so be sure that this template
       // doesn't add any extra whitespace inside the div.
       // clang-format off
+      if (typeof d ==='string' && this.showMoreEnabled) {
+        return html`
+        <lit-table-text-cell
+          @showmore=${expand}
+          .content=${d}
+          .maxWidth=${maxWidth}>
+        </lit-table-text-cell>`;
+      }
       return html`
           <div class="text-cell">${formatForDisplay(d, undefined, true)}</div>`;
       // clang-format on
-    }
+    };
 
     const cellClasses = this.columnHeaders.map(
-        h => classMap({'cell-holder': true, 'right-align': h.rightAlign!}));
+        h => classMap({'cell-holder': true,
+        'right-align': h.rightAlign!}));
+
+    const cellMaxWidths = this.columnHeaders.map(h => h.maxWidth?? 0);
+
     const cellStyles = styleMap(
         {'vertical-align': this.verticalAlignMiddle ? 'middle' : 'top'});
     // clang-format off
@@ -1080,7 +1105,7 @@ export class DataTable extends ReactiveElement {
         @mouseleave=${mouseLeave} @mousedown=${mouseDown}>
         ${data.rowData.map((d, i) =>
             html`<td style=${cellStyles}><div class=${cellClasses[i]}>${
-              formatCellContents(d)
+              formatCellContents(d, cellMaxWidths[i])
             }</div></td>`)}
       </tr>
     `;
