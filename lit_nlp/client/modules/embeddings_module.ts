@@ -379,6 +379,11 @@ export class EmbeddingsModule extends LitModule {
           this.scatterGL?.select(selectedIndices);
         });
     this.reactImmediately(() => this.focusService.focusData, () => {
+      // Subfield focus - such as from hovering over tokens - isn't very useful
+      // here, since this almost always implies that the example is already
+      // selected. Ignore it to avoid annoying flashing in the UI.
+      if (this.focusService.focusData?.fieldName) return;
+
       const hoveredId = this.focusService.focusData?.datapointId;
       if (hoveredId != null) {
         const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];

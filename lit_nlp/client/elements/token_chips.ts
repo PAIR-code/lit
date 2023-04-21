@@ -15,8 +15,11 @@
  * limitations under the License.
  */
 
+import './tooltip';
+
 import {html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 
 import {SalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
@@ -30,6 +33,13 @@ import {styles} from './token_chips.css';
 export interface TokenWithWeight {
   token: string;
   weight: number;
+  selected?: boolean;
+  pinned?: boolean;
+  onClick?: (e: Event) => void;
+  onMouseover?: (e: Event) => void;
+  onMouseout?: (e: Event) => void;
+  disableHover?: boolean;
+  forceShowTooltip?: boolean;
 }
 
 /**
@@ -42,22 +52,33 @@ export class TokenChips extends LitElement {
   @property({type: Object}) cmap: SalienceCmap = new UnsignedSalienceCmap();
   @property({type: String})
   tokenGroupTitle?: string;  // can be used for gradKey
+  @property({type: Boolean}) dense = false;
 
   static override get styles() {
     return [sharedStyles, styles];
   }
 
-  private renderToken(token: string, weight: number, index: number) {
+  private renderToken(tokenInfo: TokenWithWeight, index: number) {
+    const tokenClass = classMap({
+      'salient-token': true,
+      'selected': Boolean(tokenInfo.selected),
+      'pinned': Boolean(tokenInfo.pinned),
+      'clickable': tokenInfo.onClick !== undefined,
+      'hover-enabled': !Boolean(tokenInfo.disableHover),
+    });
     const tokenStyle = styleMap({
-      'background-color': this.cmap.bgCmap(weight),
-      'color': this.cmap.textCmap(weight),
+      'background-color': this.cmap.bgCmap(tokenInfo.weight),
+      'color': this.cmap.textCmap(tokenInfo.weight),
     });
 
     // clang-format off
     return html`
-      <div class="salient-token" style=${tokenStyle}>
-        <lit-tooltip content=${weight.toPrecision(3)}>
-          <span slot="tooltip-anchor">${token}</span>
+      <div class=${tokenClass} style=${tokenStyle} @click=${tokenInfo.onClick}
+        @mouseover=${tokenInfo.onMouseover} @mouseout=${tokenInfo.onMouseout}>
+        <lit-tooltip content=${tokenInfo.weight.toPrecision(3)}
+          ?forceShow=${Boolean(tokenInfo.forceShowTooltip)}
+          ?disabled=${Boolean(tokenInfo.disableHover)}>
+          <span class='pre-wrap' slot="tooltip-anchor">${tokenInfo.token}</span>
         </lit-tooltip>
       </div>`;
     // clang-format on
@@ -66,13 +87,18 @@ export class TokenChips extends LitElement {
   override render() {
     const tokensDOM = this.tokensWithWeights.map(
         (tokenWithWeight: TokenWithWeight, i: number) =>
-            this.renderToken(tokenWithWeight.token, tokenWithWeight.weight, i));
+            this.renderToken(tokenWithWeight, i));
+
+    const holderClass = classMap({
+      'tokens-holder': true,
+      'tokens-holder-dense': this.dense,
+    });
 
     // clang-format off
     return html`
       <div class="tokens-group">
         ${this.tokenGroupTitle ? this.tokenGroupTitle : ''}
-        <div class="tokens-holder">
+        <div class=${holderClass}>
           ${tokensDOM}
         </div>
       </div>`;

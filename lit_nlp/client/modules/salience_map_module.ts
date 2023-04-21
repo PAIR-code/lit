@@ -22,6 +22,7 @@
 import '../elements/spinner';
 import '../elements/numeric_input';
 import '../elements/popup_container';
+import '../elements/token_chips';
 
 import {html} from 'lit';
 // tslint:disable:no-new-decorators
@@ -33,12 +34,13 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
+import {TokenWithWeight} from '../elements/token_chips';
 import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {cloneSpec, findSpecKeys} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
-import {FocusData, FocusService} from '../services/focus_service';
+import {FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
 
 import {styles} from './salience_map_module.css';
@@ -177,9 +179,6 @@ export class SalienceMapModule extends LitModule {
     }
     this.state = state;
 
-    this.reactImmediately(() => this.focusService.focusData, focusData => {
-      this.handleFocus(this.focusService.focusData);
-    });
     for (const name of Object.keys(this.state)) {
       // React to change in primary selection.
       const getData = () => this.selectionService.primarySelectedInputData;
@@ -224,84 +223,7 @@ export class SalienceMapModule extends LitModule {
     this.state[name].salience = salience[0];
   }
 
-  handleFocus(focusData: FocusData|null) {
-    this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
-      // For each token group we have a single tooltip,
-      // which we reposition to the focused token.
-      const tooltip = e.querySelector('.salience-tooltip') as HTMLElement;
-      if (focusData == null || focusData.fieldName == null) {
-        tooltip.style.visibility = 'hidden';
-      } else if (focusData.datapointId ===
-                 this.selectionService.primarySelectedInputData!.id) {
-        const tokens = e.querySelectorAll(
-            `.salient-token[data-gradKey="${focusData.fieldName}"]`);
-        tokens.forEach((t, i) => {
-          const tokenElement = t as HTMLElement;
-          if (i !== focusData.subField) {
-            return;
-          }
-          tooltip.innerText = tokenElement.dataset['tooltip']!;
-          tooltip.style.visibility = 'visible';
-          const tokenBcr = tokenElement.getBoundingClientRect();
-          const groupBcr = e.getBoundingClientRect();
-          const tooltipLeft =
-              ((tokenBcr.left + tokenBcr.right) / 2) - groupBcr.left;
-          const tooltipTop = tokenBcr.bottom - groupBcr.top;
-          tooltip.style.left = `${tooltipLeft}px`;
-          tooltip.style.top = `${tooltipTop}px`;
-        });
-      }
-    });
-  }
-
-  override updated() {
-    super.updated();
-
-    // Imperative tooltip implementation
-    this.shadowRoot!.querySelectorAll('.tokens-group').forEach((e) => {
-      // For each token group we have a single tooltip,
-      // which we reposition to the current element on mouseover.
-      const tokens = e.querySelectorAll('.salient-token');
-      const self = this;
-      tokens.forEach((t, i) => {
-        (t as HTMLElement).onmouseover = function() {
-          self.focusService.setFocusedField(
-              self.selectionService.primarySelectedInputData!.id,
-              'input',
-              (this as HTMLElement).dataset['gradkey']!,
-              i);
-        };
-        // tslint:disable-next-line:only-arrow-functions
-        (t as HTMLElement).onmouseout = function() {
-          self.focusService.clearFocus();
-        };
-      });
-    });
-  }
-
-  renderToken(token: string, salience: number, cmap: SalienceCmap, gradKey: string) {
-    const tokenStyle = styleMap({
-      'color': cmap.textCmap(salience),
-      'background-color': cmap.bgCmap(salience)
-    });
-
-    if (gradKey != null) {
-      return html`
-        <div class="salient-token" style=${tokenStyle}
-          data-tooltip=${salience.toPrecision(3)} data-gradkey=${gradKey}>
-          ${token}
-        </div>`;
-    } else {
-      return html`
-        <div class="salient-token" style=${tokenStyle}
-          data-tooltip=${salience.toPrecision(3)}>
-          ${token}
-        </div>`;
-    }
-  }
-
-  renderImage(
-      salience: ImageSalienceResult, gradKey: string) {
+  renderImageSalience(salience: ImageSalienceResult, gradKey: string) {
     const salienceImage = salience[gradKey];
     return html`<img src='${salienceImage}'></img>`;
   }
@@ -323,6 +245,9 @@ export class SalienceMapModule extends LitModule {
         </div>`;
     // clang-format on
   }
+
+  static readonly sliderTooltipText =
+      'A larger gamma value makes lower salience tokens more visible.';
 
   // TODO(b/242164240): Refactor the code once we decide how to address
   // the contrast problem.
@@ -347,19 +272,22 @@ export class SalienceMapModule extends LitModule {
       }
     };
 
-    // reuse the slider from the squence salience module
+    // clang-format off
     return html`
-      <lit-tooltip .tooltipPosition=${'above'}
-        .content=${
-          "A larger gamma value makes lower salience tokens more visible."}>
-        <label for="gamma-slider" slot="tooltip-anchor">Gamma:</label>
-      </lit-tooltip>
-      <lit-numeric-input min="0.25" max="6" step="0.25"
-        value="${this.cmapGamma}" @change=${onChangeGamma}>
-      </lit-numeric-input>`;
+      <div class='slider-controls'>
+        <lit-tooltip .tooltipPosition=${'above'}
+          .content=${SalienceMapModule.sliderTooltipText}>
+          <label for="gamma-slider" slot="tooltip-anchor">Gamma:</label>
+        </lit-tooltip>
+        <lit-numeric-input min="0.25" max="6" step="0.25"
+          value="${this.cmapGamma}" @change=${onChangeGamma}>
+        </lit-numeric-input>
+      </div>`;
+    // clang-format on
   }
 
   renderFooter() {
+    // clang-format off
     return html`
       <div class="module-footer">
         ${this.hasSignedSalience
@@ -371,27 +299,43 @@ export class SalienceMapModule extends LitModule {
         ${this.hasSignedSalience || this.hasUnsignedSalience
           ? this.renderSlider() : null}
       </div>`;
+    // clang-format on
   }
 
-  // TODO(b/204887716): Consider using the <lit-token-chips> element.
-  renderTokens(
-      salience: TokenSalienceResult, gradKey: string, cmap: SalienceCmap,
+  renderTokenSalience(
+      tokens: string[], scores: number[], gradKey: string, cmap: SalienceCmap,
       title?: string) {
-    const tokens = salience[gradKey].tokens;
-    const saliences = salience[gradKey].salience;
-    const tokensDOM = tokens.map(
-        (token: string, i: number) =>
-            this.renderToken(token, saliences[i], cmap, gradKey));
+    const tokensWithWeights: TokenWithWeight[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const onMouseover = () => {
+        this.focusService.setFocusedField(
+            this.selectionService.primarySelectedInputData!.id, 'input',
+            gradKey, i);
+      };
+      const onMouseout = () => {
+        this.focusService.clearFocus();
+      };
+      const focusData = this.focusService.focusData;
+      const forceShowTooltip = focusData?.fieldName === gradKey &&
+          focusData?.datapointId === this.selectionService.primarySelectedId &&
+          focusData?.subField === i;
+      tokensWithWeights.push({
+        token: tokens[i],
+        weight: scores[i],
+        onMouseover,
+        onMouseout,
+        forceShowTooltip
+      });
+    }
 
     // clang-format off
     return html`
       <div class="tokens-group">
         ${title? html`<div class="tokens-group-title">${title}</div>` : null}
-        <div class="tokens-holder">
-          ${tokensDOM}
-        </div>
-        <div class="salience-tooltip">
-        </div>
+        <lit-token-chips
+          .tokensWithWeights=${tokensWithWeights}
+          .cmap=${cmap}>
+        </lit-token-chips>
       </div>`;
     // clang-format on
   }
@@ -402,25 +346,12 @@ export class SalienceMapModule extends LitModule {
     const saliences = salience[gradKey].salience;
     const features = Object.keys(saliences).sort(
         (a, b) => saliences[b] - saliences[a]);
-    const tokensDOM = features.map(
-        (feat: string) => {
-          const val =
-              this.selectionService.primarySelectedInputData!.data[feat];
-          const str = `${feat}: ${val}`;
-          return this.renderToken(str, saliences[feat], cmap, gradKey);
-    });
+    const data = this.selectionService.primarySelectedInputData!.data;
+    const featureTexts =
+        features.map((feat: string) => `${feat}: ${data[feat]}`);
+    const values = features.map((feat: string) => saliences[feat]);
 
-    // clang-format off
-    return html`
-      <div class="tokens-group">
-        ${title? html`<div class="tokens-group-title">${title}</div>` : null}
-        <div class="tokens-holder">
-          ${tokensDOM}
-        </div>
-        <div class="salience-tooltip">
-        </div>
-      </div>`;
-    // clang-format on
+    return this.renderTokenSalience(featureTexts, values, gradKey, cmap, title);
   }
 
   renderGroup(
@@ -428,13 +359,15 @@ export class SalienceMapModule extends LitModule {
       title?: string) {
     if (spec[gradKey] instanceof ImageGradients) {
       salience = salience as ImageSalienceResult;
-      return this.renderImage(salience, gradKey);
+      return this.renderImageSalience(salience, gradKey);
     } else if (spec[gradKey] instanceof FeatureSalience) {
       salience = salience as FeatureSalienceResult;
       return this.renderFeatureSalience(salience, gradKey, cmap, title);
     } else {
       salience = salience as TokenSalienceResult;
-      return this.renderTokens(salience, gradKey, cmap, title);
+      return this.renderTokenSalience(
+          salience[gradKey].tokens, salience[gradKey].salience, gradKey, cmap,
+          title);
     }
   }
 

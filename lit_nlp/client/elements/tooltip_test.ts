@@ -43,4 +43,32 @@ describe('tooltip test', () => {
         tooltip.renderRoot.querySelector<HTMLSpanElement>('span.tooltip-text')!;
     expect(tooltipText).toHaveClass('above');
   });
+
+  it('does not show if disabled', async () => {
+    tooltip.disabled = true;
+    await tooltip.updateComplete;
+    const tooltipText =
+        tooltip.renderRoot.querySelector<HTMLSpanElement>('span.tooltip-text')!;
+    const style = window.getComputedStyle(tooltipText);
+    expect(style.getPropertyValue('visibility')).toEqual('hidden');
+  });
+
+  it('shows if forceShow', async () => {
+    tooltip.forceShow = true;
+    await tooltip.updateComplete;
+    const tooltipText =
+        tooltip.renderRoot.querySelector<HTMLSpanElement>('span.tooltip-text')!;
+    const style = window.getComputedStyle(tooltipText);
+    expect(style.getPropertyValue('visibility')).toEqual('visible');
+  });
+
+  it('shows if forceShow, even if disabled', async () => {
+    tooltip.forceShow = true;
+    tooltip.disabled = true;
+    await tooltip.updateComplete;
+    const tooltipText =
+        tooltip.renderRoot.querySelector<HTMLSpanElement>('span.tooltip-text')!;
+    const style = window.getComputedStyle(tooltipText);
+    expect(style.getPropertyValue('visibility')).toEqual('visible');
+  });
 });

@@ -31,9 +31,8 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
     'max_examples',
     None,
     (
-        'Maximum number of examples to load into LIT. Note: MNLI eval set is'
-        ' 10k examples, so will take a while to run and may be slow on older'
-        ' machines. Set --max_examples=200 for a quick start.'
+        'Maximum number of examples to load into LIT. '
+        'Set --max_examples=200 for a quick start.'
     ),
 )
 

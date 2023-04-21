@@ -4,16 +4,16 @@
 
 import '../elements/switch';
 import '../elements/numeric_input';
+import '../elements/token_chips';
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
+import {TokenWithWeight} from '../elements/token_chips';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
@@ -85,7 +85,6 @@ export class SequenceSalienceModule extends LitModule {
   @observable
   private cmapScalingMode: ColorScalingMode = ColorScalingMode.NORMALIZE;
   @observable private denseView: boolean = false;
-  @observable private showValues: boolean = false;
 
   @computed
   get salienceSpecInfo(): Spec {
@@ -233,68 +232,31 @@ export class SequenceSalienceModule extends LitModule {
       }
     };
 
-    const holderClasses = classMap({
-      'token-holder': true,
-      'token-holder-dense': this.denseView,
-    });
+    const sourceTokensWithWeights: TokenWithWeight[] =
+        preds.sourceTokens.map((token: string, i: number) => {
+          return {
+            token,
+            weight: scaledSalience[i],
+            disableHover: focusIdx === -1
+          };
+        });
 
-    // Hide values for unimportant tokens, based on current colormap scale.
-    // 1 - lightness is roughly how dark the token highlighting will be;
-    // 0.05 is an arbitrary threshold that seems to work well.
-    function showNumber(val: number) {return 1 - cmap.lightness(val) > 0.05;}
-    function displayVal(val: number) {return val.toFixed(3);}
-    // TODO(b/204887716, b/173469699): improve layout density?
-    // Try to strip leading zeros to save some space? Can do down to 24px width
-    // with this, but need to handle negatives.
-    // const displayVal = (val: number) => {
-    //   const formattedVal = val.toFixed(3);
-    //   if (formattedVal[0] === '0') {
-    //     return formattedVal.slice(1);
-    //   }
-    //   return formattedVal;
-    // };
-
-    const renderSourceToken = (token: string, i: number) => {
-      const val = scaledSalience[i];
-      const tokenStyle = styleMap(
-          {'color': cmap.textCmap(val), 'background-color': cmap.bgCmap(val)});
-      const tokenClasses = classMap({
-        'salient-token': true,
-        'salient-token-with-number': this.showValues,
-      });
-      // clang-format off
-      return html`
-        <div class=${tokenClasses} style=${tokenStyle}
-         data-displayval=${displayVal(val)} ?data-shownumber=${showNumber(val)}>
-          ${token}
-        </div>
-      `;
-      // clang-format on
-    };
-
-    const renderTargetToken = (token: string, i: number) => {
-      const val = scaledSalience[i + preds.sourceTokens.length];
-      const tokenStyle = styleMap(
-          {'color': cmap.textCmap(val), 'background-color': cmap.bgCmap(val)});
-      const tokenClasses = classMap({
-        'salient-token': true,
-        'salient-token-with-number': this.showValues,
-        'target-token': true,
-        'token-focused': i === focusIdx,
-        'token-pinned': i === focusIdx && (this.focusState?.sticky === true),
-      });
-      // clang-format off
-      return html`
-        <div class=${tokenClasses} style=${tokenStyle}
-         data-displayval=${displayVal(val)} ?data-shownumber=${showNumber(val)}
-         @mouseover=${() => { onMouseoverTarget(i); }}
-         @mouseout=${onMouseoutTarget}
-         @click=${(e: Event) => { onClickTarget(i, e); }}>
-          ${token}
-        </div>
-      `;
-      // clang-format on
-    };
+    const targetTokensWithWeights: TokenWithWeight[] =
+        preds.targetTokens.map((token: string, i: number) => {
+          return {
+            token,
+            weight: scaledSalience[i + preds.sourceTokens.length],
+            selected: i === focusIdx,
+            pinned: i === focusIdx && (this.focusState?.sticky === true),
+            onClick: (e: Event) => {
+              onClickTarget(i, e);
+            },
+            onMouseover: () => {
+              onMouseoverTarget(i);
+            },
+            onMouseout: onMouseoutTarget,
+          };
+        });
 
     // clang-format off
     return html`
@@ -302,14 +264,20 @@ export class SequenceSalienceModule extends LitModule {
         <table class='field-table'>
           <tr>
             <th><div class='subfield-title'>Source</div></th>
-            <td><div class=${holderClasses}>
-                ${preds.sourceTokens.map(renderSourceToken)}
+            <td><div>
+              <lit-token-chips ?dense=${this.denseView}
+                .tokensWithWeights=${sourceTokensWithWeights}
+                .cmap=${cmap}>
+              </lit-token-chips>
             </div></td>
           </tr>
           <tr>
             <th><div class='subfield-title'>Target</div></th>
-             <td><div class=${holderClasses}>
-                ${preds.targetTokens.map(renderTargetToken)}
+            <td><div>
+              <lit-token-chips ?dense=${this.denseView}
+                .tokensWithWeights=${targetTokensWithWeights}
+                .cmap=${cmap}>
+              </lit-token-chips>
             </div></td>
           </tr>
         </table>
@@ -401,10 +369,6 @@ export class SequenceSalienceModule extends LitModule {
       this.denseView = !this.denseView;
     };
 
-    const onClickToggleValues = () => {
-      this.showValues = !this.showValues;
-    };
-
     const onChangeGamma = (e: Event) => {
       this.cmapGamma = +((e.target as HTMLInputElement).value);
     };
@@ -415,11 +379,6 @@ export class SequenceSalienceModule extends LitModule {
         <lit-switch labelLeft="Dense view"
               ?selected=${this.denseView}
               @change=${onClickToggleDensity}>
-        </lit-switch>
-        <div class='vertical-separator'></div>
-        <lit-switch labelLeft="Show values"
-              ?selected=${this.showValues}
-              @change=${onClickToggleValues}>
         </lit-switch>
       </div>
       <div class="controls-group">

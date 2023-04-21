@@ -10,8 +10,6 @@
 
 /* Tooltip text */
 .lit-tooltip .tooltip-text {
-  visibility: hidden;
-
   max-width: var(--tooltip-max-width);
   width: var(--tooltip-width);
 
@@ -47,6 +45,15 @@
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
-.lit-tooltip:hover .tooltip-text {
+.lit-tooltip:hover .tooltip-text:not(.disabled) {
+  visibility: visible;
+}
+
+.lit-tooltip .tooltip-text:not(.force-show) {
+  visibility: hidden;
+}
+
+/* Show the tooltip when forceShow is set. */
+.lit-tooltip .tooltip-text.force-show {
   visibility: visible;
 }

@@ -51,6 +51,9 @@ export class LitTooltip extends ReactiveElement {
   // Space-separated tooltip position attributes, e.g. 'above' or 'right'.
   @property({type: String}) tooltipPosition = '';
   @property({type: Boolean}) shouldRenderAriaLabel = true;
+  @property({type: Boolean}) disabled = false;
+  // If we should force-show this, even without mouseover.
+  @property({type: Boolean}) forceShow = false;
 
   renderAriaLabel() {
     return this.shouldRenderAriaLabel ? html`aria-label=${this.content}` : '';
@@ -64,6 +67,8 @@ export class LitTooltip extends ReactiveElement {
       'tooltip-text': true,
       'above': this.tooltipPosition.indexOf('above') !== -1,
       'left': this.tooltipPosition.indexOf('left') !== -1,
+      'force-show': this.forceShow,
+      'disabled': this.disabled,
     });
 
     return html`<div class='lit-tooltip'>

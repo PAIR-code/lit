@@ -24,42 +24,18 @@
 .module-footer > * { min-width: 0; }
 
 .module-footer {
-  justify-content: flex-start;
+  justify-content: space-between;
+}
+
+.slider-controls {
+  display: flex;
+  flex-direction: row;
 }
 
 .tokens-holder {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-}
-
-.tokens-group {
-  position: relative;
-}
-
-.salient-token {
-  /* color and background set individually vis styleMap */
-  font-family: 'Roboto';
-  border-radius: 2px;
-  border: 1px solid transparent; /* for spacing */
-  padding: 2px 4px; /* wider horizontally */
-  margin: 3px;
-  width: fit-content;
-}
-
-.salience-tooltip {
-  position: absolute;
-  padding: 5px;
-  margin: auto;
-  text-align: center;
-  transform: translate(-50%, 5px);
-  background-color: #f2f9ff;
-  border-radius: 7px;
-  border-style: solid;
-  border-width: 1px;
-  z-index: 10000;
-  pointer-events: none;
-  visibility: hidden;
 }
 
 .method-row-contents {

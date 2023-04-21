@@ -29,6 +29,14 @@ FLAGS.set_default('default_layout', 'penguins')
 _MODEL_PATH = flags.DEFINE_string('model_path', MODEL_PATH,
                                   'Path to load trained model.')
 
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    'max_examples',
+    None,
+    (
+        'Maximum number of examples to load into LIT. '
+        'Set --max_examples=200 for a quick start.'
+    ),
+)
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
@@ -65,6 +73,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   models = {'species classifier': penguin_model.PenguinModel(_MODEL_PATH.value)}
   datasets = {'penguins': penguin_data.PenguinDataset()}
+  # Truncate datasets if --max_examples is set.
+  if _MAX_EXAMPLES.value is not None:
+    for name in datasets:
+      logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
+      datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
+      logging.info('  truncated to %d examples', len(datasets[name]))
+
   generators = {
       'Minimal Targeted Counterfactuals':
           minimal_targeted_counterfactuals.TabularMTC()
