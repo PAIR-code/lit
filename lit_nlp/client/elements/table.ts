@@ -685,7 +685,7 @@ export class DataTable extends ReactiveElement {
   @computed
   get isDefaultView() {
     return this.sortName === undefined && this.columnFilterInfo.size === 0 &&
-        this.globalSearchText === '' && this.hasExpandedCells;
+        this.globalSearchText === '' && !this.hasExpandedCells;
   }
 
   @computed
