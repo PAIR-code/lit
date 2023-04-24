@@ -44,14 +44,20 @@ const LINES_TO_RENDER = 3;
 @customElement('lit-table-text-cell')
 export class LitTableTextCell extends ReactiveElement {
     static override get styles() {
-      return [sharedStyles,  css`
+      return [
+        sharedStyles, css`
         .lit-table-text-cell {
           max-height: 150px;
           overflow: auto;
           white-space: pre-wrap;
           display: inline;
         }
-      `];
+
+        lit-showmore {
+          white-space: normal;
+        }
+      `
+      ];
     }
 
     @property({type: String}) content = '';
@@ -85,19 +91,21 @@ export class LitTableTextCell extends ReactiveElement {
       const hiddenChars = this.content.length - clippedTextLengthChars;
 
       const visibleText = isExpanded ?
-      this.content : this.content.substring(0, clippedTextLengthChars);
+          this.content :
+          this.content.substring(0, clippedTextLengthChars);
 
+      const displayText = formatForDisplay(visibleText, undefined, true);
+
+      // div.lit-table-text-cell uses pre-wrap, so HTML template must take
+      // care to avoid introducing extraneous whitespace or newlines.
       // clang-format off
       const renderShowMore = isExpanded ? "" :
-        html`<lit-showmore
-          .hiddenTextLength=${hiddenChars}
-          @showmore=${onClickShowMore}>
-        </lit-showmore>`;
+        html`<lit-showmore .hiddenTextLength=${hiddenChars}
+              @showmore=${onClickShowMore}></lit-showmore>`;
 
-      return html`<div style=${showMoreStyles}>
-          ${formatForDisplay(visibleText, undefined, true)}
-          ${renderShowMore}
-        </div>`;
+      return html`
+       <div style=${showMoreStyles}
+        class='lit-table-text-cell'>${displayText} ${renderShowMore}</div>`;
       // clang-format on
     }
   }
