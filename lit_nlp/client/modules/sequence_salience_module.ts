@@ -15,6 +15,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {TokenWithWeight} from '../elements/token_chips';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
+import {SequenceSalienceMap} from '../lib/dtypes';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -22,14 +23,6 @@ import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
 
 import {styles} from './sequence_salience_module.css';
-
-// TODO(b/277793239): remove this and use the one in dtypes.ts
-interface SequenceSalienceMap {
-  sourceTokens: string[];
-  targetTokens: string[];
-  /** [targetTokens.length, sourceTokens.length + targetTokens.length] */
-  salience: number[][];
-}
 
 interface TokenFocusState {
   idx: number; /* output token index */
@@ -171,17 +164,7 @@ export class SequenceSalienceModule extends LitModule {
     const results = await this.loadLatest('salience', promise);
     if (results === null) return;
 
-    const preds = results[0];
-    const processedPreds: {[fieldName: string]: SequenceSalienceMap} = {};
-    for (const fieldName of Object.keys(preds)) {
-      processedPreds[fieldName] = {
-        sourceTokens: preds[fieldName]['tokens_in'],
-        targetTokens: preds[fieldName]['tokens_out'],
-        salience: preds[fieldName]['salience'],
-      };
-    }
-    // Update data again, in case selection changed rapidly.
-    this.currentSalience = processedPreds;
+    this.currentSalience = results[0];
   }
 
 
@@ -192,7 +175,7 @@ export class SequenceSalienceModule extends LitModule {
     const focusIdx = this.focusState?.idx ?? -1;
 
     const cmap = this.cmap;
-    // length is preds.sourceTokens.length + preds.targetTokens.length
+    // length is preds.tokens_in.length + preds.tokens_out.length
     const salience: number[] = focusIdx > -1 ? preds.salience[focusIdx] :
                                                [...preds.salience[0]].fill(0);
 
@@ -233,7 +216,7 @@ export class SequenceSalienceModule extends LitModule {
     };
 
     const sourceTokensWithWeights: TokenWithWeight[] =
-        preds.sourceTokens.map((token: string, i: number) => {
+        preds.tokens_in.map((token: string, i: number) => {
           return {
             token,
             weight: scaledSalience[i],
@@ -242,10 +225,10 @@ export class SequenceSalienceModule extends LitModule {
         });
 
     const targetTokensWithWeights: TokenWithWeight[] =
-        preds.targetTokens.map((token: string, i: number) => {
+        preds.tokens_out.map((token: string, i: number) => {
           return {
             token,
-            weight: scaledSalience[i + preds.sourceTokens.length],
+            weight: scaledSalience[i + preds.tokens_in.length],
             selected: i === focusIdx,
             pinned: i === focusIdx && (this.focusState?.sticky === true),
             onClick: (e: Event) => {

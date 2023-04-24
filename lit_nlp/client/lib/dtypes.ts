@@ -65,6 +65,7 @@ export interface FeatureSalience extends DataTuple {
 export interface SequenceSalienceMap extends DataTuple {
   tokens_in: string[];
   tokens_out: string[];
+  /** [tokens_out.length, tokens_in.length + tokens_out.length] */
   salience: number[][];
 }
 
