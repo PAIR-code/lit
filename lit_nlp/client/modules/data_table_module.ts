@@ -27,9 +27,8 @@ import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {DataTable} from '../elements/table';
-import {ColumnHeader, TableData} from '../elements/table';
-import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
+import {ColumnHeader, DataTable, SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {BooleanLitType, LitType, LitTypeWithVocab, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays} from '../lib/utils';
@@ -55,6 +54,26 @@ const LIT_TYPE_MIN_MAX_WIDTHS: {[key: string]: ColWidths} = {
   "EdgeLabels": [150, 200],
   "MultiSegmentAnnotations": [60, 200]
 };
+
+// TODO(b/275101197): consolidate this with other rendering code.
+// This is here for now as formatForDisplay() only returns a string.
+function formatForTable(
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): TableEntry {
+  if (fieldSpec instanceof URLLitType) {
+    // Prevent clicking the URL from selecting or de-selecting the table row.
+    const stopClickThrough = (e: Event) => {
+      e.stopPropagation();
+    };
+    // clang-format off
+    const template = html`
+      <a href=${input as string} target="_blank"
+       @click=${stopClickThrough}>${input as string}</a>`;
+    // clang-format on
+    return {template, value: (input as string)} as SortableTemplateResult;
+  }
+
+  return formatForDisplay(input, fieldSpec, limitWords);
+}
 
 /**
  * A LIT module showing a table containing the InputData examples. Allows the
@@ -179,7 +198,7 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
-  get dataEntries(): Array<Array<string|number>> {
+  get dataEntries(): TableEntry[][] {
     return this.sortedData.map((d) => {
       const index = this.appState.indicesById.get(d.id);
       if (index == null) return [];
@@ -187,7 +206,7 @@ export class DataTableModule extends LitModule {
       const dataEntries =
           this.keys.filter(k => this.columnVisibility.get(k.name))
               .map(
-                  k => formatForDisplay(
+                  k => formatForTable(
                       this.dataService.getVal(d.id, k.name),
                       this.dataSpec[k.name]));
       return dataEntries;
