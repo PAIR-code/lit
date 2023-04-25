@@ -235,14 +235,12 @@ export class SalienceMapModule extends LitModule {
 
     // clang-format off
     return html`
-        <div class="color-legend-container">
-          <color-legend legendType=${LegendType.SEQUENTIAL}
-            label=${legendLabel}
-            .paletteTooltipText=${tooltipText}
-            .scale=${colorMap.asScale()}
-            numBlocks=${numBlocks}>
-          </color-legend>
-        </div>`;
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        label=${legendLabel}
+        .paletteTooltipText=${tooltipText}
+        .scale=${colorMap.asScale()}
+        numBlocks=${numBlocks}>
+      </color-legend>`;
     // clang-format on
   }
 

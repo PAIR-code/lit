@@ -7,6 +7,10 @@
   overflow-y: hidden;
 }
 
+.legend-container.align-right {
+  justify-content: flex-end;
+}
+
 .legend-container mwc-icon {
   vertical-align: -2px;
 }

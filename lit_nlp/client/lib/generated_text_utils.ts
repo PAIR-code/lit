@@ -108,6 +108,41 @@ export function getAllOutputTexts(
 }
 
 /**
+ * Source info for TargetOption, below.
+ */
+export enum TargetSource {
+  REFERENCE = 'Reference',
+  MODEL_OUTPUT = 'Output',
+}
+
+/**
+ * A possible target sequence for salience, scoring, etc.
+ * with a text generation model.
+ */
+export interface TargetOption {
+  text: string;
+  source: TargetSource;
+  // TODO track original field name as well?
+  score?: number;  // TODO populate this
+}
+
+/**
+ * Get all possible target strings from reference and model output.
+ */
+export function getAllTargetOptions(
+    dataSpec: Spec, outputSpec: Spec, input?: IndexedInput|null,
+    preds?: GeneratedTextResult|null): TargetOption[] {
+  const ret: TargetOption[] = [];
+  for (const text of getAllReferenceTexts(dataSpec, outputSpec, input)) {
+    ret.push({text, source: TargetSource.REFERENCE});
+  }
+  for (const text of getAllOutputTexts(outputSpec, preds)) {
+    ret.push({text, source: TargetSource.MODEL_OUTPUT});
+  }
+  return ret;
+}
+
+/**
  * Mode for diffs against reference text.
  */
 export enum DiffMode {

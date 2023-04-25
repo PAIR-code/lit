@@ -14,13 +14,6 @@ lit-numeric-input {
   max-width: 200px;
 }
 
-.color-legend-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-right: 16px;
-}
-
 .subfield-title {
   padding-top: 6px; /* align title with first row of content */
 }
@@ -70,6 +63,10 @@ lit-numeric-input {
   height: 1.2rem;
   padding: 0;
   margin: 0 8px;
+}
+
+color-legend {
+  margin-right: 16px;
 }
 
 .gamma-value {

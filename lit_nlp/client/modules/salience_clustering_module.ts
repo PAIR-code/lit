@@ -391,11 +391,11 @@ export class SalienceClusteringModule extends LitModule {
       colorName: string, colorMap: SalienceCmap, numBlocks: number) {
     // clang-format off
     return html`
-        <color-legend legendType=${LegendType.SEQUENTIAL}
-          label=${colorName}
-          .scale=${colorMap.asScale()}
-          numBlocks=${numBlocks}>
-        </color-legend>`;
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        label=${colorName}
+        .scale=${colorMap.asScale()}
+        numBlocks=${numBlocks}>
+      </color-legend>`;
     // clang-format on
   }
 
@@ -427,9 +427,7 @@ export class SalienceClusteringModule extends LitModule {
             ${this.canRunClustering ? '' : this.renderSelectionWarning()}
             ${this.statusMessage}
           </p>
-          <div class="color-legend-container">
-            ${this.renderColorLegends()}
-          </div>
+          ${this.renderColorLegends()}
         </div>
       </div>`;
     // clang-format on

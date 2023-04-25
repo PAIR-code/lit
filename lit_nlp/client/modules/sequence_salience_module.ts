@@ -16,7 +16,7 @@ import {LegendType} from '../elements/color_legend';
 import {TokenWithWeight} from '../elements/token_chips';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {SequenceSalienceMap} from '../lib/dtypes';
-import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
+import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllTargetOptions, TargetOption} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
@@ -97,14 +97,11 @@ export class SequenceSalienceModule extends LitModule {
   }
 
   @computed
-  get salienceTargetStrings(): string[] {
+  get salienceTargetOptions(): TargetOption[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
-    const ret = getAllReferenceTexts(dataSpec, outputSpec, this.currentData);
-    if (this.currentData != null && this.currentPreds != null) {
-      ret.push(...getAllOutputTexts(outputSpec, this.currentPreds));
-    }
-    return ret;
+    return getAllTargetOptions(
+        dataSpec, outputSpec, this.currentData, this.currentPreds);
   }
 
   override firstUpdated() {
@@ -117,7 +114,7 @@ export class SequenceSalienceModule extends LitModule {
     this.reactImmediately(getPrimarySelectedInputData, async data => {
       this.focusState = undefined; /* clear focus */
       await this.updateToSelection(data);
-      this.salienceTarget = this.salienceTargetStrings[0];
+      this.salienceTarget = this.salienceTargetOptions[0].text;
     });
 
     this.reactImmediately(() => this.salienceTarget, target => {
@@ -296,9 +293,10 @@ export class SequenceSalienceModule extends LitModule {
       <div class="controls-group controls-group-variable" title="Target string for salience.">
         <label class="dropdown-label">Target:</label>
         <select class="dropdown" @change=${onChangeTarget}>
-          ${this.salienceTargetStrings.map(target =>
-            html`<option value=${target} ?selected=${target === this.salienceTarget}>
-                   ${target}
+          ${this.salienceTargetOptions.map(target =>
+            html`<option value=${target.text}
+                  ?selected=${target.text === this.salienceTarget}>
+                   (${target.source}) "${target.text}"
                  </option>`)}
         </select>
       </div>
@@ -335,15 +333,14 @@ export class SequenceSalienceModule extends LitModule {
         isSigned ? LEGEND_INFO_TITLE_SIGNED : LEGEND_INFO_TITLE_UNSIGNED;
 
     // clang-format off
-    return html`<div class="color-legend-container">
+    return html`
       <color-legend legendType=${LegendType.SEQUENTIAL}
         label=${labelName}
-        ?alignRight=${true}
+        alignRight
         .scale=${cmap.asScale()}
         numBlocks=${isSigned ? 7 : 5}
         .paletteTooltipText=${tooltipText}>
-      </color-legend>
-    </div>`;
+      </color-legend>`;
     // clang-format on
   }
 

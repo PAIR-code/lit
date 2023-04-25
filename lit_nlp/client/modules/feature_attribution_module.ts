@@ -477,15 +477,10 @@ export class FeatureAttributionModule extends LitModule {
           </div>
         </div>
         <div class="module-footer">
-          <div class="color-legend-container">
-            <color-legend label="Salience" .scale=${scale}
-                legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
-            </color-legend>
-            <mwc-icon class="icon material-icon-outlined"
-                      title=${LEGEND_INFO_TITLE_SIGNED}>
-              info_outline
-            </mwc-icon>
-          </div>
+          <color-legend label="Salience" .scale=${scale}
+              .paletteTooltipText=${LEGEND_INFO_TITLE_SIGNED}
+              legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
+          </color-legend>
         </div>
       </div>`;
     // clang-format on

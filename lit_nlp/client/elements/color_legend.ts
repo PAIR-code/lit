@@ -21,6 +21,7 @@
 import * as d3 from 'd3';
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map';
 import {styleMap} from 'lit/directives/style-map';
 import {computed, observable} from 'mobx';
 
@@ -64,8 +65,10 @@ export class ColorLegend extends ReactiveElement {
   @property({type: String}) label = '';
   /** Optional hover tooltip text on the color palette icon. */
   @property({type: String}) paletteTooltipText = '';
+  @property({type: String}) tooltipPosition = 'above';
   /** Width of the container. Used to determine if blocks should be labeled. */
   @property({type: Number}) legendWidth = 150;
+  @property({type: Boolean}) alignRight = false;
 
   // font attributes used to compute whether or not to show the text labels
   private fontFamily = '';
@@ -146,7 +149,7 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
       <div class='legend-line'>
-        <lit-tooltip content=${val} tooltipPosition="above">
+        <lit-tooltip content=${val} tooltipPosition=${this.tooltipPosition}>
           <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
         </lit-tooltip>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
@@ -174,7 +177,7 @@ export class ColorLegend extends ReactiveElement {
     // clang-format off
     return html`
       <div class='legend-line'>
-        <lit-tooltip content=${title} tooltipPosition="above">
+        <lit-tooltip content=${title} tooltipPosition=${this.tooltipPosition}>
           <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
         </lit-tooltip>
       </div>
@@ -191,20 +194,18 @@ export class ColorLegend extends ReactiveElement {
                        this.fullLegendWidth > this.legendWidth;
     // clang-format off
     return html`
-        <div class="legend-container">
-          <lit-tooltip .content=${this.paletteTooltipText}
-            .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined"
-              slot="tooltip-anchor">palette</mwc-icon>
-          </lit-tooltip>
-          <div class="color-label" name="color-name">
-            ${this.label}
-          </div>
+      <lit-tooltip .content=${this.paletteTooltipText}
+        .tooltipPosition=${this.tooltipPosition}>
+        <mwc-icon class="icon material-icon-outlined"
+          slot="tooltip-anchor">palette</mwc-icon>
+      </lit-tooltip>
+      <div class="color-label" name="color-name">
+        ${this.label}
+      </div>
 
-          ${this.scale.domain().map(
-              (val: string|number) => this.renderLegendBlock(val, hideLabels))}
-        </div>
-        `;
+      ${this.scale.domain().map(
+          (val: string|number) => this.renderLegendBlock(val, hideLabels))}
+    `;
     // clang-format on
   }
 
@@ -222,32 +223,30 @@ export class ColorLegend extends ReactiveElement {
 
     // clang-format off
     return html`
-        <div class="legend-container">
-          <lit-tooltip .content=${this.paletteTooltipText}
-            .tooltipPosition=${'above'}>
-            <mwc-icon class="icon material-icon-outlined"
-              slot="tooltip-anchor">palette</mwc-icon>
-          </lit-tooltip>
-          <div class="color-label" name="color-name">
-            ${this.label}
-          </div>
+      <lit-tooltip .content=${this.paletteTooltipText}
+        .tooltipPosition=${this.tooltipPosition}>
+        <mwc-icon class="icon material-icon-outlined"
+          slot="tooltip-anchor">palette</mwc-icon>
+      </lit-tooltip>
+      <div class="color-label" name="color-name">
+        ${this.label}
+      </div>
 
-          <div class='legend-label'>${this.toStringValue(minValue)}</div>
-          ${domain.map((colorVal: number) => {
-            if (colorVal !== minValue) {
-              curMin += rangeUnit;
-            }
+      <div class='legend-label'>${this.toStringValue(minValue)}</div>
+      ${domain.map((colorVal: number) => {
+        if (colorVal !== minValue) {
+          curMin += rangeUnit;
+        }
 
-            return this.renderSequentialBlock(
-              this.toStringValue(curMin),
-              this.toStringValue(
-                colorVal === maxValue ? maxValue : curMin + rangeUnit),
-              this.toStringValue(colorVal),
-              colorVal === maxValue);
-          })}
-          <div class='legend-label'>${this.toStringValue(maxValue)}</div>
-        </div>
-        `;
+        return this.renderSequentialBlock(
+          this.toStringValue(curMin),
+          this.toStringValue(
+            colorVal === maxValue ? maxValue : curMin + rangeUnit),
+          this.toStringValue(colorVal),
+          colorVal === maxValue);
+      })}
+      <div class='legend-label'>${this.toStringValue(maxValue)}</div>
+    `;
     // clang-format on
   }
 
@@ -290,9 +289,20 @@ export class ColorLegend extends ReactiveElement {
   }
 
   override render() {
-    return this.legendType === LegendType.CATEGORICAL ?
-        this.renderCategoricalLegend() :
-        this.renderSequentialLegend();
+    const containerClasses = classMap({
+      'legend-container': true,
+      'align-right': this.alignRight,
+    });
+
+    // clang-format off
+    return html`
+      <div class=${containerClasses}>
+        ${this.legendType === LegendType.CATEGORICAL ?
+            this.renderCategoricalLegend() :
+            this.renderSequentialLegend()}
+      </div>
+    `;
+    // clang-format on
   }
 }
 
