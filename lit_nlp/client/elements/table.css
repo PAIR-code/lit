@@ -167,8 +167,12 @@ tbody tr {
 
 tbody tr:hover {
   background: var(--lit-mage-200);
+}
+
+table.selection-enabled tbody tr:hover {
   cursor: pointer;
 }
+
 tbody tr.filler:hover {
   background: none;
   cursor: default;
