@@ -1,0 +1,36 @@
+:host {
+  height: 100%;
+  width: 100%;
+}
+
+.interstitial {
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'Google Sans', sans;
+}
+
+.interstitial > * {
+  flex-grow: 0;
+  flex-shrink: 0;
+  max-width: 300px;
+}
+
+.interstitial > img {
+  flex-shrink: 1;
+  max-height: 130px;
+}
+
+.interstitial p {
+  color: #5f6368;
+}
+
+.interstitial strong {
+  display: block;
+  font-size: 1.5em;
+  margin-bottom: 4px;
+}

@@ -16,6 +16,7 @@
  */
 
 import '../elements/interpreter_controls';
+import '../elements/interstitial';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
@@ -308,22 +309,18 @@ export class GeneratorModule extends LitModule {
   renderInterstitial() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <img src="static/interstitial-select.png" />
-        <p>
-          <strong>Counterfactual Generators</strong>
-          Create new datapoints derived from the current selection.
-        </p>
-      </div>`;
+      <lit-interstitial headline="Counterfactual Generators">
+        Create new datapoints derived from the current selection.
+      </lit-interstitial>`;
     // clang-format on
   }
 
   renderEmptyNotice() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <p>No examples generated.</p>
-      </div>`;
+      <lit-interstitial>
+        No examples generated.
+      </lit-interstitial>`;
     // clang-format on
   }
 

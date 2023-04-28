@@ -16,6 +16,7 @@
  */
 
 import '../elements/interpreter_controls';
+import '../elements/interstitial';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
@@ -28,8 +29,8 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
+import {FieldMatcher, InfluentialExamples, LitTypeWithParent} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FieldMatcher, LitTypeWithParent, InfluentialExamples} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
 import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
@@ -443,22 +444,18 @@ export class TrainingDataAttributionModule extends LitModule {
   renderInterstitial() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <img src="static/interstitial-select.png" />
-        <p>
-          <strong>Training Data Attribution</strong>
-          Find training examples that are influential for a given prediction.
-        </p>
-      </div>`;
+      <lit-interstitial headline="Training Data Attribution">
+        Find training examples that are influential for a given prediction.
+      </lit-interstitial>`;
     // clang-format on
   }
 
   renderEmptyNotice() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <p>No examples generated.</p>
-      </div>`;
+      <lit-interstitial>
+        No examples generated.
+      </lit-interstitial>`;
     // clang-format on
   }
 
