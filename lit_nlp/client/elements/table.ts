@@ -1052,7 +1052,7 @@ export class DataTable extends ReactiveElement {
       this.hasExpandedCells = true;
     };
 
-    const formatCellContents = (d: TableEntry, maxWidth: number) => {
+    const formatCellContents = (d: TableEntry, maxWidth?: number) => {
       if (d == null) return null;
 
       if (typeof d === 'string' && d.startsWith(IMAGE_PREFIX)) {
@@ -1097,7 +1097,7 @@ export class DataTable extends ReactiveElement {
         h => classMap({'cell-holder': true,
         'right-align': h.rightAlign!}));
 
-    const cellMaxWidths = this.columnHeaders.map(h => h.maxWidth?? 0);
+    const cellMaxWidths = this.columnHeaders.map(h => h.maxWidth);
 
     const cellStyles = styleMap(
         {'vertical-align': this.verticalAlignMiddle ? 'middle' : 'top'});

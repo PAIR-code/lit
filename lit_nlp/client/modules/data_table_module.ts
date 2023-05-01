@@ -47,12 +47,13 @@ const LIT_TYPE_MIN_MAX_WIDTHS: {[key: string]: ColWidths} = {
   "Scalar": [60, 100],
   "RegressionScore": [60, 100],
   "ImageBytes": [60, undefined],
-  "SearchQuery": [220, 600],
+  "SearchQuery": [100, 300],
   "Tokens": [220, 600],
   "SequenceTags": [100, 600],
   "SpanLabels": [150, 200],
   "EdgeLabels": [150, 200],
-  "MultiSegmentAnnotations": [60, 200]
+  "MultiSegmentAnnotations": [60, 200],
+  "GeneratedTextCandidates": [150, 400]
 };
 
 // TODO(b/275101197): consolidate this with other rendering code.

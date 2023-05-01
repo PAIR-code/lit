@@ -29,6 +29,7 @@ import {formatForDisplay} from '../lib/types';
 const PX_TO_CHAR = 0.139;
 const SHOW_MORE_WIDTH_PX = 25;
 const LINES_TO_RENDER = 3;
+const DEFAULT_MAX_WIDTH = 200;
 
 /**
  * A text cell element that expands hidden text on click.
@@ -61,7 +62,7 @@ export class LitTableTextCell extends ReactiveElement {
     }
 
     @property({type: String}) content = '';
-    @property({type: Number}) maxWidth = 100;
+    @property({type: Number}) maxWidth?: number;
     @property({type: Boolean}) expanded = false;
 
     /**
@@ -76,14 +77,23 @@ export class LitTableTextCell extends ReactiveElement {
         e.preventDefault();
       };
 
+      const maxWidth = this.maxWidth ?? DEFAULT_MAX_WIDTH;
+
       const showMoreStyles = styleMap({
-        '--show-more-max-width': `${this.maxWidth}px`,
+        '--show-more-max-width': `${maxWidth}px`,
         '--show-more-icon-width': `20px`,
       });
 
       const clippedTextLengthPx =
-        this.maxWidth*LINES_TO_RENDER - SHOW_MORE_WIDTH_PX;
-      const clippedTextLengthChars = Math.floor(clippedTextLengthPx*PX_TO_CHAR);
+        maxWidth*LINES_TO_RENDER - SHOW_MORE_WIDTH_PX;
+
+      const clippedByMaxWidthChars = Math.floor(clippedTextLengthPx*PX_TO_CHAR);
+
+      const clippedByLineBreaksChars =
+        this.content.split("\n\n", LINES_TO_RENDER).join("\n\n").length;
+
+      const clippedTextLengthChars =
+        Math.min(clippedByMaxWidthChars, clippedByLineBreaksChars);
 
       const isExpanded =
         this.expanded ||  this.content.length <= clippedTextLengthChars;
