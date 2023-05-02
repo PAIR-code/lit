@@ -35,7 +35,9 @@ export class NumericInput extends LitElement {
 
   private readonly ROUNDING_TIMEOUT_MS = 3000;
   private roundingTimeoutId: number|null = null;
-  private readonly precision = this.step.toString().split(".")[1]?.length || 0;
+  private get precision(): number {
+    return this.step.toString().split(".")[1]?.length || 0;
+  }
 
   static override get styles() {
     return [sharedStyles, styles];
