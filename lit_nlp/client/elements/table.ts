@@ -722,9 +722,7 @@ export class DataTable extends ReactiveElement {
 
     // clang-format off
     return html`<div class="holder">
-      <table class=${classMap({
-        'has-footer': this.hasFooter,
-        'selection-enabled': this.selectionEnabled})}>
+      <table class=${classMap({'has-footer': this.hasFooter})}>
         <colgroup>${cols}</colgroup>
         <thead>
           ${this.columnHeaders.map((c, i) =>

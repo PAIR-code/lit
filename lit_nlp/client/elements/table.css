@@ -169,7 +169,7 @@ tbody tr:hover {
   background: var(--lit-mage-200);
 }
 
-table.selection-enabled tbody tr:hover {
+:host([selectionenabled]) tbody tr:hover {
   cursor: pointer;
 }
 
