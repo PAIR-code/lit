@@ -30,14 +30,14 @@ import inspect
 import math
 import numbers
 import os
-from typing import Any, Callable, get_args, get_origin, NewType, Optional, Sequence, Type, TypedDict, Union
+from typing import Any, Callable, get_args, get_origin, Mapping, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
 from etils import epath
 from lit_nlp.api import dtypes
 import numpy as np
 
-JsonDict = dict[str, Any]
+JsonDict = Mapping[str, Any]
 Input = NewType("Input", JsonDict)
 ExampleId = NewType("ExampleId", str)
 ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
@@ -143,8 +143,9 @@ class LitType(metaclass=abc.ABCMeta):
       NameError: If `d["__name__"]` is not a `LitType` subclass.
       TypeError: If `d["__name__"]` is not a string.
     """
+    d_copy = dict(d)
     try:
-      type_name = d.pop("__name__")
+      type_name = d_copy.pop("__name__")
     except KeyError as e:
       raise KeyError("A __name__ property is required to parse a LitType from "
                      "JSON.") from e
@@ -157,7 +158,7 @@ class LitType(metaclass=abc.ABCMeta):
     if cls is None or not issubclass(cls, base_cls):
       raise NameError(f"{type_name} is not a valid LitType.")
 
-    return cls(**d)
+    return cls(**d_copy)
 
 Spec = dict[str, LitType]
 

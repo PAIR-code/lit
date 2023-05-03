@@ -29,9 +29,8 @@ This generator builds on ideas from the following paper.
 """
 
 import collections
-import copy
 import itertools
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -150,14 +149,14 @@ class AblationFlip(lit_components.Generator):
   def _create_cf(self,
                  example: JsonDict,
                  input_spec: Spec,
-                 ablation_idxs: list[tuple[str, int]]) -> JsonDict:
+                 ablation_idxs: list[tuple[str, int]]) -> dict[str, Any]:
     # Build a dictionary mapping input fields to the token idxs to be ablated
     # from that field.
     ablation_idxs_per_field = collections.defaultdict(list)
     for field, idx in ablation_idxs:
       ablation_idxs_per_field[field].append(idx)
     ablation_idxs_per_field.default_factory = None  # lock
-    cf = copy.deepcopy(example)
+    cf = dict(example)
     for field, ablation_idxs in ablation_idxs_per_field.items():
       # Original list of tokens at the field.
       orig_tokens = self._get_tokens(example, input_spec, field)

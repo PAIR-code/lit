@@ -300,7 +300,7 @@ class TabularMTC(lit_components.Generator):
           pred_key=pred_key,
           regression_thresh=regression_thresh)
       if flip:
-        candidate_example = indexed_example['data'].copy()
+        candidate_example = dict(indexed_example['data'])
         self._find_dataset_parent_and_set(
             model_output_spec=model.output_spec(),
             pred_key=pred_key,
@@ -360,7 +360,7 @@ class TabularMTC(lit_components.Generator):
     """
     # All features other than `features_to_consider` should be assigned the
     # value of the target example.
-    candidate_example = ds_example.copy()
+    candidate_example = dict(ds_example)
     for field_name in ref_example:
       if (field_name not in features_to_consider and
           field_name in model.input_spec()):
@@ -433,7 +433,7 @@ class TabularMTC(lit_components.Generator):
     for _ in range(max_attempts):
       # Interpolate the scalar values using binary search.
       current_alpha = (min_alpha + max_alpha) / 2
-      candidate = known_flip.copy()
+      candidate = dict(known_flip)
       for field in ref_example:
         if (field in candidate and field in input_spec and
             isinstance(input_spec[field], lit_types.Scalar) and
@@ -619,7 +619,7 @@ class TabularMTC(lit_components.Generator):
 
   def _find_dataset_parent_and_set(self, model_output_spec: lit_types.Spec,
                                    pred_key: str, dataset_spec: lit_types.Spec,
-                                   example: JsonDict,
+                                   example: dict[str, Any],
                                    predicted_value: Any) -> None:
     """Finds example parent field and assigns prediction value to it."""
     parent = self._find_dataset_parent(model_output_spec, pred_key,

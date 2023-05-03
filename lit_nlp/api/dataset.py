@@ -198,7 +198,7 @@ class Dataset(object):
     # random.shuffle will shuffle in-place; use sample to make a new list.
     return self.sample(n=len(self), seed=seed)
 
-  def remap(self, field_map: dict[str, str]):
+  def remap(self, field_map: Mapping[str, str]):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]

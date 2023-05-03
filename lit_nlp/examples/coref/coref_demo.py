@@ -42,7 +42,6 @@ get around 85% F1 on the OntoNotes development set. Exact numbers on Winogender
 will vary, but the qualitative behavior on slices by gender and answer should
 match Figure 3 of the paper.
 """
-import copy
 import os
 import sys
 from typing import Optional, Sequence
@@ -145,9 +144,9 @@ def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
   edge_fields = utils.find_spec_keys(dataset.spec(), lit_types.EdgeLabels)
   examples = []
   for ex in dataset.examples:
-    new_ex = copy.copy(ex)
+    new_ex = dict(ex)
     for field in edge_fields:
-      new_ex[field] += [_swap(edge) for edge in ex[field]]
+      new_ex[field] = ex[field] + [_swap(edge) for edge in ex[field]]
     examples.append(new_ex)
   return lit_dataset.Dataset(dataset.spec(), examples)
 

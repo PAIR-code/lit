@@ -14,7 +14,6 @@
 # ==============================================================================
 """Counterfactual explanations using linear model."""
 
-import copy
 from typing import Any, Optional, Sequence, Iterable
 
 from absl import logging
@@ -34,7 +33,7 @@ Spec = types.Spec
 
 def new_example(original_example: JsonDict, field: str, new_value: Any):
   """Deep copies the example and replaces `field` with `new_value`."""
-  example = copy.deepcopy(original_example)
+  example = dict(original_example)
   example[field] = new_value
   return example
 

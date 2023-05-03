@@ -175,7 +175,7 @@ def get_call_model_func(
     # a batch acceptable by the LIT model.
     model_inputs = []
     for x_value in x_value_batch:
-      input_copy = model_input.copy()
+      input_copy = dict(model_input)
       input_copy[image_field_key] = x_value
       if grad_target_field_key is not None:
         input_copy[grad_target_field_key] = grad_target_label

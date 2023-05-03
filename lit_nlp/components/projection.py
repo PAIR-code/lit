@@ -34,7 +34,6 @@ projections).
 """
 
 import abc
-import copy
 import threading
 from typing import Any, Hashable, Iterable, Optional, Sequence
 
@@ -103,7 +102,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
   def convert_input(self, indexed_input: JsonDict,
                     model_output: JsonDict) -> JsonDict:
     """Convert inputs, preserving metadata."""
-    c = copy.copy(indexed_input)  # shallow copy
+    c = dict(indexed_input)  # shallow copy
     c["data"] = {"x": model_output[self._field_name]}
     return c
 
@@ -131,7 +130,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
                         model: lit_model.Model,
                         dataset: lit_dataset.Dataset,
                         model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[dict[str, Any]] = None):
+                        config: Optional[JsonDict] = None):
     # If using input values, then treat inputs as outputs instead of running
     # the model.
     del dataset  # unused - pass examples to constructor instead

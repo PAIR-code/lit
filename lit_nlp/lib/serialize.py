@@ -14,7 +14,7 @@
 # ==============================================================================
 """Miscellaneous utility functions."""
 import json
-from typing import cast, Optional
+from typing import Any, cast, Optional
 
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
@@ -72,7 +72,7 @@ def _obj_to_json_simple(o: object):
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
 
-def _obj_from_json(d: types.JsonDict):
+def _obj_from_json(d: dict[str, Any]):
   """JSON deserialization helper.
 
   Args:

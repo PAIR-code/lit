@@ -19,7 +19,7 @@ import itertools
 import queue
 import threading
 import time
-from typing import Any, Callable, Iterable, Iterator, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Iterable, Iterator, List, Mapping, Optional, Sequence, TypeVar, Union
 import uuid
 
 from lit_nlp.api import types as lit_types
@@ -41,17 +41,19 @@ def coerce_bool(value) -> bool:
     return True
 
 
-def find_keys(d: dict[K, V], predicate: Callable[[V], bool]) -> list[K]:
+def find_keys(d: Mapping[K, V], predicate: Callable[[V], bool]) -> list[K]:
   """Find keys where values match predicate."""
   return [k for k, v in d.items() if predicate(v)]
 
 
-def find_spec_keys(d: dict[K, Any], types) -> list[K]:
+def find_spec_keys(d: Mapping[K, Any], types) -> List[K]:
   """Find keys where values match one or more types."""
   return find_keys(d, lambda v: isinstance(v, types))
 
 
-def filter_by_keys(d: dict[K, V], predicate: Callable[[K], bool]) -> dict[K, V]:
+def filter_by_keys(
+    d: Mapping[K, V], predicate: Callable[[K], bool]
+) -> dict[K, V]:
   """Filter to keys matching predicate."""
   return {k: v for k, v in d.items() if predicate(k)}
 
@@ -61,7 +63,7 @@ def spec_contains(d: dict[str, Any], types) -> bool:
   return bool(find_spec_keys(d, types))
 
 
-def remap_dict(d: dict[K, V], keymap: dict[K, K]) -> dict[K, V]:
+def remap_dict(d: Mapping[K, V], keymap: Mapping[K, K]) -> dict[K, V]:
   """Return a (shallow) copy of d with some fields renamed.
 
   Keys which are not in keymap are left alone.
@@ -110,7 +112,7 @@ def batch_iterator(
 
 
 def batch_inputs(
-    input_records: Sequence[dict[K, V]], keys: Optional[Collection[K]] = None
+    input_records: Sequence[Mapping[K, V]], keys: Optional[Collection[K]] = None
 ) -> dict[K, list[V]]:
   """Batch inputs from list-of-dicts to dict-of-lists."""
   assert input_records, 'Must have non-empty batch!'
@@ -128,11 +130,14 @@ def _extract_batch_length(preds):
   batch_length = None
   for key, value in preds.items():
     this_length = (
-        len(value) if isinstance(value, (list, tuple)) else value.shape[0])
+        len(value) if isinstance(value, (list, tuple)) else value.shape[0]
+    )
     batch_length = batch_length or this_length
     if this_length != batch_length:
-      raise ValueError('Batch length of predictions should be same. %s has '
-                       'different batch length than others.' % key)
+      raise ValueError(
+          'Batch length of predictions should be same. %s has '
+          'different batch length than others.' % key
+      )
   return batch_length
 
 
@@ -198,8 +203,9 @@ def coerce_real(vals: np.ndarray, limit=0.0001):
   Returns:
     The array with only the real portions of the numbers.
   """
-  assert np.all(np.imag(vals) < limit), (
-      'Array contains imaginary part out of acceptable limits.')
+  assert np.all(
+      np.imag(vals) < limit
+  ), 'Array contains imaginary part out of acceptable limits.'
   return np.real(vals)
 
 
@@ -231,15 +237,15 @@ def validate_config_against_spec(
       used in a call.
   """
   missing_required_keys = [
-      param_name for param_name, param_type in spec.items()
+      param_name
+      for param_name, param_type in spec.items()
       if param_type.required and param_name not in config
   ]
   if missing_required_keys:
     raise KeyError(f'Missing required parameters: {missing_required_keys}')
 
   unsupported_keys = [
-      param_name for param_name in config
-      if param_name not in spec
+      param_name for param_name in config if param_name not in spec
   ]
   if unsupported_keys:
     raise KeyError(f'Received unsupported parameters: {unsupported_keys}')

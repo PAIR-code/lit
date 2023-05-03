@@ -35,7 +35,7 @@ This generator extends ideas from the following papers.
 
 import copy
 import itertools
-from typing import cast, Iterator, Optional, Type
+from typing import Any, cast, Iterator, Optional, Type
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -137,8 +137,8 @@ class HotFlip(lit_components.Generator):
     return [f for f in fields
             if getattr(spec[f], "align", None) == align_field]
 
-  def _get_tokens_and_gradients(self, input_spec: JsonDict,
-                                output_spec: JsonDict, output: JsonDict,
+  def _get_tokens_and_gradients(self, input_spec: Spec,
+                                output_spec: Spec, output: JsonDict,
                                 selected_fields: list[str]):
     """Returns a dictionary mapping token fields to tokens and gradients."""
     # Find selected token fields.
@@ -227,8 +227,8 @@ class HotFlip(lit_components.Generator):
 
   def _create_cf(self, example: JsonDict, token_field: str, text_field: str,
                  tokens: list[str], token_idxs: tuple[int, ...],
-                 replacement_tokens: list[str]) -> JsonDict:
-    cf = copy.deepcopy(example)
+                 replacement_tokens: list[str]) -> dict[str, Any]:
+    cf = dict(example)
     modified_tokens = self._flip_tokens(
         tokens, token_idxs, replacement_tokens)
     # TODO(iftenney, bastings): call a model-provided detokenizer here?

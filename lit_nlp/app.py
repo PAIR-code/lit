@@ -20,7 +20,7 @@ import math
 import random
 import threading
 import time
-from typing import Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
+from typing import Any, Callable, cast, Iterable, Optional, Mapping, Sequence, TypedDict, Union
 
 from absl import logging
 
@@ -360,7 +360,7 @@ class LitApp(object):
     if dataset_name is None:
       raise ValueError('No base dataset specified.')
 
-    config: Optional[JsonDict] = data.get('config')
+    config: Optional[dict[str, Any]] = data.get('config')
     if config is None:
       raise ValueError('No config specified.')
 
@@ -393,7 +393,7 @@ class LitApp(object):
     if model_name is None:
       raise ValueError('No base model specified.')
 
-    config: Optional[JsonDict] = data.get('config')
+    config: Optional[dict[str, Any]] = data.get('config')
     if config is None:
       raise ValueError('No config specified.')
 
@@ -673,6 +673,7 @@ class LitApp(object):
       response_simple_json = utils.coerce_bool(
           kw.pop('response_simple_json', True)
       )
+
       data = serialize.from_json(request.data) if len(request.data) else None
       # Special handling to dereference IDs.
       if (
@@ -681,7 +682,8 @@ class LitApp(object):
           and len(data.get('inputs'))
           and 'dataset_name' in kw
       ):
-        data['inputs'] = self._reconstitute_inputs(
+        data_casted = cast(dict[str, Any], data)
+        data_casted['inputs'] = self._reconstitute_inputs(
             data['inputs'], kw['dataset_name']
         )
 
