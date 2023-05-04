@@ -15,12 +15,19 @@
 """Tests for lit_nlp.lib.utils."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.api import types
 from lit_nlp.lib import utils
 import numpy as np
 
+_VALIDATION_SPEC: types.Spec = {
+    "required_scalar": types.Scalar(),
+    "required_text_segment": types.String(),
+    "optional_boolean": types.Boolean(required=False),
+}
 
-class UtilsTest(absltest.TestCase):
+
+class UtilsTest(parameterized.TestCase):
 
   def test_coerce_bool(self):
     self.assertTrue(utils.coerce_bool(True))
@@ -195,6 +202,48 @@ class UtilsTest(absltest.TestCase):
 
     with self.assertRaises(AssertionError):
       utils.coerce_real(l, 0.4)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="with_all_params",
+          config={
+              "required_scalar": 0,
+              "required_text_segment": "test",
+              "optional_boolean": True,
+          },
+      ),
+      dict(
+          testcase_name="with_only_required_params",
+          config={
+              "required_scalar": 0,
+              "required_text_segment": "test",
+          },
+      ),
+  )
+  def test_validate_config_against_spec(self, config: types.JsonDict):
+    validated = utils.validate_config_against_spec(config, _VALIDATION_SPEC)
+    self.assertIs(config, validated)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="for_missing_params",
+          config={
+              "required_scalar": 0,
+              "optional_boolean": True,
+          },
+      ),
+      dict(
+          testcase_name="for_extra_params",
+          config={
+              "required_scalar": 0,
+              "required_text_segment": "test",
+              "param_not_in_spec": True,
+          },
+      ),
+  )
+  def test_validate_config_against_spec_raises(self, config: types.JsonDict):
+    with self.assertRaises(KeyError):
+      utils.validate_config_against_spec(config, _VALIDATION_SPEC)
 
 
 if __name__ == "__main__":

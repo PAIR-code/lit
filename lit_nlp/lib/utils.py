@@ -19,8 +19,10 @@ import itertools
 import queue
 import threading
 import time
-from typing import Any, Callable, Optional, Iterable, Iterator, Sequence, TypeVar, Union
+from typing import Any, Callable, Iterable, Iterator, Optional, Sequence, TypeVar, Union
 import uuid
+
+from lit_nlp.api import types as lit_types
 import numpy as np
 
 T = TypeVar('T')
@@ -198,6 +200,45 @@ def coerce_real(vals: np.ndarray, limit=0.0001):
 def get_uuid():
   """Return a randomly-generated UUID hex string."""
   return uuid.uuid4().hex
+
+
+# TODO(b/277249726): Expand usage across HTTP and Interpreter APIs.
+def validate_config_against_spec(
+    config: lit_types.JsonDict, spec: lit_types.Spec
+):
+  """Validates that the provided config is compatible with the Spec.
+
+  Args:
+    config: The configuration parameters, such as extracted from the data of an
+      HTTP Request, that are to be used in a function call.
+    spec: A Spec defining the shape of allowed configuration parameters for the
+      associated LIT component.
+
+  Returns:
+    The config passed in as the first argument, if validation is successful.
+
+  Raises:
+    KeyError: Under two conditions: 1) the `config` is missing one or more
+      required fields defined in the `spec`, or 2) the `config` contains fields
+      not defined in the `spec`. Either of these conditions would likely result
+      in a TypeError (for missing or unexpected arguments) if the `config` was
+      used in a call.
+  """
+  missing_required_keys = [
+      param_name for param_name, param_type in spec.items()
+      if param_type.required and param_name not in config
+  ]
+  if missing_required_keys:
+    raise KeyError(f'Missing required parameters: {missing_required_keys}')
+
+  unsupported_keys = [
+      param_name for param_name in config
+      if param_name not in spec
+  ]
+  if unsupported_keys:
+    raise KeyError(f'Received unsupported parameters: {unsupported_keys}')
+
+  return config
 
 
 class TaskQueue(queue.Queue):

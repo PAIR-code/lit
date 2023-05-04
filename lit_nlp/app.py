@@ -55,39 +55,6 @@ ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
 ModelLoadersMap = dict[str, ModelLoader]
 
 
-# TODO(b/277249726): Move this function to utils.py, add tests, and expand usage
-# across HTTP and Interpreter APIs.
-def _validate_config_against_spec(config: JsonDict, spec: types.Spec):
-  """Validates that the provided config is compatible with the Spec.
-
-  Args:
-    config: The configuration parameters, typically extracted from the data of
-      an HTTP Request, that are to be used in a function call.
-    spec: A Spec defining the shape of allowed configuration parameters for the
-      associated LIT component.
-
-  Raises:
-    KeyError: Under two conditions: 1) the `config` is missing one or more
-      required fields defined in the `spec`, or 2) the `config` contains fields
-      not defined in the `spec`. Either of these conditions would likely result
-      in a TypeError (for missing or unexpected arguments) if the `config` was
-      used in a call.
-  """
-  missing_required_keys = [
-      param_name for param_name, param_type in spec.items()
-      if param_type.required and param_name not in config
-  ]
-  if missing_required_keys:
-    raise KeyError(f'Missing required parameters: {missing_required_keys}')
-
-  unsupported_keys = [
-      param_name for param_name in config
-      if param_name not in spec
-  ]
-  if unsupported_keys:
-    raise KeyError(f'Received unsupported parameters: {unsupported_keys}')
-
-
 class LitApp(object):
   """LIT WSGI application."""
 
@@ -354,7 +321,7 @@ class LitApp(object):
     dataset_cls, dataset_init_spec = loader_info
 
     if dataset_init_spec is not None:
-      _validate_config_against_spec(config, dataset_init_spec)
+      utils.validate_config_against_spec(config, dataset_init_spec)
 
     new_dataset = dataset_cls(**config)
     annotated_dataset = self._run_annotators(new_dataset)
@@ -387,7 +354,7 @@ class LitApp(object):
     model_cls, model_init_spec = loader_info
 
     if model_init_spec is not None:
-      _validate_config_against_spec(config, model_init_spec)
+      utils.validate_config_against_spec(config, model_init_spec)
 
     new_model = model_cls(**config)
     self._models[new_name] = caching.CachingModelWrapper(
