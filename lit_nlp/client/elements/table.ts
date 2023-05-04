@@ -726,7 +726,7 @@ export class DataTable extends ReactiveElement {
         <colgroup>${cols}</colgroup>
         <thead>
           ${this.columnHeaders.map((c, i) =>
-              this.renderColumnHeader(c, i === this.columnHeaders.length - 1))}
+              this.renderColumnHeader(c,  c.rightAlign ?? false))}
         </thead>
         <tbody>
           ${this.pageData.map((d, rowIndex) => this.renderRow(d, rowIndex))}

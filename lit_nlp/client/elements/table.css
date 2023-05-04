@@ -39,6 +39,7 @@
   font-weight: 500;
   color: #04394b;
   border-bottom: solid 1px #dadce0;
+  position: relative;
 }
 
 .column-header {
@@ -291,5 +292,5 @@ tbody td {
 }
 
 .right-aligned-search {
-  right: 0;
+  right: 20px;
 }
