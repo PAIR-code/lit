@@ -14,11 +14,12 @@
 # ==============================================================================
 """Miscellaneous helper functions."""
 
+from collections.abc import Collection
 import itertools
 import queue
 import threading
 import time
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Sequence, TypeVar, Union
+from typing import Any, Callable, Optional, Iterable, Iterator, Sequence, TypeVar, Union
 import uuid
 import numpy as np
 
@@ -38,17 +39,17 @@ def coerce_bool(value) -> bool:
     return True
 
 
-def find_keys(d: Dict[K, V], predicate: Callable[[V], bool]) -> List[K]:
+def find_keys(d: dict[K, V], predicate: Callable[[V], bool]) -> list[K]:
   """Find keys where values match predicate."""
   return [k for k, v in d.items() if predicate(v)]
 
 
-def find_spec_keys(d: Dict[K, Any], types) -> List[K]:
+def find_spec_keys(d: dict[K, Any], types) -> list[K]:
   """Find keys where values match one or more types."""
   return find_keys(d, lambda v: isinstance(v, types))
 
 
-def filter_by_keys(d: Dict[K, V], predicate: Callable[[K], bool]) -> Dict[K, V]:
+def filter_by_keys(d: dict[K, V], predicate: Callable[[K], bool]) -> dict[K, V]:
   """Filter to keys matching predicate."""
   return {k: v for k, v in d.items() if predicate(k)}
 
@@ -58,7 +59,7 @@ def spec_contains(d: dict[str, Any], types) -> bool:
   return bool(find_spec_keys(d, types))
 
 
-def remap_dict(d: Dict[K, V], keymap: Dict[K, K]) -> Dict[K, V]:
+def remap_dict(d: dict[K, V], keymap: dict[K, K]) -> dict[K, V]:
   """Return a (shallow) copy of d with some fields renamed.
 
   Keys which are not in keymap are left alone.
@@ -80,8 +81,9 @@ def rate_limit(iterable, qps: Union[int, float]):
     time.sleep(1.0 / qps)
 
 
-def batch_iterator(items: Iterable[T],
-                   max_batch_size: int) -> Iterator[List[T]]:
+def batch_iterator(
+    items: Iterable[T], max_batch_size: int
+) -> Iterator[list[T]]:
   """Create batches from an input stream.
 
   Use this to create batches, e.g. to feed to a model.
@@ -105,11 +107,15 @@ def batch_iterator(items: Iterable[T],
     yield minibatch
 
 
-def batch_inputs(input_records: Sequence[Dict[K, V]]) -> Dict[K, List[V]]:
+def batch_inputs(
+    input_records: Sequence[dict[K, V]], keys: Optional[Collection[K]] = None
+) -> dict[K, list[V]]:
   """Batch inputs from list-of-dicts to dict-of-lists."""
   assert input_records, 'Must have non-empty batch!'
+  if keys is None:
+    keys = input_records[0].keys()
   ret = {}
-  for k in input_records[0]:
+  for k in keys:
     ret[k] = [r[k] for r in input_records]
   return ret
 
@@ -131,11 +137,11 @@ def unbatch_preds(preds):
   """Unbatch predictions, as in estimator.predict().
 
   Args:
-    preds: Dict[str, np.ndarray], where all arrays have the same first
+    preds: dict[str, np.ndarray], where all arrays have the same first
       dimension.
 
   Yields:
-    sequence of Dict[str, np.ndarray], with the same keys as preds.
+    sequence of dict[str, np.ndarray], with the same keys as preds.
   """
   if not isinstance(preds, dict):
     for pred in preds:
@@ -145,8 +151,9 @@ def unbatch_preds(preds):
       yield {key: value[i] for key, value in preds.items()}
 
 
-def find_all_combinations(l: List[Any], min_element_count: int,
-                          max_element_count: int) -> List[List[Any]]:
+def find_all_combinations(
+    l: list[Any], min_element_count: int, max_element_count: int
+) -> list[list[Any]]:
   """Finds all possible ways how elements of a list can be combined.
 
   E.g., all combinations of list [1, 2, 3] are
@@ -162,7 +169,7 @@ def find_all_combinations(l: List[Any], min_element_count: int,
   Returns:
     The list of all possible combinations given the constraints.
   """
-  result: List[List[Any]] = []
+  result: list[list[Any]] = []
   min_element_count = max(1, min_element_count)
   max_element_count = min(max_element_count, len(l))
   for element_count in range(min_element_count, max_element_count + 1):

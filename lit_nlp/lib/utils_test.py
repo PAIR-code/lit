@@ -94,6 +94,21 @@ class UtilsTest(absltest.TestCase):
 
     self.assertDictEqual({}, utils.filter_by_keys({}, pred))
 
+  def test_batch_inputs(self):
+    records = [
+        {"foo": 1, "bar": "one"},
+        {"foo": 2, "bar": "two"},
+        {"foo": 3, "bar": "three"},
+    ]
+    self.assertDictEqual(
+        {"foo": [1, 2, 3], "bar": ["one", "two", "three"]},
+        utils.batch_inputs(records),
+    )
+    self.assertDictEqual(
+        {"bar": ["one", "two", "three"]},
+        utils.batch_inputs(records, keys=["bar"]),
+    )
+
   def test_remap_dict(self):
     d = {
         "a": True,
