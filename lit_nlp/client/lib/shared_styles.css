@@ -227,7 +227,6 @@ button:disabled {
   -webkit-appearance: none;
   padding: 4px 18px 3px 4px;
   margin:  2px  8px 2px 0;
-  max-width: 80%;
   color: var(--lit-neutral-800);
   background-color: transparent;
   /* SVG background-image sets fill: var(--lit-neutral-800) as HEX value */
