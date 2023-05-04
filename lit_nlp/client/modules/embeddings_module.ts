@@ -379,17 +379,22 @@ export class EmbeddingsModule extends LitModule {
           this.scatterGL?.select(selectedIndices);
         });
     this.reactImmediately(() => this.focusService.focusData, () => {
+      // If the module is still loading, then the div#scatter-gl-container will
+      // be hidden, so don't bother setting the hover index if the user can't
+      // see it.
+      if (this.isLoading) return;
+
       // Subfield focus - such as from hovering over tokens - isn't very useful
       // here, since this almost always implies that the example is already
       // selected. Ignore it to avoid annoying flashing in the UI.
       if (this.focusService.focusData?.fieldName) return;
 
       const hoveredId = this.focusService.focusData?.datapointId;
-      if (hoveredId != null) {
-        const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];
-        this.scatterGL?.setHoverPointIndex(hoveredIdx);
-      } else {
+      const hoveredIdx = this.currentInputIndicesById.get(hoveredId!);
+      if (hoveredIdx == null) {
         this.scatterGL?.setHoverPointIndex(null);
+      } else {
+        this.scatterGL?.setHoverPointIndex(hoveredIdx);
       }
     });
   }
