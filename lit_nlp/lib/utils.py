@@ -116,6 +116,7 @@ def batch_inputs(
   assert input_records, 'Must have non-empty batch!'
   if keys is None:
     keys = input_records[0].keys()
+
   ret = {}
   for k in keys:
     ret[k] = [r[k] for r in input_records]
