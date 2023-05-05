@@ -431,6 +431,29 @@ class RegressionScore(Scalar):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class _FloatList(ListLitType):
+  """A variable-length list of floats. Not the same as a 1D tensor."""
+
+  default: Sequence[float] = []
+
+  def validate_input(self, value, spec: Spec, example: Input):
+    if not isinstance(value, list) or not all(
+        [isinstance(v, float) for v in value]
+    ):
+      raise ValueError(f"{value} is not a list of floats")
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class TokenScores(_FloatList):
+  """Scores, aligned to tokens.
+
+  The data should be a list of floats, one for each token.
+  """
+
+  align: str  # name of Tokens field
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ReferenceScores(ListLitType):
   """Score of one or more target sequences."""
   default: Sequence[float] = None

@@ -241,6 +241,23 @@ export class RegressionScore extends Scalar {
 }
 
 /**
+ * A list of floats.
+ */
+@registered
+export class FloatList extends ListLitType {
+  override default: number[] = [];
+}
+
+/**
+ * Scores, aligned to tokens.
+ */
+@registered
+export class TokenScores extends FloatList {
+  /** Name of a Tokens field from the output. */
+  align?: string = undefined;
+}
+
+/**
  * Score of one or more target sequences.
  */
 @registered
