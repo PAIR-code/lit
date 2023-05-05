@@ -258,6 +258,11 @@ a:hover {
   flex-grow: 1;
 }
 
+.model-dataset-loading .controls .options .option-entry.missing label {
+  color: var(--google-red-500);
+  font-weight: bold;
+}
+
 .model-dataset-loading .header {
   color: var(--lit-neutral-700);
   font-size: 16px;

@@ -37,7 +37,7 @@ import {action, computed, observable} from 'mobx';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StringLitType} from '../lib/lit_types';
 import {CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
-import {deserializeLitTypesInLitMetadata, getTemplateStringFromMarkdown} from '../lib/utils';
+import {deserializeLitTypesInLitMetadata, getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
 import {LitInputField} from '../elements/lit_input_field';
 import {resolveModuleConfig} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
@@ -60,6 +60,7 @@ const SELECTED_TXT = 'Selected';
 const COMPATIBLE_TXT = 'Compatible';
 const INCOMPATIBLE_TXT = 'Incompatible';
 
+const NEW_NAME_FIELD = 'new_name';
 const LOAD_DISABLED_TXT = 'Provide a value for "new_name" to load';
 
 function initializeCallConfig(spec: Spec): CallConfig {
@@ -106,6 +107,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @observable private datasetToLoad?: string;
   @observable private modelToLoad?: string;
   @observable private loadingCallConfig: CallConfig = {};
+  @observable private missingCallConfigFields: string[] = [];
 
   @computed get loadableDatasets(): string[] {
     const {datasets} = this.appState.metadata.initSpecs;
@@ -123,8 +125,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
     return loadable;
   }
 
-  @computed
-  get selectedModels() {
+  @computed get selectedModels() {
     const modelEntries = [...this.modelCheckboxValues.entries()];
     return modelEntries.filter(([, isSelected]) => isSelected)
         .map(([modelName,]) => modelName);
@@ -455,6 +456,13 @@ export class GlobalSettingsComponent extends MobxLitElement {
     };
 
     const loadModel = async () => {
+      this.missingCallConfigFields = validateCallConfig(
+        this.loadingCallConfig, loaderSpec);
+      this.status = this.missingCallConfigFields.length ?
+          "Missing required model initialization parameters." : undefined;
+
+      if (this.missingCallConfigFields.length) return;
+
       this.status = undefined;
       let newInfo;
 
@@ -615,8 +623,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         this.loadingCallConfig = initializeCallConfig(initSpec);
       }
     };
+
     const loadDataset = async () => {
-      this.status = undefined;
+      this.missingCallConfigFields = validateCallConfig(
+        this.loadingCallConfig, loaderSpec);
+      this.status = this.missingCallConfigFields.length ?
+          "Missing required dataset initialization parameters." : undefined;
+
+      if (this.missingCallConfigFields.length) return;
+
       let newInfo;
 
       try {
@@ -672,16 +687,16 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const disableReset =
         Object.entries(this.loadingCallConfig)
           .map(([name, value]) =>
-              name === 'new_name' ? !value : spec[name]?.default === value)
+              name === NEW_NAME_FIELD ? !value : spec[name]?.default === value)
           .reduce((a, b) => a && b, true);
-    const disableSubmit = !this.loadingCallConfig['new_name'];
+    const disableSubmit = !this.loadingCallConfig[NEW_NAME_FIELD];
     const specEntries = Object.entries(spec);
     const reset = () => {this.resetLoadingCallConfig();};
     const selectionChanged = (e: Event) => {select(e);};
 
     const configInputs = specEntries.length ?
       Object.entries({
-        'new_name': new StringLitType(),
+        [NEW_NAME_FIELD]: new StringLitType(),
         ...spec
       }).map(([fieldName, fieldType]) => {
         const value = this.loadingCallConfig[fieldName];
@@ -690,9 +705,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
           this.loadingCallConfig[fieldName] = value;
         };
 
+        const fieldClasses = classMap({
+          'missing': this.missingCallConfigFields.includes(fieldName),
+          'option-entry': true
+        });
+
         // TODO(b/277252824): Wrap <label> elements in a LitTooltip describing
         // what that feature does.
-        return html`<div class="option-entry">
+        return html`<div class=${fieldClasses}>
           <label>${fieldName}:</label>
           <lit-input-field @change=${updateConfig} .type=${fieldType}
             .value=${value} fill-container>

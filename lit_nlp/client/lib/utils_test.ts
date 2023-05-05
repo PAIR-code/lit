@@ -23,7 +23,7 @@ import 'jasmine';
 
 import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
 import {mockMetadata, mockSerializedMetadata} from './testing_utils';
-import {Spec} from '../lib/types';
+import {CallConfig, Spec} from '../lib/types';
 
 import * as utils from './utils';
 
@@ -739,6 +739,67 @@ describe('measureTextLength test', () => {
   ].forEach(({testcaseName, text, expected}) => {
     it(`should correctly measure the length of ${testcaseName}`, () => {
       expect(utils.measureTextLength(text)).toEqual(expected);
+    });
+  });
+});
+
+describe('validateCallConfig test', () => {
+  const optionalString = new StringLitType();
+  optionalString.required = false;
+
+  const TEST_SPEC: Spec = {
+    'a': new StringLitType(),
+    'b': new StringLitType(),
+    'c': optionalString,
+  };
+
+  [
+    {
+      testcaseName: 'config has all fields',
+      config: {'a': 0, 'b': true, 'c': 'c'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'config has only required fields',
+      config: {'a': 'a', 'b': 'b'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'config has non-null falsy required values',
+      config: {'a': '', 'b': false} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'spec is null',
+      config: {} as CallConfig,
+      spec: null,
+    },
+  ].forEach(({testcaseName, config, spec}) => {
+    it(`returns an empty list if the ${testcaseName}`, () => {
+      expect(utils.validateCallConfig(config, spec)).toEqual([]);
+    });
+  });
+
+
+  [
+    {
+      testcaseName: 'the config is empty',
+      config: {} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'the config has only optional fields',
+      config: {'c': 'c'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'the config has nullish required fields',
+      config: {'a': null, 'b': undefined} as CallConfig,
+      spec: TEST_SPEC,
+    },
+  ].forEach(({testcaseName, config, spec}) => {
+    it(`returns only the missing required fields when ${testcaseName}`, () => {
+      expect(utils.validateCallConfig(config, spec)).toEqual(['a', 'b']);
     });
   });
 });

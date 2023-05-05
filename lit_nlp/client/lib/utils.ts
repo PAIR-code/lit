@@ -28,7 +28,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
-import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
+import {CallConfig, FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -651,4 +651,17 @@ export function measureTextLength(text: string, font = '13px Roboto'): number {
   MEASUREMENT_CTX.font = font;
   const measures = MEASUREMENT_CTX.measureText(text);
   return measures.width;
+}
+
+/**
+ * Checks a CallConfig to ensure that all fields required by the Spec are
+ * present. Returns any required fields missing from the config as an array.
+ */
+export function validateCallConfig(
+    config: CallConfig, spec: Spec|null): string[] {
+  if (spec == null) return [];
+  return Object.entries(spec)
+      .filter(([key, litType]) =>
+          litType.required ? config[key] == null : false)
+      .map(([key, unused]) => key);
 }
