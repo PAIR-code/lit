@@ -326,12 +326,20 @@ class BatchedRemoteModel(Model):
     self._max_qps = max_qps
     self._pool = multiprocessing.pool.ThreadPool(max_concurrent_requests)
 
-  def predict(self, inputs: Iterable[JsonDict], *unused_args,
-              **unused_kwargs) -> Iterator[JsonDict]:
+  def predict(
+      self,
+      inputs: Iterable[JsonDict],
+      *unused_args,
+      parallel=True,
+      **unused_kwargs
+  ) -> Iterator[JsonDict]:
     batches = utils.batch_iterator(
         inputs, max_batch_size=self.max_minibatch_size())
     batches = utils.rate_limit(batches, self._max_qps)
-    pred_batches = self._pool.imap(self.predict_minibatch, batches)
+    if parallel:
+      pred_batches = self._pool.imap(self.predict_minibatch, batches)
+    else:  # don't use the threadpool; useful for debugging
+      pred_batches = map(self.predict_minibatch, batches)
     return itertools.chain.from_iterable(pred_batches)
 
   def max_minibatch_size(self) -> int:
