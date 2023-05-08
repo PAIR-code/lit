@@ -152,6 +152,8 @@ class SimpleMetrics(lit_components.Metrics):
     return ret
 
 
+# TODO(b/254833485): Convert to inherit from lit_components.Metrics so that
+# promotion of Metrics to a top-level class more direct.
 class ClassificationMetricsWrapper(lit_components.Interpreter):
   """Wrapper for classification metrics interpreters.
 

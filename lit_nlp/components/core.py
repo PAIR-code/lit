@@ -51,13 +51,8 @@ except (ModuleNotFoundError, ImportError):
   _UMAP_AVAILABLE = False
 # pytype: enable=import-error # pylint: enable=g-import-not-at-top
 
-ComponentGroup = lit_components.ComponentGroup
-Generator = lit_components.Generator
-Interpreter = lit_components.Interpreter
-Model = lit_model.Model
 
-
-def default_generators() -> dict[str, Generator]:
+def default_generators() -> dict[str, lit_components.Generator]:
   """Returns a dict of the default generators used in a LitApp."""
   return {
       'Ablation Flip': ablation_flip.AblationFlip(),
@@ -67,21 +62,23 @@ def default_generators() -> dict[str, Generator]:
   }
 
 
-def required_interpreters() -> dict[str, Interpreter]:
+def required_interpreters() -> dict[str, lit_components.Interpreter]:
   """Returns a dict of required interpreters.
 
   These are used by multiple core modules, and without them the frontend will
   likely throw errors.
   """
   # Ensure the prediction analysis interpreters are included.
-  prediction_analysis_interpreters: dict[str, Interpreter] = {
+  prediction_analysis_interpreters: dict[str, lit_components.Interpreter] = {
       'classification': classification_results.ClassificationInterpreter(),
       'regression': regression_results.RegressionInterpreter(),
   }
   return prediction_analysis_interpreters
 
 
-def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
+def default_interpreters(
+    models: dict[str, lit_model.Model]
+) -> dict[str, lit_components.Interpreter]:
   """Returns a dict of the default interpreters (and metrics) used in a LitApp.
 
   Args:
@@ -91,7 +88,7 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
   interpreters = required_interpreters()
 
   # Ensure the embedding-based interpreters are included.
-  embedding_interpreters: dict[str, Interpreter] = {
+  embedding_interpreters: dict[str, lit_components.Interpreter] = {
       'nearest neighbors': nearest_neighbors.NearestNeighbors(),
       # Embedding projectors expose a standard interface, but get special
       # handling so we can precompute the projections if requested.
@@ -103,7 +100,7 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
         umap.UmapModel
     )
 
-  gradient_map_interpreters: dict[str, Interpreter] = {
+  gradient_map_interpreters: dict[str, lit_components.Interpreter] = {
       'Grad L2 Norm': gradient_maps.GradientNorm(),
       'Grad ⋅ Input': gradient_maps.GradientDotInput(),
       'Integrated Gradients': gradient_maps.IntegratedGradients(),
@@ -111,13 +108,15 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
   }
 
   # pyformat: disable
-  core_interpreters: dict[str, Interpreter] = {
+  core_interpreters: dict[str, lit_components.Interpreter] = {
       'Model-provided salience': model_salience.ModelSalience(models),
       'counterfactual explainer': lemon_explainer.LEMON(),
       'tcav': tcav.TCAV(),
       'curves': curves.CurvesInterpreter(),
       'thresholder': thresholder.Thresholder(),
-      'metrics': default_metrics(),
+      # TODO(b/254832560): Remove this "metrics" record from the core
+      # interpreters once the front-end Metrics module has been updated.
+      'metrics': lit_components.ComponentGroup(default_metrics()),
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
           dict(gradient_map_interpreters)),
@@ -133,8 +132,10 @@ def default_interpreters(models: dict[str, Model]) -> dict[str, Interpreter]:
   return interpreters
 
 
-def default_metrics() -> ComponentGroup:
-  return ComponentGroup({
+# TODO(b/254833485): Update typing to be a dict[str, lit_components.Metrics]
+# once the Wrapper classes in metrics.py inherit from lit_components.Metrics.
+def default_metrics() -> dict[str, lit_components.Interpreter]:
+  return {
       'regression': metrics.RegressionMetrics(),
       'multiclass': metrics.MulticlassMetrics(),
       'multilabel': metrics.MultilabelMetrics(),
@@ -142,4 +143,4 @@ def default_metrics() -> ComponentGroup:
       'bleu': metrics.CorpusBLEU(),
       'rouge': metrics.RougeL(),
       'exactmatch': metrics.ExactMatchMetrics(),
-  })
+  }

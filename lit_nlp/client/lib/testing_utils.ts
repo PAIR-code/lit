@@ -85,7 +85,8 @@ export const mockMetadata: LitMetadata = {
       'generators':
           ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
       'interpreters':
-          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+      'metrics': []
     },
     'sst_1_micro': {
       'spec': {
@@ -118,7 +119,8 @@ export const mockMetadata: LitMetadata = {
       'generators':
           ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
       'interpreters':
-          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+      'metrics': []
     }
   },
   'datasets': {
@@ -182,6 +184,7 @@ export const mockMetadata: LitMetadata = {
     'pca': emptySpec(),
     'umap': emptySpec(),
   },
+  'metrics': {},
   'initSpecs': {
     'datasets': {
       'sst_dev': {'split': createLitType(StringLitType)},
@@ -250,7 +253,8 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
       'generators':
           ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
       'interpreters':
-          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+      'metrics': []
     },
     'sst_1_micro': {
       'spec': {
@@ -296,7 +300,8 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
       'generators':
           ['word_replacer', 'scrambler', 'backtranslation', 'hotflip'],
       'interpreters':
-          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap']
+          ['grad_norm', 'grad_sum', 'lime', 'metrics', 'pca', 'umap'],
+      'metrics': []
     }
   },
   'datasets': {
@@ -375,6 +380,7 @@ export const mockSerializedMetadata: SerializedLitMetadata = {
     'pca': emptySpec(),
     'umap': emptySpec(),
   },
+  'metrics': {},
   'initSpecs': {
     'datasets': {
       'sst_dev': {

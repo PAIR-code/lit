@@ -20,7 +20,7 @@ import math
 import random
 import threading
 import time
-from typing import Optional, Mapping, Sequence, Union, Callable, Iterable
+from typing import Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
 
 from absl import logging
 
@@ -55,6 +55,38 @@ ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
 ModelLoadersMap = dict[str, ModelLoader]
 
 
+# LINT.IfChange
+class ComponentInfo(TypedDict):
+  configSpec: types.Spec  # pylint: disable=invalid-name  # Named for JSON struct
+  metaSpec: types.Spec    # pylint: disable=invalid-name  # Named for JSON struct
+  description: str
+# LINT.ThenChange(./client/lib/types.ts)
+
+
+def _get_component_info(
+    obj: lit_components.Interpreter,
+) -> ComponentInfo:
+  """Returns the ComponentInfo for an Interpreter, Generator, Metric, etc."""
+  return ComponentInfo(
+      configSpec=obj.config_spec(),
+      metaSpec=obj.meta_spec(),
+      description=obj.description(),
+  )
+
+
+def _get_compatible_names(
+    candidates: Mapping[str, lit_components.Interpreter],
+    model: lit_model.Model,
+    dataset: lit_dataset.Dataset,
+) -> Sequence[str]:
+  """Returns the names of the candidates compatible with the model/dataset."""
+  return [
+      name
+      for name, candidate in candidates.items()
+      if candidate.is_compatible(model=model, dataset=dataset)
+  ]
+
+
 class LitApp(object):
   """LIT WSGI application."""
 
@@ -80,22 +112,29 @@ class LitApp(object):
 
       compat_gens: set[str] = set()
       compat_interps: set[str] = set()
+      compat_metrics: set[str] = set()
 
       for d in info['datasets']:
         dataset: lit_dataset.Dataset = self._datasets[d]
-        compat_gens.update([
-            name for name, gen in self._generators.items()
-            if gen.is_compatible(model=model, dataset=dataset)
-        ])
-        compat_interps.update([
-            name for name, interp in self._interpreters.items()
-            if interp.is_compatible(model=model, dataset=dataset)
-        ])
+        compat_gens.update(
+            _get_compatible_names(self._generators, model, dataset)
+        )
+        compat_interps.update(
+            _get_compatible_names(self._interpreters, model, dataset)
+        )
+        compat_metrics.update(
+            _get_compatible_names(self._metrics, model, dataset)
+        )
 
-      info['generators'] = [name for name in self._generators.keys()
-                            if name in compat_gens]
-      info['interpreters'] = [name for name in self._interpreters.keys()
-                              if name in compat_interps]
+      info['generators'] = [
+          name for name in self._generators.keys() if name in compat_gens
+      ]
+      info['interpreters'] = [
+          name for name in self._interpreters.keys() if name in compat_interps
+      ]
+      info['metrics'] = [
+          name for name in self._metrics.keys() if name in compat_metrics
+      ]
       model_info[name] = info
 
     dataset_info = {}
@@ -106,21 +145,19 @@ class LitApp(object):
           'size': len(ds),
       }
 
-    generator_info = {}
-    for name, gen in self._generators.items():
-      generator_info[name] = {
-          'configSpec': gen.config_spec(),
-          'metaSpec': gen.meta_spec(),
-          'description': gen.description()
-      }
+    generator_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(gen) for name, gen in self._generators.items()
+    }
 
-    interpreter_info = {}
-    for name, interpreter in self._interpreters.items():
-      interpreter_info[name] = {
-          'configSpec': interpreter.config_spec(),
-          'metaSpec': interpreter.meta_spec(),
-          'description': interpreter.description()
-      }
+    interpreter_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(interp)
+        for name, interp in self._interpreters.items()
+    }
+
+    metrics_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(metric)
+        for name, metric in self._metrics.items()
+    }
 
     init_specs = {
         'datasets': {n: s for n, (_, s) in self._dataset_loaders.items()},
@@ -133,6 +170,7 @@ class LitApp(object):
         'datasets': dataset_info,
         'generators': generator_info,
         'interpreters': interpreter_info,
+        'metrics': metrics_info,
         'layouts': self._layouts,
         # Global configuration
         'demoMode': self._demo_mode,
@@ -569,6 +607,7 @@ class LitApp(object):
       datasets: Mapping[str, lit_dataset.Dataset],
       generators: Optional[Mapping[str, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[str, lit_components.Interpreter]] = None,
+      metrics: Optional[Mapping[str, lit_components.Metrics]] = None,
       annotators: Optional[list[lit_components.Annotator]] = None,
       layouts: Optional[layout.LitComponentLayouts] = None,
       dataset_loaders: Optional[DatasetLoadersMap] = None,
@@ -656,6 +695,11 @@ class LitApp(object):
       self._interpreters = core.required_interpreters() | interpreters
     else:
       self._interpreters = core.default_interpreters(self._models)
+
+    if metrics is not None:
+      self._metrics = metrics
+    else:
+      self._metrics = core.default_metrics()
 
     # Component to sync state from TS -> Python. Used in notebooks.
     if sync_state:

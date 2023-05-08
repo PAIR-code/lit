@@ -85,7 +85,8 @@ describe('classification service test', () => {
         spec,
         datasets: [],
         generators: [],
-        interpreters: []
+        interpreters: [],
+        metrics: []
       }}
     };
 
@@ -165,7 +166,8 @@ describe('classification service test', () => {
           spec,
           datasets: [],
           generators: [],
-          interpreters: []
+          interpreters: [],
+          metrics: []
         }}
       };
 

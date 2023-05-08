@@ -299,6 +299,7 @@ export class MetricsModule extends LitModule {
   /** Convert the metricsMap information into table data for display. */
   @computed
   get tableData(): TableHeaderAndData {
+    // TODO(b/254832560): Use this.appState.metadata.metrics here.
     const {metaSpec} = this.appState.metadata.interpreters['metrics'];
     if (metaSpec == null) return {'header': [], 'data': []};
 

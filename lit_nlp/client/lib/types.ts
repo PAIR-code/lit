@@ -42,11 +42,13 @@ interface InitSpecMap {
   [name: string]: Spec|null;  // using null here because None ==> null in Python
 }
 
+// LINT.IfChange
 export interface ComponentInfo {
   configSpec: Spec;
   metaSpec: Spec;
   description?: string;
 }
+// LINT.ThenChange(../../app.py)
 
 export interface DatasetInfo {
   size: number;
@@ -76,6 +78,7 @@ export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
+  metrics: string[];
   spec: ModelSpec;
   description?: string;
 }
@@ -89,6 +92,7 @@ export interface LitMetadata {
   datasets: DatasetInfoMap;
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
+  metrics: ComponentInfoMap;
   layouts: LitComponentLayouts;
   demoMode: boolean;
   defaultLayout: string;
