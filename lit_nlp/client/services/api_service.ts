@@ -176,18 +176,22 @@ export class ApiService extends LitService {
    * @param interpreterName interpreter to run
    * @param config: configuration to send to backend (optional)
    * @param loadMessage: loading message to show to user (optional)
+   * @param skipPredict: whether to skip the call to _get_preds() before
+   *    calling the interpreter component. See app.py, and remove after
+   *    b/278586715 is resolved.
    */
   getInterpretations(
       inputs: IndexedInput[], modelName: string, datasetName: string,
       interpreterName: string, config?: CallConfig,
       // tslint:disable-next-line:no-any
-      loadMessage?: string): Promise<any> {
+      loadMessage?: string, skipPredict = false): Promise<any> {
     loadMessage = loadMessage ?? 'Fetching interpretations';
     return this.queryServer(
         '/get_interpretations', {
           'model': modelName,
           'dataset_name': datasetName,
           'interpreter': interpreterName,
+          'do_predict': skipPredict ? '0' : '1'
         },
         inputs, loadMessage, config);
   }

@@ -396,19 +396,34 @@ class LitApp(object):
         })
     return all_generated_indexed
 
-  def _get_interpretations(self, data, model: str, dataset_name: str,
-                           interpreter: str, **unused_kw):
+  def _get_interpretations(
+      self,
+      data,
+      model: str,
+      dataset_name: str,
+      interpreter: str,
+      # boolean but via URL param, so encoding as "0" /  "1" is safer.
+      do_predict: str = '1',
+      **unused_kw,
+  ):
     """Run an interpretation component."""
+    # Decode strings "0" or "1" to boolean.
+    do_predict = utils.coerce_bool(do_predict)
     interpreter = self._interpreters[interpreter]
     # Get model preds before the interpreter call. Usually these are cached.
-    # TODO(lit-dev): see if we can remove this path and just allow interpreters
-    # to call the model directly.
+    # TODO(b/278586715): see if we can remove this path and just allow
+    # interpreters to call the model directly.
+    model_outputs = None
     if model:
       assert model in self._models, f"Model '{model}' is not a valid model."
-      model_outputs = self._get_preds(data, model, dataset_name)
+      # Workaround so that interpreters can skip the _get_preds() call when it
+      # is unnecessary and may be slow.
+      if do_predict:
+        # TODO(b/278586715): remove this once we can support caching for predict
+        # calls made from inside interpreters.
+        model_outputs = self._get_preds(data, model, dataset_name)
       model = self._models[model]
     else:
-      model_outputs = None
       model = None
 
     return interpreter.run_with_metadata(
