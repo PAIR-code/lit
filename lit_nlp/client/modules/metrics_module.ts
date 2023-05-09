@@ -29,27 +29,13 @@ import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {MetricsResponse, MetricsValues} from '../services/api_service';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-// Each entry from the server.
-interface MetricsResponse {
-  // Using case to achieve parity with the property names in Python code
-  // tslint:disable-next-line:enforce-name-casing
-  pred_key: string;
-  // tslint:disable-next-line:enforce-name-casing
-  label_key: string;
-  metrics: MetricsValues;
-}
 
 // A dict of metrics type to the MetricsValues for one metric generator.
 interface ModelHeadMetrics {
   [metricsType: string]: MetricsValues;
-}
-
-// A dict of metric names to values, from one metric generator.
-interface MetricsValues {
-  [metricName: string]: number;
 }
 
 // The source of datapoints for a row in the metrics table.
@@ -191,8 +177,7 @@ export class MetricsModule extends LitModule {
 
     // Add the returned metrics for each model and head to the metricsMap.
     datasetMetrics.forEach((returnedMetrics, i) => {
-      Object.keys(returnedMetrics).forEach(metricsType => {
-        const metricsRespones: MetricsResponse[] = returnedMetrics[metricsType];
+      Object.entries(returnedMetrics).forEach(([metricsType, metricsRespones]) => {
         metricsRespones.forEach(metricsResponse => {
           const rowKey = this.getRowKey(
               models[i], name, metricsResponse.pred_key, facetMap);
@@ -280,20 +265,27 @@ export class MetricsModule extends LitModule {
     }
   }
 
-  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
+  private async getMetrics(
+      selectedInputs: IndexedInput[], model: string): Promise<MetricsResponse> {
     this.pendingCalls += 1;
+    const {metrics: compatMetrics} = this.appState.metadata.models[model];
+    // TODO(b/254832560): Allow the user to configure which metrics component
+    // are run via the UI and pass them in to this ApiService call.
+    const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
+    const config =
+        this.classificationService.marginSettings[model] as CallConfig || {};
+
+    let metrics: MetricsResponse;
     try {
-      const config =
-          this.classificationService.marginSettings[model] as CallConfig || {};
-      const metrics = await this.apiService.getInterpretations(
-          selectedInputs, model, this.appState.currentDataset, 'metrics', config);
-      this.pendingCalls -= 1;
-      return metrics;
+      metrics = await this.apiService.getMetrics(
+          selectedInputs, model, this.appState.currentDataset,
+          metricsToRun, config);
+    } catch {
+      metrics = {};
     }
-    catch {
-      this.pendingCalls -= 1;
-      return {};
-    }
+
+    this.pendingCalls -= 1;
+    return metrics;
   }
 
   /** Convert the metricsMap information into table data for display. */

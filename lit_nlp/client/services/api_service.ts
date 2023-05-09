@@ -22,6 +22,25 @@ import {deserializeLitTypesInLitMetadata, getTypeNames} from '../lib/utils';
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
 
+/** A dictionary of Metrics components to a list of their results. */
+export interface MetricsResponse {
+  [metricsComponent: string]: MetricsResult[];
+}
+
+/** The prediction key, label key, and computed metric values. */
+export interface MetricsResult {
+  // Using case to achieve parity with the property names in Python code
+  // tslint:disable-next-line:enforce-name-casing
+  pred_key: string;
+  // tslint:disable-next-line:enforce-name-casing
+  label_key: string;
+  metrics: MetricsValues;
+}
+
+/** A dictionary of metric names to values, from one metric component. */
+export interface MetricsValues {
+  [metricName: string]: number;
+}
 
 /**
  * API service singleton, responsible for actually making calls to the server
@@ -191,6 +210,33 @@ export class ApiService extends LitService {
           'model': modelName,
           'dataset_name': datasetName,
           'interpreter': interpreterName,
+          'do_predict': skipPredict ? '0' : '1'
+        },
+        inputs, loadMessage, config);
+  }
+
+  /**
+   * Calls the server to run an interpretation component.
+   * @param inputs inputs to run on
+   * @param modelName model to query
+   * @param datasetName current dataset (for caching)
+   * @param metrics A comma-separated list of the metrics to run
+   * @param config configuration to send to backend (optional)
+   * @param loadMessage loading message to show to user (optional)
+   * @param skipPredict whether to skip the call to _get_preds() before
+   *    calling the Metrics component. See app.py, and remove after
+   *    b/278586715 is resolved.
+   */
+  getMetrics(
+      inputs: IndexedInput[], modelName: string, datasetName: string,
+      metrics?: string, config?: CallConfig,
+      loadMessage?: string, skipPredict = false): Promise<MetricsResponse> {
+    loadMessage = loadMessage ?? 'Computing metrics.';
+    return this.queryServer<MetricsResponse>(
+        '/get_metrics', {
+          'model': modelName,
+          'dataset_name': datasetName,
+          'metrics': metrics ?? '',
           'do_predict': skipPredict ? '0' : '1'
         },
         inputs, loadMessage, config);
