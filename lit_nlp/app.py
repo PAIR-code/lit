@@ -469,20 +469,100 @@ class LitApp(object):
         model,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
-        config=data.get('config'))
+        config=data.get('config'),
+    )
+
+  def _get_metrics(
+      self,
+      data,
+      model: str,
+      dataset_name: str,
+      metrics: Optional[str] = None,
+      # boolean but via URL param, so encoding as "0" /  "1" is safer.
+      do_predict: str = '1',
+      **unused_kw,
+  ) -> types.JsonDict:
+    """Run the specified Metrics components.
+
+    Args:
+      data: JSON parsed from the HTTP Request body containing the inputs
+        (required) and config (optional) for parameterizing the Metrics calls.
+      model: The name of the model loaded in LIT, used to fetch the model
+        predictions.
+      dataset_name: The name of the dataset containing the ground truth labels
+        for the provided inputs.
+      metrics: An optional comma-separated string of metrics to run, if None it
+        will run all Metrics loaded in this LitApp instance.
+      do_predict: If true (default), will fetch the model predictions in this
+        function using `_get_preds()` and pass them through to each Metrics
+        component's run function.
+      **unused_kw: Unused keyword arguments.
+
+    Returns:
+      A dictionary of metrics results where the keys are the name of the
+      Metrics component and the values are list of dictionaries containing the
+      prediction key (`pred_key`), the label key (`label_key`), and `metrics`
+      for that pair of keys as a `Mapping[str, float]`.
+
+    Raises:
+      KeyError: If a model or dataset with the specified name is not loaded in
+        the LitApp instance.
+      ValueError: If there are no inputs, or if do_predict is true and the
+        model fails to predict something for each input.
+    """
+    inputs = data.get('inputs')
+    if not inputs:
+      raise ValueError('Metrics cannot be computed without inputs.')
+
+    if dataset_name not in self._datasets:
+      raise KeyError(f'No dataset named {dataset_name} loaded in LIT.')
+
+    if model not in self._models:
+      raise KeyError(f'No model named {model} loaded in LIT.')
+
+    if metrics:
+      metrics_to_run = frozenset(metrics.split(','))
+    else:
+      metrics_to_run = frozenset(self._metrics.keys())
+
+    if utils.coerce_bool(do_predict):
+      model_outputs = self._get_preds(data, model, dataset_name)
+      num_preds = len(model_outputs)
+      num_inputs = len(inputs)
+      if num_preds != num_inputs:
+        raise ValueError(
+            f'Different number of model predictions ({num_preds}) than inputs'
+            f' ({num_inputs})'
+        )
+    else:
+      model_outputs = None
+
+    dataset = self._datasets[dataset_name]
+    model = self._models[model]
+    config = data.get('config')
+
+    return {
+        name: metric.run_with_metadata(
+            inputs, model, dataset, model_outputs, config
+        )
+        for name, metric in self._metrics.items()
+        if name in metrics_to_run
+    }
 
   def _push_ui_state(self, data, dataset_name: str, **unused_kw):
     """Push UI state back to Python."""
     if self.ui_state_tracker is None:
-      raise RuntimeError('Attempted to push UI state, but that is not enabled '
-                         'for this server.')
+      raise RuntimeError(
+          'Attempted to push UI state, but that is not enabled for this server.'
+      )
     options = data.get('config', {})
-    self.ui_state_tracker.update_state(data['inputs'],
-                                       self._datasets[dataset_name],
-                                       dataset_name, **options)
+    self.ui_state_tracker.update_state(
+        data['inputs'], self._datasets[dataset_name], dataset_name, **options
+    )
 
-  def _validate(self, validate: Optional[flag_helpers.ValidationMode],
-                report_all: bool):
+  def _validate(
+      self, validate: Optional[flag_helpers.ValidationMode], report_all: bool
+  ):
     """Validate all datasets and models loaded for proper setup."""
     if validate is None or validate == flag_helpers.ValidationMode.OFF:
       return
@@ -753,6 +833,7 @@ class LitApp(object):
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,
+        '/get_metrics': self._get_metrics,
     }
     wrapped_handlers = {k: self.make_handler(v) for k, v in handlers.items()}
     wrapped_handlers['/load_and_go'] = self._load_and_go
