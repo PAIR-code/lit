@@ -14,7 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.lib.utils."""
 
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union, TypeVar
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import types
@@ -32,6 +32,8 @@ _VALIDATION_SPEC: types.Spec = {
     "required_text_segment": types.String(),
     "optional_boolean": types.Boolean(required=False),
 }
+
+T = TypeVar("T")
 
 
 class UtilsTest(parameterized.TestCase):
@@ -217,6 +219,41 @@ class UtilsTest(parameterized.TestCase):
   ):
     with self.assertRaises(expected):
       utils.batch_inputs(inputs, keys=keys)
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="pad_to_end",
+          inputs=[1, 2, 3],
+          min_len=5,
+          pad_val=0,
+          expected=[1, 2, 3, 0, 0],
+      ),
+      dict(
+          testcase_name="pad_length_exact",
+          inputs=[1, 2, 3],
+          min_len=3,
+          pad_val=0,
+          expected=[1, 2, 3],
+      ),
+      dict(
+          testcase_name="pad_too_long",
+          inputs=[1, 2, 3, 4, 5],
+          min_len=3,
+          pad_val=0,
+          expected=[1, 2, 3, 4, 5],
+      ),
+      dict(
+          testcase_name="pad_with_strings",
+          inputs=["one", "two", "three"],
+          min_len=5,
+          pad_val="",
+          expected=["one", "two", "three", "", ""],
+      ),
+  )
+  def test_pad1d(
+      self, inputs: list[T], min_len: T, pad_val: T, expected: list[T]
+  ):
+    self.assertEqual(utils.pad1d(inputs, min_len, pad_val), expected)
 
   @parameterized.named_parameters(
       dict(
