@@ -114,9 +114,6 @@ def default_interpreters(
       'tcav': tcav.TCAV(),
       'curves': curves.CurvesInterpreter(),
       'thresholder': thresholder.Thresholder(),
-      # TODO(b/254832560): Remove this "metrics" record from the core
-      # interpreters once the front-end Metrics module has been updated.
-      'metrics': lit_components.ComponentGroup(default_metrics()),
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
           dict(gradient_map_interpreters)),
