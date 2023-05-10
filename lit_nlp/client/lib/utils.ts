@@ -28,7 +28,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
-import {CallConfig, FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
+import {CallConfig, FacetMap, LitMetadata, ModelInfoMap, SerializedComponentInfoMap, SerializedDatasetInfo, SerializedLitMetadata, SerializedModelInfo, SerializedSpec, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -170,6 +170,13 @@ export function cloneSpec(spec: Spec): Spec {
   return newSpec;
 }
 
+function deserializeComponentInfoMap(infoMap: SerializedComponentInfoMap) {
+  for (const info of Object.values(infoMap)) {
+    info.configSpec = deserializeLitTypesInSpec(info.configSpec);
+    info.metaSpec = deserializeLitTypesInSpec(info.metaSpec);
+  }
+}
+
 /**
  * Converts serialized LitTypes within the LitMetadata into LitType instances.
  */
@@ -178,42 +185,32 @@ export function cloneSpec(spec: Spec): Spec {
 export function deserializeLitTypesInLitMetadata(
     metadata: SerializedLitMetadata): LitMetadata {
 
-  for (const model of Object.keys(metadata.models)) {
-    metadata.models[model].spec.input =
-        deserializeLitTypesInSpec(metadata.models[model].spec.input);
-    metadata.models[model].spec.output =
-        deserializeLitTypesInSpec(metadata.models[model].spec.output);
+  for (const info of Object.values(metadata.models)) {
+    const {spec} = info as SerializedModelInfo;
+    spec.input = deserializeLitTypesInSpec(spec.input as SerializedSpec);
+    spec.output = deserializeLitTypesInSpec(spec.output as SerializedSpec);
   }
 
-  for (const dataset of Object.keys(metadata.datasets)) {
-    metadata.datasets[dataset].spec =
-        deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
+  for (const info of Object.values(metadata.datasets)) {
+    const typedInfo = info as SerializedDatasetInfo;
+    typedInfo.spec =
+        deserializeLitTypesInSpec(typedInfo.spec as SerializedSpec);
   }
 
-  for (const generator of Object.keys(metadata.generators)) {
-    metadata.generators[generator].configSpec =
-        deserializeLitTypesInSpec(metadata.generators[generator].configSpec);
-    metadata.generators[generator].metaSpec =
-        deserializeLitTypesInSpec(metadata.generators[generator].metaSpec);
+  deserializeComponentInfoMap(metadata.generators);
+  deserializeComponentInfoMap(metadata.interpreters);
+  deserializeComponentInfoMap(metadata.metrics);
+
+  for (const [name, spec] of Object.entries(metadata.initSpecs.datasets)) {
+    if (spec == null) continue;
+    metadata.initSpecs.datasets[name] =
+        deserializeLitTypesInSpec(spec as SerializedSpec);
   }
 
-  for (const interpreter of Object.keys(metadata.interpreters)) {
-    metadata.interpreters[interpreter].configSpec = deserializeLitTypesInSpec(
-        metadata.interpreters[interpreter].configSpec);
-    metadata.interpreters[interpreter].metaSpec =
-        deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
-  }
-
-  for (const dataset of Object.keys(metadata.initSpecs.datasets)) {
-    if (metadata.initSpecs.datasets[dataset] == null) continue;
-    metadata.initSpecs.datasets[dataset] =
-        deserializeLitTypesInSpec(metadata.initSpecs.datasets[dataset]);
-  }
-
-  for (const model of Object.keys(metadata.initSpecs.models)) {
-    if (metadata.initSpecs.models[model] == null) continue;
-    metadata.initSpecs.models[model] =
-        deserializeLitTypesInSpec(metadata.initSpecs.models[model]);
+  for (const [name, spec] of Object.entries(metadata.initSpecs.models)) {
+    if (spec == null) continue;
+    metadata.initSpecs.models[name] =
+        deserializeLitTypesInSpec(spec as SerializedSpec);
   }
 
   return metadata;

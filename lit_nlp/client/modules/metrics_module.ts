@@ -29,27 +29,13 @@ import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {MetricsResponse, MetricsValues} from '../services/api_service';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-// Each entry from the server.
-interface MetricsResponse {
-  // Using case to achieve parity with the property names in Python code
-  // tslint:disable-next-line:enforce-name-casing
-  pred_key: string;
-  // tslint:disable-next-line:enforce-name-casing
-  label_key: string;
-  metrics: MetricsValues;
-}
 
 // A dict of metrics type to the MetricsValues for one metric generator.
 interface ModelHeadMetrics {
   [metricsType: string]: MetricsValues;
-}
-
-// A dict of metric names to values, from one metric generator.
-interface MetricsValues {
-  [metricName: string]: number;
 }
 
 // The source of datapoints for a row in the metrics table.
@@ -191,8 +177,7 @@ export class MetricsModule extends LitModule {
 
     // Add the returned metrics for each model and head to the metricsMap.
     datasetMetrics.forEach((returnedMetrics, i) => {
-      Object.keys(returnedMetrics).forEach(metricsType => {
-        const metricsRespones: MetricsResponse[] = returnedMetrics[metricsType];
+      Object.entries(returnedMetrics).forEach(([metricsType, metricsRespones]) => {
         metricsRespones.forEach(metricsResponse => {
           const rowKey = this.getRowKey(
               models[i], name, metricsResponse.pred_key, facetMap);
@@ -280,28 +265,35 @@ export class MetricsModule extends LitModule {
     }
   }
 
-  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
+  private async getMetrics(
+      selectedInputs: IndexedInput[], model: string): Promise<MetricsResponse> {
     this.pendingCalls += 1;
+    const {metrics: compatMetrics} = this.appState.metadata.models[model];
+    // TODO(b/254832560): Allow the user to configure which metrics component
+    // are run via the UI and pass them in to this ApiService call.
+    const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
+    const config =
+        this.classificationService.marginSettings[model] as CallConfig || {};
+
+    let metrics: MetricsResponse;
     try {
-      const config =
-          this.classificationService.marginSettings[model] as CallConfig || {};
-      const metrics = await this.apiService.getInterpretations(
-          selectedInputs, model, this.appState.currentDataset, 'metrics', config);
-      this.pendingCalls -= 1;
-      return metrics;
+      metrics = await this.apiService.getMetrics(
+          selectedInputs, model, this.appState.currentDataset,
+          metricsToRun, config);
+    } catch {
+      metrics = {};
     }
-    catch {
-      this.pendingCalls -= 1;
-      return {};
-    }
+
+    this.pendingCalls -= 1;
+    return metrics;
   }
 
   /** Convert the metricsMap information into table data for display. */
-  @computed
-  get tableData(): TableHeaderAndData {
-    // TODO(b/254832560): Use this.appState.metadata.metrics here.
-    const {metaSpec} = this.appState.metadata.interpreters['metrics'];
-    if (metaSpec == null) return {'header': [], 'data': []};
+  @computed get tableData(): TableHeaderAndData {
+    const metricsInfo = this.appState.metadata.metrics;
+    if (Object.keys(metricsInfo).length === 0) {
+      return {'header': [], 'data': []};
+    }
 
     const tableRows: TableData[] = [];
     const metricBests = new Map<string, number>();
@@ -309,17 +301,25 @@ export class MetricsModule extends LitModule {
 
     Object.values(this.metricsMap).forEach(row => {
       Object.entries(row.headMetrics).forEach(([metricsT, metricsV]) => {
+        const {metaSpec} = metricsInfo[metricsT];
         Object.entries(metricsV).forEach(([name, val]) => {
           const key = getMetricKey(metricsT, name);
           const max = metricBests.get(key)!;
-          const spec = metaSpec[key];
+          const spec = metaSpec[name];
           if (!(spec instanceof MetricResult)) return;
           const bestCase = spec.best_value;
 
-          if (bestCase != null && (!metricBests.has(key) ||
-              (bestCase === MetricBestValue.HIGHEST && max < val) ||
-              (bestCase === MetricBestValue.LOWEST && max > val) ||
-              (bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
+          const bestsUndefined = !metricBests.has(key);
+          const bestIshighValIsHigher =
+              bestCase === MetricBestValue.HIGHEST && max < val;
+          const bestIsLowValIsLower =
+              bestCase === MetricBestValue.LOWEST && max > val;
+          const bestIsZeroValIsCloser =
+              bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val);
+          const shouldUpdate = bestsUndefined || bestIshighValIsHigher ||
+                               bestIsLowValIsLower || bestIsZeroValIsCloser;
+
+          if (bestCase != null && shouldUpdate) {
             metricBests.set(key,
                             bestCase === MetricBestValue.NONE ? Infinity : val);
           }
@@ -359,7 +359,9 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      const spec = metaSpec[name] as MetricResult;
+      const [metricsType, metricName] = name.split(": ");
+      const spec =
+          metricsInfo[metricsType].metaSpec[metricName] as MetricResult;
       const [group, metric] = name.split(': ');
       return {
         name,
@@ -466,12 +468,8 @@ export class MetricsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('metrics') !== -1) {
-        return true;
-      }
-    }
-    return false;
+    return Object.values(modelSpecs).some(
+        (modelInfo) => modelInfo.metrics.length);
   }
 }
 

@@ -56,8 +56,20 @@ export interface DatasetInfo {
   description?: string;
 }
 
+export type SerializedDatasetInfo  = {
+  // tslint:disable-next-line:no-any
+  [K in keyof DatasetInfo]: any;
+};
+
 export interface ComponentInfoMap {
   [name: string]: ComponentInfo;
+}
+
+export interface SerializedComponentInfoMap {
+  [name: string]: {
+    // tslint:disable-next-line:no-any
+    [K in keyof ComponentInfo]: any;
+  };
 }
 
 export interface DatasetInfoMap {
@@ -82,6 +94,11 @@ export interface ModelInfo {
   spec: ModelSpec;
   description?: string;
 }
+
+export type SerializedModelInfo  = {
+  // tslint:disable-next-line:no-any
+  [K in keyof ModelInfo]: any;
+};
 
 export interface ModelInfoMap {
   [modelName: string]: ModelInfo;
