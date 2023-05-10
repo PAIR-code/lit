@@ -34,7 +34,6 @@ projections).
 """
 
 import abc
-import copy
 import threading
 from typing import Any, Hashable, Iterable, Optional, Sequence
 
@@ -47,6 +46,7 @@ from lit_nlp.api import types
 from lit_nlp.lib import caching
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 IndexedInput = types.IndexedInput
 Spec = types.Spec
 
@@ -57,10 +57,14 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
   ##
   # Training methods
   @abc.abstractmethod
-  def fit_transform(self, inputs: Iterable[JsonDict]) -> list[JsonDict]:
+  def fit_transform(
+      self, inputs: Iterable[ImmutableJsonDict]
+  ) -> list[ImmutableJsonDict]:
     return
 
-  def fit_transform_with_metadata(self, indexed_inputs) -> list[JsonDict]:
+  def fit_transform_with_metadata(
+      self, indexed_inputs
+  ) -> list[ImmutableJsonDict]:
     return self.fit_transform((i["data"] for i in indexed_inputs))
 
   ##
@@ -74,8 +78,9 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
     return {"z": types.Embeddings()}
 
   @abc.abstractmethod
-  def predict_minibatch(self, inputs: Iterable[JsonDict],
-                        **unused_kw) -> list[JsonDict]:
+  def predict_minibatch(
+      self, inputs: Iterable[ImmutableJsonDict], **unused_kw
+  ) -> list[JsonDict]:
     return
 
   def max_minibatch_size(self, **unused_kw):
@@ -85,53 +90,67 @@ class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
 class ProjectionInterpreter(lit_components.Interpreter):
   """Interpreter API implementation for dimensionality reduction model."""
 
-  def __init__(self, model: lit_model.Model,
-               indexed_inputs: Sequence[IndexedInput],
-               model_outputs: Optional[list[JsonDict]],
-               projector: ProjectorModel, field_name: str, name: str):
+  def __init__(
+      self,
+      model: lit_model.Model,
+      indexed_inputs: Sequence[IndexedInput],
+      model_outputs: Optional[list[ImmutableJsonDict]],
+      projector: ProjectorModel,
+      field_name: str,
+      name: str,
+  ):
     self._projector = caching.CachingModelWrapper(projector, name=name)
     self._field_name = field_name
 
     # Train on the given examples
     self._run(model, indexed_inputs, model_outputs, do_fit=True)
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset, model  # Unused as field and model come through constructor
     return self._field_name in self._projector.output_spec()
 
-  def convert_input(self, indexed_input: JsonDict,
-                    model_output: JsonDict) -> JsonDict:
+  def convert_input(
+      self, indexed_input: ImmutableJsonDict, model_output: ImmutableJsonDict
+  ) -> ImmutableJsonDict:
     """Convert inputs, preserving metadata."""
-    c = copy.copy(indexed_input)  # shallow copy
+    c = dict(indexed_input)  # shallow copy
     c["data"] = {"x": model_output[self._field_name]}
     return c
 
-  def _run(self,
-           model: lit_model.Model,
-           indexed_inputs: Sequence[IndexedInput],
-           model_outputs: Optional[list[JsonDict]] = None,
-           do_fit=False):
+  def _run(
+      self,
+      model: lit_model.Model,
+      indexed_inputs: Sequence[IndexedInput],
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      do_fit=False,
+  ):
     # Run model, if needed.
     if model_outputs is None:
       model_outputs = list(model.predict(indexed_inputs))
     assert len(model_outputs) == len(indexed_inputs)
 
     converted_inputs = list(
-        map(self.convert_input, indexed_inputs, model_outputs))
+        map(self.convert_input, indexed_inputs, model_outputs)
+    )
     if do_fit:
       return self._projector.fit_transform_with_metadata(
-          converted_inputs, dataset_name="")
+          converted_inputs, dataset_name=""
+      )
     else:
       return self._projector.predict_with_metadata(
-          converted_inputs, dataset_name="")
+          converted_inputs, dataset_name=""
+      )
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.Dataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[dict[str, Any]] = None):
+  def run_with_metadata(
+      self,
+      indexed_inputs: Sequence[IndexedInput],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ):
     # If using input values, then treat inputs as outputs instead of running
     # the model.
     del dataset  # unused - pass examples to constructor instead
@@ -174,9 +193,13 @@ class ProjectionManager(lit_components.Interpreter):
     # Used to construct new instances, given config['proj_kw']
     self._model_factory = model_class
 
-  def _train_instance(self, model: lit_model.Model,
-                      dataset: lit_dataset.IndexedDataset, config: JsonDict,
-                      name: str) -> ProjectionInterpreter:
+  def _train_instance(
+      self,
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      config: ImmutableJsonDict,
+      name: str,
+  ) -> ProjectionInterpreter:
     # Ignore pytype warning about abstract methods, since this should always
     # be a subclass of ProjectorModel which has these implemented.
     projector = self._model_factory(**config.get("proj_kw", {}))  # pytype: disable=not-instantiable
@@ -191,16 +214,20 @@ class ProjectionManager(lit_components.Interpreter):
     else:
       train_outputs = list(
           model.predict_with_metadata(
-              train_inputs, dataset_name=config.get("dataset_name")))
-    logging.info("Creating new projection instance on %d points",
-                 len(train_inputs))
+              train_inputs, dataset_name=config.get("dataset_name")
+          )
+      )
+    logging.info(
+        "Creating new projection instance on %d points", len(train_inputs)
+    )
     return ProjectionInterpreter(
         model,
         train_inputs,
         train_outputs,
         projector=projector,
         field_name=config["field_name"],
-        name=name)
+        name=name,
+    )
 
   def run_with_metadata(self, *args, **kw):
     # UMAP code is not threadsafe and will throw
@@ -209,20 +236,24 @@ class ProjectionManager(lit_components.Interpreter):
     with self._lock:
       return self._run_with_metadata(*args, **kw)
 
-  def _run_with_metadata(self,
-                         indexed_inputs: Sequence[IndexedInput],
-                         model: lit_model.Model,
-                         dataset: lit_dataset.IndexedDataset,
-                         model_outputs: Optional[list[JsonDict]] = None,
-                         config: Optional[dict[str, Any]] = None):
+  def _run_with_metadata(
+      self,
+      indexed_inputs: Sequence[IndexedInput],
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[dict[str, Any]] = None,
+  ):
     instance_key = _key_from_dict(config)
     logging.info("Projection request: instance key: %s", instance_key)
     # Fit a new instance if necessary
     if instance_key not in self._instances:
       self._instances[instance_key] = self._train_instance(
-          model, dataset, config, name=str(instance_key))
+          model, dataset, config, name=str(instance_key)
+      )
 
     proj_instance = self._instances[instance_key]
     # If projector was just trained, points should be cached.
-    return proj_instance.run_with_metadata(indexed_inputs, model, dataset,
-                                           model_outputs, config)
+    return proj_instance.run_with_metadata(
+        indexed_inputs, model, dataset, model_outputs, config
+    )

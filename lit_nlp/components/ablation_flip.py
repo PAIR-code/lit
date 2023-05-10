@@ -29,7 +29,6 @@ This generator builds on ideas from the following paper.
 """
 
 import collections
-import copy
 import itertools
 from typing import Iterator, Optional
 
@@ -42,6 +41,7 @@ from lit_nlp.components import cf_utils
 from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
 PREDICTION_KEY = "Prediction key"
@@ -111,7 +111,7 @@ class AblationFlip(lit_components.Generator):
       loo_scores: list[tuple[str, int, float]],
       max_ablations: int,
       orig_regression_score: Optional[float] = None,
-      regression_thresh: Optional[float] = None
+      regression_thresh: Optional[float] = None,
   ) -> Iterator[tuple[tuple[str, int], ...]]:
     """Generates sets of token positions that are eligible for ablation."""
 
@@ -130,13 +130,12 @@ class AblationFlip(lit_components.Generator):
 
     # Consider all combinations of tokens upto length max_ablations.
     for i in range(min(len(ablation_idxs), max_ablations)):
-      for s in itertools.combinations(ablation_idxs, i+1):
+      for s in itertools.combinations(ablation_idxs, i + 1):
         yield s
 
-  def _get_tokens(self,
-                  example: JsonDict,
-                  input_spec: Spec,
-                  input_field: str):
+  def _get_tokens(
+      self, example: ImmutableJsonDict, input_spec: Spec, input_field: str
+  ):
     input_ty = input_spec[input_field]
     if isinstance(input_ty, types.URL):
       return cf_utils.tokenize_url(example[input_field])
@@ -147,30 +146,32 @@ class AblationFlip(lit_components.Generator):
     else:
       return []
 
-  def _create_cf(self,
-                 example: JsonDict,
-                 input_spec: Spec,
-                 ablation_idxs: list[tuple[str, int]]) -> JsonDict:
+  def _create_cf(
+      self,
+      example: ImmutableJsonDict,
+      input_spec: Spec,
+      ablation_idxs: list[tuple[str, int]],
+  ) -> JsonDict:
     # Build a dictionary mapping input fields to the token idxs to be ablated
     # from that field.
     ablation_idxs_per_field = collections.defaultdict(list)
     for field, idx in ablation_idxs:
       ablation_idxs_per_field[field].append(idx)
     ablation_idxs_per_field.default_factory = None  # lock
-    cf = copy.deepcopy(example)
+    cf = dict(example)
     for field, ablation_idxs in ablation_idxs_per_field.items():
       # Original list of tokens at the field.
       orig_tokens = self._get_tokens(example, input_spec, field)
 
-      if (input_spec[field].required
-          and len(ablation_idxs) >= len(orig_tokens)):
+      if input_spec[field].required and len(ablation_idxs) >= len(orig_tokens):
         # Update token_idxs so that we don't end up ablating all tokens.
         ablation_idxs = ablation_idxs[:-1]
 
       # Modified list of tokens obtained after ablating the tokens form the
       # indices in ablation_idxs.
-      modified_tokens = [t for i, t in enumerate(orig_tokens)
-                         if i not in ablation_idxs]
+      modified_tokens = [
+          t for i, t in enumerate(orig_tokens) if i not in ablation_idxs
+      ]
 
       # Update the field with the modified token list.
       input_ty = input_spec[field]
@@ -186,14 +187,15 @@ class AblationFlip(lit_components.Generator):
 
   def _generate_leave_one_out_ablation_score(
       self,
-      example: JsonDict,
+      example: ImmutableJsonDict,
       model: lit_model.Model,
       input_spec: Spec,
       output_spec: Spec,
-      orig_output: JsonDict,
+      orig_output: ImmutableJsonDict,
       pred_key: str,
       fields_to_ablate: list[str],
-      tokens_to_ignore: list[str]) -> list[tuple[str, int, float]]:
+      tokens_to_ignore: list[str],
+  ) -> list[tuple[str, int, float]]:
     # Returns a list of triples: field, token_idx and leave-one-out score.
     ret = []
     for field in input_spec.keys():
@@ -201,20 +203,27 @@ class AblationFlip(lit_components.Generator):
         continue
       tokens = self._get_tokens(example, input_spec, field)
       idxs, tokens_to_ablate = zip(
-          *[(i, token) for (i, token) in enumerate(tokens)
-            if token not in tokens_to_ignore])
+          *[
+              (i, token)
+              for (i, token) in enumerate(tokens)
+              if token not in tokens_to_ignore
+          ]
+      )
       cfs = [
           self._create_cf(example, input_spec, [(field, idxs[i])])
-          for i in range(len(tokens_to_ablate))]
+          for i in range(len(tokens_to_ablate))
+      ]
       cf_outputs = model.predict(cfs)
       for i, cf_output in enumerate(cf_outputs):
         loo_score = cf_utils.prediction_difference(
-            cf_output, orig_output, output_spec, pred_key)
+            cf_output, orig_output, output_spec, pred_key
+        )
         ret.append((field, idxs[i], loo_score))
     return ret
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused by AblationFlip
     supported_inputs = (types.SparseMultilabel, types.TextSegment, types.URL)
     supported_preds = (types.MulticlassPreds, types.RegressionScore)
@@ -226,40 +235,45 @@ class AblationFlip(lit_components.Generator):
     return {
         NUM_EXAMPLES_KEY: types.TextSegment(default=str(NUM_EXAMPLES_DEFAULT)),
         MAX_ABLATIONS_KEY: types.TextSegment(
-            default=str(MAX_ABLATIONS_DEFAULT)),
-        TOKENS_TO_IGNORE_KEY:
-            types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
-        PREDICTION_KEY:
-            types.SingleFieldMatcher(
-                spec="output", types=["MulticlassPreds", "RegressionScore"]),
-        REGRESSION_THRESH_KEY:
-            types.TextSegment(default=str(REGRESSION_THRESH_DEFAULT)),
-        FIELDS_TO_ABLATE_KEY:
-            types.MultiFieldMatcher(
-                spec="input",
-                types=["TextSegment", "SparseMultilabel"],
-                select_all=True),
+            default=str(MAX_ABLATIONS_DEFAULT)
+        ),
+        TOKENS_TO_IGNORE_KEY: types.Tokens(default=TOKENS_TO_IGNORE_DEFAULT),
+        PREDICTION_KEY: types.SingleFieldMatcher(
+            spec="output", types=["MulticlassPreds", "RegressionScore"]
+        ),
+        REGRESSION_THRESH_KEY: types.TextSegment(
+            default=str(REGRESSION_THRESH_DEFAULT)
+        ),
+        FIELDS_TO_ABLATE_KEY: types.MultiFieldMatcher(
+            spec="input",
+            types=["TextSegment", "SparseMultilabel"],
+            select_all=True,
+        ),
     }
 
-  def generate(self,
-               example: JsonDict,
-               model: lit_model.Model,
-               dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> list[JsonDict]:
+  def generate(
+      self,
+      example: ImmutableJsonDict,
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[ImmutableJsonDict]:
     """Identify minimal sets of token albations that alter the prediction."""
     del dataset  # Unused.
 
     config = config or {}
     num_examples = int(config.get(NUM_EXAMPLES_KEY, NUM_EXAMPLES_DEFAULT))
     max_ablations = int(config.get(MAX_ABLATIONS_KEY, MAX_ABLATIONS_DEFAULT))
-    tokens_to_ignore = config.get(TOKENS_TO_IGNORE_KEY,
-                                  TOKENS_TO_IGNORE_DEFAULT)
+    tokens_to_ignore = config.get(
+        TOKENS_TO_IGNORE_KEY, TOKENS_TO_IGNORE_DEFAULT
+    )
     assert model is not None, "Please provide a model for this generator."
 
     input_spec = model.input_spec()
     pred_key = config.get(PREDICTION_KEY, "")
-    regression_thresh = float(config.get(REGRESSION_THRESH_KEY,
-                                         REGRESSION_THRESH_DEFAULT))
+    regression_thresh = float(
+        config.get(REGRESSION_THRESH_KEY, REGRESSION_THRESH_DEFAULT)
+    )
 
     output_spec = model.output_spec()
     assert pred_key, "Please provide the prediction key"
@@ -267,8 +281,9 @@ class AblationFlip(lit_components.Generator):
 
     is_regression = isinstance(output_spec[pred_key], types.RegressionScore)
     if not is_regression:
-      assert isinstance(output_spec[pred_key], types.MulticlassPreds), (
-          "Only classification or regression models are supported")
+      assert isinstance(
+          output_spec[pred_key], types.MulticlassPreds
+      ), "Only classification or regression models are supported"
     logging.info(r"W3lc0m3 t0 Ablatl0nFl1p \o/")
     logging.info("Original example: %r", example)
 
@@ -280,16 +295,24 @@ class AblationFlip(lit_components.Generator):
     # Get model outputs.
     orig_output = list(model.predict([example]))[0]
     loo_scores = self._generate_leave_one_out_ablation_score(
-        example, model, input_spec, output_spec, orig_output, pred_key,
-        fields_to_ablate, tokens_to_ignore)
+        example,
+        model,
+        input_spec,
+        output_spec,
+        orig_output,
+        pred_key,
+        fields_to_ablate,
+        tokens_to_ignore,
+    )
 
     if isinstance(output_spec[pred_key], types.RegressionScore):
       ablation_idxs_generator = self._gen_ablation_idxs(
-          loo_scores, max_ablations,
-          orig_output[pred_key], regression_thresh)
+          loo_scores, max_ablations, orig_output[pred_key], regression_thresh
+      )
     else:
       ablation_idxs_generator = self._gen_ablation_idxs(
-          loo_scores, max_ablations)
+          loo_scores, max_ablations
+      )
 
     tokens_map = {}
     for field in input_spec.keys():
@@ -316,12 +339,16 @@ class AblationFlip(lit_components.Generator):
 
       # Check if counterfactual results in a prediction flip.
       if cf_utils.is_prediction_flip(
-          cf_output, orig_output, output_spec, pred_key, regression_thresh):
+          cf_output, orig_output, output_spec, pred_key, regression_thresh
+      ):
         # Prediction flip found!
         cf_utils.update_prediction(cf, cf_output, output_spec, pred_key)
         cf[ABLATED_TOKENS_KEY] = str(
-            [f"{field}[{tokens_map[field][idx]}]"
-             for field, idx in ablation_idxs])
+            [
+                f"{field}[{tokens_map[field][idx]}]"
+                for field, idx in ablation_idxs
+            ]
+        )
         successful_cfs.append(cf)
         successful_positions.append(set(ablation_idxs))
     return successful_cfs

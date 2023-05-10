@@ -27,7 +27,7 @@ from lit_nlp.lib import utils
 import numpy as np
 
 
-JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
 CLASS_KEY = 'Class to explain'
@@ -46,11 +46,14 @@ class GradientNorm(lit_components.Interpreter):
     for f in utils.find_spec_keys(output_spec, types.TokenGradients):
       tokens_field = cast(types.TokenGradients, output_spec[f]).align
       is_valid_tokens = (
-          tokens_field is not None and tokens_field in output_spec and
-          isinstance(output_spec[tokens_field], types.Tokens))
+          tokens_field is not None
+          and tokens_field in output_spec
+          and isinstance(output_spec[tokens_field], types.Tokens)
+      )
       if not is_valid_tokens:
-        logging.info('Skipping %s. Invalid tokens field, %s', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid tokens field, %s', str(f), str(tokens_field)
+        )
         continue
       supported_fields.append(f)
     return supported_fields
@@ -63,12 +66,14 @@ class GradientNorm(lit_components.Interpreter):
     # <float32>[num_tokens]
     return grad_norm
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
+  def run(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[list[ImmutableJsonDict]]:
     """Run this component, given a model and input(s)."""
     del dataset, config
     # Find gradient fields to interpret
@@ -80,7 +85,7 @@ class GradientNorm(lit_components.Interpreter):
 
     # Run model, if needed.
     if model_outputs is None:
-      model_outputs = list(model.predict(inputs))
+      model_outputs = list(model.predict(dict(inputs)))
     assert len(model_outputs) == len(inputs)
 
     all_results = []
@@ -96,8 +101,9 @@ class GradientNorm(lit_components.Interpreter):
 
     return all_results
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused by Grad L2 Norm
     return bool(self.find_fields(model.output_spec()))
 
@@ -115,20 +121,28 @@ class GradientDotInput(lit_components.Interpreter):
       field_spec = cast(types.TokenGradients, output_spec[f])
       tokens_field = field_spec.align
       is_valid_tokens = (
-          tokens_field is not None and tokens_field in output_spec and
-          isinstance(output_spec[tokens_field], types.Tokens))
+          tokens_field is not None
+          and tokens_field in output_spec
+          and isinstance(output_spec[tokens_field], types.Tokens)
+      )
       if not is_valid_tokens:
-        logging.info('Skipping %s. Invalid tokens field, %s', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid tokens field, %s', str(f), str(tokens_field)
+        )
         continue
 
       embeddings_field = field_spec.grad_for
       is_valid_embeddings = (
-          embeddings_field is not None and embeddings_field in output_spec and
-          isinstance(output_spec[embeddings_field], types.TokenEmbeddings))
+          embeddings_field is not None
+          and embeddings_field in output_spec
+          and isinstance(output_spec[embeddings_field], types.TokenEmbeddings)
+      )
       if not is_valid_embeddings:
-        logging.info('Skipping %s. Invalid emebeddings field, %s.', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid emebeddings field, %s.',
+            str(f),
+            str(tokens_field),
+        )
         continue
 
       aligned_fields.append(f)
@@ -143,12 +157,14 @@ class GradientDotInput(lit_components.Interpreter):
     scores = citrus_utils.normalize_scores(grad_dot_input)
     return scores
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
+  def run(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[list[ImmutableJsonDict]]:
     """Run this component, given a model and input(s)."""
     # Find gradient fields to interpret
     output_spec = model.output_spec()
@@ -167,8 +183,9 @@ class GradientDotInput(lit_components.Interpreter):
       # Dict[field name -> interpretations]
       result = {}
       for grad_field in grad_fields:
-        embeddings_field = cast(types.TokenGradients,
-                                output_spec[grad_field]).grad_for
+        embeddings_field = cast(
+            types.TokenGradients, output_spec[grad_field]
+        ).grad_for
         scores = self._interpret(o[grad_field], o[embeddings_field])
 
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
@@ -178,8 +195,9 @@ class GradientDotInput(lit_components.Interpreter):
 
     return all_results
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused by Grad*Input
     return bool(self.find_fields(model.output_spec()))
 
@@ -214,11 +232,13 @@ class IntegratedGradients(lit_components.Interpreter):
         label for all integral steps, since the argmax prediction may change.
   """
 
-  def __init__(self,
-               autorun: bool = False,
-               class_key: str = '',
-               interpolation_steps: int = 30,
-               normalize: bool = True):
+  def __init__(
+      self,
+      autorun: bool = False,
+      class_key: str = '',
+      interpolation_steps: int = 30,
+      normalize: bool = True,
+  ):
     """Cretaes an IntegratedGradients interpreter.
 
     Args:
@@ -242,40 +262,50 @@ class IntegratedGradients(lit_components.Interpreter):
       grad_key = field_spec.grad_target_field_key
 
       if not isinstance(output_spec.get(tokens_field), types.Tokens):
-        logging.info('Skipping %s. Invalid tokens field, %s.', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid tokens field, %s.', str(f), str(tokens_field)
+        )
         continue
 
-      is_embs_valid = (
-          isinstance(input_spec.get(embeddings_field),
-                     types.TokenEmbeddings) and
-          isinstance(output_spec.get(embeddings_field), types.TokenEmbeddings))
+      is_embs_valid = isinstance(
+          input_spec.get(embeddings_field), types.TokenEmbeddings
+      ) and isinstance(output_spec.get(embeddings_field), types.TokenEmbeddings)
       if not is_embs_valid:
-        logging.info('Skipping %s. Invalid embeddings field, %s.', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid embeddings field, %s.',
+            str(f),
+            str(tokens_field),
+        )
         continue
 
       is_grad_cls_valid = grad_key in input_spec and grad_key in output_spec
       if not is_grad_cls_valid:
-        logging.info('Skipping %s. Invalid gradient class field, %s.', str(f),
-                     str(tokens_field))
+        logging.info(
+            'Skipping %s. Invalid gradient class field, %s.',
+            str(f),
+            str(tokens_field),
+        )
         continue
 
       aligned_fields.append(f)
     return aligned_fields
 
-  def get_interpolated_inputs(self, baseline: np.ndarray, target: np.ndarray,
-                              num_steps: int) -> np.ndarray:
+  def get_interpolated_inputs(
+      self, baseline: np.ndarray, target: np.ndarray, num_steps: int
+  ) -> np.ndarray:
     """Gets num_step linearly interpolated inputs from baseline to target."""
-    if num_steps <= 0: return np.array([])
-    if num_steps == 1: return np.array([baseline, target])
+    if num_steps <= 0:
+      return np.array([])
+    if num_steps == 1:
+      return np.array([baseline, target])
 
     delta = target - baseline  # <float32>[num_tokens, emb_size]
     # Creates scale values array of shape [num_steps, num_tokens, emb_dim],
     # where the values in scales[i] are the ith step from np.linspace.
     # <float32>[num_steps, 1, 1]
-    scales = np.linspace(0, 1, num_steps + 1,
-                         dtype=np.float32)[:, np.newaxis, np.newaxis]
+    scales = np.linspace(0, 1, num_steps + 1, dtype=np.float32)[
+        :, np.newaxis, np.newaxis
+    ]
 
     shape = (num_steps + 1,) + delta.shape
     # <float32>[num_steps, num_tokens, emb_size]
@@ -303,25 +333,33 @@ class IntegratedGradients(lit_components.Interpreter):
     # TODO(ellenj): Add option to use a token's embedding as the baseline.
     return baseline
 
-  def get_salience_result(self, model_input: JsonDict, model: lit_model.Model,
-                          interpolation_steps: int, normalize: bool,
-                          class_to_explain: str, model_output: JsonDict,
-                          grad_fields: list[str]):
+  def get_salience_result(
+      self,
+      model_input: ImmutableJsonDict,
+      model: lit_model.Model,
+      interpolation_steps: int,
+      normalize: bool,
+      class_to_explain: str,
+      model_output: ImmutableJsonDict,
+      grad_fields: list[str],
+  ):
     result = {}
 
     output_spec = model.output_spec()
     # We ensure that the embedding and gradient class fields are present in the
     # model's input spec in find_fields().
     embeddings_fields = [
-        cast(types.TokenGradients,
-             output_spec[grad_field]).grad_for for grad_field in grad_fields]
+        cast(types.TokenGradients, output_spec[grad_field]).grad_for
+        for grad_field in grad_fields
+    ]
 
     # The gradient class input is used to specify the target class of the
     # gradient calculation (if unspecified, this option defaults to the argmax,
     # which could flip between interpolated inputs).
     # If class_to_explain is emptystring, then explain the argmax class.
-    grad_class_key = cast(types.TokenGradients,
-                          output_spec[grad_fields[0]]).grad_target_field_key
+    grad_class_key = cast(
+        types.TokenGradients, output_spec[grad_fields[0]]
+    ).grad_target_field_key
     if class_to_explain == '':  # pylint: disable=g-explicit-bool-comparison
       grad_class = model_output[grad_class_key]
     else:
@@ -342,12 +380,13 @@ class IntegratedGradients(lit_components.Interpreter):
       # Get interpolated inputs from baseline to original embedding.
       # <float32>[interpolation_steps, num_tokens, emb_size]
       interpolated_inputs[embed_field] = self.get_interpolated_inputs(
-          baseline, embeddings, interpolation_steps)
+          baseline, embeddings, interpolation_steps
+      )
 
     # Create model inputs and populate embedding field(s).
     inputs_with_embeds = []
     for i in range(interpolation_steps):
-      input_copy = model_input.copy()
+      input_copy = dict(model_input)
       # Interpolates embeddings for all inputs simultaneously.
       for embed_field in embeddings_fields:
         # <float32>[num_tokens, emb_size]
@@ -377,15 +416,19 @@ class IntegratedGradients(lit_components.Interpreter):
     concat_baseline = np.concatenate(all_baselines)
 
     # <float32>[total_num_tokens, emb_size]
-    integrated_gradients = integral * (np.array(concat_embeddings) -
-                                       np.array(concat_baseline))
+    integrated_gradients = integral * (
+        np.array(concat_embeddings) - np.array(concat_baseline)
+    )
     # Dot product of integral values and (embeddings - baseline).
     # <float32>[total_num_tokens]
     attributions = np.sum(integrated_gradients, axis=-1)
 
     # <float32>[total_num_tokens]
-    scores = citrus_utils.normalize_scores(
-        attributions) if normalize else attributions
+    scores = (
+        citrus_utils.normalize_scores(attributions)
+        if normalize
+        else attributions
+    )
 
     for grad_field in grad_fields:
       # Format as salience map result.
@@ -395,30 +438,34 @@ class IntegratedGradients(lit_components.Interpreter):
       # Only use the scores that correspond to the tokens in this grad_field.
       # The gradients for all input embeddings were concatenated in the order
       # of the grad fields, so they can be sliced out in the same order.
-      sliced_scores = scores[:len(tokens)]  # <float32>[num_tokens in field]
-      scores = scores[len(tokens):]  # <float32>[num_remaining_tokens]
+      sliced_scores = scores[: len(tokens)]  # <float32>[num_tokens in field]
+      scores = scores[len(tokens) :]  # <float32>[num_remaining_tokens]
 
       assert len(tokens) == len(sliced_scores)
       result[grad_field] = dtypes.TokenSalience(tokens, sliced_scores)
     return result
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
+  def run(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[list[ImmutableJsonDict]]:
     """Run this component, given a model and input(s)."""
     config = config or {}
     class_to_explain = config.get(CLASS_KEY, self._class_key)
 
     try:
-      interpolation_steps = int(config.get(INTERPOLATION_KEY,
-                                           self._interpolation_steps))
+      interpolation_steps = int(
+          config.get(INTERPOLATION_KEY, self._interpolation_steps)
+      )
     except ValueError as parse_error:
       raise RuntimeError(
           'Failed to parse interpolation steps'
-          f'from "{config[INTERPOLATION_KEY]}".') from parse_error
+          f'from "{config[INTERPOLATION_KEY]}".'
+      ) from parse_error
 
     normalization = config.get(NORMALIZATION_KEY, self._normalize)
 
@@ -436,14 +483,21 @@ class IntegratedGradients(lit_components.Interpreter):
 
     all_results = []
     for model_output, model_input in zip(model_outputs, inputs):
-      result = self.get_salience_result(model_input, model, interpolation_steps,
-                                        normalization, class_to_explain,
-                                        model_output, grad_fields)
+      result = self.get_salience_result(
+          model_input,
+          model,
+          interpolation_steps,
+          normalization,
+          class_to_explain,
+          model_output,
+          grad_fields,
+      )
       all_results.append(result)
     return all_results
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused by IG
     return bool(self.find_fields(model.input_spec(), model.output_spec()))
 
@@ -451,12 +505,9 @@ class IntegratedGradients(lit_components.Interpreter):
     return {
         CLASS_KEY: types.TextSegment(default=self._class_key),
         NORMALIZATION_KEY: types.Boolean(default=self._normalize),
-        INTERPOLATION_KEY:
-            types.Scalar(
-                min_val=5,
-                max_val=100,
-                default=self._interpolation_steps,
-                step=1)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=100, default=self._interpolation_steps, step=1
+        ),
     }
 
   def meta_spec(self) -> types.Spec:

@@ -14,7 +14,6 @@
 # ==============================================================================
 """Gradient-based attribution."""
 
-import copy
 import functools
 from typing import Any, Iterable, Optional
 
@@ -31,10 +30,14 @@ from lit_nlp.lib import utils
 import numpy as np
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
-_SUPPORTED_PRED_TYPES = (types.MulticlassPreds, types.RegressionScore,
-                         types.SparseMultilabelPreds)
+_SUPPORTED_PRED_TYPES = (
+    types.MulticlassPreds,
+    types.RegressionScore,
+    types.SparseMultilabelPreds,
+)
 
 TARGET_HEAD_KEY = 'Output field to explain'
 CLASS_KEY = 'Class index to explain'
@@ -44,16 +47,26 @@ NUM_SAMPLES_KEY = 'Number of samples'
 SEED_KEY = 'Seed'
 
 
-def new_example(original_example: JsonDict, field: str, new_value: Any):
+def new_example(
+    original_example: ImmutableJsonDict, field: str, new_value: Any
+):
   """Deep copies the example and replaces `field` with `new_value`."""
-  example = copy.deepcopy(original_example)
+  example = dict(original_example)
   example[field] = new_value
   return example
 
 
-def _predict_fn(strings: Iterable[str], model: Any, original_example: JsonDict,
-                text_key: str, pred_key: str, pred_type_info: types.LitType):
-  """Given raw strings, return scores. Used by `lime.explain`.
+def _predict_fn(
+    strings: Iterable[str],
+    model: Any,
+    original_example: ImmutableJsonDict,
+    text_key: str,
+    pred_key: str,
+    pred_type_info: types.LitType,
+):
+  """Given raw strings, return scores.
+
+  Used by `lime.explain`.
 
   Adjust the `original_example` by changing the value of the field `text_key`
   by the values in `strings`, and run model prediction on each adjusted example,
@@ -81,8 +94,9 @@ def _predict_fn(strings: Iterable[str], model: Any, original_example: JsonDict,
   model_outputs = model.predict(input_examples)
   outputs = [output[pred_key] for output in model_outputs]
   if isinstance(pred_type_info, types.SparseMultilabelPreds):
-    assert pred_type_info.vocab, (
-        f'No vocab found for {pred_key} field. Cannot use LIME.')
+    assert (
+        pred_type_info.vocab
+    ), f'No vocab found for {pred_key} field. Cannot use LIME.'
     # Convert list of class/score tuples to a list of scores for each possible
     # class, in class index order.
     output_arr = np.zeros([len(outputs), len(pred_type_info.vocab)])
@@ -101,8 +115,12 @@ def _predict_fn(strings: Iterable[str], model: Any, original_example: JsonDict,
   return outputs
 
 
-def get_class_to_explain(provided_class_to_explain: int, model: Any,
-                         pred_key: str, example: JsonDict) -> int:
+def get_class_to_explain(
+    provided_class_to_explain: int,
+    model: Any,
+    pred_key: str,
+    example: ImmutableJsonDict,
+) -> int:
   """Return the class index to explain.
 
   The provided class index can be -1, in which case this method determines
@@ -121,9 +139,10 @@ def get_class_to_explain(provided_class_to_explain: int, model: Any,
   pred_type_info = model.output_spec()[pred_key]
   # If provided_class_to_explain is -1, then explain the argmax class, for both
   # multiclass and sparse multilabel tasks.
-  if ((isinstance(pred_type_info, types.MulticlassPreds) or
-       isinstance(pred_type_info, types.SparseMultilabelPreds)) and
-      provided_class_to_explain == -1):
+  if (
+      isinstance(pred_type_info, types.MulticlassPreds)
+      or isinstance(pred_type_info, types.SparseMultilabelPreds)
+  ) and provided_class_to_explain == -1:
     pred = list(model.predict([example]))[0][pred_key]
     if isinstance(pred_type_info, types.MulticlassPreds):
       return np.argmax(pred)
@@ -140,13 +159,15 @@ def get_class_to_explain(provided_class_to_explain: int, model: Any,
 class LIME(lit_components.Interpreter):
   """Local Interpretable Model-agnostic Explanations (LIME)."""
 
-  def __init__(self,
-               autorun: bool = False,
-               class_index: int = -1,
-               kernel_width: int = 256,
-               mask_token: str = '[MASK]',
-               num_samples: int = 256,
-               seed: Optional[int] = None):
+  def __init__(
+      self,
+      autorun: bool = False,
+      class_index: int = -1,
+      kernel_width: int = 256,
+      mask_token: str = '[MASK]',
+      num_samples: int = 256,
+      seed: Optional[int] = None,
+  ):
     """Cretaes an IntegratedGradients interpreter.
 
     Args:
@@ -166,12 +187,12 @@ class LIME(lit_components.Interpreter):
 
   def run(
       self,
-      inputs: list[JsonDict],
+      inputs: list[ImmutableJsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None,
-  ) -> Optional[list[JsonDict]]:
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[list[ImmutableJsonDict]]:
     """Run this component, given a model and input(s)."""
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))  # update and return
@@ -179,7 +200,7 @@ class LIME(lit_components.Interpreter):
     provided_class_to_explain = int(config[CLASS_KEY])
     kernel_width = int(config[KERNEL_WIDTH_KEY])
     num_samples = int(config[NUM_SAMPLES_KEY])
-    mask_string = (config[MASK_KEY])
+    mask_string = config[MASK_KEY]
     # pylint: disable=g-explicit-bool-comparison
     seed = int(config[SEED_KEY]) if config[SEED_KEY] != '' else None
     # pylint: enable=g-explicit-bool-comparison
@@ -207,11 +228,16 @@ class LIME(lit_components.Interpreter):
       # Dict[field name -> interpretations]
       result = {}
       predict_fn = functools.partial(
-          _predict_fn, model=model, original_example=input_, pred_key=pred_key,
-          pred_type_info=model.output_spec()[pred_key])
+          _predict_fn,
+          model=model,
+          original_example=input_,
+          pred_key=pred_key,
+          pred_type_info=model.output_spec()[pred_key],
+      )
 
       class_to_explain = get_class_to_explain(
-          provided_class_to_explain, model, pred_key, input_)
+          provided_class_to_explain, model, pred_key, input_
+      )
 
       # Explain each text segment in the input, keeping the others constant.
       for text_key in text_keys:
@@ -228,8 +254,10 @@ class LIME(lit_components.Interpreter):
             tokenizer=str.split,
             mask_token=mask_string,
             kernel=functools.partial(
-                lime.exponential_kernel, kernel_width=kernel_width),
-            seed=seed)
+                lime.exponential_kernel, kernel_width=kernel_width
+            ),
+            seed=seed,
+        )
 
         # Turn the LIME explanation into a list following original word order.
         scores = explanation.feature_importance
@@ -243,11 +271,14 @@ class LIME(lit_components.Interpreter):
 
   def config_spec(self) -> types.Spec:
     matcher_types = [
-        'MulticlassPreds', 'SparseMultilabelPreds', 'RegressionScore'
+        'MulticlassPreds',
+        'SparseMultilabelPreds',
+        'RegressionScore',
     ]
     return {
-        TARGET_HEAD_KEY:
-            types.SingleFieldMatcher(spec='output', types=matcher_types),
+        TARGET_HEAD_KEY: types.SingleFieldMatcher(
+            spec='output', types=matcher_types
+        ),
         CLASS_KEY: types.TextSegment(default=self._class_index),
         MASK_KEY: types.TextSegment(default=self._mask_token),
         KERNEL_WIDTH_KEY: types.TextSegment(default=self._kernel_width),
@@ -255,8 +286,9 @@ class LIME(lit_components.Interpreter):
         SEED_KEY: types.TextSegment(default=self._seed),
     }
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused as salience comes from the model
     text_keys = utils.spec_contains(model.input_spec(), types.TextSegment)
     pred_keys = utils.spec_contains(model.output_spec(), _SUPPORTED_PRED_TYPES)

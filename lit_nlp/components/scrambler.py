@@ -14,7 +14,6 @@
 # ==============================================================================
 """Simple scrambling test generator."""
 
-import copy
 import random
 from typing import Optional
 
@@ -24,7 +23,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils
 
-JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 
 FIELDS_TO_SCRAMBLE_KEY = 'Fields to scramble'
 
@@ -40,23 +39,24 @@ class Scrambler(lit_components.Generator):
 
   def config_spec(self) -> types.Spec:
     return {
-        FIELDS_TO_SCRAMBLE_KEY:
-            types.MultiFieldMatcher(
-                spec='input',
-                types=['TextSegment'],
-                select_all=True),
+        FIELDS_TO_SCRAMBLE_KEY: types.MultiFieldMatcher(
+            spec='input', types=['TextSegment'], select_all=True
+        ),
     }
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del model  # Unused by Scrambler
     return utils.spec_contains(dataset.spec(), types.TextSegment)
 
-  def generate(self,
-               example: JsonDict,
-               model: lit_model.Model,
-               dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> list[JsonDict]:
+  def generate(
+      self,
+      example: ImmutableJsonDict,
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[ImmutableJsonDict]:
     """Naively scramble all words in an example.
 
     Note: Even if more than one field is to be scrambled, only a single example
@@ -84,14 +84,15 @@ class Scrambler(lit_components.Generator):
     # TODO(lit-dev): move this to generate_all(), so we read the spec once
     # instead of on every example.
     text_keys = [
-        key for key in utils.find_spec_keys(dataset.spec(), types.TextSegment)
+        key
+        for key in utils.find_spec_keys(dataset.spec(), types.TextSegment)
         if key in fields_to_scramble
     ]
 
     if not text_keys:
       return []
 
-    new_example = copy.deepcopy(example)
+    new_example = dict(example)
     for text_key in text_keys:
       new_example[text_key] = _scramble(example[text_key])
     return [new_example]

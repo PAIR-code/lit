@@ -22,6 +22,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 IndexedInput = types.IndexedInput
 MetricsDict = dict[str, float]
 
@@ -41,29 +42,35 @@ class Interpreter(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None):
+  def run(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ):
     """Run this component, given a model and input(s)."""
     raise NotImplementedError(
-        'Subclass should implement this, or override run_with_metadata() directly.'
+        'Subclass should implement this, or override run_with_metadata()'
+        ' directly.'
     )
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
+  def run_with_metadata(
+      self,
+      indexed_inputs: Sequence[IndexedInput],
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ):
     """Run this component, with access to data indices and metadata."""
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     """Return if interpreter is compatible with the dataset and model."""
     del dataset, model  # Unused in base class
     return True
@@ -95,22 +102,26 @@ class Interpreter(metaclass=abc.ABCMeta):
 class Generator(Interpreter):
   """Base class for LIT generators."""
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
+  def run_with_metadata(
+      self,
+      indexed_inputs: Sequence[IndexedInput],
+      model: lit_model.Model,
+      dataset: lit_dataset.IndexedDataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ):
     """Run this component, with access to data indices and metadata."""
     #  IndexedInput[] -> Input[]
     inputs = [ex['data'] for ex in indexed_inputs]
     return self.generate_all(inputs, model, dataset, config)
 
-  def generate_all(self,
-                   inputs: list[JsonDict],
-                   model: lit_model.Model,
-                   dataset: lit_dataset.Dataset,
-                   config: Optional[JsonDict] = None) -> list[list[JsonDict]]:
+  def generate_all(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[list[ImmutableJsonDict]]:
     """Run generation on a set of inputs.
 
     Args:
@@ -128,11 +139,13 @@ class Generator(Interpreter):
     return output
 
   @abc.abstractmethod
-  def generate(self,
-               example: JsonDict,
-               model: lit_model.Model,
-               dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> list[JsonDict]:
+  def generate(
+      self,
+      example: ImmutableJsonDict,
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[ImmutableJsonDict]:
     """Return a list of generated examples."""
     pass
 
@@ -142,8 +155,9 @@ class Metrics(Interpreter):
 
   # Required methods implementations from Interpreter base class
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     """True if the model and dataset support metric computation."""
     for pred_spec in model.output_spec().values():
       parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
@@ -158,30 +172,32 @@ class Metrics(Interpreter):
 
   def run(
       self,
-      inputs: Sequence[JsonDict],
+      inputs: Sequence[ImmutableJsonDict],
       model: lit_model.Model,
       dataset: lit_dataset.Dataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[ImmutableJsonDict]:
     raise NotImplementedError(
-        'Subclass should implement its own run using compute.')
+        'Subclass should implement its own run using compute.'
+    )
 
   def run_with_metadata(
       self,
       indexed_inputs: Sequence[IndexedInput],
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> list[ImmutableJsonDict]:
     inputs = [inp['data'] for inp in indexed_inputs]
     return self.run(inputs, model, dataset, model_outputs, config)
 
   # New methods introduced by this subclass
 
   def is_field_compatible(
-      self,
-      pred_spec: types.LitType,
-      parent_spec: Optional[types.LitType]) -> bool:
+      self, pred_spec: types.LitType, parent_spec: Optional[types.LitType]
+  ) -> bool:
     """True if compatible with the prediction field and its parent."""
     del pred_spec, parent_spec  # Unused in base class
     raise NotImplementedError('Subclass should implement field compatibility.')
@@ -192,10 +208,13 @@ class Metrics(Interpreter):
       preds: Sequence[Any],
       label_spec: types.LitType,
       pred_spec: types.LitType,
-      config: Optional[JsonDict] = None) -> MetricsDict:
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> MetricsDict:
     """Compute metric(s) given labels and predictions."""
-    raise NotImplementedError('Subclass should implement this, or override '
-                              'compute_with_metadata() directly.')
+    raise NotImplementedError(
+        'Subclass should implement this, or override '
+        'compute_with_metadata() directly.'
+    )
 
   def compute_with_metadata(
       self,
@@ -204,8 +223,9 @@ class Metrics(Interpreter):
       label_spec: types.LitType,
       pred_spec: types.LitType,
       indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> MetricsDict:
+      metas: Sequence[ImmutableJsonDict],
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> MetricsDict:
     """As compute(), but with access to indices and metadata."""
     del indices, metas  # unused by Metrics base class
     return self.compute(labels, preds, label_spec, pred_spec, config)
@@ -229,9 +249,12 @@ class Annotator(metaclass=abc.ABCMeta):
     self._annotator_model = annotator_model
 
   @abc.abstractmethod
-  def annotate(self, inputs: list[JsonDict],
-               dataset: lit_dataset.Dataset,
-               dataset_spec_to_annotate: Optional[types.Spec] = None):
+  def annotate(
+      self,
+      inputs: list[ImmutableJsonDict],
+      dataset: lit_dataset.Dataset,
+      dataset_spec_to_annotate: Optional[types.Spec] = None,
+  ):
     """Annotate the provided inputs.
 
     Args:

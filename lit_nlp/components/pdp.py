@@ -21,7 +21,6 @@ different feature values, for each classification and regression head.
 The front-end can display these as charts.
 """
 
-import copy
 import functools
 from typing import cast, Optional
 
@@ -60,11 +59,11 @@ class PdpInterpreter(lit_components.Interpreter):
     return np.linspace(min_val, max_val, 10)
 
   def run(self,
-          inputs: list[types.JsonDict],
+          inputs: list[types.ImmutableJsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[types.JsonDict]] = None,
-          config: Optional[types.JsonDict] = None):
+          model_outputs: Optional[list[types.ImmutableJsonDict]] = None,
+          config: Optional[types.ImmutableJsonDict] = None):
     """Create PDP chart info using provided inputs.
 
     Args:
@@ -113,7 +112,7 @@ class PdpInterpreter(lit_components.Interpreter):
       # Create copies of all provided inputs with the value replaced.
       edited_inputs = []
       for inp in inputs_to_use:
-        edited_input = copy.deepcopy(inp)
+        edited_input = dict(inp)
         edited_input[feature] = new_val
         edited_inputs.append(edited_input)
 

@@ -21,10 +21,12 @@ from lit_nlp.api import types
 import numpy as np
 
 
-def update_prediction(example: types.JsonDict,
-                      example_output: types.JsonDict,
-                      output_spec: types.JsonDict,
-                      pred_key: Text):
+def update_prediction(
+    example: types.JsonDict,
+    example_output: types.ImmutableJsonDict,
+    output_spec: types.ImmutableJsonDict,
+    pred_key: Text,
+):
   """Updates prediction score and label (if classification model) in the provided example."""
   prediction = example_output[pred_key]
   example[pred_key] = prediction
@@ -41,26 +43,30 @@ def update_prediction(example: types.JsonDict,
     example[label_key] = example_label
 
 
-def is_prediction_flip(cf_output: types.JsonDict,
-                       orig_output: types.JsonDict,
-                       output_spec: types.JsonDict,
-                       pred_key: Text,
-                       regression_thresh: Optional[float] = None) -> bool:
+def is_prediction_flip(
+    cf_output: types.ImmutableJsonDict,
+    orig_output: types.ImmutableJsonDict,
+    output_spec: types.ImmutableJsonDict,
+    pred_key: Text,
+    regression_thresh: Optional[float] = None,
+) -> bool:
   """Check if cf_output and  orig_output specify different prediciton classes."""
   if isinstance(output_spec[pred_key], types.RegressionScore):
     # regression model. We use the provided threshold to binarize the output.
-    cf_pred_class = (cf_output[pred_key] <= regression_thresh)
-    orig_pred_class = (orig_output[pred_key] <= regression_thresh)
+    cf_pred_class = cf_output[pred_key] <= regression_thresh
+    orig_pred_class = orig_output[pred_key] <= regression_thresh
   else:
     cf_pred_class = np.argmax(cf_output[pred_key])
     orig_pred_class = np.argmax(orig_output[pred_key])
   return cf_pred_class != orig_pred_class
 
 
-def prediction_difference(cf_output: types.JsonDict,
-                          orig_output: types.JsonDict,
-                          output_spec: types.JsonDict,
-                          pred_key: Text) -> float:
+def prediction_difference(
+    cf_output: types.ImmutableJsonDict,
+    orig_output: types.ImmutableJsonDict,
+    output_spec: types.ImmutableJsonDict,
+    pred_key: Text,
+) -> float:
   """Returns the difference in prediction between cf_output and orig_output."""
   if isinstance(output_spec[pred_key], types.RegressionScore):
     # regression model. We use the provided threshold to binarize the output.
@@ -103,8 +109,7 @@ def tokenize_url(url: str) -> List[str]:
   return [t for t, _, _ in url_tokens]
 
 
-def ablate_url_tokens(url: str,
-                      token_idxs_to_ablate: Tuple[int, ...]) -> str:
+def ablate_url_tokens(url: str, token_idxs_to_ablate: Tuple[int, ...]) -> str:
   """Ablates the tokens at the provided indices and returns the resulting URL."""
   url_tokens = _tokenize_url(url)
   start = 0
@@ -113,7 +118,8 @@ def ablate_url_tokens(url: str,
   for token_idx in token_idxs_to_ablate:
     assert token_idx < len(url_tokens), (
         "token_idxs_to_ablate must all fall in the range 0 to number of tokens"
-        " returned by tokenize_url")
+        " returned by tokenize_url"
+    )
     _, token_start, token_end = url_tokens[token_idx]
     modified_url_pieces.append(url[start:token_start])
     start = token_end

@@ -33,6 +33,7 @@ import saliency
 
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
 # The key name for a configuration parameter that specifies the number
@@ -68,22 +69,26 @@ IG_STEPS = 10
 
 class SupportedFields(NamedTuple):
   """The collection of field names that are required to calculate saliency."""
+
   grad_field_key: str
   image_field_key: str
   grad_target_field_key: str
   preds_field_key: str
 
 
-def find_supported_fields(input_spec: Spec,
-                          output_spec: Spec) -> Optional[SupportedFields]:
+def find_supported_fields(
+    input_spec: Spec, output_spec: Spec
+) -> Optional[SupportedFields]:
   """Returns fields from the model specs that are needed for saliency ."""
 
   # Find all ImageGradients fields.
   grad_field_keys = lit_utils.find_spec_keys(output_spec, types.ImageGradients)
   # Models with more than one gradient field are not supported.
   if not grad_field_keys or len(grad_field_keys) != 1:
-    logging.warning('Models must have exactly 1 ImageGradients field, found %i',
-                    len(grad_field_keys))
+    logging.warning(
+        'Models must have exactly 1 ImageGradients field, found %i',
+        len(grad_field_keys),
+    )
     return None
 
   grad_field_key = grad_field_keys[0]
@@ -94,7 +99,8 @@ def find_supported_fields(input_spec: Spec,
   if not isinstance(input_spec.get(image_field_key), types.ImageBytes):
     logging.warning(
         'Could not find aligned ImageBytes field, %s, in input spec',
-        str(grad_field_value.align))
+        str(grad_field_value.align),
+    )
     return None
 
   # Find gradient target fields in the input if it is a multiclass
@@ -104,10 +110,12 @@ def find_supported_fields(input_spec: Spec,
   if multiclass:
     grad_target_field_key = grad_field_value.grad_target_field_key
     if not isinstance(
-        input_spec.get(grad_target_field_key), types.CategoryLabel):
+        input_spec.get(grad_target_field_key), types.CategoryLabel
+    ):
       logging.warning(
           'Could not find compatible CategoryLabel field, %s, in input spec',
-          str(grad_target_field_key))
+          str(grad_target_field_key),
+      )
       return None
   else:
     grad_target_field_key = None
@@ -118,8 +126,10 @@ def find_supported_fields(input_spec: Spec,
 
   # Models with more than one prediction field are not supported.
   if not preds_field_keys or len(preds_field_keys) != 1:
-    logging.warning('Models must have exactly 1 predicition field, found %i',
-                    len(preds_field_keys))
+    logging.warning(
+        'Models must have exactly 1 predicition field, found %i',
+        len(preds_field_keys),
+    )
     return None
   preds_field_key = preds_field_keys[0]
 
@@ -127,12 +137,17 @@ def find_supported_fields(input_spec: Spec,
       grad_field_key=grad_field_key,
       image_field_key=image_field_key,
       grad_target_field_key=grad_target_field_key,
-      preds_field_key=preds_field_key)
+      preds_field_key=preds_field_key,
+  )
 
 
 def get_call_model_func(
-    model: lit_model.Model, model_input: JsonDict, image_field_key: str,
-    grad_field_key: str, grad_target_field_key: str, grad_target_label: str
+    model: lit_model.Model,
+    model_input: ImmutableJsonDict,
+    image_field_key: str,
+    grad_field_key: str,
+    grad_target_field_key: str,
+    grad_target_label: str,
 ) -> Callable[[np.ndarray, Any, List[str]], Dict[str, np.ndarray]]:
   """Returns a function that is used by the Saliency library to get gradients.
 
@@ -155,8 +170,9 @@ def get_call_model_func(
     The function that should be passed to the Saliency library.
   """
 
-  def call_model_func(x_value_batch: np.ndarray, call_model_args,
-                      expected_keys: List[str]) -> Dict[str, np.ndarray]:
+  def call_model_func(
+      x_value_batch: np.ndarray, call_model_args, expected_keys: List[str]
+  ) -> Dict[str, np.ndarray]:
     """This function is called by the Saliency library to calculate gradients.
 
     Args:
@@ -175,7 +191,7 @@ def get_call_model_func(
     # a batch acceptable by the LIT model.
     model_inputs = []
     for x_value in x_value_batch:
-      input_copy = model_input.copy()
+      input_copy = dict(model_input)
       input_copy[image_field_key] = x_value
       if grad_target_field_key is not None:
         input_copy[grad_target_field_key] = grad_target_label
@@ -204,12 +220,14 @@ def get_call_model_func(
 class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
   """A base class for all interpreters that use the Saliency library."""
 
-  def run(self,
-          inputs: List[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+  def run(
+      self,
+      inputs: List[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[List[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[List[ImmutableJsonDict]]:
     """Runs the component, given a model and input(s)."""
     input_spec = model.input_spec()
     output_spec = model.output_spec()
@@ -237,7 +255,8 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
     if multiclass:
       # Get class labels.
       label_vocab = list(
-          cast(types.MulticlassPreds, output_spec[preds_field_key]).vocab)
+          cast(types.MulticlassPreds, output_spec[preds_field_key]).vocab
+      )
 
       # Run the model in order to find the gradient target labels.
       outputs = list(model.predict(inputs))
@@ -258,31 +277,37 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
       result = {}
       image_str = example[image_field_key]
       saliency_input = image_utils.convert_image_str_to_array(
-          image_str=image_str, shape=grad_shape)
+          image_str=image_str, shape=grad_shape
+      )
       call_model_func = get_call_model_func(
           model=model,
           model_input=example,
           image_field_key=image_field_key,
           grad_field_key=grad_field_key,
           grad_target_field_key=grad_target_field_key,
-          grad_target_label=grad_target_label)
+          grad_target_label=grad_target_label,
+      )
       attribution = self.make_saliency_call(
           saliency_object=saliency_object,
           x_value=saliency_input,
           call_model_function=call_model_func,
-          extra_saliency_params=extra_saliency_params)
+          extra_saliency_params=extra_saliency_params,
+      )
       if attribution.ndim == 3:
         attribution = attribution.sum(axis=2)
       viz_params = self.get_visualization_params()
       overlaid_image = image_utils.overlay_pixel_saliency(
-          image_str, attribution, **viz_params)
+          image_str, attribution, **viz_params
+      )
       result[grad_field_key] = image_utils.convert_pil_to_image_str(
-          overlaid_image)
+          overlaid_image
+      )
       all_results.append(result)
     return all_results
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused as salience comes from the model.
     fields = find_supported_fields(model.input_spec(), model.output_spec())
     return fields is not None
@@ -290,16 +315,20 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
   def meta_spec(self) -> types.Spec:
     return {'saliency': types.ImageSalience(autorun=False)}
 
-  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
-                         x_value: np.ndarray, call_model_function: Callable[
-                             [np.ndarray, Any, List[str]], Dict[str,
-                                                                np.ndarray]],
-                         extra_saliency_params: Dict[str, Any]) -> np.ndarray:
-
+  def make_saliency_call(
+      self,
+      saliency_object: saliency.core.CoreSaliency,
+      x_value: np.ndarray,
+      call_model_function: Callable[
+          [np.ndarray, Any, List[str]], Dict[str, np.ndarray]
+      ],
+      extra_saliency_params: Dict[str, Any],
+  ) -> np.ndarray:
     return saliency_object.GetMask(
         x_value=x_value,
         call_model_function=call_model_function,
-        **extra_saliency_params)
+        **extra_saliency_params
+    )
 
   @abc.abstractmethod
   def get_saliency_object(self):
@@ -307,9 +336,9 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     """Returns extra parameters to be passed to the GetMask() method."""
     pass
 
@@ -325,9 +354,9 @@ class VanillaGradients(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.GradientSaliency()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     return {}
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -336,7 +365,7 @@ class VanillaGradients(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': PIXEL_SALIENCY_ALPHA_MUL,
         'signed': True,
-        'pixel_saliency': True
+        'pixel_saliency': True,
     }
 
 
@@ -346,9 +375,9 @@ class IntegratedGradients(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.IntegratedGradients()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     if config is None:
       return {'x_steps': IG_STEPS}
 
@@ -356,8 +385,9 @@ class IntegratedGradients(SaliencyLibInterpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=200, default=IG_STEPS, step=1
+        )
     }
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -366,7 +396,7 @@ class IntegratedGradients(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': PIXEL_SALIENCY_ALPHA_MUL,
         'signed': True,
-        'pixel_saliency': True
+        'pixel_saliency': True,
     }
 
 
@@ -376,9 +406,9 @@ class BlurIG(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.BlurIG()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     if config is None:
       return {'steps': IG_STEPS}
 
@@ -386,8 +416,9 @@ class BlurIG(SaliencyLibInterpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=200, default=IG_STEPS, step=1
+        )
     }
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -396,7 +427,7 @@ class BlurIG(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': PIXEL_SALIENCY_ALPHA_MUL,
         'signed': True,
-        'pixel_saliency': True
+        'pixel_saliency': True,
     }
 
 
@@ -406,24 +437,26 @@ class GuidedIG(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.GuidedIG()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     if config is None:
       return {'x_steps': IG_STEPS, 'max_dist': 0.1, 'fraction': 0.25}
 
     return {
         'x_steps': int(config[INTERPOLATION_KEY]),
         'max_dist': float(config[MAX_DIST_KEY]),
-        'fraction': 0.25
+        'fraction': 0.25,
     }
 
   def config_spec(self) -> types.Spec:
     return {
-        INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1),
-        MAX_DIST_KEY:
-            types.Scalar(min_val=0.0, max_val=1.0, default=0.1, step=0.02)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=200, default=IG_STEPS, step=1
+        ),
+        MAX_DIST_KEY: types.Scalar(
+            min_val=0.0, max_val=1.0, default=0.1, step=0.02
+        ),
     }
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -432,7 +465,7 @@ class GuidedIG(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': PIXEL_SALIENCY_ALPHA_MUL,
         'signed': True,
-        'pixel_saliency': True
+        'pixel_saliency': True,
     }
 
 
@@ -442,9 +475,9 @@ class XRAI(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.XRAI()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     if config is None:
       return {'steps': IG_STEPS}
 
@@ -452,22 +485,28 @@ class XRAI(SaliencyLibInterpreter):
 
   def config_spec(self) -> types.Spec:
     return {
-        INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=200, default=IG_STEPS, step=1
+        )
     }
 
-  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
-                         x_value: np.ndarray, call_model_function: Callable[
-                             [np.ndarray, Any, List[str]], Dict[str,
-                                                                np.ndarray]],
-                         extra_saliency_params: Dict[str, Any]) -> np.ndarray:
-
+  def make_saliency_call(
+      self,
+      saliency_object: saliency.core.CoreSaliency,
+      x_value: np.ndarray,
+      call_model_function: Callable[
+          [np.ndarray, Any, List[str]], Dict[str, np.ndarray]
+      ],
+      extra_saliency_params: Dict[str, Any],
+  ) -> np.ndarray:
     xrai_params = saliency.core.XRAIParameters(
-        steps=extra_saliency_params['steps'], algorithm='fast')
+        steps=extra_saliency_params['steps'], algorithm='fast'
+    )
     xrai_output = cast(saliency.core.XRAI, saliency_object).GetMaskWithDetails(
         x_value=x_value,
         call_model_function=call_model_function,
-        extra_parameters=xrai_params)
+        extra_parameters=xrai_params,
+    )
     return xrai_output.attribution_mask
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -476,7 +515,7 @@ class XRAI(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': AREA_SALIENCY_ALPHA_MUL,
         'signed': False,
-        'pixel_saliency': False
+        'pixel_saliency': False,
     }
 
 
@@ -486,45 +525,53 @@ class XRAIGIG(SaliencyLibInterpreter):
   def get_saliency_object(self) -> saliency.core.CoreSaliency:
     return saliency.core.XRAI()
 
-  def get_extra_saliency_params(self,
-                                config: Optional[JsonDict] = None
-                               ) -> Dict[str, Any]:
+  def get_extra_saliency_params(
+      self, config: Optional[ImmutableJsonDict] = None
+  ) -> Dict[str, Any]:
     if config is None:
       return {'x_steps': IG_STEPS, 'max_dist': 0.1, 'fraction': 0.25}
 
     return {
         'x_steps': int(config[INTERPOLATION_KEY]),
         'max_dist': float(config[MAX_DIST_KEY]),
-        'fraction': 0.25
+        'fraction': 0.25,
     }
 
   def config_spec(self) -> types.Spec:
     return {
-        INTERPOLATION_KEY:
-            types.Scalar(min_val=5, max_val=200, default=IG_STEPS, step=1),
-        MAX_DIST_KEY:
-            types.Scalar(min_val=0.0, max_val=1.0, default=0.1, step=0.02)
+        INTERPOLATION_KEY: types.Scalar(
+            min_val=5, max_val=200, default=IG_STEPS, step=1
+        ),
+        MAX_DIST_KEY: types.Scalar(
+            min_val=0.0, max_val=1.0, default=0.1, step=0.02
+        ),
     }
 
-  def make_saliency_call(self, saliency_object: saliency.core.CoreSaliency,
-                         x_value: np.ndarray, call_model_function: Callable[
-                             [np.ndarray, Any, List[str]], Dict[str,
-                                                                np.ndarray]],
-                         extra_saliency_params: Dict[str, Any]) -> np.ndarray:
-
+  def make_saliency_call(
+      self,
+      saliency_object: saliency.core.CoreSaliency,
+      x_value: np.ndarray,
+      call_model_function: Callable[
+          [np.ndarray, Any, List[str]], Dict[str, np.ndarray]
+      ],
+      extra_saliency_params: Dict[str, Any],
+  ) -> np.ndarray:
     gig_object = saliency.core.GuidedIG()
     gig_saliency = gig_object.GetMask(
         x_value=x_value,
         call_model_function=call_model_function,
-        **extra_saliency_params)
+        **extra_saliency_params
+    )
 
     xrai_params = saliency.core.XRAIParameters(
-        steps=extra_saliency_params['x_steps'], algorithm='fast')
+        steps=extra_saliency_params['x_steps'], algorithm='fast'
+    )
     xrai_output = cast(saliency.core.XRAI, saliency_object).GetMaskWithDetails(
         x_value=x_value,
         call_model_function=call_model_function,
         base_attribution=gig_saliency,
-        extra_parameters=xrai_params)
+        extra_parameters=xrai_params,
+    )
     return xrai_output.attribution_mask
 
   def get_visualization_params(self) -> Dict[str, Any]:
@@ -533,5 +580,5 @@ class XRAIGIG(SaliencyLibInterpreter):
         'clip_fraction': CLIPPING_FRACTION,
         'alpha_mul': AREA_SALIENCY_ALPHA_MUL,
         'signed': False,
-        'pixel_saliency': False
+        'pixel_saliency': False,
     }

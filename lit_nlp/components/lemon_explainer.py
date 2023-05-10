@@ -14,7 +14,6 @@
 # ==============================================================================
 """Counterfactual explanations using linear model."""
 
-import copy
 from typing import Any, Optional, Sequence, Iterable
 
 from absl import logging
@@ -28,13 +27,15 @@ from lit_nlp.components.citrus import utils as citrus_utils
 from lit_nlp.lib import utils
 import numpy as np
 
-JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
 
-def new_example(original_example: JsonDict, field: str, new_value: Any):
+def new_example(
+    original_example: ImmutableJsonDict, field: str, new_value: Any
+):
   """Deep copies the example and replaces `field` with `new_value`."""
-  example = copy.deepcopy(original_example)
+  example = dict(original_example)
   example[field] = new_value
   return example
 
@@ -53,8 +54,10 @@ def make_predict_fn(counterfactuals: dict[str, Sequence[float]]):
   Returns:
     A predict function to be used in lemon.explain().
   """
+
   def _predict_fn(sentences: Iterable[str]):
     return np.array([counterfactuals.get(sentence) for sentence in sentences])
+
   return _predict_fn
 
 
@@ -67,17 +70,20 @@ class LEMON(lit_components.Interpreter):
   def __init__(self):
     pass
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     del dataset  # Unused as salience comes from the model
     return utils.spec_contains(model.input_spec(), types.TextSegment)
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
+  def run(
+      self,
+      inputs: list[ImmutableJsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[ImmutableJsonDict]] = None,
+      config: Optional[ImmutableJsonDict] = None,
+  ) -> Optional[list[ImmutableJsonDict]]:
     """Run this component, given a model and input(s)."""
     if not (inputs and config):
       return None
@@ -124,7 +130,8 @@ class LEMON(lit_components.Interpreter):
           counterfactuals,
           predict_proba,
           class_to_explain=config['class_to_explain'],
-          lowercase_tokens=config['lowercase_tokens'])
+          lowercase_tokens=config['lowercase_tokens'],
+      )
 
       scores = np.array(explanation.feature_importance)
 

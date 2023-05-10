@@ -26,6 +26,7 @@ from lit_nlp.lib import utils
 import numpy as np
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Spec = types.Spec
 
 
@@ -61,7 +62,7 @@ def maybe_copy_np(arr):
   return arr
 
 
-def scrub_numpy_refs(output: JsonDict) -> JsonDict:
+def scrub_numpy_refs(output: ImmutableJsonDict) -> JsonDict:
   """Scrub numpy pointers; see maybe_copy_np() and Model.predict()."""
   return {k: maybe_copy_np(v) for k, v in output.items()}
 
@@ -141,7 +142,9 @@ class Model(metaclass=abc.ABCMeta):
     return False
 
   @abc.abstractmethod
-  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[ImmutableJsonDict]
+  ) -> list[JsonDict]:
     """Run prediction on a batch of inputs.
 
     Args:
@@ -162,14 +165,15 @@ class Model(metaclass=abc.ABCMeta):
 
     Args:
       path: The path to the persisted model information, used in model's
-      construction.
+        construction.
 
     Returns:
       (Model) A model loaded with information from the provided path.
     """
     del path
-    raise NotImplementedError('Model has no load method defined for dynamic '
-                              'loading')
+    raise NotImplementedError(
+        'Model has no load method defined for dynamic loading'
+    )
 
   @abc.abstractmethod
   def input_spec(self) -> types.Spec:
@@ -190,18 +194,24 @@ class Model(metaclass=abc.ABCMeta):
     Returns:
       (<string>[vocab_size], <float32>[vocab_size, emb_dim])
     """
-    raise NotImplementedError('get_embedding_table() not implemented for ' +
-                              self.__class__.__name__)
+    raise NotImplementedError(
+        'get_embedding_table() not implemented for ' + self.__class__.__name__
+    )
 
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
+  def fit_transform_with_metadata(
+      self, indexed_inputs: list[ImmutableJsonDict]
+  ):
     """For internal use by UMAP and other sklearn-based models."""
     raise NotImplementedError(
-        'fit_transform_with_metadata() not implemented for ' +
-        self.__class__.__name__)
+        'fit_transform_with_metadata() not implemented for '
+        + self.__class__.__name__
+    )
 
   ##
   # Concrete implementations of common functions.
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
+  def predict(
+      self, inputs: Iterable[ImmutableJsonDict], **kw
+  ) -> Iterable[JsonDict]:
     """Run prediction on a dataset.
 
     This uses minibatch inference for efficiency, but yields per-example output.
@@ -221,8 +231,9 @@ class Model(metaclass=abc.ABCMeta):
     results = (scrub_numpy_refs(res) for res in results)
     return results
 
-  def _batched_predict(self, inputs: Iterable[JsonDict],
-                       **kw) -> Iterator[JsonDict]:
+  def _batched_predict(
+      self, inputs: Iterable[ImmutableJsonDict], **kw
+  ) -> Iterator[JsonDict]:
     """Internal helper to predict using minibatches."""
     minibatch_size = self.max_minibatch_size(**kw)
     minibatch = []
@@ -237,7 +248,7 @@ class Model(metaclass=abc.ABCMeta):
 
   # TODO(b/171513556): remove this method.
   def predict_with_metadata(
-      self, indexed_inputs: Iterable[JsonDict], **kw
+      self, indexed_inputs: Iterable[ImmutableJsonDict], **kw
   ) -> Iterable[JsonDict]:
     """As predict(), but inputs are IndexedInput."""
     return self.predict((ex['data'] for ex in indexed_inputs), **kw)
@@ -269,11 +280,13 @@ class ModelWrapper(Model):
   def supports_concurrent_predictions(self):
     return self.wrapped.supports_concurrent_predictions
 
-  def predict_minibatch(self, inputs: list[JsonDict], **kw) -> list[JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[ImmutableJsonDict], **kw
+  ) -> list[JsonDict]:
     return self.wrapped.predict_minibatch(inputs, **kw)
 
   def predict(
-      self, inputs: Iterable[JsonDict], *args, **kw
+      self, inputs: Iterable[ImmutableJsonDict], *args, **kw
   ) -> Iterable[JsonDict]:
     return self.wrapped.predict(inputs, *args, **kw)
 
@@ -284,7 +297,7 @@ class ModelWrapper(Model):
   # b/171513556 will solve this problem by removing the need for any
   # *_with_metadata() methods.
   def predict_with_metadata(
-      self, indexed_inputs: Iterable[JsonDict], **kw
+      self, indexed_inputs: Iterable[ImmutableJsonDict], **kw
   ) -> Iterable[JsonDict]:
     return self.wrapped.predict_with_metadata(indexed_inputs, **kw)
 
@@ -304,7 +317,9 @@ class ModelWrapper(Model):
   def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     return self.wrapped.get_embedding_table()
 
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
+  def fit_transform_with_metadata(
+      self, indexed_inputs: list[ImmutableJsonDict]
+  ):
     return self.wrapped.fit_transform_with_metadata(indexed_inputs)
 
 
@@ -318,9 +333,9 @@ class BatchedRemoteModel(Model):
   to set up the threadpool.
   """
 
-  def __init__(self,
-               max_concurrent_requests: int = 4,
-               max_qps: Union[int, float] = 25):
+  def __init__(
+      self, max_concurrent_requests: int = 4, max_qps: Union[int, float] = 25
+  ):
     # Use a local thread pool for concurrent requests, so we can keep the server
     # busy during network transit time and local pre/post-processing.
     self._max_qps = max_qps
@@ -328,13 +343,14 @@ class BatchedRemoteModel(Model):
 
   def predict(
       self,
-      inputs: Iterable[JsonDict],
+      inputs: Iterable[ImmutableJsonDict],
       *unused_args,
       parallel=True,
       **unused_kwargs
   ) -> Iterator[JsonDict]:
     batches = utils.batch_iterator(
-        inputs, max_batch_size=self.max_minibatch_size())
+        inputs, max_batch_size=self.max_minibatch_size()
+    )
     batches = utils.rate_limit(batches, self._max_qps)
     if parallel:
       pred_batches = self._pool.imap(self.predict_minibatch, batches)
@@ -352,7 +368,9 @@ class BatchedRemoteModel(Model):
     return True
 
   @abc.abstractmethod
-  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[ImmutableJsonDict]
+  ) -> list[JsonDict]:
     """Run prediction on a batch of inputs.
 
     Subclass should implement this.

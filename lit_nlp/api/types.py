@@ -30,7 +30,7 @@ import inspect
 import math
 import numbers
 import os
-from typing import Any, Callable, get_args, get_origin, NewType, Optional, Sequence, Type, TypedDict, Union
+from typing import Any, Callable, get_args, get_origin, Mapping, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
 from etils import epath
@@ -38,6 +38,7 @@ from lit_nlp.api import dtypes
 import numpy as np
 
 JsonDict = dict[str, Any]
+ImmutableJsonDict = Mapping[str, Any]
 Input = NewType("Input", JsonDict)
 ExampleId = NewType("ExampleId", str)
 ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
@@ -48,7 +49,7 @@ NumericTypes = numbers.Number
 class InputMetadata(TypedDict):
   added: Optional[bool]
   # pylint: disable=invalid-name
-  parentId: Optional[ExampleId]   # Named to match TypeScript data structure
+  parentId: Optional[ExampleId]  # Named to match TypeScript data structure
   # pylint: enable=invalid-name
   source: Optional[str]
 
@@ -64,6 +65,7 @@ class IndexedInput(TypedDict):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class LitType(metaclass=abc.ABCMeta):
   """Base class for LIT Types."""
+
   required: bool = True  # for input fields, mark if required by the model.
   annotated: bool = False  # If this type is created from an Annotator.
   show_in_data_table = True  # If true, show this info the data table.
@@ -86,9 +88,15 @@ class LitType(metaclass=abc.ABCMeta):
     """
     pass
 
-  def validate_output(self, value: Any, output_spec: "Spec",
-                      output_dict: JsonDict, input_spec: "Spec",
-                      dataset_spec: "Spec", input_example: Input):
+  def validate_output(
+      self,
+      value: Any,
+      output_spec: "Spec",
+      output_dict: JsonDict,
+      input_spec: "Spec",
+      dataset_spec: "Spec",
+      input_example: Input,
+  ):
     """Validate a model output value against its spec and input example.
 
     Subtypes should override to validate a provided value and raise a ValueError
@@ -129,7 +137,7 @@ class LitType(metaclass=abc.ABCMeta):
     return d
 
   @staticmethod
-  def from_json(d: JsonDict):
+  def from_json(d: ImmutableJsonDict):
     """Used by serialize.py.
 
     Args:
@@ -143,11 +151,13 @@ class LitType(metaclass=abc.ABCMeta):
       NameError: If `d["__name__"]` is not a `LitType` subclass.
       TypeError: If `d["__name__"]` is not a string.
     """
+    d_copy = dict(d)
     try:
-      type_name = d.pop("__name__")
+      type_name = d_copy.pop("__name__")
     except KeyError as e:
-      raise KeyError("A __name__ property is required to parse a LitType from "
-                     "JSON.") from e
+      raise KeyError(
+          "A __name__ property is required to parse a LitType from JSON."
+      ) from e
 
     if not isinstance(type_name, str):
       raise TypeError("The value of __name__ must be a string.")
@@ -157,20 +167,22 @@ class LitType(metaclass=abc.ABCMeta):
     if cls is None or not issubclass(cls, base_cls):
       raise NameError(f"{type_name} is not a valid LitType.")
 
-    return cls(**d)
+    return cls(**d_copy)
+
 
 Spec = dict[str, LitType]
 
 # Attributes that should be treated as a reference to other fields.
 FIELD_REF_ATTRIBUTES = frozenset(
-    {"parent", "align", "align_in", "align_out", "grad_for"})
+    {"parent", "align", "align_in", "align_out", "grad_for"}
+)
 
 
 def _remap_leaf(leaf: LitType, keymap: dict[str, str]) -> LitType:
   """Remap any field references on a LitType."""
   d = attr.asdict(leaf)  # mutable
   d = {
-      k: (keymap.get(v, v) if k in FIELD_REF_ATTRIBUTES else v)
+      k: keymap.get(v, v) if k in FIELD_REF_ATTRIBUTES else v
       for k, v in d.items()
   }
   return leaf.__class__(**d)
@@ -200,6 +212,7 @@ class StringLitType(LitType):
   Mainly used for string inputs that have special formatting, and should only
   be edited manually.
   """
+
   default: str = ""
 
   def validate_input(self, value, spec: Spec, example: Input):
@@ -210,6 +223,7 @@ class StringLitType(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TextSegment(StringLitType):
   """Text input (untokenized), a single string."""
+
   pass
 
 
@@ -243,45 +257,66 @@ class PNGBytes(ImageBytes):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedText(TextSegment):
   """Generated (untokenized) text."""
+
   # Name of a TextSegment field to evaluate against
   parent: Optional[str] = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, str):
       raise ValueError(f"{value} is of type {type(value)}, expected str")
     if self.parent and not isinstance(input_spec[self.parent], TextSegment):
-      raise ValueError(f"parent field {self.parent} is of type "
-                       f"{type(self.parent)}, expected TextSegment")
+      raise ValueError(
+          f"parent field {self.parent} is of type "
+          f"{type(self.parent)}, expected TextSegment"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ListLitType(LitType):
   """List type."""
+
   default: Sequence[Any] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringCandidateList(ListLitType):
   """A list of (text, score) tuples."""
+
   default: ScoredTextCandidates = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, list):
       raise ValueError(f"{value} is not a list")
 
     for v in value:
-      if not (isinstance(v, tuple) and isinstance(v[0], str) and
-              (v[1] is None or isinstance(v[1], NumericTypes))):
+      if not (
+          isinstance(v, tuple)
+          and isinstance(v[0], str)
+          and (v[1] is None or isinstance(v[1], NumericTypes))
+      ):
         raise ValueError(f"{v} list item is not a (str, float) tuple)")
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedTextCandidates(_StringCandidateList):
   """Multiple candidates for GeneratedText."""
+
   # Name of a TextSegment field to evaluate against
   parent: Optional[str] = None
 
@@ -289,45 +324,64 @@ class GeneratedTextCandidates(_StringCandidateList):
   def top_text(value: ScoredTextCandidates) -> str:
     return value[0][0] if len(value) else ""
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     if self.parent and not isinstance(input_spec[self.parent], TextSegment):
-      raise ValueError(f"parent field {self.parent} is of type "
-                       f"{type(input_spec[self.parent])}, expected TextSegment")
+      raise ValueError(
+          f"parent field {self.parent} is of type "
+          f"{type(input_spec[self.parent])}, expected TextSegment"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ReferenceTexts(_StringCandidateList):
   """Multiple candidates for TextSegment."""
+
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TopTokens(_StringCandidateList):
   """Multiple tokens with weight."""
+
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URLLitType(TextSegment):
   """TextSegment that should be interpreted as a URL."""
+
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class GeneratedURL(TextSegment):
   """A URL that was generated as part of a model prediction."""
+
   align: Optional[str] = None  # name of a field in the model output
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
-    super().validate_output(value, output_spec, output_dict, input_spec,
-                            dataset_spec, input_example)
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
+    super().validate_output(
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     if self.align and self.align not in output_spec:
       raise ValueError(f"aligned field {self.align} is not in output_spec")
 
@@ -335,23 +389,27 @@ class GeneratedURL(TextSegment):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SearchQuery(TextSegment):
   """TextSegment that should be interpreted as a search query."""
+
   pass
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringList(ListLitType):
   """A list of strings."""
+
   default: Sequence[str] = []
 
   def validate_input(self, value, spec: Spec, example: Input):
     if not isinstance(value, list) or not all(
-        [isinstance(v, str) for v in value]):
+        [isinstance(v, str) for v in value]
+    ):
       raise ValueError(f"{value} is not a list of strings")
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Tokens(_StringList):
   """Tokenized text."""
+
   default: Sequence[str] = attr.Factory(list)
   # Name of a TextSegment field from the input
   # TODO(b/167617375): should we use 'align' here?
@@ -366,6 +424,7 @@ class TokenTopKPreds(ListLitType):
 
   The inner list should contain (word, probability) in descending order.
   """
+
   default: Sequence[ScoredTextCandidates] = None
 
   align: str = None  # name of a Tokens field in the model output
@@ -384,14 +443,20 @@ class TokenTopKPreds(ListLitType):
           raise ValueError(f"{scored_candidate} second element is not a num")
         if prev_val < scored_candidate[1]:
           raise ValueError(
-              "TokenTopKPreds candidates are not in descending order")
+              "TokenTopKPreds candidates are not in descending order"
+          )
         else:
           prev_val = scored_candidate[1]
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
-
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, list):
       raise ValueError(f"{value} is not a list of scored text candidates")
     for scored_candidates in value:
@@ -399,16 +464,18 @@ class TokenTopKPreds(ListLitType):
     if self.align and not isinstance(output_spec[self.align], Tokens):
       raise ValueError(
           f"aligned field {self.align} is {type(output_spec[self.align])}, "
-          "expected Tokens")
+          "expected Tokens"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Scalar(LitType):
   """Scalar value, a single float or int."""
+
   min_val: float = 0
   max_val: float = 1
   default: float = 0
-  step: float = .01
+  step: float = 0.01
 
   def validate_input(self, value, spec: Spec, example: Input):
     if not isinstance(value, NumericTypes):
@@ -418,17 +485,26 @@ class Scalar(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class RegressionScore(Scalar):
   """Regression score, a single float."""
+
   # name of a Scalar or RegressionScore field in input
   parent: Optional[str] = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, NumericTypes):
       raise ValueError(f"{value} is of type {type(value)}, expected a number")
     if self.parent and not isinstance(dataset_spec[self.parent], Scalar):
-      raise ValueError(f"parent field {self.parent} is of type "
-                       f"{type(self.parent)}, expected Scalar")
+      raise ValueError(
+          f"parent field {self.parent} is of type "
+          f"{type(self.parent)}, expected Scalar"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -457,32 +533,46 @@ class TokenScores(_FloatList):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class ReferenceScores(ListLitType):
   """Score of one or more target sequences."""
+
   default: Sequence[float] = None
 
   # name of a TextSegment or ReferenceTexts field in the input
   parent: Optional[str] = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if isinstance(value, list):
       if not all([isinstance(v, NumericTypes) for v in value]):
-        raise ValueError(f"{value} is of type {type(value)}, expected a list "
-                         "of numbers")
+        raise ValueError(
+            f"{value} is of type {type(value)}, expected a list of numbers"
+        )
     elif not isinstance(value, np.ndarray) or not np.issubdtype(
-        value.dtype, np.number):
-      raise ValueError(f"{value} is of type {type(value)}, expected a list of "
-                       "numbers")
+        value.dtype, np.number
+    ):
+      raise ValueError(
+          f"{value} is of type {type(value)}, expected a list of numbers"
+      )
     if self.parent and not isinstance(
-        input_spec[self.parent], (TextSegment, ReferenceTexts)):
-      raise ValueError(f"parent field {self.parent} is of type "
-                       f"{type(self.parent)}, expected TextSegment or "
-                       "ReferenceTexts")
+        input_spec[self.parent], (TextSegment, ReferenceTexts)
+    ):
+      raise ValueError(
+          f"parent field {self.parent} is of type "
+          f"{type(self.parent)}, expected TextSegment or "
+          "ReferenceTexts"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class CategoryLabel(StringLitType):
   """Category or class label, a single string."""
+
   # Optional vocabulary to specify allowed values.
   # If omitted, any value is accepted.
   vocab: Optional[Sequence[str]] = None  # label names
@@ -497,6 +587,7 @@ class CategoryLabel(StringLitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _Tensor(LitType):
   """A tensor type."""
+
   default: Sequence[float] = None
 
   def validate_input(self, value, spec: Spec, example: Input):
@@ -514,8 +605,8 @@ class _Tensor(LitType):
 
     Args:
       value: The tensor to validate.
-      ndim: Either a number of dimensions to validate that the value has, or
-        a list of dimensions any of which are valid for the value to have.
+      ndim: Either a number of dimensions to validate that the value has, or a
+        list of dimensions any of which are valid for the value to have.
 
     Raises:
       ValueError if validation fails.
@@ -527,13 +618,16 @@ class _Tensor(LitType):
         raise ValueError(f"{value} ndim is not one of {ndim}")
     else:
       if 1 not in ndim:
-        raise ValueError(f"{value} ndim is not 1. "
-                         "Use a numpy array for multidimensional arrays")
+        raise ValueError(
+            f"{value} ndim is not 1. "
+            "Use a numpy array for multidimensional arrays"
+        )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class MulticlassPreds(_Tensor):
   """Multiclass predicted probabilities, as <float>[num_labels]."""
+
   # Vocabulary is required here for decoding model output.
   # Usually this will match the vocabulary in the corresponding label field.
   vocab: Sequence[str]  # label names
@@ -552,14 +646,21 @@ class MulticlassPreds(_Tensor):
       if self.null_idx < 0 or self.null_idx >= self.num_labels:
         raise ValueError(f"null_idx {self.null_idx} is not in the vocab range")
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     self.validate_input(value, output_spec, input_example)
-    if self.parent and not isinstance(
-        dataset_spec[self.parent], CategoryLabel):
-      raise ValueError(f"parent field {self.parent} is of type "
-                       f"{type(self.parent)}, expected CategoryLabel")
+    if self.parent and not isinstance(dataset_spec[self.parent], CategoryLabel):
+      raise ValueError(
+          f"parent field {self.parent} is of type "
+          f"{type(self.parent)}, expected CategoryLabel"
+      )
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -568,6 +669,7 @@ class SequenceTags(_StringList):
 
   The data should be a list of string labels, one for each token.
   """
+
   align: str  # name of Tokens field
 
 
@@ -578,15 +680,23 @@ class SpanLabels(ListLitType):
   Span labels can cover more than one token, may not cover all tokens in the
   sentence, and may overlap with each other.
   """
+
   default: Sequence[dtypes.SpanLabel] = None
   align: str  # name of Tokens field
   parent: Optional[str] = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, list) or not all(
-        [isinstance(v, dtypes.SpanLabel) for v in value]):
+        [isinstance(v, dtypes.SpanLabel) for v in value]
+    ):
       raise ValueError(f"{value} is not a list of SpanLabels")
     if not isinstance(output_spec[self.align], Tokens):
       raise ValueError(f"{self.align} is not a Tokens field")
@@ -602,14 +712,22 @@ class EdgeLabels(ListLitType):
   https://github.com/nyu-mll/jiant/tree/master/probing#data-format for more
   details.
   """
+
   default: Sequence[dtypes.EdgeLabel] = None
   align: str  # name of Tokens field
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, list) or not all(
-        [isinstance(v, dtypes.EdgeLabel) for v in value]):
+        [isinstance(v, dtypes.EdgeLabel) for v in value]
+    ):
       raise ValueError(f"{value} is not a list of EdgeLabel")
     if not isinstance(output_spec[self.align], Tokens):
       raise ValueError(f"{self.align} is not a Tokens field")
@@ -629,16 +747,25 @@ class MultiSegmentAnnotations(ListLitType):
   TODO(lit-dev): by default, spans are treated as bytes in this context.
   Make this configurable, if some spans need to refer to tokens instead.
   """
+
   default: Sequence[dtypes.AnnotationCluster] = None
   exclusive: bool = False  # if true, treat as candidate list
   background: bool = False  # if true, don't emphasize in visualization
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     if not isinstance(value, list) or not all(
-        [isinstance(v, dtypes.AnnotationCluster) for v in value]):
+        [isinstance(v, dtypes.AnnotationCluster) for v in value]
+    ):
       raise ValueError(f"{value} is not a list of AnnotationCluster")
+
 
 ##
 # Model internals, for interpretation.
@@ -648,39 +775,59 @@ class MultiSegmentAnnotations(ListLitType):
 class Embeddings(_Tensor):
   """Embeddings or model activations, as fixed-length <float>[emb_dim]."""
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
-    super().validate_output(value, output_spec, output_dict, input_spec,
-                            dataset_spec, input_example)
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
+    super().validate_output(
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 1)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _GradientsBase(_Tensor):
   """Shared gradient attributes."""
+
   align: Optional[str] = None  # name of a Tokens field
   grad_for: Optional[str] = None  # name of Embeddings field
   # Name of the field in the input that can be used to specify the target class
   # for the gradients.
   grad_target_field_key: Optional[str] = None
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     if self.align is not None:
-      align_entry = (output_spec[self.align] if self.align in output_spec
-                     else input_spec[self.align])
+      align_entry = (
+          output_spec[self.align]
+          if self.align in output_spec
+          else input_spec[self.align]
+      )
       if not isinstance(align_entry, (Tokens, ImageBytes)):
         raise ValueError(f"{self.align} is not a Tokens or ImageBytes field")
     if self.grad_for is not None and not isinstance(
-        output_spec[self.grad_for], (Embeddings, TokenEmbeddings)):
+        output_spec[self.grad_for], (Embeddings, TokenEmbeddings)
+    ):
       raise ValueError(f"{self.grad_for} is not a Embeddings field")
-    if (self.grad_target_field_key is not None and
-        self.grad_target_field_key not in input_spec):
+    if (
+        self.grad_target_field_key is not None
+        and self.grad_target_field_key not in input_spec
+    ):
       raise ValueError(f"{self.grad_target_field_key} is not in input_spec")
 
 
@@ -688,43 +835,64 @@ class _GradientsBase(_Tensor):
 class Gradients(_GradientsBase):
   """1D gradients with respect to embeddings."""
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 1)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _InfluenceEncodings(_Tensor):
   """A single vector of <float>[enc_dim]."""
+
   grad_target: Optional[str] = None  # class for computing gradients (string)
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 1)
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(_Tensor):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
+
   align: Optional[str] = None  # name of a Tokens field
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 2)
     if self.align is not None and not isinstance(
-        output_spec[self.align], Tokens):
+        output_spec[self.align], Tokens
+    ):
       raise ValueError(f"{self.align} is not a Tokens field")
 
 
@@ -732,12 +900,18 @@ class TokenEmbeddings(_Tensor):
 class TokenGradients(_GradientsBase):
   """Gradients for per-token inputs, as <float>[num_tokens, emb_dim]."""
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 2)
 
 
@@ -745,34 +919,49 @@ class TokenGradients(_GradientsBase):
 class ImageGradients(_GradientsBase):
   """Gradients with respect to per-pixel inputs, as a multidimensional array."""
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, [2, 3])
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class AttentionHeads(_Tensor):
   """One or more attention heads, as <float>[num_heads, num_tokens, num_tokens]."""
+
   # input and output Tokens fields; for self-attention these can be the same
   align_in: str
   align_out: str
 
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
+  def validate_output(
+      self,
+      value,
+      output_spec: Spec,
+      output_dict: JsonDict,
+      input_spec: Spec,
+      dataset_spec: Spec,
+      input_example: Input,
+  ):
     super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
+        value, output_spec, output_dict, input_spec, dataset_spec, input_example
+    )
     self.validate_ndim(value, 3)
     if self.align_in is None or not isinstance(
-        output_spec[self.align_in], Tokens):
+        output_spec[self.align_in], Tokens
+    ):
       raise ValueError(f"{self.align_in} is not a Tokens field")
     if self.align_out is None or not isinstance(
-        output_spec[self.align_out], Tokens):
+        output_spec[self.align_out], Tokens
+    ):
       raise ValueError(f"{self.align_out} is not a Tokens field")
 
 
@@ -782,6 +971,7 @@ class SubwordOffsets(ListLitType):
 
   offsets[i] should be the index of the first wordpiece for input token i.
   """
+
   default: Sequence[int] = None
   align_in: str  # name of field in data spec
   align_out: str  # name of field in model output spec
@@ -790,6 +980,7 @@ class SubwordOffsets(ListLitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SparseMultilabel(_StringList):
   """Sparse multi-label represented as a list of strings."""
+
   vocab: Optional[Sequence[str]] = None  # label names
   separator: str = ","  # Used for display purposes.
 
@@ -800,6 +991,7 @@ class SparseMultilabelPreds(_StringCandidateList):
 
   The tuples are of the label and the score.
   """
+
   default: ScoredTextCandidates = None
   vocab: Optional[Sequence[str]] = None  # label names
   parent: Optional[str] = None
@@ -812,6 +1004,7 @@ class FieldMatcher(LitType):
   The front-end will perform spec matching and fill in the vocab field
   accordingly.
   """
+
   spec: str  # which spec to check, 'dataset', 'input', or 'output'.
   types: Union[str, Sequence[str]]  # types of LitType to match in the spec.
   vocab: Optional[Sequence[str]] = None  # names matched from the spec.
@@ -823,6 +1016,7 @@ class SingleFieldMatcher(FieldMatcher):
 
   UI will materialize this to a dropdown-list.
   """
+
   default: str = None
 
 
@@ -833,6 +1027,7 @@ class MultiFieldMatcher(FieldMatcher):
   UI will materialize this to multiple checkboxes. Use this when the user needs
   to pick more than one field in UI.
   """
+
   default: Sequence[str] = []  # default names of selected items.
   select_all: bool = False  # Select all by default (overriddes default).
 
@@ -840,6 +1035,7 @@ class MultiFieldMatcher(FieldMatcher):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Salience(LitType):
   """Metadata about a returned salience map."""
+
   autorun: bool = False  # If the saliency technique is automatically run.
   signed: bool  # If the returned values are signed.
 
@@ -847,12 +1043,14 @@ class Salience(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenSalience(Salience):
   """Metadata about a returned token salience map."""
+
   default: dtypes.TokenSalience = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class FeatureSalience(Salience):
   """Metadata about a returned feature salience map."""
+
   default: dtypes.FeatureSalience = None
 
 
@@ -863,18 +1061,21 @@ class ImageSalience(Salience):
   The data is returned as an image in the base64 URL encoded format, e.g.,
   data:image/jpg;base64,w4J3k1Bfa...
   """
+
   signed: bool = False  # If the returned values are signed.
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SequenceSalience(Salience):
   """Metadata about a returned sequence salience map."""
+
   default: dtypes.SequenceSalienceMap = None
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class BooleanLitType(LitType):
   """Boolean value."""
+
   default: bool = False
 
   def validate_input(self, value, spec, example: Input):
@@ -889,6 +1090,7 @@ class CurveDataPoints(LitType):
   A list of tuples where the first and second elements of the tuple are the
   x and y coordinates of the corresponding curve point respectively.
   """
+
   pass
 
 
@@ -901,12 +1103,14 @@ class InfluentialExamples(LitType):
 
   This describes a generator component; values are Sequence[Sequence[JsonDict]].
   """
+
   pass
 
 
 @enum.unique
 class MetricBestValue(dtypes.EnumSerializableAsValues, enum.Enum):
   """The method to use to determine the best value for a Metric."""
+
   HIGHEST = "highest"
   LOWEST = "lowest"
   NONE = "none"
@@ -916,6 +1120,7 @@ class MetricBestValue(dtypes.EnumSerializableAsValues, enum.Enum):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class MetricResult(LitType):
   """Score returned from the computation of a Metric."""
+
   default: float = 0
   description: str = ""
   best_value: MetricBestValue = MetricBestValue.NONE
@@ -1017,8 +1222,9 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
       is not a `Callable`.
   """
   if not callable(func):
-    raise TypeError("Attempted to infer a spec for a non-'Callable', "
-                    f"'{type(func)}'.")
+    raise TypeError(
+        f"Attempted to infer a spec for a non-'Callable', '{type(func)}'."
+    )
 
   signature = inspect.signature(func)
   spec: Spec = {}
@@ -1029,16 +1235,20 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
     return is_union and can_be_none
 
   for param in signature.parameters.values():
-    if (param.name == "self" or
-        param.kind is param.VAR_KEYWORD or
-        param.kind is param.VAR_POSITIONAL):
+    if (
+        param.name == "self"
+        or param.kind is param.VAR_KEYWORD
+        or param.kind is param.VAR_POSITIONAL
+    ):
       continue  # self, *args, and **kwargs are not returned in inferred Specs.
 
     # Otherwise, attempt to infer a type from the Paramater object.
     if param.annotation is param.empty and param.default is param.empty:
-      raise TypeError(f"Unable to infer a type for parameter '{param.name}' "
-                      f"of '{func.__name__}'. Please add a type hint or "
-                      "default value, or implement a Spec literal.")
+      raise TypeError(
+          f"Unable to infer a type for parameter '{param.name}' "
+          f"of '{func.__name__}'. Please add a type hint or "
+          "default value, or implement a Spec literal."
+      )
 
     if param.annotation is param.empty:
       param_type = type(param.default)
@@ -1054,9 +1264,11 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
         lit_type_params["default"] = param.default
       spec[param.name] = lit_type_cstr(**lit_type_params)
     else:
-      raise TypeError(f"Unsupported type '{param_type}' for parameter "
-                      f"'{param.name}' of '{func.__name__}'. If possible "
-                      "(e.g., this parameter is Optional), please implement a "
-                      "spec literal instead of using inferencing.")
+      raise TypeError(
+          f"Unsupported type '{param_type}' for parameter "
+          f"'{param.name}' of '{func.__name__}'. If possible "
+          "(e.g., this parameter is Optional), please implement a "
+          "spec literal instead of using inferencing."
+      )
 
   return spec

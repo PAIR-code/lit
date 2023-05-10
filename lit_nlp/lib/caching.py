@@ -28,6 +28,7 @@ from lit_nlp.api import types
 from lit_nlp.lib import serialize
 
 JsonDict = types.JsonDict
+ImmutableJsonDict = types.ImmutableJsonDict
 Input = types.Input
 IndexedInput = types.IndexedInput
 
@@ -231,7 +232,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
   ##
   # For internal use
   def fit_transform_with_metadata(self,
-                                  indexed_inputs: list[JsonDict],
+                                  indexed_inputs: list[ImmutableJsonDict],
                                   dataset_name: str = ""):
     """For use with UMAP and other preprocessing transforms."""
     outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
@@ -266,10 +267,10 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   def _predict_with_metadata(
       self,
-      indexed_inputs: list[JsonDict],
+      indexed_inputs: list[ImmutableJsonDict],
       dataset_name: Optional[str] = None,
       progress_indicator: Optional[ProgressIndicator] = lambda x: x,
-      **kw) -> list[JsonDict]:
+      **kw) -> list[ImmutableJsonDict]:
     """As predict(), but inputs are IndexedInput."""
     # TODO(lit-dev): consider moving this to example level
     # (null keys skip cache), and removing this codepath.
