@@ -92,43 +92,6 @@ class Interpreter(metaclass=abc.ABCMeta):
     return {}
 
 
-# TODO(b/254832560): Remove ComponentGroup class after promoting Metrics.
-class ComponentGroup(Interpreter):
-  """Convenience class to package a group of components together."""
-
-  def __init__(self, subcomponents: dict[str, Interpreter]):
-    self._subcomponents = subcomponents
-
-  def meta_spec(self) -> types.Spec:
-    spec: types.Spec = {}
-    for component_name, component in self._subcomponents.items():
-      for field_name, field_spec in component.meta_spec().items():
-        spec[f'{component_name}: {field_name}'] = field_spec
-    return spec
-
-  def run_with_metadata(
-      self,
-      indexed_inputs: Sequence[IndexedInput],
-      model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> dict[str, JsonDict]:
-    """Run this component, given a model and input(s)."""
-    if model_outputs is None:
-      raise ValueError('model_outputs cannot be None')
-
-    if len(model_outputs) != len(indexed_inputs):
-      raise ValueError('indexed_inputs and model_outputs must be the same size,'
-                       f' received {len(indexed_inputs)} indexed_inputs and '
-                       f'{len(model_outputs)} model_outputs')
-
-    ret = {}
-    for name, component in self._subcomponents.items():
-      ret[name] = component.run_with_metadata(indexed_inputs, model, dataset,
-                                              model_outputs, config)
-    return ret
-
-
 class Generator(Interpreter):
   """Base class for LIT generators."""
 
