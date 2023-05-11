@@ -50,6 +50,7 @@ class InputMetadata(TypedDict):
   # pylint: disable=invalid-name
   parentId: Optional[ExampleId]   # Named to match TypeScript data structure
   # pylint: enable=invalid-name
+  score: Optional[float]
   source: Optional[str]
 
 

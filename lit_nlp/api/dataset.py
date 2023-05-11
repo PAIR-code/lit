@@ -230,7 +230,8 @@ class IndexedDataset(Dataset):
         IndexedInput(
             data=example,
             id=self.id_fn(example),
-            meta=types.InputMetadata(added=None, parentId=None, source=None))
+            meta=types.InputMetadata(
+                added=None, parentId=None, score=None, source=None))
         for example in examples
     ]
     # pylint: enable=g-complex-comprehension

@@ -321,7 +321,8 @@ class LitApp(object):
     assert 'inputs' in data, 'Data dict does not contain "inputs" field'
     data_with_metadata = [
         {'data': d,
-         'meta': {'added': True, 'source': 'POST', 'parentId': None}}
+         'meta': {
+             'added': True, 'source': 'POST', 'parentId': None, 'score': None}}
         for d in data['inputs']]
     annotation_input = {'inputs': data_with_metadata}
     annotated_data = self._annotate_new_data(annotation_input, dataset_name)
@@ -422,9 +423,10 @@ class LitApp(object):
     generator_name = generator
     generator: lit_components.Generator = self._generators[generator_name]
     dataset = self._datasets[dataset_name]
+    config = data.get('config')
     # Nested list, containing generated examples from each input.
     all_generated: list[list[Input]] = generator.run_with_metadata(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
-        data['inputs'], self._models[model], dataset, config=data.get('config'))
+        data['inputs'], self._models[model], dataset, config=config)
 
     # Annotate datapoints
     def annotate_generated(datapoints):
@@ -433,21 +435,44 @@ class LitApp(object):
       annotated_dataset = self._run_annotators(dataset_to_annotate)
       return annotated_dataset.examples
 
-    annotated_generated = [
+    all_generated_annotated = [
         annotate_generated(generated) for generated in all_generated
     ]
 
     # Add metadata.
+    # Extract scores from data and store them temporaily before moving to meta,
+    # in order to create hash-ids without the score field.
+    if config.get('include_score') and config.get('score_field_name'):
+      scores_for_generated = []
+      for generated in all_generated_annotated:
+        scores = []
+        for ex in generated:
+          if config.get('score_field_name') in ex:
+            scores.append(ex.pop(config.get('score_field_name')))
+        scores_for_generated.append(scores)
+
+    # Create IndexedInput's.
     all_generated_indexed: list[list[IndexedInput]] = [
-        dataset.index_inputs(generated) for generated in annotated_generated
+        dataset.index_inputs(generated) for generated in all_generated_annotated
     ]
-    for parent, indexed_generated in zip(data['inputs'], all_generated_indexed):
-      for generated in indexed_generated:
-        generated['meta'].update({
+
+    # Add the scores into meta.
+    if config.get('include_score') and config.get('score_field_name'):
+      for scores, examples in zip(scores_for_generated, all_generated_indexed):
+        for score, ex in zip(scores, examples):
+          ex['meta'].update({
+              'score': score
+          })
+
+    # Add more information into meta.
+    for parent, examples in zip(data['inputs'], all_generated_indexed):
+      for ex in examples:
+        ex['meta'].update({
             'parentId': parent['id'],
             'source': generator_name,
             'added': True,
         })
+
     return all_generated_indexed
 
   def _get_interpretations(

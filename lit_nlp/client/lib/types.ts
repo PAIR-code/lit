@@ -114,7 +114,7 @@ export interface Input {
 export interface IndexedInput {
   id: string;
   data: Input;
-  meta: {source?: string; added?: boolean; parentId?: string;};
+  meta: {source?: string; added?: boolean; parentId?: string; score?: number;};
 }
 
 /**
