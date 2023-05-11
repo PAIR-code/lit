@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-import {LitTypeTypesList} from '../lib/lit_types';
-import {CallConfig, IndexedInput, LitMetadata, Preds} from '../lib/types';
-import {deserializeLitTypesInLitMetadata, getTypeNames} from '../lib/utils';
+import {LitTypeTypesList, LIT_TYPES_REGISTRY} from '../lib/lit_types';
+import {CallConfig, IndexedInput, LitMetadata, Preds, SerializedPyClass} from '../lib/types';
+import {createLitType, getTypeNames} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {StatusService} from './status_service';
@@ -108,9 +108,8 @@ export class ApiService extends LitService {
    * Send a request to the server to get dataset info.
    */
   async getInfo(): Promise<LitMetadata> {
-    const loadMessage = 'Loading metadata';
-    return this.queryServer<LitMetadata>('/get_info', {}, [], loadMessage)
-        .then((metadata) => deserializeLitTypesInLitMetadata(metadata));
+    return this.queryServer<LitMetadata>(
+        '/get_info', {}, [], 'Loading metadata');
   }
 
   /**
@@ -322,16 +321,39 @@ export class ApiService extends LitService {
     const body = JSON.stringify({inputs: processedInputs, config});
     try {
       const res = await fetch(url, {method: 'POST', body});
-      // If there is tsserver error, the response contains text (not json).
-      if (!res.ok) {
-        const text = await res.text();
-        throw (new Error(text));
-      }
-      const json = await res.json();
+      // All responses are parsed as text so that we can use the custom reviver
+      // with JSON.parse() below. See more about this parameter at:
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#the_reviver_parameter
+      const text = await res.text();
+      if (!res.ok) {throw (new Error(text));}
+
+      // This reviver converts serialized LitType instances (indicated by the
+      // value of __class__)  to their parallel TypeScript classes. All other
+      // values (e.g., np.adarrys, dtypes, etc.; see ../../lib/serialize.py) are
+      // returned as-is. If the value of __name__ does not correspond to a
+      // @registered LitType subclass, an Error is thrown.
+      const json = JSON.parse(text, (unusedKey, value) => {
+        if (value != null &&
+            typeof value === 'object' &&
+            Object.hasOwn(value, '__class__') &&
+            Object.hasOwn(value, '__name__')) {
+          const serialized = value as SerializedPyClass;
+          if (serialized.__class__ !== 'LitType') return value;
+          const litTypeCls = LIT_TYPES_REGISTRY[serialized.__name__];
+          if (litTypeCls == null) {
+            throw new Error(`Attempted to revive an unknown LitType '${
+                serialized.__name__}' with value:\n\n${
+                JSON.stringify(value, null, '  ')}`);
+          }
+          return createLitType(litTypeCls, value as {});
+        } else {
+          return value;
+        }
+      });
       finished();
       // When a call finishes, clear any previous error of the same call.
       this.statusService.removeError(url);
-      return json;
+      return json as T;
       // tslint:disable-next-line:no-any
     } catch (err: any) {
       finished();

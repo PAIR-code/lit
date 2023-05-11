@@ -37,7 +37,7 @@ import {action, computed, observable} from 'mobx';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StringLitType} from '../lib/lit_types';
 import {CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
-import {deserializeLitTypesInLitMetadata, getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
+import {getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
 import {LitInputField} from '../elements/lit_input_field';
 import {resolveModuleConfig} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
@@ -479,7 +479,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
       if (loaderSpec != null) {
         this.loadingCallConfig = initializeCallConfig(loaderSpec);
       }
-      this.appState.metadata = deserializeLitTypesInLitMetadata(metadata);
+      this.appState.metadata = metadata;
       this.appState.currentModels.push(modelName);
       this.initializeLocalState();
       // this.status = 'New model initialized and added auccessfully.';
@@ -646,7 +646,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
       if (loaderSpec != null) {
         this.loadingCallConfig = initializeCallConfig(loaderSpec);
       }
-      this.appState.metadata = deserializeLitTypesInLitMetadata(metadata);
+      this.appState.metadata = metadata;
       this.selectedDataset = datasetName;
     };
 

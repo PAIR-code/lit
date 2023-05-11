@@ -22,7 +22,6 @@
 import 'jasmine';
 
 import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
-import {mockMetadata, mockSerializedMetadata} from './testing_utils';
 import {CallConfig, Spec} from '../lib/types';
 
 import * as utils from './utils';
@@ -210,42 +209,6 @@ describe('createLitType test', () => {
   });
 });
 
-describe('deserializeLitTypesInSpec test', () => {
-  const testSpec = {
-    'probabilities': {
-      '__name__': 'MulticlassPreds',
-      'required': true,
-      'vocab': ['0', '1'],
-      'null_idx': 0,
-      'parent': 'label'
-    },
-    'pooled_embs': {
-      '__name__': 'Embeddings',
-      'required': true
-    }
-  };
-
-  it('returns serialized littypes', () => {
-    expect(testSpec['probabilities'] instanceof MulticlassPreds)
-        .toBe(false);
-    const result = utils.deserializeLitTypesInSpec(testSpec);
-    expect(result['probabilities'])
-        .toEqual(utils.createLitType(
-            MulticlassPreds,
-            {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
-    expect(result['probabilities'] instanceof MulticlassPreds)
-        .toBe(true);
-  });
-});
-
-describe('deserializeLitTypesInLitMetadata test', () => {
-  it('deserializes lit metadata', () => {
-    const result =
-        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
-    expect(result).toEqual(mockMetadata);
-  });
-});
-
 describe('cloneSpec test', () => {
   const testSpec = {
     'probabilities': utils.createLitType(MulticlassPreds, {
@@ -259,7 +222,7 @@ describe('cloneSpec test', () => {
   it('deeply copies', () => {
     const testSpec2 = utils.cloneSpec(testSpec);
 
-    const oldProbs = testSpec['probabilities'];
+    const oldProbs = testSpec.probabilities;
     const newProbs = testSpec2['probabilities'] as MulticlassPreds;
 
     newProbs.null_idx = 1;

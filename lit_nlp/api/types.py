@@ -124,6 +124,7 @@ class LitType(metaclass=abc.ABCMeta):
   def to_json(self) -> JsonDict:
     """Used by serialize.py."""
     d = attr.asdict(self)
+    d["__class__"] = "LitType"
     d["__name__"] = self.__class__.__name__
     return d
 

@@ -28,7 +28,7 @@ import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
 import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
-import {CallConfig, FacetMap, LitMetadata, ModelInfoMap, SerializedComponentInfoMap, SerializedDatasetInfo, SerializedLitMetadata, SerializedModelInfo, SerializedSpec, Spec} from './types';
+import {CallConfig, FacetMap, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -135,27 +135,14 @@ export function createLitType<T>(
   for (const key in constructorParams) {
     if (key in genericLitType) {
       genericLitType[key] = constructorParams[key];
-    } else if (key !== '__name__') {  // Ignore __name__ property.
+    } else if (['__class__', '__name__'].indexOf(key) === -1) {
+      // Ignore the __class__ and __name__ props. Throw errors for the rest.
       throw new Error(`Attempted to set unrecognized property ${key} on ${
           genericLitType.name}.`);
     }
   }
 
   return genericLitType as T;
-}
-
-/**
- * Converts serialized LitTypes within a Spec into LitType instances.
- */
-export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec):
-    Spec {
-  const typedSpec: Spec = {};
-  for (const key of Object.keys(serializedSpec)) {
-    typedSpec[key] = createLitType(
-        LIT_TYPES_REGISTRY[serializedSpec[key].__name__],
-        serializedSpec[key] as {});
-  }
-  return typedSpec;
 }
 
 /**
@@ -168,52 +155,6 @@ export function cloneSpec(spec: Spec): Spec {
         createLitType(LIT_TYPES_REGISTRY[fieldSpec.name], fieldSpec as {});
   }
   return newSpec;
-}
-
-function deserializeComponentInfoMap(infoMap: SerializedComponentInfoMap) {
-  for (const info of Object.values(infoMap)) {
-    info.configSpec = deserializeLitTypesInSpec(info.configSpec);
-    info.metaSpec = deserializeLitTypesInSpec(info.metaSpec);
-  }
-}
-
-/**
- * Converts serialized LitTypes within the LitMetadata into LitType instances.
- */
-// TODO(b/267200697): Explore optimizing this function using the reviver
-// parameter of JSON.parse().
-export function deserializeLitTypesInLitMetadata(
-    metadata: SerializedLitMetadata): LitMetadata {
-
-  for (const info of Object.values(metadata.models)) {
-    const {spec} = info as SerializedModelInfo;
-    spec.input = deserializeLitTypesInSpec(spec.input as SerializedSpec);
-    spec.output = deserializeLitTypesInSpec(spec.output as SerializedSpec);
-  }
-
-  for (const info of Object.values(metadata.datasets)) {
-    const typedInfo = info as SerializedDatasetInfo;
-    typedInfo.spec =
-        deserializeLitTypesInSpec(typedInfo.spec as SerializedSpec);
-  }
-
-  deserializeComponentInfoMap(metadata.generators);
-  deserializeComponentInfoMap(metadata.interpreters);
-  deserializeComponentInfoMap(metadata.metrics);
-
-  for (const [name, spec] of Object.entries(metadata.initSpecs.datasets)) {
-    if (spec == null) continue;
-    metadata.initSpecs.datasets[name] =
-        deserializeLitTypesInSpec(spec as SerializedSpec);
-  }
-
-  for (const [name, spec] of Object.entries(metadata.initSpecs.models)) {
-    if (spec == null) continue;
-    metadata.initSpecs.models[name] =
-        deserializeLitTypesInSpec(spec as SerializedSpec);
-  }
-
-  return metadata;
 }
 
 type CandidateLitTypeTypesList = (typeof LitType)|LitTypeTypesList;

@@ -27,15 +27,13 @@ import {chunkWords, isLitSubtype} from './utils';
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
-export interface Spec {
-  [key: string]: LitType;
+export interface SerializedPyClass {
+  __class__: string;  // Named for Python keys
+  __name__: string;   // Named for Python keys
 }
 
-/** Serialized Spec data returned from the backend. */
-export interface SerializedSpec {
-  // All LitTypes have a `__name__` field; we deserialize and cast the
-  // LitType before accessing additional fields.
-  [key: string]: {__name__: string};
+export interface Spec {
+  [key: string]: LitType;
 }
 
 interface InitSpecMap {
@@ -56,20 +54,8 @@ export interface DatasetInfo {
   description?: string;
 }
 
-export type SerializedDatasetInfo  = {
-  // tslint:disable-next-line:no-any
-  [K in keyof DatasetInfo]: any;
-};
-
 export interface ComponentInfoMap {
   [name: string]: ComponentInfo;
-}
-
-export interface SerializedComponentInfoMap {
-  [name: string]: {
-    // tslint:disable-next-line:no-any
-    [K in keyof ComponentInfo]: any;
-  };
 }
 
 export interface DatasetInfoMap {
@@ -95,11 +81,6 @@ export interface ModelInfo {
   description?: string;
 }
 
-export type SerializedModelInfo  = {
-  // tslint:disable-next-line:no-any
-  [K in keyof ModelInfo]: any;
-};
-
 export interface ModelInfoMap {
   [modelName: string]: ModelInfo;
 }
@@ -124,14 +105,6 @@ export interface LitMetadata {
     models: InitSpecMap;
   };
 }
-
-/**
- * Serialized LitMetadata returned by the backend.
- */
-export type SerializedLitMetadata = {
-  // tslint:disable-next-line:no-any
-  [K in keyof LitMetadata]: any;
-};
 
 export interface Input {
   // tslint:disable-next-line:no-any

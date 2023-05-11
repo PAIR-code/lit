@@ -34,6 +34,7 @@ class SerializeTest(parameterized.TestCase):
               "annotated": False,
               "default": "",
               "vocab": ["0", "1"],
+              "__class__": "LitType",
               "__name__": "CategoryLabel",
           },
           expected_type=types.CategoryLabel,
