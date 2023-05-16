@@ -38,7 +38,7 @@ class PerFieldAnnotator(lit_components.Annotator):
 
   def annotate(self, inputs: List[JsonDict],
                dataset: lit_dataset.Dataset,
-               dataset_spec_to_annotate: Optional[types.Spec] = None):
+               dataset_spec_to_annotate: Optional[types.Spec] = None):  # pytype: disable=signature-mismatch
     if len(self._annotator_model.input_spec().items()) != 1:
       raise ValueError('Annotator model provided to PerFieldAnnotator does not '
                        'operate on a single field')
