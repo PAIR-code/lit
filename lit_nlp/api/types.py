@@ -30,14 +30,14 @@ import inspect
 import math
 import numbers
 import os
-from typing import Any, Callable, get_args, get_origin, NewType, Optional, Sequence, Type, TypedDict, Union
+from typing import Any, Callable, get_args, get_origin, Mapping, NewType, Optional, Sequence, Type, TypedDict, Union
 
 import attr
 from etils import epath
 from lit_nlp.api import dtypes
 import numpy as np
 
-JsonDict = dict[str, Any]
+JsonDict = Mapping[str, Any]
 Input = NewType("Input", JsonDict)
 ExampleId = NewType("ExampleId", str)
 ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
