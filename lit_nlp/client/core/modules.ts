@@ -30,7 +30,7 @@ import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {LitRenderConfig, LitTabGroupConfig, RenderConfig} from '../services/modules_service';
-import {ModulesService} from '../services/services';
+import {AppState, ModulesService} from '../services/services';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
@@ -69,6 +69,7 @@ interface LayoutWidths {
  */
 @customElement('lit-modules')
 export class LitModules extends ReactiveElement {
+  private readonly appState = app.getService(AppState);
   private readonly modulesService = app.getService(ModulesService);
 
   /** Percentage of .outer-container's height given to the upper tab group. */
@@ -171,6 +172,18 @@ export class LitModules extends ReactiveElement {
     }
   }
 
+  numColsForConfig(config: RenderConfig): number {
+    const base = config.moduleType.numCols;
+    // Special case: if we are replicating a module horizontally for model SxS,
+    // give it proportionally more space.
+    // TODO(b/283175238): implement for datapoint comparison as well?
+    if (config.moduleType.duplicateAsRow &&
+        config.moduleType.duplicateForModelComparison) {
+      return Math.max(1, this.appState.currentModels.length) * base;
+    }
+    return base;
+  }
+
   // Calculate widths of all module groups in a single panel.
   calculatePanelWidths(panelName: string, panelConfig: RenderConfig[][],
                        layoutWidths: LayoutWidths) {
@@ -192,7 +205,7 @@ export class LitModules extends ReactiveElement {
     // groups.
     const totalCols = panelConfig.reduce((agg, group) => {
       if (this.modulesService.isModuleGroupHidden(group[0])) return agg;
-      const numColsList = group.map(config => config.moduleType.numCols);
+      const numColsList = group.map(config => this.numColsForConfig(config));
       return agg + Math.max(...numColsList);
     }, 0);
 
@@ -201,7 +214,8 @@ export class LitModules extends ReactiveElement {
     let totalNonMinimizedWidth = 0;
     for (let i = 0; i < panelConfig.length; i++) {
       const configGroup = panelConfig[i];
-      const numColsList = configGroup.map(config => config.moduleType.numCols);
+      const numColsList =
+          configGroup.map(config => this.numColsForConfig(config));
       const widthPct = Math.max(...numColsList) / totalCols;
       layoutWidths[panelName][i] = Math.round(widthPct * widthAvailable);
       if (!this.modulesService.isModuleGroupHidden(configGroup[0])) {
