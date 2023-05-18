@@ -209,6 +209,8 @@ export class DataTableModule extends LitModule {
               .map(
                   k => formatForTable(
                       this.dataService.getVal(d.id, k.name),
+                      // TODO(b/283282667): Get field spec from Dataset or Model
+                      // as appropriate for this column.
                       this.dataSpec[k.name]));
       return dataEntries;
     });

@@ -507,7 +507,7 @@ export function formatForDisplay(
     return Array.isArray(input) ? `<float>[${input.length}]` : '';
   }
   if (fieldSpec instanceof GeneratedTextCandidates) {
-    return formatScoredTextCandidatesList(input as ScoredTextCandidates[]);
+    return formatScoredTextCandidates(input as ScoredTextCandidates);
   }
 
   // Generic data, based on type of input.
