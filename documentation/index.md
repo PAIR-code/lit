@@ -4,7 +4,7 @@
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
-Welcome to 🔥LIT (Learning Interpretability Tool, formerly the Language
+Welcome to 🔥LIT, the Learning Interpretability Tool (formerly the Language
 Interpretability Tool)!
 
 If you want to jump in and start playing with the LIT UI, check out
