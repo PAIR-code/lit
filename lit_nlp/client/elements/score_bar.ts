@@ -32,6 +32,7 @@ export class ScoreBar extends LitElement {
   @property({type: Number}) score = 0;
   // Maximum score to be displayed by the score bar.
   @property({type: Number}) maxScore = 1;
+  @property({type: Number}) scorePrecision = 3;
 
   static override get styles() {
     return css`
@@ -66,7 +67,7 @@ export class ScoreBar extends LitElement {
     return html`
         <div class='holder'>
           <div class='bar' style='${styleMap(barStyle)}'></div>
-          <div class='text'>${this.score.toFixed(3)}</div>
+          <div class='text'>${this.score.toFixed(this.scorePrecision)}</div>
         </div>`;
   }
 }
