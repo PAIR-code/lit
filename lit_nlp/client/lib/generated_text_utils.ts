@@ -21,7 +21,7 @@
 import difflib from 'difflib';
 
 import {ScoredTextCandidates} from './dtypes';
-import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent} from './lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent, ReferenceScores} from './lit_types';
 import {IndexedInput, Input, Preds, Spec} from './types';
 import {findSpecKeys} from './utils';
 
@@ -90,7 +90,8 @@ export function getAllReferenceTexts(
 
   // Search input fields: anything referenced in model's output spec
   const inputReferenceKeys = new Set<string>();
-  for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
+  for (const outKey of findSpecKeys(
+           outputSpec, [ReferenceScores, ...GENERATION_TYPES])) {
     const {parent} = outputSpec[outKey] as LitTypeWithParent;
     if (parent && dataSpec[parent]) {
       inputReferenceKeys.add(parent);

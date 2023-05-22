@@ -18,7 +18,7 @@
 import 'jasmine';
 
 import {canonicalizeGenerationResults, getAllOutputTexts, getAllReferenceTexts, getFlatTexts, getTextDiff} from './generated_text_utils';
-import {GeneratedText, GeneratedTextCandidates, LitType, ReferenceTexts, TextSegment} from './lit_types';
+import {GeneratedText, GeneratedTextCandidates, LitType, ReferenceScores, ReferenceTexts, TextSegment} from './lit_types';
 import {Input, Preds, Spec} from './types';
 import {createLitType} from './utils';
 
@@ -139,6 +139,30 @@ describe('getAllReferenceTexts test', () => {
     const outputSpec: Spec = {
       'generated_text': generatedTextType('single_reference'),
       'generated_candidates': generatedTextCandidatesType('multi_reference')
+    };
+
+    const input: Input = {
+      'single_reference': 'foo',
+      'multi_reference': [['bar', -0.1], ['baz', -0.5]]
+    };
+    const indexedInput = {id: '123', data: input, meta: {}};
+
+    expect(getAllReferenceTexts(dataSpec, outputSpec, indexedInput)).toEqual([
+      'foo', 'bar', 'baz'
+    ]);
+  });
+
+  it('works for score-only model', () => {
+    const dataSpec: Spec = {
+      'single_reference': textSegmentType(),
+      'multi_reference': referenceTextsType(),
+    };
+
+    const outputSpec: Spec = {
+      'scores_single':
+          createLitType(ReferenceScores, {'parent': 'single_reference'}),
+      'scores_multi':
+          createLitType(ReferenceScores, {'parent': 'multi_reference'})
     };
 
     const input: Input = {
