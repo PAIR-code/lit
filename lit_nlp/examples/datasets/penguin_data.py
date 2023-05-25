@@ -3,6 +3,7 @@
 See https://www.tensorflow.org/datasets/catalog/penguins. for details.
 """
 
+from typing import Mapping, Union
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 import tensorflow_datasets as tfds
@@ -20,25 +21,28 @@ class PenguinDataset(lit_dataset.Dataset):
   From https://www.tensorflow.org/datasets/catalog/penguins.
   """
 
+  @classmethod
+  def lit_example_from_record(cls, rec: Mapping[str, Union[float, int]]):
+    return {
+        'body_mass_g': rec['body_mass_g'],
+        'culmen_depth_mm': rec['culmen_depth_mm'],
+        'culmen_length_mm': rec['culmen_length_mm'],
+        'flipper_length_mm': rec['flipper_length_mm'],
+        'island': VOCABS['island'][rec['island']],
+        'sex': VOCABS['sex'][rec['sex']],
+        'species': VOCABS['species'][rec['species']],
+    }
+
   def __init__(self):
     peng = tfds.load('penguins/simple', download=True, try_gcs=True)
     dataset_df = tfds.as_dataframe(peng['train'])
 
-    # Filter out invalid rows
+    # Filter out invalid rows.
     dataset_df = dataset_df.loc[dataset_df['sex'] != 2]
-
     records = dataset_df.to_dict(orient='records')
-    for rec in records:
-      ex = {
-          'body_mass_g': rec['body_mass_g'],
-          'culmen_depth_mm': rec['culmen_depth_mm'],
-          'culmen_length_mm': rec['culmen_length_mm'],
-          'flipper_length_mm': rec['flipper_length_mm'],
-          'island': VOCABS['island'][rec['island']],
-          'sex': VOCABS['sex'][rec['sex']],
-          'species': VOCABS['species'][rec['species']]
-      }
-      self._examples.append(ex)
+    self._examples = [
+        PenguinDataset.lit_example_from_record(rec) for rec in records
+    ]
 
   def spec(self):
     return {
