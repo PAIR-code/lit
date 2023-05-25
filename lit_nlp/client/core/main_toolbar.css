@@ -8,8 +8,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding-left: 4pt;
-  padding-right: 4pt;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .toolbar button {
@@ -28,7 +28,7 @@
   background-color: white;
   width: fit-content; /* set to 100% to span page */
   border: 1px solid;
-  border-radius: 2pt;
+  border-radius: 3px;
   border-color: rgb(218, 220, 224);
   position: absolute;
 }
@@ -74,10 +74,6 @@
   margin-left: 4px;
 }
 
-#primary-selection-status {
-  margin-right: 4pt;
-}
-
 /* For in-line icons in a <span> */
 [data-icon] {
   margin: 0;
@@ -87,21 +83,6 @@
   font-family: 'Material Icons';
   content: attr(data-icon);
   vertical-align: middle;
-}
-
-#star-button {
-  margin-top: -4px;
-  margin-right: 6pt;
-  --mdc-icon-size: 20px;
-}
-
-#legend-container {
-  right: 0;
-  min-width: 150px;
-  top: 100%;
-  margin-left: -8pt; /* To account for button padding */
-  margin-top: 6px;
-  cursor: default;
 }
 
 .toolbar-holder {

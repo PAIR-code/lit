@@ -56,7 +56,7 @@ const moduleStyles = css`
   }
 
   .token-group {
-    padding-top: 30pt;
+    padding-top: 40px;
   }
 
   .field-title {

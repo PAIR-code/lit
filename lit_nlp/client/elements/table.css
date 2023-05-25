@@ -150,7 +150,7 @@
 .togglable-menu-holder {
   background-color: #eff6f8; /* light gray-blue */
   border: 1px solid;
-  border-radius: 2pt;
+  border-radius: 3px;
   border-color: rgb(218, 220, 224);
   position: absolute;
 }

@@ -26,7 +26,7 @@
 
 .field-type {
   color: var(--lit-light-label-color);
-  font-size: 8pt;
+  font-size: 10px;
 }
 
 .field-header mwc-icon {

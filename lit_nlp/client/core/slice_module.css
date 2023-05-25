@@ -53,10 +53,6 @@
   background: rgb(197, 228, 232);
 }
 
-.toolbar > * {
-  margin: 4pt;
-}
-
 .checkbox-holder{
   display: flex;
   justify-content: space-between;

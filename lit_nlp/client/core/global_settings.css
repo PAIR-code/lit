@@ -39,15 +39,15 @@
 
 #holder {
   display: flex;
-  height: calc(100% - 48pt);
+  height: calc(100% - 64px);
 }
 
 #title-bar {
   font-family: 'Google Sans', sans;
   border-bottom: 1px solid #dadce0;
-  font-size: 18pt;
-  line-height: 24pt;
-  padding: 12pt;
+  font-size: 24px;
+  line-height: 32px;
+  padding: 16px;
   display:flex;
   align-items:center;
   column-gap: 4;
@@ -57,7 +57,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 220pt;
+  width: 293px;
   border-right: 1px solid #dadce0;
 }
 
@@ -78,7 +78,7 @@ a {
 
 a.link-out {
   color: #888;
-  padding: 0 5pt;
+  padding: 0 7px;
 }
 
 a:hover {
@@ -87,11 +87,11 @@ a:hover {
 
 .tab{
   font-family: 'Google Sans', sans;
-  padding: 12pt;
-  height: 12pt;
-  border-top-right-radius: 24pt;
-  border-bottom-right-radius: 24pt;
-  margin: 6pt;
+  padding: 16px;
+  height: 16px;
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+  margin: 8px;
   margin-left: 0;
   cursor: pointer;
 }
@@ -118,11 +118,11 @@ a:hover {
   border-top: 1px solid #dadce0;
   height: 60px;
   align-items: center;
-  padding: 0 24pt;
+  padding: 0 32px;
 }
 
 #state {
-  font-size: 9pt;
+  font-size: 12px;
   color: #888;
 }
 .info {
@@ -147,7 +147,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5pt;
+  padding: 7px;
 }
 
 #config {
@@ -161,7 +161,7 @@ a:hover {
 .config-list {
   border: 1px solid #dadce0;
   flex: 1 1;
-  margin: 12pt;
+  margin: 16px;
   overflow-y: scroll;
 }
 
@@ -197,12 +197,12 @@ a:hover {
 }
 
 .left-offset {
-  margin-left: 40pt;
+  margin-left: 53px;
 }
 
 .model-dataset-loading {
   flex: 1 1;
-  margin: 0 12pt;
+  margin: 0 16px;
   width: calc(100% - 24pt);
 }
 
@@ -233,7 +233,7 @@ a:hover {
   height: 100%;
   max-height: 100%;
   overflow-y: scroll;
-  padding: 0 12pt;
+  padding: 0 16px;
   row-gap: 8px;
 }
 
@@ -266,7 +266,7 @@ a:hover {
 .model-dataset-loading .header {
   color: var(--lit-neutral-700);
   font-size: 16px;
-  margin-bottom: 12pt;
+  margin-bottom: 16px;
 }
 
 #bottombar .status-area {
@@ -278,7 +278,7 @@ a:hover {
   max-height: 0;
   background: #f8f9fa;
   overflow: hidden;
-  font-size: 8pt;
+  font-size: 11px;
   color: #3c4043;
   box-sizing: border-box;
 }
@@ -342,7 +342,7 @@ a:hover {
 }
 
 .indent-line {
-  padding-left: 5pt;
+  padding-left: 7px;
   border-left: 1px solid #dadce0;
 }
 
@@ -353,12 +353,12 @@ a:hover {
 .config-title {
   font-family: 'Google Sans', sans;
   font-size: 1.5rem;
-  padding: 12pt 12pt 0 12pt;
+  padding: 16px 16px 0 16px;
   margin-bottom: 4px;
 }
 
 .description {
-  padding: 0 12pt 0 12pt;
+  padding: 0 16px 0 16px;
   color: #888;
 }
 
@@ -378,7 +378,7 @@ a:hover {
 }
 
 .status {
-  padding: 0 12pt;
+  padding: 0 16px;
   color: #888;
   display: flex;
   align-items: center;
@@ -396,7 +396,7 @@ a:hover {
 }
 
 button mwc-icon {
-  font-size: 12pt;
+  font-size: 16px;
 }
 
 button.next {

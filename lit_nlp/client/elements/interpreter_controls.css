@@ -1,5 +1,5 @@
 .description {
-  font-size: 8pt;
+  font-size: 11px;
   color: rgb(60, 64, 67);
 }
 
@@ -30,7 +30,7 @@
 }
 
 .content {
-  padding-left: 8px;
+  padding: 0 8px;
   overflow: hidden;
   transition: max-height 0.2s ease-out;
   box-sizing: border-box;

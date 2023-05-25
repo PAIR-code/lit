@@ -24,7 +24,7 @@
   height: var(--lit-group-header-height);
   display: flex;
   padding: 0 8px;
-  line-height: 20pt;
+  line-height: 27px;
   align-items: center;
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);

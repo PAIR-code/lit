@@ -180,7 +180,7 @@ button {
   margin: 5px;
   text-align: center;
   padding: 5px 10px;
-  font-size: 10pt;
+  font-size: 13px;
   border-radius: 3px;
   justify-content: center;
   align-items: center;
@@ -261,7 +261,7 @@ button:disabled {
 .dropdown.hairline { /* Not currently in use but likely will be in AppToolbar */
   border: 1px solid var(--lit-neutral-400);
   border-radius: 4px;
-  padding: 3pt 12pt 3pt 4pt;
+  padding: 4px 16px 4px 5px;
 }
 
 .dropdown.hairline:disabled {
@@ -286,12 +286,6 @@ button:disabled {
 
 mwc-textfield {
   --mdc-theme-primary: #2f8c9b;
-}
-
-.lit-img{
-  height: 15pt;
-  width: 15pt;
-  padding: 2pt;
 }
 
 /* For in-line icons in a <span> */
