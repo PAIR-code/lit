@@ -72,6 +72,7 @@ config.development_demo = False
 
 # Whether dataset and model validation will happen at startup.
 config.validate = None
+config.enforce_dataset_fields_required = False
 config.report_all = False
 
 import os

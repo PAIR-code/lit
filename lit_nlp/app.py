@@ -571,7 +571,10 @@ class LitApp(object):
     )
 
   def _validate(
-      self, validate: Optional[flag_helpers.ValidationMode], report_all: bool
+      self,
+      validate: Optional[flag_helpers.ValidationMode],
+      enforce_dataset_fields_required: bool = False,
+      report_all: bool = False,
   ):
     """Validate all datasets and models loaded for proper setup."""
     if validate is None or validate == flag_helpers.ValidationMode.OFF:
@@ -587,16 +590,20 @@ class LitApp(object):
         sample_size = math.ceil(len(self._datasets[dataset]) * 0.05)
         datasets_to_validate[dataset] = self._datasets[dataset].sample(
             sample_size)
+
     for dataset in datasets_to_validate:
       logging.info("Validating dataset '%s'", dataset)
       validation.validate_dataset(
-          datasets_to_validate[dataset], report_all)
+          datasets_to_validate[dataset],
+          enforce_all_fields_required=enforce_dataset_fields_required,
+          report_all=report_all
+      )
+
     for model, model_info in self._info['models'].items():
-      for dataset_name in model_info['datasets']:
-        logging.info("Validating model '%s' on dataset '%s'", model,
-                     dataset_name)
+      for dataset in model_info['datasets']:
+        logging.info("Validating model '%s' on dataset '%s'", model, dataset)
         validation.validate_model(
-            self._models[model], datasets_to_validate[dataset_name], report_all)
+            self._models[model], datasets_to_validate[dataset], report_all)
 
   def _warm_start(self,
                   rate: float,
@@ -721,6 +728,7 @@ class LitApp(object):
       sync_state: bool = False,  # notebook-only; not in server_flags
       validate: Optional[flag_helpers.ValidationMode] = None,
       report_all: bool = False,
+      enforce_dataset_fields_required: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -801,7 +809,11 @@ class LitApp(object):
     self._info = self._build_metadata()
 
     # Validate datasets and models if specified.
-    self._validate(validate, report_all)
+    self._validate(
+        validate,
+        enforce_dataset_fields_required=enforce_dataset_fields_required,
+        report_all=report_all
+    )
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:
