@@ -137,6 +137,12 @@ lit-widget {
   transform: rotate(90deg);
 }
 
+:host([minimized]) lit-tooltip {
+  /* Undo outer rotation, so these are oriented normally. */
+  transform: rotate(180deg);
+  writing-mode: horizontal-tb;
+}
+
 :host([minimized]) .title {
   text-align: right;
   cursor: pointer;

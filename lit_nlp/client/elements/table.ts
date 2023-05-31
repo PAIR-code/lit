@@ -923,13 +923,13 @@ export class DataTable extends ReactiveElement {
                    filter_alt
                   </mwc-icon>
                 </div>` : null}
-              <div class="arrow-container" @click=${toggleSort}>
-                <mwc-icon class=${upArrowClasses} style=${arrowStyle}
-                  title="Sort (ascending)">
+              <div class="arrow-container" @click=${toggleSort}
+               title="Sort (${isUpActive ? "ascending" : 
+                              isDownActive ? "descending" : "default"})">
+                <mwc-icon class=${upArrowClasses} style=${arrowStyle}>
                   arrow_drop_up
                 </mwc-icon>
-                <mwc-icon class=${downArrowClasses} style=${arrowStyle}
-                  title="Sort (descending)">
+                <mwc-icon class=${downArrowClasses} style=${arrowStyle}>
                   arrow_drop_down
                 </mwc-icon>
               </div>

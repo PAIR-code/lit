@@ -120,14 +120,16 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle
-          class="icon-button large-icon direction-toggle"
-          title="Toggle layout direction"
-          onIcon="view_week" offIcon="table_rows"
-          ?on="${this.duplicateAsRow}"
-          @MDCIconButtonToggle:change="${toggleDirection}"
-          @icon-button-toggle-change="${toggleDirection}">
-        </mwc-icon-button-toggle>`;
+        <lit-tooltip class="icon-button large-icon"
+          tooltipPosition=${'left'}
+          .content=${'Toggle layout direction'}>
+          <mwc-icon
+            class="icon-button large-icon direction-toggle"
+            slot="tooltip-anchor"
+            @click="${toggleDirection}">
+            ${this.duplicateAsRow ? 'view_week' : 'table_rows'}
+          </mwc-icon>
+        </lit-tooltip>`;
     };
 
     const renderScrollSyncControl = () => {
@@ -136,14 +138,16 @@ export class WidgetGroup extends ReactiveElement {
         this.requestUpdate();
       };
       return html`
-        <mwc-icon-button-toggle
-          class="icon-button large-icon scroll-toggle"
-          title="Toggle scroll sync"
-          onIcon="sync" offIcon="sync_disabled"
-          ?on="${this.syncScrolling}"
-          @MDCIconButtonToggle:change="${toggleSyncScrolling}"
-          @icon-button-toggle-change="${toggleSyncScrolling}">
-        </mwc-icon-button-toggle>`;
+        <lit-tooltip class="icon-button large-icon"
+          tooltipPosition=${'left'}
+          .content=${'Toggle scroll sync'}>
+          <mwc-icon
+            class="icon-button large-icon scroll-toggle"
+            slot="tooltip-anchor"
+            @click="${toggleSyncScrolling}">
+            ${this.syncScrolling ? 'sync' : 'sync_disabled'}
+          </mwc-icon>
+        </lit-tooltip>`;
     };
 
     const tooltipHtml =
@@ -160,14 +164,22 @@ export class WidgetGroup extends ReactiveElement {
         ${this.minimized || configGroup.length < 2 ? null : [
           renderDirectionControl(), renderScrollSyncControl()
         ]}
-        <mwc-icon class="icon-button large-icon min-button" @click=${onMinClick}
-          title=${this.minimized ? 'Expand' : 'Collapse'}>
-          ${this.minimized ? 'call_made' : 'call_received'}
-        </mwc-icon>
-        <mwc-icon class="icon-button large-icon" @click=${onMaxClick}
-          title=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
-          ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
-        </mwc-icon>
+        <lit-tooltip class="icon-button large-icon"
+          tooltipPosition=${"left"}
+          .content=${this.minimized ? 'Expand' : 'Collapse'}>
+          <mwc-icon class="icon-button large-icon min-button"
+            @click=${onMinClick}
+            slot="tooltip-anchor">
+            ${this.minimized ? 'call_made' : 'call_received'}
+          </mwc-icon>
+        </lit-tooltip>
+        <lit-tooltip class="icon-button large-icon" tooltipPosition=${"left"}
+          .content=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
+          <mwc-icon class="icon-button large-icon" @click=${onMaxClick}
+            slot="tooltip-anchor">
+            ${this.maximized ? 'fullscreen_exit' : 'fullscreen'}
+          </mwc-icon>
+        </lit-tooltip>
       </div>`;
     // clang-format on
   }
