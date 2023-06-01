@@ -19,7 +19,7 @@ import itertools
 import queue
 import threading
 import time
-from typing import Any, Callable, Iterable, Iterator, Optional, Sequence, TypeVar, Union
+from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence, TypeVar, Union
 import uuid
 
 from lit_nlp.api import types as lit_types
@@ -136,7 +136,9 @@ def _extract_batch_length(preds):
   return batch_length
 
 
-def unbatch_preds(preds):
+def unbatch_preds(
+    preds: Mapping[K, Sequence[V]] | Sequence[dict[K, V]]
+) -> Iterable[dict[K, V]]:
   """Unbatch predictions, as in estimator.predict().
 
   Args:
