@@ -260,7 +260,7 @@ export class WidgetGroup extends ReactiveElement {
       subtitle = subtitle.concat(`${subtitle ? ' - ' : ''} ${
           selectionServiceIndex ? 'Pinned' : 'Selected'}`);
     }
-    // Track scolling changes to the widget and request a rerender.
+    // Track scrolling changes to the widget and request a rerender.
     const widgetScrollCallback = (event: CustomEvent<WidgetScroll>) => {
       if (this.syncScrolling) {
         this.widgetScrollLeft = event.detail.scrollLeft;
@@ -326,28 +326,21 @@ export class LitWidget extends MobxLitElement {
     // its updated() lifecycle method before this logic is executed.
     await this.updateComplete;
     const module = this.children[0] as LitModule;
+    // Set callback for scroll syncing. See lit_module.ts for usage.
+    module.onSyncScroll = (scrollTop: number, scrollLeft: number) => {
+      const event = new CustomEvent<WidgetScroll>(
+          'widget-scroll', {detail: {scrollTop, scrollLeft}});
+      this.dispatchEvent(event);
+    };
 
     // If a module contains an element with the SCROLL_SYNC_CSS_CLASS, then
-    // scroll it appropriately and set its onscroll listener to bubble-up scroll
-    // events to the parent LitWidgetGroup.
-    const scrollElems = module.shadowRoot!.querySelectorAll(
+    // scroll it appropriately.
+    const scrollElems = module.shadowRoot!.querySelectorAll<HTMLElement>(
         `.${SCROLL_SYNC_CSS_CLASS}`);
     if (scrollElems.length > 0) {
-      for (const scrollElement of scrollElems as NodeListOf<HTMLElement>) {
+      for (const scrollElement of scrollElems) {
         scrollElement.scrollTop = this.widgetScrollTop;
         scrollElement.scrollLeft = this.widgetScrollLeft;
-
-        // Track content scrolling and pass the scrolling information back to
-        // the widget group for sync'ing between duplicated widgets.
-        const scrollCallback = () => {
-          const {scrollLeft, scrollTop} = scrollElement;
-          const event = new CustomEvent<WidgetScroll>('widget-scroll', {
-            detail: {scrollTop, scrollLeft}
-          });
-          this.dispatchEvent(event);
-        };
-        module.onSyncScroll = scrollCallback;
-        module.requestUpdate();
       }
     } else {
       // If a module doesn't have its own scroll element set, then scroll it
@@ -355,7 +348,7 @@ export class LitWidget extends MobxLitElement {
       // After render, set the scroll values for the content based on the
       // Need to set during updated() instead of render() to avoid issues
       // with scroll events interfering with synced scroll updates.
-      const content = this.shadowRoot!.querySelector('.content')!;
+      const content = this.shadowRoot!.querySelector<HTMLElement>('.content')!;
       if (content == null) return;
       content.scrollTop = this.widgetScrollTop;
       content.scrollLeft = this.widgetScrollLeft;
