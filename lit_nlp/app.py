@@ -191,27 +191,52 @@ class LitApp(object):
     """Get model info and send to frontend."""
     return self._info
 
-  def _reconstitute_inputs(self, inputs: Sequence[Union[IndexedInput, str]],
-                           dataset_name: str) -> list[IndexedInput]:
+  def _reconstitute_inputs(
+      self, inputs: Sequence[Union[IndexedInput, str]], dataset_name: str
+  ) -> list[IndexedInput]:
     """Reconstitute any inputs sent as references (bare IDs)."""
     index = self._datasets[dataset_name].index
     # TODO(b/178228238): set up proper debug logging and hide this by default.
     num_aliased = sum([isinstance(ex, str) for ex in inputs])
     logging.info(
         "%d of %d inputs sent as IDs; reconstituting from dataset '%s'",
-        num_aliased, len(inputs), dataset_name)
+        num_aliased,
+        len(inputs),
+        dataset_name,
+    )
     return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
 
-  def _save_datapoints(self, data, dataset_name: str, path: str, **unused_kw):
+  def _save_datapoints(
+      self,
+      data,
+      dataset_name: Optional[str] = None,
+      path: Optional[str] = None,
+      **unused_kw,
+  ):
     """Save datapoints to disk."""
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to save datapoints.')
+    if path is None:
+      raise ValueError('Must provide a "path" to save datapoints.')
+
     if self._demo_mode:
       logging.warning('Attempted to save datapoints in demo mode.')
       return None
     return self._datasets[dataset_name].save(data['inputs'], path)
 
-  def _load_datapoints(self, unused_data, dataset_name: str, path: str,
-                       **unused_kw):
+  def _load_datapoints(
+      self,
+      unused_data,
+      dataset_name: Optional[str] = None,
+      path: Optional[str] = None,
+      **unused_kw,
+  ):
     """Load datapoints from disk."""
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to load datapoints.')
+    if path is None:
+      raise ValueError('Must provide a "path" from which to load datapoints.')
+
     if self._demo_mode:
       logging.warning('Attempted to load datapoints in demo mode.')
       return None
@@ -219,8 +244,8 @@ class LitApp(object):
     return dataset.indexed_examples
 
   def _get_preds(self,
-                 data,
-                 model: str,
+                 data: types.JsonDict,
+                 model: Optional[str] = None,
                  dataset_name: Optional[str] = None,
                  requested_types: Optional[str] = None,
                  requested_fields: Optional[str] = None,
@@ -245,6 +270,11 @@ class LitApp(object):
       ValueError: If the model returns a different number of predictions than
         the number of inputs.
     """
+    if model is None:
+      raise ValueError('Must provide a "model" name to get preds from.')
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to predict over.')
+
     inputs = data['inputs']
     preds = list(self._models[model].predict_with_metadata(
         inputs, dataset_name=dataset_name, **kw))
@@ -280,12 +310,13 @@ class LitApp(object):
     return ret
 
   def _annotate_new_data(self,
-                         data,
+                         data: types.JsonDict,
                          dataset_name: Optional[str] = None,
                          **unused_kw) -> list[IndexedInput]:
     """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
-    assert dataset_name is not None, 'No dataset specified.'
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to annotate.')
 
     # Generate annotated versions of new datapoints.
     dataset = self._datasets[dataset_name]
@@ -302,8 +333,11 @@ class LitApp(object):
     return data['inputs']  # pytype: disable=bad-return-type  # always-use-return-annotations
 
   def _post_new_data(
-      self, data, dataset_name: Optional[str] = None,
-      **unused_kw) -> dict[str, str]:
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw
+  ) -> dict[str, str]:
     """Save datapoints provided, after annotatation, for later retrieval.
 
     Args:
@@ -314,15 +348,23 @@ class LitApp(object):
 
     Returns:
       A dict of two URLs (minus the root of the webserver). 'load' value is
-      for loading LIT with those datapoints. 'remove' value is for removing
+      for loading LIT with those datapoints. 'remove' value is for removing
       those new datapoints from this server after they have been loaded, if
       desired.
+
+    Raises:
+      KeyError: If the `data` dictionary does not have an "inputs" field.
+      ValueError: If a "dataset_name" is not provided.
     """
-    assert 'inputs' in data, 'Data dict does not contain "inputs" field'
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to save new datapoints.')
+    if 'inputs' not in data:
+      raise KeyError('Data dict does not contain "inputs" field.')
+
     data_with_metadata = [
-        {'data': d,
-         'meta': {'added': True, 'source': 'POST', 'parentId': None}}
-        for d in data['inputs']]
+        {'data': d, 'meta': {'added': True, 'source': 'POST', 'parentId': None}}
+        for d in data['inputs']
+    ]
     annotation_input = {'inputs': data_with_metadata}
     annotated_data = self._annotate_new_data(annotation_input, dataset_name)
     datapoints_id = utils.get_uuid()
@@ -330,32 +372,45 @@ class LitApp(object):
       self._saved_datapoints[datapoints_id] = annotated_data
     return {
         'load': f'?saved_datapoints_id={datapoints_id}',
-        'remove': f'/remove_new_data?saved_datapoints_id={datapoints_id}'}
+        'remove': f'/remove_new_data?saved_datapoints_id={datapoints_id}',
+    }
 
-  def _fetch_new_data(self, unused_data, saved_datapoints_id: str, **unused_kw):
+  def _fetch_new_data(
+      self, unused_data, saved_datapoints_id: Optional[str] = None, **unused_kw
+  ):
+    if not saved_datapoints_id:
+      raise ValueError('Must provide a "saved_datapoints_id" to get data from.')
+
     with self._saved_datapoints_lock:
-      assert saved_datapoints_id in self._saved_datapoints, (
-          'No saved data with ID %s' % saved_datapoints_id)
+      if saved_datapoints_id not in self._saved_datapoints:
+        raise ValueError(f'No saved data with ID: {saved_datapoints_id}')
       return self._saved_datapoints[saved_datapoints_id]
 
   def _remove_new_data(
-      self, unused_data, saved_datapoints_id: str, **unused_kw):
+      self, unused_data, saved_datapoints_id: Optional[str] = None, **unused_kw
+  ):
+    if not saved_datapoints_id:
+      raise ValueError('Must provide a "saved_datapoints_id" to remove data.')
+
     with self._saved_datapoints_lock:
-      assert saved_datapoints_id in self._saved_datapoints, (
-          'No saved data with ID %s' % saved_datapoints_id)
+      if saved_datapoints_id not in self._saved_datapoints:
+        raise ValueError(f'No saved data with ID: {saved_datapoints_id}')
       del self._saved_datapoints[saved_datapoints_id]
 
-  def _get_dataset(self,
-                   unused_data,
-                   dataset_name: Optional[str] = None,
-                   **unused_kw) -> list[IndexedInput]:
+  def _get_dataset(
+      self, unused_data, dataset_name: Optional[str] = None, **unused_kw
+  ) -> list[IndexedInput]:
     """Attempt to get dataset, or override with a specific path."""
+    if not dataset_name:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
     return list(self._datasets[dataset_name].indexed_examples)
 
-  def _create_dataset(self,
-                      data: JsonDict,
-                      dataset_name: Optional[str] = None,
-                      **unused_kw):
+  def _create_dataset(
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw,
+  ):
     """Create a dataset, updating and returning the metadata."""
     if dataset_name is None:
       raise ValueError('No base dataset specified.')
@@ -367,6 +422,8 @@ class LitApp(object):
     new_name: Optional[str] = config.pop('new_name', None)
     if new_name is None:
       raise ValueError('No name provided for the new dataset.')
+    elif new_name in self._datasets:
+      return (self._info, new_name)   # Return the existing dataset
 
     if (loader_info := self._dataset_loaders.get(dataset_name)) is None:
       raise ValueError(
@@ -386,7 +443,7 @@ class LitApp(object):
     return (self._info, new_name)
 
   def _create_model(self,
-                    data: JsonDict,
+                    data: types.JsonDict,
                     model_name: Optional[str] = None,
                     **unused_kw):
     """Create a model, updating and returning the metadata."""
@@ -400,6 +457,8 @@ class LitApp(object):
     new_name: Optional[str] = config.pop('new_name', None)
     if new_name is None:
       raise ValueError('No name provided for the new model.')
+    elif new_name in self._models:
+      return (self._info, new_name)   # Return the existing model
 
     if (loader_info := self._model_loaders.get(model_name)) is None:
       raise ValueError(
@@ -412,19 +471,38 @@ class LitApp(object):
 
     new_model = model_cls(**config)
     self._models[new_name] = caching.CachingModelWrapper(
-        new_model, new_name, cache_dir=self._data_dir)
+        new_model, new_name, cache_dir=self._data_dir
+    )
     self._info = self._build_metadata()
     return (self._info, new_name)
 
-  def _get_generated(self, data, model: str, dataset_name: str, generator: str,
-                     **unused_kw):
+  def _get_generated(
+      self,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
+      generator: Optional[str] = None,
+      **unused_kw,
+  ):
     """Generate new datapoints based on the request."""
-    generator_name = generator
-    generator: lit_components.Generator = self._generators[generator_name]
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get base examples.')
+    if generator is None:
+      raise ValueError('Must provide a "generator" name to generate examples.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
+    genny: lit_components.Generator = self._generators[generator]
+    config_spec: types.Spec = genny.config_spec()
+    config: Optional[types.JsonDict] = data.get('config')
+
+    if config_spec and config is not None:
+      utils.validate_config_against_spec(config, config_spec)
+
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: list[list[Input]] = generator.run_with_metadata(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
-        data['inputs'], self._models[model], dataset, config=data.get('config'))
+    all_generated: list[list[Input]] = genny.run_with_metadata(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
+        data['inputs'], self._models[model], dataset, config=config)
 
     # Annotate datapoints
     def annotate_generated(datapoints):
@@ -445,44 +523,53 @@ class LitApp(object):
       for generated in indexed_generated:
         generated['meta'].update({
             'parentId': parent['id'],
-            'source': generator_name,
+            'source': generator,
             'added': True,
         })
     return all_generated_indexed
 
   def _get_interpretations(
       self,
-      data,
-      model: str,
-      dataset_name: str,
-      interpreter: str,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
+      interpreter: Optional[str] = None,
       # boolean but via URL param, so encoding as "0" /  "1" is safer.
       do_predict: str = '1',
       **unused_kw,
   ):
     """Run an interpretation component."""
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
+    if interpreter is None:
+      raise ValueError('Must provide a "interpreter" name to interpret preds.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
     # Decode strings "0" or "1" to boolean.
-    do_predict = utils.coerce_bool(do_predict)
-    interpreter = self._interpreters[interpreter]
+    interp: lit_components.Interpreter = self._interpreters[interpreter]
+    mdl: lit_model.Model = self._models[model]
+
+    config_spec: types.Spec = interp.config_spec()
+    config: Optional[types.JsonDict] = data.get('config')
+    if config_spec and config is not None:
+      utils.validate_config_against_spec(config, config_spec)
+
     # Get model preds before the interpreter call. Usually these are cached.
-    # TODO(b/278586715): see if we can remove this path and just allow
+    # TODO(b/278586715): See if we can remove this path and just allow
     # interpreters to call the model directly.
-    model_outputs = None
-    if model:
-      assert model in self._models, f"Model '{model}' is not a valid model."
+    if utils.coerce_bool(do_predict):
       # Workaround so that interpreters can skip the _get_preds() call when it
       # is unnecessary and may be slow.
-      if do_predict:
-        # TODO(b/278586715): remove this once we can support caching for predict
-        # calls made from inside interpreters.
-        model_outputs = self._get_preds(data, model, dataset_name)
-      model = self._models[model]
+      # TODO(b/278586715): Remove this once we can support caching for predict
+      # calls made from inside interpreters.
+      model_outputs = self._get_preds(data, model, dataset_name)
     else:
-      model = None
+      model_outputs = None
 
-    return interpreter.run_with_metadata(
+    return interp.run_with_metadata(
         data['inputs'],
-        model,
+        mdl,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
         config=data.get('config'),
@@ -490,9 +577,9 @@ class LitApp(object):
 
   def _get_metrics(
       self,
-      data,
-      model: str,
-      dataset_name: str,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
       metrics: Optional[str] = None,
       # TODO(b/278586715): Remove this parameter once linked bug is fixed.
       do_predict: str = '1',  # bool URL param; encoding as "0" /  "1" is safer.
@@ -525,15 +612,14 @@ class LitApp(object):
         loaded in the LitApp instance.
       ValueError: If there are no inputs.
     """
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
     inputs = data.get('inputs')
     if not inputs:
       raise ValueError('Metrics cannot be computed without inputs.')
-
-    if dataset_name not in self._datasets:
-      raise KeyError(f'No dataset named {dataset_name} loaded in LIT.')
-
-    if model not in self._models:
-      raise KeyError(f'No model named {model} loaded in LIT.')
 
     if metrics:
       metrics_to_run = tuple(m for m in metrics.split(',') if m)
@@ -548,25 +634,43 @@ class LitApp(object):
     else:
       model_outputs = None
 
-    dataset = self._datasets[dataset_name]
-    model = self._models[model]
-    config = data.get('config')
+    dataset: lit_dataset.IndexedDataset = self._datasets[dataset_name]
+    mdl: lit_model.Model = self._models[model]
+    config: Optional[types.JsonDict] = data.get('config')
 
-    return {
-        name: self._metrics[name].run_with_metadata(
-            inputs, model, dataset, model_outputs, config
-        )
-        for name in metrics_to_run
-    }
+    results: types.JsonDict = {}
+    for name in metrics_to_run:
+      # TODO(b/254833485): Add type annotation once the metrics wrapper classes
+      # inherit from lit_component.Metrics.
+      metric = self._metrics[name]
 
-  def _push_ui_state(self, data, dataset_name: str, **unused_kw):
+      config_spec: types.Spec = metric.config_spec()
+      if config_spec and config is not None:
+        utils.validate_config_against_spec(config, config_spec)
+
+      results[name] = metric.run_with_metadata(
+          inputs, mdl, dataset, model_outputs=model_outputs, config=config
+      )
+
+    return results
+
+  def _push_ui_state(
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw,
+  ):
     """Push UI state back to Python."""
-    if self.ui_state_tracker is None:
+    tracker: Optional[ui_state.UIStateTracker] = self.ui_state_tracker
+    if tracker is None:
       raise RuntimeError(
           'Attempted to push UI state, but that is not enabled for this server.'
       )
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get base examples.')
+
     options = data.get('config', {})
-    self.ui_state_tracker.update_state(
+    tracker.update_state(
         data['inputs'], self._datasets[dataset_name], dataset_name, **options
     )
 
