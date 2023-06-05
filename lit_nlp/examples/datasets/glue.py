@@ -156,7 +156,7 @@ class MNLIData(lit_dataset.Dataset):
 
   def __init__(self, split: str):
     self._examples = []
-    for ex in load_tfds('glue/mnli', split=split):
+    for ex in load_tfds('glue/mnli_matched', split=split):
       self._examples.append({
           'premise': ex['premise'].decode('utf-8'),
           'hypothesis': ex['hypothesis'].decode('utf-8'),
