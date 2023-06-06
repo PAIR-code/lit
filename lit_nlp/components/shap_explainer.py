@@ -63,32 +63,46 @@ class TabularShapExplainer(lit_components.Interpreter):
   """
 
   def description(self) -> str:
-    return ('Kernel SHAP explanations of input feature influence on model '
-            'predictions over tabular data. Influence values are normalized in '
-            'the range of [-1, 1].')
+    return (
+        'Kernel SHAP explanations of input feature influence on model '
+        'predictions over tabular data. Influence values are normalized in '
+        'the range of [-1, 1].'
+    )
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     # Tabular models require all dataset features are present for each datapoint
+    if not model.is_compatible_with_dataset(dataset):
+      return False
+
     input_spec_keys = model.input_spec().keys()
+    dataset_features = [
+        feature
+        for name, feature in dataset.spec().items()
+        if name in input_spec_keys
+    ]
     is_tabular = all(
-        feature.required and isinstance(feature, _SUPPORTED_INPUT_TYPES) and
-        name in input_spec_keys for name, feature in dataset.spec().items())
-    has_outputs = utils.spec_contains(model.output_spec(),
-                                      _SUPPORTED_OUTPUT_TYPES)
+        feature.required and isinstance(feature, _SUPPORTED_INPUT_TYPES)
+        for feature in dataset_features
+    )
+    has_outputs = utils.spec_contains(
+        model.output_spec(), _SUPPORTED_OUTPUT_TYPES
+    )
     return is_tabular and has_outputs
 
   def config_spec(self) -> types.Spec:
     return {
-        EXPLAIN_KEY:
-            types.SingleFieldMatcher(
-                spec='output',
-                types=[
-                    'MulticlassPreds', 'RegressionScore', 'Scalar',
-                    'SparseMultilabelPreds'
-                ]),
-        SAMPLE_KEY:
-            types.Scalar(min_val=0, max_val=50, default=30, step=1),
+        EXPLAIN_KEY: types.SingleFieldMatcher(
+            spec='output',
+            types=[
+                'MulticlassPreds',
+                'RegressionScore',
+                'Scalar',
+                'SparseMultilabelPreds',
+            ],
+        ),
+        SAMPLE_KEY: types.Scalar(min_val=0, max_val=50, default=30, step=1),
     }
 
   def meta_spec(self) -> types.Spec:

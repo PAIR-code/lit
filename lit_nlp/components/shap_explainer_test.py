@@ -33,9 +33,11 @@ _BAD_DATASET = lit_dataset.Dataset(
     examples=[])
 
 _GOOD_DATASET = lit_dataset.Dataset(
-    spec={'val': lit_types.Scalar()}, examples=[{
+    spec={'val': lit_types.Scalar()},
+    examples=[{
         'val': 0.8675309
-    }] * 10)
+    }] * 10
+)
 
 
 class EmptyModel(lit_model.Model):
@@ -59,7 +61,7 @@ class SparseMultilabelModel(testing_utils.TestModelClassification):
     self.predict(inputs, **kw)
 
   def predict(self, inputs, **kw):
-    return [{'preds': [('label', 0.8675309)]} for i in inputs]
+    return [{'preds': [('label', 0.8675309)]} for _ in inputs]
 
 
 class TabularShapExplainerTest(parameterized.TestCase):
