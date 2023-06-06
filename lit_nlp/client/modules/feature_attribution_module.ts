@@ -29,7 +29,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FeatureSalience as FeatureSalienceLitType, SingleFieldMatcher} from '../lib/lit_types';
+import {FeatureSalience as FeatureSalienceLitType, LitTypeWithVocab, SingleFieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
@@ -236,16 +236,18 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo instanceof SingleFieldMatcher) {
-        if (configInfo.default) {
-          defaultCallConfig[configKey] = configInfo.default;
-        } else if (configInfo.vocab && configInfo.vocab.length) {
-          defaultCallConfig[configKey] = configInfo.vocab[0];
+      if (configInfo.default) {
+        defaultCallConfig[configKey] = configInfo.default;
+      } else {
+        const asVocabType = configInfo as LitTypeWithVocab;
+        if (asVocabType.vocab?.length) {
+          defaultCallConfig[configKey] = asVocabType.vocab[0];
         }
       }
     }
 
-    const callConfig = this.settings.get(name) || defaultCallConfig;
+    const callConfig = Object.assign(
+        {}, defaultCallConfig, this.settings.get(name));
     const promise = this.apiService.getInterpretations(
         data, this.model, this.appState.currentDataset, name, callConfig,
         `Running ${name}`);
