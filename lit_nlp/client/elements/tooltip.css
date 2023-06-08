@@ -1,11 +1,20 @@
 :host {
   --tooltip-max-width: 232px;
   --tooltip-width: auto;
+  /**
+   * Set this to inline if the wrapped content should also be rendered as
+   * inline, such as when applying a tooltip to a sentence span as part of
+   * a larger paragraph.
+   *
+   * TODO(lit-dev): see if we can use inline for this always? May cause issues
+   * with tooltip positioning.
+   */
+  --anchor-display-mode: inline-block;
 }
 
 /* Tooltip */
 .lit-tooltip {
-  display: inline-block;
+  display: var(--anchor-display-mode);
 }
 
 /* Tooltip text */

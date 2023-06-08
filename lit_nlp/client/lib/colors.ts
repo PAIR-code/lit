@@ -483,6 +483,9 @@ export const CONTINUOUS_SIGNED_LAB = ramp(labBrandColors('cyea', 'mage'));
 /** Continuous ramp for unsigned data through LAB space: White -> Purple */
 export const CONTINUOUS_UNSIGNED_LAB = ramp(labVizColors('purple'));
 
+/** Continuous ramp for unsigned data through LAB space: White -> Blue */
+export const CONTINUOUS_UNSIGNED_BLUE_LAB = ramp(labVizColors('blue'));
+
 /** Continuous ramp for unsigned data: Purple */
 export const CONTINUOUS_UNSIGNED = ramp([
   VIZ_COLORS.pastel[3].color,
@@ -616,6 +619,16 @@ export abstract class SalienceCmap {
 
 /** Color map for unsigned (positive) salience maps. */
 export class UnsignedSalienceCmap extends SalienceCmap {}
+
+/**
+ * Color map for unsigned (positive) salience maps, where high values are
+ * lighter.
+ */
+export class InvertedUnsignedSalienceCmap extends UnsignedSalienceCmap {
+  override lightness(d: number): number {
+    return 1 - super.lightness(d);
+  }
+}
 
 /** Color map for signed salience maps. */
 export class SignedSalienceCmap extends SalienceCmap {

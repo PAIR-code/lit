@@ -122,6 +122,7 @@ export class ToolbarComponent extends MobxLitElement {
   renderModelInfo() {
     const compatibleModels =
         Object.keys(this.appState.metadata.models)
+            .filter(model => !model.startsWith('_'))  // hidden models
             .filter(
                 model => this.settingsService.isDatasetValidForModels(
                     this.appState.currentDataset, [model]));

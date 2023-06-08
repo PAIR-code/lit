@@ -179,9 +179,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @action
   initializeLocalState() {
     this.modelCheckboxValues.clear();
-    Object.keys(this.appState.metadata.models).forEach(modelName => {
-      this.modelCheckboxValues.set(modelName, false);
-    });
+    Object.keys(this.appState.metadata.models)
+        .filter(modelName => !modelName.startsWith('_'))  // hidden models
+        .forEach(modelName => {
+          this.modelCheckboxValues.set(modelName, false);
+        });
     this.appState.currentModels.forEach(modelName => {
       this.modelCheckboxValues.set(modelName, true);
     });
