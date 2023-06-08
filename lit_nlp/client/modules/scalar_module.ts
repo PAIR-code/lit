@@ -34,7 +34,7 @@ import {ThresholdChange} from '../elements/threshold_slider';
 import {colorToRGB, getBrandColor} from '../lib/colors';
 import {MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatForDisplay, IndexedInput, ModelInfoMap} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin} from '../lib/utils';
 import {CalculatedColumnType, REGRESSION_SOURCE_PREFIX} from '../services/data_service';
 import {ClassificationService, ColorService, DataService, FocusService, SelectionService} from '../services/services';
@@ -104,8 +104,12 @@ export class ScalarModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
-    return doesOutputSpecContain(modelSpecs, [Scalar, MulticlassPreds]);
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec): boolean {
+    const scalarTypes = [Scalar, MulticlassPreds];
+    const datasetHasScalars = findSpecKeys(datasetSpec, scalarTypes).length > 0;
+    const modelsHaveScalars = doesOutputSpecContain(modelSpecs, scalarTypes);
+    return datasetHasScalars || modelsHaveScalars;
   }
 
   private readonly colorService = app.getService(ColorService);
