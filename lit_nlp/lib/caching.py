@@ -15,7 +15,6 @@
 """Miscellaneous helper functions."""
 
 import functools
-import hashlib
 import os
 import pickle
 import threading
@@ -23,6 +22,7 @@ from typing import Any, Callable, Iterable, Optional, Union
 
 from absl import logging
 
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import serialize
@@ -44,12 +44,7 @@ PredLockKey = frozenset[CacheKey]
 PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS: CacheKey = (
     "NO_CONCURRENT_PREDICTION", "")
 
-
-def input_hash(example: Input) -> types.ExampleId:
-  """Create stable hash of an input example."""
-  json_str = serialize.to_json(
-      example, simple=True, sort_keys=True).encode("utf-8")
-  return types.ExampleId(hashlib.md5(json_str).hexdigest())
+input_hash = lit_dataset.input_hash
 
 
 class PickleCacheLoader(object):

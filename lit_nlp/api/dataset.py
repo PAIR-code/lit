@@ -13,15 +13,15 @@
 # limitations under the License.
 # ==============================================================================
 """Base classes for LIT models."""
+import hashlib
 import glob
 import inspect
 import os
 import random
 from types import MappingProxyType  # pylint: disable=g-importing-member
-from typing import cast, Optional, Callable, Mapping, Sequence
+from typing import Callable, Mapping, Optional, Sequence, cast
 
 from absl import logging
-
 from lit_nlp.api import types
 from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
@@ -33,6 +33,29 @@ Spec = types.Spec
 
 LIT_FILE_EXTENSION = '.lit.jsonl'
 LIT_SPEC_EXTENSION = '.spec'
+
+
+# This is used here and in caching.py, but we define here to avoid a circular
+# dependency of dataset -> caching -> model -> dataset
+def input_hash(example: types.Input) -> types.ExampleId:
+  """Create stable hash of an input example."""
+  json_str = serialize.to_json(example, simple=True, sort_keys=True).encode(
+      'utf-8'
+  )
+  return types.ExampleId(hashlib.md5(json_str).hexdigest())
+
+
+def write_examples(examples: Sequence[JsonDict], path: str):
+  """Write examples to disk as LIT JSONL format."""
+  with open(path, 'w') as fd:
+    for ex in examples:
+      fd.write(serialize.to_json(ex) + '\n')
+
+
+def write_spec(spec: Spec, path: str):
+  """Write spec to disk as LIT JSON format."""
+  with open(path, 'w') as fd:
+    fd.write(serialize.to_json(spec, indent=2))
 
 
 class SliceWrapper(object):
@@ -235,13 +258,14 @@ class IndexedDataset(Dataset):
     ]
     # pylint: enable=g-complex-comprehension
 
-  def __init__(self,
-               *args,
-               id_fn: Optional[IdFnType] = None,
-               indexed_examples: Optional[list[IndexedInput]] = None,
-               **kw):
+  def __init__(
+      self,
+      *args,
+      id_fn: IdFnType = input_hash,
+      indexed_examples: Optional[list[IndexedInput]] = None,
+      **kw,
+  ):
     super().__init__(*args, **kw)
-    assert id_fn is not None, 'id_fn must be specified.'
     self.id_fn = id_fn
     if indexed_examples:
       self._indexed_examples = indexed_examples
@@ -293,13 +317,8 @@ class IndexedDataset(Dataset):
       self._base.save(examples, path)
       path += LIT_FILE_EXTENSION
 
-    with open(path, 'w') as fd:
-      for ex in examples:
-        fd.write(serialize.to_json(ex) + '\n')
-
-    spec_path = path + LIT_SPEC_EXTENSION
-    with open(spec_path, 'w') as fd:
-      fd.write(serialize.to_json(self.spec()))
+    write_examples(examples, path)
+    write_spec(self.spec(), path + LIT_SPEC_EXTENSION)
 
     return path
 
@@ -338,8 +357,10 @@ class IndexedDataset(Dataset):
       with open(spec_path, 'r') as fd:
         spec = serialize.from_json(fd.read())
 
-    description = (f'{len(examples)} examples from '
-                   f'{path}\n{self._base.description()}')
+    description = f'{len(examples)} examples from {path}'
+    if self._base is not None:
+      description += '\n' + self._base.description()
+
     return IndexedDataset(
         base=self._base,
         indexed_examples=examples,
@@ -354,6 +375,34 @@ class IndexedDataset(Dataset):
     self_ids = [ex['id'] for ex in self._indexed_examples]
     other_ids = [ex['id'] for ex in other._indexed_examples]
     return self_ids == other_ids
+
+
+def load_lit_format(
+    path: str, *args, id_fn=input_hash, **kw
+) -> Dataset | IndexedDataset:
+  """Load data from LIT jsonl format."""
+  with open(path + LIT_SPEC_EXTENSION, 'r') as fd:
+    spec = serialize.from_json(fd.read())
+
+  with open(path, 'r') as fd:
+    examples = [serialize.from_json(line) for line in fd.readlines()]
+
+  first_example_keys = set(examples[0].keys())
+  # TODO(b/171513556, b/204318513): remove this once input representations are
+  # consolidated.
+  if first_example_keys == {'id', 'data', 'meta'} or first_example_keys == {
+      'id',
+      'data',
+  }:
+    return IndexedDataset(
+        spec=spec,
+        indexed_examples=cast(list[types.IndexedInput], examples),
+        id_fn=id_fn,
+        *args,
+        **kw,
+    )
+  else:
+    return Dataset(spec=spec, examples=examples, *args, **kw)
 
 
 class NoneDataset(Dataset):
