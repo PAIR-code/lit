@@ -381,6 +381,15 @@ class UtilsTest(parameterized.TestCase):
           },
       ),
       dict(
+          testcase_name="with_extra_params",
+          config={
+              "required_scalar": 0,
+              "required_text_segment": "test",
+              "optional_boolean": True,
+              "param_not_in_spec": True,
+          },
+      ),
+      dict(
           testcase_name="with_only_required_params",
           config={
               "required_scalar": 0,
@@ -389,7 +398,9 @@ class UtilsTest(parameterized.TestCase):
       ),
   )
   def test_validate_config_against_spec(self, config: types.JsonDict):
-    validated = utils.validate_config_against_spec(config, _VALIDATION_SPEC)
+    validated = utils.validate_config_against_spec(
+        config, _VALIDATION_SPEC, "unittest"
+    )
     self.assertIs(config, validated)
 
   @parameterized.named_parameters(
@@ -401,7 +412,7 @@ class UtilsTest(parameterized.TestCase):
           },
       ),
       dict(
-          testcase_name="for_extra_params",
+          testcase_name="for_unsupported_params",
           config={
               "required_scalar": 0,
               "required_text_segment": "test",
@@ -411,7 +422,9 @@ class UtilsTest(parameterized.TestCase):
   )
   def test_validate_config_against_spec_raises(self, config: types.JsonDict):
     with self.assertRaises(KeyError):
-      utils.validate_config_against_spec(config, _VALIDATION_SPEC)
+      utils.validate_config_against_spec(
+          config, _VALIDATION_SPEC, "unittest", raise_for_unsupported=True
+      )
 
 
 if __name__ == "__main__":

@@ -213,9 +213,11 @@ def get_uuid():
   return uuid.uuid4().hex
 
 
-# TODO(b/277249726): Expand usage across HTTP and Interpreter APIs.
 def validate_config_against_spec(
-    config: lit_types.JsonDict, spec: lit_types.Spec
+    config: lit_types.JsonDict,
+    spec: lit_types.Spec,
+    name: str,
+    raise_for_unsupported: bool = False,
 ):
   """Validates that the provided config is compatible with the Spec.
 
@@ -224,6 +226,12 @@ def validate_config_against_spec(
       HTTP Request, that are to be used in a function call.
     spec: A Spec defining the shape of allowed configuration parameters for the
       associated LIT component.
+    name: The name of the endpoint, interpreter, etc. providing the Spec against
+      which the config is valdiated.
+    raise_for_unsupported: If true, raises a KeyError if the config contains
+      keys that are not present in the Spec. Unsupported keys are assumed to be
+      acceptable for subclasses of lit_nlp.api.components, but unacceptable for
+      APIs that instantiate new instances of a class (e.g., /create_dataset).
 
   Returns:
     The config passed in as the first argument, if validation is successful.
@@ -240,14 +248,14 @@ def validate_config_against_spec(
       if param_type.required and param_name not in config
   ]
   if missing_required_keys:
-    raise KeyError(f'Missing required parameters: {missing_required_keys}')
+    raise KeyError(f'{name} missing required params: {missing_required_keys}')
 
   unsupported_keys = [
       param_name for param_name in config
       if param_name not in spec
   ]
-  if unsupported_keys:
-    raise KeyError(f'Received unsupported parameters: {unsupported_keys}')
+  if raise_for_unsupported and unsupported_keys:
+    raise KeyError(f'{name} received unsupported params: {unsupported_keys}')
 
   return config
 

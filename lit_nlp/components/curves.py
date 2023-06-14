@@ -47,24 +47,27 @@ class CurvesInterpreter(lit_components.Interpreter):
                         dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[Sequence[JsonDict]] = None,
                         config: Optional[JsonDict] = None):
+    if not config:
+      raise ValueError('Curves required config parameters but received none.')
 
-    if (not config) or (TARGET_LABEL_KEY not in config):
+    if (target_label := config.get(TARGET_LABEL_KEY)) is None:
       raise ValueError(
           f'The config \'{TARGET_LABEL_KEY}\' field should contain the positive'
           f' class label.')
-    target_label = config.get(TARGET_LABEL_KEY)
 
     # Find the prediction field key in the model output to use for calculations.
     output_spec = model.output_spec()
-    supported_keys = self._find_supported_pred_keys(output_spec)
-    if len(supported_keys) == 1:
-      predictions_key = supported_keys[0]
+
+    if TARGET_PREDICTION_KEY in config:
+      predictions_key: str = config[TARGET_PREDICTION_KEY]
+    elif len(pred_keys := self._find_supported_pred_keys(output_spec)) == 1:
+      predictions_key: str = pred_keys[0]
     else:
-      if TARGET_PREDICTION_KEY not in config:
-        raise ValueError(
-            f'The config \'{TARGET_PREDICTION_KEY}\' should contain the name'
-            f' of the prediction field to use for calculations.')
-      predictions_key = config.get(TARGET_PREDICTION_KEY)
+      raise ValueError(
+          'Unable to determine prediction field. Please provide one via the'
+          f' "{TARGET_PREDICTION_KEY}" field in the CallConfig or update the'
+          ' model spec to output a single MulticlassPreds field.'
+      )
 
     if not indexed_inputs:
       return {ROC_DATA: [], PR_DATA: []}
@@ -74,7 +77,13 @@ class CurvesInterpreter(lit_components.Interpreter):
       model_outputs = list(model.predict_with_metadata(indexed_inputs))
 
     # Get scores for the target label.
-    pred_spec = cast(types.MulticlassPreds, output_spec[predictions_key])
+    pred_spec = output_spec.get(predictions_key)
+    if not isinstance(pred_spec, types.MulticlassPreds):
+      raise TypeError(
+          f'Expected {predictions_key} to be a MulticlassPreds field, but got a'
+          f' {type(pred_spec).__name__}'
+      )
+
     labels = pred_spec.vocab
     target_index = labels.index(target_label)
     scores = [o[predictions_key][target_index] for o in model_outputs]
@@ -100,21 +109,28 @@ class CurvesInterpreter(lit_components.Interpreter):
     # Create and return the result.
     return {ROC_DATA: roc_data, PR_DATA: pr_data}
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     """True if using a classification model and dataset has ground truth."""
     output_spec = model.output_spec()
     supported_keys = self._find_supported_pred_keys(output_spec)
     has_parents = all(
         cast(types.MulticlassPreds, output_spec[key]).parent in dataset.spec()
-        for key in supported_keys)
+        for key in supported_keys
+    )
     return bool(supported_keys) and has_parents
 
   def config_spec(self) -> types.Spec:
     # If a model is a multiclass classifier, a user can specify which
     # class label to use for plotting the curves. If the label is not
     # specified then the label with index 0 is used by default.
-    return {TARGET_LABEL_KEY: types.CategoryLabel()}
+    return {
+        TARGET_LABEL_KEY: types.CategoryLabel(),
+        TARGET_PREDICTION_KEY: types.SingleFieldMatcher(
+            spec='output', types=['MulticlassPreds'], required=False
+        ),
+    }
 
   def meta_spec(self) -> types.Spec:
     return {ROC_DATA: types.CurveDataPoints(), PR_DATA: types.CurveDataPoints()}
