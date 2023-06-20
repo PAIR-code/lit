@@ -347,7 +347,7 @@ class IntegratedGradients(lit_components.Interpreter):
     # Create model inputs and populate embedding field(s).
     inputs_with_embeds = []
     for i in range(interpolation_steps):
-      input_copy = model_input.copy()
+      input_copy = dict(model_input)
       # Interpolates embeddings for all inputs simultaneously.
       for embed_field in embeddings_fields:
         # <float32>[num_tokens, emb_size]

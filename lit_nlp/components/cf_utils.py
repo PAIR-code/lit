@@ -15,13 +15,13 @@
 """Utility functions for generating counterfactuals."""
 
 import re
-from typing import List, Optional, Text, Tuple, cast
+from typing import Any, List, Optional, Text, Tuple, cast
 
 from lit_nlp.api import types
 import numpy as np
 
 
-def update_prediction(example: types.JsonDict,
+def update_prediction(example: dict[str, Any],
                       example_output: types.JsonDict,
                       output_spec: types.JsonDict,
                       pred_key: Text):

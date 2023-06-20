@@ -14,7 +14,6 @@
 # ==============================================================================
 """Word replacement generator."""
 
-import copy
 import re
 from typing import Iterator, Optional, Pattern
 
@@ -201,7 +200,7 @@ class WordReplacer(lit_components.Generator):
       for new_val in self.generate_counterfactuals(
           text_data, replacement_regex, replacements,
           ignore_casing=ignore_casing):
-        new_example = copy.deepcopy(example)
+        new_example = dict(example)
         new_example[text_key] = new_val
         new_examples.append(new_example)
 

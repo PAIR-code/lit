@@ -14,8 +14,7 @@
 # ==============================================================================
 """Counterfactual explanations using linear model."""
 
-import copy
-from typing import Any, Optional, Sequence, Iterable
+from typing import Optional, Sequence, Iterable
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -30,13 +29,6 @@ import numpy as np
 
 JsonDict = types.JsonDict
 Spec = types.Spec
-
-
-def new_example(original_example: JsonDict, field: str, new_value: Any):
-  """Deep copies the example and replaces `field` with `new_value`."""
-  example = copy.deepcopy(original_example)
-  example[field] = new_value
-  return example
 
 
 # TODO(lit-dev): Change to calling the CachingModelWrapper for predictions

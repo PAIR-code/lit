@@ -41,17 +41,19 @@ def coerce_bool(value) -> bool:
     return True
 
 
-def find_keys(d: dict[K, V], predicate: Callable[[V], bool]) -> list[K]:
+def find_keys(d: Mapping[K, V], predicate: Callable[[V], bool]) -> list[K]:
   """Find keys where values match predicate."""
   return [k for k, v in d.items() if predicate(v)]
 
 
-def find_spec_keys(d: dict[K, Any], types) -> list[K]:
+def find_spec_keys(d: Mapping[K, Any], types) -> list[K]:
   """Find keys where values match one or more types."""
   return find_keys(d, lambda v: isinstance(v, types))
 
 
-def filter_by_keys(d: dict[K, V], predicate: Callable[[K], bool]) -> dict[K, V]:
+def filter_by_keys(
+    d: Mapping[K, V], predicate: Callable[[K], bool]
+) -> dict[K, V]:
   """Filter to keys matching predicate."""
   return {k: v for k, v in d.items() if predicate(k)}
 
@@ -61,7 +63,7 @@ def spec_contains(d: dict[str, Any], types) -> bool:
   return bool(find_spec_keys(d, types))
 
 
-def remap_dict(d: dict[K, V], keymap: dict[K, K]) -> dict[K, V]:
+def remap_dict(d: Mapping[K, V], keymap: Mapping[K, K]) -> dict[K, V]:
   """Return a (shallow) copy of d with some fields renamed.
 
   Keys which are not in keymap are left alone.
@@ -110,7 +112,7 @@ def batch_iterator(
 
 
 def batch_inputs(
-    input_records: Sequence[dict[K, V]], keys: Optional[Collection[K]] = None
+    input_records: Sequence[Mapping[K, V]], keys: Optional[Collection[K]] = None
 ) -> dict[K, list[V]]:
   """Batch inputs from list-of-dicts to dict-of-lists."""
   assert input_records, 'Must have non-empty batch!'
@@ -128,7 +130,8 @@ def _extract_batch_length(preds):
   batch_length = None
   for key, value in preds.items():
     this_length = (
-        len(value) if isinstance(value, (list, tuple)) else value.shape[0])
+        len(value) if isinstance(value, (list, tuple)) else value.shape[0]
+    )
     batch_length = batch_length or this_length
     if this_length != batch_length:
       raise ValueError('Batch length of predictions should be same. %s has '

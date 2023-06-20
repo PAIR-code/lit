@@ -14,7 +14,6 @@
 # ==============================================================================
 """Gradient-based attribution."""
 
-import copy
 import functools
 from typing import Any, Iterable, Optional
 
@@ -44,9 +43,10 @@ NUM_SAMPLES_KEY = 'Number of samples'
 SEED_KEY = 'Seed'
 
 
-def new_example(original_example: JsonDict, field: str, new_value: Any):
+def new_example(original_example: JsonDict, field: str,
+                new_value: Any) -> JsonDict:
   """Deep copies the example and replaces `field` with `new_value`."""
-  example = copy.deepcopy(original_example)
+  example = dict(original_example)
   example[field] = new_value
   return example
 

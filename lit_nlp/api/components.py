@@ -229,7 +229,7 @@ class Annotator(metaclass=abc.ABCMeta):
     self._annotator_model = annotator_model
 
   @abc.abstractmethod
-  def annotate(self, inputs: list[JsonDict],
+  def annotate(self, inputs: list[dict[str, Any]],
                dataset: lit_dataset.Dataset,
                dataset_spec_to_annotate: Optional[types.Spec] = None):
     """Annotate the provided inputs.

@@ -20,7 +20,7 @@ import math
 import random
 import threading
 import time
-from typing import Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
+from typing import Any, Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
 
 from absl import logging
 
@@ -415,7 +415,7 @@ class LitApp(object):
     if dataset_name is None:
       raise ValueError('No base dataset specified.')
 
-    config: Optional[JsonDict] = data.get('config')
+    config: Optional[dict[str, Any]] = data.get('config')
     if config is None:
       raise ValueError('No config specified.')
 
@@ -450,7 +450,7 @@ class LitApp(object):
     if model_name is None:
       raise ValueError('No base model specified.')
 
-    config: Optional[JsonDict] = data.get('config')
+    config: Optional[dict[str, Any]] = data.get('config')
     if config is None:
       raise ValueError('No config specified.')
 
@@ -638,7 +638,7 @@ class LitApp(object):
     mdl: lit_model.Model = self._models[model]
     config: Optional[types.JsonDict] = data.get('config')
 
-    results: types.JsonDict = {}
+    results: dict[str, Any] = {}
     for name in metrics_to_run:
       # TODO(b/254833485): Add type annotation once the metrics wrapper classes
       # inherit from lit_component.Metrics.
