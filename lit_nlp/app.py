@@ -423,16 +423,22 @@ class LitApp(object):
     if new_name is None:
       raise ValueError('No name provided for the new dataset.')
     elif new_name in self._datasets:
-      return (self._info, new_name)   # Return the existing dataset
+      return (self._info, new_name)  # Return the existing dataset
 
     if (loader_info := self._dataset_loaders.get(dataset_name)) is None:
       raise ValueError(
-          f'No loader information (Cls + init_spec) found for {dataset_name}')
+          f'No loader information (Cls + init_spec) found for {dataset_name}'
+      )
 
     dataset_cls, dataset_init_spec = loader_info
 
     if dataset_init_spec is not None:
-      utils.validate_config_against_spec(config, dataset_init_spec)
+      utils.validate_config_against_spec(
+          config,
+          dataset_init_spec,
+          f'{dataset_name} ({dataset_cls.__name__})',
+          raise_for_unsupported=True,
+      )
 
     new_dataset = dataset_cls(**config)
     annotated_dataset = self._run_annotators(new_dataset)
@@ -458,16 +464,22 @@ class LitApp(object):
     if new_name is None:
       raise ValueError('No name provided for the new model.')
     elif new_name in self._models:
-      return (self._info, new_name)   # Return the existing model
+      return (self._info, new_name)  # Return the existing model
 
     if (loader_info := self._model_loaders.get(model_name)) is None:
       raise ValueError(
-          f'No loader information (Cls + init_spec) found for {model_name}')
+          f'No loader information (Cls + init_spec) found for {model_name}'
+      )
 
     model_cls, model_init_spec = loader_info
 
     if model_init_spec is not None:
-      utils.validate_config_against_spec(config, model_init_spec)
+      utils.validate_config_against_spec(
+          config,
+          model_init_spec,
+          f'{model_name} ({model_cls.__name__})',
+          raise_for_unsupported=True,
+      )
 
     new_model = model_cls(**config)
     self._models[new_name] = caching.CachingModelWrapper(
@@ -497,7 +509,9 @@ class LitApp(object):
     config: Optional[types.JsonDict] = data.get('config')
 
     if config_spec and config is not None:
-      utils.validate_config_against_spec(config, config_spec)
+      utils.validate_config_against_spec(
+          config, config_spec, f'{generator} ({type(genny).__name__})'
+      )
 
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
@@ -553,7 +567,9 @@ class LitApp(object):
     config_spec: types.Spec = interp.config_spec()
     config: Optional[types.JsonDict] = data.get('config')
     if config_spec and config is not None:
-      utils.validate_config_against_spec(config, config_spec)
+      utils.validate_config_against_spec(
+          config, config_spec, f'{interpreter} ({type(interp).__name__})'
+      )
 
     # Get model preds before the interpreter call. Usually these are cached.
     # TODO(b/278586715): See if we can remove this path and just allow
@@ -646,7 +662,9 @@ class LitApp(object):
 
       config_spec: types.Spec = metric.config_spec()
       if config_spec and config is not None:
-        utils.validate_config_against_spec(config, config_spec)
+        utils.validate_config_against_spec(
+            config, config_spec, f'Metric {name}'
+        )
 
       results[name] = metric.run_with_metadata(
           inputs, mdl, dataset, model_outputs=model_outputs, config=config
@@ -962,7 +980,6 @@ class LitApp(object):
         '/get_metrics': self._get_metrics,
     }
     wrapped_handlers = {k: self.make_handler(v) for k, v in handlers.items()}
-    wrapped_handlers['/load_and_go'] = self._load_and_go
 
     self._wsgi_app = wsgi_app.App(
         # Wrap endpoint fns to take (handler, request, environ)
