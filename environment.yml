@@ -14,7 +14,7 @@
 # ==============================================================================
 name: lit-nlp
 dependencies:
-    - python=3.9
+    - python=3.10
     - pip
     - pip:
         - absl-py
@@ -24,13 +24,13 @@ dependencies:
         - scikit-learn==1.0.2
         - tensorflow==2.10.0
         - keras==2.10.0
-        - tfds-nightly
+        - tensorflow-datasets==4.8.0
         - tensorflow-text==2.10.0
         - rouge-score
         - sacrebleu
-        - numba==0.53.1
+        - numba
         - umap-learn==0.5.1
-        - transformers==4.1.1
+        - transformers==4.15.0
         - sentencepiece
         - google-cloud-translate
         - portpicker
@@ -40,6 +40,7 @@ dependencies:
         - matplotlib==3.3.4
         - attrs==22.1.0
         - stanza
+        - lime
         - shap==0.37.0
         - tqdm==4.64.0
         - gunicorn==20.1.0

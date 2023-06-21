@@ -33,7 +33,7 @@ jobs:
     strategy:
       matrix:
         node-version: [16]
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     defaults:
       run:
         shell: bash -l {0}
@@ -50,7 +50,7 @@ jobs:
       - run: |
           conda env create -f environment.yml
           conda activate lit-nlp
-          pip install pytest lime
+          pip install pytest
           pytest -v
 
       # Build front-end.

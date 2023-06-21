@@ -324,7 +324,7 @@ class GlueModel(lit_model.Model):
     scatter_indices = []
     for (batch_index, sentence_embs, offset) in zip(batch_indices,
                                                     filtered_embs, offsets):
-      for (token_index, emb) in enumerate(sentence_embs):
+      for (token_index, _) in enumerate(sentence_embs):
         scatter_indices.append([batch_index, token_index + offset])
 
     # Scatters passed word embeddings into embeddings gathered from tokens.
@@ -382,7 +382,7 @@ class GlueModel(lit_model.Model):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-    return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
+    return self.vocab, self.model.bert.embeddings.weights.numpy()
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
@@ -394,7 +394,7 @@ class GlueModel(lit_model.Model):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-      word_embeddings = self.model.bert.embeddings.word_embeddings
+      word_embeddings = self.model.bert.embeddings.weights
       # <tf.float32>[batch_size, num_tokens, emb_size]
       input_embs = tf.gather(word_embeddings, input_ids)
 
