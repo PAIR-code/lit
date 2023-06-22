@@ -124,7 +124,7 @@ export class ScalarModule extends LitModule {
   private readonly resizeObserver =
       new ResizeObserver(() => {this.resizePlots();});
 
-  private numPlotsRendered: number = 0;
+  private numPlotsRendered = 0;
   @observable private preds: IndexedScalars[] = [];
 
   @computed get datasetScalarKeys(): string[] {
@@ -250,13 +250,16 @@ export class ScalarModule extends LitModule {
 
   private getValue(id: string, key: string, model?:string,
                    label?: string): number | undefined {
-    // If the field is in the dataset, return that value from the DataService
-    if (key in this.appState.currentDatasetSpec) {
-      return this.dataService.getVal(id, key);
+    if (model == null) {
+      // If the field is in the dataset, return that value from the DataService.
+      // Otherwise, return undefined; this should never happen in practice, but
+      // it will produce an empty plot that stands out if it does.
+      if (key in this.appState.currentDatasetSpec) {
+        return this.dataService.getVal(id, key);
+      } else {
+        return undefined;
+      }
     }
-
-    // If model is falsy return undefined
-    if (model == null) {return undefined;}
 
     // Otherwise it's from a model.
     const spec = this.appState.getModelSpec(model);
