@@ -227,7 +227,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the input and output spec for a particular model.
    */
   getModelSpec(modelName: string): ModelSpec {
-    return this.metadata.models[modelName].spec;
+    const modelInfo = this.currentModelSpecs[modelName];
+    if (modelInfo != null) {
+      return modelInfo.spec;
+    } else {
+      throw new Error(`Model ${modelName} not found in LitMetadata.`);
+    }
   }
 
   /**

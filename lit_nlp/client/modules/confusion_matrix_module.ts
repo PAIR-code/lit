@@ -59,10 +59,10 @@ export class ConfusionMatrixModule extends LitModule {
       [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#confusion-matrix)`;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-  <confusion-matrix-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </confusion-matrix-module>`;
+        return html`<confusion-matrix-module
+            model=${model} .shouldReact=${shouldReact}
+            selectionServiceIndex=${selectionServiceIndex}>
+        </confusion-matrix-module>`;
       };
   static override numCols = 4;
   static override duplicateForModelComparison = false;
@@ -181,9 +181,8 @@ export class ConfusionMatrixModule extends LitModule {
     const data = this.dataService.dataVals;
 
     // From the data, we can bin by any categorical feature.
-    const categoricalFeatures = this.groupService.categoricalFeatures;
-    for (const labelKey of Object.keys(categoricalFeatures)) {
-      const labelList = categoricalFeatures[labelKey];
+    const {categoricalFeatures} = this.groupService;
+    for (const [labelKey, labelList] of Object.entries(categoricalFeatures)) {
       if (labelList.length > this.MAX_ENTRIES) {
         continue;
       }
@@ -195,10 +194,29 @@ export class ConfusionMatrixModule extends LitModule {
           this.groupService.getFeatureValForInput(bins, d, labelKey);
       const labelsRunner = async (dataset: IndexedInput[]) =>
           dataset.map(getLabelsFn);
-      options.push({name: labelKey, labelList, runner: labelsRunner});
+      const option: CmatOption = {
+        name: labelKey, labelList, runner: labelsRunner
+      };
+      for (const model of this.appState.currentModels) {
+        if (labelKey.startsWith(`${model}:`)) {
+          const {output: outputSpec} = this.appState.getModelSpec(model);
+          const feature = labelKey.split(':')[1];
+          const featureType = outputSpec[feature];
+          if (featureType instanceof MulticlassPreds) {
+            option.parent = featureType.parent;
+          }
+        }
+      }
+      options.push(option);
     }
 
     return options;
+  }
+
+  override firstUpdated() {
+    this.reactImmediately(
+        () => this.options,
+        () => {this.setInitialOptions();});
   }
 
   override renderImpl() {
