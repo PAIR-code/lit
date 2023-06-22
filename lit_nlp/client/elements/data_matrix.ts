@@ -220,7 +220,7 @@ export class DataMatrix extends LitElement {
   private renderColTotalCell(colIndex: number) {
     let totalColIds = 0;
     for (const row of this.matrixCells) {
-      totalColIds += row[colIndex].size;
+      totalColIds += row[colIndex]?.size || 0;
     }
     return this.renderTotalCell(totalColIds);
   }
