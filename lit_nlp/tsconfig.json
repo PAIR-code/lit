@@ -3,7 +3,7 @@
     "outDir": "dist",
     "target": "es5",
     "module": "commonjs",
-    "lib": ["dom", "DOM.Iterable", "es2019", "es2020.string"],
+    "lib": ["dom", "DOM.Iterable", "es2022"],
     "types": ["node", "jasmine", "resize-observer-browser"],
     "moduleResolution": "node",
     "allowJs": false,

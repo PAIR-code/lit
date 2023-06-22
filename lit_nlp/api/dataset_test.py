@@ -24,7 +24,7 @@ import numpy as np
 
 
 def get_testdata_path(fname):
-  return os.path.join(os.path.dirname(__file__), 'testdata')
+  return os.path.join(os.path.dirname(__file__), 'testdata', fname)
 
 
 class TestDatasetEmptyInit(lit_dataset.Dataset):
@@ -184,10 +184,11 @@ class DatasetLoadingTest(absltest.TestCase):
     for ex in self.sample_examples:
       vec = rand.normal(0, 1, size=16)
       # Scale such that norm = value, for testing
-      vec = ex['value'] * vec / np.linalg.norm(vec)
+      scaled = ex['value'] * vec / np.linalg.norm(vec)
+      rounded = np.round(scaled, decimals=8)
       # Convert to regular list to avoid issues with assertEqual not correctly
       # handling NumPy array equality.
-      ex['embedding'] = vec.tolist()
+      ex['embedding'] = rounded.tolist()
 
     # Index data
     self.indexed_dataset = lit_dataset.IndexedDataset(

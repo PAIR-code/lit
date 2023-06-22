@@ -24,7 +24,7 @@ dependencies:
         - scikit-learn==1.0.2
         - tensorflow==2.10.0
         - keras==2.10.0
-        - tfds-nightly
+        - tensorflow-datasets==4.8.0
         - tensorflow-text==2.10.0
         - rouge-score
         - sacrebleu

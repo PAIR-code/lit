@@ -19,7 +19,7 @@ import inspect
 import os
 import random
 from types import MappingProxyType  # pylint: disable=g-importing-member
-from typing import Callable, Mapping, Optional, Sequence, cast
+from typing import Callable, Mapping, Optional, Sequence, Union, cast
 
 from absl import logging
 from lit_nlp.api import types
@@ -379,7 +379,7 @@ class IndexedDataset(Dataset):
 
 def load_lit_format(
     path: str, *args, id_fn=input_hash, **kw
-) -> Dataset | IndexedDataset:
+) -> Union[Dataset, IndexedDataset]:
   """Load data from LIT jsonl format."""
   with open(path + LIT_SPEC_EXTENSION, 'r') as fd:
     spec = serialize.from_json(fd.read())

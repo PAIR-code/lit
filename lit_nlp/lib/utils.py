@@ -140,7 +140,7 @@ def _extract_batch_length(preds):
 
 
 def unbatch_preds(
-    preds: Mapping[K, Sequence[V]] | Sequence[dict[K, V]]
+    preds: Union[Mapping[K, Sequence[V]], Sequence[dict[K, V]]]
 ) -> Iterable[dict[K, V]]:
   """Unbatch predictions, as in estimator.predict().
 
