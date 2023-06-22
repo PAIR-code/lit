@@ -208,6 +208,7 @@ export class DiveModule extends LitModule {
   /** The Megaplot Scene into which the visualization is rendered. */
   private scene?: Scene;
   private mouseDown?: Position2D;
+  private mouseMoved?: Position2D;
 
   /** The Megaplot Selections that get rendered into the visualziation. */
   private readonly selections: DiveSelections = Object.seal({
@@ -586,44 +587,57 @@ export class DiveModule extends LitModule {
   // and the true rendering happens in reactions.
   override render() {
     const select = (event: MouseEvent) => {
-      const {offsetX: x, offsetY: y} = event;
-      const selected = this.selections.points?.hitTest({x, y});
-      if (selected?.length) {
-        const primary = selected[0].id;
-        const ids = selected.map(d => d.id);
+      const {mouseDown, mouseMoved} = this;
 
-        // Hold down Alt/Option key to pin a datapoint.
-        if (event.altKey) {
-          this.pinnedSelectionService.selectIds([]);
-          this.pinnedSelectionService.setPrimarySelection(primary);
-          return;
+      // If the mouse has not moved while down, then this is a
+      // selection-altering click.
+      if (mouseDown === mouseMoved) {
+        const {offsetX: x, offsetY: y} = event;
+        const selected = this.selections.points?.hitTest({x, y});
+        if (selected?.length) {
+          const primary = selected[0].id;
+          const ids = selected.map(d => d.id);
+
+          // Hold down Alt/Option key to pin a datapoint.
+          if (event.altKey) {
+            this.pinnedSelectionService.selectIds([]);
+            this.pinnedSelectionService.setPrimarySelection(primary);
+            return;
+          }
+
+          // Hold down Ctrl or Cmd to preserve current selection.
+          if (event.metaKey || event.ctrlKey) {
+            ids.unshift(...this.selectionService.selectedIds);
+          }
+
+          this.selectionService.selectIds(ids);
+          this.selectionService.setPrimarySelection(primary);
+        } else {
+          this.selectionService.selectIds([]);
         }
-
-        // Hold down Ctrl or Cmd to preserve current selection.
-        if (event.metaKey || event.ctrlKey) {
-          ids.unshift(...this.selectionService.selectedIds);
-        }
-
-        this.selectionService.selectIds(ids);
-        this.selectionService.setPrimarySelection(primary);
-      } else {
-        this.selectionService.selectIds([]);
       }
+
+      this.mouseDown = undefined;
+      this.mouseMoved = undefined;
     };
 
     const mousedown = (event: MouseEvent) => {
       this.mouseDown = {x: event.offsetX, y: event.offsetY};
+      this.mouseMoved = this.mouseDown;
     };
 
     const mousemove = (event: MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+
       const {offsetX: x, offsetY: y} = event;
 
-      if (this.mouseDown != null) {   // This is a pan interaction
+      if (this.mouseMoved != null) {   // This is a pan interaction
         if (this.scene == null) return;
         this.focusService.clearFocus();
-        this.scene.offset.x -= this.mouseDown.x - x;
-        this.scene.offset.y -= this.mouseDown.y - y;
-        this.mouseDown = {x, y};
+        this.scene.offset.x -= this.mouseMoved.x - x;
+        this.scene.offset.y -= this.mouseMoved.y - y;
+        this.mouseMoved = {x, y};
       } else {  // This is a hover interaction
         const hovered = this.selections.points?.hitTest({x, y});
         if (hovered?.length) {
@@ -634,8 +648,9 @@ export class DiveModule extends LitModule {
       }
     };
 
-    const mouseup = (event: MouseEvent) => {
+    const mouseout = () => {
       this.mouseDown = undefined;
+      this.mouseMoved = undefined;
     };
 
     const wheelZoom = (event: WheelEvent) => {
@@ -654,7 +669,7 @@ export class DiveModule extends LitModule {
       <div class='module-toolbar'>${this.renderControls()}</div>
       <div class="module-results-area">
         <div class="scene" @click=${select} @mousedown=${mousedown}
-             @mousemove=${mousemove} @mouseout=${mouseup} @mouseup=${mouseup}
+             @mousemove=${mousemove} @mouseout=${mouseout}
              @wheel=${wheelZoom}></div>
       </div>
       <div class="module-footer">${this.renderFooter()}</div>
