@@ -27,10 +27,13 @@ JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
 
 
-BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
-import transformers
-BERT_TINY_PATH = transformers.file_utils.cached_path(BERT_TINY_PATH,
-extract_compressed_file=True)
+# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
+# both google3 and OSS integration testing setups.
+from lit_nlp.lib import file_cache
+BERT_TINY_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
+    extract_compressed_file=True,
+)
 
 
 class ThresholderTest(absltest.TestCase):

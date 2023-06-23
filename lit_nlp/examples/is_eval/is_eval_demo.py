@@ -15,8 +15,7 @@ from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.examples.is_eval import datasets
 from lit_nlp.examples.is_eval import models as is_eval_models
-
-import transformers  # for path caching
+from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -128,7 +127,7 @@ def main(_):
     # Normally path is a directory; if it's an archive file, download and
     # extract to the transformers cache.
     if path.endswith(".tar.gz"):
-      path = transformers.file_utils.cached_path(
+      path = file_cache.cached_path(
           path, extract_compressed_file=True)
     # Load the model from disk.
     models[name] = is_eval_models.ISEvalModel(
@@ -136,7 +135,7 @@ def main(_):
 
   logging.info("Loading data for SST-2 task.")
   for data_key, url in DATASETS.items():
-    path = transformers.file_utils.cached_path(url)
+    path = file_cache.cached_path(url)
     loaded_datasets[data_key] = datasets.SingleInputClassificationFromTSV(
         path, data_key)
 

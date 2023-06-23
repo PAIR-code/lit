@@ -11,6 +11,7 @@ import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
@@ -98,6 +99,8 @@ class GlueModel(lit_model.Model):
   def is_regression(self) -> bool:
     return self.config.labels is None
 
+  # TODO(b/254110131): Move file_cache.cached_path() call inside this __init__
+  # function to reduce boilerplate in other locations (e.g., TCAV tests).
   def __init__(self,
                model_name_or_path="bert-base-uncased",
                **config_kw):
@@ -110,7 +113,7 @@ class GlueModel(lit_model.Model):
     # Normally path is a directory; if it's an archive file, download and
     # extract to the transformers cache.
     if model_name_or_path.endswith(".tar.gz"):
-      model_name_or_path = transformers.file_utils.cached_path(
+      model_name_or_path = file_cache.cached_path(
           model_name_or_path, extract_compressed_file=True
       )
 
@@ -324,7 +327,7 @@ class GlueModel(lit_model.Model):
     scatter_indices = []
     for (batch_index, sentence_embs, offset) in zip(batch_indices,
                                                     filtered_embs, offsets):
-      for (token_index, emb) in enumerate(sentence_embs):
+      for (token_index, _) in enumerate(sentence_embs):
         scatter_indices.append([batch_index, token_index + offset])
 
     # Scatters passed word embeddings into embeddings gathered from tokens.

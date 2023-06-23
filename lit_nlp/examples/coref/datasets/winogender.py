@@ -20,8 +20,8 @@ from absl import logging
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import file_cache
 import pandas as pd
-import transformers  # for file caching
 
 EdgeLabel = lit_dtypes.EdgeLabel
 
@@ -32,7 +32,7 @@ def get_data(name):
   """Download data or return local cache path."""
   url = os.path.join(DATA_ROOT, name)
   logging.info("Winogender: retrieving data file %s", url)
-  return transformers.file_utils.cached_path(url)
+  return file_cache.cached_path(url)
 
 
 ## From gap-coreference/constants.py

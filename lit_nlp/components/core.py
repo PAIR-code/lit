@@ -35,7 +35,8 @@ from lit_nlp.components import tcav
 from lit_nlp.components import thresholder
 from lit_nlp.components import word_replacer
 
-# pytype: disable=import-error # pylint: disable=g-import-not-at-top
+# pylint: disable=g-import-not-at-top
+# pytype: disable=import-error
 try:
   from lit_nlp.components import shap_explainer
 
@@ -49,7 +50,8 @@ try:
   _UMAP_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):
   _UMAP_AVAILABLE = False
-# pytype: enable=import-error # pylint: enable=g-import-not-at-top
+# pylint: enable=g-import-not-at-top
+# pytype: enable=import-error
 
 
 def default_generators() -> dict[str, lit_components.Generator]:
