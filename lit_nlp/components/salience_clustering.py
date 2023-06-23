@@ -255,8 +255,9 @@ class SalienceClustering(lit_components.Interpreter):
     salience_field_to_top_tokens = {}
 
     for salience_field in salience_fields:
-      weight_matrix = np.vstack(
-          representation[salience_field] for representation in representations)
+      weight_matrix = np.vstack([
+          representation[salience_field] for representation in representations
+      ])
       n_clusters = int(
           config.get(N_CLUSTERS_KEY,
                      self.config_spec()[N_CLUSTERS_KEY].default))
