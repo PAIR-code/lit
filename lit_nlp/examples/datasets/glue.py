@@ -12,8 +12,6 @@ from lit_nlp.api import types as lit_types
 import pandas as pd
 import tensorflow_datasets as tfds
 
-from google3.pyglib import gfile
-
 
 def load_tfds(*args, do_sort=True, **kw):
   """Load from TFDS, with optional sorting."""
