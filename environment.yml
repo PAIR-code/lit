@@ -19,7 +19,7 @@ dependencies:
     - pip:
         - absl-py
         - numpy==1.23.5
-        - scipy
+        - scipy==1.9.3
         - pandas
         - scikit-learn==1.0.2
         - tensorflow==2.10.0
