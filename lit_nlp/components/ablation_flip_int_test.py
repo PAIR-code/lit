@@ -22,16 +22,17 @@ from lit_nlp.components import ablation_flip
 from lit_nlp.examples.models import glue_models
 import numpy as np
 
-# TODO(lit-dev): Move glue_models out of lit_nlp/examples
-
-
-BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
-STSB_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz'  # pylint: disable=line-too-long
-import transformers
-BERT_TINY_PATH = transformers.file_utils.cached_path(BERT_TINY_PATH,
-  extract_compressed_file=True)
-STSB_PATH = transformers.file_utils.cached_path(STSB_PATH,
-  extract_compressed_file=True)
+# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
+# both google3 and OSS integration testing setups.
+from lit_nlp.lib import file_cache
+BERT_TINY_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
+    extract_compressed_file=True,
+)
+STSB_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz',  # pylint: disable=line-too-long
+    extract_compressed_file=True,
+)
 
 
 class SST2ModelNonRequiredField(glue_models.SST2Model):
