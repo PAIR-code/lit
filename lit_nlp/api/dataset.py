@@ -39,7 +39,8 @@ LIT_SPEC_EXTENSION = '.spec'
 # dependency of dataset -> caching -> model -> dataset
 def input_hash(example: types.Input) -> types.ExampleId:
   """Create stable hash of an input example."""
-  json_str = serialize.to_json(example, simple=True, sort_keys=True).encode(
+  raw_example = {k: v for k, v in example.items() if k not in ('_id', '_meta')}
+  json_str = serialize.to_json(raw_example, simple=True, sort_keys=True).encode(
       'utf-8'
   )
   return types.ExampleId(hashlib.md5(json_str).hexdigest())
@@ -246,17 +247,22 @@ class IndexedDataset(Dataset):
 
   _index: dict[ExampleId, IndexedInput] = {}
 
-  def index_inputs(self, examples: list[types.Input]) -> list[IndexedInput]:
+  def index_inputs(
+      self, examples: list[types.Input]
+  ) -> list[IndexedInput]:
     """Create indexed versions of inputs."""
-    # pylint: disable=g-complex-comprehension not complex, just a line-too-long
-    return [
-        IndexedInput(
-            data=example,
-            id=self.id_fn(example),
-            meta=types.InputMetadata(added=None, parentId=None, source=None))
-        for example in examples
-    ]
-    # pylint: enable=g-complex-comprehension
+    indexed = []
+    for example in examples:
+      ex_id = self.id_fn(example)
+      ex_meta = types.InputMetadata(added=None, parentId=None, source=None)
+      indexed.append(
+          IndexedInput(
+              data=MappingProxyType(example | {'_id': ex_id, '_meta': ex_meta}),
+              id=ex_id,
+              meta=ex_meta,
+          )
+      )
+    return indexed
 
   def __init__(
       self,
@@ -269,7 +275,9 @@ class IndexedDataset(Dataset):
     self.id_fn = id_fn
     if indexed_examples:
       self._indexed_examples = indexed_examples
-      self._examples = [ex['data'] for ex in indexed_examples]
+      self._examples = [MappingProxyType(
+          {k: v for k, v in ex['data'].items() if k not in ('_id', '_meta')}
+          ) for ex in indexed_examples]
     else:
       self._indexed_examples = self.index_inputs(self._examples)
     self._index = {ex['id']: ex for ex in self._indexed_examples}

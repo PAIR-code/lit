@@ -92,6 +92,49 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual({'val': 0, 'text': 'a'}, remapped_dset.examples[0])
 
 
+class DatasetHashTest(parameterized.TestCase):
+  """Test to hash data correctly, not using _id or _meta fields."""
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='empty_example',
+          spec={},
+          sample_example={},
+          expected_hash='99914b932bd37a50b983c5e7c90ae93b',
+      ),
+      dict(
+          testcase_name='one_field_example',
+          spec={'value': types.Integer()},
+          sample_example={'value': 1},
+          expected_hash='1ff00094a5ba112cb7dd128e783d6803',
+      ),
+      dict(
+          testcase_name='three_field_example',
+          spec={
+              'parity': types.CategoryLabel(vocab=['odd', 'even']),
+              'text': types.TextSegment(),
+              'value': types.Integer()
+          },
+          sample_example={
+              'parity': 'odd',
+              'text': 'One',
+              'value': 1
+          },
+          expected_hash='25dd56cf3b51e8e2954575f88b2620ca',
+      ),
+  )
+  def test_hash(self, spec, sample_example, expected_hash):
+    dataset = lit_dataset.IndexedDataset(spec, [sample_example])
+    input_hash = lit_dataset.input_hash(dataset.examples[0])
+    self.assertEqual(input_hash, expected_hash)
+
+    indexed_examples = dataset.indexed_examples[0]
+    self.assertEqual(indexed_examples['data']['_id'], indexed_examples['id'])
+    self.assertEqual(
+        indexed_examples['data']['_meta'], indexed_examples['meta']
+    )
+
+
 class DatasetLoadingTest(absltest.TestCase):
   """Test to read data from LIT JSONL format."""
 

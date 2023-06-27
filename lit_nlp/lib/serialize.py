@@ -14,6 +14,7 @@
 # ==============================================================================
 """Miscellaneous utility functions."""
 import json
+from types import MappingProxyType  # pylint: disable=g-importing-member
 from typing import Any, cast, Optional
 
 from lit_nlp.api import dtypes
@@ -46,6 +47,8 @@ def _obj_to_json(o: object):
         '__class__': 'tuple',
         '__value__': list(o),
     }
+  elif isinstance(o, MappingProxyType):
+    return dict(o)
   else:
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
@@ -68,6 +71,8 @@ def _obj_to_json_simple(o: object):
     return o.value
   elif isinstance(o, tuple):
     return list(o)
+  elif isinstance(o, MappingProxyType):
+    return dict(o)
   else:
     raise TypeError(repr(o) + ' is not JSON serializable.')
 

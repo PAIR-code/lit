@@ -54,7 +54,7 @@ class InputMetadata(TypedDict):
 
 
 class IndexedInput(TypedDict):
-  data: Input
+  data: JsonDict
   id: ExampleId
   meta: InputMetadata
 
