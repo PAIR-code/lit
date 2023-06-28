@@ -8,3 +8,4 @@ website/www/**
 **/*.pyc
 
 **/.DS_Store
+.venv/

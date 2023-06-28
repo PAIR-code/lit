@@ -1,6 +1,6 @@
 # 🔥 Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-15' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-06-27' } *-->
 
 The Learning Interpretability Tool (🔥LIT, formerly known as the Language
 Interpretability Tool) is a visual, interactive ML model-understanding tool that
@@ -63,10 +63,11 @@ git clone https://github.com/PAIR-code/lit.git ~/lit
 
 # Set up Python environment
 cd ~/lit
-conda env create -f environment.yml
-conda activate lit-nlp
-conda install cudnn cupti  # optional, for GPU support
-conda install -c pytorch pytorch  # optional, for PyTorch
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install cudnn cupti  # optional, for GPU support
+python -m pip pytorch  # optional, for PyTorch
 
 # Build the frontend
 (cd lit_nlp; yarn && yarn build)

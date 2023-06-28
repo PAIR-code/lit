@@ -1,3 +1,17 @@
+# Copyright 2023 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
 FROM python:3.9-slim
@@ -12,39 +26,19 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
     tee /etc/apt/sources.list.d/yarn.list
 RUN apt update && apt -y install yarn
 
-# Install Anaconda
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
-    && bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/anaconda3 \
-    && rm Miniconda3-latest-Linux-x86_64.sh
-
-# Set path to conda
-ENV PATH /opt/anaconda3/bin:$PATH
-
 # Copy local code to the container image.
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
-# Set up conda environment with production dependencies
+# Set up python environment with production dependencies
 # This step is slow as it installs many packages.
-COPY ./environment.yml ./
-RUN conda env create -f environment.yml
-
-# Workaround for 'conda activate' depending on shell features
-# that don't necessarily work in Docker.
-# This simulates the effect of 'conda activate'
-# See https://github.com/ContinuumIO/docker-images/issues/89
-# If this breaks in a future version of conda, add
-#   RUN conda shell.posix activate lit-nlp
-# to see what conda activate lit-nlp would do, and update the commands below
-# accordingly.
-ENV PATH /opt/anaconda3/envs/lit-nlp/bin:$PATH
-ENV CONDA_PREFIX "/opt/anaconda3/envs/lit-nlp"
-ENV CONDA_SHLVL "1"
-ENV CONDA_DEFAULT_ENV "lit-nlp"
+COPY ./requirements.txt ./
+RUN python -m pip install -r requirements.txt
 
 # Build front-end with yarn
 COPY . ./
-WORKDIR lit_nlp/client
+WORKDIR /app/lit_nlp/client
+ENV NODE_OPTIONS "--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 WORKDIR $APP_HOME
 
