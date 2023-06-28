@@ -27,19 +27,19 @@ def get_testdata_path(fname):
   return os.path.join(os.path.dirname(__file__), 'testdata', fname)
 
 
-class TestDatasetEmptyInit(lit_dataset.Dataset):
+class _EmptyInitTestDataset(lit_dataset.Dataset):
 
   def __init__(self):
     pass
 
 
-class TestDatasetPassThroughInit(lit_dataset.Dataset):
+class _PassThroughInitTestDataset(lit_dataset.Dataset):
 
   def __init__(self, *args, **kwargs):
     pass
 
 
-class TestDatasetInitWithArgs(lit_dataset.Dataset):
+class _InitWithArgsTestDataset(lit_dataset.Dataset):
 
   def __init__(self, path: str, max_examples: int = 200, max_qps: float = 1.0):
     pass
@@ -48,15 +48,15 @@ class TestDatasetInitWithArgs(lit_dataset.Dataset):
 class DatasetTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
-      ('empty_init', TestDatasetEmptyInit),
-      ('pass_thru_init', TestDatasetPassThroughInit),
+      ('empty_init', _EmptyInitTestDataset),
+      ('pass_thru_init', _PassThroughInitTestDataset),
   )
   def test_init_spec_empty(self, dataset: lit_dataset.Dataset):
     self.assertEmpty(dataset.init_spec())
 
   def test_init_spec_populated(self):
     self.assertEqual(
-        TestDatasetInitWithArgs.init_spec(),
+        _InitWithArgsTestDataset.init_spec(),
         {
             'path': types.String(),
             'max_examples': types.Integer(default=200, required=False),

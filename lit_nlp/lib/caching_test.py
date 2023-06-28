@@ -34,7 +34,7 @@ class CachingTest(absltest.TestCase):
     self.assertEqual("test", cache.get(("a", "1")))
 
   def test_caching_model_wrapper_no_dataset_skip_cache(self):
-    model = testing_utils.TestIdentityRegressionModel()
+    model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
     examples = [{"data": {"val": 1}, "id": "my_id"}]
     results = wrapper.predict_with_metadata(examples)
@@ -45,7 +45,7 @@ class CachingTest(absltest.TestCase):
     self.assertEqual({"score": 1}, results[0])
 
   def test_caching_model_wrapper_use_cache(self):
-    model = testing_utils.TestIdentityRegressionModel()
+    model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
     examples = [{"data": {"val": 1}, "id": "id_to_cache"}]
     results = wrapper.predict_with_metadata(examples, "dataset")
@@ -57,7 +57,7 @@ class CachingTest(absltest.TestCase):
     self.assertEmpty(wrapper._cache._pred_locks)
 
   def test_caching_model_wrapper_not_cached(self):
-    model = testing_utils.TestIdentityRegressionModel()
+    model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
     examples = [{"data": {"val": 1}, "id": "my_id"}]
     results = wrapper.predict_with_metadata(examples, "dataset")
@@ -69,7 +69,7 @@ class CachingTest(absltest.TestCase):
     self.assertEqual({"score": 2}, results[0])
 
   def test_caching_model_wrapper_mixed_list(self):
-    model = testing_utils.TestIdentityRegressionModel()
+    model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
     examples = [{"data": {"val": 1}, "id": "my_id"}]
     results = wrapper.predict_with_metadata(examples, "dataset")

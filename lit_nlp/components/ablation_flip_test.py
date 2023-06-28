@@ -28,10 +28,10 @@ INPUT_SPEC_SPARSE_MULTI = {'input': types.SparseMultilabel()}
 INPUT_SPEC_TEXT = {'input': types.TextSegment()}
 INPUT_SPEC_URL = {'input': types.URL()}
 
-TestRegressionModel = testing_utils.TestRegressionModel
+_RegressionModelForTesting = testing_utils.RegressionModelForTesting
 
 
-class TestClassificationModel(testing_utils.TestModelClassification):
+class _ClassificationTestModel(testing_utils.ClassificationModelForTesting):
 
   def __init__(self, input_spec: types.Spec):
     self._input_spec = input_spec
@@ -40,7 +40,7 @@ class TestClassificationModel(testing_utils.TestModelClassification):
     return self._input_spec
 
 
-class TestBadOutputModel(TestClassificationModel):
+class _BadOutputTestModel(_ClassificationTestModel):
 
   def output_spec(self) -> types.Spec:
     return {}
@@ -53,18 +53,18 @@ class AblationFlipTest(parameterized.TestCase):
     self.ablation_flip = ablation_flip.AblationFlip()
 
   @parameterized.named_parameters(
-      ('cls_sparse', TestClassificationModel, INPUT_SPEC_SPARSE_MULTI, True),
-      ('cls_text', TestClassificationModel, INPUT_SPEC_TEXT, True),
-      ('cls_url', TestClassificationModel, INPUT_SPEC_URL, True),
-      ('cls_none', TestClassificationModel, {}, False),
-      ('reg_sparse', TestRegressionModel, INPUT_SPEC_SPARSE_MULTI, True),
-      ('reg_text', TestRegressionModel, INPUT_SPEC_TEXT, True),
-      ('reg_url', TestRegressionModel, INPUT_SPEC_URL, True),
-      ('reg_none', TestRegressionModel, {}, False),
-      ('bad_sparse', TestBadOutputModel, INPUT_SPEC_SPARSE_MULTI, False),
-      ('bad_text', TestBadOutputModel, INPUT_SPEC_TEXT, False),
-      ('bad_url', TestBadOutputModel, INPUT_SPEC_URL, False),
-      ('bad_none', TestBadOutputModel, {}, False),
+      ('cls_sparse', _ClassificationTestModel, INPUT_SPEC_SPARSE_MULTI, True),
+      ('cls_text', _ClassificationTestModel, INPUT_SPEC_TEXT, True),
+      ('cls_url', _ClassificationTestModel, INPUT_SPEC_URL, True),
+      ('cls_none', _ClassificationTestModel, {}, False),
+      ('reg_sparse', _RegressionModelForTesting, INPUT_SPEC_SPARSE_MULTI, True),
+      ('reg_text', _RegressionModelForTesting, INPUT_SPEC_TEXT, True),
+      ('reg_url', _RegressionModelForTesting, INPUT_SPEC_URL, True),
+      ('reg_none', _RegressionModelForTesting, {}, False),
+      ('bad_sparse', _BadOutputTestModel, INPUT_SPEC_SPARSE_MULTI, False),
+      ('bad_text', _BadOutputTestModel, INPUT_SPEC_TEXT, False),
+      ('bad_url', _BadOutputTestModel, INPUT_SPEC_URL, False),
+      ('bad_none', _BadOutputTestModel, {}, False),
   )
   def test_ablation_flip_is_compatible(self,
                                        model_ctr: Callable[[types.Spec],

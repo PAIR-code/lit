@@ -21,7 +21,7 @@ from lit_nlp.api import model
 from lit_nlp.api import types
 
 
-class CompatibilityTestModel(model.Model):
+class _CompatibilityTestModel(model.Model):
   """Dummy model for testing Model.is_compatible_with_dataset()."""
 
   def __init__(self, input_spec: types.Spec):
@@ -38,7 +38,7 @@ class CompatibilityTestModel(model.Model):
     return []
 
 
-class TestBatchingModel(model.Model):
+class _BatchingTestModel(model.Model):
   """A model for testing batched predictions with a minibatch size of 3."""
 
   def __init__(self):
@@ -65,7 +65,7 @@ class TestBatchingModel(model.Model):
     return map(lambda x: {"scores": x["value"]}, inputs)
 
 
-class TestSavedModel(model.Model):
+class _SavedTestModel(model.Model):
   """A dummy model imitating saved model semantics for testing init_spec()."""
 
   def __init__(self, path: str, *args, compute_embs: bool = False, **kwargs):
@@ -153,7 +153,7 @@ class ModelTest(parameterized.TestCase):
                          expected: bool):
     """Test spec compatibility between models and datasets."""
     dataset = lit_dataset.Dataset(spec=dataset_spec)
-    ctm = CompatibilityTestModel(input_spec)
+    ctm = _CompatibilityTestModel(input_spec)
     self.assertEqual(ctm.is_compatible_with_dataset(dataset), expected)
 
   @parameterized.named_parameters(
@@ -191,18 +191,18 @@ class ModelTest(parameterized.TestCase):
                            expected_run_count: int):
     """Tests predict() for a model with a batch size of 3."""
     # Note that TestModelBatched
-    test_model = TestBatchingModel()
+    test_model = _BatchingTestModel()
     result = list(test_model.predict(inputs))
     self.assertListEqual(result, expected_outputs)
     self.assertEqual(len(result), len(inputs))
     self.assertEqual(test_model.count, expected_run_count)
 
   def test_init_spec_empty(self):
-    self.assertEmpty(TestBatchingModel.init_spec())
+    self.assertEmpty(_BatchingTestModel.init_spec())
 
   def test_init_spec_populated(self):
     self.assertEqual(
-        TestSavedModel.init_spec(),
+        _SavedTestModel.init_spec(),
         {
             "path": types.String(),
             "compute_embs": types.Boolean(default=False, required=False),
@@ -210,7 +210,7 @@ class ModelTest(parameterized.TestCase):
     )
 
   @parameterized.named_parameters(
-      ("bad_args", CompatibilityTestModel),
+      ("bad_args", _CompatibilityTestModel),
       # All ModelWrapper instances should return None, regardless of the model
       # the instance is wrapping.
       ("wrapper", model.ModelWrapper),

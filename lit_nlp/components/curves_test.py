@@ -27,23 +27,23 @@ from lit_nlp.lib import caching
 # Labels used in the test dataset.
 COLORS = ['red', 'green', 'blue']
 
-Curve = list[tuple[float, float]]
-Model = lit_model.Model
+_Curve = list[tuple[float, float]]
+_Model = lit_model.Model
 
 
-class TestDataEntry(NamedTuple):
+class _DataEntryForTesting(NamedTuple):
   prediction: tuple[float, float, float]
   label: Text
 
 
 TEST_DATA = {
-    0: TestDataEntry((0.7, 0.2, 0.1), 'red'),
-    1: TestDataEntry((0.3, 0.5, 0.2), 'red'),
-    2: TestDataEntry((0.6, 0.1, 0.3), 'blue'),
+    0: _DataEntryForTesting((0.7, 0.2, 0.1), 'red'),
+    1: _DataEntryForTesting((0.3, 0.5, 0.2), 'red'),
+    2: _DataEntryForTesting((0.6, 0.1, 0.3), 'blue'),
 }
 
 
-class TestModel(Model):
+class _StaticTestModel(_Model):
   """A test model for the interpreter that uses 'TEST_DATA' as model output."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -71,7 +71,7 @@ class TestModel(Model):
     return output
 
 
-class IncompatiblePredictionTestModel(Model):
+class _IncompatiblePredictionTestModel(_Model):
   """A model with unsupported output type."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -85,7 +85,7 @@ class IncompatiblePredictionTestModel(Model):
     return []
 
 
-class NoParentTestModel(Model):
+class _NoParentTestModel(_Model):
   """A model that doesn't specify the ground truth field in the dataset."""
 
   def input_spec(self) -> lit_types.Spec:
@@ -100,7 +100,7 @@ class NoParentTestModel(Model):
     return []
 
 
-class TestDataset(lit_dataset.Dataset):
+class _StaticTestDataset(lit_dataset.Dataset):
   """Dataset for testing the interpreter that uses 'TEST_DATA' as the source."""
 
   def spec(self) -> lit_types.Spec:
@@ -120,8 +120,9 @@ class CurvesInterpreterTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.dataset = lit_dataset.IndexedDataset(
-        base=TestDataset(), id_fn=caching.input_hash)
-    self.model = TestModel()
+        base=_StaticTestDataset(), id_fn=caching.input_hash
+    )
+    self.model = _StaticTestModel()
     self.ci = curves.CurvesInterpreter()
 
   def test_label_not_in_config(self):
@@ -161,7 +162,7 @@ class CurvesInterpreterTest(parameterized.TestCase):
       ),
   )
   def test_interpreter_honors_user_selected_label(
-      self, label: str, exp_roc: Curve, exp_pr: Curve
+      self, label: str, exp_roc: _Curve, exp_pr: _Curve
   ):
     """Tests a happy scenario when a user doesn't specify the class label."""
     curves_data = self.ci.run_with_metadata(
@@ -199,13 +200,15 @@ class CurvesInterpreterTest(parameterized.TestCase):
     self.assertIsInstance(spec[curves.PR_DATA], lit_types.CurveDataPoints)
 
   @parameterized.named_parameters(
-      ('valid', TestModel(), True),
-      ('no_multiclass_pred', IncompatiblePredictionTestModel(), False),
-      ('no_parent', NoParentTestModel(), False),
+      ('valid', _StaticTestModel(), True),
+      ('no_multiclass_pred', _IncompatiblePredictionTestModel(), False),
+      ('no_parent', _NoParentTestModel(), False),
   )
-  def test_model_compatibility(self, model: Model, exp_is_compat: bool):
+  def test_model_compatibility(self, model: _Model, exp_is_compat: bool):
     """A model is incompatible if prediction is not MulticlassPreds."""
-    self.assertEqual(self.ci.is_compatible(model, TestDataset()), exp_is_compat)
+    self.assertEqual(
+        self.ci.is_compatible(model, _StaticTestDataset()), exp_is_compat
+    )
 
 
 if __name__ == '__main__':

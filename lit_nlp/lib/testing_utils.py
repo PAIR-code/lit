@@ -28,7 +28,7 @@ import numpy.testing as npt
 JsonDict = lit_types.JsonDict
 
 
-class TestRegressionModel(lit_model.Model):
+class RegressionModelForTesting(lit_model.Model):
   """Implements lit.Model interface for testing.
 
   This class allows flexible input spec to allow different testing scenarios.
@@ -67,7 +67,7 @@ class TestRegressionModel(lit_model.Model):
     return map(lambda x: {'scores': 0.0}, inputs)
 
 
-class TestIdentityRegressionModel(lit_model.Model):
+class IdentityRegressionModelForTesting(lit_model.Model):
   """Implements lit.Model interface for testing.
 
   This class reflects the input in the prediction for simple testing.
@@ -107,7 +107,7 @@ class TestIdentityRegressionModel(lit_model.Model):
     return self._count
 
 
-class TestModelClassification(lit_model.Model):
+class ClassificationModelForTesting(lit_model.Model):
   """Implements lit.Model interface for testing classification models.
 
      Returns the same output for every input.
@@ -139,21 +139,24 @@ class TestModelClassification(lit_model.Model):
     }
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
-    output = {'probas': np.array([0.2, 0.8]),
-              'input_embs': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
-                                      [0, 0, 0, 0], [0, 0, 0, 0]]),
-              'input_embs_grad': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
-                                           [0, 0, 0, 0], [0, 0, 0, 0]]),
-              'tokens': ['test'],
-              'grad_class': '1'
-              }
+    output = {
+        'probas': np.array([0.2, 0.8]),
+        'input_embs': np.array(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        ),
+        'input_embs_grad': np.array(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        ),
+        'tokens': ['test'],
+        'grad_class': '1',
+    }
     return map(lambda x: output, inputs)
 
 
 def fake_projection_input(n, num_dims):
   """Generates random embeddings in the correct format."""
   rng = np.random.RandomState(42)
-  return [{'x': rng.rand(num_dims)} for i in range(n)]
+  return [{'x': rng.rand(num_dims)} for _ in range(n)]
 
 
 def assert_deep_almost_equal(testcase, result, actual, places=4):
@@ -174,14 +177,18 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
       assert_deep_almost_equal(testcase, result[key], actual[key])
 
 
-class TestCustomOutputModel(lit_model.Model):
+class CustomOutputModelForTesting(lit_model.Model):
   """Implements lit.Model interface for testing.
 
   This class allows user-specified outputs for testing return values.
   """
 
-  def __init__(self, input_spec: lit_types.Spec, output_spec: lit_types.Spec,
-               results: List[JsonDict]):
+  def __init__(
+      self,
+      input_spec: lit_types.Spec,
+      output_spec: lit_types.Spec,
+      results: List[JsonDict],
+  ):
     """Set model internals.
 
     Args:

@@ -235,7 +235,9 @@ class ValidationTest(parameterized.TestCase):
         {"score": 1, "text": "b"},
     ]
     ds = dataset.Dataset(in_spec, datapoints)
-    model = testing_utils.TestCustomOutputModel(in_spec, out_spec, results)
+    model = testing_utils.CustomOutputModelForTesting(
+        in_spec, out_spec, results
+    )
     try:
       validation.validate_model(model, ds)
     except ValueError:
@@ -258,7 +260,9 @@ class ValidationTest(parameterized.TestCase):
     }
     datapoints: list[types.JsonDict] = [{"score": 0, "text": "a"}]
     ds = dataset.Dataset(in_spec, datapoints)
-    model = testing_utils.TestCustomOutputModel(in_spec, out_spec, results)
+    model = testing_utils.CustomOutputModelForTesting(
+        in_spec, out_spec, results
+    )
     with self.assertRaises(ValueError):
       validation.validate_model(model, ds)
 
@@ -276,7 +280,9 @@ class ValidationTest(parameterized.TestCase):
     ]
     results = [{"res": None}, {"res": "bad"}]
     ds = dataset.Dataset(in_spec, datapoints)
-    model = testing_utils.TestCustomOutputModel(in_spec, out_spec, results)
+    model = testing_utils.CustomOutputModelForTesting(
+        in_spec, out_spec, results
+    )
     with self.assertLogs(level="ERROR") as logs:
       with self.assertRaises(ValueError):
         validation.validate_model(model, ds, True)

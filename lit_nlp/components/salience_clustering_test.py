@@ -63,7 +63,7 @@ class SalienceClusteringTest(parameterized.TestCase):
             }
         },
     ]
-    model = testing_utils.TestModelClassification()
+    model = testing_utils.ClassificationModelForTesting()
     dataset = lit_dataset.Dataset(None, None)
 
     model_outputs = [{

@@ -27,7 +27,7 @@ from lit_nlp.lib import testing_utils
 LitType = types.LitType
 
 
-class TestGenTextModel(lit_model.Model):
+class _GenTextTestModel(lit_model.Model):
 
   def input_spec(self) -> types.Spec:
     return {'input': types.TextSegment()}
@@ -40,7 +40,7 @@ class TestGenTextModel(lit_model.Model):
     return [{'output': 'test_output'}] * len(inputs)
 
 
-class TestGenTextCandsModel(lit_model.Model):
+class _GenTextCandidatesTestModel(lit_model.Model):
 
   def input_spec(self) -> types.Spec:
     return {
@@ -58,10 +58,10 @@ class TestGenTextCandsModel(lit_model.Model):
     ] * len(inputs)
 
 
-_CLASSIFICATION_MODEL = testing_utils.TestModelClassification()
-_GENERATED_TEXT_MODEL = TestGenTextModel()
-_GEN_TEXT_CANDS_MODEL = TestGenTextCandsModel()
-_REGRESSION_MODEL = testing_utils.TestIdentityRegressionModel()
+_CLASSIFICATION_MODEL = testing_utils.ClassificationModelForTesting()
+_GENERATED_TEXT_MODEL = _GenTextTestModel()
+_GEN_TEXT_CANDS_MODEL = _GenTextCandidatesTestModel()
+_REGRESSION_MODEL = testing_utils.IdentityRegressionModelForTesting()
 
 
 class RegressionMetricsTest(parameterized.TestCase):
