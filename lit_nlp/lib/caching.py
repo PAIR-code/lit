@@ -270,7 +270,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     # (null keys skip cache), and removing this codepath.
     if dataset_name is None:
       logging.info("\n\nCache disabled for current call.\n\n")
-      results = list(self.wrapped.predict_with_metadata(indexed_inputs))
+      results = list(self.wrapped.predict(ex["data"] for ex in indexed_inputs))
       return results
 
     key_fn = functools.partial(self.key_fn, group_name=dataset_name)
@@ -298,7 +298,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
     with self._cache.get_pred_lock(input_keys):
       model_preds = list(
-          self.wrapped.predict_with_metadata(progress_indicator(misses)))
+          self.wrapped.predict(ex["data"] for ex in progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
 
       if len(model_preds) != len(misses):
