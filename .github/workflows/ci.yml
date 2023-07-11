@@ -56,6 +56,11 @@ jobs:
           python -m pip install pytest
           pytest -v
 
+      # Build Docker container.
+      - name: Build Docker container
+        run: |
+          docker build --file ./Dockerfile --tag "lit-nlp:$GITHUB_SHA" .
+
       # Build front-end.
       - uses: actions/setup-node@v2
         with:
