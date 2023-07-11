@@ -14,6 +14,15 @@ VOCABS = {
     'species': ['Adelie', 'Chinstrap', 'Gentoo']
 }
 
+INPUT_SPEC: lit_types.Spec = {
+    'body_mass_g': lit_types.Scalar(min_val=2700, max_val=6300),
+    'culmen_depth_mm': lit_types.Scalar(min_val=13, max_val=22),
+    'culmen_length_mm': lit_types.Scalar(min_val=32, max_val=60),
+    'flipper_length_mm': lit_types.Scalar(min_val=172, max_val=231),
+    'island': lit_types.CategoryLabel(vocab=VOCABS['island']),
+    'sex': lit_types.CategoryLabel(vocab=VOCABS['sex']),
+}
+
 
 class PenguinDataset(lit_dataset.Dataset):
   """Dataset of penguin tabular data.
@@ -45,12 +54,6 @@ class PenguinDataset(lit_dataset.Dataset):
     ]
 
   def spec(self):
-    return {
-        'body_mass_g': lit_types.Scalar(),
-        'culmen_depth_mm': lit_types.Scalar(),
-        'culmen_length_mm': lit_types.Scalar(),
-        'flipper_length_mm': lit_types.Scalar(),
-        'island': lit_types.CategoryLabel(vocab=VOCABS['island']),
-        'sex': lit_types.CategoryLabel(vocab=VOCABS['sex']),
-        'species': lit_types.CategoryLabel(vocab=VOCABS['species']),
+    return INPUT_SPEC | {
+        'species': lit_types.CategoryLabel(vocab=VOCABS['species'])
     }

@@ -425,13 +425,15 @@ class NoneDataset(Dataset):
     for _, model in self._models.items():
       req_inputs = {k: v for (k, v) in model.input_spec().items() if v.required}
       # Ensure that there are no conflicting spec keys.
-      assert not self.has_conflicting_keys(combined_spec, req_inputs)
+      conflicts = self.has_conflicting_keys(combined_spec, req_inputs)
+      if conflicts:
+        conflict_types: dict[str, tuple[types.LitType, types.LitType]] = {
+            k: (combined_spec[k], req_inputs[k]) for k in conflicts
+        }
+        raise ValueError(f'Conflicting spec keys: {conflict_types}')
       combined_spec.update(req_inputs)
 
     return combined_spec
 
   def has_conflicting_keys(self, spec0: Spec, spec1: Spec):
-    for k, v in spec0.items():
-      if k in spec1 and spec1[k] != v:
-        return True
-    return False
+    return [k for k, v in spec0.items() if k in spec1 and spec1[k] != v]
