@@ -370,7 +370,9 @@ export class GeneratorModule extends LitModule {
         const removePoint = () => {
           this.generated[parentIndex].splice(generatedIndex, 1);
         };
-        const fieldNames = Object.keys(generated.data);
+        // Don't display private / internal fields.
+        const fieldNames = Object.keys(generated.data)
+                               .filter(k => (k !== '_id' && k !== '_meta'));
 
         // render values for each datapoint.
         const row: {[key: string]: TableEntry} = {};

@@ -95,15 +95,15 @@ class Interpreter(metaclass=abc.ABCMeta):
 class Generator(Interpreter):
   """Base class for LIT generators."""
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
-    """Run this component, with access to data indices and metadata."""
-    #  IndexedInput[] -> Input[]
-    inputs = [ex['data'] for ex in indexed_inputs]
+  def run(
+      self,
+      inputs: list[JsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None,
+  ):
+    del model_outputs
     return self.generate_all(inputs, model, dataset, config)
 
   def generate_all(self,
@@ -133,7 +133,7 @@ class Generator(Interpreter):
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
                config: Optional[JsonDict] = None) -> list[JsonDict]:
-    """Return a list of generated examples."""
+    """Return a list of generated examples, for a single input."""
     pass
 
 
