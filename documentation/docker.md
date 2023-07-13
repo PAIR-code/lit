@@ -1,6 +1,6 @@
 # Running LIT in a Docker container
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-15' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-07-10' } *-->
 
 Users might want to deploy LIT onto servers for public-facing, long-running
 instances. This is how we host the LIT demos found on
@@ -33,12 +33,12 @@ are provided in-line to help explain what each step does.
 ```shell
 # Build the docker image using the -t argument to name the image. Remember to
 # include the trailing . so Docker knows where to look for the Dockerfile.
-docker build -t lit-app .
+docker build --file Dockerfile --tag lit-nlp .
 
 # Now you can run LIT as a containerized app using the following command. Note
 # that the last parameter to the run command is the value you passed to the -t
 # argument in the build command above.
-docker run --rm -p 5432:5432 lit-app
+docker run --rm -p 5432:5432 lit-nlp
 ```
 
 The image above defaults to launching the GLUE demo on port 5432, but you can
@@ -55,19 +55,19 @@ below.
 #
 #   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.
 #   * And nested children -- coref.coref_demo, is_eval.is_eval_demo, etc.
-docker run --rm -p 5432:5432 -e DEMO_NAME=lm_demo lit-app
+docker run --rm -p 5432:5432 -e DEMO_NAME=lm_demo lit-nlp
 
 # Use the DEMO_PORT environment variable as to change the port that LIT uses in
 # the container. Be sure to also change the -p option to map the container's
 # DEMO_PORT to a port on the host system.
-docker run --rm -p 2345:2345 -e DEMO_PORT=2345 lit-app
+docker run --rm -p 2345:2345 -e DEMO_PORT=2345 lit-nlp
 
 # Bringing this all together, you can run multiple LIT apps in separate
 # containers on your machine using the combination of the DEMO_NAME and
 # DEMO_PORT arguments, and docker run with the -d flag to run the container in
 # the background.
-docker run -d -p 5432:5432 -e DEMO_NAME=t5_demo lit-app
-docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-app
+docker run -d -p 5432:5432 -e DEMO_NAME=t5_demo lit-nlp
+docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-nlp
 ```
 
 ## Integrating Custom LIT Instances with the Default Docker Image

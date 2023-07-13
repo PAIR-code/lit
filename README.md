@@ -51,31 +51,21 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 
 ## Download and Installation
 
-LIT can be installed via `pip` or built from source. Building from source is
-necessary if you update any of the front-end or core back-end code.
+LIT can be run via container image, installed via `pip` or built from source.
+Building from source is necessary if you update any of the front-end or core
+back-end code.
 
-### Install from source
+### Build container image
 
-Clone the repo and set up a Python environment:
-
+Build the image using `docker` or `podman`:
 ```sh
-git clone https://github.com/PAIR-code/lit.git ~/lit
-
-# Set up Python environment
-cd ~/lit
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pip install cudnn cupti  # optional, for GPU support
-python -m pip pytorch  # optional, for PyTorch
-
-# Build the frontend
-(cd lit_nlp; yarn && yarn build)
+git clone https://github.com/PAIR-code/lit.git && cd lit
+docker build --file Dockerfile --tag lit-nlp .
 ```
 
-Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
-running `yarn` on Ubuntu/Debian, be sure you have the
-[correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
+See the [advanced guide](https://github.com/PAIR-code/lit/wiki/docker.md) for detailed instructions on using the
+default LIT Docker image, running LIT as a containerized web app in different
+scenarios, and how to creating your own LIT images.
 
 ### pip installation
 
@@ -90,6 +80,29 @@ It **does not** install the prerequisites for the provided demos, so you need to
 install those yourself. See [environment.yml](./environment.yml) for the list of
 packages required to run the demos.
 
+### Install from source
+
+Clone the repo and set up a Python environment:
+
+```sh
+git clone https://github.com/PAIR-code/lit.git && cd lit
+
+# Set up Python environment
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install cudnn cupti  # optional, for GPU support
+python -m pip pytorch  # optional, for PyTorch
+
+# Build the frontend
+(cd lit_nlp; yarn && yarn build)
+```
+
+Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
+running `yarn` on Ubuntu/Debian, be sure you have the
+[correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
+
+
 ## Running LIT
 
 Explore a collection of hosted demos on the
@@ -102,6 +115,12 @@ To explore classification and regression models tasks from the popular
 
 ```sh
 python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
+```
+
+Or, using `docker`:
+
+```sh
+docker run --rm -e DEMO_NAME=glue_demo -p 5432:5432 -t lit-nlp --quickstart
 ```
 
 Navigate to http://localhost:5432 to access the LIT UI.
@@ -122,6 +141,12 @@ To explore predictions from a pre-trained language model (BERT or GPT-2), run:
 python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
 ```
 
+Or, using `docker`:
+
+```sh
+docker run --rm -e DEMO_NAME=lm_demo -p 5432:5432 -t lit-nlp --models=bert-base-uncased
+```
+
 And navigate to http://localhost:5432 for the UI.
 
 ### Notebook usage
@@ -132,30 +157,6 @@ google3/third_party/py/lit_nlp/examples/notebooks.
 We provide a simple
 [Colab demo](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 Run all the cells to see LIT on an example classification model in the notebook.
-
-### Run LIT in a Docker container
-
-LIT can be run as a containerized app using [Docker](https://www.docker.com/) or
-your preferred engine. Use the following shell commands to build the default
-Docker image for LIT from the provided `Dockerfile`, and then run a container
-from that image. Comments are provided in-line to help explain each step.
-
-```shell
-# Build the docker image using the -t argument to name the image. Remember to
-# include the trailing . so Docker knows where to look for the Dockerfile
-docker build -t lit_app .
-
-# Now you can run LIT as a containerized app using the following command. Note
-# that the last parameter to the run command is the value you passed to the -t
-# argument in the build command above.
-docker run --rm -p 5432:5432 lit-app
-```
-
-The image above defaults to launching the GLUE demo on port 5432, but you can
-override this using environment variables. See our
-[advanced guide](https://github.com/PAIR-code/lit/wiki/docker.md) for detailed instructions on using the default
-LIT Docker image, running LIT as a containerized web app in different scenarios,
-and how to creating your own LIT images.
 
 ### More Examples
 
