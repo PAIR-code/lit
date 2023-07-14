@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,12 +20,12 @@ name: CI
 # Run on pushes and pull requests on main and dev branches.
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
 
   # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  workflow_dispatch: null
 
 jobs:
   build-and-test:
@@ -38,28 +38,37 @@ jobs:
       run:
         shell: bash -l {0}
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the code for this CI operation.
-      - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Python dependencies
+      run: python -m pip install -r requirements.txt
+    - name: Test Python library
+      run: |
+        python -m pip install pytest
+        pytest -v
+    - name: Setup Node ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Build LIT client
+      run: pushd lit_nlp && yarn && yarn build && popd
+  # TODO(b/235626637): Add front-end unit and e2e tests
 
-      # Setup environment for python.
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      # Install dependencies and test LIT.
-      - name: Install dependencies and test
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install pytest
-          pytest -v
-
-      # Build front-end.
-      - uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: pushd lit_nlp && yarn && yarn build && popd
-
-      # TODO(b/235626637): Add front-end unit and e2e tests
+  docker-build-and-test:
+    name: Build docker image
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Build Docker image
+      uses: docker/build-push-action@v4
+      with:
+        tags: lit-nlp:ci-${{ github.sha }}
