@@ -38,7 +38,9 @@ def convert_image_str_to_array(
   """
   pil_image = convert_image_str_to_pil(image_str)
   # Resize image to match the model internal image size.
-  pil_image = pil_image.resize((shape[1], shape[0]), PILImage.BILINEAR)
+  pil_image = pil_image.resize(
+      (shape[1], shape[0]), PILImage.Resampling.BILINEAR
+  )
   # Convert image to the model format.
   pil_image = pil_image.convert(mode=mode)
   # Return image data as an array.
@@ -148,7 +150,9 @@ def overlay_pixel_saliency(image_str: str, saliency: np.ndarray, cm_name: str,
   # Overlay original image with the saliency heatmap.
   saliency_bytes = (saliency_bytes * 255).astype(np.uint8)
   saliency_img = PILImage.fromarray(saliency_bytes, mode='RGBA')
-  saliency_img = saliency_img.resize(size=img.size, resample=PILImage.BILINEAR)
+  saliency_img = saliency_img.resize(
+      size=img.size, resample=PILImage.Resampling.BILINEAR
+  )
   heatmap_img = PILImage.alpha_composite(img, saliency_img)
   heatmap_img = heatmap_img.convert(mode='RGB')
   return heatmap_img
