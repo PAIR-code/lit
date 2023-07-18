@@ -51,15 +51,15 @@ def get_wsgi_app():
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
-DEMO_LAYOUT = layout.LitComponentLayout(
-    components={
-        'Main': [
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-        ],
+DEMO_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        'Main': [modules.DataTableModule, modules.DatapointEditorModule],
+    },
+    lower={
         'Predictions': [modules.ClassificationModule, modules.ScalarModule],
         'Explanations': [
-            modules.ClassificationModule, modules.SalienceMapModule
+            modules.ClassificationModule,
+            modules.SalienceMapModule,
         ],
     },
     description='Basic layout for image demo',

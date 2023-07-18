@@ -103,12 +103,11 @@ _ONTONOTES_EDGEPROBE_PATH = flags.DEFINE_string(
 
 # Custom frontend layout; see client/lib/types.ts
 modules = layout.LitModuleName
-WINOGENDER_LAYOUT = layout.LitComponentLayout(
-    components={
-        "Main": [
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-        ],
+WINOGENDER_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [modules.DataTableModule, modules.DatapointEditorModule],
+    },
+    lower={
         "Predictions": [
             modules.SpanGraphGoldModule,
             modules.SpanGraphModule,
