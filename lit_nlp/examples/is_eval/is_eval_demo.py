@@ -91,7 +91,6 @@ IS_EVAL_LAYOUT = layout.LitCanonicalLayout(
         ],
         "Counterfactuals": [
             modules.GeneratorModule,
-            modules.CounterfactualExplainerModule,
         ],
     },
     description="Custom layout for evaluating input salience methods.")

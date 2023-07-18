@@ -20,7 +20,6 @@ from lit_nlp.components import classification_results
 from lit_nlp.components import curves
 from lit_nlp.components import gradient_maps
 from lit_nlp.components import hotflip
-from lit_nlp.components import lemon_explainer
 from lit_nlp.components import lime_explainer
 from lit_nlp.components import metrics
 from lit_nlp.components import model_salience
@@ -112,7 +111,6 @@ def default_interpreters(
   # pyformat: disable
   core_interpreters: dict[str, lit_components.Interpreter] = {
       'Model-provided salience': model_salience.ModelSalience(models),
-      'counterfactual explainer': lemon_explainer.LEMON(),
       'tcav': tcav.TCAV(),
       'curves': curves.CurvesInterpreter(),
       'thresholder': thresholder.Thresholder(),

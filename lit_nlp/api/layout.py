@@ -36,7 +36,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
-  CounterfactualExplainerModule = 'counterfactual-explainer-module'
   CurvesModule = 'curves-module'
   DataTableModule = 'data-table-module'
   SimpleDataTableModule = 'simple-data-table-module'
@@ -221,7 +220,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
         'Influence': [modules.TrainingDataAttributionModule],
         'Counterfactuals': [
             modules.GeneratorModule,
-            modules.CounterfactualExplainerModule,
         ],
         'TCAV': [modules.TCAVModule],
     },
