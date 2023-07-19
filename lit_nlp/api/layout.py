@@ -13,13 +13,12 @@
 # limitations under the License.
 # ==============================================================================
 """Module names and type definitions for frontend UI layouts."""
+from collections.abc import Mapping, Sequence
 import enum
-from typing import Any, Dict, List, Mapping, Optional, Text, Union
+from typing import Optional, Union
 
 import attr
 from lit_nlp.api import dtypes
-
-JsonDict = Dict[Text, Any]
 
 
 # LINT.IfChange
@@ -82,7 +81,10 @@ class ModuleConfig(dtypes.DataTuple):
 # so that users can reference custom modules which are defined in TypeScript
 # but not included in the LitModuleName enum above.
 # If a string is used, it should be the HTML element name, like foo-bar-module.
-LitModuleList = List[Union[str, LitModuleName, ModuleConfig]]
+LitModuleList = Sequence[Union[str, LitModuleName, ModuleConfig]]
+# Keys are names of tabs, and values are names of LitModule HTML elements, e.g.,
+# data-table-module for the DataTableModule class.
+LitTabGroupLayout = Mapping[str, LitModuleList]
 
 
 @attr.s(auto_attribs=True)
@@ -95,14 +97,12 @@ class LayoutSettings(dtypes.DataTuple):
 @attr.s(auto_attribs=True)
 class LitCanonicalLayout(dtypes.DataTuple):
   """Frontend UI layout; should match client/lib/types.ts."""
-  # Keys are names of tabs, and values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  upper: Dict[str, LitModuleList]
-  lower: Dict[str, LitModuleList] = attr.ib(factory=dict)
+  upper: LitTabGroupLayout
+  lower: LitTabGroupLayout = attr.ib(factory=dict)
   layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
   description: Optional[str] = None
 
-  def to_json(self) -> JsonDict:
+  def to_json(self) -> dtypes.JsonDict:
     """Override serialization to properly convert nested objects."""
     # Not invertible, but these only go from server -> frontend anyway.
     return attr.asdict(self, recurse=True)
