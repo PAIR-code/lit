@@ -47,11 +47,11 @@ class CachingTest(absltest.TestCase):
   def test_caching_model_wrapper_use_cache(self):
     model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
-    examples = [{"data": {"val": 1}, "id": "id_to_cache"}]
-    results = wrapper.predict_with_metadata(examples, "dataset")
+    examples = [{"data": {"val": 1, "_id": "id_to_cache"}, "id": "id_to_cache"}]
+    results = wrapper.predict_with_metadata(examples)
     self.assertEqual(1, model.count)
     self.assertEqual({"score": 1}, results[0])
-    results = wrapper.predict_with_metadata(examples, "dataset")
+    results = wrapper.predict_with_metadata(examples)
     self.assertEqual(1, model.count)
     self.assertEqual({"score": 1}, results[0])
     self.assertEmpty(wrapper._cache._pred_locks)
@@ -60,7 +60,7 @@ class CachingTest(absltest.TestCase):
     model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
     examples = [{"data": {"val": 1}, "id": "my_id"}]
-    results = wrapper.predict_with_metadata(examples, "dataset")
+    results = wrapper.predict_with_metadata(examples)
     self.assertEqual(1, model.count)
     self.assertEqual({"score": 1}, results[0])
     examples = [{"data": {"val": 2}, "id": "other_id"}]
@@ -71,32 +71,41 @@ class CachingTest(absltest.TestCase):
   def test_caching_model_wrapper_mixed_list(self):
     model = testing_utils.IdentityRegressionModelForTesting()
     wrapper = caching.CachingModelWrapper(model, "test")
-    examples = [{"data": {"val": 1}, "id": "my_id"}]
-    results = wrapper.predict_with_metadata(examples, "dataset")
-    self.assertEqual(1, model.count)
-    self.assertEqual({"score": 1}, results[0])
 
     examples = [
         {
             "data": {
-                "val": 0
+                "val": 0,
+                "_id": "zeroth_id"
+            },
+            "id": "zeroth_id"
+        },
+        {
+            "data": {
+                "val": 1,
+                "_id": "first_id"
             },
             "id": "first_id"
         },
         {
             "data": {
-                "val": 1
+                "val": 2,
+                "_id": "second_id"
             },
-            "id": "my_id"
-        },
-        {
-            "data": {
-                "val": 2
-            },
-            "id": "last_id"
+            "id": "second_id"
         },
     ]
-    results = wrapper.predict_with_metadata(examples, "dataset")
+    subset = examples[:1]
+
+    # Run the CachingModelWrapper over a subset of examples
+    results = wrapper.predict_with_metadata(subset)
+    self.assertEqual(1, model.count)
+    self.assertEqual({"score": 0}, results[0])
+
+    # Now, run the CachingModelWrapper over all of the examples. This should
+    # only pass the examples that were not in subset to the wrapped model, and
+    # the total number of inputs processed by the wrapped model should be 3
+    results = wrapper.predict_with_metadata(examples)
     self.assertEqual(3, model.count)
     self.assertEqual({"score": 0}, results[0])
     self.assertEqual({"score": 1}, results[1])
