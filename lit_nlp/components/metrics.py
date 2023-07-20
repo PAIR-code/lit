@@ -94,12 +94,16 @@ class SimpleMetrics(lit_components.Metrics):
       # Extract fields
       labels = [ex[label_key] for ex in inputs]
       preds = [mo[pred_key] for mo in model_outputs]
+      indices = [ex.get('_id') for ex in inputs]
+      metas = [ex.get('_meta', {}) for ex in inputs]
       # Compute metrics, as dict(str -> float)
       metrics = self.compute(
           labels,
           preds,
           label_spec=dataset.spec()[label_key],
           pred_spec=output_spec[pred_key],
+          indices=indices,
+          metas=metas,
           config=config.get(pred_key) if config else None,
       )
       # Format for frontend.
@@ -116,40 +120,12 @@ class SimpleMetrics(lit_components.Metrics):
                         dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[list[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> list[JsonDict]:
-    if model_outputs is None:
-      model_outputs = list(model.predict_with_metadata(indexed_inputs))
-
-    # TODO(lit-team): pre-compute this mapping in constructor?
-    # This would require passing a model name to this function so we can
-    # reference a pre-computed list.
-    output_spec = model.output_spec()
-    field_map = map_pred_keys(
-        dataset.spec(), output_spec, self.is_field_compatible
-    )
-    ret = []
-    for pred_key, label_key in field_map.items():
-      # Extract fields
-      labels = [ex['data'][label_key] for ex in indexed_inputs]
-      preds = [mo[pred_key] for mo in model_outputs]
-      indices = [ex['id'] for ex in indexed_inputs]
-      metas = [ex.get('meta', {}) for ex in indexed_inputs]
-      # Compute metrics, as dict(str -> float)
-      metrics = self.compute_with_metadata(
-          labels,
-          preds,
-          label_spec=dataset.spec()[label_key],
-          pred_spec=output_spec[pred_key],
-          indices=indices,
-          metas=metas,
-          config=config.get(pred_key) if config else None,
-      )
-      # Format for frontend.
-      ret.append({
-          'pred_key': pred_key,
-          'label_key': label_key,
-          'metrics': nan_to_none(metrics)
-      })
-    return ret
+    return self.run(
+        [ex['data'] for ex in indexed_inputs],
+        model,
+        dataset,
+        model_outputs,
+        config)
 
 
 # TODO(b/254833485): Convert to inherit from lit_components.Metrics so that
@@ -207,22 +183,8 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                         dataset: lit_dataset.IndexedDataset,
                         model_outputs: Optional[list[JsonDict]] = None,
                         config: Optional[JsonDict] = None) -> list[JsonDict]:
-    # Get margin for each input for each pred key and add them to a config dict
-    # to pass to the wrapped metrics.
-    field_map = map_pred_keys(
-        dataset.spec(), model.output_spec(), self.is_field_compatible
-    )
-    margin_config = {}
-    for pred_key in field_map:
-      inputs = [ex['data'] for ex in indexed_inputs]
-      field_config = config.get(pred_key) if config else None
-      margins = [
-          classification_results.get_margin_for_input(field_config, inp)
-          for inp in inputs
-      ]
-      margin_config[pred_key] = margins
-    return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
-                                           model_outputs, margin_config)
+    return self.run([ex['data'] for ex in indexed_inputs], model, dataset,
+                    model_outputs, config)
 
 
 class RegressionMetrics(SimpleMetrics):
@@ -259,7 +221,9 @@ class RegressionMetrics(SimpleMetrics):
               preds: Sequence[float],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute the MSE and Pearson's & Spearman's R for regression predictions.
 
     Args:
@@ -268,6 +232,8 @@ class RegressionMetrics(SimpleMetrics):
       label_spec: A Scalar spec for the model's label field.
       pred_spec: A RegressionScore spec for the model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the mean squared error (key=`mse`), Pearson's R
@@ -280,7 +246,7 @@ class RegressionMetrics(SimpleMetrics):
         signature will produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del config
+    del config, indices, metas
 
     if not labels or not preds:
       return {}
@@ -403,7 +369,9 @@ class MulticlassMetricsImpl(SimpleMetrics):
               preds: Sequence[np.ndarray],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute standard metrics for multiclass predictions.
 
     Args:
@@ -412,6 +380,8 @@ class MulticlassMetricsImpl(SimpleMetrics):
       label_spec: Unused field spec from super class
       pred_spec: A MulticlassPreds spec for the model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the `accuracy`, `precission`, `recall`, `f1`, `auc`,
@@ -426,7 +396,7 @@ class MulticlassMetricsImpl(SimpleMetrics):
     """
     # TODO(lit-dev): compare on strings instead of converting to indices?
     # This should be more robust to skew in label sets.
-    del label_spec  # Unused; get vocab from pred_spec.
+    del label_spec, indices, metas
 
     if not labels or not preds:
       return {}
@@ -498,15 +468,15 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       pairs.append((id_to_position[parent_id], id_to_position[this_id]))
     return pairs
 
-  def compute_with_metadata(
+  def compute(
       self,
       labels: Sequence[Any],
       preds: Sequence[Any],
       label_spec: LitType,
       pred_spec: LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> dict[str, float]:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute standard paired metrics for multiclass predictions.
 
     Args:
@@ -514,9 +484,9 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       preds: The models predicted class label, aligned with `labels`.
       label_spec: Unused field spec from the super class.
       pred_spec: A MulticlassPreds spec for the model's prediction field.
+      config: Optional margins for computing classification results.
       indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
       metas: The metadata for each Input, aligned with `preds` and `labels`.
-      config: Optional margins for computing classification results.
 
     Returns:
       A dict containing the `num_pairs`, `swap_rate`, and `mean_jsd` values for
@@ -626,6 +596,8 @@ class MultilabelMetrics(SimpleMetrics):
       label_spec: types.LitType,
       pred_spec: types.LitType,
       config: Optional[types.JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None
   ) -> lit_components.MetricsDict:
     """Computes standard metrics for multi-label classification models.
 
@@ -637,6 +609,8 @@ class MultilabelMetrics(SimpleMetrics):
       pred_spec: A `SparseMultilabelPreds` instance describing the types of
         elements in `preds`.
       config: unused parameter from base class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the accuracy (exact match ratio), precision, recall, and
@@ -648,7 +622,7 @@ class MultilabelMetrics(SimpleMetrics):
       ValueError: If `labels` is not the same length as `preds`.
     """
     # TODO(b/271864674): Use this config dict to get user-defined thresholds
-    del config  # unused in multi-label metrics, for now.
+    del config, indices, metas  # unused in multi-label metrics, for now.
 
     if not labels or not preds:
       return {}
@@ -745,7 +719,9 @@ class CorpusBLEU(SimpleMetrics):
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute CorpusBLEU score using the SacreBLEU library.
 
     Args:
@@ -755,6 +731,8 @@ class CorpusBLEU(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
         model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the CorpusBLEU score for each prediction, stored in the
@@ -768,8 +746,7 @@ class CorpusBLEU(SimpleMetrics):
         produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec
-    del config
+    del label_spec, config, indices, metas
 
     if not labels or not preds:
       return {}
@@ -827,7 +804,9 @@ class RougeL(SimpleMetrics):
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute the RougeL score using the RougeScorer library.
 
     Args:
@@ -837,6 +816,8 @@ class RougeL(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
         model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
+      metas: The metadata for each Input, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the RougeL score for each prediction, stored in the
@@ -850,8 +831,7 @@ class RougeL(SimpleMetrics):
         produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec
-    del config
+    del label_spec, config, indices
 
     if not labels or not preds:
       return {}
@@ -929,7 +909,9 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
               preds: Sequence[np.ndarray],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute binary classification metrics using Scikit-Learn.
 
     Args:
@@ -938,6 +920,8 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
       label_spec: Unused field spec from the super class.
       pred_spec: A `MulticlassPreds` spec for the model's prediction field.
       config: Optional margins for computing classification results.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the true negative (`TN`), false positive (`FP`), false
@@ -950,7 +934,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
         error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec  # Unused; get vocab from pred_spec.
+    del label_spec, indices, metas  # Unused; get vocab from pred_spec.
 
     if not labels or not preds:
       return {}
@@ -1025,7 +1009,9 @@ class ExactMatchMetrics(SimpleMetrics):
       preds: Sequence[Any],
       label_spec: types.LitType,
       pred_spec: types.LitType,
-      config: Optional[JsonDict] = None) -> lit_components.MetricsDict:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> lit_components.MetricsDict:
     """Compute exact matches between labels and predictions.
 
     Args:
@@ -1036,13 +1022,15 @@ class ExactMatchMetrics(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec describing
           the types of elements in `preds`.
       config: unused parameter from base class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the proportion of exact matches in the predictions,
       stored in the `exactmatch` key if `pred_spec` is `GeneratedText` or the
       `exactmatch@1` key if `pred_spec` is `GeneratedTextCandidates`.
     """
-    del config
+    del config, indices, metas
 
     if not labels or not preds:
       return {}

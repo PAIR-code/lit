@@ -192,23 +192,12 @@ class Metrics(Interpreter):
       preds: Sequence[Any],
       label_spec: types.LitType,
       pred_spec: types.LitType,
-      config: Optional[JsonDict] = None) -> MetricsDict:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> MetricsDict:
     """Compute metric(s) given labels and predictions."""
     raise NotImplementedError('Subclass should implement this, or override '
                               'compute_with_metadata() directly.')
-
-  def compute_with_metadata(
-      self,
-      labels: Sequence[Any],
-      preds: Sequence[Any],
-      label_spec: types.LitType,
-      pred_spec: types.LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> MetricsDict:
-    """As compute(), but with access to indices and metadata."""
-    del indices, metas  # unused by Metrics base class
-    return self.compute(labels, preds, label_spec, pred_spec, config)
 
 
 class Annotator(metaclass=abc.ABCMeta):

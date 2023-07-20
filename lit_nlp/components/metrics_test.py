@@ -271,24 +271,36 @@ class MulticlassPairedMetricsTest(parameterized.TestCase):
       ('two_swaps', [[0, 1], [1, 0], [1, 0], [0, 1]], 0, 0.69315, 1.0),
       ('no_null_index', [[0, 1], [1, 0], [1, 0], [0, 1]], None, 0.69315, 1.0),
   )
-  def test_compute_with_metadata(self, preds: list[list[int]],
-                                 null_idx: Optional[int], mean_jsd: float,
-                                 swap_rate: float):
-
+  def test_compute(
+      self,
+      preds: list[list[int]],
+      null_idx: Optional[int],
+      mean_jsd: float,
+      swap_rate: float,
+  ):
     labels = ['1', '1', '0', '0']
     indices = ['7f7f85', '345ac4', '3a3112', '88bcda']
     metas = [{'parentId': '345ac4'}, {}, {}, {'parentId': '3a3112'}]
     expected = {'mean_jsd': mean_jsd, 'num_pairs': 2, 'swap_rate': swap_rate}
-    result = self.metrics.compute_with_metadata(
-        labels, preds, types.CategoryLabel(),
-        types.MulticlassPreds(vocab=['0', '1'], null_idx=null_idx), indices,
-        metas)
+    result = self.metrics.compute(
+        labels,
+        preds,
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=null_idx),
+        indices=indices,
+        metas=metas,
+    )
     testing_utils.assert_deep_almost_equal(self, result, expected)
 
-  def test_compute_with_metadata_empty(self):
-    result = self.metrics.compute_with_metadata(
-        [], [], types.CategoryLabel(),
-        types.MulticlassPreds(vocab=['0', '1'], null_idx=0), [], [])
+  def test_compute_empty(self):
+    result = self.metrics.compute(
+        [],
+        [],
+        types.CategoryLabel(),
+        types.MulticlassPreds(vocab=['0', '1'], null_idx=0),
+        indices=[],
+        metas=[]
+    )
     testing_utils.assert_deep_almost_equal(self, result, {})
 
 
