@@ -19,7 +19,7 @@
 import {action, computed, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
 import {getTypes, findSpecKeys} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -61,7 +61,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled = false;
   @observable layoutName!: string;
-  @observable layouts: {[name: string]: LitCanonicalLayout} = {};
+  @observable layouts: LitComponentLayouts = {};
   private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
 
   @computed
@@ -293,9 +293,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Initialization logic
   addLayouts(layouts: LitComponentLayouts) {
-    for (const name of Object.keys(layouts)) {
-      this.layouts[name] = canonicalizeLayout(layouts[name]);
-    }
+    Object.assign(this.layouts, layouts);
   }
 
   @action

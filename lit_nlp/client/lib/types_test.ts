@@ -17,14 +17,7 @@
 
 import 'jasmine';
 
-// These are needed to preserve the import, as they are referenced indirectly.
-// through the names of elements they define.
-// tslint:disable-next-line:no-unused-variable
-import {ClassificationModule} from '../modules/classification_module';
-// tslint:disable-next-line:no-unused-variable
-import {DatapointEditorModule} from '../modules/datapoint_editor_module';
-
-import {canonicalizeLayout, formatForDisplay, LitCanonicalLayout, LitComponentLayout} from './types';
+import {formatForDisplay} from './types';
 
 describe('formatForDisplay test', () => {
 
@@ -45,47 +38,5 @@ describe('formatForDisplay test', () => {
     it(`formats ${name} for display`, () => {
       expect(formatForDisplay(value)).toBe(expected);
     });
-  });
-});
-
-const MOCK_LAYOUT: LitComponentLayout = {
-  components: {
-    'Main': [
-      'datapoint-editor-module',
-    ],
-    'internals': [
-      // Duplicated per model and in compareDatapoints mode.
-      'classification-module',
-    ],
-  },
-  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
-  description: 'Mock layout for testing.'
-};
-
-const CANONICAL_LAYOUT: LitCanonicalLayout = {
-  upper: {
-    'Main': [
-      'datapoint-editor-module',
-    ],
-  },
-  lower: {
-    'internals': [
-      // Duplicated per model and in compareDatapoints mode.
-      'classification-module',
-    ],
-  },
-  layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
-  description: 'Mock layout for testing.'
-};
-
-describe('canonicalizeLayout test', () => {
-  type LitLayout = LitComponentLayout|LitCanonicalLayout;
-  const tests: Array<[string, LitLayout, LitCanonicalLayout]> = [
-    ['converts a legacy layout', MOCK_LAYOUT, CANONICAL_LAYOUT],
-    ['leaves canonical layouts alone', CANONICAL_LAYOUT,  CANONICAL_LAYOUT],
-  ];
-
-  tests.forEach(([name, layout, expected]) => {
-    it(name, () => {expect(canonicalizeLayout(layout)).toEqual(expected);});
   });
 });

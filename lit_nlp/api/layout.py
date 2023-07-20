@@ -93,22 +93,6 @@ class LayoutSettings(dtypes.DataTuple):
 
 
 @attr.s(auto_attribs=True)
-class LitComponentLayout(dtypes.DataTuple):
-  """Frontend UI layout (legacy); should match client/lib/types.ts."""
-  # Keys are names of tabs; one must be called "Main".
-  # Values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  components: Dict[str, LitModuleList]
-  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
-  description: Optional[str] = None
-
-  def to_json(self) -> JsonDict:
-    """Override serialization to properly convert nested objects."""
-    # Not invertible, but these only go from server -> frontend anyway.
-    return attr.asdict(self, recurse=True)
-
-
-@attr.s(auto_attribs=True)
 class LitCanonicalLayout(dtypes.DataTuple):
   """Frontend UI layout; should match client/lib/types.ts."""
   # Keys are names of tabs, and values are names of LitModule HTML elements,
@@ -124,8 +108,7 @@ class LitCanonicalLayout(dtypes.DataTuple):
     return attr.asdict(self, recurse=True)
 
 
-LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
-                                         LitCanonicalLayout]]
+LitComponentLayouts = Mapping[str, LitCanonicalLayout]
 
 # pylint: enable=invalid-name
 # LINT.ThenChange(../client/lib/types.ts)

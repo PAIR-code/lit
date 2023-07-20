@@ -340,10 +340,10 @@ export function defaultValueByField(key: string, spec: Spec) {
 }
 
 /**
- * Dictionary of lit layouts. See LitComponentLayout
+ * Dictionary of lit layouts. See LitCanonicalLayout
  */
 export declare interface LitComponentLayouts {
-  [key: string]: LitComponentLayout|LitCanonicalLayout;
+  [key: string]: LitCanonicalLayout;
 }
 
 // LINT.IfChange
@@ -381,23 +381,6 @@ export declare interface LitTabGroupLayout {
 }
 
 /**
- * A layout is defined by a set of modules arranged into tabs and groups.
- *
- * This is a legacy layout format, where components contains several keys
- * including 'Main', and values are lists of module classes.
- * - The 'Main' group will appear in the upper half of the UI
- * - The remaining groups will appear in the lower half of the UI,
- *   with a tab bar to select the active group.
- *
- * See layout.ts for examples.
- */
-export declare interface LitComponentLayout {
-  components: LitTabGroupLayout;
-  layoutSettings?: LayoutSettings;
-  description?: string;
-}
-
-/**
  * UI layout in canonical form.
  *
  * This has explicit tab groups for the upper and lower UI areas.
@@ -420,38 +403,6 @@ export declare interface LayoutSettings {
   hideToolbar?: boolean;
   mainHeight?: number;
   centerPage?: boolean;
-}
-
-/**
- * Convert a layout to canonical form.
- * TODO(b/265218467): deprecate this once we convert all client and demo layouts.
- * TODO(b/265218467): move this to Python.
- */
-export function canonicalizeLayout(layout: LitComponentLayout|
-                                   LitCanonicalLayout): LitCanonicalLayout {
-  if (!layout.hasOwnProperty('components')) {
-    return layout as LitCanonicalLayout;
-  }
-  // Legacy layout to convert.
-  layout = layout as LitComponentLayout;
-
-  const canonicalLayout: LitCanonicalLayout = {
-    upper: {},
-    lower: {},
-    layoutSettings: layout.layoutSettings ?? {},
-    description: layout.description ?? '',
-  };
-
-  // Handle upper layout.
-  canonicalLayout.upper['Main'] = layout.components['Main'];
-
-  // Handle lower layout.
-  for (const tabName of Object.keys(layout.components)) {
-    if (tabName === 'Main') continue;
-    canonicalLayout.lower[tabName] = layout.components[tabName];
-  }
-
-  return canonicalLayout;
 }
 
 // LINT.ThenChange(../../api/layout.py)
