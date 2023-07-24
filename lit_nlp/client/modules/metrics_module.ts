@@ -276,11 +276,15 @@ export class MetricsModule extends LitModule {
         this.classificationService.marginSettings[model] as CallConfig || {};
 
     let metrics: MetricsResponse;
-    try {
-      metrics = await this.apiService.getMetrics(
-          selectedInputs, model, this.appState.currentDataset,
-          metricsToRun, config);
-    } catch {
+    if (selectedInputs.length) {
+      try {
+        metrics = await this.apiService.getMetrics(
+            selectedInputs, model, this.appState.currentDataset,
+            metricsToRun, config);
+      } catch {
+        metrics = {};
+      }
+    } else {
       metrics = {};
     }
 
