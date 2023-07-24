@@ -3,7 +3,7 @@
 See https://www.tensorflow.org/datasets/catalog/penguins. for details.
 """
 
-from typing import Mapping, Union
+from typing import Mapping, Optional, Union
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 import tensorflow_datasets as tfds
@@ -42,7 +42,7 @@ class PenguinDataset(lit_dataset.Dataset):
         'species': VOCABS['species'][rec['species']],
     }
 
-  def __init__(self):
+  def __init__(self, max_examples: Optional[int] = None):
     peng = tfds.load('penguins/simple', download=True, try_gcs=True)
     dataset_df = tfds.as_dataframe(peng['train'])
 
@@ -51,7 +51,15 @@ class PenguinDataset(lit_dataset.Dataset):
     records = dataset_df.to_dict(orient='records')
     self._examples = [
         PenguinDataset.lit_example_from_record(rec) for rec in records
-    ]
+    ][:max_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return INPUT_SPEC | {

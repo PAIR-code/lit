@@ -20,11 +20,14 @@ class WMT14Data(lit_dataset.Dataset):
 
   tfds_name = 'wmt14_translate'
 
-  def __init__(self,
-               version: str = 'fr-en',
-               reverse: bool = False,
-               split: str = 'validation',
-               filepath: Optional[str] = None):
+  def __init__(
+      self,
+      version: str = 'fr-en',
+      reverse: bool = False,
+      split: str = 'validation',
+      filepath: Optional[str] = None,
+      max_examples: Optional[int] = None,
+  ):
     """Initializes a Dataset wrapper for the WMT-14 dataset.
 
     More information on the WMT 14 dataset can be found at the links below.
@@ -44,6 +47,7 @@ class WMT14Data(lit_dataset.Dataset):
         downloaded from TFDS. This is useful for containerized demos where the
         process of downloading and processing the dataset with TFDS can cause
         the container to timeout and restart on a pseudo-inifinite loop.
+      max_examples: The maximum number of examples to load in.
 
     Raises:
       ValueError: Invalid version identifier.
@@ -69,7 +73,19 @@ class WMT14Data(lit_dataset.Dataset):
       ds_np = list(tfds.as_numpy(ds))
       self._examples = [
           self._record_to_dict(d, source_key, target_key) for d in ds_np
-      ]
+      ][:max_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'version': lit_types.String(default='fr-en'),
+        'reverse': lit_types.Boolean(default=False),
+        'split': lit_types.String(default='validation'),
+        'filepath': lit_types.String(required=False),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def _load_datapoints(self,
                        path: str,
@@ -164,4 +180,15 @@ class WMT17Data(lit_dataset.Dataset):
         'source_language': lit_types.CategoryLabel(required=False),
         'target': lit_types.TextSegment(),
         'target_language': lit_types.CategoryLabel(required=False),
+    }
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'version': lit_types.String(default='de-en'),
+        'reverse': lit_types.Boolean(default=False),
+        'split': lit_types.String(default='validation'),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
     }

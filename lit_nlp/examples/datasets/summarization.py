@@ -10,12 +10,14 @@ import tensorflow_datasets as tfds
 class GigawordData(lit_dataset.Dataset):
   """English Gigaword summarization dataset."""
 
-  def __init__(self, split="validation", max_examples=-1):
+  def __init__(self, split="validation", max_examples: Optional[int] = None):
     """Dataset constructor, loads the data into memory."""
     ds = tfds.load("gigaword", split=split)
 
     self._examples = []  # populate this with data records
-    for record in ds.take(max_examples):
+    if max_examples is not None:
+      ds = ds.take(max_examples)
+    for record in ds:
       self._examples.append({
           "document": record["document"].numpy().decode("utf-8"),
           "reference": record["summary"].numpy().decode("utf-8"),
@@ -26,7 +28,7 @@ class GigawordData(lit_dataset.Dataset):
     return {
         "split": lit_types.String(default="validation"),
         "max_examples": lit_types.Integer(
-            default=1000, min_val=-1, max_val=10_000
+            default=1000, min_val=0, max_val=10_000, required=False
         ),
     }
 
@@ -43,11 +45,13 @@ class CNNDMData(lit_dataset.Dataset):
 
   tfds_name = "cnn_dailymail"
 
-  def __init__(self,
-               split: str = "validation",
-               max_examples: int = -1,
-               max_seq_len: int = 500,
-               filepath: Optional[str] = None):
+  def __init__(
+      self,
+      split: str = "validation",
+      max_examples: Optional[int] = None,
+      max_seq_len: int = 500,
+      filepath: Optional[str] = None,
+  ):
     """Initializes a Dataset wrapper for the the CNN DailyMail dataset.
 
     Args:
@@ -61,11 +65,13 @@ class CNNDMData(lit_dataset.Dataset):
     """
 
     if filepath:
-      examples = self.load_datapoints(filepath)
+      examples = self.load_datapoints(filepath)[:max_examples]
     else:
       ds = tfds.load(self.tfds_name, split=split)
       examples = []
-      for record in ds.take(max_examples):
+      if max_examples is not None:
+        ds = ds.take(max_examples)
+      for record in ds:
         # format and truncate from the end to max_seq_len tokens.
         document = " ".join(record["article"].numpy().decode("utf-8").replace(
             "<br />", "").split()[-max_seq_len:])
@@ -79,7 +85,7 @@ class CNNDMData(lit_dataset.Dataset):
     return {
         "split": lit_types.String(default="validation"),
         "max_examples": lit_types.Integer(
-            default=1000, min_val=-1, max_val=10_000
+            default=1000, min_val=0, max_val=10_000, required=False
         ),
         "max_seq_len": lit_types.Integer(default=500, min_val=1, max_val=1024),
         "filepath": lit_types.String(required=False),

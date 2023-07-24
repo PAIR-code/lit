@@ -6,9 +6,10 @@ https://www.tensorflow.org/datasets/catalog/glue
 Note that this requires the TensorFlow Datasets package, but the resulting LIT
 datasets just contain regular Python/NumPy data.
 """
+from typing import Optional
+
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-
 import pandas as pd
 import tensorflow_datasets as tfds
 
@@ -82,15 +83,22 @@ class SST2Data(lit_dataset.Dataset):
       })
     return ret
 
-  def __init__(self, path_or_splitname: str):
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
     if path_or_splitname.endswith('.csv'):
-      self._examples = self.load_from_csv(path_or_splitname)
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
     else:
-      self._examples = self.load_from_tfds(path_or_splitname)
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'path_or_splitname': lit_types.String()}
+    return {
+        'path_or_splitname': lit_types.String(),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {
@@ -183,15 +191,22 @@ class STSBData(lit_dataset.Dataset):
       })
     return ret
 
-  def __init__(self, path_or_splitname: str):
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
     if path_or_splitname.endswith('.csv'):
-      self._examples = self.load_from_csv(path_or_splitname)
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
     else:
-      self._examples = self.load_from_tfds(path_or_splitname)
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'path_or_splitname': lit_types.String()}
+    return {
+        'path_or_splitname': lit_types.String(),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {
@@ -241,15 +256,22 @@ class MNLIData(lit_dataset.Dataset):
       })
     return ret
 
-  def __init__(self, path_or_splitname: str):
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
     if path_or_splitname.endswith('.csv'):
-      self._examples = self.load_from_csv(path_or_splitname)
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
     else:
-      self._examples = self.load_from_tfds(path_or_splitname)
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    return {'path_or_splitname': lit_types.String()}
+    return {
+        'path_or_splitname': lit_types.String(),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {
