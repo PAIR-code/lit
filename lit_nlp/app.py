@@ -54,6 +54,8 @@ DatasetLoadersMap = dict[str, DatasetLoader]
 ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
 ModelLoadersMap = dict[str, ModelLoader]
 
+_EMPTY_DATASET_KEY = '_union_empty'
+
 
 # LINT.IfChange
 class ComponentInfo(TypedDict):
@@ -485,6 +487,10 @@ class LitApp(object):
     self._models[new_name] = caching.CachingModelWrapper(
         new_model, new_name, cache_dir=self._data_dir
     )
+    empty_dataset = lit_dataset.NoneDataset(self._models)
+    self._datasets[_EMPTY_DATASET_KEY] = lit_dataset.IndexedDataset(
+        base=self._run_annotators(empty_dataset), id_fn=caching.input_hash
+    )
     self._info = self._build_metadata()
     return (self._info, new_name)
 
@@ -889,7 +895,7 @@ class LitApp(object):
     tmp_datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
     # TODO(b/202210900): get rid of this, just dynamically create the empty
     # dataset on the frontend.
-    tmp_datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+    tmp_datasets[_EMPTY_DATASET_KEY] = lit_dataset.NoneDataset(self._models)
 
     self._dataset_loaders: DatasetLoadersMap = dataset_loaders or {}
     self._datasets: dict[str, lit_dataset.IndexedDataset] = {}

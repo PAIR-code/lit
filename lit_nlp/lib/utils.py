@@ -260,6 +260,31 @@ def validate_config_against_spec(
   return config
 
 
+def combine_specs(spec1: lit_types.Spec, spec2: lit_types.Spec):
+  """Combine the fields in two specs.
+
+  Args:
+    spec1: the first spec.
+    spec2: the second spec.
+
+  Returns:
+    A new spec with the combined fields of spec1 and spec2.
+
+  Raises:
+    ValueError, when these two specs have the same keys corresponding to
+    different values.
+  """
+  # Ensure that there are no conflicting spec keys.
+  conflicts = [k for k, v in spec1.items() if k in spec2 and spec2[k] != v]
+  if conflicts:
+    conflict_types: dict[str, tuple[lit_types.LitType, lit_types.LitType]] = {
+        k: (spec1[k], spec2[k]) for k in conflicts
+    }
+    raise ValueError(f'Conflicting spec keys: {conflict_types}')
+  combined_spec = {} | spec1 | spec2
+  return combined_spec
+
+
 class TaskQueue(queue.Queue):
   """A simple task queue for processing jobs in a thread pool."""
 

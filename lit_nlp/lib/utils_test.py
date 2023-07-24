@@ -426,6 +426,24 @@ class UtilsTest(parameterized.TestCase):
           config, _VALIDATION_SPEC, "unittest", raise_for_unsupported=True
       )
 
+  def test_combine_specs_not_overlapping(self):
+    spec1 = {"string": types.String()}
+    spec2 = {"int": types.Integer()}
+    spec = utils.combine_specs(spec1, spec2)
+    self.assertEqual(spec, {"string": types.String(), "int": types.Integer()})
+
+  def test_combine_specs_overlapping_and_compatible(self):
+    spec1 = {"string": types.String()}
+    spec2 = {"int": types.Integer(), "string": types.String()}
+    spec = utils.combine_specs(spec1, spec2)
+    self.assertEqual(spec, {"string": types.String(), "int": types.Integer()})
+
+  def test_combine_specs_conflicting(self):
+    spec1 = {"string": types.String()}
+    spec2 = {"string": types.TextSegment()}
+    with self.assertRaises(ValueError):
+      utils.combine_specs(spec1, spec2)
+
 
 if __name__ == "__main__":
   absltest.main()
