@@ -278,8 +278,7 @@ class LitApp(object):
       raise ValueError('Must provide a "dataset_name" to predict over.')
 
     inputs = data['inputs']
-    preds = list(self._models[model].predict_with_metadata(
-        inputs, dataset_name=dataset_name, **kw))
+    preds = list(self._models[model].predict_with_metadata(inputs, **kw))
 
     num_preds = len(preds)
     num_inputs = len(inputs)
@@ -566,7 +565,6 @@ class LitApp(object):
     if model is None:
       raise ValueError('Must provide a "model" name to get predictions.')
 
-    # Decode strings "0" or "1" to boolean.
     interp: lit_components.Interpreter = self._interpreters[interpreter]
     mdl: lit_model.Model = self._models[model]
 

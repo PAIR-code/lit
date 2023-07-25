@@ -14,10 +14,11 @@
 # ==============================================================================
 """Base classes for LIT models."""
 import abc
+from collections.abc import Iterable, Iterator
 import inspect
 import itertools
 import multiprocessing  # for ThreadPool
-from typing import Iterable, Iterator, Optional, Union
+from typing import Optional, Union
 
 from absl import logging
 from lit_nlp.api import dataset as lit_dataset
@@ -193,11 +194,18 @@ class Model(metaclass=abc.ABCMeta):
     raise NotImplementedError('get_embedding_table() not implemented for ' +
                               self.__class__.__name__)
 
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
+  def fit_transform(
+      self, inputs: Iterable[types.JsonDict]
+  ) -> Iterable[types.JsonDict]:
     """For internal use by UMAP and other sklearn-based models."""
     raise NotImplementedError(
-        'fit_transform_with_metadata() not implemented for ' +
-        self.__class__.__name__)
+        'fit_transform() not implemented for ' + self.__class__.__name__)
+
+  def fit_transform_with_metadata(
+      self, indexed_inputs: Iterable[types.IndexedInput]
+  ) -> Iterable[types.JsonDict]:
+    """For internal use by UMAP and other sklearn-based models."""
+    return self.fit_transform((ii['data'] for ii in indexed_inputs))
 
   ##
   # Concrete implementations of common functions.
@@ -304,7 +312,9 @@ class ModelWrapper(Model):
   def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     return self.wrapped.get_embedding_table()
 
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict]):
+  def fit_transform_with_metadata(
+      self, indexed_inputs: Iterable[types.IndexedInput]
+  ):
     return self.wrapped.fit_transform_with_metadata(indexed_inputs)
 
 

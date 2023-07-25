@@ -14,13 +14,13 @@
 # ==============================================================================
 """Miscellaneous helper functions."""
 
+from collections.abc import Callable, Iterable
 import os
 import pickle
 import threading
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Optional, Union
 
 from absl import logging
-
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
@@ -94,7 +94,7 @@ class PredsCache(object):
 
     # A map of keys needing predictions to a lock for that model predict call.
     # Used for not duplicating concurrent prediction calls on the same inputs.
-    self._pred_locks: dict[frozenset[CacheKey], threading.RLock] = dict()
+    self._pred_locks: dict[PredLockKey, threading.RLock] = dict()
 
   @property
   def lock(self):
@@ -226,12 +226,13 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
   ##
   # For internal use
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict], **kw):
+  def fit_transform(self, inputs: Iterable[types.JsonDict]):
     """For use with UMAP and other preprocessing transforms."""
-    outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
+    inputs_as_list = list(inputs)
+    outputs = list(self.wrapped.fit_transform(inputs_as_list))
     with self._cache.lock:
-      for i, output in enumerate(outputs):
-        self._cache.put(output, self.key_fn(indexed_inputs[i]))
+      for inp, output in zip(inputs_as_list, outputs):
+        self._cache.put(output, self.key_fn(inp))
     return outputs
 
   def predict_minibatch(self, *args, **kw):
@@ -245,30 +246,28 @@ class CachingModelWrapper(lit_model.ModelWrapper):
               inputs: Iterable[JsonDict],
               progress_indicator: Optional[ProgressIndicator] = lambda x: x,
               **kw) -> list[JsonDict]:
-
     inputs_as_list = list(inputs)
     # Try to get results from the cache.
     input_keys = [self.key_fn(d) for d in inputs_as_list]
     if self._cache.pred_lock_key(input_keys):
       with self._cache.get_pred_lock(input_keys):
-        results = self._get_results_from_cache(input_keys)
+        cached_results = self._get_results_from_cache(input_keys)
     else:
-      results = self._get_results_from_cache(input_keys)
+      cached_results = self._get_results_from_cache(input_keys)
 
     # Make a single list of everything that wasn't found in the cache,
     # to actually run the model on these inputs.
-    miss_idxs = [i for i, v in enumerate(results) if v is None]
+    miss_idxs = [i for i, v in enumerate(cached_results) if v is None]
     misses = [inputs_as_list[i] for i in miss_idxs]
     if misses:
       logging.info("%s: %d misses out of %d inputs", self._log_prefix,
-                   len(miss_idxs), len(results))
+                   len(miss_idxs), len(cached_results))
     else:
       # If all results were already cached, return them.
-      return results
+      return cached_results
 
     with self._cache.get_pred_lock(input_keys):
-      model_preds = list(
-          self.wrapped.predict(progress_indicator(misses)))
+      model_preds = list(self.wrapped.predict(progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
 
       if len(model_preds) != len(misses):
@@ -279,12 +278,12 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       with self._cache.lock:
         for i, orig_idx in enumerate(miss_idxs):
           self._cache.put(model_preds[i], self.key_fn(inputs_as_list[orig_idx]))
-          results[orig_idx] = model_preds[i]
+          cached_results[orig_idx] = model_preds[i]
 
       # Remove the prediction lock from the cache as the request is complete
       self._cache.delete_pred_lock(input_keys)
 
-    return results
+    return cached_results
 
   # TODO(b/171513556): remove this method once we no longer need to override
   # ModelWrapper.predict_with_metadata()
