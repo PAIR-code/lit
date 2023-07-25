@@ -16,7 +16,7 @@ IMAGE_SHAPE = (224, 224, 3)
 class MobileNet(model.Model):
   """MobileNet model trained on ImageNet dataset."""
 
-  def __init__(self) -> None:
+  def __init__(self, name='mobilenet_v2') -> None:
     # Initialize imagenet labels.
     self.labels = [''] * len(imagenet_labels.IMAGENET_2012_LABELS)
     self.label_to_idx = {}
@@ -25,7 +25,10 @@ class MobileNet(model.Model):
       self.labels[i] = l
       self.label_to_idx[l] = i
 
-    self.model = tf.keras.applications.mobilenet_v2.MobileNetV2()
+    if name == 'mobilenet_v2':
+      self.model = tf.keras.applications.mobilenet_v2.MobileNetV2()
+    elif name == 'mobilenet':
+      self.model = tf.keras.applications.mobilenet.MobileNet()
 
   def predict_minibatch(
       self, input_batch: List[lit_types.JsonDict]) -> List[lit_types.JsonDict]:

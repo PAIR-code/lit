@@ -130,7 +130,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   }
 
   dataset_loaders: lit_app.DatasetLoadersMap = {
-      "sst_dev": (glue.SST2Data, glue.SST2Data.init_spec()),
+      "sst_dev": (glue.SST2DataForLM, glue.SST2DataForLM.init_spec()),
       "imdb_train": (
           classification.IMDBData,
           classification.IMDBData.init_spec(),

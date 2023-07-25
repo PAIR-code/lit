@@ -153,8 +153,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       )
 
   model_loaders: lit_app.ModelLoadersMap = {
-      "T5 Saved Model": (t5.T5SavedModel, t5.T5SavedModel.init_spec()),
-      "T5 HF Model": (t5.T5HFModel, t5.T5HFModel.init_spec()),
+      "T5 summarization": (t5.T5Summarization, t5.T5Summarization.init_spec()),
+      "T5 translation": (t5.T5Translation, t5.T5Translation.init_spec()),
   }
 
   ##

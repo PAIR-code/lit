@@ -10,6 +10,7 @@ from typing import Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import utils
 import pandas as pd
 import tensorflow_datasets as tfds
 
@@ -104,6 +105,26 @@ class SST2Data(lit_dataset.Dataset):
     return {
         'sentence': lit_types.TextSegment(),
         'label': lit_types.CategoryLabel(vocab=self.LABELS)
+    }
+
+
+class SST2DataForLM(SST2Data):
+  """Stanford Sentiment Treebank, binary version (SST-2).
+
+  See https://www.tensorflow.org/datasets/catalog/glue#gluesst2.
+  This data is reformatted to serve the language models.
+  """
+
+  def __init__(self, path_or_splitname: str, max_examples: int = -1):
+    super().__init__(path_or_splitname, max_examples)
+    self._examples = [
+        utils.remap_dict(ex, {'sentence': 'text'}) for ex in self._examples
+    ]
+
+  def spec(self):
+    return {
+        'text': lit_types.TextSegment(),
+        'label': lit_types.CategoryLabel(vocab=self.LABELS),
     }
 
 

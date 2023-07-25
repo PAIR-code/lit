@@ -516,3 +516,47 @@ class SummarizationWrapper(lit_model.ModelWrapper):
     spec = lit_types.remap_spec(self.wrapped.output_spec(), self.FIELD_RENAMES)
     spec["rougeL"] = lit_types.Scalar()
     return spec
+
+
+class T5Translation(TranslationWrapper):
+  """T5 translation model.
+
+  TranslationWrapper class has input_specs compatible with the corresponding
+  dataset, but its init args are not supported by the front-end system, thus
+  we set up a layer of init args on top to work with the front-end.
+  """
+
+  def __init__(
+      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+  ):
+    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    super().__init__(model)
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }
+
+
+class T5Summarization(SummarizationWrapper):
+  """T5 summarization model.
+
+  SummarizationWrapper class has input_specs compatible with the corresponding
+  dataset, but its init args are not supported by the front-end system, thus
+  we set up a layer of init args on top to work with the front-end.
+  """
+
+  def __init__(
+      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+  ):
+    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    super().__init__(model)
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }
