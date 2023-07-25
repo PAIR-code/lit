@@ -80,7 +80,7 @@ def required_interpreters() -> dict[str, lit_components.Interpreter]:
 def default_interpreters(
     models: dict[str, lit_model.Model]
 ) -> dict[str, lit_components.Interpreter]:
-  """Returns a dict of the default interpreters (and metrics) used in a LitApp.
+  """Returns a dict of the default interpreters used in a LitApp.
 
   Args:
     models: A dictionary of models that included in the LitApp that may provide
@@ -116,7 +116,8 @@ def default_interpreters(
       'thresholder': thresholder.Thresholder(),
       'pdp': pdp.PdpInterpreter(),
       'Salience Clustering': salience_clustering.SalienceClustering(
-          dict(gradient_map_interpreters)),
+          dict(gradient_map_interpreters)
+      ),
   }
   # pyformat: enable
 

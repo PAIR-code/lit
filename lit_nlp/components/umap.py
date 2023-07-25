@@ -44,7 +44,7 @@ class UmapModel(projection.ProjectorModel):
   # LIT model API
   def predict_minibatch(self, inputs, **unused_kw):
     if not self._fitted:
-      return ({"z": [0, 0, 0]} for i in inputs)
+      return ({"z": [0, 0, 0]} for _ in inputs)
     x = np.stack([i["x"] for i in inputs])
     zs = self._umap.transform(x)
     return ({"z": utils.coerce_real(z)} for z in zs)

@@ -208,8 +208,11 @@ class Dataset(object):
       examples = rng.sample(self.examples, n)
     else:
       logging.warning(
-          'Requested sample %d is larger than dataset size %d; returning full dataset.',
-          n, len(self.examples))
+          'Requested sample %d is larger than dataset size %d; returning full'
+          ' dataset.',
+          n,
+          len(self.examples),
+      )
       examples = list(self.examples)
     return Dataset(examples=examples, base=self)
 
@@ -364,6 +367,8 @@ class IndexedDataset(Dataset):
     if os.path.exists(spec_path):
       with open(spec_path, 'r') as fd:
         spec = serialize.from_json(fd.read())
+    else:
+      spec = None
 
     description = f'{len(examples)} examples from {path}'
     if self._base is not None:
