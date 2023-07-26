@@ -152,7 +152,7 @@ class GlueModel(lit_model.Model):
         tokens_a,
         tokens_b,
         max_length=self.config.max_seq_length)
-    return encoded_input
+    return encoded_input  # pytype: disable=bad-return-type
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
     """Make a tf.data.Dataset from inputs in LIT format."""
