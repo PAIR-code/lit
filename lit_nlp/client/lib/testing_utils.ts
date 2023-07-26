@@ -195,7 +195,14 @@ export const mockMetadata: LitMetadata = {
       'sst_1_micro': {},
     },
   },
-  'layouts': {},
+  'layouts': {
+    'default': {
+      'upper': {},
+      'lower': {},
+      'layoutSettings': {},
+      'description': '',
+    }
+  },
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': 'http://lit_nlp_test.com',
@@ -498,7 +505,14 @@ export const mockSerializedMetadata = Object.freeze({
       'sst_1_micro': {},
     },
   },
-  'layouts': {},
+  'layouts': {
+    'default': {
+      'upper': {},
+      'lower': {},
+      'layoutSettings': {},
+      'description': '',
+    }
+  },
   'demoMode': false,
   'defaultLayout': 'default',
   'canonicalURL': 'http://lit_nlp_test.com',

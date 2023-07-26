@@ -104,8 +104,13 @@ export class SettingsService extends LitService {
           true);
     }
 
-    // If the entire layout has changed, reinitialize the layout.
-    if (this.appState.layoutName !== nextLayout) {
+    // TOOD(b/265218467): update both `initializeLayout()` and
+    // `quickUpdateLayout()` when implementing three-panel layouts.
+    // Reinitialize the layout if the entire layout has changed or if either the
+    // upper or lower part of the layout is empty.
+    if (this.appState.layoutName !== nextLayout ||
+        Object.keys(this.modulesService.declaredLayout.upper).length === 0 ||
+        Object.keys(this.modulesService.declaredLayout.lower).length === 0) {
       this.appState.layoutName = nextLayout;
       this.modulesService.initializeLayout(
         this.appState.layout, this.appState.currentModelSpecs,
