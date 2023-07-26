@@ -418,8 +418,6 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private async computeProjectedEmbeddings() {
-    this.isLoading = true;
-
     // Clear projections if dataset is empty.
     if (!this.appState.currentInputData.length) {
       this.projectedPoints = [];
@@ -430,6 +428,8 @@ export class EmbeddingsModule extends LitModule {
     if (!embeddingsInfo) {
       return;
     }
+
+    this.isLoading = true;
     const {modelName, fieldName} = embeddingsInfo;
 
     const datasetName = this.appState.currentDataset;
@@ -449,7 +449,10 @@ export class EmbeddingsModule extends LitModule {
     const promise = embeddingRequestCache.call(this.appState.currentInputData);
     const results =
         await this.loadLatest(`proj-${JSON.stringify(projConfig)}`, promise);
-    if (results === null) return;
+    if (results === null) {
+      this.isLoading = false;
+      return;
+    }
 
     // Compute sprite map if image data.
     if (this.appState.datasetHasImages) {
