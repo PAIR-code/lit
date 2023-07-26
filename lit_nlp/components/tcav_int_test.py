@@ -33,48 +33,50 @@ BERT_TINY_PATH = file_cache.cached_path(
 )
 
 _ALPHABET_EXAMPLES = [
-    {'sentence': 'a'},
-    {'sentence': 'b'},
-    {'sentence': 'c'},
-    {'sentence': 'd'},
-    {'sentence': 'e'},
-    {'sentence': 'f'},
-    {'sentence': 'g'},
-    {'sentence': 'h'},
-    {'sentence': 'i'}
+    {'sentence': 'a', '_id': 'a'},
+    {'sentence': 'b', '_id': 'b'},
+    {'sentence': 'c', '_id': 'c'},
+    {'sentence': 'd', '_id': 'd'},
+    {'sentence': 'e', '_id': 'e'},
+    {'sentence': 'f', '_id': 'f'},
+    {'sentence': 'g', '_id': 'g'},
+    {'sentence': 'h', '_id': 'h'},
+    {'sentence': 'i', '_id': 'i'},
 ]
+
 _ALPHABET_EXAMPLES_INDEXED = [
-    {'id': caching.input_hash(ex), 'data': ex} for ex in _ALPHABET_EXAMPLES
+    {'id': ex['_id'], 'data': ex} for ex in _ALPHABET_EXAMPLES
 ]
 
 _EMOTION_EXAMPLES = [
-    {'sentence': 'happy'},  # 0
-    {'sentence': 'sad'},  # 1
-    {'sentence': 'good'},  # 2
-    {'sentence': 'bad'},  # 3
-    {'sentence': 'pretty'},  # 4
-    {'sentence': 'ugly'},  # 5
-    {'sentence': 'sweet'},  # 6
-    {'sentence': 'bitter'},  # 7
-    {'sentence': 'well'},  # 8
-    {'sentence': 'poor'},  # 9
-    {'sentence': 'compelling'},  # 10
-    {'sentence': 'boring'},  # 11
-    {'sentence': 'pleasing'},  # 12
-    {'sentence': 'gross'},  # 13
-    {'sentence': 'blue'},  # 14
-    {'sentence': 'red'},  # 15
-    {'sentence': 'flower'},  # 16
-    {'sentence': 'bee'},  # 17
-    {'sentence': 'snake'},  # 18
-    {'sentence': 'windshield'},  # 19
-    {'sentence': 'plant'},  # 20
-    {'sentence': 'scary'},  # 21
-    {'sentence': 'pencil'},  # 22
-    {'sentence': 'hello'}  # 23
+    {'sentence': 'happy', '_id': 'happy'},  # 0
+    {'sentence': 'sad', '_id': 'sad'},  # 1
+    {'sentence': 'good', '_id': 'good'},  # 2
+    {'sentence': 'bad', '_id': 'bad'},  # 3
+    {'sentence': 'pretty', '_id': 'pretty'},  # 4
+    {'sentence': 'ugly', '_id': 'ugly'},  # 5
+    {'sentence': 'sweet', '_id': 'sweet'},  # 6
+    {'sentence': 'bitter', '_id': 'bitter'},  # 7
+    {'sentence': 'well', '_id': 'well'},  # 8
+    {'sentence': 'poor', '_id': 'poor'},  # 9
+    {'sentence': 'compelling', '_id': 'compelling'},  # 10
+    {'sentence': 'boring', '_id': 'boring'},  # 11
+    {'sentence': 'pleasing', '_id': 'pleasing'},  # 12
+    {'sentence': 'gross', '_id': 'gross'},  # 13
+    {'sentence': 'blue', '_id': 'blue'},  # 14
+    {'sentence': 'red', '_id': 'red'},  # 15
+    {'sentence': 'flower', '_id': 'flower'},  # 16
+    {'sentence': 'bee', '_id': 'bee'},  # 17
+    {'sentence': 'snake', '_id': 'snake'},  # 18
+    {'sentence': 'windshield', '_id': 'windshield'},  # 19
+    {'sentence': 'plant', '_id': 'plant'},  # 20
+    {'sentence': 'scary', '_id': 'scary'},  # 21
+    {'sentence': 'pencil', '_id': 'pencil'},  # 22
+    {'sentence': 'hello', '_id': 'hello'}  # 23
 ]
+
 _EMOTION_EXAMPLES_INDEXED = [
-    {'id': caching.input_hash(ex), 'data': ex} for ex in _EMOTION_EXAMPLES
+    {'id': ex['_id'], 'data': ex} for ex in _EMOTION_EXAMPLES
 ]
 
 

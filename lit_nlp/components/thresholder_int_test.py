@@ -33,19 +33,19 @@ BERT_TINY_PATH = file_cache.cached_path(
 
 
 _EXAMPLES = [
-    {'sentence': 'a', 'label': '1'},
-    {'sentence': 'b', 'label': '1'},
-    {'sentence': 'c', 'label': '1'},
-    {'sentence': 'd', 'label': '1'},
-    {'sentence': 'e', 'label': '1'},
-    {'sentence': 'f', 'label': '0'},
-    {'sentence': 'g', 'label': '0'},
-    {'sentence': 'h', 'label': '0'},
-    {'sentence': 'i', 'label': '0'}
+    {'sentence': 'a', 'label': '1', '_id': 'a'},
+    {'sentence': 'b', 'label': '1', '_id': 'b'},
+    {'sentence': 'c', 'label': '1', '_id': 'c'},
+    {'sentence': 'd', 'label': '1', '_id': 'd'},
+    {'sentence': 'e', 'label': '1', '_id': 'e'},
+    {'sentence': 'f', 'label': '0', '_id': 'f'},
+    {'sentence': 'g', 'label': '0', '_id': 'g'},
+    {'sentence': 'h', 'label': '0', '_id': 'h'},
+    {'sentence': 'i', 'label': '0', '_id': 'i'},
 ]
 
 _INDEXED_EXAMPLES = [
-    {'id': caching.input_hash(ex), 'data': ex} for ex in _EXAMPLES
+    {'id': ex['_id'], 'data': ex} for ex in _EXAMPLES
 ]
 
 

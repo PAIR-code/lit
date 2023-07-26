@@ -54,17 +54,17 @@ class NearestNeighbors(lit_components.Interpreter):
     model_out_embs = utils.spec_contains(model.output_spec(), types.Embeddings)
     return dataset_embs or model_out_embs
 
-  def run_with_metadata(
+  def run(
       self,
-      indexed_inputs: Sequence[IndexedInput],
+      inputs: Sequence[JsonDict],
       model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
+      dataset: lit_dataset.Dataset,
       model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Finds the nearest neighbors of the example specified in the config.
 
     Args:
-      indexed_inputs: the dataset example to find nearest neighbors for.
+      inputs: the dataset example to find nearest neighbors for.
       model: the model being explained.
       dataset: the dataset which the current examples belong to.
       model_outputs: optional model outputs from calling model.predict(inputs).
@@ -88,12 +88,16 @@ class NearestNeighbors(lit_components.Interpreter):
     if not config:
       raise TypeError('config must be provided')
 
+    if not (isinstance(dataset, lit_dataset.IndexedDataset)):
+      raise TypeError('Nearest neighbors requires an IndexedDataset to track '
+                      'uniqueness by ID.')
+
     nnconf = NearestNeighborsConfig(**(config or {}))
 
     # TODO(lit-dev): Add support for selecting nearest neighbors of a set.
-    if len(indexed_inputs) != 1:
+    if len(inputs) != 1:
       raise ValueError('indexed_inputs must contain exactly 1 example, found '
-                       f'{len(indexed_inputs)}.')
+                       f'{len(inputs)}.')
 
     if nnconf.use_input:
       if not dataset.spec().get(nnconf.embedding_name):
@@ -101,18 +105,14 @@ class NearestNeighbors(lit_components.Interpreter):
                        f'{nnconf.embedding_name} in dataset spec')
       # If using input values, then treat inputs as outputs instead of running
       # the model.
-      dataset_outputs = [inp['data'] for inp in dataset.indexed_examples]
-      example_outputs = [inp['data'] for inp in indexed_inputs]
+      dataset_outputs = dataset.examples
+      example_outputs = inputs
     else:
       if not model.output_spec().get(nnconf.embedding_name):
         raise KeyError('Could not find embeddings field, '
                        f'{nnconf.embedding_name} in model output spec')
-      dataset_outputs = list(
-          model.predict_with_metadata(
-              dataset.indexed_examples, dataset_name=nnconf.dataset_name))
-      example_outputs = list(
-          model.predict_with_metadata(
-              indexed_inputs, dataset_name=nnconf.dataset_name))
+      dataset_outputs = list(model.predict(dataset.examples))
+      example_outputs = list(model.predict(inputs))
 
     example_output = example_outputs[0]
 
@@ -123,7 +123,7 @@ class NearestNeighbors(lit_components.Interpreter):
     sorted_indices = np.argsort(distances)
     k = nnconf.num_neighbors
     k_nearest_neighbors = [
-        {'id': dataset.indexed_examples[original_index]['id'],
+        {'id': dataset.examples[original_index]['_id'],
          'nn_distance': distances[original_index]
          } for original_index in sorted_indices[:k]]
 

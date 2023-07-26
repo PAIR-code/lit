@@ -41,12 +41,12 @@ PR_DATA = 'pr_data'
 class CurvesInterpreter(lit_components.Interpreter):
   """Returns data for rendering ROC and Precision-Recall curves."""
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[Sequence[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
+  def run(self,
+          inputs: Sequence[JsonDict],
+          model: lit_model.Model,
+          dataset: lit_dataset.Dataset,
+          model_outputs: Optional[Sequence[JsonDict]] = None,
+          config: Optional[JsonDict] = None):
     if not config:
       raise ValueError('Curves required config parameters but received none.')
 
@@ -69,12 +69,12 @@ class CurvesInterpreter(lit_components.Interpreter):
           ' model spec to output a single MulticlassPreds field.'
       )
 
-    if not indexed_inputs:
+    if not inputs:
       return {ROC_DATA: [], PR_DATA: []}
 
     # Run prediction if needed:
     if model_outputs is None:
-      model_outputs = list(model.predict_with_metadata(indexed_inputs))
+      model_outputs = list(model.predict(inputs))
 
     # Get scores for the target label.
     pred_spec = output_spec.get(predictions_key)
@@ -91,8 +91,8 @@ class CurvesInterpreter(lit_components.Interpreter):
     # Get ground truth for the target label.
     parent_key = pred_spec.parent
     ground_truth_list = []
-    for indexed_input in indexed_inputs:
-      ground_truth_label = indexed_input['data'][parent_key]
+    for ex in inputs:
+      ground_truth_label = ex[parent_key]
       ground_truth = 1.0 if ground_truth_label == target_label else 0.0
       ground_truth_list.append(ground_truth)
 

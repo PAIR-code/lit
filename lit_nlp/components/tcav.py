@@ -23,7 +23,6 @@ from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
-from lit_nlp.lib import caching
 from lit_nlp.lib import utils
 
 import numpy as np
@@ -118,17 +117,17 @@ class TCAV(lit_components.Interpreter):
 
     return False
 
-  def run_with_metadata(
+  def run(
       self,
-      indexed_inputs: Sequence[IndexedInput],
+      inputs: Sequence[JsonDict],
       model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
+      dataset: lit_dataset.Dataset,
       model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Runs the TCAV method given the params in the inputs and config.
 
     Args:
-      indexed_inputs: all examples in the dataset, in the indexed input format.
+      inputs: all examples in the dataset.
       model: the model being explained.
       dataset: the dataset which the current examples belong to.
       model_outputs: optional model outputs from calling model.predict(inputs).
@@ -154,7 +153,7 @@ class TCAV(lit_components.Interpreter):
     tcav_config = TCAVConfig(**(config or {}))
     # TODO(b/171513556): get these from the Dataset object once indices are
     # available there.
-    dataset_examples = indexed_inputs
+    dataset_examples = inputs
 
     # Get this layer's output spec keys for gradients and embeddings.
     grad_layer = tcav_config.grad_layer
@@ -172,12 +171,7 @@ class TCAV(lit_components.Interpreter):
 
     # Get outputs using model.predict().
     if model_outputs is None:
-      pred_kw = {}
-      if isinstance(model, caching.CachingModelWrapper):
-        pred_kw['dataset_name'] = tcav_config.dataset_name
-      predictions = list(
-          model.predict_with_metadata(dataset_examples, **pred_kw)
-      )
+      predictions = list(model.predict(dataset_examples))
     else:
       predictions = model_outputs
 
@@ -191,19 +185,19 @@ class TCAV(lit_components.Interpreter):
       }]
 
     ids_set = set(tcav_config.concept_set_ids)
-    concept_set = [ex for ex in dataset_examples if ex['id'] in ids_set]
+    concept_set = [ex for ex in dataset_examples if ex['_id'] in ids_set]
 
     if tcav_config.negative_set_ids:
       negative_ids_set = set(tcav_config.negative_set_ids)
       negative_set = [
-          ex for ex in dataset_examples if ex['id'] in negative_ids_set
+          ex for ex in dataset_examples if ex['_id'] in negative_ids_set
       ]
       return self._run_relative_tcav(grad_layer, emb_layer, grad_class_key,
                                      concept_set, negative_set, predictions,
                                      model, tcav_config)
     else:
       non_concept_set = [
-          ex for ex in dataset_examples if ex['id'] not in ids_set
+          ex for ex in dataset_examples if ex['_id'] not in ids_set
       ]
       return self._run_default_tcav(grad_layer, emb_layer, grad_class_key,
                                     concept_set, non_concept_set, predictions,
@@ -215,13 +209,8 @@ class TCAV(lit_components.Interpreter):
   def _run_default_tcav(self, grad_layer, emb_layer, grad_class_key,
                         concept_set, non_concept_set, dataset_outputs, model,
                         config):
-    pred_kw = {}
-    if isinstance(model, caching.CachingModelWrapper):
-      pred_kw['dataset_name'] = config.dataset_name
-    concept_outputs = list(model.predict_with_metadata(concept_set, **pred_kw))
-    non_concept_outputs = list(
-        model.predict_with_metadata(non_concept_set, **pred_kw)
-    )
+    concept_outputs = list(model.predict(concept_set))
+    non_concept_outputs = list(model.predict(non_concept_set))
 
     concept_results = []
     # If there are more concept set examples than non-concept set examples, we
@@ -276,13 +265,8 @@ class TCAV(lit_components.Interpreter):
   def _run_relative_tcav(self, grad_layer, emb_layer, grad_class_key,
                          concept_set, negative_set, dataset_outputs, model,
                          config):
-    pred_kw = {}
-    if isinstance(model, caching.CachingModelWrapper):
-      pred_kw['dataset_name'] = config.dataset_name
-    positive_outputs = list(model.predict_with_metadata(concept_set, **pred_kw))
-    negative_outputs = list(
-        model.predict_with_metadata(negative_set, **pred_kw)
-    )
+    positive_outputs = list(model.predict(concept_set))
+    negative_outputs = list(model.predict(negative_set))
 
     # Ideally, for relative TCAV, users would test concepts with at least ~100
     # examples each so we can perform ~15 runs on unique subsets.
