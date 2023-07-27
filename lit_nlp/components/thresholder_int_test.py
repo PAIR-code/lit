@@ -66,7 +66,7 @@ class ThresholderTest(parameterized.TestCase):
         indexed_examples=_INDEXED_EXAMPLES,
     )
     cls.model_outputs = list(
-        cls.model.predict_with_metadata(_INDEXED_EXAMPLES, dataset_name='test')
+        cls.model.predict(_EXAMPLES)
     )
 
   def setUp(self):

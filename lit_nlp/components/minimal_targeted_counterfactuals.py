@@ -286,13 +286,12 @@ class TabularMTC(lit_components.Generator):
           'Only indexed datasets are currently supported by the TabularMTC'
           'generator.')
 
-    indexed_examples = list(dataset.indexed_examples)
+    examples = list(dataset.examples)
     filtered_examples = []
-    preds = model.predict_with_metadata(
-        indexed_examples, dataset_name=dataset_name)
+    preds = model.predict(examples)
 
     # Find all DS examples that are flips with respect to the reference example.
-    for indexed_example, pred in zip(indexed_examples, preds):
+    for example, pred in zip(examples, preds):
       flip = cf_utils.is_prediction_flip(
           cf_output=pred,
           orig_output=reference_output,
@@ -300,7 +299,7 @@ class TabularMTC(lit_components.Generator):
           pred_key=pred_key,
           regression_thresh=regression_thresh)
       if flip:
-        candidate_example = dict(indexed_example['data'])
+        candidate_example = dict(example)
         self._find_dataset_parent_and_set(
             model_output_spec=model.output_spec(),
             pred_key=pred_key,
