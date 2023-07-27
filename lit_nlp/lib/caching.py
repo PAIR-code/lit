@@ -285,13 +285,6 @@ class CachingModelWrapper(lit_model.ModelWrapper):
 
     return cached_results
 
-  # TODO(b/171513556): remove this method once we no longer need to override
-  # ModelWrapper.predict_with_metadata()
-  def predict_with_metadata(self, indexed_inputs: Iterable[JsonDict], **kw):
-    """As predict(), but inputs are IndexedInput."""
-    results = self.predict((ex["data"] for ex in indexed_inputs), **kw)
-    return results
-
   def _get_results_from_cache(self, input_keys: list[CacheKey]):
     with self._cache.lock:
       return [self._cache.get(input_key) for input_key in input_keys]

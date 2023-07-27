@@ -285,17 +285,6 @@ class ModelWrapper(Model):
   ) -> Iterable[JsonDict]:
     return self.wrapped.predict(inputs, *args, **kw)
 
-  # NOTE: if a subclass modifies predict(), it should also override this to
-  # call the custom predict() method - otherwise this will delegate to the
-  # wrapped class and call /that class's/ predict() method, likely leading to
-  # incorrect results.
-  # b/171513556 will solve this problem by removing the need for any
-  # *_with_metadata() methods.
-  def predict_with_metadata(
-      self, indexed_inputs: Iterable[JsonDict], **kw
-  ) -> Iterable[JsonDict]:
-    return self.wrapped.predict_with_metadata(indexed_inputs, **kw)
-
   def load(self, path: str):
     """Load a new model and wrap it with this class."""
     new_model = self.wrapped.load(path)

@@ -436,10 +436,6 @@ class TranslationWrapper(lit_model.ModelWrapper):
     outputs = self.wrapped.predict(model_inputs)
     return (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
 
-  def predict_with_metadata(self, indexed_inputs):
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex["data"] for ex in indexed_inputs))
-
   def input_spec(self):
     spec = lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
     spec["source_language"] = lit_types.CategoryLabel()
@@ -504,10 +500,6 @@ class SummarizationWrapper(lit_model.ModelWrapper):
           prediction=self._get_pred_string(mo["output_text"]))
       mo["rougeL"] = float(score["rougeL"].fmeasure)
       yield mo
-
-  def predict_with_metadata(self, indexed_inputs):
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex["data"] for ex in indexed_inputs))
 
   def input_spec(self):
     return lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
