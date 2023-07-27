@@ -164,21 +164,11 @@ class SalienceClustering(lit_components.Interpreter):
       representations.append(per_field_results)
     return representations
 
-  def run(self,
-          inputs: list[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[list[JsonDict]] = None,
-          config: Optional[JsonDict] = None):
-    """Run this component, given a model and input(s)."""
-    raise NotImplementedError(
-        'Not implemented. Call run_with_metadata() directly.')
-
-  def run_with_metadata(
+  def run(
       self,
-      indexed_inputs: Sequence[IndexedInput],
+      inputs: Sequence[JsonDict],
       model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
+      dataset: lit_dataset.Dataset,
       model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[JsonDict]:
     """Run this component, given a model and input(s).
@@ -188,7 +178,7 @@ class SalienceClustering(lit_components.Interpreter):
     vocabulary will be ignored.
 
     Args:
-      indexed_inputs: Inputs to cluster.
+      inputs: Inputs to cluster.
       model: Model that provides salience maps.
       dataset: Dataset to compute salience maps for.
       model_outputs: Precomputed model outputs.
@@ -217,16 +207,18 @@ class SalienceClustering(lit_components.Interpreter):
     if not salience_key:
       raise ValueError(f'config[{SALIENCE_MAPPER_KEY}] must be provided')
 
-    salience_interpreter: Optional[
-        lit_components.Interpreter] = self.salience_mappers.get(salience_key)
-    if not (salience_interpreter and
-            salience_interpreter.is_compatible(model=model, dataset=dataset)):
-      raise RuntimeError(f'Requested interpreter, {salience_key}, is '
-                         'incompatible with model and/or dataset.')
+    if not (salience_interpreter := self.salience_mappers.get(salience_key)):
+      raise ValueError(f'No interpreter registered for ${salience_key}.')
+
+    if not salience_interpreter.is_compatible(model=model, dataset=dataset):
+      raise RuntimeError(
+          f'The {salience_key} interpreter is incompatible with this model and'
+          ' dataset pair.'
+      )
 
     # If no specific inputs provided, use the entire dataset.
-    inputs_to_use = indexed_inputs or dataset.examples
-    token_saliencies = salience_interpreter.run_with_metadata(
+    inputs_to_use = inputs or dataset.examples
+    token_saliencies = salience_interpreter.run(
         inputs_to_use, model, dataset, model_outputs, config)
 
     if not token_saliencies:

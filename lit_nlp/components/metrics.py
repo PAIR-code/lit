@@ -114,19 +114,6 @@ class SimpleMetrics(lit_components.Metrics):
       })
     return ret
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None) -> list[JsonDict]:
-    return self.run(
-        [ex['data'] for ex in indexed_inputs],
-        model,
-        dataset,
-        model_outputs,
-        config)
-
 
 # TODO(b/254833485): Convert to inherit from lit_components.Metrics so that
 # promotion of Metrics to a top-level class more direct.
