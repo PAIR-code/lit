@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {css, html, LitElement} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';

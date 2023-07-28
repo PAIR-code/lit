@@ -30,7 +30,7 @@
  */
 
 import {html} from 'lit';
-import {StyleInfo, styleMap} from 'lit/directives/style-map';
+import {StyleInfo, styleMap} from 'lit/directives/style-map.js';
 import {AnnotationCluster, EdgeLabel, ScoredTextCandidate, ScoredTextCandidates, SpanLabel} from './dtypes';
 
 type EventHandler = (e: Event) => void;

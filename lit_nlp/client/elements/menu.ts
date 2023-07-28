@@ -20,12 +20,12 @@ import '@material/mwc-list/mwc-list-item';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {Menu} from '@material/mwc-menu';
-import {query} from 'lit/decorators';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {query} from 'lit/decorators.js';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html, LitElement, TemplateResult} from 'lit';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed} from 'mobx';
 
 import {styles} from './menu.css';

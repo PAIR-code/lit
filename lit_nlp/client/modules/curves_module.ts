@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import '../elements/expansion_panel';
 import '../elements/line_chart';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {html, TemplateResult} from 'lit';
 import {action, computed, observable} from 'mobx';
 import {FacetsChange} from '../core/faceting_control';

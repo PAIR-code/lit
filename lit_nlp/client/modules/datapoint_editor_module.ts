@@ -20,9 +20,9 @@ import '../elements/checkbox';
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';

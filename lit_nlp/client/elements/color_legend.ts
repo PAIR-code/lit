@@ -20,9 +20,9 @@
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {DEFAULT} from '../lib/colors';

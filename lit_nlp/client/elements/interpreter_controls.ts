@@ -20,7 +20,7 @@ import './checkbox';
 import '../elements/numeric_input';
 
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators.js';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

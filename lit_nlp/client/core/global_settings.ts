@@ -30,8 +30,8 @@ import '../elements/checkbox';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {html, TemplateResult} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';

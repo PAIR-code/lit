@@ -24,7 +24,7 @@
 import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
 import {computed, observable} from 'mobx';
 

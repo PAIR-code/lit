@@ -23,7 +23,7 @@
 // tslint:disable:no-new-decorators
 
 import {css, html} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators.js';
 import {AnnotationCluster, EdgeLabel, ScoredTextCandidate, ScoredTextCandidates, SpanLabel} from '../lib/dtypes';
 import {ReactiveElement} from '../lib/elements';
 import {BooleanLitType, CategoryLabel, EdgeLabels, Embeddings, GeneratedTextCandidates, LitType, MultiSegmentAnnotations, Scalar, SpanLabels, StringLitType, TextSegment} from '../lib/lit_types';

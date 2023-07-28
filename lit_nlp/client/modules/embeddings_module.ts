@@ -23,7 +23,7 @@ import '@material/mwc-icon';
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

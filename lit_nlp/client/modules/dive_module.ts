@@ -21,7 +21,7 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import {css, html} from 'lit';
-import {customElement, query} from 'lit/decorators';
+import {customElement, query} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView, TextSelection} from 'megaplot';
 import {observable} from 'mobx';
 

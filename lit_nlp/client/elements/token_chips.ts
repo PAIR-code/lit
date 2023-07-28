@@ -18,9 +18,9 @@
 import './tooltip';
 
 import {html, LitElement} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 
 import {SalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {styles as sharedStyles} from '../lib/shared_styles.css';

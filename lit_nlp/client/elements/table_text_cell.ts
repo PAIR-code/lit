@@ -19,8 +19,8 @@
 
 // tslint:disable:no-new-decorators
 import {css, html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {styleMap} from 'lit/directives/style-map.js';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';

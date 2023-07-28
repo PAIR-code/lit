@@ -17,7 +17,7 @@
 
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';

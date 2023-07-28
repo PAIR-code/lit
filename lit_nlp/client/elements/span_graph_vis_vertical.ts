@@ -21,11 +21,11 @@
 
 // tslint:disable:no-new-decorators
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';

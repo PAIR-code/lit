@@ -19,8 +19,8 @@
 import '../elements/spinner';
 
 import * as d3 from 'd3';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
 import {observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';

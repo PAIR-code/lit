@@ -22,7 +22,7 @@ import '@material/mwc-icon';
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

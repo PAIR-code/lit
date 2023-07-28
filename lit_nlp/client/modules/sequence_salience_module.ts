@@ -8,7 +8,7 @@ import '../elements/token_chips';
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';

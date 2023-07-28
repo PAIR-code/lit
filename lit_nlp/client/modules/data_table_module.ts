@@ -20,9 +20,9 @@ import '../elements/checkbox';
 import '../elements/popup_container';
 
 import {html} from 'lit';
-import {customElement, query} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, query} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

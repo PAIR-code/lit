@@ -26,10 +26,10 @@ import './global_settings';
 import './main_toolbar';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {query} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {query} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';

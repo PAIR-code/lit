@@ -21,7 +21,7 @@ import '../elements/expansion_panel';
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView} from 'megaplot';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape

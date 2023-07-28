@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {css, html, LitElement} from 'lit';
-import {styleMap} from 'lit/directives/style-map';
+import {styleMap} from 'lit/directives/style-map.js';
 
 const PRED_TITLE = 'The predicted label';
 const TRUTH_TITLE = 'The ground truth label';

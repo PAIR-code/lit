@@ -9,9 +9,9 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {styleMap} from 'lit/directives/style-map';
+import {styleMap} from 'lit/directives/style-map.js';
 
 import {LitModule} from '../../client/core/lit_module';
 import {ModelInfoMap, Spec} from '../../client/lib/types';

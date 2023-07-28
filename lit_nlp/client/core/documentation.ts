@@ -23,8 +23,8 @@
 import '../elements/checkbox';
 
 import {html} from 'lit';
-import {customElement, query} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, query} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

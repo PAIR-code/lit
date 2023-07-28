@@ -28,10 +28,10 @@ import './popup_container';
 
 import {ascending, descending} from 'd3';  // array helpers.
 import {html, TemplateResult} from 'lit';
-import {customElement, property, queryAll} from 'lit/decorators';
-import {isTemplateResult} from 'lit/directive-helpers';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property, queryAll} from 'lit/decorators.js';
+import {isTemplateResult} from 'lit/directive-helpers.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {action, computed, observable} from 'mobx';
 import * as papa from 'papaparse';
 

@@ -24,9 +24,9 @@ import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';

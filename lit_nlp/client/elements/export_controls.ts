@@ -20,8 +20,8 @@
 import './popup_container';
 
 import {html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
-import {customElement, property} from 'lit/decorators';
+import {classMap} from 'lit/directives/class-map.js';
+import {customElement, property} from 'lit/decorators.js';
 import {observable} from 'mobx';
 import * as papa from 'papaparse';
 

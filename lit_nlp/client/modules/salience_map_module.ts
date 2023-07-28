@@ -26,8 +26,8 @@ import '../elements/token_chips';
 
 import {html} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

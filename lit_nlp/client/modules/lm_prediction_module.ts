@@ -18,9 +18,9 @@
 import '../elements/checkbox';
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';

@@ -20,8 +20,8 @@ import '../elements/spinner';
 import '../elements/tcav_score_bar';
 
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';

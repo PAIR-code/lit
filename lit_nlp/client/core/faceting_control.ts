@@ -21,8 +21,8 @@ import '../elements/popup_container';
 
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';

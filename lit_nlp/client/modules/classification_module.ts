@@ -20,7 +20,7 @@ import '../elements/score_bar';
 import '../elements/switch';
 
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';

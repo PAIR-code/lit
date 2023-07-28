@@ -20,7 +20,7 @@ import '../elements/generated_text_vis';
 import '../elements/switch';
 
 import {css, html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';

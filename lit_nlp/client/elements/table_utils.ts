@@ -19,7 +19,7 @@
  * Utilities used by the data table component
  */
 
-import {isTemplateResult} from 'lit/directive-helpers';
+import {isTemplateResult} from 'lit/directive-helpers.js';
 
 import {canParseNumberRangeFnFromString, isNumber, numberRangeFnFromString} from '../lib/utils';
 

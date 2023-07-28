@@ -18,9 +18,9 @@
 import '../elements/line_chart';
 import '../elements/bar_chart';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {html} from 'lit';
-import {until} from 'lit/directives/until';
+import {until} from 'lit/directives/until.js';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
