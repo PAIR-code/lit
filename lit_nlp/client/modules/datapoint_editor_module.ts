@@ -24,13 +24,14 @@ import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable, when} from 'mobx';
+
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
 import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {defaultValueByField,  formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype, makeModifiedInput} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -72,26 +73,16 @@ export class DatapointEditorModule extends LitModule {
   protected showAddAndCompare = true;
 
   @computed
-  get emptyDatapoint(): Input {
-    const data: Input = {};
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of this.appState.currentInputDataKeys) {
-      data[key] = defaultValueByField(key, spec);
-    }
-    return data;
-  }
-
-  @computed
-  get baseData(): Input {
+  get baseData(): IndexedInput {
     const input = this.selectionService.primarySelectedInputData;
-    return input == null ? this.emptyDatapoint : input.data;
+    return input ?? this.appState.makeEmptyDatapoint('manual');
   }
 
   @observable dataEdits: Input = {};
 
   @computed
-  get editedData(): Input {
-    return Object.assign({}, this.baseData, this.dataEdits);
+  get editedData(): IndexedInput {
+    return makeModifiedInput(this.baseData, this.dataEdits, 'manual');
   }
 
   @computed
@@ -297,16 +288,8 @@ export class DatapointEditorModule extends LitModule {
     const clearEnabled = this.selectionService.primarySelectedInputData != null;
 
     const onClickNew = async () => {
-      const datum: IndexedInput = {
-        data: this.editedData,
-        id: '',  // will be overwritten
-        meta: {
-          source: 'manual',
-          added: true,
-          parentId: this.selectionService.primarySelectedId!
-        },
-      };
-      const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
+      const data: IndexedInput[] =
+          await this.appState.annotateNewData([this.editedData]);
       this.appState.commitNewDatapoints(data);
       const newIds = data.map(d => d.id);
       this.selectionService.selectIds(newIds);
@@ -369,7 +352,7 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div id="edit-table">
        ${keys.map(
-            key => this.renderEntry(key, this.editedData[key]))}
+            key => this.renderEntry(key, this.editedData.data[key]))}
       </div>
     `;
     // clang-format on
@@ -381,7 +364,7 @@ export class DatapointEditorModule extends LitModule {
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
           // tslint:disable-next-line:no-any
           const value = converterFn((e as any).target.value as string);
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;
@@ -429,7 +412,7 @@ export class DatapointEditorModule extends LitModule {
         const reader = new FileReader();
         reader.addEventListener('load', () => {
           const value = reader.result as string;
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;

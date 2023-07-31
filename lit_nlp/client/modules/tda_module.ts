@@ -32,7 +32,7 @@ import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, ge
 import {FieldMatcher, InfluentialExamples, LitTypeWithParent} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
+import {cloneSpec, filterToKeys, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -189,13 +189,7 @@ export class TrainingDataAttributionModule extends LitModule {
     if (this.currentData == null) return undefined;
     if (!Object.keys(this.customLabels).length) return this.currentData;
 
-    const modifiedInputData =
-        Object.assign({}, this.currentData.data, this.customLabels);
-    return {
-      data: modifiedInputData,
-      id: '',
-      meta: {added: true, source: 'tda_custom', parentId: this.currentData.id}
-    };
+    return makeModifiedInput(this.currentData, this.customLabels, 'tda_custom');
   }
 
   static compatibleGenerators(generatorInfo: ComponentInfoMap): string[] {
