@@ -328,8 +328,9 @@ class LitApp(object):
 
     # Add annotations and IDs to new datapoints.
     for i, example in enumerate(data['inputs']):
-      example['data'] = annotated_dataset.examples[i]
-      example['id'] = caching.input_hash(example['data'])
+      new_id = caching.input_hash(example['data'])
+      example['data'] = dict(annotated_dataset.examples[i], _id=new_id)
+      example['id'] = new_id
 
     return data['inputs']  # pytype: disable=bad-return-type  # always-use-return-annotations
 
@@ -817,6 +818,16 @@ class LitApp(object):
         data['inputs'] = self._reconstitute_inputs(
             data['inputs'], kw['dataset_name']
         )
+        # Validate that id and data._id match.
+        # TODO(b/171513556): consider removing this if we can simplify the
+        # data representation on the frontend so id and meta are not replicated.
+        for ex in data['inputs']:
+          if ex['id'] != ex['data'].get('_id'):
+            raise ValueError(
+                'Error: malformed example with inconsistent ids:'
+                f' {str(ex)}\nfrom request'
+                f' {request.path} {str(request.args.to_dict())}'
+            )
 
       outputs = fn(data, **kw)
       response_body = serialize.to_json(outputs, simple=response_simple_json)

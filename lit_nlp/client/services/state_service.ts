@@ -19,8 +19,8 @@
 import {action, computed, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
-import {IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {getTypes, findSpecKeys} from '../lib/utils';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {findSpecKeys, getTypes} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -249,6 +249,18 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
 
   //=================================== Generation logic
+  /**
+   * Create an empty datapoint with appropriate default values for each field.
+   */
+  makeEmptyDatapoint(source?: string) {
+    const data: Input = {'_id': '', '_meta': {source, added: true}};
+    const spec = this.currentDatasetSpec;
+    for (const key of this.currentInputDataKeys) {
+      data[key] = defaultValueByField(key, spec);
+    }
+    return {data, id: '', meta: data['_meta']};
+  }
+
   /**
    * Annotate one or more bare datapoints.
    * @param data input examples; ids will be overwritten.

@@ -23,12 +23,11 @@
 // tslint:disable: enforce-name-casing
 
 import * as d3 from 'd3';  // Used for array helpers.
-
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
-import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
-import {CallConfig, FacetMap, ModelInfoMap, Spec} from './types';
+import {LIT_TYPES_REGISTRY, LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds} from './lit_types';
+import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from './types';
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -602,4 +601,24 @@ export function validateCallConfig(
       .filter(([key, litType]) =>
           litType.required ? config[key] == null : false)
       .map(([key, unused]) => key);
+}
+
+/**
+ * Make a modified input if any of the overrides would change the data.
+ */
+export function makeModifiedInput(
+    input: IndexedInput, overrides: {[key: string]: unknown},
+    source?: string): IndexedInput {
+  for (const key of Object.keys(overrides)) {
+    if (input.data[key] !== overrides[key]) {
+      const newMeta = {added: true, source, parentId: input.id};
+      return {
+        data: Object.assign(
+            {}, input.data, overrides, {'_id': '', '_meta': newMeta}),
+        id: '',
+        meta: newMeta
+      };
+    }
+  }
+  return input;
 }

@@ -19,6 +19,7 @@ import {autorun} from 'mobx';
 
 import {ListLitType} from '../lib/lit_types';
 import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitMetadata, ServiceUser, Spec} from '../lib/types';
+import {makeModifiedInput} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {ApiService} from './services';
@@ -63,6 +64,7 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
+  makeEmptyDatapoint: (source?: string) => IndexedInput;
   annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
   documentationOpen: boolean;
@@ -347,11 +349,9 @@ export class UrlService extends LitService {
       Object.keys(spec).forEach(key => {
         outputFields[key] = this.parseDataFieldValue(key, fields[key], spec);
       });
-      const datum: IndexedInput = {
-        data: outputFields,
-        id: '',  // will be overwritten
-        meta: {source: 'url', added: true},
-      };
+
+      const datum = makeModifiedInput(
+          appState.makeEmptyDatapoint(), outputFields, /* source */ 'url');
       return datum;
     });
 

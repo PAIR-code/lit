@@ -22,7 +22,7 @@
 import 'jasmine';
 
 import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
-import {CallConfig, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, Spec} from '../lib/types';
 
 import * as utils from './utils';
 
@@ -764,5 +764,82 @@ describe('validateCallConfig test', () => {
     it(`returns only the missing required fields when ${testcaseName}`, () => {
       expect(utils.validateCallConfig(config, spec)).toEqual(['a', 'b']);
     });
+  });
+});
+
+
+describe('makeModifiedInput test', () => {
+  const testInput: IndexedInput = {
+    'data': {
+      'foo': 123,
+      'bar': 234,
+      '_id': 'a1b2c3',
+      '_meta': {parentId: '000000'}
+    },
+    'id': 'a1b2c3',
+    'meta': {parentId: '000000'}
+  };
+
+  it('overrides one field', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'bar': 345}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {'foo': 123, 'bar': 345, '_id': '', '_meta': expectedNewMeta},
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('overrides two fields', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'foo': 234, 'bar': 345}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {'foo': 234, 'bar': 345, '_id': '', '_meta': expectedNewMeta},
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('adds a field with a new name', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'baz': 'spam and eggs'}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {
+        'foo': 123,
+        'bar': 234,
+        'baz': 'spam and eggs',
+        '_id': '',
+        '_meta': expectedNewMeta
+      },
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('returns original if no fields modified', () => {
+    // Overrides match original values, so should be a no-op.
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'foo': 123, 'bar': 234}, 'testFn');
+    expect(modifiedInput).toEqual(testInput);
+  });
+
+  it('returns original if overrides empty', () => {
+    const modifiedInput = utils.makeModifiedInput(testInput, {}, 'testFn');
+    expect(modifiedInput).toEqual(testInput);
   });
 });
