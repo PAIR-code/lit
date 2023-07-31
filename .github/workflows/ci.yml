@@ -32,7 +32,7 @@ jobs:
     name: Build and test (Python ${{ matrix.python-version }}, Node ${{ matrix.node-version }})
     strategy:
       matrix:
-        node-version: [16]
+        node-version: [18]
         python-version: ["3.9"]
     defaults:
       run:

@@ -18,7 +18,7 @@ FROM python:3.9-slim
 
 # Update Ubuntu packages and install basic utils
 RUN apt-get update
-RUN apt-get install -y wget curl gnupg2 gcc g++
+RUN apt-get install -y wget curl gnupg2 gcc g++ git
 
 # Install yarn
 RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -

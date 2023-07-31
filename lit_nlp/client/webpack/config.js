@@ -19,6 +19,7 @@ const glob = require('glob');
 const path = require('path');
 const webpack = require('webpack');
 const FileManagerPlugin = require('filemanager-webpack-plugin');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const TerserPlugin = require("terser-webpack-plugin");
 
 const GLOB_OPTIONS = {
@@ -63,13 +64,15 @@ module.exports = (env = {}) => {
    * bundles for each path in the `env.build` flag, described below.
    */
   const fileManagerParams = {
-    onEnd: {
-      copy: [{
-        source: resolveDir('../static'),
-        destination: resolveDir('../build/default/static')
-      }],
-      move: [],
-    },
+    events: {
+      onEnd: {
+        copy: [{
+          source: resolveDir('../static'),
+          destination: resolveDir('../build/default/static')
+        }],
+        move: []
+      }
+    }
   };
 
   // LIT's build commands (`yarn build`, `yarn watch`) accept an `env.build`
@@ -95,18 +98,20 @@ module.exports = (env = {}) => {
       ...glob.sync(resolveDir(`../../${path}/**/*.ts`), GLOB_OPTIONS)
     ];
 
-    fileManagerParams.onEnd.copy.push({
+    fileManagerParams.events.onEnd.copy.push({
       source: resolveDir('../static'),
       destination: resolveDir(`../../${path}/build/static`)
     });
 
-    fileManagerParams.onEnd.move.push({
+    fileManagerParams.events.onEnd.move.push({
       source: resolveDir(`../build/${moduleName}/main.js`),
       destination: resolveDir(`../../${path}/build/main.js`)
     });
 
-    fileManagerParams.onEnd.delete = fileManagerParams.onEnd.delete || [];
-    fileManagerParams.onEnd.delete.push(resolveDir(`../build/${moduleName}`));
+    fileManagerParams.events.onEnd.delete ??= [];
+    fileManagerParams.events.onEnd.delete.push(
+      resolveDir(`../build/${moduleName}`)
+    );
   }
 
   return {
@@ -140,11 +145,10 @@ module.exports = (env = {}) => {
       minimize: isProd,
       minimizer: [
         new TerserPlugin({
-          cache: true,
           parallel: true,
-          sourceMap: true,
           terserOptions: {
-            keep_classnames: true   // Required for LIT_TYPES_REGISTRY to work
+            keep_classnames: true,  // Required for LIT_TYPES_REGISTRY to work
+            sourceMap: true
           }
         })
       ]
@@ -162,7 +166,8 @@ module.exports = (env = {}) => {
       new webpack.DefinePlugin({
         PRODUCTION: isProd,
       }),
-      new FileManagerPlugin(fileManagerParams)
+      new FileManagerPlugin(fileManagerParams),
+      new NodePolyfillPlugin()
     ],
     watch: !isProd,
   };
