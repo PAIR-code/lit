@@ -143,4 +143,31 @@ describe('Color service test', () => {
     expect(unsignedCmap.textCmap(0)).toEqual('black');
     expect(unsignedCmap.textCmap(1)).toEqual('white');
   });
+
+  it('classification default color option', () => {
+    const mockInput: IndexedInput = {
+      id: 'xxxxxxx',
+      data: {'testFeat0': 1, 'testFeat1': 0},
+      meta: {}
+    };
+
+    // Reset the selectedColorOptionName.
+    colorService.selectedColorOptionName = '';
+    let color = colorService.getDatapointColor(mockInput);
+    expect(color).toEqual(DEFAULT);
+
+    // Now have the dataService update the observable so that the color service
+    // would use the default classification color option.
+    const dataService = app.getService(DataService);
+    dataService.updatePredictedClassFeatureName('testFeat0');
+    expect(colorService.defaultClassificationColorOption).toEqual('testFeat0');
+    color = colorService.getDatapointColor(mockInput);
+    expect(color).toEqual(CATEGORICAL_NORMAL[1]);
+
+    // Change the selectedColorOptionName and the color option is updated to the
+    // selected one accordingly.
+    colorService.selectedColorOptionName = 'testFeat1';
+    color = colorService.getDatapointColor(mockInput);
+    expect(color).toEqual(CATEGORICAL_NORMAL[3]);
+  });
 });

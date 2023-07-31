@@ -77,6 +77,10 @@ export class DataService extends LitService {
   @observable private readonly columnHeaders =
       new Map<string, DataColumnHeader>();
   @observable readonly columnData = new Map<string, ColumnData>();
+  // The value needs to match the column name of the predicted classification
+  // feature in the data table, and it is composed of the model name, prediction
+  // key and type.
+  @observable predictedClassFeatureName = '';
 
   constructor(
       private readonly appState: AppState,
@@ -181,6 +185,7 @@ export class DataService extends LitService {
         this.addColumnFromList(
             predClasses, data, key, predClassFeatName, litTypeClassification,
             source);
+        this.updatePredictedClassFeatureName(predClassFeatName);
         if (predSpec.parent != null) {
           this.addColumnFromList(
               correctness, data, key, correctnessName,
@@ -189,6 +194,11 @@ export class DataService extends LitService {
         }
       }
     }
+  }
+
+  @action
+  updatePredictedClassFeatureName(predClassFeatName: string) {
+    this.predictedClassFeatureName = predClassFeatName;
   }
 
   private async runGeneratedTextPreds(model: string, data: IndexedInput[]) {

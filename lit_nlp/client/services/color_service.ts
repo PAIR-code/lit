@@ -67,14 +67,20 @@ ColorObservedByUrlService {
 
   // Return the selectedColorOption based on the selectedColorOptionName
   @computed get selectedColorOption() {
-    if (this.colorableOptions.length === 0 ||
-        this.selectedColorOptionName.length === 0) {
+    if (this.colorableOptions.length === 0) {
       return this.defaultOption;
-    } else {
-      const options = this.colorableOptions.filter(
-          option => option.name === this.selectedColorOptionName);
-      return options.length ? options[0] : this.defaultOption;
     }
+    const selectedOption = this.getTargetColorOption(
+        this.selectedColorOptionName, this.colorableOptions);
+    if (selectedOption !== undefined) {
+      return selectedOption;
+    }
+    const defaultClassificationOption = this.getTargetColorOption(
+        this.defaultClassificationColorOption, this.colorableOptions);
+    if (defaultClassificationOption !== undefined) {
+      return defaultClassificationOption;
+    }
+    return this.defaultOption;
   }
 
   @computed get colorableOptions() {
@@ -128,6 +134,21 @@ ColorObservedByUrlService {
       ...catInputFeatureOptions, ...numInputFeatureOptions,
       ...boolInputFeatureOptions, this.defaultOption
     ];
+  }
+
+  @computed
+  get defaultClassificationColorOption() {
+    return this.dataService.predictedClassFeatureName;
+  }
+
+  // Return the target color option if its name exists in the available options.
+  // Otherwise, if the target color option name does not exist in the available
+  // options, return undefined.
+  getTargetColorOption(
+      targetColorOptionName: string,
+      availableColorOptions: ColorOption[]): ColorOption|undefined {
+    return availableColorOptions.find(
+        option => option.name === targetColorOptionName);
   }
 
   // Return the color for the provided datapoint.
