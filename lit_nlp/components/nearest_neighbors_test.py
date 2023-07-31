@@ -88,8 +88,8 @@ class NearestNeighborTest(absltest.TestCase):
         'embedding_name': 'input_embs',
         'num_neighbors': 2,
     }
-    result = self.nearest_neighbors.run_with_metadata(
-        dataset.indexed_examples[1:2], model, dataset, config=config
+    result = self.nearest_neighbors.run(
+        dataset.examples[1:2], model, dataset, config=config
     )
     expected = {'nearest_neighbors': [
         {'id': '1', 'nn_distance': 0.0},

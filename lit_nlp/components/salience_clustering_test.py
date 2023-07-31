@@ -37,31 +37,11 @@ class SalienceClusteringTest(parameterized.TestCase):
 
   def _call_classification_model_on_standard_input(self, config, grad_key):
     inputs = [
-        {
-            'data': {
-                'segment': 'a b c d'
-            }
-        },
-        {
-            'data': {
-                'segment': 'a b c d'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
-        {
-            'data': {
-                'segment': 'e f e f'
-            }
-        },
+        {'segment': 'a b c d'},
+        {'segment': 'a b c d'},
+        {'segment': 'e f e f'},
+        {'segment': 'e f e f'},
+        {'segment': 'e f e f'},
     ]
     model = testing_utils.ClassificationModelForTesting()
     dataset = lit_dataset.Dataset(None, None)
@@ -100,8 +80,8 @@ class SalienceClusteringTest(parameterized.TestCase):
 
     clustering_component = salience_clustering.SalienceClustering(
         self.salience_mappers)
-    result = clustering_component.run_with_metadata(inputs, model, dataset,
-                                                    model_outputs, config)
+    result = clustering_component.run(inputs, model, dataset, model_outputs,
+                                      config)
     return result, clustering_component, inputs, model, dataset, model_outputs
 
   def test_build_vocab(self):
@@ -215,8 +195,8 @@ class SalienceClusteringTest(parameterized.TestCase):
     _, clustering_component, inputs, model, dataset, model_outputs = (
         self._call_classification_model_on_standard_input(config, grad_key))
     kmeans_call_1 = clustering_component.kmeans[grad_key]
-    clustering_component.run_with_metadata(inputs, model, dataset,
-                                           model_outputs, config)
+    clustering_component.run(inputs, model, dataset, model_outputs,
+                             config)
     kmeans_call_2 = clustering_component.kmeans[grad_key]
     self.assertIsNot(kmeans_call_1, kmeans_call_2)
 
@@ -233,8 +213,8 @@ class SalienceClusteringTest(parameterized.TestCase):
     kmeans_call_1 = clustering_component.kmeans[grad_key]
 
     config[salience_clustering.REUSE_CLUSTERING] = True
-    clustering_component.run_with_metadata(inputs, model, dataset,
-                                           model_outputs, config)
+    clustering_component.run(inputs, model, dataset, model_outputs,
+                             config)
     kmeans_call_2 = clustering_component.kmeans[grad_key]
     self.assertIs(kmeans_call_1, kmeans_call_2)
 

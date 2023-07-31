@@ -89,9 +89,8 @@ class PdpTest(absltest.TestCase):
     config = {
         'feature': 'num',
     }
-    result = self.pdp.run_with_metadata([self.dataset.indexed_examples[0]],
-                                        self.reg_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run([self.dataset.examples[0]], self.reg_model,
+                          self.dataset, config=config)
     expected = {1.0: 2.0, 2.0: 3.0, 3.0: 4.0, 4.0: 5.0, 5.0: 6.0, 6.0: 7.0,
                 7.0: 8.0, 8.0: 9.0, 9.0: 10.0, 10.0: 11.0}
     testing_utils.assert_deep_almost_equal(self, result['score'], expected)
@@ -101,9 +100,8 @@ class PdpTest(absltest.TestCase):
         'feature': 'num',
         'range': [0, 9]
     }
-    result = self.pdp.run_with_metadata([self.dataset.indexed_examples[0]],
-                                        self.reg_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run([self.dataset.examples[0]], self.reg_model,
+                          self.dataset, config=config)
     expected = {0.0: 1.0, 1.0: 2.0, 2.0: 3.0, 3.0: 4.0, 4.0: 5.0, 5.0: 6.0,
                 6.0: 7.0, 7.0: 8.0, 8.0: 9.0, 9.0: 10.0}
     testing_utils.assert_deep_almost_equal(self, result['score'], expected)
@@ -112,9 +110,8 @@ class PdpTest(absltest.TestCase):
     config = {
         'feature': 'cats',
     }
-    result = self.pdp.run_with_metadata([self.dataset.indexed_examples[0]],
-                                        self.reg_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run([self.dataset.examples[0]], self.reg_model,
+                          self.dataset, config=config)
     expected = {'One': 2.0, 'None': 1.0}
     testing_utils.assert_deep_almost_equal(self, result['score'], expected)
 
@@ -122,9 +119,8 @@ class PdpTest(absltest.TestCase):
     config = {
         'feature': 'num',
     }
-    result = self.pdp.run_with_metadata([self.dataset.indexed_examples[0]],
-                                        self.class_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run([self.dataset.examples[0]], self.class_model,
+                          self.dataset, config=config)
 
     expected = {1.0: [0.49, 0.51], 2.0: [0.48, 0.52], 3.0: [0.47, 0.53],
                 4.0: [0.46, 0.54], 5.0: [0.45, 0.55], 6.0: [0.44, 0.56],
@@ -136,9 +132,8 @@ class PdpTest(absltest.TestCase):
     config = {
         'feature': 'cats',
     }
-    result = self.pdp.run_with_metadata([self.dataset.indexed_examples[0]],
-                                        self.class_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run([self.dataset.examples[0]], self.class_model,
+                          self.dataset, config=config)
     expected = {'One': [0.49, 0.51], 'None': [0.99, 0.01]}
     testing_utils.assert_deep_almost_equal(self, result['probas'], expected)
 
@@ -146,9 +141,8 @@ class PdpTest(absltest.TestCase):
     config = {
         'feature': 'num',
     }
-    result = self.pdp.run_with_metadata(self.dataset.indexed_examples[0:2],
-                                        self.reg_model, self.dataset,
-                                        config=config)
+    result = self.pdp.run(self.dataset.examples[0:2], self.reg_model,
+                          self.dataset, config=config)
     expected = {1.0: 1.5, 2.0: 2.5, 3.0: 3.5, 4.0: 4.5, 5.0: 5.5, 6.0: 6.5,
                 7.0: 7.5, 8.0: 8.5, 9.0: 9.5, 10.0: 10.5}
     testing_utils.assert_deep_almost_equal(self, result['score'], expected)

@@ -128,8 +128,8 @@ class CurvesInterpreterTest(parameterized.TestCase):
   def test_label_not_in_config(self):
     """The interpreter throws an error if the config doesn't have Label."""
     with self.assertRaises(ValueError):
-      self.ci.run_with_metadata(
-          indexed_inputs=self.dataset.indexed_examples,
+      self.ci.run(
+          inputs=self.dataset.examples,
           model=self.model,
           dataset=self.dataset,
       )
@@ -140,8 +140,8 @@ class CurvesInterpreterTest(parameterized.TestCase):
     The interpreter throws an error if the name of the output is absent.
     """
     with self.assertRaises(ValueError):
-      self.ci.run_with_metadata(
-          indexed_inputs=self.dataset.indexed_examples,
+      self.ci.run(
+          inputs=self.dataset.examples,
           model=self.model,
           dataset=self.dataset,
           config={'Label': 'red'},
@@ -165,8 +165,8 @@ class CurvesInterpreterTest(parameterized.TestCase):
       self, label: str, exp_roc: _Curve, exp_pr: _Curve
   ):
     """Tests a happy scenario when a user doesn't specify the class label."""
-    curves_data = self.ci.run_with_metadata(
-        indexed_inputs=self.dataset.indexed_examples,
+    curves_data = self.ci.run(
+        inputs=self.dataset.examples,
         model=self.model,
         dataset=self.dataset,
         config={

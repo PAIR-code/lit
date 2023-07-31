@@ -44,10 +44,6 @@ _EXAMPLES = [
     {'sentence': 'i', 'label': '0', '_id': 'i'},
 ]
 
-_INDEXED_EXAMPLES = [
-    {'id': ex['_id'], 'data': ex} for ex in _EXAMPLES
-]
-
 
 class ThresholderTest(parameterized.TestCase):
 
@@ -63,11 +59,9 @@ class ThresholderTest(parameterized.TestCase):
             'sentence': lit_types.TextSegment(),
             'label': lit_types.CategoryLabel(vocab=['0', '1'])
         },
-        indexed_examples=_INDEXED_EXAMPLES,
+        examples=_EXAMPLES,
     )
-    cls.model_outputs = list(
-        cls.model.predict(_EXAMPLES)
-    )
+    cls.model_outputs = list(cls.model.predict(_EXAMPLES))
 
   def setUp(self):
     super().setUp()
@@ -80,8 +74,8 @@ class ThresholderTest(parameterized.TestCase):
   )
   def test_thresholder(self, config: lit_types.JsonDict, expected: float):
     # Test with default options.
-    result = self.thresholder.run_with_metadata(
-        _INDEXED_EXAMPLES,
+    result = self.thresholder.run(
+        _EXAMPLES,
         self.model,
         self.dataset,
         self.model_outputs,
@@ -95,12 +89,12 @@ class ThresholderTest(parameterized.TestCase):
     config = {
         'cost_ratio': 1,
         'facets': {
-            'label:1': {'data': _INDEXED_EXAMPLES[0:5]},
-            'label:0': {'data': _INDEXED_EXAMPLES[5:9]},
+            'label:1': {'data': _EXAMPLES[0:5]},
+            'label:0': {'data': _EXAMPLES[5:9]},
         }
     }
-    result = self.thresholder.run_with_metadata(
-        _INDEXED_EXAMPLES,
+    result = self.thresholder.run(
+        _EXAMPLES,
         self.model,
         self.dataset,
         self.model_outputs,

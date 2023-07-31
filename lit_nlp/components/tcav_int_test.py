@@ -44,10 +44,6 @@ _ALPHABET_EXAMPLES = [
     {'sentence': 'i', '_id': 'i'},
 ]
 
-_ALPHABET_EXAMPLES_INDEXED = [
-    {'id': ex['_id'], 'data': ex} for ex in _ALPHABET_EXAMPLES
-]
-
 _EMOTION_EXAMPLES = [
     {'sentence': 'happy', '_id': 'happy'},  # 0
     {'sentence': 'sad', '_id': 'sad'},  # 1
@@ -75,10 +71,6 @@ _EMOTION_EXAMPLES = [
     {'sentence': 'hello', '_id': 'hello'}  # 23
 ]
 
-_EMOTION_EXAMPLES_INDEXED = [
-    {'id': ex['_id'], 'data': ex} for ex in _EMOTION_EXAMPLES
-]
-
 
 class ModelBasedTCAVTest(parameterized.TestCase):
 
@@ -86,10 +78,10 @@ class ModelBasedTCAVTest(parameterized.TestCase):
   def setUpClass(cls):
     super().setUpClass()
     cls.alphabet_dataset = lit_dataset.IndexedDataset(
-        id_fn=caching.input_hash, indexed_examples=_ALPHABET_EXAMPLES_INDEXED
+        id_fn=caching.input_hash, examples=_ALPHABET_EXAMPLES
     )
     cls.emotion_dataset = lit_dataset.IndexedDataset(
-        id_fn=caching.input_hash, indexed_examples=_EMOTION_EXAMPLES_INDEXED
+        id_fn=caching.input_hash, examples=_EMOTION_EXAMPLES
     )
     cls.model = caching.CachingModelWrapper(
         glue_models.SST2Model(BERT_TINY_PATH), 'test')
@@ -103,10 +95,10 @@ class ModelBasedTCAVTest(parameterized.TestCase):
 
     config = {
         'concept_set_ids': [
-            _ALPHABET_EXAMPLES_INDEXED[0]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[2]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[3]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[7]['id']
+            _ALPHABET_EXAMPLES[0]['_id'],
+            _ALPHABET_EXAMPLES[2]['_id'],
+            _ALPHABET_EXAMPLES[3]['_id'],
+            _ALPHABET_EXAMPLES[7]['_id']
         ],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
@@ -114,8 +106,8 @@ class ModelBasedTCAVTest(parameterized.TestCase):
         'dataset_name': 'test'
     }
 
-    result = self.tcav.run_with_metadata(
-        _ALPHABET_EXAMPLES_INDEXED,
+    result = self.tcav.run(
+        _ALPHABET_EXAMPLES,
         self.model,
         self.alphabet_dataset,
         config=config,
@@ -180,19 +172,19 @@ class ModelBasedTCAVTest(parameterized.TestCase):
     # examples, so the concept set is sampled from the concept examples.
     config = {
         'concept_set_ids': [
-            _ALPHABET_EXAMPLES_INDEXED[0]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[2]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[3]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[4]['id'],
-            _ALPHABET_EXAMPLES_INDEXED[7]['id']
+            _ALPHABET_EXAMPLES[0]['_id'],
+            _ALPHABET_EXAMPLES[2]['_id'],
+            _ALPHABET_EXAMPLES[3]['_id'],
+            _ALPHABET_EXAMPLES[4]['_id'],
+            _ALPHABET_EXAMPLES[7]['_id']
         ],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0
     }
 
-    result = self.tcav.run_with_metadata(
-        _ALPHABET_EXAMPLES_INDEXED[:8],
+    result = self.tcav.run(
+        _ALPHABET_EXAMPLES[:8],
         self.model,
         self.alphabet_dataset,
         config=config
@@ -272,22 +264,22 @@ class ModelBasedTCAVTest(parameterized.TestCase):
     # so the returned p-value is None.
     config = {
         'concept_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[0]['id'],
-            _EMOTION_EXAMPLES_INDEXED[2]['id'],
-            _EMOTION_EXAMPLES_INDEXED[4]['id']
+            _EMOTION_EXAMPLES[0]['_id'],
+            _EMOTION_EXAMPLES[2]['_id'],
+            _EMOTION_EXAMPLES[4]['_id']
         ],
         'negative_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[1]['id'],
-            _EMOTION_EXAMPLES_INDEXED[3]['id'],
-            _EMOTION_EXAMPLES_INDEXED[5]['id']
+            _EMOTION_EXAMPLES[1]['_id'],
+            _EMOTION_EXAMPLES[3]['_id'],
+            _EMOTION_EXAMPLES[5]['_id']
         ],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0
     }
 
-    result = self.tcav.run_with_metadata(
-        _EMOTION_EXAMPLES_INDEXED,
+    result = self.tcav.run(
+        _EMOTION_EXAMPLES,
         self.model,
         self.emotion_dataset,
         config=config,
@@ -359,28 +351,28 @@ class ModelBasedTCAVTest(parameterized.TestCase):
     # This example has enough inputs for two runs of size 3.
     config = {
         'concept_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[1]['id'],
-            _EMOTION_EXAMPLES_INDEXED[2]['id'],
-            _EMOTION_EXAMPLES_INDEXED[4]['id'],
-            _EMOTION_EXAMPLES_INDEXED[5]['id'],
-            _EMOTION_EXAMPLES_INDEXED[10]['id'],
-            _EMOTION_EXAMPLES_INDEXED[9]['id']
+            _EMOTION_EXAMPLES[1]['_id'],
+            _EMOTION_EXAMPLES[2]['_id'],
+            _EMOTION_EXAMPLES[4]['_id'],
+            _EMOTION_EXAMPLES[5]['_id'],
+            _EMOTION_EXAMPLES[10]['_id'],
+            _EMOTION_EXAMPLES[9]['_id']
         ],
         'negative_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[0]['id'],
-            _EMOTION_EXAMPLES_INDEXED[3]['id'],
-            _EMOTION_EXAMPLES_INDEXED[12]['id'],
-            _EMOTION_EXAMPLES_INDEXED[6]['id'],
-            _EMOTION_EXAMPLES_INDEXED[7]['id'],
-            _EMOTION_EXAMPLES_INDEXED[8]['id']
+            _EMOTION_EXAMPLES[0]['_id'],
+            _EMOTION_EXAMPLES[3]['_id'],
+            _EMOTION_EXAMPLES[12]['_id'],
+            _EMOTION_EXAMPLES[6]['_id'],
+            _EMOTION_EXAMPLES[7]['_id'],
+            _EMOTION_EXAMPLES[8]['_id']
         ],
         'class_to_explain': '0',
         'grad_layer': 'cls_grad',
         'random_state': 0
     }
 
-    result = self.tcav.run_with_metadata(
-        _EMOTION_EXAMPLES_INDEXED,
+    result = self.tcav.run(
+        _EMOTION_EXAMPLES,
         self.model,
         self.emotion_dataset,
         config=config,
@@ -452,36 +444,36 @@ class ModelBasedTCAVTest(parameterized.TestCase):
     # size 5, and returns results with p-value < 0.05.
     config = {
         'concept_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[0]['id'],
-            _EMOTION_EXAMPLES_INDEXED[1]['id'],
-            _EMOTION_EXAMPLES_INDEXED[2]['id'],
-            _EMOTION_EXAMPLES_INDEXED[3]['id'],
-            _EMOTION_EXAMPLES_INDEXED[4]['id'],
-            _EMOTION_EXAMPLES_INDEXED[5]['id'],
-            _EMOTION_EXAMPLES_INDEXED[6]['id'],
-            _EMOTION_EXAMPLES_INDEXED[7]['id'],
-            _EMOTION_EXAMPLES_INDEXED[8]['id'],
-            _EMOTION_EXAMPLES_INDEXED[9]['id']
+            _EMOTION_EXAMPLES[0]['_id'],
+            _EMOTION_EXAMPLES[1]['_id'],
+            _EMOTION_EXAMPLES[2]['_id'],
+            _EMOTION_EXAMPLES[3]['_id'],
+            _EMOTION_EXAMPLES[4]['_id'],
+            _EMOTION_EXAMPLES[5]['_id'],
+            _EMOTION_EXAMPLES[6]['_id'],
+            _EMOTION_EXAMPLES[7]['_id'],
+            _EMOTION_EXAMPLES[8]['_id'],
+            _EMOTION_EXAMPLES[9]['_id']
         ],
         'negative_set_ids': [
-            _EMOTION_EXAMPLES_INDEXED[10]['id'],
-            _EMOTION_EXAMPLES_INDEXED[11]['id'],
-            _EMOTION_EXAMPLES_INDEXED[12]['id'],
-            _EMOTION_EXAMPLES_INDEXED[13]['id'],
-            _EMOTION_EXAMPLES_INDEXED[14]['id'],
-            _EMOTION_EXAMPLES_INDEXED[15]['id'],
-            _EMOTION_EXAMPLES_INDEXED[16]['id'],
-            _EMOTION_EXAMPLES_INDEXED[17]['id'],
-            _EMOTION_EXAMPLES_INDEXED[18]['id'],
-            _EMOTION_EXAMPLES_INDEXED[19]['id']
+            _EMOTION_EXAMPLES[10]['_id'],
+            _EMOTION_EXAMPLES[11]['_id'],
+            _EMOTION_EXAMPLES[12]['_id'],
+            _EMOTION_EXAMPLES[13]['_id'],
+            _EMOTION_EXAMPLES[14]['_id'],
+            _EMOTION_EXAMPLES[15]['_id'],
+            _EMOTION_EXAMPLES[16]['_id'],
+            _EMOTION_EXAMPLES[17]['_id'],
+            _EMOTION_EXAMPLES[18]['_id'],
+            _EMOTION_EXAMPLES[19]['_id']
         ],
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0
     }
 
-    result = self.tcav.run_with_metadata(
-        _EMOTION_EXAMPLES_INDEXED,
+    result = self.tcav.run(
+        _EMOTION_EXAMPLES,
         self.model,
         self.emotion_dataset,
         config=config,

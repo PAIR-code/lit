@@ -193,6 +193,14 @@ class Thresholder(lit_components.Interpreter):
     Returns:
       A JsonDict containing the calcuated thresholds
     """
+    # Convert any facets from using IndexedInputs to using JsonDicts prior to
+    # passing to self.run(). This should reduce incompatibilities when we remove
+    # the *_with_metadata() APIs later on.
+    if config and (facets := config.get('facets')):
+      for facet_dict in facets.values():
+        if (facet_data := facet_dict.get('data')):
+          facet_dict['data'] = [ex.get('data', ex) for ex in facet_data]
+
     config = ThresholderConfig(**(config or {}))
 
     pred_keys = []
@@ -256,35 +264,3 @@ class Thresholder(lit_components.Interpreter):
           pred_key, i, margins_to_try, dataset_results, faceted_results,
           config))
     return ret
-
-  def run_with_metadata(
-      self,
-      indexed_inputs: Sequence[IndexedInput],
-      model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
-    """Calculates optimal thresholds on the provided data.
-
-    Args:
-      indexed_inputs: all examples in the dataset.
-      model: the model being explained.
-      dataset: the dataset which the current examples belong to.
-      model_outputs: optional model outputs from calling model.predict(inputs).
-      config: a config which should specify TresholderConfig options.
-
-    Returns:
-      A JsonDict containing the calcuated thresholds
-    """
-    # Convert any facets from using IndexedInputs to using JsonDicts prior to
-    # passing to self.run(). This should reduce incompatibilities when we remove
-    # the *_with_metadata() APIs later on.
-    if config and (facets := config.get('facets')):
-      for facet_dict in facets.values():
-        if (facet_data := facet_dict.get('data')):
-          facet_dict['data'] = [ex['data'] for ex in facet_data]
-
-    return self.run(
-        [ex['data'] for ex in indexed_inputs],
-        model, dataset, model_outputs, config)
-
