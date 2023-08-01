@@ -523,8 +523,11 @@ class LitApp(object):
 
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: list[list[Input]] = genny.run_with_metadata(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
-        data['inputs'], self._models[model], dataset, config=config)
+    all_generated: list[list[Input]] = genny.run(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
+        [ex['data'] for ex in data['inputs']],
+        self._models[model],
+        dataset,
+        config=config)
 
     # Annotate datapoints
     def annotate_generated(datapoints):
@@ -590,8 +593,8 @@ class LitApp(object):
     else:
       model_outputs = None
 
-    return interp.run_with_metadata(
-        data['inputs'],
+    return interp.run(
+        [ex['data'] for ex in data['inputs']],
         mdl,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
@@ -673,8 +676,12 @@ class LitApp(object):
             config, config_spec, f'Metric {name}'
         )
 
-      results[name] = metric.run_with_metadata(
-          inputs, mdl, dataset, model_outputs=model_outputs, config=config
+      results[name] = metric.run(
+          [ex['data'] for ex in inputs],
+          mdl,
+          dataset,
+          model_outputs=model_outputs,
+          config=config
       )
 
     return results

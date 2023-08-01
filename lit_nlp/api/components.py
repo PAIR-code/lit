@@ -52,16 +52,6 @@ class Interpreter(metaclass=abc.ABCMeta):
         'Subclass should implement this, or override run_with_metadata() directly.'
     )
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
-    """Run this component, with access to data indices and metadata."""
-    inputs = [ex['data'] for ex in indexed_inputs]
-    return self.run(inputs, model, dataset, model_outputs, config)
-
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
     """Return if interpreter is compatible with the dataset and model."""
@@ -165,16 +155,6 @@ class Metrics(Interpreter):
       config: Optional[JsonDict] = None) -> list[JsonDict]:
     raise NotImplementedError(
         'Subclass should implement its own run using compute.')
-
-  def run_with_metadata(
-      self,
-      indexed_inputs: Sequence[IndexedInput],
-      model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
-    inputs = [inp['data'] for inp in indexed_inputs]
-    return self.run(inputs, model, dataset, model_outputs, config)
 
   # New methods introduced by this subclass
 
