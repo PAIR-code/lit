@@ -282,6 +282,15 @@ class ModelWrapper(Model):
     return self.wrapped.get_embedding_table()
 
 
+class BatchedModel(Model):
+  """Generic base class for the batched model.
+
+  Currently this is a no-op pass-through of Model class and will be updated
+  after moving users of Model class over.
+  """
+  pass
+
+
 class BatchedRemoteModel(Model):
   """Generic base class for remotely-hosted models.
 
