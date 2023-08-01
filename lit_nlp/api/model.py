@@ -230,13 +230,6 @@ class Model(metaclass=abc.ABCMeta):
     if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
       yield from self.predict_minibatch(minibatch, **kw)
 
-  # TODO(b/171513556): remove this method.
-  def predict_with_metadata(
-      self, indexed_inputs: Iterable[JsonDict], **kw
-  ) -> Iterable[JsonDict]:
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex['data'] for ex in indexed_inputs), **kw)
-
 
 class ModelWrapper(Model):
   """Wrapper for a LIT model.

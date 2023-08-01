@@ -199,6 +199,7 @@ class LitApp(object):
     """Reconstitute any inputs sent as references (bare IDs)."""
     index = self._datasets[dataset_name].index
     # TODO(b/178228238): set up proper debug logging and hide this by default.
+    # TODO(b/171513556): Reconsistute as Inputs instead of IndexedInputs
     num_aliased = sum([isinstance(ex, str) for ex in inputs])
     logging.info(
         "%d of %d inputs sent as IDs; reconstituting from dataset '%s'",
@@ -261,7 +262,7 @@ class LitApp(object):
       requested_types: optional, comma-separated list of type names to return
       requested_fields: optional, comma-separated list of field names to return
         in addition to the ones returned due to 'requested_types'.
-      **kw: additional args passed to model.predict_with_metadata()
+      **kw: additional args passed to model.predict()
 
     Returns:
       list[JsonDict] containing requested fields of model predictions
@@ -278,7 +279,8 @@ class LitApp(object):
       raise ValueError('Must provide a "dataset_name" to predict over.')
 
     inputs = data['inputs']
-    preds = list(self._models[model].predict_with_metadata(inputs, **kw))
+    preds = list(self._models[model].predict(
+        [ex['data'] for ex in inputs], **kw))
 
     num_preds = len(preds)
     num_inputs = len(inputs)
