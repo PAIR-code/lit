@@ -33,8 +33,7 @@ new configurations can be explored interactively (at the cost of re-training
 projections).
 """
 
-import abc
-from collections.abc import Iterable, Hashable, Sequence
+from collections.abc import Hashable, Sequence
 import threading
 from typing import Optional
 
@@ -51,35 +50,6 @@ IndexedInput = types.IndexedInput
 Spec = types.Spec
 
 
-class ProjectorModel(lit_model.Model, metaclass=abc.ABCMeta):
-  """LIT model API implementation for dimensionality reduction."""
-
-  ##
-  # Training methods
-  @abc.abstractmethod
-  def fit_transform(self, inputs: Iterable[JsonDict]) -> list[JsonDict]:
-    pass
-
-  ##
-  # LIT model API
-  def input_spec(self):
-    # 'x' denotes input features
-    return {"x": types.Embeddings()}
-
-  def output_spec(self):
-    # 'z' denotes projected embeddings
-    return {"z": types.Embeddings()}
-
-  @abc.abstractmethod
-  def predict_minibatch(
-      self, inputs: Iterable[JsonDict], **unused_kw
-  ) -> list[JsonDict]:
-    pass
-
-  def max_minibatch_size(self, **unused_kw):
-    return 1000
-
-
 class ProjectionInterpreter(lit_components.Interpreter):
   """Interpreter API implementation for dimensionality reduction model."""
 
@@ -88,7 +58,7 @@ class ProjectionInterpreter(lit_components.Interpreter):
       model: lit_model.Model,
       inputs: Sequence[JsonDict],
       model_outputs: Optional[list[JsonDict]],
-      projector: ProjectorModel,
+      projector: lit_model.ProjectorModel,
       field_name: str,
       name: str,
   ):
@@ -166,7 +136,7 @@ class ProjectionManager(lit_components.Interpreter):
   this is not explicitly enforced.
   """
 
-  def __init__(self, model_class: type[ProjectorModel]):
+  def __init__(self, model_class: type[lit_model.ProjectorModel]):
     self._lock = threading.RLock()
     self._instances: dict[Hashable, ProjectionInterpreter] = {}
     # Used to construct new instances, given config['proj_kw']

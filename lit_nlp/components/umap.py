@@ -15,13 +15,13 @@
 """Implementation of UMAP as a dimensionality reduction model."""
 
 from absl import logging
-from lit_nlp.components import projection
+from lit_nlp.api import model
 from lit_nlp.lib import utils
 import numpy as np
 import umap
 
 
-class UmapModel(projection.ProjectorModel):
+class UmapModel(model.ProjectorModel):
   """LIT model API implementation for UMAP."""
 
   def __init__(self, **umap_kw):

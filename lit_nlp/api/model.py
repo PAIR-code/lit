@@ -194,19 +194,6 @@ class Model(metaclass=abc.ABCMeta):
     raise NotImplementedError('get_embedding_table() not implemented for ' +
                               self.__class__.__name__)
 
-  def fit_transform(
-      self, inputs: Iterable[types.JsonDict]
-  ) -> Iterable[types.JsonDict]:
-    """For internal use by UMAP and other sklearn-based models."""
-    raise NotImplementedError(
-        'fit_transform() not implemented for ' + self.__class__.__name__)
-
-  def fit_transform_with_metadata(
-      self, indexed_inputs: Iterable[types.IndexedInput]
-  ) -> Iterable[types.JsonDict]:
-    """For internal use by UMAP and other sklearn-based models."""
-    return self.fit_transform((ii['data'] for ii in indexed_inputs))
-
   ##
   # Concrete implementations of common functions.
   def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
@@ -301,11 +288,6 @@ class ModelWrapper(Model):
   def get_embedding_table(self) -> tuple[list[str], np.ndarray]:
     return self.wrapped.get_embedding_table()
 
-  def fit_transform_with_metadata(
-      self, indexed_inputs: Iterable[types.IndexedInput]
-  ):
-    return self.wrapped.fit_transform_with_metadata(indexed_inputs)
-
 
 class BatchedRemoteModel(Model):
   """Generic base class for remotely-hosted models.
@@ -363,3 +345,27 @@ class BatchedRemoteModel(Model):
       list of outputs, following model.output_spec()
     """
     return
+
+
+class ProjectorModel(Model, metaclass=abc.ABCMeta):
+  """LIT Model API for dimensionality reduction."""
+
+  ##
+  # Training methods
+  @abc.abstractmethod
+  def fit_transform(self, inputs: Iterable[JsonDict]) -> list[JsonDict]:
+    """For internal use by SciKit Learn-based models."""
+    pass
+
+  ##
+  # LIT model API
+  def input_spec(self):
+    # 'x' denotes input features
+    return {'x': types.Embeddings()}
+
+  def output_spec(self):
+    # 'z' denotes projected embeddings
+    return {'z': types.Embeddings()}
+
+  def max_minibatch_size(self, **unused_kw):
+    return 1000

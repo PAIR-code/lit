@@ -227,9 +227,15 @@ class CachingModelWrapper(lit_model.ModelWrapper):
   ##
   # For internal use
   def fit_transform(self, inputs: Iterable[types.JsonDict]):
-    """For use with UMAP and other preprocessing transforms."""
+    """Cache projections from ProjectorModel dimensionality reducers."""
+    wrapped = self.wrapped
+    if not isinstance(wrapped, lit_model.ProjectorModel):
+      raise TypeError(
+          "Attempted to call fit_transform() on a non-ProjectorModel."
+      )
+
     inputs_as_list = list(inputs)
-    outputs = list(self.wrapped.fit_transform(inputs_as_list))
+    outputs = list(wrapped.fit_transform(inputs_as_list))
     with self._cache.lock:
       for inp, output in zip(inputs_as_list, outputs):
         self._cache.put(output, self.key_fn(inp))
