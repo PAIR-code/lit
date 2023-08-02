@@ -57,6 +57,7 @@ const SPRITE_SIZE_MD = 10 + DEFAULT_BORDER_WIDTH;
 const SPRITE_SIZE_SM = 8 + DEFAULT_BORDER_WIDTH;
 const X_LABELS_PADDING = 12;
 const Y_LABELS_PADDING = 40;
+const HATCHING_STROKE_WIDTH = 2;
 
 
 /** Indexed scalars for an id, inclusive of model input and output scalars. */
@@ -321,6 +322,26 @@ export class ScalarModule extends LitModule {
                       .style('width', width + Y_LABELS_PADDING)
                       .style('height', height + X_LABELS_PADDING);
 
+    axesSVG.append('defs')
+           .append('pattern')
+           .attr('id', 'diagonalHatch')
+           .attr('patternUnits',  'userSpaceOnUse')
+           .attr('width', 4 * HATCHING_STROKE_WIDTH)
+           .attr('height', 4 * HATCHING_STROKE_WIDTH)
+           .append('path')
+             .style('stroke-width', HATCHING_STROKE_WIDTH)
+             .attr('d',
+                   `M-${HATCHING_STROKE_WIDTH},${HATCHING_STROKE_WIDTH} ` +
+                   `l${2*HATCHING_STROKE_WIDTH},${-2*HATCHING_STROKE_WIDTH} ` +
+                   `M0,${4 * HATCHING_STROKE_WIDTH} ` +
+                   `l${4*HATCHING_STROKE_WIDTH},${-4*HATCHING_STROKE_WIDTH} ` +
+                   `M${3*HATCHING_STROKE_WIDTH},${5*HATCHING_STROKE_WIDTH} ` +
+                   `l${2*HATCHING_STROKE_WIDTH},${-2*HATCHING_STROKE_WIDTH}`);
+
+    const lines = axesSVG.append('g')
+                         .attr('id', 'lines')
+                         .attr('transform', `translate(40, 0)`);
+
     axesSVG.append('g')
            .attr('id', 'xAxis')
            .attr('transform', `translate(40, ${height - CANVAS_PADDING})`)
@@ -330,10 +351,6 @@ export class ScalarModule extends LitModule {
            .attr('id', 'yAxis')
            .attr('transform', `translate(40, 0)`)
            .call(d3.axisLeft(info.yScale).ticks(isRegression ? 5 : 0 ));
-
-    const lines = axesSVG.append('g')
-                         .attr('id', 'lines')
-                         .attr('transform', `translate(40, 0)`);
 
     const [xMin, xMax] = info.xScale.range();
     const [yMin, yMax] = info.yScale.range();
@@ -383,16 +400,41 @@ export class ScalarModule extends LitModule {
       }
 
       const fieldSpec = this.appState.getModelSpec(model).output[key];
-      if (fieldSpec instanceof MulticlassPreds && fieldSpec.null_idx != null) {
-        const margin = this.classificationService.getMargin(model, key);
-        const threshold = info.xScale(getThresholdFromMargin(margin));
-        lines.append('line')
+      if (fieldSpec instanceof MulticlassPreds) {
+        if (fieldSpec.null_idx != null) {
+          const margin = this.classificationService.getMargin(model, key);
+          const threshold = info.xScale(getThresholdFromMargin(margin));
+          lines.append('line')
               .attr('id', 'threshold-line')
               .attr('x1', threshold)
               .attr('y1', yMin)
               .attr('x2', threshold)
               .attr('y2', yMax)
               .style('stroke', DEFAULT_LINE_COLOR);
+        } else if (fieldSpec.vocab.length > 2) {
+            const lowerBound = info.xScale(1 / fieldSpec.vocab.length);
+            const upperBound = info.xScale(0.5);
+            lines.append('line')
+                .attr('id', 'lowerbound-line')
+                .attr('x1', lowerBound)
+                .attr('y1', yMin)
+                .attr('x2', lowerBound)
+                .attr('y2', yMin + (height - CANVAS_PADDING))
+                .style('stroke', DEFAULT_LINE_COLOR);
+            lines.append('line')
+                .attr('id', 'upperbound-line')
+                .attr('x1', upperBound)
+                .attr('y1', yMin)
+                .attr('x2', upperBound)
+                .attr('y2', yMin + (height - CANVAS_PADDING))
+                .style('stroke', DEFAULT_LINE_COLOR);
+            lines.append('rect')
+                 .attr('x',lowerBound)
+                 .attr('y',yMin)
+                 .attr('width', upperBound - lowerBound)
+                 .attr('height', height - CANVAS_PADDING)
+                 .classed('confusion-zone', true);
+        }
       }
     }
 
