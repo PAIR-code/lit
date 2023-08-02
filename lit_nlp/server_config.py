@@ -75,6 +75,10 @@ config.validate = None
 config.enforce_dataset_fields_required = False
 config.report_all = False
 
+# Whether to re-compute example hashes before checking the cache.
+# See b/293984290.
+config.strict_cache_id_validation = False
+
 import os
 import pathlib
 config.client_root = os.path.join(

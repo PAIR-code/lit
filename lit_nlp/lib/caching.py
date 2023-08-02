@@ -193,16 +193,24 @@ class PredsCache(object):
 class CachingModelWrapper(lit_model.ModelWrapper):
   """Wrapper to add per-example caching to a LIT model."""
 
-  def __init__(self,
-               model: lit_model.Model,
-               name: str,
-               cache_dir: Optional[str] = None):
+  def __init__(
+      self,
+      model: lit_model.Model,
+      name: str,
+      cache_dir: Optional[str] = None,
+      strict_id_validation: bool = False,
+      id_hash_fn: Optional[lit_dataset.IdFnType] = None,
+  ):
     """Wrap a model to add caching.
 
     Args:
       model: a LIT model
       name: name, used for logging and data files
       cache_dir: if given, will load/save data to disk
+      strict_id_validation: if true, will re-compute hashes using id_hash_fn and
+        verify that they match the provided IDs. See b/293984290.
+      id_hash_fn: function of example --> string id, used by
+        strict_id_validation mode.
     """
     super().__init__(model)
     self._name = name
@@ -210,6 +218,13 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     self._cache = PredsCache(
         name, model.supports_concurrent_predictions, cache_dir)
     self.load_cache()
+
+    self._strict_id_validation = strict_id_validation
+    if self._strict_id_validation:
+      assert (
+          id_hash_fn is not None
+      ), "Must provide id_hash_fn to use strict_id_validation mode."
+    self._id_hash_fn = id_hash_fn
 
   def load_cache(self):
     self._cache.load_from_disk()
@@ -224,9 +239,19 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       return None
     return (self._name, d_id)
 
+  def _validate_ids(self, inputs: Iterable[JsonDict]):
+    for ex in inputs:
+      if not (given_id := ex.get("_id")):
+        continue
+      if (computed_id := self._id_hash_fn(types.Input(ex))) != given_id:
+        raise ValueError(
+            f"Given id '{given_id}' does not match computed id '{computed_id}'"
+            f" for example {str(ex)}."
+        )
+
   ##
   # For internal use
-  def fit_transform(self, inputs: Iterable[types.JsonDict]):
+  def fit_transform(self, inputs: Iterable[JsonDict]):
     """Cache projections from ProjectorModel dimensionality reducers."""
     wrapped = self.wrapped
     if not isinstance(wrapped, lit_model.ProjectorModel):
@@ -252,6 +277,10 @@ class CachingModelWrapper(lit_model.ModelWrapper):
               progress_indicator: Optional[ProgressIndicator] = lambda x: x,
               **kw) -> list[JsonDict]:
     inputs_as_list = list(inputs)
+
+    if self._strict_id_validation:
+      self._validate_ids(inputs_as_list)
+
     # Try to get results from the cache.
     input_keys = [self.key_fn(d) for d in inputs_as_list]
     if self._cache.pred_lock_key(input_keys):

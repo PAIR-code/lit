@@ -121,6 +121,13 @@ _SERVER_FLAGS = (
         'If true, and validate is true, will report every issue in validation '
         'as opposed to just the first.',
     ),
+    flags.DEFINE_bool(
+        'strict_cache_id_validation',
+        False,
+        'If true, will re-compute hashes of all examples before checking the'
+        ' cache, and raise an error if any do not match the provided _id'
+        ' field. See b/293984290.',
+    ),
     flags.DEFINE_string(
         'client_root',
         os.path.join(

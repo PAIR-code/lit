@@ -487,7 +487,7 @@ class LitApp(object):
 
     new_model = model_cls(**config)
     self._models[new_name] = caching.CachingModelWrapper(
-        new_model, new_name, cache_dir=self._data_dir
+        new_model, new_name, **self._caching_model_wrapper_kw
     )
     empty_dataset = lit_dataset.NoneDataset(self._models)
     self._datasets[_EMPTY_DATASET_KEY] = lit_dataset.IndexedDataset(
@@ -875,6 +875,7 @@ class LitApp(object):
       validate: Optional[flag_helpers.ValidationMode] = None,
       report_all: bool = False,
       enforce_dataset_fields_required: bool = False,
+      strict_cache_id_validation: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -890,6 +891,12 @@ class LitApp(object):
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
 
+    self._caching_model_wrapper_kw = dict(
+        cache_dir=self._data_dir,
+        strict_id_validation=strict_cache_id_validation,
+        id_hash_fn=caching.input_hash,
+    )
+
     # TODO(lit-dev): override layouts instead of merging, to allow clients
     # to opt-out of the default bundled layouts. This will require updating
     # client code to manually merge when this is the desired behavior.
@@ -903,8 +910,9 @@ class LitApp(object):
         # the original after wrapping it in a CachingModelWrapper.
         self._model_loaders[name] = (type(model), model.init_spec())
       # Wrap model in caching wrapper and add it to the app
-      self._models[name] = caching.CachingModelWrapper(model, name,
-                                                       cache_dir=data_dir)
+      self._models[name] = caching.CachingModelWrapper(
+          model, name, **self._caching_model_wrapper_kw
+      )
 
     self._annotators: list[lit_components.Annotator] = annotators or []
     self._saved_datapoints = {}
