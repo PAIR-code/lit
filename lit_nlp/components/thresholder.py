@@ -194,8 +194,7 @@ class Thresholder(lit_components.Interpreter):
       A JsonDict containing the calcuated thresholds
     """
     # Convert any facets from using IndexedInputs to using JsonDicts prior to
-    # passing to self.run(). This should reduce incompatibilities when we remove
-    # the *_with_metadata() APIs later on.
+    # passing to self.run().
     if config and (facets := config.get('facets')):
       for facet_dict in facets.values():
         if (facet_data := facet_dict.get('data')):

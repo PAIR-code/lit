@@ -41,6 +41,7 @@ class Interpreter(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
+  @abc.abstractmethod
   def run(self,
           inputs: list[JsonDict],
           model: lit_model.Model,
@@ -48,9 +49,7 @@ class Interpreter(metaclass=abc.ABCMeta):
           model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     """Run this component, given a model and input(s)."""
-    raise NotImplementedError(
-        'Subclass should implement this, or override run_with_metadata() directly.'
-    )
+    pass
 
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
@@ -127,7 +126,7 @@ class Generator(Interpreter):
     pass
 
 
-class Metrics(Interpreter):
+class Metrics(Interpreter, metaclass=abc.ABCMeta):
   """Base class for LIT metrics components."""
 
   # Required methods implementations from Interpreter base class
@@ -145,16 +144,6 @@ class Metrics(Interpreter):
   def meta_spec(self):
     """A dict of MetricResults defining the metrics computed by this class."""
     raise NotImplementedError('Subclass should define its own meta spec.')
-
-  def run(
-      self,
-      inputs: Sequence[JsonDict],
-      model: lit_model.Model,
-      dataset: lit_dataset.Dataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
-    raise NotImplementedError(
-        'Subclass should implement its own run using compute.')
 
   # New methods introduced by this subclass
 
@@ -177,7 +166,7 @@ class Metrics(Interpreter):
       metas: Optional[Sequence[JsonDict]] = None) -> MetricsDict:
     """Compute metric(s) given labels and predictions."""
     raise NotImplementedError('Subclass should implement this, or override '
-                              'compute_with_metadata() directly.')
+                              'run() directly.')
 
 
 class Annotator(metaclass=abc.ABCMeta):

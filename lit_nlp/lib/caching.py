@@ -241,12 +241,11 @@ class CachingModelWrapper(lit_model.ModelWrapper):
         self._cache.put(output, self.key_fn(inp))
     return outputs
 
+  # TODO(b/170662608) Remove once batching logic changes are done.
   def predict_minibatch(self, *args, **kw):
-    logging.warning(
-        "CachingModelWrapper.predict_minibatch() bypasses the cache - "
-        "if this is not intended, use predict_with_metadata() instead "
-        "to access cache via example IDs.")
-    return self.wrapped.predict_minibatch(*args, **kw)
+    raise RuntimeError(
+        "This method should be inaccessible as it bypasses the cache. Please"
+        " use CachingModelWrapper.predict().")
 
   def predict(self,
               inputs: Iterable[JsonDict],

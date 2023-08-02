@@ -364,10 +364,6 @@ The core API involves implementing the `run()` method:
     # (binary) classification metrics.
 ```
 
-Note: a more general `run_with_metadata()` method is also available; this
-receives a list of `IndexedInput` which contain additional metadata, such as
-parent pointers for tracking counterfactuals.
-
 Output from an interpreter component is unconstrained; it's up to the frontend
 component requesting it to process the output correctly. In particular, some
 components (such as salience maps) may operate on each example independently,
