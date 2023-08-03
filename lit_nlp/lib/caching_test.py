@@ -15,23 +15,13 @@
 """Tests for lit_nlp.lib.model."""
 
 from absl.testing import absltest
-
+from absl.testing import parameterized
+from lit_nlp.api import dataset
 from lit_nlp.lib import caching
 from lit_nlp.lib import testing_utils
 
 
-class CachingTest(absltest.TestCase):
-
-  def test_preds_cache(self):
-    """Test with an exact match."""
-    cache = caching.PredsCache("test")
-    self.assertEqual("0", cache.info())
-    cache.put("test", None)
-    self.assertEqual("0", cache.info())
-    cache.put("test", ("a", "1"))
-    self.assertEqual("1", cache.info())
-    self.assertIsNone(None, cache.get(("a", "2")))
-    self.assertEqual("test", cache.get(("a", "1")))
+class CachingModelWrapperTest(parameterized.TestCase):
 
   def test_caching_model_wrapper_use_cache(self):
     model = testing_utils.IdentityRegressionModelForTesting()
@@ -81,6 +71,51 @@ class CachingTest(absltest.TestCase):
     self.assertEqual({"score": 0}, results[0])
     self.assertEqual({"score": 1}, results[1])
     self.assertEqual({"score": 2}, results[2])
+
+  @parameterized.named_parameters(
+      ("hash_fn=input_hash", caching.input_hash),
+      ("hash_fn=custom_fn", lambda x: x["_id"]),
+  )
+  def test_caching_model_strict_id_validation(
+      self, id_hash_fn: dataset.IdFnType
+  ):
+    model = testing_utils.IdentityRegressionModelForTesting()
+    wrapper = caching.CachingModelWrapper(
+        model, "test", strict_id_validation=True, id_hash_fn=id_hash_fn
+    )
+    examples = [{"val": 1, "_id": "b1d0ec818f8aeefdd0551cad96d58e75"}]
+    results = wrapper.predict(examples)
+    self.assertEqual(1, model.count)
+    self.assertEqual({"score": 1}, results[0])
+    self.assertEmpty(wrapper._cache._pred_locks)
+
+  def test_caching_model_raises_strict_id_validation_no_id_hash_fn(self):
+    model = testing_utils.IdentityRegressionModelForTesting()
+    with self.assertRaises(ValueError):
+      caching.CachingModelWrapper(model, "test", strict_id_validation=True)
+
+  def test_caching_model_raises_strict_id_validation_differing_ids(self):
+    model = testing_utils.IdentityRegressionModelForTesting()
+    wrapper = caching.CachingModelWrapper(
+        model, "test", strict_id_validation=True, id_hash_fn=caching.input_hash
+    )
+    examples = [{"val": 1, "_id": "my_id"}]
+    with self.assertRaises(ValueError):
+      wrapper.predict(examples)
+
+
+class PredsCacheTest(absltest.TestCase):
+
+  def test_preds_cache(self):
+    """Test with an exact match."""
+    cache = caching.PredsCache("test")
+    self.assertEqual("0", cache.info())
+    cache.put("test", None)
+    self.assertEqual("0", cache.info())
+    cache.put("test", ("a", "1"))
+    self.assertEqual("1", cache.info())
+    self.assertIsNone(None, cache.get(("a", "2")))
+    self.assertEqual("test", cache.get(("a", "1")))
 
   def test_pred_lock_key(self):
     cache = caching.PredsCache("test")

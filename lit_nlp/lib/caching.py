@@ -212,19 +212,20 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       id_hash_fn: function of example --> string id, used by
         strict_id_validation mode.
     """
+    if strict_id_validation and id_hash_fn is None:
+      raise ValueError(
+          "Must provide id_hash_fn to use strict_id_validation mode."
+      )
+
     super().__init__(model)
     self._name = name
     self._log_prefix = f"CachingModelWrapper '{name:s}'"
-    self._cache = PredsCache(
-        name, model.supports_concurrent_predictions, cache_dir)
-    self.load_cache()
-
     self._strict_id_validation = strict_id_validation
-    if self._strict_id_validation:
-      assert (
-          id_hash_fn is not None
-      ), "Must provide id_hash_fn to use strict_id_validation mode."
     self._id_hash_fn = id_hash_fn
+    self._cache = PredsCache(
+        name, model.supports_concurrent_predictions, cache_dir
+    )
+    self.load_cache()
 
   def load_cache(self):
     self._cache.load_from_disk()
