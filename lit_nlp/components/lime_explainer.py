@@ -43,14 +43,6 @@ NUM_SAMPLES_KEY = 'Number of samples'
 SEED_KEY = 'Seed'
 
 
-def new_example(original_example: JsonDict, field: str,
-                new_value: Any) -> JsonDict:
-  """Deep copies the example and replaces `field` with `new_value`."""
-  example = dict(original_example)
-  example[field] = new_value
-  return example
-
-
 def _predict_fn(strings: Iterable[str], model: Any, original_example: JsonDict,
                 text_key: str, pred_key: str, pred_type_info: types.LitType):
   """Given raw strings, return scores. Used by `lime.explain`.
@@ -75,10 +67,13 @@ def _predict_fn(strings: Iterable[str], model: Any, original_example: JsonDict,
     in order by the class index.
   """
   # Prepare example objects to be fed to the model for each sentence/string.
-  input_examples = [new_example(original_example, text_key, s) for s in strings]
+  model_inputs = [
+      utils.make_modified_input(original_example, {text_key: s}, 'LIME')
+      for s in strings
+  ]
 
   # Get model predictions for the examples.
-  model_outputs = model.predict(input_examples)
+  model_outputs = model.predict(model_inputs)
   outputs = [output[pred_key] for output in model_outputs]
   if isinstance(pred_type_info, types.SparseMultilabelPreds):
     assert pred_type_info.vocab, (

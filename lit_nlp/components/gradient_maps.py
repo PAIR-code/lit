@@ -347,14 +347,13 @@ class IntegratedGradients(lit_components.Interpreter):
     # Create model inputs and populate embedding field(s).
     inputs_with_embeds = []
     for i in range(interpolation_steps):
-      input_copy = dict(model_input, _id='')
       # Interpolates embeddings for all inputs simultaneously.
-      for embed_field in embeddings_fields:
-        # <float32>[num_tokens, emb_size]
-        input_copy[embed_field] = interpolated_inputs[embed_field][i]
-        input_copy[grad_class_key] = grad_class
-
+      # Each entry is <float32>[num_tokens, emb_size]
+      updates = {k: interpolated_inputs[k][i] for k in embeddings_fields}
+      updates[grad_class_key] = grad_class
+      input_copy = utils.make_modified_input(model_input, updates, 'IG')
       inputs_with_embeds.append(input_copy)
+
     embed_outputs = model.predict(inputs_with_embeds)
 
     # Create list with concatenated gradients for each interpolate input.

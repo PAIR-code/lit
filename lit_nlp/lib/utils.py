@@ -78,6 +78,39 @@ def remap_dict(d: Mapping[K, V], keymap: Mapping[K, K]) -> dict[K, V]:
   return {keymap.get(k, k): d[k] for k in d}
 
 
+def make_modified_input(
+    ex: lit_types.JsonDict,
+    overrides: lit_types.JsonDict,
+    source: Optional[str] = None,
+):
+  """Make a modified (copy of) an input example.
+
+  Prefer this to directly updating a dict, since this makes a copy and will
+  reset the example ID if the values change.
+
+  Args:
+    ex: original example
+    overrides: dict of new values
+    source: optional source name (goes in _meta)
+
+  Returns:
+    ex or a modified copy
+  """
+  for k in overrides:
+    if (k not in ex) or (overrides[k] != ex[k]):
+      new_example = dict(ex, **overrides)
+      # If example was indexed, update the index info (_id and _meta).
+      if '_id' in ex:
+        new_example['_id'] = ''
+      if '_meta' in ex:
+        new_example['_meta'] = lit_types.InputMetadata(
+            added=True, parentId=ex.get('_id'), source=source
+        )
+      return new_example
+
+  return ex  # unmodified
+
+
 def rate_limit(iterable, qps: Union[int, float]):
   """Rate limit an iterator."""
   for item in iterable:

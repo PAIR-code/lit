@@ -13,8 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for lit_nlp.lib.utils."""
-
-from typing import Any, Callable, Optional, Sequence, Union, TypeVar
+import copy
+from typing import Any, Callable, Optional, Sequence, TypeVar, Union
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import types
@@ -443,6 +443,97 @@ class UtilsTest(parameterized.TestCase):
     spec2 = {"string": types.TextSegment()}
     with self.assertRaises(ValueError):
       utils.combine_specs(spec1, spec2)
+
+  def test_make_modified_input_one_field(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+        "_id": "a1b2c3",
+        "_meta": {"parentId": "000000"},
+    }
+    copy_of_original = copy.deepcopy(ex)
+    new_ex = utils.make_modified_input(ex, {"bar": 345}, "testFn")
+    expected = {
+        "foo": 123,
+        "bar": 345,
+        "_id": "",
+        "_meta": {"parentId": "a1b2c3", "added": True, "source": "testFn"},
+    }
+    self.assertEqual(new_ex, expected)
+    # Check that original is unchanged
+    self.assertEqual(ex, copy_of_original)
+
+  def test_make_modified_input_two_fields(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+        "_id": "a1b2c3",
+        "_meta": {"parentId": "000000"},
+    }
+    new_ex = utils.make_modified_input(ex, {"foo": 234, "bar": 345}, "testFn")
+    expected = {
+        "foo": 234,
+        "bar": 345,
+        "_id": "",
+        "_meta": {"parentId": "a1b2c3", "added": True, "source": "testFn"},
+    }
+    self.assertEqual(new_ex, expected)
+
+  def test_make_modified_input_new_field(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+        "_id": "a1b2c3",
+        "_meta": {"parentId": "000000"},
+    }
+    new_ex = utils.make_modified_input(ex, {"baz": "spam and eggs"}, "testFn")
+    expected = {
+        "foo": 123,
+        "bar": 234,
+        "baz": "spam and eggs",
+        "_id": "",
+        "_meta": {"parentId": "a1b2c3", "added": True, "source": "testFn"},
+    }
+    self.assertEqual(new_ex, expected)
+
+  def test_make_modified_input_unmodified(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+        "_id": "a1b2c3",
+        "_meta": {"parentId": "000000"},
+    }
+    copy_of_original = copy.deepcopy(ex)
+    new_ex = utils.make_modified_input(ex, {"foo": 123, "bar": 234}, "testFn")
+    self.assertEqual(new_ex, copy_of_original)
+    self.assertIs(new_ex, ex)  # same object back
+
+  def test_make_modified_input_empty_overrides(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+        "_id": "a1b2c3",
+        "_meta": {"parentId": "000000"},
+    }
+    copy_of_original = copy.deepcopy(ex)
+    new_ex = utils.make_modified_input(ex, {}, "testFn")
+    self.assertEqual(new_ex, copy_of_original)
+    self.assertIs(new_ex, ex)  # same object back
+
+  def test_make_modified_input_not_indexed(self):
+    ex = {
+        "foo": 123,
+        "bar": 234,
+    }
+    copy_of_original = copy.deepcopy(ex)
+    new_ex = utils.make_modified_input(ex, {"bar": 345}, "testFn")
+    expected = {
+        "foo": 123,
+        "bar": 345,
+    }
+    self.assertEqual(new_ex, expected)
+    # Check that original is unchanged
+    self.assertEqual(ex, copy_of_original)
 
 
 if __name__ == "__main__":
