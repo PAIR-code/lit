@@ -25,19 +25,18 @@ TODO(lit-dev): consider defining a single ConfigDict instead of individual
 flags.
 """
 
+from collections.abc import Mapping
 import os
 import pathlib
 
 from absl import flags
 from lit_nlp.lib import flag_helpers
 
-FLAGS = flags.FLAGS
-
 ##
 # Server flags, passed to the WSGI server.
 # Wrap in a list to capture the FlagHolder objects returned by flags.DEFINE_*,
 # so that we can access these all programmatically with get_flags()
-_SERVER_FLAGS = (
+_SERVER_FLAGS: tuple[flags.FlagHolder, ...] = (
     # LINT.IfChange
     flags.DEFINE_integer('port', 5432, 'What port to serve on.'),
     flags.DEFINE_string(
@@ -141,3 +140,8 @@ _SERVER_FLAGS = (
 def get_flags():
   """Get all of the flags in SERVER_FLAGS in this module."""
   return {entry.name: entry.value for entry in _SERVER_FLAGS}
+
+
+def get_flag_holders() -> Mapping[str, flags.FlagHolder]:
+  """Get all of the flags in SERVER_FLAGS in this module."""
+  return {entry.name: entry for entry in _SERVER_FLAGS}
