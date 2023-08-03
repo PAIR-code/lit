@@ -28,7 +28,7 @@ from lit_nlp.lib import testing_utils
 JsonDict = lit_types.JsonDict
 
 
-class TestRegressionPdp(lit_model.Model):
+class TestRegressionPdp(lit_model.BatchedModel):
 
   def input_spec(self):
     return {'num': lit_types.Scalar(),
@@ -42,7 +42,7 @@ class TestRegressionPdp(lit_model.Model):
             for i in inputs]
 
 
-class TestClassificationPdp(lit_model.Model):
+class TestClassificationPdp(lit_model.BatchedModel):
 
   def input_spec(self):
     return {'num': lit_types.Scalar(),

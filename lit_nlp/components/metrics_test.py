@@ -27,7 +27,7 @@ from lit_nlp.lib import testing_utils
 LitType = types.LitType
 
 
-class _GenTextTestModel(lit_model.Model):
+class _GenTextTestModel(lit_model.BatchedModel):
 
   def input_spec(self) -> types.Spec:
     return {'input': types.TextSegment()}
@@ -40,7 +40,7 @@ class _GenTextTestModel(lit_model.Model):
     return [{'output': 'test_output'}] * len(inputs)
 
 
-class _GenTextCandidatesTestModel(lit_model.Model):
+class _GenTextCandidatesTestModel(lit_model.BatchedModel):
 
   def input_spec(self) -> types.Spec:
     return {

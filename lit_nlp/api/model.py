@@ -349,7 +349,7 @@ class BatchedRemoteModel(Model):
     return
 
 
-class ProjectorModel(Model, metaclass=abc.ABCMeta):
+class ProjectorModel(BatchedModel, metaclass=abc.ABCMeta):
   """LIT Model API for dimensionality reduction."""
 
   ##

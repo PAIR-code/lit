@@ -28,7 +28,7 @@ from lit_nlp.lib import caching
 COLORS = ['red', 'green', 'blue']
 
 _Curve = list[tuple[float, float]]
-_Model = lit_model.Model
+_Model = lit_model.BatchedModel
 
 
 class _DataEntryForTesting(NamedTuple):

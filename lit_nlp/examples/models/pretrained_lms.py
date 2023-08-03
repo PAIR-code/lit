@@ -19,7 +19,7 @@ import tensorflow as tf
 import transformers
 
 
-class BertMLM(lit_model.Model):
+class BertMLM(lit_model.BatchedModel):
   """BERT masked LM using Huggingface Transformers and TensorFlow 2."""
 
   MASK_TOKEN = "[MASK]"
@@ -137,7 +137,7 @@ class BertMLM(lit_model.Model):
     }
 
 
-class GPT2LanguageModel(lit_model.Model):
+class GPT2LanguageModel(lit_model.BatchedModel):
   """Wrapper for a Huggingface Transformers GPT-2 model.
 
   This class loads a tokenizer and model using the Huggingface library and

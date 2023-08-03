@@ -29,7 +29,7 @@ import numpy as np
 JsonDict = lit_types.JsonDict
 
 
-class TestModelNearestNeighbors(lit_model.Model):
+class TestModelNearestNeighbors(lit_model.BatchedModel):
   """Implements lit.Model interface for nearest neighbors.
 
      Returns the same output for every input.

@@ -28,7 +28,7 @@ import numpy.testing as npt
 JsonDict = lit_types.JsonDict
 
 
-class RegressionModelForTesting(lit_model.Model):
+class RegressionModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing.
 
   This class allows flexible input spec to allow different testing scenarios.
@@ -67,7 +67,7 @@ class RegressionModelForTesting(lit_model.Model):
     return map(lambda x: {'scores': 0.0}, inputs)
 
 
-class IdentityRegressionModelForTesting(lit_model.Model):
+class IdentityRegressionModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing.
 
   This class reflects the input in the prediction for simple testing.
@@ -107,7 +107,7 @@ class IdentityRegressionModelForTesting(lit_model.Model):
     return self._count
 
 
-class ClassificationModelForTesting(lit_model.Model):
+class ClassificationModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing classification models.
 
      Returns the same output for every input.
@@ -177,7 +177,7 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
       assert_deep_almost_equal(testcase, result[key], actual[key])
 
 
-class CustomOutputModelForTesting(lit_model.Model):
+class CustomOutputModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing.
 
   This class allows user-specified outputs for testing return values.

@@ -26,7 +26,7 @@ import numpy as np
 _TEST_VOCAB = ['0', '1']
 
 
-class VariableOutputSpecModel(lit_model.Model):
+class VariableOutputSpecModel(lit_model.BatchedModel):
   """A dummy model used for testing interpreter compatibility."""
 
   def __init__(self, output_spec: lit_types.Spec):

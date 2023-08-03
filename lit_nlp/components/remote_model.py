@@ -50,7 +50,7 @@ def query_lit_server(url: Text,
   return serialize.from_json(six.ensure_text(response_bytes))
 
 
-class RemoteModel(lit_model.Model):
+class RemoteModel(lit_model.BatchedModel):
   """LIT model backed by a remote LIT server."""
 
   def __init__(self, url: Text, name: Text, max_minibatch_size: int = 256):

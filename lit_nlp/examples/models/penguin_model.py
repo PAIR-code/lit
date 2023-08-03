@@ -9,7 +9,7 @@ import tensorflow as tf
 _VOCABS = penguin_data.VOCABS
 
 
-class PenguinModel(lit_model.Model):
+class PenguinModel(lit_model.BatchedModel):
   """TensorFlow Keras model for penguin classification."""
 
   def __init__(self, path: str):

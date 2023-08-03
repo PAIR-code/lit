@@ -13,7 +13,7 @@ import tensorflow as tf
 IMAGE_SHAPE = (224, 224, 3)
 
 
-class MobileNet(model.Model):
+class MobileNet(model.BatchedModel):
   """MobileNet model trained on ImageNet dataset."""
 
   def __init__(self, name='mobilenet_v2') -> None:

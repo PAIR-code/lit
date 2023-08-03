@@ -66,7 +66,7 @@ class GlueModelConfig(object):
     }
 
 
-class GlueModel(lit_model.Model):
+class GlueModel(lit_model.BatchedModel):
   """GLUE benchmark model, using Keras/TF2 and Huggingface Transformers.
 
   This is a general-purpose classification or regression model. It works for

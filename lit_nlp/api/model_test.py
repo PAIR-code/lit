@@ -38,7 +38,7 @@ class _CompatibilityTestModel(model.Model):
     return []
 
 
-class _BatchingTestModel(model.Model):
+class _BatchingTestModel(model.BatchedModel):
   """A model for testing batched predictions with a minibatch size of 3."""
 
   def __init__(self):

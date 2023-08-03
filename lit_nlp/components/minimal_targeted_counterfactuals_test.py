@@ -75,7 +75,7 @@ class ClassificationTestDataset(lit_dataset.Dataset):
     ]
 
 
-class ClassificationTestModel(lit_model.Model):
+class ClassificationTestModel(lit_model.BatchedModel):
   """A test model for testing tabular hot-flips on classification tasks."""
 
   def __init__(self, dataset: lit_dataset.Dataset) -> None:
@@ -168,7 +168,7 @@ class RegressionTestDataset(lit_dataset.Dataset):
     ]
 
 
-class RegressionTestModel(lit_model.Model):
+class RegressionTestModel(lit_model.BatchedModel):
   """A test model for testing tabular hot-flips on regression tasks."""
 
   def max_minibatch_size(self, **unused) -> int:

@@ -102,7 +102,7 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
   return model
 
 
-class T5SavedModel(lit_model.Model):
+class T5SavedModel(lit_model.BatchedModel):
   """T5 from a TensorFlow SavedModel, for black-box access.
 
   To create a SavedModel from a regular T5 checkpoint, see
@@ -150,7 +150,7 @@ class T5SavedModel(lit_model.Model):
     return {"output_text": lit_types.GeneratedText(parent="target_text")}
 
 
-class T5HFModel(lit_model.Model):
+class T5HFModel(lit_model.BatchedModel):
   """T5 using HuggingFace Transformers and Keras.
 
   This version supports embeddings, attention, and force-decoding of the target

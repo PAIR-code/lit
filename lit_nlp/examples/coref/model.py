@@ -17,7 +17,7 @@ EdgeLabel = lit_dtypes.EdgeLabel
 JsonDict = lit_types.JsonDict
 
 
-class FrozenEncoderCoref(lit_model.Model):
+class FrozenEncoderCoref(lit_model.BatchedModel):
   """Frozen-encoder coreference model."""
 
   @classmethod

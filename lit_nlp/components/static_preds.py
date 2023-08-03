@@ -23,7 +23,7 @@ from lit_nlp.lib import caching
 JsonDict = lit_types.JsonDict
 
 
-class StaticPredictions(lit_model.Model):
+class StaticPredictions(lit_model.BatchedModel):
   """Implements lit.Model interface for a set of pre-computed predictions."""
 
   def key_fn(self, example: JsonDict) -> str:
