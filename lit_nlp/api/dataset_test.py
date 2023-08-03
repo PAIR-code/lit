@@ -15,11 +15,12 @@
 """Tests for lit_nlp.lib.model."""
 
 import os
+import types
 
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.api import types
+from lit_nlp.api import types as lit_types
 import numpy as np
 
 
@@ -58,9 +59,9 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual(
         _InitWithArgsTestDataset.init_spec(),
         {
-            'path': types.String(),
-            'max_examples': types.Integer(default=200, required=False),
-            'max_qps': types.Scalar(default=1.0, required=False),
+            'path': lit_types.String(),
+            'max_examples': lit_types.Integer(default=200, required=False),
+            'max_qps': lit_types.Scalar(default=1.0, required=False),
         },
     )
 
@@ -68,7 +69,6 @@ class DatasetTest(parameterized.TestCase):
       # All base Dataset classes are incompatible with automated spec inference
       # due to the complexity of their arguments, thus return None.
       ('dataset', lit_dataset.Dataset),
-      ('indexed_dataset', lit_dataset.IndexedDataset),
       ('none_dataset', lit_dataset.NoneDataset),
   )
   def test_init_spec_none(self, dataset: lit_dataset.Dataset):
@@ -77,8 +77,8 @@ class DatasetTest(parameterized.TestCase):
   def test_remap(self):
     """Test remap method."""
     spec = {
-        'score': types.Scalar(),
-        'text': types.TextSegment(),
+        'score': lit_types.Scalar(),
+        'text': lit_types.TextSegment(),
     }
     datapoints = [
         {'score': 0, 'text': 'a'},
@@ -92,47 +92,375 @@ class DatasetTest(parameterized.TestCase):
     self.assertEqual({'val': 0, 'text': 'a'}, remapped_dset.examples[0])
 
 
-class DatasetHashTest(parameterized.TestCase):
+class InputHashTest(parameterized.TestCase):
   """Test to hash data correctly, not using _id or _meta fields."""
 
   @parameterized.named_parameters(
       dict(
           testcase_name='empty_example',
-          spec={},
-          sample_example={},
+          example={},
           expected_hash='99914b932bd37a50b983c5e7c90ae93b',
       ),
       dict(
           testcase_name='one_field_example',
-          spec={'value': types.Integer()},
-          sample_example={'value': 1},
+          example={'value': 1},
           expected_hash='1ff00094a5ba112cb7dd128e783d6803',
       ),
       dict(
           testcase_name='three_field_example',
-          spec={
-              'parity': types.CategoryLabel(vocab=['odd', 'even']),
-              'text': types.TextSegment(),
-              'value': types.Integer()
-          },
-          sample_example={
+          example={
               'parity': 'odd',
               'text': 'One',
-              'value': 1
+              'value': 1,
+          },
+          expected_hash='25dd56cf3b51e8e2954575f88b2620ca',
+      ),
+      dict(
+          testcase_name='has_id_field',
+          example={
+              'parity': 'odd',
+              'text': 'One',
+              'value': 1,
+              '_id': 'some_random_id',
+          },
+          expected_hash='25dd56cf3b51e8e2954575f88b2620ca',
+      ),
+      dict(
+          testcase_name='has_meta_field',
+          example={
+              'parity': 'odd',
+              'text': 'One',
+              'value': 1,
+              '_meta': lit_types.InputMetadata(
+                  added=None, parentId=None, source=None
+              ),
+          },
+          expected_hash='25dd56cf3b51e8e2954575f88b2620ca',
+      ),
+      dict(
+          testcase_name='has_id_and_meta_fields',
+          example={
+              'parity': 'odd',
+              'text': 'One',
+              'value': 1,
+              '_id': 'some_random_id',
+              '_meta': lit_types.InputMetadata(
+                  added=None, parentId=None, source=None
+              ),
           },
           expected_hash='25dd56cf3b51e8e2954575f88b2620ca',
       ),
   )
-  def test_hash(self, spec, sample_example, expected_hash):
-    dataset = lit_dataset.IndexedDataset(spec, [sample_example])
-    input_hash = lit_dataset.input_hash(dataset.examples[0])
+  def test_hash(
+      self, example: lit_types.Input, expected_hash: lit_types.ExampleId
+  ):
+    input_hash = lit_dataset.input_hash(example)
     self.assertEqual(input_hash, expected_hash)
 
-    indexed_examples = dataset.indexed_examples[0]
-    self.assertEqual(indexed_examples['data']['_id'], indexed_examples['id'])
-    self.assertEqual(
-        indexed_examples['data']['_meta'], indexed_examples['meta']
+
+class IndexedDatasetTest(absltest.TestCase):
+
+  _DATASET_SPEC: lit_types.Spec = {
+      'parity': lit_types.CategoryLabel(vocab=['odd', 'even']),
+      'text': lit_types.TextSegment(),
+      'value': lit_types.Integer(),
+  }
+
+  def test_init_from_examples_without_ids(self):
+    # This test ensures that IDs are computed and assigned to IndexedInput.id
+    # and IndexedInput.data._id fields for examples wihtout IDs.
+    examples: list[lit_types.JsonDict] = [
+        {'parity': 'odd', 'text': 'one', 'value': 1},
+        {'parity': 'even', 'text': 'two', 'value': 2},
+        {'parity': 'odd', 'text': 'three', 'value': 3},
+    ]
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        examples=examples
     )
+
+    # TODO(b/266681945): Enabled zip(..., strict=true) once updated to Py3.10
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, examples
+    ):
+      self.assertIsInstance(example['_id'], str)
+      self.assertEqual(indexed_example['id'], example['_id'])
+
+      self.assertIsNotNone(example['_meta'])
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      self.assertEqual(indexed_example['data'], example)
+
+      for key in original:
+        self.assertEqual(example[key], original[key])
+
+  def test_init_from_examples_with_ids(self):
+    # This test ensures that IndexedInput.id is the same as
+    # IndexedInput.data._id when initialized from examples with _id fields.
+    examples: list[lit_types.JsonDict] = [
+        {'parity': 'odd', 'text': 'one', 'value': 1, '_id': 'one-1-odd'},
+        {'parity': 'even', 'text': 'two', 'value': 2, '_id': 'two-2-even'},
+        {'parity': 'odd', 'text': 'three', 'value': 3, '_id': 'three-3-odd'},
+    ]
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        examples=examples
+    )
+
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, examples
+    ):
+      self.assertEqual(example['_id'], original['_id'])
+      self.assertEqual(indexed_example['id'], original['_id'])
+
+      self.assertIsNotNone(example['_meta'])
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      self.assertEqual(indexed_example['data'], example)
+
+      for key in original:
+        self.assertEqual(example[key], original[key])
+
+  def test_init_from_indexed_examples_with_ids(self):
+    # This tests initializing from fully compliant IndexedInputs.
+    indexed_examples: list[lit_types.IndexedInput] = [
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'one',
+                'value': 1,
+                '_id': 'one-1-odd',
+            }),
+            id='one-1-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'even',
+                'text': 'two',
+                'value': 2,
+                '_id': 'two-2-even',
+            }),
+            id='two-2-even',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'three',
+                'value': 3,
+                '_id': 'three-3-odd',
+            }),
+            id='three-3-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+    ]
+
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        indexed_examples=indexed_examples
+    )
+
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, indexed_examples
+    ):
+      self.assertEqual(example['_id'], original['id'])
+      self.assertEqual(indexed_example['id'], original['id'])
+
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      for key in (original_data := original['data']):
+        self.assertEqual(example[key], original_data[key])
+        self.assertEqual(indexed_example['data'][key], original_data[key])
+
+  def test_init_from_indexed_examples_without_ids(self):
+    # This test represents the case where Legacy LIT saved data has been
+    # correctly initialized in an IndexedInput with a readonly view of the
+    # IndexedInput.data property, but the IndexedInput.data does not have an
+    # _id property.
+    indexed_examples: list[lit_types.IndexedInput] = [
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'one',
+                'value': 1,
+            }),
+            id='one-1-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'even',
+                'text': 'two',
+                'value': 2,
+            }),
+            id='two-2-even',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'three',
+                'value': 3,
+            }),
+            id='three-3-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+    ]
+
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        indexed_examples=indexed_examples
+    )
+
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, indexed_examples
+    ):
+      self.assertEqual(example['_id'], original['id'])
+      self.assertEqual(indexed_example['id'], original['id'])
+
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      for key in (original_data := original['data']):
+        self.assertEqual(example[key], original_data[key])
+        self.assertEqual(indexed_example['data'][key], original_data[key])
+
+  def test_init_from_pesudo_indexed_examples(self):
+    # This test represents the case where Legacy LIT saved data is loaded via
+    # load_lit_format() or some other some external process where the examples
+    # are merely cast to IndexedInput. It ensure that all IndexedInput.data and
+    # JsonDict example representations are readonly via MappingProxyType.
+    indexed_examples = [
+        {
+            'data': {
+                'parity': 'odd',
+                'text': 'one',
+                'value': 1,
+            },
+            'id': 'one-1-odd',
+            'meta': {},
+        },
+        {
+            'data': {
+                'parity': 'even',
+                'text': 'two',
+                'value': 2,
+            },
+            'id': 'two-2-even',
+            'meta': {},
+        },
+        {
+            'data': {
+                'parity': 'odd',
+                'text': 'three',
+                'value': 3,
+            },
+            'id': 'three-3-odd',
+            'meta': {},
+        },
+    ]
+
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        indexed_examples=indexed_examples
+    )
+
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, indexed_examples
+    ):
+      self.assertEqual(example['_id'], original['id'])
+      self.assertEqual(indexed_example['id'], original['id'])
+
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      indexed_example_data = indexed_example['data']
+      self.assertIsInstance(example, types.MappingProxyType)
+      self.assertIsInstance(indexed_example_data, types.MappingProxyType)
+      self.assertEqual(example, indexed_example_data)
+      for key in (original_data := original['data']):
+        self.assertEqual(example[key], original_data[key])
+        self.assertEqual(indexed_example_data[key], original_data[key])
+
+  def test_init_from_indexed_examples_with_inconsistent_ids(self):
+    # This test ensures that the IndexedInput.id property supersedes the
+    # JsonDict._id property if both are provided but their values are different.
+    indexed_examples: list[lit_types.IndexedInput] = [
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'one',
+                'value': 1,
+                '_id': 'odd-1-one',
+            }),
+            id='one-1-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'even',
+                'text': 'two',
+                'value': 2,
+                '_id': 'even-2-two',
+            }),
+            id='two-2-even',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+        lit_types.IndexedInput(
+            data=types.MappingProxyType({
+                'parity': 'odd',
+                'text': 'three',
+                'value': 3,
+                '_id': 'odd-3-three',
+            }),
+            id='three-3-odd',
+            meta=lit_types.InputMetadata(
+                added=None, parentId=None, source=None
+            ),
+        ),
+    ]
+
+    dataset = lit_dataset.IndexedDataset(
+        spec=self._DATASET_SPEC,
+        indexed_examples=indexed_examples
+    )
+
+    for indexed_example, example, original in zip(
+        dataset.indexed_examples, dataset.examples, indexed_examples
+    ):
+      self.assertEqual(example['_id'], original['id'])
+      self.assertEqual(indexed_example['id'], original['id'])
+      self.assertEqual(indexed_example['meta'], example['_meta'])
+
+      original_data = original['data']
+      self.assertNotEqual(example['_id'], original_data['_id'])
+      self.assertNotEqual(indexed_example['id'], original_data['_id'])
+
+      for key in dataset.spec().keys():
+        self.assertEqual(example[key], original_data[key])
+        self.assertEqual(indexed_example['data'][key], original_data[key])
+
+  def test_init_without_examples(self):
+    dataset = lit_dataset.IndexedDataset(spec=self._DATASET_SPEC)
+    self.assertEmpty(dataset.examples)
+    self.assertEmpty(dataset.indexed_examples)
+    self.assertEqual(dataset.spec(), self._DATASET_SPEC)
+    self.assertIsNone(dataset.init_spec())
 
 
 class DatasetLoadingTest(absltest.TestCase):
@@ -142,12 +470,12 @@ class DatasetLoadingTest(absltest.TestCase):
     super().setUp()
 
     self.data_spec = {
-        'parity': types.CategoryLabel(vocab=['odd', 'even']),
-        'text': types.TextSegment(),
-        'value': types.Integer(),
-        'other_divisors': types.SparseMultilabel(),
-        'in_spanish': types.TextSegment(),
-        'embedding': types.Embeddings(),
+        'parity': lit_types.CategoryLabel(vocab=['odd', 'even']),
+        'text': lit_types.TextSegment(),
+        'value': lit_types.Integer(),
+        'other_divisors': lit_types.SparseMultilabel(),
+        'in_spanish': lit_types.TextSegment(),
+        'embedding': lit_types.Embeddings(),
     }
 
     self.sample_examples = [
@@ -252,8 +580,10 @@ class DatasetLoadingTest(absltest.TestCase):
     )
     self.assertIsInstance(ds, lit_dataset.IndexedDataset)
     self.assertEqual(self.data_spec, ds.spec())
-    self.assertEqual(self.sample_examples, ds.examples)
     self.assertEqual(self.indexed_dataset.indexed_examples, ds.indexed_examples)
+    for original, loaded in zip(self.sample_examples, ds.examples):
+      for key in self.indexed_dataset.spec().keys():
+        self.assertEqual(original[key], loaded[key])
 
   def test_indexed_dataset_load(self):
     ds = self.indexed_dataset.load(
@@ -261,8 +591,10 @@ class DatasetLoadingTest(absltest.TestCase):
     )
     self.assertIsInstance(ds, lit_dataset.IndexedDataset)
     self.assertEqual(self.data_spec, ds.spec())
-    self.assertEqual(self.sample_examples, ds.examples)
     self.assertEqual(self.indexed_dataset.indexed_examples, ds.indexed_examples)
+    for original, loaded in zip(self.sample_examples, ds.examples):
+      for key in self.indexed_dataset.spec().keys():
+        self.assertEqual(original[key], loaded[key])
 
   def test_write_roundtrip(self):
     tempdir = self.create_tempdir()
@@ -289,8 +621,10 @@ class DatasetLoadingTest(absltest.TestCase):
     ds = lit_dataset.load_lit_format(output_base)
     self.assertIsInstance(ds, lit_dataset.IndexedDataset)
     self.assertEqual(self.data_spec, ds.spec())
-    self.assertEqual(self.sample_examples, ds.examples)
     self.assertEqual(self.indexed_dataset.indexed_examples, ds.indexed_examples)
+    for original, loaded in zip(self.sample_examples, ds.examples):
+      for key in self.indexed_dataset.spec().keys():
+        self.assertEqual(original[key], loaded[key])
 
 
 if __name__ == '__main__':
