@@ -175,10 +175,12 @@ def get_call_model_func(
     # a batch acceptable by the LIT model.
     model_inputs = []
     for x_value in x_value_batch:
-      input_copy = dict(model_input)
-      input_copy[image_field_key] = x_value
+      updates = {image_field_key: x_value}
       if grad_target_field_key is not None:
-        input_copy[grad_target_field_key] = grad_target_label
+        updates[grad_target_field_key] = grad_target_label
+      input_copy = lit_utils.make_modified_input(
+          model_input, updates, 'ImageSalience'
+      )
       model_inputs.append(input_copy)
 
     # Call the model to obtain gradients.
