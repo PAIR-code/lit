@@ -162,9 +162,10 @@ class TabularShapExplainer(lit_components.Interpreter):
     background = pd.DataFrame(random_baseline)[input_feats]
 
     def prediction_fn(examples):
-      dict_examples: list[JsonDict] = [{
-          input_feats[i]: example[i] for i in range(len(input_feats))
-      } for example in examples]
+      dict_examples: list[JsonDict] = [
+          dict(zip(input_feats, feature_values, strict=True))
+          for feature_values in examples
+      ]
 
       preds: list[Union[int, float]] = []
 
@@ -186,7 +187,9 @@ class TabularShapExplainer(lit_components.Interpreter):
       return np.array(preds)
 
     explainer = shap.KernelExplainer(prediction_fn, background)
-    values = explainer.shap_values(inputs_to_use)
-    salience = [{input_feats[i]: value[i] for i in range(len(input_feats))}
-                for value in values]
+    shap_values_by_example = explainer.shap_values(inputs_to_use)
+    salience = [
+        dict(zip(input_feats, example_shap_values, strict=True))
+        for example_shap_values in shap_values_by_example
+    ]
     return [{'saliency': dtypes.FeatureSalience(s)} for s in salience]
