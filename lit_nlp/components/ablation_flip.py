@@ -161,15 +161,15 @@ class AblationFlip(lit_components.Generator):
       # Original list of tokens at the field.
       orig_tokens = self._get_tokens(example, input_spec, field)
 
-      if (input_spec[field].required
-          and len(ablation_idxs) >= len(orig_tokens)):
+      if input_spec[field].required and len(ablation_idxs) >= len(orig_tokens):
         # Update token_idxs so that we don't end up ablating all tokens.
         ablation_idxs = ablation_idxs[:-1]
 
       # Modified list of tokens obtained after ablating the tokens form the
       # indices in ablation_idxs.
-      modified_tokens = [t for i, t in enumerate(orig_tokens)
-                         if i not in ablation_idxs]
+      modified_tokens = [
+          t for i, t in enumerate(orig_tokens) if i not in ablation_idxs
+      ]
 
       # Update the field with the modified token list.
       input_ty = input_spec[field]
@@ -199,17 +199,20 @@ class AblationFlip(lit_components.Generator):
       if field not in example or field not in fields_to_ablate:
         continue
       tokens = self._get_tokens(example, input_spec, field)
-      idxs, tokens_to_ablate = zip(
-          *[(i, token) for (i, token) in enumerate(tokens)
-            if token not in tokens_to_ignore])
-      cfs = [
-          self._create_cf(example, input_spec, [(field, idxs[i])])
-          for i in range(len(tokens_to_ablate))]
-      cf_outputs = model.predict(cfs)
-      for i, cf_output in enumerate(cf_outputs):
+      idxs = [
+          i
+          for i, token in enumerate(tokens)
+          if token not in tokens_to_ignore
+      ]
+      cf_outputs = model.predict([
+          self._create_cf(example, input_spec, [(field, idx)])
+          for idx in idxs
+      ])
+      for idx, cf_output in zip(idxs, cf_outputs, strict=True):
         loo_score = cf_utils.prediction_difference(
-            cf_output, orig_output, output_spec, pred_key)
-        ret.append((field, idxs[i], loo_score))
+            cf_output, orig_output, output_spec, pred_key
+        )
+        ret.append((field, idx, loo_score))
     return ret
 
   def is_compatible(self, model: lit_model.Model,
@@ -284,11 +287,15 @@ class AblationFlip(lit_components.Generator):
 
     if isinstance(output_spec[pred_key], types.RegressionScore):
       ablation_idxs_generator = self._gen_ablation_idxs(
-          loo_scores, max_ablations,
-          orig_output[pred_key], regression_thresh)
+          loo_scores,
+          max_ablations,
+          orig_output[pred_key],
+          regression_thresh,
+      )
     else:
       ablation_idxs_generator = self._gen_ablation_idxs(
-          loo_scores, max_ablations)
+          loo_scores, max_ablations
+      )
 
     tokens_map = {}
     for field in input_spec.keys():
