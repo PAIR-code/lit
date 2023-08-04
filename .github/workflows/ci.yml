@@ -33,7 +33,7 @@ jobs:
     strategy:
       matrix:
         node-version: [18]
-        python-version: ["3.9"]
+        python-version: ["3.10"]
     defaults:
       run:
         shell: bash -l {0}
