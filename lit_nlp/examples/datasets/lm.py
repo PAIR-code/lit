@@ -23,8 +23,12 @@ class PlaintextSents(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
+    default_path = ''
+
     return {
-        'path_or_glob': lit_types.String(),
+        'path_or_glob': lit_types.String(
+            default=default_path, required=False
+        ),
         'skiplines': lit_types.Integer(default=0, max_val=25),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False

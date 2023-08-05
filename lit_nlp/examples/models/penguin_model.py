@@ -55,6 +55,13 @@ class PenguinModel(lit_model.BatchedModel):
     ret = [{'predicted_species': out} for out in model_output]
     return ret
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+
+    default_model_path = ('https://storage.googleapis.com/'
+                          'what-if-tool-resources/lit-models/penguin.h5')
+    return {'path': lit_types.String(default=default_model_path)}
+
   def input_spec(self) -> lit_types.Spec:
     return penguin_data.INPUT_SPEC
 

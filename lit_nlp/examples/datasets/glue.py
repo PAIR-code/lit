@@ -94,8 +94,11 @@ class SST2Data(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
     return {
-        'path_or_splitname': lit_types.String(),
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
         ),
@@ -222,8 +225,11 @@ class STSBData(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
     return {
-        'path_or_splitname': lit_types.String(),
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
         ),
@@ -287,8 +293,11 @@ class MNLIData(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
     return {
-        'path_or_splitname': lit_types.String(),
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
         ),

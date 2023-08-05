@@ -77,11 +77,14 @@ class WMT14Data(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
+    default_filepath = ''
     return {
         'version': lit_types.String(default='fr-en'),
         'reverse': lit_types.Boolean(default=False),
         'split': lit_types.String(default='validation'),
-        'filepath': lit_types.String(required=False),
+        'filepath': lit_types.String(
+            default=default_filepath, required=False
+        ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
         ),
