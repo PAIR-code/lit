@@ -33,8 +33,9 @@ This generator extends ideas from the following papers.
     https://arxiv.org/abs/2103.14651
 """
 
+from collections.abc import Iterator, Mapping
 import itertools
-from typing import Any, cast, Iterator, Optional, Type
+from typing import Any, cast, Optional, Type
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -226,7 +227,7 @@ class HotFlip(lit_components.Generator):
 
   def _create_cf(self, example: JsonDict, token_field: str, text_field: str,
                  tokens: list[str], token_idxs: tuple[int, ...],
-                 replacement_tokens: list[str]) -> dict[str, Any]:
+                 replacement_tokens: list[str]) -> Mapping[str, Any]:
     cf = dict(example)
     modified_tokens = self._flip_tokens(
         tokens, token_idxs, replacement_tokens)
@@ -234,8 +235,11 @@ class HotFlip(lit_components.Generator):
     # Though in general tokenization isn't invertible and it's possible for
     # HotFlip to produce wordpiece sequences that don't correspond to any
     # input string.
-    cf[token_field] = modified_tokens
-    cf[text_field] = " ".join(modified_tokens)
+    cf = utils.make_modified_input(
+        cf,
+        {token_field: modified_tokens, text_field: " ".join(modified_tokens)},
+        "HOTFLIP"
+    )
     return cf
 
   def _get_replacement_tokens(self,
