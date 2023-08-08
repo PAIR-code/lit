@@ -255,7 +255,7 @@ class IntegratedGradients(lit_components.Interpreter):
                      str(tokens_field))
         continue
 
-      is_grad_cls_valid = grad_key in input_spec and grad_key in output_spec
+      is_grad_cls_valid = grad_key in input_spec
       if not is_grad_cls_valid:
         logging.info('Skipping %s. Invalid gradient class field, %s.', str(f),
                      str(tokens_field))
@@ -323,7 +323,12 @@ class IntegratedGradients(lit_components.Interpreter):
     grad_class_key = cast(types.TokenGradients,
                           output_spec[grad_fields[0]]).grad_target_field_key
     if class_to_explain == '':  # pylint: disable=g-explicit-bool-comparison
-      grad_class = model_output[grad_class_key]
+      if grad_class_key in model_output:
+        grad_class = model_output[grad_class_key]
+      else:
+        # If this is not present, should error because we can't infer
+        # what class to use.
+        grad_class = model_input[grad_class_key]
     else:
       grad_class = class_to_explain
 

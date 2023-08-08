@@ -35,10 +35,10 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {TokenWithWeight} from '../elements/token_chips';
-import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, Salience, TokenSalience} from '../lib/lit_types';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, TokenGradients, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {cloneSpec, findSpecKeys} from '../lib/utils';
+import {CallConfig, IndexedInput, ModelInfoMap, Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {argmax, cloneSpec, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusService} from '../services/focus_service';
 import {AppState} from '../services/services';
@@ -70,6 +70,10 @@ type SalienceResult = TokenSalienceResult | ImageSalienceResult |
 // Notably, not SequenceSalience as that is handled by a different module.
 const SUPPORTED_SALIENCE_TYPES =
     [TokenSalience, FeatureSalience, ImageSalience];
+
+const TARGET_SELECTOR_SUPPORTED_TYPES: LitTypeTypesList =
+    [MulticlassPreds, RegressionScore];
+type TargetFieldType = MulticlassPreds|RegressionScore;
 
 /**
  * UI status for each interpreter.
@@ -140,8 +144,104 @@ export class SalienceMapModule extends LitModule {
   @observable
   private state: {[name: string]: InterpreterState} = {};
 
+  @observable private currentData?: IndexedInput;
+  @observable private currentPreds?: Preds;
+  // Index into possible labels.
+  @observable private targetField?: string;
+  @observable private salienceTarget?: number;
+
+  // TODO(b/205996131): remove this and always show dropdown, once everything
+  // is updated such that this accurately reflects the class being explained.
+  @observable showTargetSelector = false;
+
+  // Check that the target selector is available for gradient-based salience.
+  // TODO: figure out what to do for LIME?  Probably should have it accept this
+  // by default, but override with the custom selector if set to something
+  // besides -1.
+  // TODO(b/205996131): remove this and always show dropdown, once everything
+  // is updated such that this accurately reflects the class being explained.
+  @computed
+  get compatibleWithTargetSelector(): boolean {
+      const {input: inputSpec, output: outputSpec} =
+          this.appState.getModelSpec(this.model);
+      const gradKeys = findSpecKeys(outputSpec, TokenGradients);
+      // Input spec fields
+      const parentFields =
+          this.targetFields
+              .map(fname => (outputSpec[fname] as TargetFieldType).parent)
+              .filter(pname => pname != null);
+      for (const k of gradKeys) {
+        const gradTargetKey =
+            (outputSpec[k] as TokenGradients).grad_target_field_key;
+        if (gradTargetKey == null) continue;
+        // Check that this field is in the model's input spec.
+        if (inputSpec[gradTargetKey] == null) return false;
+        // Also check that this is a label field, for some output.
+        if (parentFields.indexOf(gradTargetKey) === -1) return false;
+      }
+      return true;
+  }
+
+  @computed
+  get targetFields(): string[] {
+      const outputSpec = this.appState.getModelSpec(this.model).output;
+      return findSpecKeys(outputSpec, TARGET_SELECTOR_SUPPORTED_TYPES);
+  }
+
+  @computed
+  get targetFieldSpec(): TargetFieldType|null {
+      if (this.targetField == null) return null;
+
+      // this.targetField is selected from options in this.targetFields,
+      // so if not undefined it will always be found in the output spec.
+      return (
+          this.appState.getModelSpec(this.model).output[this.targetField] as
+          TargetFieldType);
+  }
+
+  @computed
+  get inputLabelField(): string|null {
+      if (this.targetFieldSpec == null) return null;
+
+      return (this.targetFieldSpec as LitTypeWithParent).parent ?? null;
+  }
+
+  @computed
+  get labelVocab(): string[] {
+      if (this.targetFieldSpec == null) return [];
+
+      if (this.targetFieldSpec instanceof MulticlassPreds) {
+        return this.targetFieldSpec.vocab;
+      }
+      // Regression tasks, or unrecognized.
+      return [];
+  }
+
+  @computed
+  get modifiedInput(): IndexedInput|null {
+      const input = this.currentData;
+      if (input == null) return null;
+
+      // Don't modify input if there's no target label.
+      if (this.inputLabelField == null || this.salienceTarget === undefined) {
+        return input;
+      }
+
+      // If newLabel matches the existing value, this will return input
+      // unchanged.
+      const newLabel = this.labelVocab[this.salienceTarget];
+      return makeModifiedInput(
+          input, {[this.inputLabelField]: newLabel}, 'SalienceMapModule');
+  }
+
   shouldRunInterpreter(name: string) {
     return this.state[name].autorun;
+  }
+
+  private clearSalience() {
+    for (const key of Object.keys(this.state)) {
+      this.state[key].salience = {};
+    }
   }
 
   override firstUpdated() {
@@ -179,10 +279,37 @@ export class SalienceMapModule extends LitModule {
     }
     this.state = state;
 
+    this.reactImmediately(() => this.targetFields, targetFields => {
+      if (targetFields.length <= 0) {
+        // Two ways this can happen:
+        // - If model is compatible with salience methods but doesn't use
+        //   one of the compatible target field types, then we just don't show
+        //   the target selector.
+        // - If model is not compatible but this module is still shown; see
+        //   b/205309955.
+        console.warn(
+            `Salience Map module: model "${this.model}" has no ` +
+            'compatible output fields. Salience methods may still work, ' +
+            'but you will not be able to change the target from the UI.');
+        this.targetField = undefined;
+      }
+      this.targetField = targetFields[0];
+    });
+
+    // React to change in primary selection.
+    this.reactImmediately(
+        () => this.selectionService.primarySelectedInputData, data => {
+          this.updateToSelection(data);
+          // Also run any applicable interpreters.
+          for (const name of Object.keys(this.state)) {
+            if (this.shouldRunInterpreter(name)) {
+              this.runInterpreter(name);
+            }
+          }
+        });
+
     for (const name of Object.keys(this.state)) {
-      // React to change in primary selection.
-      const getData = () => this.selectionService.primarySelectedInputData;
-      this.react(getData, data => {
+      this.react(() => this.salienceTarget, () => {
         if (this.shouldRunInterpreter(name)) {
           this.runInterpreter(name);
         } else {
@@ -191,22 +318,49 @@ export class SalienceMapModule extends LitModule {
       });
       // React to change in 'autorun' checkbox.
       const getAutorun = () => this.state[name].autorun;
-      this.react(getAutorun, autorun => {
+      this.react(getAutorun, () => {
         if (this.shouldRunInterpreter(name)) {
           this.runInterpreter(name);
         }
         // If disabled, do nothing until selection changes.
       });
+    }
+  }
 
-      // Initial update, to avoid duplicate calls.
-      if (this.shouldRunInterpreter(name)) {
-        this.runInterpreter(name);
-      }
+  private async updateToSelection(input: IndexedInput|null) {
+    this.currentData = undefined;
+    this.currentPreds = undefined;
+    this.salienceTarget = undefined;
+    this.clearSalience();
+
+    if (input == null) return;
+
+    // Update data before waiting for backend call.
+    this.currentData = input;
+
+    // Fetch predictions
+    const promise = this.apiService.getPreds(
+        [input], this.model, this.appState.currentDataset,
+        TARGET_SELECTOR_SUPPORTED_TYPES, [],
+        'Getting targets from model prediction');
+    const results = await this.loadLatest('modelPreds', promise);
+    if (results === null) return;
+
+    // Update data again, in case selection changed rapidly.
+    this.currentData = input;
+    this.currentPreds = results[0];
+
+    // Set salience target to index of model's argmax prediction.
+    if (this.targetFieldSpec instanceof MulticlassPreds) {
+      const preds = this.currentPreds[this.targetField!];
+      this.salienceTarget = argmax(preds);
+    } else {
+      this.salienceTarget = undefined;
     }
   }
 
   private async runInterpreter(name: string) {
-    const input = this.selectionService.primarySelectedInputData;
+    const input = this.modifiedInput;
     if (input == null) {
       this.state[name].salience = {}; /* clear output */
       return;
@@ -226,6 +380,61 @@ export class SalienceMapModule extends LitModule {
   renderImageSalience(salience: ImageSalienceResult, gradKey: string) {
     const salienceImage = salience[gradKey];
     return html`<img src='${salienceImage}'></img>`;
+  }
+
+  private renderHeaderControls() {
+    // TODO(b/205996131): remove once client code is updated so dropdown
+    // always has an effect.
+    if (!this.showTargetSelector) return null;
+    if (!this.compatibleWithTargetSelector) return null;
+
+    // Target selector incompatible.
+    if (this.targetFields.length <= 0) return null;
+
+    const onChangeField = (e: Event) => {
+      this.targetField = (e.target as HTMLSelectElement).value;
+    };
+
+    const onChangeTarget = (e: Event) => {
+      this.salienceTarget = (e.target as HTMLSelectElement).selectedIndex;
+    };
+
+    const renderClassSelector = () => {
+      // clang-format off
+      return html`
+        <label class="dropdown-label">Class to explain:</label>
+        <select class="dropdown salience-target-dropdown"
+          @change=${onChangeTarget}
+          .value=${this.labelVocab[this.salienceTarget!]}>
+          ${this.labelVocab.map((target, i) =>
+            html`<option value=${target}
+                    ?selected=${i === this.salienceTarget}>
+                  ${target}
+                  </option>`)}
+        </select>
+      `;
+      // clang-format on
+    };
+
+    // clang-format off
+    return html`
+      <div class="module-toolbar">
+        <div class="controls-group">
+          <label class="dropdown-label">Target field:</label>
+          <select class="dropdown salience-target-dropdown"
+            @change=${onChangeField}>
+            ${this.targetFields.map(fieldName =>
+              html`<option value=${fieldName}
+                     ?selected=${fieldName === this.targetField}>
+                    ${fieldName}
+                   </option>`)}
+          </select>
+          ${this.labelVocab.length > 0 ? renderClassSelector() : null}
+        </div>
+        <div class="controls-group">
+        </div>
+      </div>`;
+    // clang-format on
   }
 
   renderColorLegend(
@@ -476,6 +685,7 @@ export class SalienceMapModule extends LitModule {
     // clang-format off
     return html`
       <div class='module-container'>
+        ${this.renderHeaderControls()}
         <div class='module-results-area ${SCROLL_SYNC_CSS_CLASS}'>
           ${Object.keys(this.state).map(name => this.renderMethodRow(name))}
         </div>

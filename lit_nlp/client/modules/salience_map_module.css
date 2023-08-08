@@ -14,6 +14,11 @@
   margin: 0px 4px;
 }
 
+.salience-target-dropdown {
+  min-width: 60px;
+  margin-left: 4px;
+}
+
 .module-footer > * { min-width: 0; }
 
 .module-footer {

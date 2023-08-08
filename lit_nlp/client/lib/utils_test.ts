@@ -26,6 +26,24 @@ import {CallConfig, IndexedInput, Spec} from '../lib/types';
 
 import * as utils from './utils';
 
+describe('argmax text', () => {
+  it('works when argmax is in the middle', () => {
+    expect(utils.argmax([1, 5, 0, 2])).toEqual(1);
+  });
+
+  it('works when argmax is at the beginning', () => {
+    expect(utils.argmax([9, 5, 0, 2])).toEqual(0);
+  });
+
+  it('works when argmax is at the end', () => {
+    expect(utils.argmax([1, 5, 0, 7])).toEqual(3);
+  });
+
+  it('returns the first-encountered max value', () => {
+    expect(utils.argmax([1, 5, 5, 0])).toEqual(1);
+  });
+});
+
 describe('mean test', () => {
   it('computes a mean', () => {
     const values = [1, 3, 2, 5, 4];

@@ -29,6 +29,15 @@ import {marked} from 'marked';
 import {LIT_TYPES_REGISTRY, LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds} from './lit_types';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from './types';
 
+/** Argmax of an array */
+export function argmax(arr: readonly number[]): number {
+  let a = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] > arr[a]) a = i;
+  }
+  return a;
+}
+
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
   return values.reduce((a, b) => a + b) / values.length;
