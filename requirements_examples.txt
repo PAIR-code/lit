@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
--r requirements_core.txt
--r requirements_examples.txt
--r requirements_test.txt
+# LINT.IfChange
+gunicorn==20.1.0
+sentencepiece==0.1.99
+tensorflow-datasets==4.8.0
+torch==2.0.1
+transformers==4.27.1
+# LINT.ThenChange(./pyproject.toml)

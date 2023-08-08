@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
--r requirements_core.txt
--r requirements_examples.txt
--r requirements_test.txt
+# LINT.IfChange
+lime==0.2.0.1
+pytest==7.4.0
+# LINT.ThenChange(./pyproject.toml)

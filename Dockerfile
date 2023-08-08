@@ -32,7 +32,7 @@ WORKDIR $APP_HOME
 
 # Set up python environment with production dependencies
 # This step is slow as it installs many packages.
-COPY ./requirements.txt ./
+COPY ./requirements*.txt ./
 RUN python -m pip install -r requirements.txt
 
 # Build front-end with yarn

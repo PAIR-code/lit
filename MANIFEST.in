@@ -1,0 +1,1 @@
+recursive-include lit_nlp/client/build/default *.js* *.gif *.html *.png *.svg
