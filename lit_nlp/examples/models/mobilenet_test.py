@@ -91,11 +91,9 @@ class MobileNetTest(parameterized.TestCase):
     # Check first output.
     self.assertIn('preds', model_out[0])
     self.assertIn('grads', model_out[0])
-    self.assertIn('grad_target', model_out[0])
     # Check second output.
     self.assertIn('preds', model_out[1])
     self.assertIn('grads', model_out[1])
-    self.assertIn('grad_target', model_out[1])
 
 
 if __name__ == '__main__':

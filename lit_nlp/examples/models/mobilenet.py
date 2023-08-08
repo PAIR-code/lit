@@ -43,8 +43,7 @@ class MobileNet(model.BatchedModel):
       x = tf.convert_to_tensor(x)
       preds = self.model(x).numpy()[0]
       # Determine the gradient target.
-      grad_target = example.get('grad_target')
-      if grad_target is None:
+      if (grad_target := example.get('label')) is None:
         grad_target_idx = np.argmax(preds)
       else:
         grad_target_idx = self.label_to_idx[grad_target]
@@ -57,30 +56,24 @@ class MobileNet(model.BatchedModel):
       output.append({
           'preds': preds,
           'grads': grads,
-          'grad_target': imagenet_labels.IMAGENET_2012_LABELS[grad_target_idx]
       })
 
     return output
 
   def input_spec(self):
     return {
-        'image':
-            lit_types.ImageBytes(),
+        'image': lit_types.ImageBytes(),
         # If `grad_target` is not specified then the label with the highest
         # predicted score is used as the gradient target.
-        'grad_target':
-            lit_types.CategoryLabel(vocab=self.labels, required=False)
+        'label': lit_types.CategoryLabel(vocab=self.labels, required=False),
     }
 
   def output_spec(self):
     return {
-        'preds':
-            lit_types.MulticlassPreds(
-                vocab=self.labels,
-                autosort=True),
-        'grads':
-            lit_types.ImageGradients(
-                align='image', grad_target_field_key='grad_target'),
-        'grad_target':
-            lit_types.CategoryLabel(vocab=self.labels)
+        'preds': lit_types.MulticlassPreds(
+            vocab=self.labels, autosort=True, parent='label'
+        ),
+        'grads': lit_types.ImageGradients(
+            align='image', grad_target_field_key='label'
+        ),
     }

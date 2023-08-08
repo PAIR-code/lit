@@ -94,15 +94,15 @@ def normalize_unsigned_saliency(saliency: np.ndarray) -> np.ndarray:
 
 def clip_signed_saliency(saliency: np.ndarray, fraction=0.01) -> np.ndarray:
   """Clips top and bottom parts if a signed saliency map."""
-  b_value = np.quantile(saliency, fraction / 2, interpolation='higher')
-  t_value = np.quantile(saliency, 1 - fraction / 2, interpolation='lower')
+  b_value = np.quantile(saliency, fraction / 2, method='higher')
+  t_value = np.quantile(saliency, 1 - fraction / 2, method='lower')
   return np.clip(saliency, min(0, b_value), max(0, t_value))
 
 
 def clip_unsigned_saliency(saliency: np.ndarray, fraction=0.01) -> np.ndarray:
   """Clips the top part if an unsigned saliency map."""
   assert saliency.min() >= 0
-  t_value = np.quantile(saliency, 1 - fraction, interpolation='lower')
+  t_value = np.quantile(saliency, 1 - fraction, method='lower')
   return np.clip(saliency, 0, t_value)
 
 

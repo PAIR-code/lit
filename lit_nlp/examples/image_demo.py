@@ -81,13 +81,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
       'classification': classification_results.ClassificationInterpreter(),
-      'Grad': image_gradient_maps.VanillaGradients(),
-      'Integrated Gradients': image_gradient_maps.IntegratedGradients(),
-      'Blur IG': image_gradient_maps.BlurIG(),
-      'Guided IG': image_gradient_maps.GuidedIG(),
-      'XRAI': image_gradient_maps.XRAI(),
-      'XRAI GIG': image_gradient_maps.XRAIGIG(),
-  }
+  } | image_gradient_maps.all_interpreters()
 
   lit_demo = dev_server.Server(
       models,
