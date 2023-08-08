@@ -99,24 +99,24 @@ export class DataTable extends ReactiveElement {
   // see https://mobx.js.org/observable-state.html#available-annotations.
   // This could save performance, since calling code can always do [...data]
   // to generate a new reference and force a refresh if needed.
+  @observable.struct
+  @property({type: Array}) columnNames: Array<string|ColumnHeader> = [];
   @observable.struct @property({type: Array}) data: TableData[] = [];
-  @observable.struct @property({type: Array})
-      columnNames: Array<string|ColumnHeader> = [];
-  @observable.struct @property({type: Array}) selectedIndices: number[] = [];
-  @observable.struct @property({type: Array}) starredIndices: number[] = [];
-  @observable @property({type: Number}) primarySelectedIndex: number = -1;
-  @observable @property({type: Number}) referenceSelectedIndex: number = -1;
+  @property({type: Array}) selectedIndices: number[] = [];
+  @property({type: Array}) starredIndices: number[] = [];
+  @property({type: Number}) primarySelectedIndex: number = -1;
+  @property({type: Number}) referenceSelectedIndex: number = -1;
   // TODO(lit-dev): consider a custom reaction to make this more responsive,
   // instead of triggering a full re-render.
-  @observable @property({type: Number}) focusedIndex: number = -1;
+  @property({type: Number}) focusedIndex: number = -1;
   @observable @property({type: String}) globalSearchText = '';
 
   // Mode controls
-  @observable @property({type: Boolean}) selectionEnabled = false;
-  @observable @property({type: Boolean}) searchEnabled = false;
-  @observable @property({type: Boolean}) paginationEnabled = false;
-  @observable @property({type: Boolean}) exportEnabled = false;
-  @observable @property({type: Boolean}) showMoreEnabled = false;
+  @property({type: Boolean}) selectionEnabled = false;
+  @property({type: Boolean}) searchEnabled = false;
+  @property({type: Boolean}) paginationEnabled = false;
+  @property({type: Boolean}) exportEnabled = false;
+  @property({type: Boolean}) showMoreEnabled = false;
 
 
   /** Lowest row index of the continguous (i.e., shift-click) selection. */
@@ -142,8 +142,8 @@ export class DataTable extends ReactiveElement {
   }
 
   // Sort order precedence: 1) sortName, 2) input order
-  @observable @property({type: String}) sortName?: string;
-  @observable @property({type: Boolean}) sortAscending = true;
+  @observable private sortName?: string;
+  @observable private sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
   // Filters for each column when search is used.
