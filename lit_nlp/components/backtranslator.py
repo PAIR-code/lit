@@ -14,7 +14,7 @@
 # ==============================================================================
 """Backtranslation generator through Google Cloud Translate API."""
 from collections.abc import Sequence
-from typing import Any, Optional
+from typing import Optional
 
 from absl import logging
 from google.cloud import translate_v2 as translate
@@ -71,51 +71,34 @@ class Backtranslator(lit_components.Generator):
     Use this batch API by default, so we can make parallel requests.
     Args:
       inputs: sequence of inputs, following dataset.spec()
-      model: (unused)
+      model: unused
       dataset: dataset, used to access dataset.spec()
       config: additional runtime options
 
     Returns:
       list of list of new generated inputs, following dataset.spec()
     """
-    outputs = self.run(inputs, dataset, config=config)
-    return outputs
-
-  def run(self,
-          inputs: list[_JsonDict],
-          dataset: lit_dataset.Dataset,
-          config: Optional[_JsonDict] = None):
-    """Run generation on a set of inputs.
-
-    Args:
-      inputs: sequence of inputs, following dataset.spec()
-      dataset: dataset, used to access dataset.spec()
-      config: additional runtime options
-
-    Returns:
-      list of list of new generated inputs, following dataset.spec()
-    """
-    all_outputs = [[] for _ in inputs]
-
-    config = config or {}
+    del model
+    all_outputs: list[list[_JsonDict]] = [[] for _ in inputs]
+    config: _JsonDict = config or {}
 
     # Find text fields.
     text_fields = utils.find_spec_keys(dataset.spec(), types.TextSegment)
     # If config key is missing, backtranslate all text fields.
-    fields_to_backtranslate = list(
+    fields_to_backtranslate: Sequence[str] = list(
         config.get(FIELDS_TO_BACKTRANSLATE_KEY, text_fields))
-    candidates_by_field = {}
+    candidates_by_field: dict[str, list[list[str]]] = {}
     for field_name in fields_to_backtranslate:
       texts = [ex[field_name] for ex in inputs]
       candidates_by_field[field_name] = self.generate_from_texts(texts)
     # Generate by substituting in each field.
     # TODO(lit-team): substitute on a combination of fields?
-    for field_name in candidates_by_field:
-      candidates = candidates_by_field[field_name]
-      for i, ex in enumerate(inputs):
-        for candidate in candidates[i]:
-          new_ex = dict(ex, **{field_name: candidate})
-          all_outputs[i].append(new_ex)
+    for field_name, candidates in candidates_by_field.items():
+      for i, (inp, cands) in enumerate(zip(inputs, candidates, strict=True)):
+        for cand in cands:
+          all_outputs[i].append(utils.make_modified_input(
+              inp, {field_name: cand}, 'Backtranslator'
+          ))
     return all_outputs
 
   def generate(self,
@@ -126,8 +109,7 @@ class Backtranslator(lit_components.Generator):
     """Generate from a single example."""
     return self.generate_all([example], model, dataset, config=config)[0]
 
-  def generate_from_texts(self,
-                          texts: list[str]) -> tuple[list[list[str]], Any]:
+  def generate_from_texts(self, texts: list[str]) -> list[list[str]]:
     """Run backtranslation on the list of strings."""
     # Use Pandas to keep track of metadata, so we can batch MT inputs
     # without losing track of which example they belong to.
