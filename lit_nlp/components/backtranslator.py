@@ -13,7 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Backtranslation generator through Google Cloud Translate API."""
-from typing import List, Sequence, Tuple, Text, Any, Optional
+from collections.abc import Sequence
+from typing import Any, Optional
 
 from absl import logging
 from google.cloud import translate_v2 as translate
@@ -25,7 +26,7 @@ from lit_nlp.lib import utils
 import pandas as pd
 
 
-JsonDict = types.JsonDict
+_JsonDict = types.JsonDict
 
 FIELDS_TO_BACKTRANSLATE_KEY = 'Fields to backtranslate'
 
@@ -41,10 +42,10 @@ class Backtranslator(lit_components.Generator):
   """
 
   def __init__(self,
-               source_language: Text = 'en',
-               pivot_languages: Sequence[Text] = ('fr', 'de')):
+               source_language: str = 'en',
+               pivot_languages: Sequence[str] = ('fr', 'de')):
     self._source_lang = source_language
-    self._pivot_langs = list(pivot_languages)
+    self._pivot_langs = pivot_languages
     self._translate_client = translate.Client()
 
   def config_spec(self) -> types.Spec:
@@ -57,10 +58,10 @@ class Backtranslator(lit_components.Generator):
     }
 
   def generate_all(self,
-                   inputs: List[JsonDict],
+                   inputs: list[_JsonDict],
                    model: lit_model.Model,
                    dataset: lit_dataset.Dataset,
-                   config: Optional[JsonDict] = None) -> List[List[JsonDict]]:
+                   config: Optional[_JsonDict] = None) -> list[list[_JsonDict]]:
     """Run generation on a set of inputs.
 
     If more than one field is to be backtranslated, each field is independently
@@ -81,9 +82,9 @@ class Backtranslator(lit_components.Generator):
     return outputs
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[_JsonDict],
           dataset: lit_dataset.Dataset,
-          config: Optional[JsonDict] = None):
+          config: Optional[_JsonDict] = None):
     """Run generation on a set of inputs.
 
     Args:
@@ -118,15 +119,15 @@ class Backtranslator(lit_components.Generator):
     return all_outputs
 
   def generate(self,
-               example: JsonDict,
+               example: _JsonDict,
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+               config: Optional[_JsonDict] = None) -> list[_JsonDict]:
     """Generate from a single example."""
     return self.generate_all([example], model, dataset, config=config)[0]
 
   def generate_from_texts(self,
-                          texts: List[Text]) -> Tuple[List[List[Text]], Any]:
+                          texts: list[str]) -> tuple[list[list[str]], Any]:
     """Run backtranslation on the list of strings."""
     # Use Pandas to keep track of metadata, so we can batch MT inputs
     # without losing track of which example they belong to.
