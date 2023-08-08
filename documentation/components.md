@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-7-15' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-07' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -23,8 +23,8 @@ out-of-the-box support for a few modeling frameworks, described below.
 
 LIT supports Estimator and other TF1.x models, but the model wrappers can be
 more involved due to the need to explicitly manage the graph and sessions. (In
-particular: `Estimator.predict()` cannot be used because it reloads the model
-on every invocation.) Generally, you'll need to:
+particular: `Estimator.predict()` cannot be used because it reloads the model on
+every invocation.) Generally, you'll need to:
 
 *   In your model's `__init__()`, build the graph, create a persistent TF
     session, and load the model weights.
@@ -145,7 +145,8 @@ LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
-*   For a basic example on an image labeling task, see [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
+*   For a basic example on an image labeling task, see
+    [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -172,9 +173,9 @@ or decoder.
     `TextSegment` field (for a single reference) or a `ReferenceTexts` field
     (for multiple references), and the model's output field should set `parent=`
     accordingly.
-*   To use a model in scoring mode over one or more predefined target
-    sequences, the model can also output a `ReferenceScores` field (with values
-    as `List[float]`) with `parent=` set to reference a `TextSegment` or
+*   To use a model in scoring mode over one or more predefined target sequences,
+    the model can also output a `ReferenceScores` field (with values as
+    `List[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
 *   For modeling examples, see
     [lit_nlp/examples/models/t5.py](../lit_nlp/examples/models/t5.py)
@@ -263,7 +264,53 @@ For a demo with a BERT-based classifier, see https://pair-code.github.io/lit/dem
 
 Currently, salience is supported for classification ( `MulticlassPreds`) and
 regression (`RegressionScore`) outputs, though we hope to support seq2seq models
-soon. Available methods include:
+soon.
+
+#### Note on Target Selection
+
+For all salience methods, we require that the class to explain is given as a
+label field in the input. For example, if the input example is:
+
+```
+{"text": "this movie was terrible!", "label": "0"}
+```
+
+Our model should return gradients with respect to the class 0. Conversely, we
+might want to ask what features would encourage the model to predict a different
+class. If we select class 1 from the UI:
+
+![Target Selection](./images/components/salience-target-select.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+
+Then the model will receive a modified input with this target:
+
+```
+{"text": "this movie was terrible!", "label": "1"}
+```
+
+To support this, the model should have the label field in the `input_spec`:
+
+```
+def input_spec(self):
+  return {
+    'text': lit_types.TextSegment(),
+    'label': lit_types.CategoryLabel(..., required=False),
+    ...
+  }
+```
+
+and have an output field which references this using `parent=`:
+
+```
+def output_spec(self):
+  return {
+    'probas': lit_types.MulticlassPreds(..., parent="label"),
+    ...
+  }
+```
+
+You don't have to call the field "label", and it's okay if this field isn't
+present in the *dataset* - as long as it's something that the model will
+recognize and use as the target to derive gradients.
 
 ### Gradient Norm
 
@@ -296,10 +343,10 @@ embeddings and their gradients, i.e. for token $i$ we compute:
 
 $$S(i) \propto x_i \cdot \nabla_{x_i} \hat{y}$$
 
-Compared to grad-norm, this gives directional
-scores: a positive score is can be interpreted as that token having a positive
-influence on the prediction $\hat{y}$, while a negative score suggests that
-the prediction would be stronger if that token was removed.
+Compared to grad-norm, this gives directional scores: a positive score is can be
+interpreted as that token having a positive influence on the prediction
+$\hat{y}$, while a negative score suggests that the prediction would be stronger
+if that token was removed.
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -330,22 +377,14 @@ grad-dot-input, but also requires more involved instrumentation of the model.
 To support this method, your model needs to return the gradients and embeddings
 needed for grad-dot-input, and also to *accept* modified embeddings as input.
 
-*   The model output should be as for grad-dot-input.
+*   The model output should be as for grad-dot-input, plus
+    `grad_target_field_key` must be set to the name of a label field from the
+    input.
 *   The model should have an [optional input](./api.md#optional-inputs) of type
     `TokenEmbeddings` with the same name as the output `TokenEmbeddings` field
     (see [type system conventions](./api.md#conventions)), which will be used to
     feed in the interpolated inputs as arrays of shape `<float>[num_tokens,
     emb_dim]`.
-*   The model should have an additional field ("grad_class", below) which is
-    used to pin the gradients to a particular target class. This is necessary
-    because we want to integrate gradients with respect to a single target
-    $\hat{y}$, but the argmax prediction may change over the integration path.
-    This field can be any type, though for classification models it is typically
-    a `CategoryLabel`. The value of this on the original input (usually, the
-    argmax class) is stored and fed back in to the model during integration.
-    This field should be present as optional in the input spec (see below), and
-    the name of the field should be referenced by the `grad_target_field_key`
-    attribute of the `TokenGradients` field.
 
 An example spec would look like:
 
@@ -354,7 +393,6 @@ An example spec would look like:
      return {
          # ...
          "token_embs": lit_types.TokenEmbeddings(align='tokens', required=False),
-         "grad_class": lit_types.CategoryLabel(vocab=self.LABELS, required=False),
          # ...
      }
 
@@ -363,10 +401,9 @@ An example spec would look like:
          # ...
          "tokens": lit_types.Tokens(parent="input_text"),
          "token_embs": lit_types.TokenEmbeddings(align='tokens'),
-         "grad_class": lit_types.CategoryLabel(vocab=self.LABELS),
          "token_grads": lit_types.TokenGradients(align='tokens',
                                                  grad_for="token_embs",
-                                                 grad_target_field_key="grad_class"),
+                                                 grad_target_field_key="label"),
          # ...
      }
 ```
