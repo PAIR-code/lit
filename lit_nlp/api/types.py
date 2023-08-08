@@ -926,6 +926,15 @@ class Integer(Scalar):
   step: int = 1
 
 
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SalienceTargetInfo(LitType):
+  """Target information for salience interpreters, used in config_spec().
+
+  Value is a dict with keys 'field' (str) and 'index' (Optional[int]).
+  """
+  default: Optional[Mapping[str, Any]] = None
+
+
 # LINT.ThenChange(../client/lib/lit_types.ts)
 
 # Type aliases for backend use.

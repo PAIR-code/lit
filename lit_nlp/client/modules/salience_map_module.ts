@@ -35,7 +35,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {TokenWithWeight} from '../elements/token_chips';
-import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, TokenGradients, TokenSalience} from '../lib/lit_types';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {argmax, cloneSpec, findSpecKeys, makeModifiedInput} from '../lib/utils';
@@ -155,9 +155,6 @@ export class SalienceMapModule extends LitModule {
   @observable showTargetSelector = false;
 
   // Check that the target selector is available for gradient-based salience.
-  // TODO: figure out what to do for LIME?  Probably should have it accept this
-  // by default, but override with the custom selector if set to something
-  // besides -1.
   // TODO(b/205996131): remove this and always show dropdown, once everything
   // is updated such that this accurately reflects the class being explained.
   @computed
@@ -366,10 +363,20 @@ export class SalienceMapModule extends LitModule {
       return;
     }
 
+    let config = this.state[name].config;
+    const configSpec = this.appState.metadata.interpreters[name].configSpec;
+    for (const key of findSpecKeys(configSpec, [SalienceTargetInfo])) {
+      config = Object.assign(
+          {}, config,
+          {[key]: {field: this.targetField, index: this.salienceTarget}});
+    }
+    // If there is no SalienceTargetInfo in the spec, config should still be
+    // null if no fields are set.
+
     this.state[name].isLoading = true;
     const promise = this.apiService.getInterpretations(
-        [input], this.model, this.appState.currentDataset, name,
-        this.state[name].config, `Running ${name}`);
+        [input], this.model, this.appState.currentDataset, name, config,
+        `Running ${name}`);
     const salience = await this.loadLatest(`interpretations-${name}`, promise);
     this.state[name].isLoading = false;
     if (salience === null) return;
@@ -599,7 +606,14 @@ export class SalienceMapModule extends LitModule {
     if (Object.keys(spec).length === 0) return null;
 
     const clonedSpec = cloneSpec(spec);
-    for (const fieldSpec of Object.values(clonedSpec)) {
+    for (const [fieldName, fieldSpec] of Object.entries(clonedSpec)) {
+      // Don't show interpreter controls for the special SalienceTargetInfo
+      // type; this gets special handing in runInterpreter().
+      if (fieldSpec instanceof SalienceTargetInfo) {
+        delete clonedSpec[fieldName];
+        continue;
+      }
+
       // If the generator uses a field matcher, then get the matching
       // field names from the specified spec and use them as the vocab.
       if (fieldSpec instanceof FieldMatcher) {

@@ -16,13 +16,14 @@ class LimeExplainerTest(parameterized.TestCase):
   @parameterized.named_parameters(
       ('default', None, None, None, None, None, None),
       ('autorun only', True, None, None, None, None, None),
-      ('config values only', None, 0, 128, '<UNK>', 128, 0),
-      ('autorun + config values', True, 0, 128, '<UNK>', 128, 0))
+      ('config values only', None, -1, 128, '<UNK>', 128, 0),
+      ('autorun + config values', True, -1, 128, '<UNK>', 128, 0),
+  )
   def test_lime_init_args(self, autorun, class_index, kernel_width, mask_token,
                           num_samples, seed):
     params = {}
-    if autorun is not None: params['autorun'] = autorun
-    if class_index is not None: params['class_index'] = class_index
+    if autorun is not None:
+      params['autorun'] = autorun
     if kernel_width is not None: params['kernel_width'] = kernel_width
     if mask_token is not None: params['mask_token'] = mask_token
     if num_samples is not None: params['num_samples'] = num_samples

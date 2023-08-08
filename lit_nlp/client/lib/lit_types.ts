@@ -610,3 +610,12 @@ export class MetricResult extends LitType {
   description: string = '';
   best_value: MetricBestValue = MetricBestValue.NONE;
 }
+
+/**
+ * Represents target information for salience interpreters; used in
+ * config_spec()
+ */
+@registered
+export class SalienceTargetInfo extends LitType {
+  override default: {[key: string]: number|string}|null = null;
+}
