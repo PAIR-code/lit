@@ -22,7 +22,6 @@ import './popup_container';
 import {html} from 'lit';
 import {classMap} from 'lit/directives/class-map.js';
 import {customElement, property} from 'lit/decorators.js';
-import {observable} from 'mobx';
 import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
@@ -42,7 +41,7 @@ export class ExportControls extends ReactiveElement {
   }
 
   /** The default file download name. */
-  @observable @property({type: String}) downloadFilename = 'data.csv';
+  @property({type: String}) downloadFilename = 'data.csv';
   /** A list of rows of data to download. */
   @property({type: Object}) data: SortableTableEntry[][] = [];
   /** Column names. */
@@ -91,8 +90,7 @@ export class ExportControls extends ReactiveElement {
     };
 
     const updateFilename = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.downloadFilename = (e as any).target.value as string;
+      this.downloadFilename = (e.target as HTMLInputElement).value;
     };
 
     function onEnter(e: KeyboardEvent) {
