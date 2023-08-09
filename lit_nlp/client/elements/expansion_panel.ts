@@ -22,12 +22,11 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './expansion_panel.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** Custom expansion event interface for ExpansionPanel */
 export interface ExpansionToggle {
@@ -44,11 +43,11 @@ export class ExpansionPanel extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  @observable @property({type: String}) label = '';
-  @observable @property({type: String}) description = '';
-  @observable @property({type: Boolean}) expanded = false;
-  @observable @property({type: Boolean}) padLeft = false;
-  @observable @property({type: Boolean}) padRight = false;
+  @property({type: String}) label = '';
+  @property({type: String}) description = '';
+  @property({type: Boolean}) expanded = false;
+  @property({type: Boolean}) padLeft = false;
+  @property({type: Boolean}) padRight = false;
 
   override render() {
     const contentPadding = (this.padLeft ? 8 : 0) + (this.padRight ? 16 : 0);
