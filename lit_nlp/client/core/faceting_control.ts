@@ -63,10 +63,10 @@ export class FacetingControl extends ReactiveElement {
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
 
-  @observable @property({type: Boolean}) disabled = false;
-  @observable @property({type: String}) contextName?: string;
-  @observable @property({type: Number}) binLimit = DEFAULT_BIN_LIMIT;
-  @observable @property({type: Number}) choiceLimit?: number;
+  @property({type: Boolean, reflect: true}) disabled = false;
+  @property({type: String}) contextName?: string;
+  @property({type: Number}) binLimit = DEFAULT_BIN_LIMIT;
+  @property({type: Number}) choiceLimit?: number;
 
   static override get styles() {
     return [sharedStyles, styles];
