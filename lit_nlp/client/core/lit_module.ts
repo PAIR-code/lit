@@ -54,7 +54,7 @@ export abstract class LitModule extends ReactiveElement {
    * used in an element in the module. Otherwise scrolling is syncronized using
    * the outer container that contains the module.
    */
-  @observable @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
+  @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
 
   // Name of this module, to show in the UI.
   static title: string = '';
