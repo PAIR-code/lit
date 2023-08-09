@@ -68,9 +68,9 @@ const DEFAULT_SPAN_BACKGROUND = '#e4f7fb';
 @customElement('annotated-text')
 class AnnotatedText extends LitElement {
   /* Data binding */
-  @property({type: String}) text: string = "";
+  @property({type: String}) text = "";
   @property({type: Array}) spans: StyledSpan[] = [];  // aligned to this segment
-  @property({type: Boolean}) isURL: boolean = false;  // if true, make a link
+  @property({type: Boolean}) isURL = false;  // if true, make a link
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -123,14 +123,15 @@ class AnnotatedText extends LitElement {
 @customElement('annotated-text-vis')
 export class AnnotatedTextVis extends ReactiveElement {
   /* Data binding */
-  @observable @property({type: Object}) segments: TextSegments = {};
-  @observable @property({type: Object}) segmentSpec: SegmentSpec = {};
   @observable @property({type: Object}) annotations: AnnotationGroups = {};
   /* Spec info for each annotation field, such as exclusivity bit. */
   @observable @property({type: Object}) annotationSpec: AnnotationSpec = {};
+  @observable @property({type: Object}) segments: TextSegments = {};
+  @property({type: Object}) segmentSpec: SegmentSpec = {};
 
   /* groupName -> set of indices, parallel to this.annotations */
-  @observable annotationVisibility: {[groupName: string]: Set<number>} = {};
+  @observable
+  private annotationVisibility: {[groupName: string]: Set<number>} = {};
 
   @computed get groupColors() {
     // Colors for each annotation group.
