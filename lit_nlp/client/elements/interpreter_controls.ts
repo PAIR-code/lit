@@ -144,6 +144,11 @@ export class InterpreterControls extends ReactiveElement {
     if (controlType instanceof SparseMultilabel ||
         controlType instanceof MultiFieldMatcher) {
       const {vocab} = controlType as LitTypeWithVocab;
+      if (vocab == null) {
+        console.error(
+            `Cannot render checkboxes for field ${name} without a vocab.`);
+        return null;
+      }
       // Render checkboxes, with the first item selected.
       const renderCheckboxes = () => vocab.map(option => {
         // tslint:disable-next-line:no-any
@@ -168,6 +173,11 @@ export class InterpreterControls extends ReactiveElement {
         controlType instanceof CategoryLabel ||
         controlType instanceof SingleFieldMatcher) {
       const {vocab} = controlType as LitTypeWithVocab;
+      if (vocab == null) {
+        console.error(
+            `Cannot render dropdown for field ${name} without a vocab.`);
+        return null;
+      }
       // Render a dropdown, with the first item selected.
       const updateDropdown = (e: Event) => {
         const select = (e.target as HTMLSelectElement);

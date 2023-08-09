@@ -62,16 +62,13 @@ export class LitType {
 }
 
 /** A type alias for LitType with an align property. */
-export type LitTypeWithAlign = LitType&{align: string};
-
-/** A type alias for LitType with a null idx property. */
-export type LitTypeWithNullIdx = LitType&{null_idx: number};
+export type LitTypeWithAlign = LitType&{align?: string};
 
 /** A type alias for LitType with a parent property. */
-export type LitTypeWithParent = LitType&{parent: string};
+export type LitTypeWithParent = LitType&{parent?: string};
 
 /** A type alias for LitType with a vocab property. */
-export type LitTypeWithVocab = LitType&{vocab: string[]};
+export type LitTypeWithVocab = LitType&{vocab?: string[]};
 
 /**
  * A string LitType.

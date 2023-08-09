@@ -24,7 +24,7 @@ import {until} from 'lit/directives/until.js';
 import {observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
-import {CategoryLabel, LitTypeWithNullIdx, LitTypeWithVocab, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
+import {CategoryLabel, LitTypeWithVocab, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {ModelInfoMap, Spec} from '../lib/types';
 import {doesInputSpecContain, doesOutputSpecContain, findSpecKeys, setEquals} from '../lib/utils';
 
@@ -161,7 +161,7 @@ export class PdpModule extends LitModule {
       }
 
       const {vocab} = spec.output[predKey] as LitTypeWithVocab;
-      const {null_idx: nullIdx} = spec.output[predKey] as LitTypeWithNullIdx;
+      const {null_idx: nullIdx} = spec.output[predKey] as MulticlassPreds;
 
       const isClassification = spec.output[predKey] instanceof MulticlassPreds;
       const yRange = isClassification ? [0, 1] : [];

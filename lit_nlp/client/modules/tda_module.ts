@@ -142,13 +142,13 @@ export class TrainingDataAttributionModule extends LitModule {
    */
   @computed
   get targetLabelInputKeys(): string[] {
-    const spec = this.appState.getModelSpec(this.model);
-    const referencedKeys =
-        new Set(Object.values(spec.output)
-                    // tslint:disable-next-line:no-any
-                    .filter(v => (v as any).parent != null)
-                    .map(v => (v as LitTypeWithParent).parent));
-    return [...referencedKeys].filter(k => spec.input[k] !== undefined);
+    const {input, output} = this.appState.getModelSpec(this.model);
+    const referencedKeys = new Set<string>();
+    for (const fieldType of Object.values(output)) {
+      const {parent} = fieldType as LitTypeWithParent;
+      if (parent != null) referencedKeys.add(parent);
+    }
+    return [...referencedKeys].filter(k => input[k] !== undefined);
   }
 
   /**
