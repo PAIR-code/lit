@@ -311,15 +311,16 @@ class ConfusionMatrix extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  @observable @property({type: Boolean}) hideEmptyLabels = false;
   /** Feature to use for the rows of the matrix */
   @observable @property({type: Object}) row?: CmatOption;
   /** Feature to use for the columns of the matrix */
   @observable @property({type: Object}) col?: CmatOption;
   /** Dataset to map into the cells of the matrix */
   @observable @property({type: Array}) data?: IndexedInput[];
+  /** If true, don't show rows or columns containing only empty cells */
+  @property({type: Boolean}) hideEmptyLabels = false;
   /** Label for the matrix */
-  @observable @property({type: String}) label = 'Confusion Matrix';
+  @property({type: String}) label = 'Confusion Matrix';
 
   @observable private cells: MatrixCell[][] = [];
 
@@ -364,10 +365,8 @@ class ConfusionMatrix extends ReactiveElement {
       this.col.labelList = this.row.labelList;
     }
 
-    const rowLabels = this.row.labelList;
-    const colLabels = this.col.labelList;
-    const rowName = this.row.name;
-    const colName = this.col.name;
+    const {labelList: rowLabels, name: rowName} = this.row;
+    const {labelList: colLabels, name: colName} = this.col;
     const resultsDict = {[rowName]: results[0], [colName]: results[1]};
 
     // Since groupService.groupExamplesByFeatures only uses indexedInput data
