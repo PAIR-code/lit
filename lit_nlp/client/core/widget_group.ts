@@ -27,7 +27,6 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -61,8 +60,7 @@ export class WidgetGroup extends ReactiveElement {
   @property({type: Boolean, reflect: true}) duplicateAsRow = false;
   @property({type: Boolean, reflect: true}) minimized = false;
   @property({type: Boolean, reflect: true}) maximized = false;
-  @property({type: Boolean, reflect: true}) dragging = false;
-  @observable @property({type: Boolean, reflect: true}) visible = false;
+  @property({type: Boolean, reflect: true}) visible = false;
   @property({type: Number}) width = 0;
   private widgetScrollTop = 0;
   private widgetScrollLeft = 0;
@@ -196,11 +194,6 @@ export class WidgetGroup extends ReactiveElement {
     host.style.setProperty('--width', width);
     host.style.setProperty('--min-width', width);
 
-    const wrapperClasses = classMap({
-      'wrapper': true,
-      'dragging': this.dragging,
-    });
-
     const holderClasses = classMap({
       'component-row': modulesInGroup && this.duplicateAsRow,
       'component-column': modulesInGroup && !this.duplicateAsRow,
@@ -231,7 +224,7 @@ export class WidgetGroup extends ReactiveElement {
     // clang-format off
     return html`
       <div class='outside' @click=${onBackgroundClick}>
-        <div class=${wrapperClasses} @click=${onWrapperClick} >
+        <div class='wrapper' @click=${onWrapperClick} >
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
             ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
@@ -296,8 +289,7 @@ export class WidgetGroup extends ReactiveElement {
     this.modulesService.toggleHiddenModule(config, isMinimized);
     this.minimized = isMinimized;
     const event = new CustomEvent<WidgetMinimizedChange>(
-        'widget-group-minimized-changed',
-        {detail: {isMinimized}});
+        'widget-group-minimized-changed', {detail: {isMinimized}});
     this.dispatchEvent(event);
   }
 }
@@ -310,12 +302,12 @@ export class WidgetGroup extends ReactiveElement {
  */
 @customElement('lit-widget')
 export class LitWidget extends MobxLitElement {
-  @property({ type: String }) displayTitle = '';
-  @property({ type: String }) subtitle = '';
-  @property({ type: Boolean }) isLoading = false;
-  @property({ type: Boolean }) highlight = false;
-  @property({ type: Number }) widgetScrollTop = 0;
-  @property({ type: Number }) widgetScrollLeft = 0;
+  @property({type: String}) displayTitle = '';
+  @property({type: String}) subtitle = '';
+  @property({type: Boolean}) isLoading = false;
+  @property({type: Boolean}) highlight = false;
+  @property({type: Number}) widgetScrollTop = 0;
+  @property({type: Number}) widgetScrollLeft = 0;
 
   static override get styles() {
     return [sharedStyles, widgetStyles];
@@ -405,10 +397,10 @@ export class LitWidget extends MobxLitElement {
   renderHeader() {
     return html`
     <div class=header>
-      ${this.highlight ?
-        html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
-        html`<div class="pin-spacer"></div>`
-      }
+      ${
+        this.highlight ?
+            html`<mwc-icon class='material-icon pin-icon'>push_pin</mwc-icon>` :
+            html`<div class="pin-spacer"></div>`}
       <span class="subtitle">${this.subtitle}</span>
     </div>
     `;
