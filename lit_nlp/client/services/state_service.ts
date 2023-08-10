@@ -428,7 +428,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get best URL for this server.
    */
   getBestURL() {
-    const urlBase = (this.metadata.canonicalURL || window.location.origin);
+    let urlBase = (this.metadata.canonicalURL || window.location.origin);
     return new URL(`${urlBase}${window.location.search}`).href;
   }
 }

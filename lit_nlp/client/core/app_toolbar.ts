@@ -282,7 +282,10 @@ export class ToolbarComponent extends MobxLitElement {
   }
 
   onClickCopyLink() {
-    navigator.clipboard.writeText(this.appState.getBestURL());
+    const url = this.appState.getBestURL();
+    navigator.clipboard.writeText(url);
+    // For user; keep this log statement.
+    console.log('Copied URL to this instance: ', url);
   }
 
   renderRightCorner() {
