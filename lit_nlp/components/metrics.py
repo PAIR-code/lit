@@ -56,7 +56,15 @@ def map_pred_keys(
       logging.info("Skipping '%s': No parent provided.", pred_key)
       continue
 
-    parent_spec: Optional[LitType] = data_spec.get(parent_key)
+    if parent_key not in data_spec:
+      logging.info(
+          "Skipping '%s': parent field '%s' not found in dataset.",
+          pred_key,
+          parent_key,
+      )
+      continue
+
+    parent_spec: LitType = data_spec[parent_key]
     if predicate(pred_spec, parent_spec):
       ret[pred_key] = parent_key
     else:
