@@ -58,7 +58,7 @@ export class ThresholderModule extends LitModule {
   static override infoMarkdown =
       `Set threshold scores that are used to determine whether examples belong
       to the positive class.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#binary-classification-thresholds)`;
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#binary-classification-thresholds)`;
   static override numCols = 3;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>

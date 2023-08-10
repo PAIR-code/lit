@@ -41,12 +41,12 @@ Stay up to date on LIT by joining the
 [lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md).
+[user guide](documentation/ui_guide.md).
 
 ## Documentation
 
-*   [Documentation index](https://github.com/PAIR-code/lit/wiki)
-*   [FAQ](https://github.com/PAIR-code/lit/wiki/faq.md)
+*   [Documentation index](documentation/index.md)
+*   [FAQ](documentation/faq.md)
 *   [Release notes](./RELEASE.md)
 
 ## Download and Installation
@@ -63,7 +63,7 @@ git clone https://github.com/PAIR-code/lit.git && cd lit
 docker build --file Dockerfile --tag lit-nlp .
 ```
 
-See the [advanced guide](https://github.com/PAIR-code/lit/wiki/docker.md) for detailed instructions on using the
+See the [advanced guide](documentation/docker.md) for detailed instructions on using the
 default LIT Docker image, running LIT as a containerized web app in different
 scenarios, and how to creating your own LIT images.
 
@@ -168,7 +168,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md), or
+To learn about LIT's features, check out the [user guide](documentation/ui_guide.md), or
 watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
@@ -177,18 +177,18 @@ You can easily run LIT with your own model by creating a custom `demo.py`
 launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The
 basic steps are:
 
-*   Write a data loader which follows the [`Dataset` API](https://github.com/PAIR-code/lit/wiki/api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](https://github.com/PAIR-code/lit/wiki/api.md#models)
+*   Write a data loader which follows the [`Dataset` API](documentation/api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](documentation/api.md#models)
 *   Pass models, datasets, and any additional
-    [components](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components) to the LIT server class
+    [components](documentation/api.md#interpretation-components) to the LIT server class
 
 For a full walkthrough, see
-[adding models and data](https://github.com/PAIR-code/lit/wiki/api.md#adding-models-and-data).
+[adding models and data](documentation/api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
-more, both on the frontend or the backend. See our [documentation](https://github.com/PAIR-code/lit/wiki) to get
+more, both on the frontend or the backend. See our [documentation](documentation/index.md) to get
 started.
 
 ## Pull Request Process
