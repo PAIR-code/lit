@@ -222,7 +222,7 @@ export class DatapointEditorModule extends LitModule {
       convertToString: boolean = true) {
     const characterWidth = 8.3;  // estimate for character width in pixels
     const numLines = Math.ceil(characterWidth * textLength / clientWidth);
-    const height = this.convertNumLinesToHeight(numLines);
+    const height = this.convertNumLinesToHeight(Math.max(1, numLines));
     return convertToString ? `${height}ex` : height;
   }
 
