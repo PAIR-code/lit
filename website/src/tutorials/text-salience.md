@@ -356,5 +356,5 @@ sense of their language model’s predictions. This diverse array of built-in
 techniques can be used in combination with other LIT modules like
 counterfactuals to support robust exploration of a model's behavior, as
 illustrated in this tutorial. And as always, LIT strives to enable users to
-[add their own salience interpreters](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components)
+[add their own salience interpreters](https://github.com/PAIR-code/lit/blob/main/documentation/api.md#interpretation-components)
 to allow for a wider variety of use cases beyond these default capabilities!

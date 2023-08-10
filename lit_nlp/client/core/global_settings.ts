@@ -218,7 +218,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
           <lit-tooltip content="Go to reference">
             <a slot="tooltip-anchor" target='_blank'
-              href='https://github.com/PAIR-code/lit/wiki/ui_guide.md#global-settings'>
+              href='https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#global-settings'>
             <mwc-icon class="icon-button large-icon" id="configure-lit-icon">
               open_in_new
             </mwc-icon>

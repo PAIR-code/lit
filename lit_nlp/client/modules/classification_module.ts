@@ -58,7 +58,7 @@ export class ClassificationModule extends LitModule {
   static override infoMarkdown =
       `Classification results are displayed for labels of \`MulticlassPreds\`
       and \`SparseMultilabelPreds\` type.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#classification)`;
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#classification)`;
   static override duplicateForExampleComparison = false;
   static override duplicateForModelComparison = false;
   static override numCols = 3;

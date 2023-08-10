@@ -90,7 +90,7 @@ export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
   static override infoMarkdown =
       `Automatically generate counterfactuals using various techniques.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/wiki/components.md#generators)`;
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#generators)`;
   static override numCols = 10;
 
   static override template =

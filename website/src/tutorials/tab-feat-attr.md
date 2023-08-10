@@ -27,7 +27,7 @@ LIT supports many techniques like salience maps and counterfactual generators
 for text data. But what if you have a tabular dataset? You might want to find
 out which features (columns) are most relevant to the model’s predictions. LIT's
 Feature Attribution module for
-[tabular datasets](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)
+[tabular datasets](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#tabular-data)
 support identification of these important features. This tutorial provides a
 walkthrough for this module within LIT, on the
 [Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
@@ -41,7 +41,7 @@ walkthrough for this module within LIT, on the
         over tabular data, which is basically a specially weighted local linear
         regression for estimating SHAP values and works for any model. For now,
         the feature attribution module is only shown in the UI when working with
-        [tabular data](https://github.com/PAIR-code/lit/wiki/components.md#tabular-data)."%}
+        [tabular data](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#tabular-data)."%}
 
 ### **Overview**
 
