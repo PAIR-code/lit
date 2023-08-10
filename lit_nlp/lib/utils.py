@@ -78,6 +78,12 @@ def remap_dict(d: Mapping[K, V], keymap: Mapping[K, K]) -> dict[K, V]:
   return {keymap.get(k, k): d[k] for k in d}
 
 
+def _strict_numpy_equals(a, b):
+  """Verify structural equality and type match."""
+  # pylint: disable-next=unidiomatic-typecheck
+  return np.array_equal(a, b) and type(a) == type(b)
+
+
 def make_modified_input(
     ex: lit_types.JsonDict,
     overrides: lit_types.JsonDict,
@@ -97,7 +103,7 @@ def make_modified_input(
     ex or a modified copy
   """
   for k in overrides:
-    if (k not in ex) or (overrides[k] != ex[k]):
+    if (k not in ex) or not _strict_numpy_equals(overrides[k], ex[k]):
       new_example = dict(ex, **overrides)
       # If example was indexed, update the index info (_id and _meta).
       if '_id' in ex:
