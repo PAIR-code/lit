@@ -126,8 +126,7 @@ export class DatapointEditorModule extends LitModule {
   }
 
   private calculateQuantileLengthsForFields(
-      fieldKeys: string[],
-      percentile: number = .8) {
+      fieldKeys: string[], percentile = .8) {
     const defaultLengths: {[key: string]: number} = {};
 
     for (const key of fieldKeys) {
@@ -219,7 +218,7 @@ export class DatapointEditorModule extends LitModule {
 
   private getHeightForInputBox(
       textLength: number, clientWidth: number,
-      convertToString: boolean = true) {
+      convertToString = true) {
     const characterWidth = 8.3;  // estimate for character width in pixels
     const numLines = Math.ceil(characterWidth * textLength / clientWidth);
     const height = this.convertNumLinesToHeight(Math.max(1, numLines));
@@ -454,14 +453,14 @@ export class DatapointEditorModule extends LitModule {
     const renderFreeformInput = () => {
       return html`
       <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}>${value}</textarea>`;
+          handleInputChange} .value=${value}></textarea>`;
     };
 
     // Render a single-line text input.
     const renderShortformInput = () => {
       return html`
       <input type="text" class="input-short" @input=${handleInputChange}
-        .value=${value}></input>`;
+        .value=${value} />`;
     };
 
     // Render a single-line text input, and convert entered value to a number.
@@ -471,7 +470,7 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`
       <input type="text" class="input-short" @input=${handleNumberInput}
-        .value=${value}></input>`;
+        .value=${value} />`;
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
@@ -640,7 +639,7 @@ export class DatapointEditorModule extends LitModule {
   renderTokensInput(
       key: string, value: string[],
       handleInputChange: (e: Event, converterFn: InputConverterFn) => void,
-      dynamicTokenLength: boolean = true) {
+      dynamicTokenLength = true) {
     const tokenValues = value == null ? [] : [...value];
     const tokenRenders = [];
     for (let i = 0; i < tokenValues.length; i++) {
