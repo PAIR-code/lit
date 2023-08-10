@@ -382,9 +382,10 @@ export function isBinaryClassification(litType: LitType) {
   return false;
 }
 
-/** Returns if a LitType has a parent field. */
-export function hasParent(litType: LitType) {
-    return (litType as LitTypeWithParent).parent != null;
+/** Returns if a LitType has a parent field which is found in the (data) spec */
+export function hasValidParent(litType: LitType, spec: Spec) {
+  const parent = (litType as LitTypeWithParent).parent;
+  return parent != null && spec[parent] != null;
 }
 
 /**

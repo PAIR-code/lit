@@ -209,7 +209,8 @@ STANDARD_LAYOUT = LitCanonicalLayout(
     description=(
         'The default LIT layout, which includes the data table and data point '
         'editor, the performance and metrics, predictions, explanations, and '
-        'counterfactuals.'),
+        'counterfactuals.'
+    ),
 )
 
 DEFAULT_LAYOUTS = {

@@ -18,19 +18,22 @@
 // tslint:disable:no-new-decorators
 import '../elements/expansion_panel';
 import '../elements/line_chart';
-import {customElement} from 'lit/decorators.js';
+
 import {html, TemplateResult} from 'lit';
+import {customElement} from 'lit/decorators.js';
 import {action, computed, observable} from 'mobx';
-import {FacetsChange} from '../core/faceting_control';
+
 import {app} from '../core/app';
+import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {MulticlassPreds} from '../lib/lit_types';
-import {GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {doesOutputSpecContain, findSpecKeys, hasParent} from '../lib/utils';
-import {GroupService} from '../services/services';
-import {NumericFeatureBins} from '../services/group_service';
-import {styles} from './curves_module.css';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, hasValidParent} from '../lib/utils';
+import {NumericFeatureBins} from '../services/group_service';
+import {GroupService} from '../services/services';
+
+import {styles} from './curves_module.css';
 
 // Response from backend curves interpreter.
 interface CurvesResponse {
@@ -367,7 +370,16 @@ export class CurvesModule extends LitModule {
 
   static override shouldDisplayModule(
       modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    return doesOutputSpecContain(modelSpecs, MulticlassPreds, hasParent);
+    // We need a MulticlassPreds field, where parent is in the dataset spec.
+    for (const modelInfo of Object.values(modelSpecs)) {
+      const outputSpec = modelInfo.spec.output;
+      for (const outputFieldName of findSpecKeys(outputSpec, MulticlassPreds)) {
+        if (hasValidParent(outputSpec[outputFieldName], datasetSpec)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 
