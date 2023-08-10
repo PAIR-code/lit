@@ -73,15 +73,17 @@ export class SettingsService extends LitService {
    */
   @action
   async updateSettings(updateParams: UpdateSettingsParams) {
-    // Clear all modules.
-    this.modulesService.clearLayout();
-
-    // After one animation frame, the modules have been cleared. Now make
-    // settings changes and recompute the layout.
-    await this.raf();
     const nextModels = updateParams.models ?? this.appState.currentModels;
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
+
+    // Clear all modules.
+    if (nextLayout !== this.appState.layoutName) {
+      this.modulesService.clearLayout();
+      // After one animation frame, the modules have been cleared. Now make
+      // settings changes and recompute the layout.
+      await this.raf();
+    }
 
     // Compare the updated models
     const haveModelsChanged =
