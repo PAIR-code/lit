@@ -150,10 +150,6 @@ export class SalienceMapModule extends LitModule {
   @observable private targetField?: string;
   @observable private salienceTarget?: number;
 
-  // TODO(b/205996131): remove this and always show dropdown, once everything
-  // is updated such that this accurately reflects the class being explained.
-  @observable showTargetSelector = false;
-
   // Check that the target selector is available for gradient-based salience.
   // TODO(b/205996131): remove this and always show dropdown, once everything
   // is updated such that this accurately reflects the class being explained.
@@ -390,9 +386,6 @@ export class SalienceMapModule extends LitModule {
   }
 
   private renderHeaderControls() {
-    // TODO(b/205996131): remove once client code is updated so dropdown
-    // always has an effect.
-    if (!this.showTargetSelector) return null;
     if (!this.compatibleWithTargetSelector) return null;
 
     // Target selector incompatible.
