@@ -241,7 +241,7 @@ class GlueModel(lit_model.BatchedModel):
     slicer_b = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
     return slicer_a, slicer_b
 
-  def _postprocess(self, output: Dict[str, np.ndarray]):
+  def _postprocess(self, output: dict[str, Any]):
     """Per-example postprocessing, on NumPy output."""
     ntok = output.pop("ntok")
     output["tokens"] = self.tokenizer.convert_ids_to_tokens(
@@ -270,11 +270,14 @@ class GlueModel(lit_model.BatchedModel):
       if self.config.text_b_name:
         output["token_grad_" +
                self.config.text_b_name] = output["input_emb_grad"][slicer_b]
-      if self.is_regression:
-        output["grad_class"] = None  # pytype: disable=container-type-mismatch
-      else:
+
+      # TODO(b/294613507): remove output[self.config.label_name] once TCAV
+      # is updated.
+      if not self.is_regression:
         # Return the label corresponding to the class index used for gradients.
-        output["grad_class"] = self.config.labels[output["grad_class"]]  # pytype: disable=container-type-mismatch
+        output[self.config.label_name] = self.config.labels[
+            output[self.config.label_name]
+        ]  # pytype: disable=container-type-mismatch
 
       # Remove "input_emb_grad" since it's not in the output spec.
       del output["input_emb_grad"]
@@ -379,14 +382,39 @@ class GlueModel(lit_model.BatchedModel):
             offsets=(lengths + 2))
     return input_embs
 
+  def get_target_scores(self, inputs: Iterable[JsonDict], scores):
+    """Get target-class scores, as a 1D tensor.
+
+    Args:
+      inputs: list of input examples
+      scores: <tf.float32>[batch_size, num_classes], either logits or probas
+
+    Returns:
+      <tf.float32>[batch_size] target scores for each input
+    """
+    arg_max = tf.math.argmax(scores, axis=-1).numpy()
+    grad_classes = [
+        ex.get(self.config.label_name, arg_max[i])
+        for (i, ex) in enumerate(inputs)
+    ]
+    # Convert the class names to indices if needed.
+    grad_idxs = [
+        self.config.labels.index(label) if isinstance(label, str) else label
+        for label in grad_classes
+    ]
+    # list of tuples (batch idx, label idx)
+    gather_indices = list(enumerate(grad_idxs))
+    # <tf.float32>[batch_size]
+    return tf.gather_nd(scores, gather_indices), grad_idxs
+
   ##
   # LIT API implementation
   def max_minibatch_size(self):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-    # TODO(lit-dev): Unify on the TFBertEmbeddings.weight API after transformers
-    # is updated to v4.25.1 (or newer).
+    # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
+    # transformers is updated to v4.25.1 (or newer).
     if hasattr(self.model.bert.embeddings, "word_embeddings"):
       return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
     else:
@@ -402,7 +430,7 @@ class GlueModel(lit_model.BatchedModel):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-      # TODO(lit-dev): Unify on the TFBertEmbeddings.weight API after
+      # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
       # transformers is updated to v4.25.1 (or newer).
       if hasattr(self.model.bert.embeddings, "word_embeddings"):
         word_embeddings = self.model.bert.embeddings.word_embeddings
@@ -461,28 +489,20 @@ class GlueModel(lit_model.BatchedModel):
       if self.is_regression:
         # <tf.float32>[batch_size]
         batched_outputs["score"] = tf.squeeze(out.logits, axis=-1)
-        scalar_pred_for_gradients = batched_outputs["score"]
+        # <tf.float32>[batch_size], a single target per example
+        scalar_targets = batched_outputs["score"]
       else:
         # <tf.float32>[batch_size, num_labels]
         batched_outputs["probas"] = tf.nn.softmax(out.logits, axis=-1)
-
-        # If a class for the gradients has been specified in the input,
-        # calculate gradients for that class. Otherwise, calculate gradients for
-        # the arg_max class.
-        arg_max = tf.math.argmax(batched_outputs["probas"], axis=-1).numpy()
-        grad_classes = [ex.get("grad_class", arg_max[i]) for (i, ex) in
-                        enumerate(inputs)]
-        # Convert the class names to indices if needed.
-        grad_classes = [self.config.labels.index(label)
-                        if isinstance(label, str) else label
-                        for label in grad_classes]
-
-        gather_indices = list(enumerate(grad_classes))
-        # <tf.float32>[batch_size]
-        scalar_pred_for_gradients = tf.gather_nd(batched_outputs["probas"],
-                                                 gather_indices)
+        # <tf.float32>[batch_size], a single target per example
+        scalar_targets, grad_idxs = self.get_target_scores(
+            inputs, batched_outputs["probas"]
+        )
+        # TODO(b/294613507): remove once TCAV updated.
         if self.config.compute_grads:
-          batched_outputs["grad_class"] = tf.convert_to_tensor(grad_classes)
+          batched_outputs[self.config.label_name] = tf.convert_to_tensor(
+              grad_idxs
+          )
 
     # Request gradients after the tape is run.
     # Note: embs[0] includes position and segment encodings, as well as subword
@@ -490,7 +510,8 @@ class GlueModel(lit_model.BatchedModel):
     if self.config.compute_grads:
       # <tf.float32>[batch_size, num_tokens, emb_dim]
       batched_outputs["input_emb_grad"] = tape.gradient(
-          scalar_pred_for_gradients, input_embs)
+          scalar_targets, input_embs
+      )
 
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     # Sequence of dicts, one per example.
@@ -515,16 +536,15 @@ class GlueModel(lit_model.BatchedModel):
           required=False, vocab=self.config.labels)
 
     if self.config.output_embeddings:
-      # The input_embs_ and grad_class fields are used for Integrated Gradients.
+      # The input_embs_ fields are used for Integrated Gradients.
       text_a_embs = "input_embs_" + self.config.text_a_name
       ret[text_a_embs] = lit_types.TokenEmbeddings(
           align="tokens", required=False)
       if self.config.text_b_name:
         text_b_embs = "input_embs_" + self.config.text_b_name
         ret[text_b_embs] = lit_types.TokenEmbeddings(
-            align="tokens", required=False)
-    ret["grad_class"] = lit_types.CategoryLabel(required=False,
-                                                vocab=self.config.labels)
+            align="tokens", required=False
+        )
     return ret
 
   def output_spec(self) -> Spec:
@@ -548,7 +568,7 @@ class GlueModel(lit_model.BatchedModel):
       for i in range(1 + self.model.config.num_hidden_layers):
         ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
 
-      # The input_embs_ and grad_class fields are used for Integrated Gradients.
+      # The input_embs_ fields are used for Integrated Gradients.
       ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
           align="tokens_" + self.config.text_a_name)
       if self.config.text_b_name:
@@ -561,22 +581,26 @@ class GlueModel(lit_model.BatchedModel):
       ret["cls_grad"] = lit_types.Gradients(
           align=("score" if self.is_regression else "probas"),
           grad_for="cls_emb",
-          grad_target_field_key="grad_class"
+          grad_target_field_key=self.config.label_name,
       )
-      ret["grad_class"] = lit_types.CategoryLabel(required=False,
-                                                  vocab=self.config.labels)
+      if not self.is_regression:
+        ret[self.config.label_name] = lit_types.CategoryLabel(
+            required=False, vocab=self.config.labels
+        )
       if self.config.output_embeddings:
         text_a_token_grads = "token_grad_" + self.config.text_a_name
         ret[text_a_token_grads] = lit_types.TokenGradients(
             align="tokens_" + self.config.text_a_name,
             grad_for="input_embs_" + self.config.text_a_name,
-            grad_target_field_key="grad_class")
+            grad_target_field_key=self.config.label_name,
+        )
         if self.config.text_b_name:
           text_b_token_grads = "token_grad_" + self.config.text_b_name
           ret[text_b_token_grads] = lit_types.TokenGradients(
               align="tokens_" + self.config.text_b_name,
               grad_for="input_embs_" + self.config.text_b_name,
-              grad_target_field_key="grad_class")
+              grad_target_field_key=self.config.label_name,
+          )
 
     if self.config.output_attention:
       # Attention heads, one field for each layer.

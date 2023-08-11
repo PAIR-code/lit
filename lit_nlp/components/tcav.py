@@ -108,14 +108,52 @@ class TCAV(lit_components.Interpreter):
       compat_preds = isinstance(preds, types.MulticlassPreds)
       grad_for = output_spec.get(field_spec.grad_for)
       compat_grad_for = isinstance(grad_for, types.Embeddings)
-      # TODO(b/205996131): remove grad_target_field_key and just use
-      # ground-truth labels.
+      # TODO(b/205996131, b/294613507): remove grad_target_field_key and just
+      # use the target labels from the input, similar to salience methods.
       grad_target = output_spec.get(field_spec.grad_target_field_key)
       compat_grad_target = isinstance(grad_target, types.CategoryLabel)
       if compat_preds and compat_grad_for and compat_grad_target:
         return True
 
     return False
+
+  def get_predictions(
+      self,
+      model: lit_model.Model,
+      inputs: Sequence[JsonDict],
+      precomputed_outputs: Optional[Sequence[JsonDict]] = None,
+  ) -> list[JsonDict]:
+    """Get predictions with gradients w.r.t. argmax class."""
+    # Get outputs using model.predict().
+    if precomputed_outputs is None:
+      predictions = list(model.predict(inputs))
+    else:
+      predictions = precomputed_outputs
+
+    output_spec = model.output_spec()
+
+    # TCAV always operates on the predicted class, but LIT models typically
+    # compute gradients w.r.t. a specified target label.
+    # Make new examples here with this set.
+    target_fields = utils.find_spec_keys(output_spec, types.MulticlassPreds)
+    valid_target_fields = [
+        t for t in target_fields if getattr(output_spec[t], 'parent')
+    ]
+    modified_inputs = []
+    for ex, preds in zip(inputs, predictions, strict=True):
+      overrides = {}
+      for field in valid_target_fields:
+        label_idx = np.argmax(preds[field])
+        label = cast(types.MulticlassPreds, output_spec[field]).vocab[label_idx]
+        parent_field = getattr(output_spec[field], 'parent')
+        overrides[parent_field] = label
+      modified_inputs.append(utils.make_modified_input(ex, overrides, 'TCAV'))
+
+    # TODO(b/294613507): enable caching here for better performance?
+    # Any examples that were unmodified will already be cached, so this is only
+    # for cases where argmax pred != target label.
+    predictions = list(model.predict(modified_inputs))
+    return predictions
 
   def run(
       self,
@@ -169,11 +207,7 @@ class TCAV(lit_components.Interpreter):
     # Get the class that the gradients were computed for.
     grad_class_key = field_spec.grad_target_field_key
 
-    # Get outputs using model.predict().
-    if model_outputs is None:
-      predictions = list(model.predict(dataset_examples))
-    else:
-      predictions = model_outputs
+    predictions = self.get_predictions(model, dataset_examples, model_outputs)
 
     # If CAV is provided in config, then only calculate CAV similarity for
     # provided datapoints.
@@ -185,43 +219,67 @@ class TCAV(lit_components.Interpreter):
       }]
 
     ids_set = set(tcav_config.concept_set_ids)
-    concept_set = [ex for ex in dataset_examples if ex['_id'] in ids_set]
+    concept_set_preds = [
+        preds
+        for ex, preds in zip(dataset_examples, predictions)
+        if ex['_id'] in ids_set
+    ]
 
     if tcav_config.negative_set_ids:
       negative_ids_set = set(tcav_config.negative_set_ids)
-      negative_set = [
-          ex for ex in dataset_examples if ex['_id'] in negative_ids_set
+      negative_set_preds = [
+          preds
+          for ex, preds in zip(dataset_examples, predictions)
+          if ex['_id'] in negative_ids_set
       ]
-      return self._run_relative_tcav(grad_layer, emb_layer, grad_class_key,
-                                     concept_set, negative_set, predictions,
-                                     model, tcav_config)
+      return self._run_relative_tcav(
+          grad_layer,
+          emb_layer,
+          grad_class_key,
+          concept_set_preds,
+          negative_set_preds,
+          predictions,
+          tcav_config,
+      )
     else:
-      non_concept_set = [
-          ex for ex in dataset_examples if ex['_id'] not in ids_set
+      non_concept_set_preds = [
+          preds
+          for ex, preds in zip(dataset_examples, predictions)
+          if ex['_id'] not in ids_set
       ]
-      return self._run_default_tcav(grad_layer, emb_layer, grad_class_key,
-                                    concept_set, non_concept_set, predictions,
-                                    model, tcav_config)
+      return self._run_default_tcav(
+          grad_layer,
+          emb_layer,
+          grad_class_key,
+          concept_set_preds,
+          non_concept_set_preds,
+          predictions,
+          tcav_config,
+      )
 
   def _subsample(self, examples, n):
     return random.sample(examples, n) if n < len(examples) else examples
 
-  def _run_default_tcav(self, grad_layer, emb_layer, grad_class_key,
-                        concept_set, non_concept_set, dataset_outputs, model,
-                        config):
-    concept_outputs = list(model.predict(concept_set))
-    non_concept_outputs = list(model.predict(non_concept_set))
-
+  def _run_default_tcav(
+      self,
+      grad_layer,
+      emb_layer,
+      grad_class_key,
+      concept_outputs,
+      non_concept_outputs,
+      dataset_outputs,
+      config,
+  ):
     concept_results = []
     # If there are more concept set examples than non-concept set examples, we
     # use random splits of the concept examples as the concept set and use the
     # remainder of the dataset as the comparison set. Otherwise, we use random
     # splits of the non-concept examples as the comparison set.
-    n = min(len(concept_set), len(non_concept_set))
+    n = min(len(concept_outputs), len(non_concept_outputs))
 
     # If there are equal numbers of concept and non-concept examples, we
     # decrease n by one so that we also sample a different set in each TCAV run.
-    if len(concept_set) == len(non_concept_set):
+    if len(concept_outputs) == len(non_concept_outputs):
       n -= 1
     for _ in range(NUM_SPLITS):
       concept_split_outputs = self._subsample(concept_outputs, n)
@@ -262,12 +320,16 @@ class TCAV(lit_components.Interpreter):
     }
     return [results]
 
-  def _run_relative_tcav(self, grad_layer, emb_layer, grad_class_key,
-                         concept_set, negative_set, dataset_outputs, model,
-                         config):
-    positive_outputs = list(model.predict(concept_set))
-    negative_outputs = list(model.predict(negative_set))
-
+  def _run_relative_tcav(
+      self,
+      grad_layer,
+      emb_layer,
+      grad_class_key,
+      positive_outputs,
+      negative_outputs,
+      dataset_outputs,
+      config,
+  ):
     # Ideally, for relative TCAV, users would test concepts with at least ~100
     # examples each so we can perform ~15 runs on unique subsets.
     # In practice, users may not pass in this many examples, so to accommodate

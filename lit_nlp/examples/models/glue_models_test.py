@@ -106,12 +106,9 @@ class GlueModelsTest(parameterized.TestCase):
       else:
         self.assertFalse(field_spec.required)
 
-    # Check required fields in output spec, should be everything but grad_class.
+    # Check required fields in output spec.
     for key, field_spec in output_spec.items():
-      if key == "grad_class":
-        self.assertFalse(field_spec.required)
-      else:
-        self.assertTrue(field_spec.required)
+      self.assertTrue(field_spec.required)
 
     if expect_attention:
       self.assertLen(attention_fields, model.model.config.num_hidden_layers)
@@ -132,11 +129,6 @@ class GlueModelsTest(parameterized.TestCase):
       self.assertNotIn("cls_emb", output_spec)
       self.assertNotIn(text_a_embs, output_spec)
       self.assertNotIn(text_b_embs, output_spec)
-
-    if expect_grads:
-      self.assertIn("grad_class", output_spec)
-    else:
-      self.assertNotIn("grad_class", output_spec)
 
     if expect_embs and expect_grads:
       self.assertIn(text_a_token_grads, output_spec)
