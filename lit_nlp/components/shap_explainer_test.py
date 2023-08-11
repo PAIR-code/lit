@@ -48,7 +48,7 @@ class _EmptyTestModel(lit_model.Model):
   def output_spec(self) -> lit_types.Spec:
     return {}
 
-  def predict_minibatch(self, inputs, **kw):
+  def predict(self, inputs, **kw):
     return None
 
 

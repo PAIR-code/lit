@@ -82,10 +82,6 @@ class Model(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
-  def max_minibatch_size(self) -> int:
-    """Maximum minibatch size for this model."""
-    return 1
-
   @classmethod
   def init_spec(cls) -> Optional[Spec]:
     """Attempts to infer a Spec describing a Model's constructor parameters.
@@ -137,21 +133,9 @@ class Model(metaclass=abc.ABCMeta):
 
     Returns:
       (bool) True if the model can handle multiple concurrent calls to its
-      `predict_minibatch` method.
+      `predict` method.
     """
     return False
-
-  @abc.abstractmethod
-  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
-    """Run prediction on a batch of inputs.
-
-    Args:
-      inputs: sequence of inputs, following model.input_spec()
-
-    Returns:
-      list of outputs, following model.output_spec()
-    """
-    return
 
   def load(self, path: str):
     """Load and return a new instance of this model loaded from a new path.
@@ -194,41 +178,10 @@ class Model(metaclass=abc.ABCMeta):
     raise NotImplementedError('get_embedding_table() not implemented for ' +
                               self.__class__.__name__)
 
-  ##
-  # Concrete implementations of common functions.
+  @abc.abstractmethod
   def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
-    """Run prediction on a dataset.
-
-    This uses minibatch inference for efficiency, but yields per-example output.
-
-    This will also copy some NumPy arrays if they look like slices of a larger
-    tensor. This adds some overhead, but reduces memory leaks by allowing the
-    source tensor (which may be a large padded matrix) to be garbage collected.
-
-    Args:
-      inputs: iterable of input dicts
-      **kw: additional kwargs passed to predict_minibatch()
-
-    Returns:
-      model outputs, for each input
-    """
-    results = self._batched_predict(inputs, **kw)
-    results = (scrub_numpy_refs(res) for res in results)
-    return results
-
-  def _batched_predict(self, inputs: Iterable[JsonDict],
-                       **kw) -> Iterator[JsonDict]:
-    """Internal helper to predict using minibatches."""
-    minibatch_size = self.max_minibatch_size(**kw)
-    minibatch = []
-    for ex in inputs:
-      if len(minibatch) < minibatch_size:
-        minibatch.append(ex)
-      if len(minibatch) >= minibatch_size:
-        yield from self.predict_minibatch(minibatch, **kw)
-        minibatch = []
-    if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
-      yield from self.predict_minibatch(minibatch, **kw)
+    """Run prediction on a list of inputs and return the outputs."""
+    pass
 
 
 class ModelWrapper(Model):
@@ -250,15 +203,9 @@ class ModelWrapper(Model):
   def description(self) -> str:
     return self.wrapped.description()
 
-  def max_minibatch_size(self) -> int:
-    return self.wrapped.max_minibatch_size()
-
   @property
   def supports_concurrent_predictions(self):
     return self.wrapped.supports_concurrent_predictions
-
-  def predict_minibatch(self, inputs: list[JsonDict], **kw) -> list[JsonDict]:
-    return self.wrapped.predict_minibatch(inputs, **kw)
 
   def predict(
       self, inputs: Iterable[JsonDict], *args, **kw
@@ -285,10 +232,64 @@ class ModelWrapper(Model):
 class BatchedModel(Model):
   """Generic base class for the batched model.
 
-  Currently this is a no-op pass-through of Model class and will be updated
-  after moving users of Model class over.
+  Subclass needs to implement predict_minibatch() and optionally
+  max_minibatch_size().
   """
-  pass
+
+  def max_minibatch_size(self) -> int:
+    """Maximum minibatch size for this model."""
+    return 1
+
+  @property
+  def supports_concurrent_predictions(self):
+    return False
+
+  @abc.abstractmethod
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
+    """Run prediction on a batch of inputs.
+
+    Args:
+      inputs: sequence of inputs, following model.input_spec()
+
+    Returns:
+      list of outputs, following model.output_spec()
+    """
+    pass
+
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
+    """Run prediction on a dataset.
+
+    This uses minibatch inference for efficiency, but yields per-example output.
+
+    This will also copy some NumPy arrays if they look like slices of a larger
+    tensor. This adds some overhead, but reduces memory leaks by allowing the
+    source tensor (which may be a large padded matrix) to be garbage collected.
+
+    Args:
+      inputs: iterable of input dicts
+      **kw: additional kwargs passed to predict_minibatch()
+
+    Returns:
+      model outputs, for each input
+    """
+    results = self.batched_predict(inputs, **kw)
+    results = (scrub_numpy_refs(res) for res in results)
+    return results
+
+  def batched_predict(
+      self, inputs: Iterable[JsonDict], **kw
+  ) -> Iterator[JsonDict]:
+    """Internal helper to predict using minibatches."""
+    minibatch_size = self.max_minibatch_size(**kw)
+    minibatch = []
+    for ex in inputs:
+      if len(minibatch) < minibatch_size:
+        minibatch.append(ex)
+      if len(minibatch) >= minibatch_size:
+        yield from self.predict_minibatch(minibatch, **kw)
+        minibatch = []
+    if len(minibatch) > 0:  # pylint: disable=g-explicit-length-test
+      yield from self.predict_minibatch(minibatch, **kw)
 
 
 class BatchedRemoteModel(Model):

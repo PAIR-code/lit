@@ -33,8 +33,7 @@ class _CompatibilityTestModel(model.Model):
   def output_spec(self) -> types.Spec:
     return {}
 
-  def predict_minibatch(self,
-                        inputs: list[model.JsonDict]) -> list[model.JsonDict]:
+  def predict(self, inputs: list[model.JsonDict]) -> list[model.JsonDict]:
     return []
 
 
@@ -77,7 +76,7 @@ class _SavedTestModel(model.Model):
   def output_spec(self) -> types.Spec:
     return {}
 
-  def predict_minibatch(self, *args, **kwargs) -> list[types.JsonDict]:
+  def predict(self, *args, **kwargs) -> list[types.JsonDict]:
     return []
 
 

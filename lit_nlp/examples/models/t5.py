@@ -423,13 +423,6 @@ class TranslationWrapper(lit_model.ModelWrapper):
   def description(self) -> str:
     return "T5 for machine translation\n" + self.wrapped.description()
 
-  # TODO(b/170662608): remove these after batching API is cleaned up.
-  def max_minibatch_size(self) -> int:
-    raise NotImplementedError("Use predict() instead.")
-
-  def predict_minibatch(self, inputs):
-    raise NotImplementedError("Use predict() instead.")
-
   def predict(self, inputs):
     """Predict on a single minibatch of examples."""
     model_inputs = (self.preprocess(ex) for ex in inputs)
@@ -478,13 +471,6 @@ class SummarizationWrapper(lit_model.ModelWrapper):
   # LIT API implementation
   def description(self) -> str:
     return "T5 for summarization\n" + self.wrapped.description()
-
-  # TODO(b/170662608): remove these after batching API is cleaned up.
-  def max_minibatch_size(self) -> int:
-    raise NotImplementedError("Use predict() instead.")
-
-  def predict_minibatch(self, inputs):
-    raise NotImplementedError("Use predict() instead.")
 
   def predict(self, inputs):
     """Predict on a single minibatch of examples."""
