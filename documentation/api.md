@@ -193,9 +193,8 @@ of three methods:
     fields
 *   `output_spec()` should return a flat dict that describes the model's
     predictions and any additional outputs
-*   `predict_minibatch()` and/or `predict()` should take a sequence of inputs
-    (satisfying `input_spec()`) and yields a parallel sequence of outputs
-    matching `output_spec()`.
+*   `predict()` should take a sequence of inputs (satisfying `input_spec()`) and
+    yields a parallel sequence of outputs matching `output_spec()`.
 
 Implementations should subclass
 [`Model`](../lit_nlp/api/model.py). An example for
@@ -234,14 +233,16 @@ class NLIModel(Model):
 ```
 
 Unlike the dataset example, this model implementation is incomplete - you'll
-need to customize `predict()` (or `predict_minibatch()`) accordingly with any
-pre- or post-processing needed, such as tokenization.
+need to customize `predict()` accordingly with any pre- or post-processing
+needed, such as tokenization.
 
-Note: The `Model` base class implements simple batching, aided by the
-`max_minibatch_size()` function. This is purely for convenience, since most deep
-learning models will want this behavior. But if you don't need it, you can
-simply override the `predict()` function directly and handle large inputs
-accordingly.
+Many deep learning models support a batched prediction behavior. Thus, we
+provide the `BatchedModel` class that implements simple batching. Users of this 
+class must implement the `predict_minibatch()` function, which should convert
+a `Sequence` of `JsonDict` objects to the appropriate batch representation
+(typically, a `Mapping` of strings to aligned `Sequences` or `Tensors`) before
+calling the model. Optionally, you may want to override the
+`max_minibatch_size()` function, which determines the batch size.
 
 Note: there are a few additional methods in the model API - see
 [`Model`](../lit_nlp/api/model.py) for details.
@@ -318,11 +319,11 @@ can accept pre-tokenized inputs might have the following spec:
       }
 ```
 
-And in the model's `predict()` or `predict_minibatch()`, you would have logic to
-use these and bypass the tokenizer:
+And in the model's `predict()`, you would have logic to use these and bypass the
+tokenizer:
 
 ```python
-    def predict_minibatch(inputs):
+    def predict(inputs):
       input_tokens = [ex.get('tokens') or self.tokenizer.tokenize(ex['text'])
                       for ex in inputs]
       # ...rest of your predict logic...
@@ -818,7 +819,7 @@ Name                      | Description                                         
 `TextSegment`             | Natural language text, untokenized.                                                                                                                                   | `string`
 `GeneratedText`           | Untokenized text, generated from a model (such as seq2seq).                                                                                                           | `string`
 `URL`                     | TextSegment, but interpreted as a URL.                                                                                                                                | `string`
-`GeneratedURL`            | Genrated TextSegment, but interpreted as a URL (i.e., it maye not be real/is inappropriate as a label).                                                               | `string`
+`GeneratedURL`            | Generated TextSegment, but interpreted as a URL (i.e., it maye not be real/is inappropriate as a label).                                                              | `string`
 `SearchQuery`             | TextSegment, but interpreted as a search query.                                                                                                                       | `string`
 `String`                  | Opaque string data; ignored by components such as perturbation methods that operate on natural language.                                                              | `string`
 `ReferenceTexts`          | Multiple texts, such as a set of references for summarization or MT.                                                                                                  | `List[Tuple[string, float]]`

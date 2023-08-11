@@ -28,8 +28,8 @@ every invocation.) Generally, you'll need to:
 
 *   In your model's `__init__()`, build the graph, create a persistent TF
     session, and load the model weights.
-*   In your `predict()` or `predict_minibatch()` function, build a feed dict and
-    call `session.run` directly.
+*   In your `predict()` function, build a feed dict and call `session.run`
+    directly.
 
 Alternatively, you can export to a `SavedModel` and load this in an eager mode
 runtime. This leads to much simpler code (see
