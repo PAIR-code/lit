@@ -141,7 +141,7 @@ export class ScalarModule extends LitModule {
   }
 
   override firstUpdated() {
-    this.reactImmediately(
+    this.react(
         () => this.classificationService.allMarginSettings,
         () => {
           for (const [id, {model, key, xScale}] of this.plots.entries()) {
@@ -169,7 +169,7 @@ export class ScalarModule extends LitModule {
       // the DataService instead.
       this.dataService.dataVals
     ];
-    this.reactImmediately(getDataChanges, () => {
+    this.react(getDataChanges, () => {
       for (const info of this.plots.values()) {
         info.points?.clear();
         delete info.points;

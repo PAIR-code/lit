@@ -396,12 +396,11 @@ export class DataTableModule extends LitModule {
     });
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     const updateColsChange = () =>
-        [this.appState.currentModels, this.appState.currentDataset, this.keys];
-    this.reactImmediately(updateColsChange, () => {
-      this.updateColumns();
-    });
+      [this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.react(updateColsChange, () => {this.updateColumns();});
   }
 
   private updateColumns() {
