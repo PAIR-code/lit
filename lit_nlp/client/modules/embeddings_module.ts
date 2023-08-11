@@ -336,10 +336,13 @@ export class EmbeddingsModule extends LitModule {
       rotateOnStart: false
     });
 
-    this.setupReactions();
-
     // Resize the scatter GL container.
     this.resizeObserver.observe(container);
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    this.setupReactions();
   }
 
   /**
@@ -347,9 +350,6 @@ export class EmbeddingsModule extends LitModule {
    */
   private setupReactions() {
     // Don't react immediately; we'll wait and make a single update.
-    this.react(() => this.dataService.dataVals, () => {
-      this.updateScatterGL();
-    });
     this.react(() => this.selectedSpriteIndex, () => {
       this.computeSpriteMap();
     });
@@ -359,16 +359,19 @@ export class EmbeddingsModule extends LitModule {
     // updates (e.g. if another component is adding several datapoints).
     // TODO(lit-dev): consider putting this delay somewhere shared,
     // like the LitModule class.
-    const embeddingRecomputeData = () =>
-        [this.appState.currentInputData, this.selectedEmbeddingsIndex,
-         this.projectorName];
-    this.reactImmediately(embeddingRecomputeData, () => {
-      this.computeProjectedEmbeddings();
-    }, {delay: 0.2});
+    const embeddingRecomputeData = () => [
+      this.appState.currentInputData, this.selectedEmbeddingsIndex,
+      this.projectorName
+    ];
+    this.reactImmediately(
+        embeddingRecomputeData,
+        () => {this.computeProjectedEmbeddings();},
+        {delay: 0.2});
 
     // Actually render the points.
     const dataChanges = () => [
-      this.scatterGLDataset, this.colorService.selectedColorOption
+      this.dataService.dataVals, this.scatterGLDataset,
+      this.colorService.selectedColorOption
     ];
     this.reactImmediately(dataChanges, () => {this.updateScatterGL();});
 
@@ -378,6 +381,7 @@ export class EmbeddingsModule extends LitModule {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
           this.scatterGL?.select(selectedIndices);
         });
+
     this.reactImmediately(() => this.focusService.focusData, () => {
       // If the module is still loading, then the div#scatter-gl-container will
       // be hidden, so don't bother setting the hover index if the user can't

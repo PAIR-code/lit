@@ -72,13 +72,16 @@ export class WidgetGroup extends ReactiveElement {
     return [sharedStyles, widgetGroupStyles];
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
 
-    this.reactImmediately(() => this.configGroup, configGroup => {
-      this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
-    });
+    this.react(
+        () => this.configGroup,
+        (configGroup) => {
+          this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
+        });
   }
 
   override render() {
@@ -203,9 +206,9 @@ export class WidgetGroup extends ReactiveElement {
     // Set sub-component dimensions based on the container.
     const widgetStyle = {width: '100%', height: '100%'};
     if (this.duplicateAsRow) {
-      widgetStyle['width'] = `${100 / configGroup.length}%`;
+      widgetStyle.width = `${100 / configGroup.length}%`;
     } else {
-      widgetStyle['height'] = `${100 / configGroup.length}%`;
+      widgetStyle.height = `${100 / configGroup.length}%`;
     }
     // For clicks on the maximized-module darkened background, undo the
     // module maximization.
