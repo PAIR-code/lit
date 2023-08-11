@@ -174,18 +174,18 @@ export class DatapointEditorModule extends LitModule {
       this.sparseMultilabelInputKeys);
   }
 
-  override firstUpdated() {
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.reactImmediately(getCurrentDataset, () => {
-      when(() => this.appState.currentInputDataIsLoaded, () => {
-        this.resize();
-      });
-    });
-
-    this.reactImmediately(
-        () => this.selectionService.primarySelectedInputData, unusedData => {
-          this.resetEditedData();
+  override connectedCallback() {
+    super.connectedCallback();
+    this.react(
+        () => this.appState.currentDataset,
+        () => {
+          when(() => this.appState.currentInputDataIsLoaded,
+               () => {this.resize();});
         });
+
+    this.react(
+        () => this.selectionService.primarySelectedInputData,
+        () => {this.resetEditedData();});
   }
 
   override updated() {
@@ -450,18 +450,14 @@ export class DatapointEditorModule extends LitModule {
 
     const inputStyle = {'height': this.inputHeights[key]};
     // Render a multi-line text input.
-    const renderFreeformInput = () => {
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange} .value=${value}></textarea>`;
-    };
+    const renderFreeformInput =
+        () => html`<textarea class="input-box" style="${styleMap(inputStyle)}"
+          @input=${handleInputChange}>${value}</textarea>`;
 
     // Render a single-line text input.
-    const renderShortformInput = () => {
-      return html`
-      <input type="text" class="input-short" @input=${handleInputChange}
-        .value=${value} />`;
-    };
+    const renderShortformInput =
+        () => html`<input type="text" class="input-short"
+          @input=${handleInputChange} .value=${value} />`;
 
     // Render a single-line text input, and convert entered value to a number.
     const renderNumericInput = () => {
@@ -477,11 +473,11 @@ export class DatapointEditorModule extends LitModule {
         html`<div class="monospace-label">${formatSpanLabel(d)}</div>`;
 
     // Non-editable render for span labels.
-    const renderSpanLabelsNonEditable = () => {
-      return html`<div>${
+    const renderSpanLabelsNonEditable =
+        () => html`<div>${
           value ? (value as SpanLabel[]).map(renderSpanLabel) : null}</div>`;
-    };
-    // Non-editable render for edge labels.
+
+          // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
         return html`<div class="monospace-label">${formatEdgeLabel(d)}</div>`;

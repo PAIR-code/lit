@@ -142,9 +142,10 @@ export class FacetingControl extends ReactiveElement {
     }
   }
 
-  override firstUpdated() {
-    const numericFeatures = () => this.groupService.denseFeatureNames;
-    this.reactImmediately(numericFeatures, () => {this.reset();});
+  override connectedCallback() {
+    super.connectedCallback();
+    this.react(
+        () => this.groupService.denseFeatureNames, () => {this.reset();});
   }
 
   /**
