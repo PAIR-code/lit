@@ -122,31 +122,21 @@ export class LitModules extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     // We set up a callback in the modulesService to allow it to explicitly
     // trigger a rerender of this component when visible modules have been
     // updated by the user. Normally we'd do this in a reactive way, but we'd
     // like as fine-grain control over layout rendering as possible.
-    this.modulesService.setRenderModulesCallback(() => {
-      this.requestUpdate();
-    });
+    this.modulesService.setRenderModulesCallback(
+        () => {this.requestUpdate();});
 
-    const container =
-        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
-    this.resizeObserver.observe(container);
-
-    this.reactImmediately(
+    this.react(
       () => this.modulesService.getSetting('mainHeight'),
       (mainHeight) => {
         if (mainHeight != null) {this.mainSectionHeight = Number(mainHeight);}
       });
 
-    this.reactImmediately(
-        () => this.modulesService.getRenderLayout(), renderLayout => {
-          this.calculateAllWidths(renderLayout);
-        });
-
-    // Escape key to exit full-screen modules.
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         for (const e of this.shadowRoot!.querySelectorAll(
@@ -155,6 +145,17 @@ export class LitModules extends ReactiveElement {
         }
       }
     });
+  }
+
+  override firstUpdated() {
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
+    this.resizeObserver.observe(container);
+
+    // Reaction added after the first render pass so that sizes are computed.
+    this.react(
+        () => this.modulesService.getRenderLayout(),
+        (renderLayout) => {this.calculateAllWidths(renderLayout);});
   }
 
   calculateAllWidths(renderLayout: LitRenderConfig) {
