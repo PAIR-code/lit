@@ -101,16 +101,11 @@ class PredsCache(object):
     return self._lock
 
   def put(self, data, key: CacheKey):
-    if key is None:
-      logging.info("Ignoring put(data, None) due to sentinel values in key.")
-      return
-    self._d[key] = data
+    if key is not None:
+      self._d[key] = data
 
   def get(self, key: CacheKey) -> Optional[Any]:
-    if key is None:
-      logging.info("Ignoring get(None) due to sentinel values in key.")
-      return None
-    return self._d.get(key, None)
+    return self._d.get(key) if key is not None else None
 
   def info(self) -> str:
     """Print some info, for logging."""
