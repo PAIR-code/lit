@@ -43,6 +43,7 @@ export class UrlConfiguration {
   dataFields: {[key: number]: Input} = {};
   selectedDataset?: string;
   hiddenModules: string[] = [];
+  expandedModule?: string;
   compareExamplesEnabled?: boolean;
   layoutName?: string;
   /** Path to load a new dataset from, on pageload. */
@@ -77,6 +78,7 @@ export interface StateObservedByUrlService {
  */
 export interface ModulesObservedByUrlService {
   hiddenModuleKeys: Set<string>;
+  expandedModuleKey: string;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
   selectedTabUpper: string;
   selectedTabLower: string;
@@ -109,6 +111,7 @@ const PINNED_SELECTED_DATA_KEY = 'pinned';
 const SELECTED_DATASET_KEY = 'dataset';
 const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
+const EXPANDED_MODULE_KEY = 'expanded_module';
 const DOC_OPEN_KEY = 'doc_open';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
@@ -185,6 +188,8 @@ export class UrlService extends LitService {
         urlConfiguration.selectedDataset = this.urlParseString(value);
       } else if (key === HIDDEN_MODULES_KEY) {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
+      } else if (key === EXPANDED_MODULE_KEY) {
+        urlConfiguration.expandedModule = this.urlParseString(value);
       } else if (key === DOC_OPEN_KEY) {
         urlConfiguration.documentationOpen = this.urlParseBoolean(value);
       } else if (key === SELECTED_TAB_UPPER_KEY) {
@@ -309,6 +314,8 @@ export class UrlService extends LitService {
       // Syncing hidden modules
       this.setUrlParam(
           urlParams, HIDDEN_MODULES_KEY, [...modulesService.hiddenModuleKeys]);
+      this.setUrlParam(
+          urlParams, EXPANDED_MODULE_KEY, modulesService.expandedModuleKey);
 
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
       this.setUrlParam(

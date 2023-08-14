@@ -75,6 +75,7 @@ export class WidgetGroup extends ReactiveElement {
   override firstUpdated() {
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
+    this.maximized = this.initMaximized();
 
     this.reactImmediately(() => this.configGroup, configGroup => {
       this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
@@ -95,13 +96,14 @@ export class WidgetGroup extends ReactiveElement {
     // Maximization.
     const onMaxClick = () => {
       this.maximized = !this.maximized;
+      this.setMaximized(this.maximized);
       this.setMinimized(false);
     };
 
     // Minimization.
     const onMinClick = () => {
       this.setMinimized(!this.minimized);
-      this.maximized = false;
+      this.setMaximized(false);
     };
 
     // Titlebar: restore if minimized, otherwise nothing.
@@ -284,6 +286,11 @@ export class WidgetGroup extends ReactiveElement {
     return this.modulesService.isModuleGroupHidden(config);
   }
 
+  private initMaximized() {
+    const config = this.configGroup[0];
+    return this.modulesService.isModuleGroupExpanded(config);
+  }
+
   private setMinimized(isMinimized: boolean) {
     const config = this.configGroup[0];
     this.modulesService.toggleHiddenModule(config, isMinimized);
@@ -292,8 +299,13 @@ export class WidgetGroup extends ReactiveElement {
         'widget-group-minimized-changed', {detail: {isMinimized}});
     this.dispatchEvent(event);
   }
-}
 
+  private setMaximized(isMaximized: boolean) {
+    const config = this.configGroup[0];
+    this.modulesService.toggleExpandedModule(config, isMaximized);
+    this.maximized = isMaximized;
+  }
+}
 
 
 /**

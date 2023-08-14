@@ -137,6 +137,7 @@ export class ModulesService extends LitService implements
     this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
   }
   @observable hiddenModuleKeys = new Set<string>();
+  @observable expandedModuleKey = '';
   allModuleKeys = new Set<string>();
 
   @action
@@ -165,8 +166,13 @@ export class ModulesService extends LitService implements
     this.hiddenModuleKeys = nextHiddenModuleKeys;
   }
 
+  setExpandedModule(key: string) {
+    this.expandedModuleKey = key;
+  }
+
   setUrlConfiguration(urlConfiguration: UrlConfiguration) {
     this.setHiddenModules(urlConfiguration.hiddenModules);
+    this.setExpandedModule(urlConfiguration.expandedModule ?? '');
     this.selectedTabUpper = urlConfiguration.selectedTabUpper ?? '';
     this.selectedTabLower = urlConfiguration.selectedTabLower ?? '';
   }
@@ -175,11 +181,23 @@ export class ModulesService extends LitService implements
     return this.hiddenModuleKeys.has(config.key);
   }
 
+  isModuleGroupExpanded(config: RenderConfig) {
+    return this.expandedModuleKey === config.key;
+  }
+
   toggleHiddenModule(config: RenderConfig, isHidden: boolean) {
     if (isHidden) {
       this.hiddenModuleKeys.add(config.key);
     } else {
       this.hiddenModuleKeys.delete(config.key);
+    }
+  }
+
+  toggleExpandedModule(config: RenderConfig, isExpanded: boolean) {
+    if (isExpanded) {
+      this.expandedModuleKey = config.key;
+    } else {
+      this.expandedModuleKey = '';
     }
   }
 
