@@ -749,6 +749,8 @@ export class DataTable extends ReactiveElement {
 
     const changePage = (offset: number) => {
       this.pageNum = modPageNumber(this.pageNum + offset);
+      this.tableTextCells?.forEach(t => {t.expanded = false;});
+      this.hasExpandedCells = false;
     };
     const firstPage = () => {
       this.pageNum = 0;
