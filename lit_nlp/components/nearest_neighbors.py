@@ -36,7 +36,6 @@ class NearestNeighborsConfig(object):
   """Config options for Nearest Neighbors component."""
   embedding_name: str = ''
   num_neighbors: Optional[int] = 10
-  dataset_name: Optional[str] = ''
   use_input: Optional[bool] = False
 
 
@@ -71,7 +70,6 @@ class NearestNeighbors(lit_components.Interpreter):
       config: a config which should specify:
         {
           'num_neighbors': [the number of nearest neighbors to return]
-          'dataset_name': [the name of the dataset (used for caching)]
           'embedding_name': [the name of the embedding field to use]
           'use_input': [Optional boolean if the embedding comes from input data]
         }
