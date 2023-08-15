@@ -84,7 +84,6 @@ class RemoteModel(lit_model.BatchedModel):
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     # Package data as IndexedInput with dummy ids.
     indexed_inputs = [{'id': None, 'data': d} for d in inputs]
-    # Omit dataset_name to bypass remote cache.
     logging.info('Querying remote model: /get_preds on %d examples',
                  len(indexed_inputs))
     preds = query_lit_server(

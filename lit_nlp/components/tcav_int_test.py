@@ -103,7 +103,6 @@ class ModelBasedTCAVTest(parameterized.TestCase):
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0,
-        'dataset_name': 'test'
     }
 
     result = self.tcav.run(
@@ -178,7 +177,6 @@ class ModelBasedTCAVTest(parameterized.TestCase):
         'class_to_explain': '1',
         'grad_layer': 'cls_grad',
         'random_state': 0,
-        'dataset_name': 'test',
     }
 
     # Don't use utils.make_modified_input here, because we need to match the

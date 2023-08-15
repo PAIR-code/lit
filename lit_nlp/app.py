@@ -249,7 +249,6 @@ class LitApp(object):
   def _get_preds(self,
                  data: types.JsonDict,
                  model: Optional[str] = None,
-                 dataset_name: Optional[str] = None,
                  requested_types: Optional[str] = None,
                  requested_fields: Optional[str] = None,
                  **kw):
@@ -258,7 +257,6 @@ class LitApp(object):
     Args:
       data: data payload, containing 'inputs' field
       model: name of the model to run
-      dataset_name: name of the active dataset
       requested_types: optional, comma-separated list of type names to return
       requested_fields: optional, comma-separated list of field names to return
         in addition to the ones returned due to 'requested_types'.
@@ -275,8 +273,6 @@ class LitApp(object):
     """
     if model is None:
       raise ValueError('Must provide a "model" name to get preds from.')
-    if dataset_name is None:
-      raise ValueError('Must provide a "dataset_name" to predict over.')
 
     inputs = data['inputs']
     preds = list(self._models[model].predict(
@@ -581,20 +577,23 @@ class LitApp(object):
           config, config_spec, f'{interpreter} ({type(interp).__name__})'
       )
 
+    model_inputs = [ex['data'] for ex in data['inputs']]
+
     # Get model preds before the interpreter call. Usually these are cached.
     # TODO(b/278586715): See if we can remove this path and just allow
     # interpreters to call the model directly.
     if utils.coerce_bool(do_predict):
-      # Workaround so that interpreters can skip the _get_preds() call when it
+      # Workaround so that interpreters can skip the predict() call when it
       # is unnecessary and may be slow.
-      # TODO(b/278586715): Remove this once we can support caching for predict
-      # calls made from inside interpreters.
-      model_outputs = self._get_preds(data, model, dataset_name)
+      # TODO(b/278586715): Remove this once we can ensure that model_outputs
+      # can be removed from the Interpreter API.
+      model_outputs = list(mdl.predict(model_inputs))
+      assert len(model_outputs) == len(model_inputs)
     else:
       model_outputs = None
 
     return interp.run(
-        [ex['data'] for ex in data['inputs']],
+        model_inputs,
         mdl,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
@@ -656,7 +655,7 @@ class LitApp(object):
       metrics_to_run = tuple(self._metrics.keys())
 
     if utils.coerce_bool(do_predict):
-      model_outputs = self._get_preds(data, model, dataset_name)
+      model_outputs = self._get_preds(data=data, model=model)
     else:
       model_outputs = None
 
@@ -757,9 +756,8 @@ class LitApp(object):
                        len(examples), len(all_examples))
         else:
           examples = all_examples
-        _ = self._get_preds({'inputs': examples},
-                            model,
-                            dataset_name,
+        _ = self._get_preds(data={'inputs': examples},
+                            model=model,
                             progress_indicator=progress_indicator)
 
   def _warm_projections(self, interpreters: list[str]):
@@ -783,7 +781,10 @@ class LitApp(object):
                 proj_kw={'n_components': 3})
             data = {'inputs': [], 'config': config}
             _ = self._get_interpretations(
-                data, model, dataset_name, interpreter=interpreter_name)
+                data=data,
+                model=model,
+                dataset_name=dataset_name,
+                interpreter=interpreter_name)
 
   def _run_annotators(self,
                       dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:

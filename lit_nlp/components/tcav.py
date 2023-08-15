@@ -46,7 +46,6 @@ class TCAVConfig(object):
   concept_set_ids: list[str] = []
   class_to_explain: str = ''
   grad_layer: str = ''
-  dataset_name: str = ''
   # Percentage of the example set to use in the test set when training the LM.
   test_size: Optional[float] = 0.33
   random_state: Optional[int] = 42
@@ -174,7 +173,6 @@ class TCAV(lit_components.Interpreter):
           'class_to_explain': [gradient class to explain],
           'grad_layer': [the Gradient field key of the layer to explain],
           'random_state': [an optional seed to make outputs deterministic]
-          'dataset_name': [the name of the dataset (used for caching)]
           'test_size': [Percentage of the example set to use in the LM test set]
           'negative_set_ids': [optional list of ids to use as negative set] }
 
