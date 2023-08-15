@@ -59,6 +59,12 @@ export class SliceModule extends LitModule {
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
+  // TODO(b/204677206): Using document.createElement() here may be inducing this
+  // module to schedule an update while another update is already in progress.
+  // Note that this was introduced in cl/463915592 in order to preserve the
+  // facet control instance when the SliceModule is not rendered. Now that this
+  // module has been moved to the app toolbar, it's possible that we no longer
+  // need to preserve this mechanically and can instead rely on HTML templates.
   private readonly facetingControl = document.createElement('faceting-control');
   private sliceByBins: NumericFeatureBins = {};
 
@@ -87,8 +93,7 @@ export class SliceModule extends LitModule {
         // Making a slice from filters (name generated based on filters).
         sliceFromFilters ||
         // Making a slice from selected points (must give a name)
-        (this.sliceName !== null) && (this.sliceName !== '') &&
-            (this.selectionService.selectedIds.length > 0));
+        this.sliceName && this.selectionService.selectedIds.length > 0);
   }
 
   @computed
@@ -143,9 +148,9 @@ export class SliceModule extends LitModule {
     const onClickCreate = () => {
       this.handleClickCreate();
     };
+
     const onInputChange = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.sliceName = (e as any).target.value;
+      this.sliceName = (e.target as HTMLInputElement).value;
     };
 
     const onKeyUp = (e: KeyboardEvent) => {

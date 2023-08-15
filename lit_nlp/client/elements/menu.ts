@@ -84,10 +84,11 @@ export class MenuToolbar extends MobxLitElement {
 @customElement('lit-menu')
 export class LitMenu extends LitElement {
   @property({type: Array}) items: MenuItem[] = [];
-  @property({type: String}) name: string = '';
+  @property({type: String}) name = '';
 
-  @query('#menu') menu!: Menu;
-  @query('#menu_button') button!: HTMLElement;
+  @query('#menu') menu?: Menu;
+  @query('#menu_button') button?: HTMLElement;
+
   private readonly menuId = 'menu';
   private readonly buttonId = 'menu_button';
 
@@ -118,6 +119,12 @@ export class LitMenu extends LitElement {
       const itemId = this.getItemId(menuId, index);
       const submenuId = this.getSubmenuId(itemId);
 
+      // TODO(b/204677206): The following code block triggers an additonal
+      // update loop after the first render because it changes the structure and
+      // observed properties of the HTML elements created by this.render(). The
+      // only fix for this is to re-architect this module to build the menu
+      // recursively from the start, instead of rendering and then restructuring
+      // the menu elements after the fact.
       const itemElement =
           this.shadowRoot!.querySelector(`#${itemId}`) as HTMLElement;
       const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
@@ -249,10 +256,9 @@ export class LitMenu extends LitElement {
       if (this.menu == null) return;
       if (!this.menuOpen) {
         this.menu.show();
-        this.button.focus();
+        this.button?.focus();
       } else {
-        if (this.button == null) return;
-        this.button.blur();  // Remove focus from button if the menu is closed.
+        this.button?.blur();  // Remove focus from button if the menu is closed.
       }
     };
 

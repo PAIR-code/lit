@@ -143,8 +143,7 @@ export class ColorLegend extends ReactiveElement {
    * a categorical legendType which width exceeds legendWidth
    */
    private renderLegendBlock(val: string|number, hideLabels: boolean) {
-    const background = this.scale(val);
-    const style = styleMap({'background': background});
+    const style = styleMap({'background': this.scale(val)});
 
     // clang-format off
     return html`
@@ -168,11 +167,10 @@ export class ColorLegend extends ReactiveElement {
    */
   private renderSequentialBlock(startVal: string|number, endVal: number|string,
     colorVal: string|number, includeMax = false) {
-    const title = startVal === endVal ? startVal :
-            includeMax ? `[${startVal}, ${endVal}]`
-                       : `[${startVal}, ${endVal})`;
-    const background = this.scale(colorVal);
-    const style = styleMap({'background': background});
+    const title =
+        startVal === endVal ? startVal :
+        includeMax ? `[${startVal}, ${endVal}]` : `[${startVal}, ${endVal})`;
+    const style = styleMap({'background': this.scale(colorVal)});
 
     // clang-format off
     return html`
@@ -202,7 +200,6 @@ export class ColorLegend extends ReactiveElement {
       <div class="color-label" name="color-name">
         ${this.label}
       </div>
-
       ${this.scale.domain().map(
           (val: string|number) => this.renderLegendBlock(val, hideLabels))}
     `;
@@ -231,7 +228,6 @@ export class ColorLegend extends ReactiveElement {
       <div class="color-label" name="color-name">
         ${this.label}
       </div>
-
       <div class='legend-label'>${this.toStringValue(minValue)}</div>
       ${domain.map((colorVal: number) => {
         if (colorVal !== minValue) {
