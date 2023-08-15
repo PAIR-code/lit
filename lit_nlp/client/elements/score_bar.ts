@@ -18,7 +18,7 @@
 import {property} from 'lit/decorators.js';
 import {customElement} from 'lit/decorators.js';
 import {css, html, LitElement} from 'lit';
-import {styleMap} from 'lit/directives/style-map.js';
+import {styleMap, StyleInfo} from 'lit/directives/style-map.js';
 
 const PRED_TITLE = 'The predicted label';
 const TRUTH_TITLE = 'The ground truth label';
@@ -33,6 +33,7 @@ export class ScoreBar extends LitElement {
   // Maximum score to be displayed by the score bar.
   @property({type: Number}) maxScore = 1;
   @property({type: Number}) scorePrecision = 3;
+  @property({type: String}) barColor?: string;
 
   static override get styles() {
     return css`
@@ -63,7 +64,12 @@ export class ScoreBar extends LitElement {
   override render() {
     const normalizedScore = this.score / this.maxScore;
     const scale = 90;
-    const barStyle = {'width': `${scale * normalizedScore}%`};
+    const barStyle: StyleInfo = {'width': `${scale * normalizedScore}%`};
+
+    if (this.barColor) {
+      barStyle['background-color'] = this.barColor;
+    }
+
     return html`
         <div class='holder'>
           <div class='bar' style='${styleMap(barStyle)}'></div>
@@ -82,6 +88,7 @@ export class AnnotatedScoreBar extends LitElement {
   @property({type: Boolean}) isPredicted = false;
   @property({type: Boolean}) isTruth = false;
   @property({type: Number}) value = 0;
+  @property({type: String}) barColor?: string;
 
   static override get styles() {
     return css`
@@ -100,7 +107,8 @@ export class AnnotatedScoreBar extends LitElement {
 
   override render() {
     return html`<div class="annotated-cell">
-      <score-bar score=${this.value} maxScore=${1}></score-bar>
+      <score-bar score=${this.value} maxScore=${1}
+        .barColor=${this.barColor}></score-bar>
       <lit-tooltip content="${PRED_TITLE}">
         <div class="indicator" slot="tooltip-anchor">
           ${this.isPredicted ? 'P' : null}

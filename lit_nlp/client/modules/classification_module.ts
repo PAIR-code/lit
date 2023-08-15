@@ -31,7 +31,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
-import {DataService, SelectionService} from '../services/services';
+import {ColorService, DataService, SelectionService} from '../services/services';
 
 import {styles} from './classification_module.css';
 
@@ -41,6 +41,7 @@ interface DisplayInfo {
   value: number;
   isTruth: boolean;
   isPredicted: boolean;
+  color?: string;
 }
 
 interface LabelRows {
@@ -79,6 +80,7 @@ export class ClassificationModule extends LitModule {
     return doesOutputSpecContain(modelSpecs, MulticlassPreds);
   }
 
+  private readonly colorService = app.getService(ColorService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
@@ -86,11 +88,16 @@ export class ClassificationModule extends LitModule {
   @observable private sparseMode = false;
   @observable private labeledPredictions: LabeledPredictions = {};
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     const getSelectionChanges = () => [
-      this.appState.compareExamplesEnabled, this.appState.currentModels,
-      this.pinnedSelectionService.primarySelectedInputData, this.sparseMode,
-      this.selectionService.primarySelectedInputData, this.dataService.dataVals
+      this.appState.compareExamplesEnabled,
+      this.appState.currentModels,
+      this.colorService.selectedColorOption,
+      this.pinnedSelectionService.primarySelectedInputData,
+      this.sparseMode,
+      this.selectionService.primarySelectedInputData,
+      this.dataService.dataVals
     ];
     this.reactImmediately(getSelectionChanges, () => {this.updateSelection();});
   }
@@ -116,9 +123,6 @@ export class ClassificationModule extends LitModule {
     }
 
     // Create an expansion panel for each <model, predicition head> pair
-    // TODO(ryanmullins) Adjust logic so that models with the same output_spec
-    // are grouped into the same expansion panel, using the prediciton head as
-    // the panel label.
     for (const model of this.appState.currentModels) {
       const labeledPredictions = this.parseResult(model, data);
       Object.assign(this.labeledPredictions, labeledPredictions);
@@ -137,12 +141,17 @@ export class ClassificationModule extends LitModule {
     const {output} = this.appState.currentModelSpecs[model].spec;
     const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
+    const colorOption = this.colorService.selectedColorOption;
+    // tslint:disable-next-line:no-any
+    const colorRange = (colorOption.scale as any).range();
 
     // Iterate over the multiclass prediction heads
     for (const predKey of multiclassKeys) {
       const topLevelKey = this.dataService.getColumnName(model, predKey);
       const predClassKey = this.dataService.getColumnName(
           model, predKey, CalculatedColumnType.PREDICTED_CLASS);
+      const predCorrectKey = this.dataService.getColumnName(
+          model, predKey, CalculatedColumnType.CORRECT);
       labeledPredictions[topLevelKey] = {};
       const {parent, vocab} = output[predKey] as MulticlassPreds;
       const scores =
@@ -152,13 +161,16 @@ export class ClassificationModule extends LitModule {
       // If no vocab provided, create a list of strings of the class indices.
       const labels =
           vocab || Array.from({length: scores[0].length}, (v, k) => `${k}`);
+      const colorableKeys = [predClassKey, predCorrectKey, parent];
+      const applyColor = colorableKeys.includes(colorOption.name);
 
       // Iterate over the vocabulary for this prediction head
       for (let i = 0; i < labels.length; i++) {
         const label = labels[i];
+        const color: string|undefined = applyColor ? colorRange[i] : undefined;
 
         // Map the predctions for each example into DisplayInfo objects
-        const rowPreds = [];
+        const rowPreds: DisplayInfo[] = [];
 
         for (let j = 0; j < scores.length; j++) {
           const score = scores[j];
@@ -177,7 +189,7 @@ export class ClassificationModule extends LitModule {
           const isTruth = (parent != null && data[parent] === labels[i]);
           // Push values if not in sparseMode or if above threshold
           if (!this.sparseMode || value >= SPARSE_MODE_THRESHOLD) {
-            rowPreds.push({value, isPredicted, isTruth});
+            rowPreds.push({value, isPredicted, isTruth, color});
           }
         }
 
@@ -234,10 +246,12 @@ export class ClassificationModule extends LitModule {
   private renderFeatureTable(labelRow: LabelRows, hasGroundTruth: boolean) {
     function renderDisplayInfo(pred: DisplayInfo): SortableTemplateResult {
       return {
-        template: html`<annotated-score-bar .value=${pred.value}
-                                            ?isPredicted=${pred.isPredicted}
-                                            ?isTruth=${pred.isTruth}
-                                            ?hasTruth=${hasGroundTruth}>
+        template: html`<annotated-score-bar
+          .value=${pred.value}
+          .barColor=${pred.color}
+          ?isPredicted=${pred.isPredicted}
+          ?isTruth=${pred.isTruth}
+          ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar>`,
         value: pred.value
       };
