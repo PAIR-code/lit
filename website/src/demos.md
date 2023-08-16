@@ -11,7 +11,7 @@ color: "#49596c"
 
 <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
   <div class="mdl-grid no-padding">
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Tabular data",
       link: "/demos/penguins.html",
       c-data-source: "Palmer Penguins",
@@ -19,7 +19,7 @@ color: "#49596c"
       tags: "tabular, binary classification",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Image classification",
       link: "/demos/images.html",
       c-data-source: "Imagenette",
@@ -27,7 +27,7 @@ color: "#49596c"
       tags: "images, multiclass classification",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Classification and regression models",
       link: "/demos/glue.html",
       c-data-source: "Stanford Sentiment Treebank,  Multi-Genre NLI Corpus, Semantic Textual Similarity Benchmark"
@@ -35,7 +35,7 @@ color: "#49596c"
       tags: "BERT, binary classification, multi-class classification, regression",
       external:"true" %}
 
-  {%  include partials/external-demo-card
+  {%  include partials/external-demo-card,
       c-title: "Notebook usage",
       link: "https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb",
       c-data-source: "Stanford Sentiment Treebank"
@@ -43,7 +43,7 @@ color: "#49596c"
       tags: "BERT, binary classification, notebooks",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Gender bias in coreference systems",
       link: "/demos/coref.html",
       c-data-source: "Winogender schemas",
@@ -51,7 +51,7 @@ color: "#49596c"
       tags: "BERT, coreference, fairness, Winogender",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Fill in the blanks",
       link: "/demos/lm.html",
       c-data-source: "Stanford Sentiment Treebank, Movie Reviews",
@@ -59,7 +59,7 @@ color: "#49596c"
       tags: "BERT, masked language model",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Text generation",
       link: "/demos/t5.html",
       c-data-source: "CNN / Daily Mail",
@@ -67,7 +67,7 @@ color: "#49596c"
       tags: "T5, generation",
       external:"true" %}
 
-  {%  include partials/demo-card
+  {%  include partials/demo-card,
       c-title: "Evaluating input salience methods",
       link: "/demos/is_eval.html",
       c-data-source: "Stanford Sentiment Treebank, Toxicity",
