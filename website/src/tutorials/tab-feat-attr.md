@@ -16,7 +16,7 @@ takeaways: "Learn how to use the Kernel SHAP based Tabular Feature Attribution m
 
 ## Tabular Feature Attribution
 
-{%  include partials/link-out
+{%  include partials/link-out,
     link: "../../demos/penguins.html",
     text: "Explore this demo yourself." %}
 
@@ -32,7 +32,7 @@ support identification of these important features. This tutorial provides a
 walkthrough for this module within LIT, on the
 [Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
 
-{%  include partials/info-box
+{%  include partials/info-box,
     title: 'Kernel SHAP based Feature Attribution',
     text: "The Feature Attribution functionality is
         [achieved using SHAP](https://proceedings.neurips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf).
@@ -82,13 +82,13 @@ The controls for this module are:
     data. We will get into the specifics of this with an example later on in
     this tutorial.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-1.png',
     caption: 'An overview of the Penguins demo, notice the tabular feature
         attribution (1) and salience maps (2) modules in the bottom right and
         center, respectively.'%}
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-2.png',
     caption: 'The tabular feature attribution module has three main elements of
         interactivity: an expansion panel where you can configure the SHAP
@@ -122,7 +122,7 @@ a feature's influence. A reddish hue indicates negative attribution for that
 particular feature and a bluish hue indicates positive attribution. The deeper
 the color the stronger its influence on the predictions.
 
-{%  include partials/info-box
+{%  include partials/info-box,
     title: 'Interpreting salience polarity',
     text: "Salience is always relative to the model's prediction of one class.
         Intuitively, a positive attribution score for a feature of an example
@@ -145,12 +145,12 @@ are many features in a dataset this space will get crowded, so LIT offers a
 filter button for each of the columns to look up a particular feature or value
 directly.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-4.png',
     caption: 'Start by reducing the sample size from 30 to 10, this will speed
         up the SHAP computations.'%}
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-5.png',
     caption: 'The results of the SHAP run over a sample of 10 inputs from the
         entire dataset. Notice how subtle the salience values are in the "mean"
@@ -170,7 +170,7 @@ Biscoe, Dream and Torgersen), then LIT will create 6 facets for (Male, Biscoe),
 Torgersen) and show the SHAP values for whichever facets have a non-zero number
 of samples.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-6.png',
     caption: 'Each facet of the dataset is given its own expansion panel. Click
         on the down arrow on the right to expand the section and see the results
@@ -190,7 +190,7 @@ demo.
 Categorical and boolean features do not have controllable binning behavior. A
 bin is created for each label in their vocabulary.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-7.png',
     caption: 'Clicking the facets button will open the configuration controls.
         Use these to configure how divide the dataset into subsets.'%}
@@ -203,7 +203,7 @@ Faceting is not supported for selections, meaning that if you already have a
 selection of elements (let’s say 10 penguins), then facets won’t split it
 further.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-9.png',
     caption: 'LIT limits the number of facets to 100 bins for performance
         reasons. Attempting to exceed this limit will cause the active features
@@ -216,7 +216,8 @@ particular, we are going to look at the Salience Maps module which allows us to
 enhance our analysis. Salience Maps work on one data point at a time, whereas
 the Tabular Feature Attribution usually looks at a set of data points.
 
-{% include partials/info-box title: 'Slightly different color scales',
+{% include partials/info-box,
+  title: 'Slightly different color scales',
   text: "The color scales are slightly different between the salience maps
   module and the tabular feature attribution module. Salience maps use a
   gamma-adjusted color scale to make values more prominent."%}
@@ -230,7 +231,7 @@ module for the selected point, we can see that the values in the mean column of
 Tabular SHAP output match the saliency scores exactly. Note also that the mean,
 min, median and max values are all the same when a single datapoint is selected.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-11.png',
     caption: 'The results in the tabular feature attribution and salience maps
         modules will be the same for single datapoint selections.'%}
@@ -243,7 +244,7 @@ primary selection (the data point highlighted in a deep cyan hue in the data
 table) in a slice of elements, whereas Feature Attribution uses the entire list
 of selected elements.
 
-{%  include partials/info-box
+{%  include partials/info-box,
     title: 'Using Salience Maps to support Tabular Feature Attribution',
     text: "Changing primary selection reruns SHAP in the Salience Maps module
         but not in Tabular Feature Attribution. So, we can effectively toggle
@@ -261,7 +262,7 @@ selection” checkbox. This allows us to use the salience map module as a kind o
 magnifying glass to focus on any individual example even when we are considering
 a slice of examples in our exploration of the dataset.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/tab-feat-attr-image-12.png',
     caption: 'The salience maps module is a great way to compare the scores for
         each datapoint in a selection against the scores for that entire
