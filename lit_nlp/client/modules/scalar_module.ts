@@ -140,26 +140,9 @@ export class ScalarModule extends LitModule {
     return `div.scatterplot[data-id="${id}"]`;
   }
 
-  override firstUpdated() {
-    this.reactImmediately(
-        () => this.classificationService.allMarginSettings,
-        () => {
-          for (const [id, {model, key, xScale}] of this.plots.entries()) {
-            if (model == null) continue;
-            const {output} = this.appState.getModelSpec(model);
-            const fieldSpec = output[key];
-            if (!(fieldSpec instanceof MulticlassPreds)) continue;
-            const container = this.renderRoot.querySelector<HTMLDivElement>(
-                this.containerSelector(id))!;
-            const thresholdLine = d3.select(container)
-                                    .select<SVGLineElement>('#threshold-line');
-            if (!thresholdLine.empty() && xScale != null) {
-              const margin = this.classificationService.getMargin(model, key);
-              const threshold = xScale(getThresholdFromMargin(margin));
-              thresholdLine.attr('x1', threshold).attr('x2', threshold);
-            }
-          }
-        });
+
+  override connectedCallback() {
+    super.connectedCallback();
 
     const getDataChanges = () => [
       this.appState.currentInputData,
@@ -187,6 +170,41 @@ export class ScalarModule extends LitModule {
       this.focusService.focusData?.datapointId
     ];
     this.react(rebindChanges, () => {this.updatePlots();});
+  }
+
+  override firstUpdated() {
+    // The following reactions involve DOM updates that cross the Lit.dev, MobX,
+    // and Megaplot lifecycles, thus they must be initialized after the first
+    // render loop is completed to ensure correct control flow across these
+    // three lifecycles.
+    this.reactImmediately(
+        () => this.classificationService.allMarginSettings,
+        () => {
+          // To avoid triggering an update loop, future changes must ensure this
+          // function only manipulates the DOM and does not set the value of any
+          // Lit.dev reactive properties or MobX observables, or perform other
+          // actions that would schedule another Lit.dev update when this
+          // function fires immediately during the first update lifecycle.
+          for (const [id, {model, key, xScale}] of this.plots.entries()) {
+            if (model == null || xScale == null) continue;
+
+            const fieldSpec = this.appState.getModelSpec(model).output[key];
+            if (!(fieldSpec instanceof MulticlassPreds)) continue;
+
+            const divSelector = this.containerSelector(id);
+            const container =
+                this.renderRoot.querySelector<HTMLDivElement>(divSelector);
+            if (container == null) continue;
+
+            const thresholdLine =
+                d3.select(container).select<SVGLineElement>('#threshold-line');
+            if (thresholdLine.empty()) continue;
+
+            const margin = this.classificationService.getMargin(model, key);
+            const threshold = xScale(getThresholdFromMargin(margin));
+            thresholdLine.attr('x1', threshold).attr('x2', threshold);
+          }
+        });
 
     const container = this.shadowRoot!.getElementById('container')!;
     this.resizeObserver.observe(container);

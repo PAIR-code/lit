@@ -122,18 +122,14 @@ export class LitModules extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     // We set up a callback in the modulesService to allow it to explicitly
     // trigger a rerender of this component when visible modules have been
     // updated by the user. Normally we'd do this in a reactive way, but we'd
     // like as fine-grain control over layout rendering as possible.
-    this.modulesService.setRenderModulesCallback(() => {
-      this.requestUpdate();
-    });
-
-    const container =
-        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
-    this.resizeObserver.observe(container);
+    this.modulesService.setRenderModulesCallback(
+        () => {this.requestUpdate();});
 
     this.reactImmediately(
       () => this.modulesService.getSetting('mainHeight'),
@@ -141,12 +137,6 @@ export class LitModules extends ReactiveElement {
         if (mainHeight != null) {this.mainSectionHeight = Number(mainHeight);}
       });
 
-    this.reactImmediately(
-        () => this.modulesService.getRenderLayout(), renderLayout => {
-          this.calculateAllWidths(renderLayout);
-        });
-
-    // Escape key to exit full-screen modules.
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         for (const e of this.shadowRoot!.querySelectorAll(
@@ -155,6 +145,38 @@ export class LitModules extends ReactiveElement {
         }
       }
     });
+  }
+
+  override firstUpdated() {
+    // This module needs to recompute the space allocated to the various LIT
+    // modules in the layouts by calling this.calculateAllWidths() under two
+    // conditions:
+    //
+    //   1. If the selected layout changes entirely or in part (e.g., by
+    //      collapsing or exapnding a module), and
+    //   2. If the container resizes (e.g., due to a window resize).
+    //
+    // Note that this.calculateAllWidths() sets the values of several observable
+    // properties, so calling this.reactImmediately() here to compute the
+    // initial module space allocation is inadvisable because it will schedule
+    // another Lit.dev update while completing an exisitng update lifecycle.
+
+    // A reaction to cover the first condition is added here, after the first
+    // render pass, so that it won't accidentally be called before the DOM
+    // elements exist and their sizes are initialized.
+    this.react(
+        () => this.modulesService.getRenderLayout(),
+        (renderLayout) => {this.calculateAllWidths(renderLayout);});
+
+    const container =
+        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
+    // The second condition is handled by a ResizeObserver, which calls
+    // this.calculateAllWidths() inside its callback function. This call to
+    // ResizeObserver.observe() will fire that callback immediately after this
+    // first Lit.dev lifecycle completes, which is functionally equivalent to
+    // calling this.reactImmediately() when registering the reaction above, but
+    // done in a way that avoids scheudling updates during an existing update.
+    this.resizeObserver.observe(container);
   }
 
   calculateAllWidths(renderLayout: LitRenderConfig) {
@@ -381,6 +403,7 @@ export class LitModules extends ReactiveElement {
   }
 
   private setMainSectionHeight(setting: SectionHeightPreset) {
+    // tslint:disable-next-line:no-dict-access-on-struct-type
     this.mainSectionHeight = this.upperGroupHeightPresets[setting];
   }
 

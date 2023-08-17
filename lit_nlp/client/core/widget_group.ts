@@ -72,14 +72,17 @@ export class WidgetGroup extends ReactiveElement {
     return [sharedStyles, widgetGroupStyles];
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     // Set the initial minimization from modulesService.
     this.minimized = this.initMinimized();
     this.maximized = this.initMaximized();
 
-    this.reactImmediately(() => this.configGroup, configGroup => {
-      this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
-    });
+    this.reactImmediately(
+        () => this.configGroup,
+        (configGroup) => {
+          this.duplicateAsRow = configGroup[0].moduleType.duplicateAsRow;
+        });
   }
 
   override render() {
@@ -205,9 +208,9 @@ export class WidgetGroup extends ReactiveElement {
     // Set sub-component dimensions based on the container.
     const widgetStyle = {width: '100%', height: '100%'};
     if (this.duplicateAsRow) {
-      widgetStyle['width'] = `${100 / configGroup.length}%`;
+      widgetStyle.width = `${100 / configGroup.length}%`;
     } else {
-      widgetStyle['height'] = `${100 / configGroup.length}%`;
+      widgetStyle.height = `${100 / configGroup.length}%`;
     }
     // For clicks on the maximized-module darkened background, undo the
     // module maximization.
@@ -361,11 +364,8 @@ export class LitWidget extends MobxLitElement {
 
   override render() {
     const contentClasses = classMap({
-      content: true,
-      loading: this.isLoading,
-    });
-    const holderClasses = classMap({
-      holder: true,
+      'content': true,
+      'loading': this.isLoading
     });
     // Track content scrolling and pass the scrolling information back to the
     // widget group for sync'ing between duplicated widgets. This covers the
@@ -384,7 +384,7 @@ export class LitWidget extends MobxLitElement {
 
     // clang-format off
     return html`
-      <div class=${holderClasses}>
+      <div class="holder">
         ${this.subtitle ? this.renderHeader() : ''}
         <div class="container">
           ${this.isLoading ? this.renderSpinner() : null}

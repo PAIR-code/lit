@@ -168,17 +168,15 @@ export class DataTable extends ReactiveElement {
   private readonly HOVER_TIMEOUT_MS = 3;
   private hoverTimeoutId: number|null = null;
 
-  override firstUpdated() {
-    const container = this.shadowRoot!.querySelector('.holder')!;
-    this.resizeObserver.observe(container);
-
-    // If inputs changed, re-sort data based on the new inputs.
+  override connectedCallback() {
+    super.connectedCallback();
+    // If the inputs change, re-sort data based on the new inputs.
     this.reactImmediately(() => [this.data, this.rowFilteredData], () => {
       this.needsEntriesPerPageRecompute = true;
       this.requestUpdate();
     });
 
-    // Reset page number if invalid on change in total pages.
+    // Reset page number if invalid after a change in total number of pages.
     this.reactImmediately(() => this.totalPages, () => {
       const isPageOverflow = this.pageNum >= this.totalPages;
       if (isPageOverflow) {this.pageNum = 0;}
@@ -188,6 +186,11 @@ export class DataTable extends ReactiveElement {
           this.hoveredIndex != null && this.hoveredIndex > lastIndexOnPage;
       if (isHoveredInvisible) {this.hoveredIndex = null;}
     });
+  }
+
+  override firstUpdated() {
+    const container = this.shadowRoot!.querySelector('.holder')!;
+    this.resizeObserver.observe(container);
   }
 
   // tslint:disable-next-line:no-any
@@ -926,7 +929,7 @@ export class DataTable extends ReactiveElement {
                   </mwc-icon>
                 </div>` : null}
               <div class="arrow-container" @click=${toggleSort}
-               title="Sort (${isUpActive ? "ascending" : 
+               title="Sort (${isUpActive ? "ascending" :
                               isDownActive ? "descending" : "default"})">
                 <mwc-icon class=${upArrowClasses} style=${arrowStyle}>
                   arrow_drop_up

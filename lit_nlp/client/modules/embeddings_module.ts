@@ -336,78 +336,83 @@ export class EmbeddingsModule extends LitModule {
       rotateOnStart: false
     });
 
-    this.setupReactions();
-
     // Resize the scatter GL container.
     this.resizeObserver.observe(container);
+  }
+
+  override connectedCallback() {
+    super.connectedCallback();
+    this.setupReactions();
   }
 
   /**
    * Trigger imperative updates, such as backend calls or scatterGL.
    */
   private setupReactions() {
-    // Don't react immediately; we'll wait and make a single update.
-    this.react(() => this.dataService.dataVals, () => {
-      this.updateScatterGL();
-    });
-    this.react(() => this.selectedSpriteIndex, () => {
-      this.computeSpriteMap();
-    });
 
-    // Compute or update embeddings.
+    // Compute or update embeddings immediately as this requires an API call.
     // Since this is potentially expensive, set a small delay so mobx can batch
     // updates (e.g. if another component is adding several datapoints).
     // TODO(lit-dev): consider putting this delay somewhere shared,
     // like the LitModule class.
-    const embeddingRecomputeData = () =>
-        [this.appState.currentInputData, this.selectedEmbeddingsIndex,
-         this.projectorName];
-    this.reactImmediately(embeddingRecomputeData, () => {
-      this.computeProjectedEmbeddings();
-    }, {delay: 0.2});
+    const embeddingRecomputeData = () => [
+      this.appState.currentInputData, this.selectedEmbeddingsIndex,
+      this.projectorName
+    ];
+    this.reactImmediately(
+        embeddingRecomputeData,
+        () => {this.computeProjectedEmbeddings();},
+        {delay: 0.2});
 
-    // Actually render the points.
+    // Setup the reactions that don't need to be triggered immediately. The
+    // majority of these will trigger once the embeddings have been computed,
+    // the rest require user interaction before they should be called.
+
+    // Render the points once embeddings are computed.
     const dataChanges = () => [
-      this.scatterGLDataset, this.colorService.selectedColorOption
+      this.dataService.dataVals, this.scatterGLDataset,
+      this.colorService.selectedColorOption
     ];
     this.reactImmediately(dataChanges, () => {this.updateScatterGL();});
 
+    // Update the selection based on user interaction.
     this.reactImmediately(
         () => this.selectionService.selectedIds,
         (selectedIds) => {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
           this.scatterGL?.select(selectedIndices);
         });
+
+    // Recompute the sprite map as apprioriate.
+    this.react(
+        () => this.selectedSpriteIndex,
+        () => {this.computeSpriteMap();});
+
     this.reactImmediately(() => this.focusService.focusData, () => {
-      // If the module is still loading, then the div#scatter-gl-container will
-      // be hidden, so don't bother setting the hover index if the user can't
-      // see it.
-      if (this.isLoading) return;
-
-      // Subfield focus - such as from hovering over tokens - isn't very useful
-      // here, since this almost always implies that the example is already
+      const {isLoading, scatterGL} = this;
+      const {focusData} = this.focusService;
+      // Return early if there's nothing to draw or draw into, or if there is
+      // sub-field focus, such as from hovering over tokens. The latter isn't
+      // useful as it almost always implies that the example is already
       // selected. Ignore it to avoid annoying flashing in the UI.
-      if (this.focusService.focusData?.fieldName) return;
+      if (isLoading || !scatterGL || !focusData || focusData.fieldName) return;
 
-      const hoveredId = this.focusService.focusData?.datapointId;
-      const hoveredIdx = this.currentInputIndicesById.get(hoveredId!);
+      const hoveredIdx =
+          this.currentInputIndicesById.get(focusData.datapointId);
       if (hoveredIdx == null) {
-        this.scatterGL?.setHoverPointIndex(null);
+        scatterGL.setHoverPointIndex(null);
       } else {
-        this.scatterGL?.setHoverPointIndex(hoveredIdx);
+        scatterGL.setHoverPointIndex(hoveredIdx);
       }
     });
   }
 
   private updateScatterGL() {
-    if (this.scatterGLDataset) {
-      this.scatterGL?.render(this.scatterGLDataset);
-      if (this.spriteImage) {
-        this.scatterGL?.setSpriteRenderMode();
-      } else {
-        this.scatterGL?.setPointRenderMode();
-      }
-    }
+    const {scatterGL, scatterGLDataset, spriteImage} = this;
+    if (!(scatterGLDataset && scatterGL)) return;
+    scatterGL.render(scatterGLDataset);
+    spriteImage ?
+        scatterGL.setSpriteRenderMode() : scatterGL.setPointRenderMode();
   }
 
   // Maps from unique identifiers of points in inputData to indices of points in
