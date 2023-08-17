@@ -406,7 +406,6 @@ export class TCAVModule extends LitModule {
             'concept_set_ids': conceptSetIds,
             'class_to_explain': gradClass,
             'grad_layer': layer,
-            'dataset_name': this.appState.currentDataset,
           };
           if (negativeSlice != null) {
             const negativeSliceIds =

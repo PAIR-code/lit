@@ -14,9 +14,9 @@
 # ==============================================================================
 """Finds the k nearest neighbors to an input embedding."""
 
-
+import dataclasses
 from typing import Optional, Sequence
-import attr
+
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -31,7 +31,7 @@ IndexedInput = types.IndexedInput
 Spec = types.Spec
 
 
-@attr.s(auto_attribs=True, kw_only=True)
+@dataclasses.dataclass
 class NearestNeighborsConfig(object):
   """Config options for Nearest Neighbors component."""
   embedding_name: str = ''
@@ -39,16 +39,21 @@ class NearestNeighborsConfig(object):
   use_input: Optional[bool] = False
 
 
+_NN_CONFIG_FIELDS = [
+    field.name for field in dataclasses.fields(NearestNeighborsConfig)]
+
+
 class NearestNeighbors(lit_components.Interpreter):
   """Computes nearest neighbors of an example embedding.
 
-    Required Model Output:
-      - Embeddings (`emb_layer`) to return the input embeddings
-          for a layer
+  Required Model Output:
+    - Embeddings (`emb_layer`) to return the input embeddings
+        for a layer
   """
 
-  def is_compatible(self, model: lit_model.Model,
-                    dataset: lit_dataset.Dataset) -> bool:
+  def is_compatible(
+      self, model: lit_model.Model, dataset: lit_dataset.Dataset
+  ) -> bool:
     dataset_embs = utils.spec_contains(dataset.spec(), types.Embeddings)
     model_out_embs = utils.spec_contains(model.output_spec(), types.Embeddings)
     return dataset_embs or model_out_embs
@@ -90,7 +95,9 @@ class NearestNeighbors(lit_components.Interpreter):
       raise TypeError('Nearest neighbors requires an IndexedDataset to track '
                       'uniqueness by ID.')
 
-    nnconf = NearestNeighborsConfig(**(config or {}))
+    nnconf = NearestNeighborsConfig(**{
+        k: v for k, v in config.items() if k in _NN_CONFIG_FIELDS
+    })
 
     # TODO(lit-dev): Add support for selecting nearest neighbors of a set.
     if len(inputs) != 1:

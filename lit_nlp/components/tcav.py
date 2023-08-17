@@ -14,21 +14,21 @@
 # ==============================================================================
 """Quantitative Testing with Concept Activation Vectors (TCAV)."""
 
+import dataclasses
 import math
 import random
-from typing import Any, cast, Optional, Sequence
+from typing import Any, Optional, Sequence, cast
 
-import attr
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils
-
 import numpy as np
 import scipy.stats
 import sklearn.linear_model
 import sklearn.model_selection
+
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
@@ -40,18 +40,20 @@ MIN_SPLIT_SIZE = 3
 MIN_SPLITS = 2
 
 
-@attr.s(auto_attribs=True, kw_only=True)
+@dataclasses.dataclass
 class TCAVConfig(object):
   """Config options for TCAV component."""
-  concept_set_ids: list[str] = []
+  concept_set_ids: list[str] = dataclasses.field(default_factory=list)
   class_to_explain: str = ''
   grad_layer: str = ''
   # Percentage of the example set to use in the test set when training the LM.
   test_size: Optional[float] = 0.33
   random_state: Optional[int] = 42
-  negative_set_ids: list[str] = []
+  negative_set_ids: list[str] = dataclasses.field(default_factory=list)
   # Optional pre-computed CAV to use by interpreter.
   cav: Optional[Any] = None
+
+_TCAV_CONFIG_FIELDS = [field.name for field in dataclasses.fields(TCAVConfig)]
 
 
 class TCAV(lit_components.Interpreter):
@@ -185,8 +187,10 @@ class TCAV(lit_components.Interpreter):
     """
     if not config:
       raise TypeError('config must be provided')
+    tcav_config = TCAVConfig(**{
+        k: v for k, v in config.items() if k in _TCAV_CONFIG_FIELDS
+    })
 
-    tcav_config = TCAVConfig(**(config or {}))
     # TODO(b/171513556): get these from the Dataset object once indices are
     # available there.
     dataset_examples = inputs

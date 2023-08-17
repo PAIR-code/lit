@@ -264,9 +264,7 @@ export class EmbeddingsModule extends LitModule {
     const {modelName, fieldName} =
         this.embeddingOptions[this.selectedEmbeddingsIndex];
     const useInput = modelName === '';
-    const datasetName = this.appState.currentDataset;
     const config: CallConfig = {
-      'dataset_name': datasetName,
       'embedding_name': fieldName,
       'num_neighbors': numNeighbors,
       'use_input': useInput,
@@ -440,7 +438,6 @@ export class EmbeddingsModule extends LitModule {
     const datasetName = this.appState.currentDataset;
     const useInput = modelName === '';
     const projConfig = {
-      'dataset_name': datasetName,
       'model_name': modelName,
       'field_name': fieldName,
       'use_input': useInput,

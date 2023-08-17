@@ -14,12 +14,12 @@
 # ==============================================================================
 """Miscellaneous helper functions."""
 
-from collections.abc import Collection
+from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 import itertools
 import queue
 import threading
 import time
-from typing import Any, Callable, Iterable, Iterator, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 import uuid
 
 from lit_nlp.api import types as lit_types
