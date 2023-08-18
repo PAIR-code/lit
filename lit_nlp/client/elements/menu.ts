@@ -113,6 +113,23 @@ export class LitMenu extends LitElement {
     return `${itemId}_menu`;
   }
 
+  /**
+   * Returns hierarchy of menu indices to track the parent menus of a submenu.
+   */
+  private parseId(itemId: string) {
+    return itemId.split('_').filter((i) => i !== 'menu' && i !== 'item');
+  }
+
+  /**
+   * Checks if itemId is a parent menu of submenuId.
+   */
+  private isSubmenu(itemId: string, submenuId: string) {
+    const parsedItem = this.parseId(itemId);
+    const parsedSubmenu = this.parseId(submenuId);
+    if (parsedSubmenu.length !== parsedItem.length + 1) return false;
+    return parsedSubmenu.join('_').startsWith(parsedItem.join('_'));
+  }
+
   private anchorSubmenus(items: MenuItem[], menuId: string) {
     items.forEach((item, index) => {
       // Anchor each submenu to its item parent.
@@ -148,20 +165,6 @@ export class LitMenu extends LitElement {
   }
 
   renderItem(item: MenuItem, submenuId: string, itemId: string) {
-    const openMenu = () => {
-      for (const id of Array.from(this.openSubmenus.keys())) {
-        const menu = this.shadowRoot!.querySelector(`#${id}`) as Menu;
-        if (menu == null) return;
-        menu.close();
-      }
-      this.openSubmenus.clear();
-
-      const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
-      if (menu == null) return;
-      menu.show();
-
-      this.openSubmenus.add(submenuId);
-    };
 
     // Display the icon if displayIcon is set to true or if this item has a
     // submenu.
@@ -173,6 +176,24 @@ export class LitMenu extends LitElement {
     const itemTextClass =
         classMap({'item-text': true, 'text-disabled': item.disabled});
 
+    const renderMenu = () => {
+      for (const id of Array.from(this.openSubmenus.keys())) {
+        const menu = this.shadowRoot!.querySelector(`#${id}`) as Menu;
+        if (menu == null) return;
+        if (!this.isSubmenu(id, itemId)) {
+          menu.close();
+          this.openSubmenus.delete(id);
+        }
+      }
+
+      if (!hasSubmenu) return;
+      const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
+      if (menu == null) return;
+      menu.show();
+
+      this.openSubmenus.add(submenuId);
+    };
+
     // TODO(b/184549342): Consider rewriting component without Material menu
     // due to styling issues (e.g. with setting max width with
     // text-overflow:ellipses in CSS).
@@ -180,7 +201,7 @@ export class LitMenu extends LitElement {
     return html`
       <div class=${itemClass} graphic='icon' id=${itemId} @click=${
         hasSubmenu ? null : item.onClick}
-        @mouseover=${hasSubmenu ? openMenu : null}>
+        @mouseover=${renderMenu}>
           <mwc-icon slot='graphic' class='check' style=${iconStyle}>
             ${hasSubmenu ? 'arrow_right' : 'check'}
           </mwc-icon>
