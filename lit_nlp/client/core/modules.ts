@@ -22,7 +22,7 @@
 import '@material/mwc-icon';
 
 import {html} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
 import {observable} from 'mobx';
@@ -36,9 +36,20 @@ import {app} from './app';
 import {LitModule} from './lit_module';
 import {styles} from './modules.css';
 
+// Main section height types and settings
+type SectionHeightPreset = 'lower' | 'split' | 'upper';
+
 // Width of a minimized widget group. Set to the value of
 // --lit-group-header-height when :host([minimized]) in widget_group.css.
 const MINIMIZED_WIDTH_PX = 36;
+
+// The following values are derived from modules.css
+const APP_STATUSBAR_HEIGHT = 24;  // lit-app-statusbar.height in px
+const APP_TOOLBAR_HEIGHT = 77;  // lit-app-toolbar.height in px
+const CENTER_BAR_HEIGHT = 34;  // #center-bar.height in px inclusing its border
+const EXPANDER_WIDTH = 8;   // expander-drag-target.width
+const LOWER_RIGHT_MARGIN_TOP = 8;   // #center-bar.margin-top in px
+const LOWER_RIGHT_MIN_HEIGHT = 212;   // #lower-right.min-height in px
 
 // Minimum width for a widget group
 const MIN_GROUP_WIDTH_PX = 100;
@@ -47,14 +58,17 @@ const MIN_GROUP_WIDTH_PX = 100;
 // recalculations.
 const MIN_GROUP_WIDTH_DELTA_PX = 10;
 
-// The following values are derived from modules.css
-const COMPONENT_AREA_HPAD = 16;   // 2x components-group-holder.padding
-const EXPANDER_WIDTH = 8;         // expander-drag-target.width
-
-// Main section height types and settings
-type SectionHeightPreset = 'lower' | 'split' | 'upper';
-const MAIN_SECTION_HEIGHT_MIDDLE = 45;  // % of outer-container height
-const MIN_TAG_GROUP_HEIGHT = 90;  // Minimum group height in px
+/**
+ * A CSS `calc()` function to allocate equal horizontal space between the left
+ * and right columns, accounting for the double-wide expander between them.
+ */
+const LEFT_COLUMN_DEFAULT_WIDTH = `calc(50% - ${EXPANDER_WIDTH}px)`;
+/**
+ * A CSS `calc()` function to allocate equal vertical space to the upper-right
+ * and lower-right content `<div>`s, accounting fo the `margin-top` on the
+ * lower-rigth `<div>`.
+ */
+const RIGHT_COLUMN_MIDDLE_HEIGHT = `calc(50% - ${LOWER_RIGHT_MARGIN_TOP/2}px)`;
 
 // Contains for each section (main section, or a tab), a mapping of widget
 // groups to their calculated widths.
@@ -72,28 +86,38 @@ export class LitModules extends ReactiveElement {
   private readonly appState = app.getService(AppState);
   private readonly modulesService = app.getService(ModulesService);
 
-  /** Percentage of .outer-container's height given to the upper tab group. */
-  @property({type: Number}) mainSectionHeight = MAIN_SECTION_HEIGHT_MIDDLE;
-  @observable upperLayoutWidths: LayoutWidths = {};
+  /**
+   * CSS value string for --upper-height, will be one of: a `calc()` function,
+   * a percentage, or a length in px.
+   */
+  @property({type: String}) upperHeight = RIGHT_COLUMN_MIDDLE_HEIGHT;
+  /**
+   * CSS value string for --left-column-width, will be either a `calc()`
+   * function or a length in px.
+   */
+  @observable leftColumnWidth = LEFT_COLUMN_DEFAULT_WIDTH;
+  @observable leftLayoutWidths: LayoutWidths = {};
   @observable lowerLayoutWidths: LayoutWidths = {};
+  @observable upperLayoutWidths: LayoutWidths = {};
 
   /**
-   * A dictionary containing the percentages of .outer-container's height that
-   * should be allocated to the upper tab group when the user clicks a preset
-   * space allocation button in the center tab bar. These preset states are:
+   * A dictionary of CSS values representing the height that should be allocated
+   * to the upper tab group, via the --upper-height variable, when the user
+   * clicks a preset space allocation button in the center tab bar. These preset
+   * states are:
    *
    * * `lower`: Maximize the space allocated to the lower tab group.
    * * `split`: Approximately equal allocation to both tab groups.
    * * `upper`: Maximize the space allocated to the upper tab group.
    *
    * These values are also used to set the disabled states for the tab bar
-   * position preset buttons, i.e., if this.mainSectionHeight === {value} then
+   * position preset buttons, i.e., if this.upperHeight === {value} then
    * disable the associated button.
    */
-  @state() private readonly upperGroupHeightPresets = Object.seal({
-    lower: 0,
-    split: MAIN_SECTION_HEIGHT_MIDDLE,
-    upper: 100
+  private readonly upperGroupHeightPresets = Object.seal({
+    lower: '0',
+    split: RIGHT_COLUMN_MIDDLE_HEIGHT,
+    upper: '100%'
   });
 
   private readonly resizeObserver = new ResizeObserver(() => {
@@ -107,15 +131,6 @@ export class LitModules extends ReactiveElement {
     const {top, height} = container.getBoundingClientRect();
     container.style.setProperty('--top-toolbar-offset', `${top}px`);
     container.style.setProperty('--modules-area-height', `${height}px`);
-
-    // Since the percentages associated with the preset states for maximizing
-    // the upper and lower tab group areas depend on the height of
-    // .outer-container, we need to update these values when .outer-container
-    // resizes.
-    Object.assign(this.upperGroupHeightPresets, {
-      lower: Math.floor(MIN_TAG_GROUP_HEIGHT / height * 100),
-      upper: Math.floor((height - MIN_TAG_GROUP_HEIGHT) / height * 100)
-    });
   });
 
   static override get styles() {
@@ -134,7 +149,7 @@ export class LitModules extends ReactiveElement {
     this.reactImmediately(
       () => this.modulesService.getSetting('mainHeight'),
       (mainHeight) => {
-        if (mainHeight != null) {this.mainSectionHeight = Number(mainHeight);}
+        if (mainHeight != null) {this.upperHeight = `${mainHeight}%`;}
       });
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -169,7 +184,7 @@ export class LitModules extends ReactiveElement {
         (renderLayout) => {this.calculateAllWidths(renderLayout);});
 
     const container =
-        this.shadowRoot!.querySelector<HTMLElement>('.outer-container')!;
+        this.shadowRoot!.querySelector<HTMLElement>('#upper-right')!;
     // The second condition is handled by a ResizeObserver, which calls
     // this.calculateAllWidths() inside its callback function. This call to
     // ResizeObserver.observe() will fire that callback immediately after this
@@ -182,15 +197,18 @@ export class LitModules extends ReactiveElement {
   calculateAllWidths(renderLayout: LitRenderConfig) {
     this.calculateWidths(renderLayout.upper, this.upperLayoutWidths);
     this.calculateWidths(renderLayout.lower, this.lowerLayoutWidths);
+    this.calculateWidths(
+        renderLayout.left, this.leftLayoutWidths, 'left-column');
   }
 
   // Calculate widths of all modules in all tabs of a group.
-  calculateWidths(groupLayout: LitTabGroupConfig, layoutWidths: LayoutWidths) {
+  calculateWidths(groupLayout: LitTabGroupConfig, layoutWidths: LayoutWidths,
+                  containerId = 'right-column') {
     for (const panelName of Object.keys(groupLayout)) {
       layoutWidths[panelName] = [];
       // TODO: make this function just return values?
       this.calculatePanelWidths(
-          panelName, groupLayout[panelName], layoutWidths);
+          panelName, groupLayout[panelName], layoutWidths, containerId);
     }
   }
 
@@ -207,8 +225,15 @@ export class LitModules extends ReactiveElement {
   }
 
   // Calculate widths of all module groups in a single panel.
-  calculatePanelWidths(panelName: string, panelConfig: RenderConfig[][],
-                       layoutWidths: LayoutWidths) {
+  calculatePanelWidths(
+      panelName: string, panelConfig: RenderConfig[][],
+      layoutWidths: LayoutWidths, containerId = 'right-column') {
+    const container = this.shadowRoot!.querySelector(`#${containerId}`);
+    if (!container) {
+      console.error(`Container with id=${containerId} not in DOM`);
+      return;
+    }
+
     // Get the number of minimized widget groups to calculate the total width
     // available for non-minimized widgets.
     const numMinimized = panelConfig.reduce((agg, group) => {
@@ -216,12 +241,9 @@ export class LitModules extends ReactiveElement {
     }, 0);
     // Use the container width so this works correctly with simple/centered
     // layouts as well as full width.
-    const containerWidth = this.shadowRoot!.querySelector('.outer-container')!
-                               .getBoundingClientRect()
-                               .width;
-    const widthAvailable = containerWidth - COMPONENT_AREA_HPAD -
-        MINIMIZED_WIDTH_PX * numMinimized -
-        EXPANDER_WIDTH * (panelConfig.length - 1);
+    const containerWidth = container.getBoundingClientRect().width;
+    const widthAvailable = containerWidth - MINIMIZED_WIDTH_PX * numMinimized -
+                           EXPANDER_WIDTH * (panelConfig.length - 1);
 
     // Get the total number of columns requested for the non-minimized widget
     // groups.
@@ -285,142 +307,199 @@ export class LitModules extends ReactiveElement {
   }
 
   override render() {
-    const layout = this.modulesService.getRenderLayout();
-    const upperGroupNames = Object.keys(layout.upper);
-    const lowerGroupNames = Object.keys(layout.lower);
-
     const containerClasses = classMap({
       'outer-container': true,
       'outer-container-centered':
           Boolean(this.modulesService.getSetting('centerPage')),
     });
 
-    // By default, set the selected tab to the first tab.
-    if (this.modulesService.selectedTabUpper === '') {
-      this.modulesService.selectedTabUpper = upperGroupNames[0];
-    }
-    if (this.modulesService.selectedTabLower === '') {
-      this.modulesService.selectedTabLower = lowerGroupNames[0];
-    }
+    const {
+      upper: upperSection,  // Always shown, possibly with a tab bar at the top.
+      lower: lowerSection,  // If shown, it always has the draggable divider.
+      left: leftSection     // If shown, may also have a tab tab bar at the top.
+    } = this.modulesService.getRenderLayout();
 
-    // If the selected tab doesn't exist, then default to the first tab.
-    const indexOfUpperTab =
-        upperGroupNames.indexOf(this.modulesService.selectedTabUpper);
-    const upperTabToSelect = indexOfUpperTab === -1 ?
-        upperGroupNames[0] :
-        upperGroupNames[indexOfUpperTab];
-    const indexOfLowerTab =
-        lowerGroupNames.indexOf(this.modulesService.selectedTabLower);
-    const lowerTabToSelect = indexOfLowerTab === -1 ?
-        lowerGroupNames[0] :
-        lowerGroupNames[indexOfLowerTab];
+    const upperGroupNames = Object.keys(upperSection);
+    const lowerGroupNames = Object.keys(lowerSection);
+    const leftGroupNames = Object.keys(leftSection);
 
+    const topTabBarsVisible =
+        leftGroupNames.length > 1 || upperGroupNames.length > 1;
+    const lowerSectionVisible = lowerGroupNames.length > 0;
+
+    // If the selected tab doesn't exist, default to the first tab in the group.
+    const {
+      upper: upperSelected,
+      lower: lowerSelected,
+      left: leftSelected
+    } = this.modulesService.selectedTabs;
+    const upperTab = upperGroupNames.indexOf(upperSelected) !== -1 ?
+        upperSelected : upperGroupNames[0];
+    const lowerTab = lowerGroupNames.indexOf(lowerSelected) !== -1 ?
+        lowerSelected : lowerGroupNames[0];
+    const leftTab = leftGroupNames.indexOf(leftSelected) !== -1 ?
+        leftSelected : leftGroupNames[0];
+
+    // Functions for setting the various tabs
     const setUpperTab = (name: string) => {
-      this.modulesService.selectedTabUpper = name;
+      this.modulesService.selectedTabs.upper = name;
     };
 
     const setLowerTab = (name: string) => {
-      this.modulesService.selectedTabLower = name;
+      this.modulesService.selectedTabs.lower = name;
     };
 
-    const upperTabsVisible = Object.keys(layout.upper).length > 1;
-    const renderUpperTabBar = () => {
-      // clang-format on
-      return html`
-        <div class='tab-bar'>
-          <div class='tabs-container'>
-            ${this.renderTabs(upperGroupNames, upperTabToSelect, setUpperTab)}
-          </div>
-          </div>
-        </div>
-      `;
-      // clang-format off
+    const setLeftTab = (name: string) => {
+      this.modulesService.selectedTabs.left = name;
     };
 
-    const lowerSectionVisible = Object.keys(layout.lower).length > 0;
-    const upperHeight = lowerSectionVisible ? `${this.mainSectionHeight}%` :
-                                              "100%";
+    const upperHeight = lowerSectionVisible ?
+        this.upperHeight : this.upperGroupHeightPresets.upper;
 
     const styles = styleMap({
       '--upper-height': upperHeight,
-      '--upper-tab-bar-visible': `${+upperTabsVisible}`,
+      '--upper-tab-bar-visible': `${Number(topTabBarsVisible)}`,
+      '--left-tab-bar-visible': `${Number(topTabBarsVisible)}`,
     });
 
-    const {lower, split, upper} = this.upperGroupHeightPresets;
+    const renderDraggableDivider = () => {
+      const {
+        lower: lowerPreset,
+        split: splitPreset,
+        upper: upperPreset
+      } = this.upperGroupHeightPresets;
+      return html`<div class='tab-bar' id='center-bar'>
+        <div class='tabs-container'>
+          ${this.renderTabs(lowerGroupNames, lowerTab, setLowerTab)}
+        </div>
+        <div id='drag-container'>
+          <div id='drag-handler' draggable='true'
+              @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
+              <mwc-icon class="drag-icon">drag_handle</mwc-icon>
+          </div>
+        </div>
+        <div class="preset-buttons">
+          <lit-tooltip content="Maximize lower area" tooltipPosition="left">
+            <mwc-icon class="icon-button" slot="tooltip-anchor"
+                      ?disabled=${lowerPreset === this.upperHeight}
+                      @click=${() => {this.setUpperHeight('lower');}}>
+              vertical_align_top
+            </mwc-icon>
+          </lit-tooltip>
+          <lit-tooltip content="Split screen" tooltipPosition="left">
+            <mwc-icon class="icon-button" slot="tooltip-anchor"
+                      ?disabled=${splitPreset === this.upperHeight}
+                      @click=${() => {this.setUpperHeight('split');}}>
+              vertical_align_center
+            </mwc-icon>
+          </lit-tooltip>
+          <lit-tooltip content="Maximize upper area" tooltipPosition="left">
+            <mwc-icon class="icon-button" slot="tooltip-anchor"
+                      ?disabled=${upperPreset === this.upperHeight}
+                      @click=${() => {this.setUpperHeight('upper');}}>
+              vertical_align_bottom
+            </mwc-icon>
+          </lit-tooltip>
+        </div>
+      </div>`;
+    };
+
+    const columnSeparatorDrag = (event: DragEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+
+      const {clientX} = event;
+      // When the user releases the cursor after a drag, browsers sometimes fire
+      // a final DragEvent at position <0,0>, so we ignore it.
+      if (clientX != null && clientX > 0) {
+        // The expander between the left an right columns is double width
+        // compared to the expanders between module widgets; the extra .5 puts
+        // the mouse in the middle of the expander once the mouse stops moving.
+        this.leftColumnWidth = `${clientX - 2.5 * EXPANDER_WIDTH}px`;
+      }
+    };
+
+    const columnSeparatorDoubleClick = (event: DragEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+      this.leftColumnWidth = LEFT_COLUMN_DEFAULT_WIDTH;
+    };
+
+    const leftColumnStyles = styleMap({
+      '--left-column-width': this.leftColumnWidth
+    });
 
     // clang-format off
     return html`
-      <div id='outer-container' class=${containerClasses} style=${styles}>
-        ${upperTabsVisible ? renderUpperTabBar() : null}
-        <div id='upper-group-area'>
-          ${this.renderComponentGroups(layout.upper, upperTabToSelect,
-                                       this.upperLayoutWidths,
-                                       'widget-group-upper')}
+      <div id="outer-container" class=${containerClasses} style=${styles}>
+        ${leftGroupNames.length > 0 ?
+            html`<div id="left-column" class="group-area"
+              style=${leftColumnStyles}>
+              ${topTabBarsVisible ?
+                  this.renderTabBar(leftGroupNames, leftTab, setLeftTab) : null}
+              ${this.renderComponentGroups(
+                  leftSection, leftTab, this.leftLayoutWidths,
+                  'widget-group-left', 'left-column')}
+            </div>
+            <div class="expander" style="cursor: ew-resize; width: 16px;">
+              <div class="expander-drag-target" draggable="true"
+                @drag=${columnSeparatorDrag}
+                @dblclick=${columnSeparatorDoubleClick}></div>
+            </div>` :
+            null}
+        <div id="right-column">
+          <div id="upper-right" class="group-area">
+            ${topTabBarsVisible ?
+                this.renderTabBar(upperGroupNames, upperTab, setUpperTab) :
+                null}
+            ${this.renderComponentGroups(
+                upperSection, upperTab, this.upperLayoutWidths,
+                'widget-group-upper')}
+          </div>
+          ${lowerSectionVisible ?
+              html`<div id="lower-right" class="group-area">
+                ${renderDraggableDivider()}
+                ${this.renderComponentGroups(
+                    lowerSection, lowerTab, this.lowerLayoutWidths,
+                    'widget-group-lower')}
+              </div>` :
+              null}
         </div>
-        ${lowerSectionVisible ? html`
-          <div class='tab-bar' id='center-bar'>
-            <div class='tabs-container'>
-              ${this.renderTabs(lowerGroupNames, lowerTabToSelect, setLowerTab)}
-            </div>
-            <div id='drag-container'>
-              <mwc-icon class="drag-icon">drag_handle</mwc-icon>
-              <div id='drag-handler' draggable='true'
-                  @drag=${(e: DragEvent) => {this.onBarDragged(e);}}>
-              </div>
-            </div>
-            <div class="preset-buttons">
-              <lit-tooltip content="Maximize lower area" tooltipPosition="left">
-                <mwc-icon class="icon-button" slot="tooltip-anchor"
-                          ?disabled=${lower === this.mainSectionHeight}
-                          @click=${() => {this.setMainSectionHeight('lower');}}>
-                  vertical_align_top
-                </mwc-icon>
-              </lit-tooltip>
-              <lit-tooltip content="Split screen" tooltipPosition="left">
-                <mwc-icon class="icon-button" slot="tooltip-anchor"
-                          ?disabled=${split === this.mainSectionHeight}
-                          @click=${() => {this.setMainSectionHeight('split');}}>
-                  vertical_align_center
-                </mwc-icon>
-              </lit-tooltip>
-              <lit-tooltip content="Maximize upper area" tooltipPosition="left">
-                <mwc-icon class="icon-button" slot="tooltip-anchor"
-                          ?disabled=${upper === this.mainSectionHeight}
-                          @click=${() => {this.setMainSectionHeight('upper');}}>
-                  vertical_align_bottom
-                </mwc-icon>
-              </lit-tooltip>
-            </div>
-          </div>
-          <div id='lower-group-area'>
-            ${this.renderComponentGroups(layout.lower, lowerTabToSelect,
-                                         this.lowerLayoutWidths,
-                                         'widget-group-lower')}
-          </div>
-        ` : null}
       </div>`;
     // clang-format on
   }
 
-  private setMainSectionHeight(setting: SectionHeightPreset) {
+  private setUpperHeight(setting: SectionHeightPreset) {
+    // SectionHeightPreset is guaranteed to be a keyof upperGroupHeightPresets.
     // tslint:disable-next-line:no-dict-access-on-struct-type
-    this.mainSectionHeight = this.upperGroupHeightPresets[setting];
+    this.upperHeight = this.upperGroupHeightPresets[setting];
   }
 
-  private onBarDragged(e: DragEvent) {
-    const {top, height} = this.shadowRoot!.getElementById('outer-container')!
-                                          .getBoundingClientRect();
-
+  private onBarDragged(event: DragEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    const {clientY} = event;
     // When the user releases the cursor after a drag, browsers sometimes fire
     // a final DragEvent at position <0,0>, so we ignore it.
-    if (e.clientY === 0) return;
+    if (clientY === 0) return;
 
-    const maxHeight = height - MIN_TAG_GROUP_HEIGHT;
-    const cursorPosition = e.clientY + 10 - top;
-    const barPoisition =
-        cursorPosition < MIN_TAG_GROUP_HEIGHT ? MIN_TAG_GROUP_HEIGHT :
-        cursorPosition > maxHeight ? maxHeight : cursorPosition;
-    this.mainSectionHeight = Math.floor(barPoisition / height * 100);
+    const container = this.shadowRoot!.getElementById('outer-container');
+    if (!container) return;
+
+    // Compute maximum possible value of #upper-right.height as a number in px.
+    const maxUpperRightHeight =
+        window.innerHeight - APP_STATUSBAR_HEIGHT - APP_TOOLBAR_HEIGHT -
+        LOWER_RIGHT_MIN_HEIGHT - LOWER_RIGHT_MARGIN_TOP;
+    // Compute an exact value for #upper-right.height, as a number in px, based
+    // on the current position of the cursor, given by event.clientY.
+    const upperRightHeight =
+        clientY - APP_TOOLBAR_HEIGHT - CENTER_BAR_HEIGHT/2 -
+        LOWER_RIGHT_MARGIN_TOP;
+    // Adjust #upper-right.height to prevent potential overflow of the parent.
+    const adjustedUpperRightHeight =
+        upperRightHeight > maxUpperRightHeight ? maxUpperRightHeight :
+        upperRightHeight < LOWER_RIGHT_MIN_HEIGHT ? 0 : upperRightHeight;
+    this.upperHeight = `${adjustedUpperRightHeight}px`;
   }
 
   /**
@@ -430,20 +509,18 @@ export class LitModules extends ReactiveElement {
    */
   renderComponentGroups(
       layout: LitTabGroupConfig, tabToSelect: string,
-      layoutWidths: LayoutWidths, idPrefix: string) {
+      layoutWidths: LayoutWidths, idPrefix: string,
+      containerId = 'right-column') {
     return Object.keys(layout).map((tabName, i) => {
-      const configs: RenderConfig[][] = layout[tabName];
       const selected = tabToSelect === tabName;
       const classes = classMap({
         'components-group-holder': true,
         'selected': selected,
       });
-      return html`
-        <div class=${classes}>
-          ${
-          this.renderWidgetGroups(
-              configs, tabName, layoutWidths, `${idPrefix}-${i}`, selected)}
-        </div>`;
+      return html`<div class=${classes}>
+        ${this.renderWidgetGroups(layout[tabName], tabName, layoutWidths,
+                                  `${idPrefix}-${i}`, selected, containerId)}
+      </div>`;
     });
   }
 
@@ -451,35 +528,47 @@ export class LitModules extends ReactiveElement {
   /**
    * Render the tabs of the selection groups at the bottom of the layout.
    * @param tabNames Names of the tabs to render
-   * @param tabToSelect Tab to show as selected
+   * @param selectedTab Tab to show as selected
    */
   renderTabs(
-      tabNames: string[], tabToSelect: string,
-      setTabFn: (name: string) => void) {
+    tabNames: string[], selectedTab: string, setTab: (tab: string) => void) {
     return tabNames.map((tabName) => {
       const onclick = (e: Event) => {
-        setTabFn(tabName);
         e.preventDefault();
+        e.stopPropagation();
+        setTab(tabName);
         // Need to trigger a manual update, since this class does not
-        // respond automatically to mobx observables.
+        // respond automatically to MobX observables.
         this.requestUpdate();
       };
-      const selected = tabToSelect === tabName;
-      const classes = classMap({'selected': selected, 'tab': true});
+      const classes = classMap({
+        'selected': selectedTab === tabName, 'tab': true
+      });
       return html`<div class=${classes} @click=${onclick}>${tabName}</div>`;
     });
   }
 
+  renderTabBar(
+      tabNames: string[], selectedTab: string, setTab: (tab: string) => void) {
+    return html`<div class='tab-bar'>
+      <div class='tabs-container'>
+        ${this.renderTabs(tabNames, selectedTab, setTab)}
+      </div>
+    </div>`;
+  }
+
   renderWidgetGroups(
       configs: RenderConfig[][], section: string, layoutWidths: LayoutWidths,
-      idPrefix: string, visible: boolean) {
+      idPrefix: string, visible: boolean, containerId = 'right-column') {
     // Recalculate the widget group widths when isMinimized state changes.
     const onMin = () => {
-      this.calculatePanelWidths(section, configs, layoutWidths);
+      this.calculatePanelWidths(section, configs, layoutWidths, containerId);
     };
 
+    const allowMinimize = configs.length > 1;
+
     return configs.map((configGroup, i) => {
-      const width = layoutWidths[section]? layoutWidths[section][i] : 0;
+      const width = layoutWidths[section] ? layoutWidths[section][i] : 0;
       const isLastGroup = i === configs.length - 1;
       const id = `${idPrefix}-${i}`;
 
@@ -538,7 +627,7 @@ export class LitModules extends ReactiveElement {
       return html`
         <lit-widget-group id=${id} .configGroup=${configGroup} .width=${width}
                           @widget-group-minimized-changed=${onMin}
-                          ?visible=${visible}>
+                          ?allowMinimize=${allowMinimize} ?visible=${visible}>
         </lit-widget-group>
         ${isLastGroup ? html`` : html`
             <div class="expander" style=${expanderStyles}>

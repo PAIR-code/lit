@@ -57,6 +57,7 @@ export interface WidgetScroll {
 export class WidgetGroup extends ReactiveElement {
   private readonly modulesService = app.getService(ModulesService);
   @property({type: Array}) configGroup: RenderConfig[] = [];
+  @property({type: Boolean}) allowMinimize = false;
   @property({type: Boolean, reflect: true}) duplicateAsRow = false;
   @property({type: Boolean, reflect: true}) minimized = false;
   @property({type: Boolean, reflect: true}) maximized = false;
@@ -167,15 +168,19 @@ export class WidgetGroup extends ReactiveElement {
         ${this.minimized || configGroup.length < 2 ? null : [
           renderDirectionControl(), renderScrollSyncControl()
         ]}
-        <lit-tooltip class="icon-button large-icon"
-          tooltipPosition=${"left"}
-          .content=${this.minimized ? 'Expand' : 'Collapse'}>
-          <mwc-icon class="icon-button large-icon min-button"
-            @click=${onMinClick}
-            slot="tooltip-anchor">
-            ${this.minimized ? 'call_made' : 'call_received'}
-          </mwc-icon>
-        </lit-tooltip>
+        ${
+          this.allowMinimize ?
+              html`<lit-tooltip class="icon-button large-icon"
+                tooltipPosition=${"left"}
+                .content=${this.minimized ? 'Expand' : 'Collapse'}>
+                <mwc-icon class="icon-button large-icon min-button"
+                  @click=${onMinClick}
+                  slot="tooltip-anchor">
+                  ${this.minimized ? 'call_made' : 'call_received'}
+                </mwc-icon>
+              </lit-tooltip>` :
+              null
+        }
         <lit-tooltip class="icon-button large-icon" tooltipPosition=${"left"}
           .content=${this.maximized ? 'Close fullscreen' : 'Open fullscreen'}>
           <mwc-icon class="icon-button large-icon" @click=${onMaxClick}

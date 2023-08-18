@@ -762,16 +762,24 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const layouts = Object.keys(this.appState.layouts);
 
     const renderLayoutAreaInfo = (groupLayout: LitTabGroupLayout) => {
-      return Object.keys(groupLayout).map((tabName: string) => {
+      const entries = Object.entries(groupLayout);
+
+      if (entries.length === 0) {
+        return html`<div class='info-group'>
+          <div class="info-group-subtitle">Unused in this layout</div>
+        </div>`;
+      }
+
+      return entries.map(([tabName, tabModules]) => {
         // clang-format off
         return html`
           <div class='info-group'>
             <div class='info-group-subtitle'>
               ${tabName}
             </div>
-            ${groupLayout[tabName].map(module => html`
+            ${tabModules.map(tabModule => html`
               <div class='indent-line'>
-                ${resolveModuleConfig(module).title}
+                ${resolveModuleConfig(tabModule).title}
               </div>`)}
           </div>`;
         // clang-format on
@@ -801,19 +809,20 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const disabled = false;
 
           // The expanded info contains info about the components.
-          const layout = this.appState.layouts[name];
+          const {description, left, lower, upper} = this.appState.layouts[name];
           // clang-format off
           const expandedInfoHtml = html`
+            <div class='info-group-title'>Left</div>
+            ${renderLayoutAreaInfo(left)}
             <div class='info-group-title'>Upper</div>
-            ${renderLayoutAreaInfo(layout.upper)}
+            ${renderLayoutAreaInfo(upper)}
             <div class='info-group-title'>Lower</div>
-            ${renderLayoutAreaInfo(layout.lower)}
+            ${renderLayoutAreaInfo(lower)}
           `;
           // clang-format on
-          const description = this.appState.layouts[name].description || '';
           return this.renderLine(
               name, selectorHtml, selected, disabled, expanderOpen,
-              onExpanderClick, false, expandedInfoHtml, description);
+              onExpanderClick, false, expandedInfoHtml, (description || ''));
         };
 
     const configListHTML = layouts.map(name => renderLayoutOption(name));

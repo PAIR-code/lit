@@ -24,6 +24,25 @@ import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
 
 /**
+ * An interface describing how to render a LIT module, specifying which module
+ * to render and whether it renders on a per-model basis.
+ */
+export interface RenderConfig {
+  key: string;
+  moduleType: LitModuleClass;
+  modelName?: string;
+  selectionServiceIndex?: number;
+}
+
+/**
+ * Layout for a single group of tabs, each containing multiple modules,
+ * optionally replicated.
+ */
+export interface LitTabGroupConfig {
+  [tabName: string]: RenderConfig[][];
+}
+
+/**
  * A layout is defined by a set of main components that are always visible,
  * (designated in the object by the "main" key)
  * and a set of tabs that each contain a group other components.
@@ -36,25 +55,7 @@ import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';
 export interface LitRenderConfig {
   upper: LitTabGroupConfig;
   lower: LitTabGroupConfig;
-}
-
-/**
- * Layout for a single group of tabs, each containing multiple modules,
- * optionally replicated.
- */
-export interface LitTabGroupConfig {
-  [tabName: string]: RenderConfig[][];
-}
-
-/**
- * An interface describing how to render a LIT module, specifying which module
- * to render and whether it renders on a per-model basis.
- */
-export interface RenderConfig {
-  key: string;
-  moduleType: LitModuleClass;
-  modelName?: string;
-  selectionServiceIndex?: number;
+  left: LitTabGroupConfig;
 }
 
 type RenderModulesCallback = () => void;
@@ -66,8 +67,8 @@ type RenderModulesCallback = () => void;
 function getModuleConstructor(moduleName: string): LitModuleClass {
   const moduleClass = window.customElements.get(moduleName);
   if (moduleClass === undefined) {
-    throw (
-        new Error(`Malformed layout; unable to find element '${moduleName}'`));
+    throw new Error(
+        `Malformed layout; unable to find element '${moduleName}'`);
   }
   return moduleClass as unknown as LitModuleClass;
 }
@@ -77,19 +78,19 @@ function getModuleConstructor(moduleName: string): LitModuleClass {
  * string.
  * TODO(lit-dev): run this when canonicalizing layout?
  */
-export function resolveModuleConfig(specifier: LitComponentSpecifier):
-    ResolvedModuleConfig {
-  if (typeof specifier === 'string') {
-    specifier = {module: specifier} as LitModuleConfig;
-  }
-  const constructor = getModuleConstructor(specifier.module);
+export function resolveModuleConfig(
+    specifier: LitComponentSpecifier): ResolvedModuleConfig {
+  const moduleConfig: LitModuleConfig =
+      typeof specifier === 'string' ? {module: specifier} : specifier;
+
+  const constructor = getModuleConstructor(moduleConfig.module);
   return Object.assign(
       {
         constructor,
         title: constructor.title,
-        requiredForTab: specifier.requiredForTab ?? false
+        requiredForTab: moduleConfig.requiredForTab ?? false
       },
-      specifier);
+      moduleConfig);
 }
 
 /**
@@ -97,12 +98,16 @@ export function resolveModuleConfig(specifier: LitComponentSpecifier):
  */
 export class ModulesService extends LitService implements
     ModulesObservedByUrlService {
-  @observable
-  declaredLayout: LitCanonicalLayout =
-      {upper: {}, lower: {}, layoutSettings: {}, description: ''};
-  @observable selectedTabUpper: string = '';
-  @observable selectedTabLower: string = '';
-  @observable private renderLayout: LitRenderConfig = {upper: {}, lower: {}};
+  @observable declaredLayout: LitCanonicalLayout = {
+    upper: {}, lower: {}, left: {}, layoutSettings: {}, description: ''
+  };
+  @observable readonly selectedTabs = {upper: '', lower: '', left: ''};
+  @observable private renderLayout: LitRenderConfig = {
+    upper: {}, lower: {}, left: {}
+  };
+  @observable hiddenModuleKeys = new Set<string>();
+  @observable expandedModuleKey = '';
+  allModuleKeys = new Set<string>();
   private renderModulesCallback: RenderModulesCallback = () => {};
 
   // TODO(b/168201937): Remove imperative logic and use observables/reactions
@@ -136,9 +141,6 @@ export class ModulesService extends LitService implements
     this.declaredLayout = layout;
     this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
   }
-  @observable hiddenModuleKeys = new Set<string>();
-  @observable expandedModuleKey = '';
-  allModuleKeys = new Set<string>();
 
   @action
   clearLayout() {
@@ -173,8 +175,9 @@ export class ModulesService extends LitService implements
   setUrlConfiguration(urlConfiguration: UrlConfiguration) {
     this.setHiddenModules(urlConfiguration.hiddenModules);
     this.setExpandedModule(urlConfiguration.expandedModule ?? '');
-    this.selectedTabUpper = urlConfiguration.selectedTabUpper ?? '';
-    this.selectedTabLower = urlConfiguration.selectedTabLower ?? '';
+    this.selectedTabs.upper = urlConfiguration.selectedTabUpper ?? '';
+    this.selectedTabs.lower = urlConfiguration.selectedTabLower ?? '';
+    this.selectedTabs.left = urlConfiguration.selectedTabLeft ?? '';
   }
 
   isModuleGroupHidden(config: RenderConfig) {
@@ -206,6 +209,8 @@ export class ModulesService extends LitService implements
   }
 
   getSetting(settingName: keyof LayoutSettings) {
+    // settingName is guaranteed to be a keyof layoutSettings.
+    // tslint:disable-next-line:no-dict-access-on-struct-type
     return this.declaredLayout?.layoutSettings?.[settingName];
   }
 
@@ -218,14 +223,15 @@ export class ModulesService extends LitService implements
       groupContents: LitTabGroupLayout, currentModelSpecs: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
     const tabGroupConfig: LitTabGroupConfig = {};
-    for (const tabName of Object.keys(groupContents)) {
-      const moduleConfigs = groupContents[tabName].map(resolveModuleConfig);
+    for (const [tabName, tabContents] of Object.entries(groupContents)) {
+      const moduleConfigs = tabContents.map(resolveModuleConfig);
+
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
-      // TODO: use a globally unique path instead of just the tab name.
       const configs = this.getRenderConfigs(
           moduleConfigs, currentModelSpecs, datasetSpec, compareExamples,
           tabName);
+
       if (configs.length !== 0) {
         tabGroupConfig[tabName] = configs;
       }
@@ -242,8 +248,11 @@ export class ModulesService extends LitService implements
     const lower = this.computeTabGroupLayout(
         this.declaredLayout.lower, currentModelSpecs, datasetSpec,
         compareExamples);
+    const left = this.computeTabGroupLayout(
+        this.declaredLayout.left, currentModelSpecs, datasetSpec,
+        compareExamples);
 
-    const renderLayout: LitRenderConfig = {upper, lower};
+    const renderLayout: LitRenderConfig = {upper, lower, left};
 
     this.updateModuleKeys(renderLayout);
     this.renderLayout = renderLayout;
@@ -251,9 +260,9 @@ export class ModulesService extends LitService implements
 
   private updateModuleKeys(renderLayout: LitRenderConfig) {
     const allModuleKeys = new Set<string>();
-    for (const tabGroup of [renderLayout.upper, renderLayout.lower]) {
-      for (const tabName of Object.keys(tabGroup)) {
-        for (const configGroup of tabGroup[tabName]) {
+    for (const section of Object.values(renderLayout) as LitTabGroupConfig[]) {
+      for (const tabGroup of Object.values(section)) {
+        for (const configGroup of tabGroup) {
           for (const config of configGroup) {
             allModuleKeys.add(config.key);
             if (config.moduleType.collapseByDefault) {

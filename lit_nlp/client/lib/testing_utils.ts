@@ -199,6 +199,7 @@ export const mockMetadata: LitMetadata = {
     'default': {
       'upper': {},
       'lower': {},
+      'left': {},
       'layoutSettings': {},
       'description': '',
     }
@@ -509,6 +510,7 @@ export const mockSerializedMetadata = Object.freeze({
     'default': {
       'upper': {},
       'lower': {},
+      'left': {},
       'layoutSettings': {},
       'description': '',
     }

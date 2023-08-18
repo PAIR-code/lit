@@ -99,6 +99,7 @@ class LitCanonicalLayout(dtypes.DataTuple):
   """Frontend UI layout; should match client/lib/types.ts."""
   upper: LitTabGroupLayout
   lower: LitTabGroupLayout = attr.ib(factory=dict)
+  left: LitTabGroupLayout = attr.ib(factory=dict)
   layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
   description: Optional[str] = None
 
@@ -170,6 +171,46 @@ SIMPLE_LAYOUT = LitCanonicalLayout(
         'on the page rather than being full width.'),
 )
 
+THREE_PANEL_LAYOUT = LitCanonicalLayout(
+    left={
+        'Tabular Exploration': [modules.DataTableModule],
+        'Current Example': [modules.DatapointEditorModule],
+        'Visual Exploration': [modules.DiveModule],
+        'Embeddings': [modules.EmbeddingsModule],
+        'Documentation': [modules.DocumentationModule],
+    },
+    upper={
+        'Predictions': MODEL_PREDS_MODULES,
+        'Current Example': [modules.DatapointEditorModule],
+        'Counterfactuals': [modules.GeneratorModule],
+    },
+    lower={
+        'Metrics': [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.ThresholderModule,
+        ],
+        'Charts': [
+            modules.ScalarModule,
+            modules.PdpModule,
+            modules.CurvesModule,
+        ],
+        'Explanations': [
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.FeatureAttributionModule,
+        ],
+        'Clustering': [modules.SalienceClusteringModule],
+        'Influence': [modules.TrainingDataAttributionModule],
+        'TCAV': [modules.TCAVModule],
+    },
+    description=(
+        'A three-panel layout with tools for exploring data in the aggregate or'
+        ' per-example (on the left) or reviewing predition results (upper'
+        ' right) and performance characteristics, etc. (lower left).'
+    ),
+)
+
 ##
 # A "kitchen sink" layout with maximum functionality.
 STANDARD_LAYOUT = LitCanonicalLayout(
@@ -215,5 +256,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
 
 DEFAULT_LAYOUTS = {
     'simple': SIMPLE_LAYOUT,
-    'default': STANDARD_LAYOUT,
+    'legacy': STANDARD_LAYOUT,
+    'default': THREE_PANEL_LAYOUT,
 }

@@ -41,12 +41,15 @@ const MOCK_LAYOUT: LitCanonicalLayout = {
       'attention-module',
     ],
   },
+  left: {},
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
   description: 'Mock layout for testing.'
 };
 
 describe('modules service test', () => {
-  let appState: AppState, modulesService: ModulesService;
+  let appState: AppState;
+  let modulesService: ModulesService;
+
   beforeEach(async () => {
     // Set up.
     const app = new LitApp();

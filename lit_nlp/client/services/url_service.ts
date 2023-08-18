@@ -30,6 +30,7 @@ import {ApiService} from './services';
 export class UrlConfiguration {
   selectedTabUpper?: string;
   selectedTabLower?: string;
+  selectedTabLeft?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
   pinnedSelectedData?: string;
@@ -80,8 +81,7 @@ export interface ModulesObservedByUrlService {
   hiddenModuleKeys: Set<string>;
   expandedModuleKey: string;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
-  selectedTabUpper: string;
-  selectedTabLower: string;
+  selectedTabs: {upper: string, lower: string, left: string};
 }
 
 /**
@@ -104,7 +104,8 @@ export interface SelectionObservedByUrlService {
  }
 
 const SELECTED_TAB_UPPER_KEY = 'upper_tab';
-const SELECTED_TAB_LOWER_KEY = 'tab';
+const SELECTED_TAB_LOWER_KEY = 'lower_tab';
+const SELECTED_TAB_LEFT_KEY = 'left_tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
 const PINNED_SELECTED_DATA_KEY = 'pinned';
@@ -122,14 +123,17 @@ const SAVED_DATAPOINTS_ID = 'saved_datapoints_id';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
-const makeDataFieldKey = (key: string) => `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
-const parseDataFieldKey = (key: string) => {
+function makeDataFieldKey(key: string) {
+  return `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
+}
+
+function parseDataFieldKey(key: string) {
   // Split string into two from the first underscore,
   // data{index}_{feature}={val} -> [data{index}, {feature}={val}]
   const pieces = key.split(/_([^]*)/, 2);
   const indexStr = pieces[0].replace(DATA_FIELDS_KEY_SUBSTRING, '');
   return {fieldKey: pieces[1], dataIndex: +(indexStr || '0')};
-};
+}
 
 /**
  * Singleton service responsible for deserializing / serializing state to / from
@@ -196,6 +200,8 @@ export class UrlService extends LitService {
         urlConfiguration.selectedTabUpper = this.urlParseString(value);
       } else if (key === SELECTED_TAB_LOWER_KEY) {
         urlConfiguration.selectedTabLower = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_LEFT_KEY) {
+        urlConfiguration.selectedTabLeft = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
@@ -243,7 +249,7 @@ export class UrlService extends LitService {
       params: URLSearchParams, id: string,
       appState: StateObservedByUrlService) {
     const data = appState.getCurrentInputDataById(id);
-    if (data !== null && data.meta['added']) {
+    if (data !== null && data.meta.added) {
       Object.keys(data.data).forEach((key: string) => {
         this.setUrlParam(params, makeDataFieldKey(key), data.data[key]);
       });
@@ -319,9 +325,11 @@ export class UrlService extends LitService {
 
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
       this.setUrlParam(
-          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
+          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabs.upper);
       this.setUrlParam(
-          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
+          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabs.lower);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_LEFT_KEY, modulesService.selectedTabs.left);
 
       this.setUrlParam(urlParams, COLOR_BY_KEY,
           colorService.selectedColorOptionName);

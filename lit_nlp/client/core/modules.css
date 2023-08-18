@@ -1,19 +1,26 @@
 :host {
+  --left-column-width: calc(50% - 4px);
+  --tab-bar-height: 32px;
+  /* 5x LitWidget.header.height */
+  --right-column-min-section-content-height: 180px;
+
   flex: 1;
   display: flex;
   flex-direction: column;
   background: #f5f9fa;
-  --tab-bar-height: 30px;
+  max-height: calc(100hv - 77px);   /* lit-app-bar is 77px tall */
 }
 
 .outer-container {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  flex-direction: row;
   height: 100%;
+  max-height: 100%;
   /* full-width, overflow if window is < 1000px */
   min-width: 1000px;
   max-width: 100vw;
+  padding: 0 16px;
+  overflow: hidden;
 }
 
 .outer-container-centered {
@@ -24,32 +31,77 @@
   max-width: 1000px;
 }
 
-#upper-group-area {
+#left-column,
+#right-column {
   position: relative;
-  height: calc(var(--upper-height) - var(--upper-tab-bar-visible) * var(--tab-bar-height));
+  height: 100%;
+  max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#left-column {
+  flex-shrink: 0;
+  min-width: 20%;
+  width: var(--left-column-width);
+  max-width: 80%;
+}
+
+#right-column {
+  flex-grow: 1;
+}
+
+.group-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   background-color: var(--lit-mintonal-p-1);
 }
 
-#lower-group-area {
-  position: relative;
-  flex: 1;
-  max-height: calc(100% - var(--upper-height) - var(--tab-bar-height));
-  background-color: var(--lit-mintonal-p-3);
+#upper-right {
+  --upper-tab-bar-height: calc(
+    var(--upper-tab-bar-visible) * var(--tab-bar-height)
+  );
+  min-height: calc(
+    var(--right-column-min-section-content-height) + var(--upper-tab-bar-height)
+  );
+  height: var(--upper-height);
+  max-height: var(--upper-height);
 }
 
-.outer-container-centered #lower-group-area {
-  background-color: unset;
+#lower-right {
+  flex-grow: 1;
+  min-height: calc(
+    var(--right-column-min-section-content-height) + var(--tab-bar-height)
+  );
+  max-height: calc(100% - var(--upper-height));
+  margin-top: 8px;
 }
 
 .components-group-holder {
+  --top-offset: var(--tab-bar-height);
   position: absolute;
+  top: var(--top-offset);
   overflow: hidden; /* no scrollbars, for they are the path to the dark side */
   display: flex;
+  flex-grow: 1;
   visibility: hidden;
-  height: 100%;
+  height: calc(100% - var(--top-offset));
+  max-height: calc(100% - var(--top-offset));
   width: 100%;
-  padding: 8px;
+  max-width: 100%;
+  padding: 8px 0;
   box-sizing: border-box;
+}
+
+#left-column .components-group-holder {
+  --top-offset: calc(var(--left-tab-bar-visible) * var(--tab-bar-height));
+}
+
+#upper-right .components-group-holder {
+  --top-offset: var(--upper-tab-bar-height);
 }
 
 .components-group-holder.selected {
@@ -81,24 +133,22 @@ lit-widget-group[maximized] {
 }
 
 .tab-bar {
-  padding: 0 40px;
-  color: #5f6368;
-  background: white;
-  display: flex;
-  align-items: center;
-  height: var(--tab-bar-height);
-  border-bottom: 1px solid var(--lit-neutral-300);
-  border-top: 1px solid var(--lit-neutral-300);
-}
+  --bar-button-offset: 0;
 
-/* If in centered mode, tab bars should align to modules */
-.outer-container-centered .tab-bar {
-  margin: 0 8px;
-  border: 1px solid rgb(218, 220, 224);
-  box-sizing: border-box;
+  height: var(--tab-bar-height);
+  padding: 0 8px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  color: var(--lit-neutral-700);
+  background: white;
+  border: 1px solid var(--lit-neutral-300);
 }
 
 .tab-bar .preset-buttons {
+  height: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -110,29 +160,38 @@ lit-widget-group[maximized] {
 }
 
 #drag-container{
-  position: relative;
-  width: 50%;
   height: 100%;
-  margin-left: auto;
+  margin: 0 24px;
+
   display: flex;
   align-items: center;
 }
 
 #drag-handler {
-  width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   cursor: ns-resize;
-  opacity: 0;
 }
 
 .tabs-container {
-  align-items: end; /* bottom */
-  display: flex;
-  font-size: 12px;
   height: 100%;
-  margin-right: 38px;
   max-width: 100%;
   padding: 2px 0;
+
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  align-items: end; /* bottom */
+
+  font-size: 12px;
+  overflow-x: scroll;
+}
+
+#center-bar .tabs-container {
+  /* 120 = 48 for preset buttons + 3 * 24 for the drag handle and its margin. */
+  max-width: calc(100% - 120px);
 }
 
 .tab {
@@ -140,10 +199,9 @@ lit-widget-group[maximized] {
   border-bottom: 2px solid #dadce0;
   box-sizing: border-box;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 16px;
   text-align: center;
   white-space: nowrap;
-  width: 150px;
 }
 
 .tab:hover{
@@ -158,6 +216,4 @@ lit-widget-group[maximized] {
 
 .drag-icon {
   pointer-events: none;
-  position: absolute;
-  left: 0%;
 }

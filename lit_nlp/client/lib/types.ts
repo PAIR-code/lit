@@ -293,7 +293,7 @@ export type ServiceUser = object;
  * We can't define abstract static properties/methods in typescript, so we
  * define an interface to emulate the LitModuleType.
  */
-export interface LitModuleClass {
+export declare interface LitModuleClass {
   title: string;
   template:
       (modelName: string, selectionServiceIndex: number,
@@ -391,6 +391,7 @@ export declare interface LitTabGroupLayout {
 export declare interface LitCanonicalLayout {
   upper: LitTabGroupLayout;
   lower: LitTabGroupLayout;
+  left: LitTabGroupLayout;
   layoutSettings: LayoutSettings;
   description: string;
 }
@@ -401,6 +402,7 @@ export declare interface LitCanonicalLayout {
  */
 export declare interface LayoutSettings {
   hideToolbar?: boolean;
+  /** The default height of #upper-right, as a percentage of the parent. */
   mainHeight?: number;
   centerPage?: boolean;
 }

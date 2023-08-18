@@ -582,7 +582,7 @@ mwc-icon.mdi-outlined {
   flex-shrink: 0;
   justify-content: space-between;
   height: 36px;
-  padding: 0 4px;
+  padding: 0 8px;
 }
 
 /** Status text in a module footer. **/

@@ -29,8 +29,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {colorToRGB, getBrandColor} from '../lib/colors';
+import {BooleanLitType, CategoryLabel, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {GroupedExamples, IndexedInput} from '../lib/types';
+import {GroupedExamples, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
 import {FacetingConfig, FacetingMethod} from '../services/group_service';
 import {ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
@@ -125,9 +127,26 @@ function spriteExitHandler (sprite: SpriteView) {
  */
 @customElement('dive-module')
 export class DiveModule extends LitModule {
+  // Compatible types are those for which the GroupService can create bins.
+  static compatibleTypes = [BooleanLitType, CategoryLabel, Scalar];
   static override title = 'Dive';
   static override numCols = 3;
-  static override shouldDisplayModule = () => true;
+  static override shouldDisplayModule =
+      (modelSpecs: ModelInfoMap, datasetSpec: Spec) => {
+        // Dive is a two-dimensional matrix of histograms, so we should have at
+        // least two binnable fields in order to be anlaytically useful.
+        const compatiblefields: string[] = [];
+        compatiblefields.push(
+            ...findSpecKeys(datasetSpec, DiveModule.compatibleTypes));
+        for (const {spec} of Object.values(modelSpecs)) {
+          const {input, output} = spec;
+          compatiblefields.push(
+              ...findSpecKeys(input, DiveModule.compatibleTypes));
+          compatiblefields.push(
+              ...findSpecKeys(output, DiveModule.compatibleTypes));
+        }
+        return new Set(compatiblefields).size > 1;
+      };
 
   static override get styles() {
     const styles = css`
