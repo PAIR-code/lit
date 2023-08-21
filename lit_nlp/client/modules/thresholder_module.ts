@@ -138,7 +138,8 @@ export class ThresholderModule extends LitModule {
 
   @computed
   private get binaryClassificationKeys() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    if (!this.model) return [];
+    const outputSpec = this.appState.getModelSpec(this.model).output;
     const classificationKeys = findSpecKeys(outputSpec, MulticlassPreds);
     return classificationKeys.filter(
         key => isBinaryClassification(outputSpec[key]));
