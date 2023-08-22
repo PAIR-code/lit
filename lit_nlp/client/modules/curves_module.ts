@@ -77,6 +77,7 @@ export class CurvesModule extends LitModule {
   @observable private groupedCurves: {[group: string]: CurvesData[]} = {};
   @observable private selectedPredKeyIndex = 0;
   @observable private selectedPositiveLabelIndex = 0;
+  @observable private positiveLabelOptions: string[] = [];
 
   private selectedFacetBins: NumericFeatureBins = {};
 
@@ -84,6 +85,10 @@ export class CurvesModule extends LitModule {
   @observable private readonly selectedFacets: string[] = [];
 
   private readonly groupService = app.getService(GroupService);
+  // TODO(b/204677206): Using document.createElement() here may be inducing this
+  // module to schedule an update while another update is already in progress.
+  // Note that this was introduced in cl/463915592 in order to preserve the
+  // facet control instance when the CurvesModule is not rendered.
   private readonly facetingControl = document.createElement('faceting-control');
 
   constructor() {
@@ -95,10 +100,11 @@ export class CurvesModule extends LitModule {
     this.facetingControl.contextName = CurvesModule.title;
     this.facetingControl.addEventListener(
         'facets-change', facetsChange as EventListener);
+    this.updateLabels();
   }
 
-  override firstUpdated() {
-
+  override connectedCallback() {
+    super.connectedCallback();
     this.reactImmediately(
         () => [this.appState.currentInputData, this.predKey,
                this.positiveLabel], async () => {
@@ -107,16 +113,22 @@ export class CurvesModule extends LitModule {
           this.positiveLabel);
     });
     this.reactImmediately(
-        () => [this.groupedExamples, this.predKey,
-               this.positiveLabel], async () => {
+        () => [this.groupedExamples, this.predKey, this.positiveLabel],
+        async () => {
           await this.getGroupedCurveData(this.groupedExamples, this.predKey,
                                          this.positiveLabel);
         });
+    this.reactImmediately(() => [this.appState.currentModels], async () => {
+      this.updateLabels();
+      this.datasetCurves = await this.getCurveData(
+          this.appState.currentInputData, this.predKey, this.positiveLabel);
+    });
   }
 
   @action
-  private async getGroupedCurveData(groupedExamples: GroupedExamples,
-                                    predKey: string, positiveLabel: string) {
+  private async getGroupedCurveData(
+      groupedExamples: GroupedExamples, predKey: string,
+      positiveLabel: string) {
     this.groupedCurves = {};
     for (const facets of Object.keys(groupedExamples)) {
       if (facets === '') {
@@ -125,6 +137,25 @@ export class CurvesModule extends LitModule {
       this.groupedCurves[facets] = await this.getCurveData(
           groupedExamples[facets].data, predKey, positiveLabel);
     }
+  }
+
+  private updateLabels() {
+    let positiveLabelOptions: string[] = [];
+    for (const modelName of this.appState.currentModels) {
+      const modelSpec = this.appState.getModelSpec(modelName);
+      if (this.predKey in modelSpec.output) {
+        const fieldSpec = modelSpec.output[this.predKey];
+        if (fieldSpec instanceof MulticlassPreds) {
+          // Find default positive label by finding first index that isn't
+          // the null index for a predicted class vocab.
+          this.selectedPositiveLabelIndex =
+              fieldSpec.vocab.findIndex((elem, i) => i !== fieldSpec.null_idx);
+          positiveLabelOptions = fieldSpec.vocab;
+        }
+      }
+    }
+    // this.selectedPositiveLabelIndex = defaultPositiveLabelIndex;
+    this.positiveLabelOptions = positiveLabelOptions;
   }
 
   private async getCurveData(
@@ -138,8 +169,8 @@ export class CurvesModule extends LitModule {
   private async makeBackendCall(
       data: IndexedInput[], model: string, predKey: string,
       positiveLabel: string) {
-
-    if (this.appState.getModelSpec(model).output[predKey] == null) {
+    if (this.appState.getModelSpec(model).output[predKey] == null ||
+        !this.positiveLabel) {
       return {
         prCurve: new Map<number, number>(),
         rocCurve: new Map<number, number>()
@@ -192,27 +223,8 @@ export class CurvesModule extends LitModule {
   }
 
   @computed
-  get positiveLabelOptions(): string[] {
-    for (const modelName of this.appState.currentModels) {
-      const modelSpec = this.appState.metadata.models[modelName].spec;
-      if (this.predKey in modelSpec.output) {
-        const fieldSpec = modelSpec.output[this.predKey];
-        if (fieldSpec instanceof MulticlassPreds) {
-          // Find default positive label by finding first index that isn't
-          // the null index for a predicted class vocab.
-          this.selectedPositiveLabelIndex =
-              fieldSpec.vocab.findIndex((elem, i) => i !== fieldSpec.null_idx);
-
-          return fieldSpec.vocab;
-        }
-      }
-    }
-    return [];
-  }
-
-  @computed
   get positiveLabel() {
-    return this.positiveLabelOptions[this.selectedPositiveLabelIndex];
+    return this.positiveLabelOptions[this.selectedPositiveLabelIndex] || '';
   }
 
   /** The facet groups created by the faceting controls. */
