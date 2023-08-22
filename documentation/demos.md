@@ -1,7 +1,8 @@
 # Demos
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-09-08' }
-      css: "//depot/google3/third_party/py/lit_nlp/g3doc/includes/demos.css"
+<!--*
+  freshness: { owner: 'lit-dev' reviewed: '2023-07-14' }
+  css: "//depot/google3/third_party/py/lit_nlp/g3doc/includes/demos.css"
 *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->

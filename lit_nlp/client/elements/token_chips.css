@@ -1,0 +1,55 @@
+.tokens-group {
+  position: relative;
+}
+
+.tokens-holder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.salient-token {
+  --token-outline-color: transparent;
+  /* color and background set individually vis styleMap */
+  font-family: 'Roboto';
+  border-radius: 2px;
+  border: 1px solid var(--token-outline-color); /* for spacing */
+  padding: 2px 4px; /* wider horizontally */
+  margin: 3px;
+  width: fit-content;
+  position: relative;
+}
+
+.salient-token.clickable {
+  cursor: pointer;
+}
+
+.salient-token.pinned:after {
+  position: absolute;
+  font-family: 'Material Icons';
+  content: 'push_pin';
+  /* upper right corner of token */
+  right: -4px;
+  top: -12px;
+  bottom: 60%;
+  z-index: 1; /* draw over adjacent tokens in dense mode */
+}
+
+.salient-token.hover-enabled:hover {
+  --token-outline-color: var(--lit-neutral-500);
+}
+
+.salient-token.selected {
+  --token-outline-color: var(--lit-neutral-900);
+}
+
+.tokens-holder-dense .salient-token {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: 1px solid var(--token-outline-color);
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}

@@ -38,7 +38,7 @@ def _inputs_to_serialized_example(input_dict: lit_types.JsonDict):
   return result.SerializeToString()
 
 
-class TFXModel(lit_model.Model):
+class TFXModel(lit_model.BatchedModel):
   """Wrapper for querying a TFX-generated SavedModel."""
 
   def __init__(self, config: TFXModelConfig):
@@ -47,7 +47,7 @@ class TFXModel(lit_model.Model):
     self._input_spec = config.input_spec
     self._output_spec = config.output_spec
 
-  def predict_minibatch(
+  def predict_minibatch(  # pytype: disable=signature-mismatch  # overriding-return-type-checks
       self, inputs: List[lit_types.JsonDict]) -> Iterator[lit_types.JsonDict]:
     for i in inputs:
       filtered_inputs = {k: v for k, v in i.items() if k in self._input_spec}

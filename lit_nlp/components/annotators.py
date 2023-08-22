@@ -14,7 +14,7 @@
 # ==============================================================================
 """Annotator implementations."""
 
-from typing import List, Optional
+from typing import Any, Optional
 import attr
 
 from lit_nlp.api import components as lit_components
@@ -36,7 +36,7 @@ class PerFieldAnnotator(lit_components.Annotator):
   '{annotator name}:{annotator model output key}:{dataset field key}'.
   """
 
-  def annotate(self, inputs: List[JsonDict],
+  def annotate(self, inputs: list[dict[str, Any]],
                dataset: lit_dataset.Dataset,
                dataset_spec_to_annotate: Optional[types.Spec] = None):
     if len(self._annotator_model.input_spec().items()) != 1:

@@ -17,9 +17,10 @@
 
 // tslint:disable:no-new-decorators
 import '../elements/score_bar';
+import '../elements/switch';
 
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -30,14 +31,17 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
-import {DataService, SelectionService} from '../services/services';
+import {ColorService, DataService, SelectionService} from '../services/services';
 
 import {styles} from './classification_module.css';
+
+const SPARSE_MODE_THRESHOLD = 0.01;
 
 interface DisplayInfo {
   value: number;
   isTruth: boolean;
   isPredicted: boolean;
+  color?: string;
 }
 
 interface LabelRows {
@@ -52,6 +56,10 @@ interface LabeledPredictions {
 @customElement('classification-module')
 export class ClassificationModule extends LitModule {
   static override title = 'Classification Results';
+  static override infoMarkdown =
+      `Classification results are displayed for labels of \`MulticlassPreds\`
+      and \`SparseMultilabelPreds\` type.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#classification)`;
   static override duplicateForExampleComparison = false;
   static override duplicateForModelComparison = false;
   static override numCols = 3;
@@ -72,18 +80,25 @@ export class ClassificationModule extends LitModule {
     return doesOutputSpecContain(modelSpecs, MulticlassPreds);
   }
 
+  private readonly colorService = app.getService(ColorService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
 
+  @observable private sparseMode = false;
   @observable private labeledPredictions: LabeledPredictions = {};
 
-  override firstUpdated() {
-    const getSelectionChanges = () =>
-        [this.appState.compareExamplesEnabled, this.appState.currentModels,
-         this.pinnedSelectionService.primarySelectedInputData,
-         this.selectionService.primarySelectedInputData,
-         this.dataService.dataVals];
+  override connectedCallback() {
+    super.connectedCallback();
+    const getSelectionChanges = () => [
+      this.appState.compareExamplesEnabled,
+      this.appState.currentModels,
+      this.colorService.selectedColorOption,
+      this.pinnedSelectionService.primarySelectedInputData,
+      this.sparseMode,
+      this.selectionService.primarySelectedInputData,
+      this.dataService.dataVals
+    ];
     this.reactImmediately(getSelectionChanges, () => {this.updateSelection();});
   }
 
@@ -108,9 +123,6 @@ export class ClassificationModule extends LitModule {
     }
 
     // Create an expansion panel for each <model, predicition head> pair
-    // TODO(ryanmullins) Adjust logic so that models with the same output_spec
-    // are grouped into the same expansion panel, using the prediciton head as
-    // the panel label.
     for (const model of this.appState.currentModels) {
       const labeledPredictions = this.parseResult(model, data);
       Object.assign(this.labeledPredictions, labeledPredictions);
@@ -129,12 +141,17 @@ export class ClassificationModule extends LitModule {
     const {output} = this.appState.currentModelSpecs[model].spec;
     const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
+    const colorOption = this.colorService.selectedColorOption;
+    // tslint:disable-next-line:no-any
+    const colorRange = (colorOption.scale as any).range();
 
     // Iterate over the multiclass prediction heads
     for (const predKey of multiclassKeys) {
       const topLevelKey = this.dataService.getColumnName(model, predKey);
       const predClassKey = this.dataService.getColumnName(
           model, predKey, CalculatedColumnType.PREDICTED_CLASS);
+      const predCorrectKey = this.dataService.getColumnName(
+          model, predKey, CalculatedColumnType.CORRECT);
       labeledPredictions[topLevelKey] = {};
       const {parent, vocab} = output[predKey] as MulticlassPreds;
       const scores =
@@ -144,24 +161,39 @@ export class ClassificationModule extends LitModule {
       // If no vocab provided, create a list of strings of the class indices.
       const labels =
           vocab || Array.from({length: scores[0].length}, (v, k) => `${k}`);
+      const colorableKeys = [predClassKey, predCorrectKey, parent];
+      const applyColor = colorableKeys.includes(colorOption.name);
 
       // Iterate over the vocabulary for this prediction head
       for (let i = 0; i < labels.length; i++) {
         const label = labels[i];
+        const color: string|undefined = applyColor ? colorRange[i] : undefined;
 
         // Map the predctions for each example into DisplayInfo objects
-        const rowPreds = scores.map((score, j): DisplayInfo => {
+        const rowPreds: DisplayInfo[] = [];
+
+        for (let j = 0; j < scores.length; j++) {
+          const score = scores[j];
+
+          // Only push null scores if not in sparseMode
           if (score == null) {
-            return {value: 0, isPredicted: false, isTruth: false};
+            if (!this.sparseMode) {
+              rowPreds.push({value: 0, isPredicted: false, isTruth: false});
+            }
+            continue;
           }
+
           const value = score[i];
           const isPredicted = label === predictedClasses[j];
           const {data} = inputs[j];
           const isTruth = (parent != null && data[parent] === labels[i]);
-          return {value, isPredicted, isTruth};
-        });
+          // Push values if not in sparseMode or if above threshold
+          if (!this.sparseMode || value >= SPARSE_MODE_THRESHOLD) {
+            rowPreds.push({value, isPredicted, isTruth, color});
+          }
+        }
 
-        labeledPredictions[topLevelKey][label] = rowPreds;
+        if (rowPreds.length) labeledPredictions[topLevelKey][label] = rowPreds;
       }
     }
 
@@ -169,14 +201,21 @@ export class ClassificationModule extends LitModule {
   }
 
   override renderImpl() {
-    const hasGroundTruth = this.appState.currentModels.some(
-        model =>
+    const clsFieldSpecs =
+        this.appState.currentModels.flatMap((model) =>
             Object.values(this.appState.currentModelSpecs[model].spec.output)
-                .some(
-                    feature => feature instanceof MulticlassPreds &&
-                        feature.parent != null &&
-                        feature.parent in
-                            this.appState.currentModelSpecs[model].spec.input));
+                  .filter(
+                    (fieldSpec) => fieldSpec instanceof MulticlassPreds
+                  ) as MulticlassPreds[]);
+
+    const hasGroundTruth = clsFieldSpecs.some((fs) =>
+        fs.parent != null && fs.parent in this.appState.currentDatasetSpec);
+
+    const allowSparseMode = clsFieldSpecs.some((fs) => fs.vocab.length > 10);
+
+    const onClickSwitch = () => {this.sparseMode = !this.sparseMode;};
+
+    // clang-format off
     return html`<div class='module-container'>
       <div class="module-results-area">
         ${
@@ -185,25 +224,34 @@ export class ClassificationModule extends LitModule {
               const featureTable =
                   this.renderFeatureTable(labelRow, hasGroundTruth);
               return arr.length === 1 ? featureTable : html`
-                      <expansion-panel .label=${fieldName} expanded>
-                        ${featureTable}
-                      </expansion-panel>`;
+                  <expansion-panel .label=${fieldName} expanded>
+                    ${featureTable}
+                  </expansion-panel>`;
             })}
       </div>
       <div class="module-footer">
         <annotated-score-bar-legend ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar-legend>
+        ${allowSparseMode ? html`
+            <lit-switch
+              labelLeft="Only show classes above ${SPARSE_MODE_THRESHOLD}"
+              ?selected=${this.sparseMode}
+              @change=${onClickSwitch}>
+            </lit-switch>` : null}
       </div>
     </div>`;
+    // clang-format on
   }
 
   private renderFeatureTable(labelRow: LabelRows, hasGroundTruth: boolean) {
     function renderDisplayInfo(pred: DisplayInfo): SortableTemplateResult {
       return {
-        template: html`<annotated-score-bar .value=${pred.value}
-                                            ?isPredicted=${pred.isPredicted}
-                                            ?isTruth=${pred.isTruth}
-                                            ?hasTruth=${hasGroundTruth}>
+        template: html`<annotated-score-bar
+          .value=${pred.value}
+          .barColor=${pred.color}
+          ?isPredicted=${pred.isPredicted}
+          ?isTruth=${pred.isTruth}
+          ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar>`,
         value: pred.value
       };

@@ -19,31 +19,34 @@
 import * as d3 from 'd3';
 import {TemplateResult} from 'lit';
 
-import {AnnotationCluster, EdgeLabel, SpanLabel} from './dtypes';
-import {CategoryLabel, EdgeLabels, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
+import {AnnotationCluster, EdgeLabel, ScoredTextCandidate, ScoredTextCandidates, SpanLabel} from './dtypes';
+import {CategoryLabel, EdgeLabels, Embeddings, GeneratedTextCandidates, ImageBytes, ListLitType, LitType, LitTypeTypesList, MultiSegmentAnnotations, Scalar, SpanLabels, TextSegment} from './lit_types';
 import {chunkWords, isLitSubtype} from './utils';
-
 
 
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
+export interface SerializedPyClass {
+  __class__: string;  // Named for Python keys
+  __name__: string;   // Named for Python keys
+}
+
 export interface Spec {
   [key: string]: LitType;
 }
 
-/** Serialized Spec data returned from the backend. */
-export interface SerializedSpec {
-  // All LitTypes have a `__name__` field; we deserialize and cast the
-  // LitType before accessing additional fields.
-  [key: string]: {__name__: string};
+interface InitSpecMap {
+  [name: string]: Spec|null;  // using null here because None ==> null in Python
 }
 
+// LINT.IfChange
 export interface ComponentInfo {
   configSpec: Spec;
   metaSpec: Spec;
   description?: string;
 }
+// LINT.ThenChange(../../app.py)
 
 export interface DatasetInfo {
   size: number;
@@ -73,6 +76,7 @@ export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
+  metrics: string[];
   spec: ModelSpec;
   description?: string;
 }
@@ -86,6 +90,7 @@ export interface LitMetadata {
   datasets: DatasetInfoMap;
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
+  metrics: ComponentInfoMap;
   layouts: LitComponentLayouts;
   demoMode: boolean;
   defaultLayout: string;
@@ -95,15 +100,11 @@ export interface LitMetadata {
   onboardStartDoc?: string;
   onboardEndDoc?: string;
   syncState: boolean;
+  initSpecs: {
+    datasets: InitSpecMap;
+    models: InitSpecMap;
+  };
 }
-
-/**
- * Serialized LitMetadata returned by the backend.
- */
-export type SerializedLitMetadata = {
-  // tslint:disable-next-line:no-any
-  [K in keyof LitMetadata]: any;
-};
 
 export interface Input {
   // tslint:disable-next-line:no-any
@@ -124,7 +125,7 @@ export interface FacetedData {
   /** Name to display */
   displayName?: string;
   /** What values were used as filters to get this data */
-  facets?: FacetMap;
+  facets: FacetMap;
 }
 
 /**
@@ -150,6 +151,16 @@ export interface TopKResult {
   1: number;
 }
 
+function isGeneratedTextCandidate(input: unknown): boolean {
+  return Array.isArray(input) && input.length === 2 &&
+         typeof input[0] === 'string' &&
+         (input[1] == null || typeof input[1] === 'number');
+}
+
+function formatNumber (item: number) {
+  return Number.isInteger(item) ? item : Number(item.toFixed(3));
+}
+
 export function formatSpanLabel(s: SpanLabel): string {
   // Add non-breaking control chars to keep this on one line
   // TODO(lit-dev): get it to stop breaking between ) and :; \u2060 doesn't work
@@ -164,7 +175,7 @@ export function formatSpanLabel(s: SpanLabel): string {
 }
 
 export function formatEdgeLabel(e: EdgeLabel): string {
-  const formatSpan = (s: [number, number]) => `[${s[0]}, ${s[1]})`;
+  function formatSpan (s: [number, number]) {return `[${s[0]}, ${s[1]})`;}
   const span1Text = formatSpan(e.span1);
   const span2Text = e.span2 ? ' ← ' + formatSpan(e.span2) : '';
   // Add non-breaking control chars to keep this on one line
@@ -178,10 +189,18 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
 }
 
-/**
- * Element of GeneratedTextCandidates and ReferenceTexts fields.
- */
-export type GeneratedTextCandidate = [string, number | null];
+export function formatScoredTextCandidate([t, s]: ScoredTextCandidate): string {
+  return `${t}${typeof s === 'number' ? ` (${formatNumber(s)})` : ''}`;
+}
+
+export function formatScoredTextCandidates(stc: ScoredTextCandidates): string {
+  return stc.map(formatScoredTextCandidate).join('\n\n');
+}
+
+export function formatScoredTextCandidatesList(
+    list: ScoredTextCandidates[]): string {
+  return list.map(formatScoredTextCandidates).join('\n\n');
+}
 
 /**
  * Info about individual classifications including computed properties.
@@ -274,7 +293,7 @@ export type ServiceUser = object;
  * We can't define abstract static properties/methods in typescript, so we
  * define an interface to emulate the LitModuleType.
  */
-export interface LitModuleClass {
+export declare interface LitModuleClass {
   title: string;
   template:
       (modelName: string, selectionServiceIndex: number,
@@ -285,6 +304,7 @@ export interface LitModuleClass {
   duplicateAsRow: boolean;
   numCols: number;
   collapseByDefault: boolean;
+  infoMarkdown: string;
 }
 
 /**
@@ -320,10 +340,10 @@ export function defaultValueByField(key: string, spec: Spec) {
 }
 
 /**
- * Dictionary of lit layouts. See LitComponentLayout
+ * Dictionary of lit layouts. See LitCanonicalLayout
  */
 export declare interface LitComponentLayouts {
-  [key: string]: LitComponentLayout|LitCanonicalLayout;
+  [key: string]: LitCanonicalLayout;
 }
 
 // LINT.IfChange
@@ -361,23 +381,6 @@ export declare interface LitTabGroupLayout {
 }
 
 /**
- * A layout is defined by a set of modules arranged into tabs and groups.
- *
- * This is a legacy layout format, where components contains several keys
- * including 'Main', and values are lists of module classes.
- * - The 'Main' group will appear in the upper half of the UI
- * - The remaining groups will appear in the lower half of the UI,
- *   with a tab bar to select the active group.
- *
- * See layout.ts for examples.
- */
-export declare interface LitComponentLayout {
-  components: LitTabGroupLayout;
-  layoutSettings?: LayoutSettings;
-  description?: string;
-}
-
-/**
  * UI layout in canonical form.
  *
  * This has explicit tab groups for the upper and lower UI areas.
@@ -388,6 +391,7 @@ export declare interface LitComponentLayout {
 export declare interface LitCanonicalLayout {
   upper: LitTabGroupLayout;
   lower: LitTabGroupLayout;
+  left: LitTabGroupLayout;
   layoutSettings: LayoutSettings;
   description: string;
 }
@@ -398,40 +402,9 @@ export declare interface LitCanonicalLayout {
  */
 export declare interface LayoutSettings {
   hideToolbar?: boolean;
+  /** The default height of #upper-right, as a percentage of the parent. */
   mainHeight?: number;
   centerPage?: boolean;
-}
-
-/**
- * Convert a layout to canonical form.
- * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
- * TODO(lit-dev): move this to Python.
- */
-export function canonicalizeLayout(layout: LitComponentLayout|
-                                   LitCanonicalLayout): LitCanonicalLayout {
-  if (!layout.hasOwnProperty('components')) {
-    return layout as LitCanonicalLayout;
-  }
-  // Legacy layout to convert.
-  layout = layout as LitComponentLayout;
-
-  const canonicalLayout: LitCanonicalLayout = {
-    upper: {},
-    lower: {},
-    layoutSettings: layout.layoutSettings ?? {},
-    description: layout.description ?? '',
-  };
-
-  // Handle upper layout.
-  canonicalLayout.upper['Main'] = layout.components['Main'];
-
-  // Handle lower layout.
-  for (const tabName of Object.keys(layout.components)) {
-    if (tabName === 'Main') continue;
-    canonicalLayout.lower[tabName] = layout.components[tabName];
-  }
-
-  return canonicalLayout;
 }
 
 // LINT.ThenChange(../../api/layout.py)
@@ -459,57 +432,59 @@ export const SCROLL_SYNC_CSS_CLASS = 'scroll-sync';
  * Formats the following types for display in the data table:
  * string, number, boolean, string[], number[], (string|number)[]
  */
+// TODO(b/252788334): Long text can make columns look weird, especially when a
+// GeneratedTextCandidates field is in the Spec.
 export function formatForDisplay(
-    // tslint:disable-next-line:no-any
-    input: any, fieldSpec?: LitType, limitWords?: boolean): string|number {
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): string|number {
   if (input == null) return '';
 
   // Handle SpanLabels, if field spec given.
   // TODO(lit-dev): handle more fields this way.
-  if (fieldSpec != null && fieldSpec instanceof SpanLabels) {
+  if (fieldSpec instanceof SpanLabels) {
     const formattedTags = (input as SpanLabel[]).map(formatSpanLabel);
     return formattedTags.join(', ');
   }
   // Handle EdgeLabels, if field spec given.
-  if (fieldSpec != null && fieldSpec instanceof EdgeLabels) {
+  if (fieldSpec instanceof EdgeLabels) {
     const formattedTags = (input as EdgeLabel[]).map(formatEdgeLabel);
     return formattedTags.join(', ');
   }
   // Handle MultiSegmentAnnotations, if field spec given.
-  if (fieldSpec != null && fieldSpec instanceof MultiSegmentAnnotations) {
+  if (fieldSpec instanceof MultiSegmentAnnotations) {
     const formattedTags =
         (input as AnnotationCluster[]).map(formatAnnotationCluster);
     return formattedTags.join(', ');
   }
-  const formatNumber = (item: number) =>
-      Number.isInteger(item) ? item : Number(item.toFixed(4));
+  // Handle Embeddings, if field spec given
+  if (fieldSpec instanceof Embeddings) {
+    return Array.isArray(input) ? `<float>[${input.length}]` : '';
+  }
+  if (fieldSpec instanceof GeneratedTextCandidates) {
+    return formatScoredTextCandidates(input as ScoredTextCandidates);
+  }
 
   // Generic data, based on type of input.
   if (Array.isArray(input)) {
+    if (isGeneratedTextCandidate(input)) {
+      return formatScoredTextCandidate(input as ScoredTextCandidate);
+    }
+
+    if (Array.isArray(input[0]) && isGeneratedTextCandidate(input[0])) {
+      return formatScoredTextCandidates(input as ScoredTextCandidates);
+    }
+
     const strings = input.map((item) => {
-      if (typeof item === 'number') {
-        return formatNumber(item);
-      }
-      if (limitWords) {
-        return chunkWords(item);
-      }
+      if (typeof item === 'number') {return formatNumber(item);}
+      if (limitWords) {return chunkWords(item);}
       return `${item}`;
     });
     return `${strings.join(', ')}`;
   }
 
-  if (typeof input === 'boolean') {
-    return formatBoolean(input);
-  }
-
-  if (typeof input === 'number') {
-    return formatNumber(input);
-  }
-
+  if (typeof input === 'boolean') {return formatBoolean(input);}
+  if (typeof input === 'number') {return formatNumber(input);}
   // Fallback: just coerce to string.
-  if (limitWords) {
-    return chunkWords(input);
-  }
+  if (limitWords) {return chunkWords(input as string);}
   return `${input}`;
 }
 

@@ -18,11 +18,10 @@
 // tslint:disable:no-new-decorators
 import '../elements/spinner';
 import '../elements/tcav_score_bar';
-import '@material/mwc-switch';
 
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -77,6 +76,10 @@ export class TCAVModule extends LitModule {
     return [sharedStyles, styles];
   }
   static override title = 'TCAV Explorer';
+  static override infoMarkdown =
+      `TCAV estimates the importance of high-level concepts (e.g., color,
+      gender, race) for a prediction class.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#tcav)`;
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 
@@ -92,7 +95,7 @@ export class TCAVModule extends LitModule {
   @observable private readonly selectedLayers = new Set<string>();
   @observable private readonly selectedClasses = new Set<string>();
   @observable private readonly negativeSlices = new Set<string>();
-  @observable private isLoading: boolean = false;
+  @observable private isLoading = false;
 
   private resultsTableData: TableData[] = [];
   private cavCounter = 0;
@@ -140,16 +143,18 @@ export class TCAVModule extends LitModule {
 
   @computed
   get predClasses() {
-    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).vocab;
+    return predKey == null ?
+        [] : (this.modelSpec.output[predKey] as MulticlassPreds).vocab;
   }
 
   @computed
   get nullIndex() {
-    const predKeys = findSpecKeys(this.modelSpec.output, MulticlassPreds);
+    const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
-    return (this.modelSpec.output[predKeys[0]] as MulticlassPreds).null_idx;
+    return predKey == null ?
+        undefined : (this.modelSpec.output[predKey] as MulticlassPreds).null_idx;
   }
 
   override firstUpdated() {
@@ -175,18 +180,21 @@ export class TCAVModule extends LitModule {
 
   renderCollapseBar(
       title: string, items: string[], columnName: string,
-      selectSet: Set<string>, secondSelectName: string = '',
+      selectSet: Set<string>, secondSelectName = '',
       secondSelectSet: Set<string>|null = null) {
-    const checkboxChanged = (e: Event, item: string) => {
-      const checkbox = e.target as HTMLInputElement;
-      if (checkbox.checked) {
-        selectSet.add(item);
-      } else {
-        selectSet.delete(item);
-      }
-    };
+    function changeForSet(set: Set<string>): (e: Event, i: string) => void {
+      return (e: Event, item: string) => {
+        const checkbox = e.target as HTMLInputElement;
+        if (checkbox.checked) {
+          set.add(item);
+        } else {
+          set.delete(item);
+        }
+      };
+    }
 
     const data = items.map((item) => {
+      const checkboxChanged = changeForSet(selectSet);
       const row = [
         // clang-format off
         html`<lit-checkbox ?checked=${selectSet.has(item)}
@@ -196,14 +204,7 @@ export class TCAVModule extends LitModule {
         item
       ];
       if (secondSelectSet != null) {
-        const secondCheckboxChanged = (e: Event, item: string) => {
-          const checkbox = e.target as HTMLInputElement;
-          if (checkbox.checked) {
-            secondSelectSet.add(item);
-          } else {
-            secondSelectSet.delete(item);
-          }
-        };
+        const secondCheckboxChanged = changeForSet(secondSelectSet);
         row.push(
             // clang-format off
             html`<lit-checkbox id='compare-switch'
@@ -270,7 +271,7 @@ export class TCAVModule extends LitModule {
         this.selectedLayers.size;
 
     const disabledText =
-        `select a slice with ${MIN_EXAMPLES_LENGTH} or more examples`;
+        `Select a slice with ${MIN_EXAMPLES_LENGTH} or more examples.`;
 
     // The width of the SVG increase by 60px for each additional entry after
     // the first bar, so their labels don't overlap.
@@ -305,10 +306,12 @@ export class TCAVModule extends LitModule {
                     this.selectedLayers.size === 0 &&
                     this.selectedSlices.size === 0 &&
                     this.negativeSlices.size === 0}>Clear</button>
-                <button id='submit'
-                  class="hairline-button" title=${shouldDisable() ? disabledText: ''}
-                  @click=${() => this.runTCAV()} ?disabled=${
-                   shouldDisable()}>Run TCAV</button>
+                <lit-tooltip content=${shouldDisable() ? disabledText: ''}>
+                  <button id='submit'
+                    class="hairline-button" slot="tooltip-anchor"
+                    @click=${() => this.runTCAV()} ?disabled=${
+                     shouldDisable()}>Run TCAV</button>
+                </lit-tooltip>
               </div>
             </div>
           </div>
@@ -403,7 +406,6 @@ export class TCAVModule extends LitModule {
             'concept_set_ids': conceptSetIds,
             'class_to_explain': gradClass,
             'grad_layer': layer,
-            'dataset_name': this.appState.currentDataset,
           };
           if (negativeSlice != null) {
             const negativeSliceIds =

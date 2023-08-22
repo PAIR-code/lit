@@ -1,7 +1,7 @@
 {
   "name": "lit-website",
   "version": "1.0.0",
-  "description": "Code for the Languange Interpretability Tool website, which is hosted as a github page.",
+  "description": "Code for the Learning Interpretability Tool website, which is hosted as a github page.",
   "main": "",
   "scripts": {},
   "author": "People + AI Research",

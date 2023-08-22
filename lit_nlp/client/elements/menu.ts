@@ -20,12 +20,12 @@ import '@material/mwc-list/mwc-list-item';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {Menu} from '@material/mwc-menu';
-import {query} from 'lit/decorators';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {query} from 'lit/decorators.js';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html, LitElement, TemplateResult} from 'lit';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed} from 'mobx';
 
 import {styles} from './menu.css';
@@ -84,10 +84,11 @@ export class MenuToolbar extends MobxLitElement {
 @customElement('lit-menu')
 export class LitMenu extends LitElement {
   @property({type: Array}) items: MenuItem[] = [];
-  @property({type: String}) name: string = '';
+  @property({type: String}) name = '';
 
-  @query('#menu') menu!: Menu;
-  @query('#menu_button') button!: HTMLElement;
+  @query('#menu') menu?: Menu;
+  @query('#menu_button') button?: HTMLElement;
+
   private readonly menuId = 'menu';
   private readonly buttonId = 'menu_button';
 
@@ -112,12 +113,35 @@ export class LitMenu extends LitElement {
     return `${itemId}_menu`;
   }
 
+  /**
+   * Returns hierarchy of menu indices to track the parent menus of a submenu.
+   */
+  private parseId(itemId: string) {
+    return itemId.split('_').filter((i) => i !== 'menu' && i !== 'item');
+  }
+
+  /**
+   * Checks if itemId is a parent menu of submenuId.
+   */
+  private isSubmenu(itemId: string, submenuId: string) {
+    const parsedItem = this.parseId(itemId);
+    const parsedSubmenu = this.parseId(submenuId);
+    if (parsedSubmenu.length !== parsedItem.length + 1) return false;
+    return parsedSubmenu.join('_').startsWith(parsedItem.join('_'));
+  }
+
   private anchorSubmenus(items: MenuItem[], menuId: string) {
     items.forEach((item, index) => {
       // Anchor each submenu to its item parent.
       const itemId = this.getItemId(menuId, index);
       const submenuId = this.getSubmenuId(itemId);
 
+      // TODO(b/204677206): The following code block triggers an additonal
+      // update loop after the first render because it changes the structure and
+      // observed properties of the HTML elements created by this.render(). The
+      // only fix for this is to re-architect this module to build the menu
+      // recursively from the start, instead of rendering and then restructuring
+      // the menu elements after the fact.
       const itemElement =
           this.shadowRoot!.querySelector(`#${itemId}`) as HTMLElement;
       const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
@@ -141,20 +165,6 @@ export class LitMenu extends LitElement {
   }
 
   renderItem(item: MenuItem, submenuId: string, itemId: string) {
-    const openMenu = () => {
-      for (const id of Array.from(this.openSubmenus.keys())) {
-        const menu = this.shadowRoot!.querySelector(`#${id}`) as Menu;
-        if (menu == null) return;
-        menu.close();
-      }
-      this.openSubmenus.clear();
-
-      const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
-      if (menu == null) return;
-      menu.show();
-
-      this.openSubmenus.add(submenuId);
-    };
 
     // Display the icon if displayIcon is set to true or if this item has a
     // submenu.
@@ -166,6 +176,24 @@ export class LitMenu extends LitElement {
     const itemTextClass =
         classMap({'item-text': true, 'text-disabled': item.disabled});
 
+    const renderMenu = () => {
+      for (const id of Array.from(this.openSubmenus.keys())) {
+        const menu = this.shadowRoot!.querySelector(`#${id}`) as Menu;
+        if (menu == null) return;
+        if (!this.isSubmenu(id, itemId)) {
+          menu.close();
+          this.openSubmenus.delete(id);
+        }
+      }
+
+      if (!hasSubmenu) return;
+      const menu = this.shadowRoot!.querySelector(`#${submenuId}`) as Menu;
+      if (menu == null) return;
+      menu.show();
+
+      this.openSubmenus.add(submenuId);
+    };
+
     // TODO(b/184549342): Consider rewriting component without Material menu
     // due to styling issues (e.g. with setting max width with
     // text-overflow:ellipses in CSS).
@@ -173,11 +201,11 @@ export class LitMenu extends LitElement {
     return html`
       <div class=${itemClass} graphic='icon' id=${itemId} @click=${
         hasSubmenu ? null : item.onClick}
-        @mouseover=${hasSubmenu ? openMenu : null}>
+        @mouseover=${renderMenu}>
           <mwc-icon slot='graphic' class='check' style=${iconStyle}>
             ${hasSubmenu ? 'arrow_right' : 'check'}
           </mwc-icon>
-          <span title=${item.itemText} class=${itemTextClass}>
+          <span class=${itemTextClass}>
             ${item.itemText.slice(0, MAX_TEXT_LENGTH) +
             ((item.itemText.length > MAX_TEXT_LENGTH) ? '...': '')}
           </span>
@@ -249,10 +277,9 @@ export class LitMenu extends LitElement {
       if (this.menu == null) return;
       if (!this.menuOpen) {
         this.menu.show();
-        this.button.focus();
+        this.button?.focus();
       } else {
-        if (this.button == null) return;
-        this.button.blur();  // Remove focus from button if the menu is closed.
+        this.button?.blur();  // Remove focus from button if the menu is closed.
       }
     };
 

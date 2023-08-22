@@ -2,32 +2,27 @@
  * @fileoverview Visualization for seq2seq salience maps.
  */
 
-import '../elements/slider';
+import '../elements/switch';
+import '../elements/numeric_input';
+import '../elements/token_chips';
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
-import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getAllReferenceTexts} from '../lib/generated_text_utils';
+import {TokenWithWeight} from '../elements/token_chips';
+import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
+import {SequenceSalienceMap} from '../lib/dtypes';
+import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllTargetOptions, TargetOption} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
-import {SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 
 import {styles} from './sequence_salience_module.css';
-
-interface SequenceSalienceMap {
-  sourceTokens: string[];
-  targetTokens: string[];
-  /** [targetTokens.length, sourceTokens.length + targetTokens.length] */
-  salience: number[][];
-}
 
 interface TokenFocusState {
   idx: number; /* output token index */
@@ -40,6 +35,17 @@ enum ColorScalingMode {
   MAX_LOCAL = 'max_local',
   MAX_GLOBAL = 'max_global',
 }
+
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
+
+const LEGEND_INFO_TITLE_UNSIGNED =
+    "Salience is relative to the model's prediction of a class. A larger " +
+    "score (more purple) for a token means that token was more influential " +
+    "on the model's prediction of that class.";
 
 /** LIT module for model output. */
 @customElement('sequence-salience-module')
@@ -72,7 +78,6 @@ export class SequenceSalienceModule extends LitModule {
   @observable
   private cmapScalingMode: ColorScalingMode = ColorScalingMode.NORMALIZE;
   @observable private denseView: boolean = false;
-  @observable private showValues: boolean = false;
 
   @computed
   get salienceSpecInfo(): Spec {
@@ -92,14 +97,11 @@ export class SequenceSalienceModule extends LitModule {
   }
 
   @computed
-  get salienceTargetStrings(): string[] {
+  get salienceTargetOptions(): TargetOption[] {
     const dataSpec = this.appState.currentDatasetSpec;
     const outputSpec = this.appState.getModelSpec(this.model).output;
-    const ret = getAllReferenceTexts(dataSpec, outputSpec, this.currentData);
-    if (this.currentData != null && this.currentPreds != null) {
-      ret.push(...getAllOutputTexts(outputSpec, this.currentPreds));
-    }
-    return ret;
+    return getAllTargetOptions(
+        dataSpec, outputSpec, this.currentData, this.currentPreds);
   }
 
   override firstUpdated() {
@@ -112,7 +114,7 @@ export class SequenceSalienceModule extends LitModule {
     this.reactImmediately(getPrimarySelectedInputData, async data => {
       this.focusState = undefined; /* clear focus */
       await this.updateToSelection(data);
-      this.salienceTarget = this.salienceTargetStrings[0];
+      this.salienceTarget = this.salienceTargetOptions[0].text;
     });
 
     this.reactImmediately(() => this.salienceTarget, target => {
@@ -131,7 +133,7 @@ export class SequenceSalienceModule extends LitModule {
     this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
-        [input], this.model, this.appState.currentDataset, GENERATION_TYPES,
+        [input], this.model, this.appState.currentDataset, GENERATION_TYPES, [],
         'Getting targets from model prediction');
     const results = await this.loadLatest('generationResults', promise);
     if (results === null) return;
@@ -159,17 +161,7 @@ export class SequenceSalienceModule extends LitModule {
     const results = await this.loadLatest('salience', promise);
     if (results === null) return;
 
-    const preds = results[0];
-    const processedPreds: {[fieldName: string]: SequenceSalienceMap} = {};
-    for (const fieldName of Object.keys(preds)) {
-      processedPreds[fieldName] = {
-        sourceTokens: preds[fieldName]['tokens_in'],
-        targetTokens: preds[fieldName]['tokens_out'],
-        salience: preds[fieldName]['salience'],
-      };
-    }
-    // Update data again, in case selection changed rapidly.
-    this.currentSalience = processedPreds;
+    this.currentSalience = results[0];
   }
 
 
@@ -180,7 +172,7 @@ export class SequenceSalienceModule extends LitModule {
     const focusIdx = this.focusState?.idx ?? -1;
 
     const cmap = this.cmap;
-    // length is preds.sourceTokens.length + preds.targetTokens.length
+    // length is preds.tokens_in.length + preds.tokens_out.length
     const salience: number[] = focusIdx > -1 ? preds.salience[focusIdx] :
                                                [...preds.salience[0]].fill(0);
 
@@ -220,68 +212,31 @@ export class SequenceSalienceModule extends LitModule {
       }
     };
 
-    const holderClasses = classMap({
-      'token-holder': true,
-      'token-holder-dense': this.denseView,
-    });
+    const sourceTokensWithWeights: TokenWithWeight[] =
+        preds.tokens_in.map((token: string, i: number) => {
+          return {
+            token,
+            weight: scaledSalience[i],
+            disableHover: focusIdx === -1
+          };
+        });
 
-    // Hide values for unimportant tokens, based on current colormap scale.
-    // 1 - lightness is roughly how dark the token highlighting will be;
-    // 0.05 is an arbitrary threshold that seems to work well.
-    const showNumber = (val: number) => 1 - cmap.lightness(val) > 0.05;
-    const displayVal = (val: number) => val.toFixed(3);
-    // TODO(b/204887716, b/173469699): improve layout density?
-    // Try to strip leading zeros to save some space? Can do down to 24px width
-    // with this, but need to handle negatives.
-    // const displayVal = (val: number) => {
-    //   const formattedVal = val.toFixed(3);
-    //   if (formattedVal[0] === '0') {
-    //     return formattedVal.slice(1);
-    //   }
-    //   return formattedVal;
-    // };
-
-    const renderSourceToken = (token: string, i: number) => {
-      const val = scaledSalience[i];
-      const tokenStyle = styleMap(
-          {'color': cmap.textCmap(val), 'background-color': cmap.bgCmap(val)});
-      const tokenClasses = classMap({
-        'salient-token': true,
-        'salient-token-with-number': this.showValues,
-      });
-      // clang-format off
-      return html`
-        <div class=${tokenClasses} style=${tokenStyle}
-         data-displayval=${displayVal(val)} ?data-shownumber=${showNumber(val)}>
-          ${token}
-        </div>
-      `;
-      // clang-format on
-    };
-
-    const renderTargetToken = (token: string, i: number) => {
-      const val = scaledSalience[i + preds.sourceTokens.length];
-      const tokenStyle = styleMap(
-          {'color': cmap.textCmap(val), 'background-color': cmap.bgCmap(val)});
-      const tokenClasses = classMap({
-        'salient-token': true,
-        'salient-token-with-number': this.showValues,
-        'target-token': true,
-        'token-focused': i === focusIdx,
-        'token-pinned': i === focusIdx && (this.focusState?.sticky === true),
-      });
-      // clang-format off
-      return html`
-        <div class=${tokenClasses} style=${tokenStyle}
-         data-displayval=${displayVal(val)} ?data-shownumber=${showNumber(val)}
-         @mouseover=${() => { onMouseoverTarget(i); }}
-         @mouseout=${onMouseoutTarget}
-         @click=${(e: Event) => { onClickTarget(i, e); }}>
-          ${token}
-        </div>
-      `;
-      // clang-format on
-    };
+    const targetTokensWithWeights: TokenWithWeight[] =
+        preds.tokens_out.map((token: string, i: number) => {
+          return {
+            token,
+            weight: scaledSalience[i + preds.tokens_in.length],
+            selected: i === focusIdx,
+            pinned: i === focusIdx && (this.focusState?.sticky === true),
+            onClick: (e: Event) => {
+              onClickTarget(i, e);
+            },
+            onMouseover: () => {
+              onMouseoverTarget(i);
+            },
+            onMouseout: onMouseoutTarget,
+          };
+        });
 
     // clang-format off
     return html`
@@ -289,14 +244,20 @@ export class SequenceSalienceModule extends LitModule {
         <table class='field-table'>
           <tr>
             <th><div class='subfield-title'>Source</div></th>
-            <td><div class=${holderClasses}>
-                ${preds.sourceTokens.map(renderSourceToken)}
+            <td><div>
+              <lit-token-chips ?dense=${this.denseView}
+                .tokensWithWeights=${sourceTokensWithWeights}
+                .cmap=${cmap}>
+              </lit-token-chips>
             </div></td>
           </tr>
           <tr>
             <th><div class='subfield-title'>Target</div></th>
-             <td><div class=${holderClasses}>
-                ${preds.targetTokens.map(renderTargetToken)}
+            <td><div>
+              <lit-token-chips ?dense=${this.denseView}
+                .tokensWithWeights=${targetTokensWithWeights}
+                .cmap=${cmap}>
+              </lit-token-chips>
             </div></td>
           </tr>
         </table>
@@ -332,9 +293,10 @@ export class SequenceSalienceModule extends LitModule {
       <div class="controls-group controls-group-variable" title="Target string for salience.">
         <label class="dropdown-label">Target:</label>
         <select class="dropdown" @change=${onChangeTarget}>
-          ${this.salienceTargetStrings.map(target =>
-            html`<option value=${target} ?selected=${target === this.salienceTarget}>
-                   ${target}
+          ${this.salienceTargetOptions.map(target =>
+            html`<option value=${target.text}
+                  ?selected=${target.text === this.salienceTarget}>
+                   (${target.source}) "${target.text}"
                  </option>`)}
         </select>
       </div>
@@ -365,28 +327,26 @@ export class SequenceSalienceModule extends LitModule {
   renderColorLegend() {
     const cmap = this.cmap;
     const isSigned = (cmap instanceof SignedSalienceCmap);
-    const scale = (val: number) => cmap.bgCmap(val);
-    scale.domain = () => cmap.colorScale.domain();
     const labelName = "Token Salience";
+
+    const tooltipText =
+        isSigned ? LEGEND_INFO_TITLE_SIGNED : LEGEND_INFO_TITLE_UNSIGNED;
 
     // clang-format off
     return html`
-        <color-legend legendType=${LegendType.SEQUENTIAL}
-          selectedColorName=${labelName}
-          ?alignRight=${true}
-          .scale=${scale}
-          numBlocks=${isSigned ? 7 : 5}>
-        </color-legend>`;
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        label=${labelName}
+        alignRight
+        .scale=${cmap.asScale()}
+        numBlocks=${isSigned ? 7 : 5}
+        .paletteTooltipText=${tooltipText}>
+      </color-legend>`;
     // clang-format on
   }
 
   renderFooterControls() {
     const onClickToggleDensity = () => {
       this.denseView = !this.denseView;
-    };
-
-    const onClickToggleValues = () => {
-      this.showValues = !this.showValues;
     };
 
     const onChangeGamma = (e: Event) => {
@@ -396,22 +356,17 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format off
     return html`
       <div class="controls-group">
-        <div class='switch-container' @click=${onClickToggleDensity}>
-          <div>Dense view</div>
-          <mwc-switch .checked=${this.denseView}></mwc-switch>
-        </div>
-        <div class='vertical-separator'></div>
-        <div class='switch-container' @click=${onClickToggleValues}>
-          <div>Show values</div>
-          <mwc-switch .checked=${this.showValues}></mwc-switch>
-        </div>
+        <lit-switch labelLeft="Dense view"
+              ?selected=${this.denseView}
+              @change=${onClickToggleDensity}>
+        </lit-switch>
       </div>
       <div class="controls-group">
         ${this.renderColorLegend()}
         <label for="gamma-slider">Gamma:</label>
-        <lit-slider min="0.25" max="6" step="0.25" val="${this.cmapGamma}"
-                    .onInput=${onChangeGamma}></lit-slider>
-        <div class="gamma-value">${this.cmapGamma.toFixed(2)}</div>
+        <lit-numeric-input min="0.25" max="6" step="0.25"
+          value="${this.cmapGamma}" @change=${onChangeGamma}>
+        </lit-numeric-input>
       </div>`;
     // clang-format on
   }

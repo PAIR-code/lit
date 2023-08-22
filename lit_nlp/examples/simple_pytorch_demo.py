@@ -42,6 +42,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 # Use the regular GLUE data loaders, because these are very simple already.
 from lit_nlp.examples.datasets import glue
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 
 import torch
@@ -57,9 +58,12 @@ _MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
     "Path to trained model, in standard transformers format, e.g. as "
-    "saved by model.save_pretrained() and tokenizer.save_pretrained()")
+    "saved by model.save_pretrained() and tokenizer.save_pretrained()"
+)
 
-SequenceClassifierOutput = transformers.modeling_outputs.SequenceClassifierOutput
+SequenceClassifierOutput = (
+    transformers.modeling_outputs.SequenceClassifierOutput
+)
 
 
 def _from_pretrained(cls, *args, **kw):
@@ -159,7 +163,11 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info(
+        "simple_pytorch_demo:get_wsgi_app() called with unused "
+        "args: %s", unused)
+  return main([])
 
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
@@ -170,7 +178,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # extract to the transformers cache.
   model_path = _MODEL_PATH.value
   if model_path.endswith(".tar.gz"):
-    model_path = transformers.file_utils.cached_path(
+    model_path = file_cache.cached_path(
         model_path, extract_compressed_file=True)
 
   # Load the model we defined above.

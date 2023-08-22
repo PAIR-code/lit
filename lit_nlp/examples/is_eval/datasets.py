@@ -16,8 +16,16 @@ class SingleInputClassificationFromTSV(lit_dataset.Dataset):
 
   LABELS = ["0", "1"]
 
-  def __init__(self, path: str):
+  def __init__(self, path: str, name: str = ""):
+    """Initializes a dataset for the Input Salience Eval demo.
+
+    Args:
+      path: The path from which examples will be loaded.
+      name: Optionally, the name of the dataset. Used by ISEvalModel to
+        determine if the model is intended to be compatible with this dataset.
+    """
     self._examples = self.load_datapoints(path)
+    self.name = name
 
   def load_datapoints(self, path: str):
     with open(path) as fd:

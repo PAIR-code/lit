@@ -17,9 +17,9 @@
 
 import '../elements/threshold_slider';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
-import {styleMap} from 'lit/directives/style-map';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
@@ -55,6 +55,10 @@ interface CalculatedMarginsPerField {
 @customElement('thresholder-module')
 export class ThresholderModule extends LitModule {
   static override title = 'Binary Classifier Thresholds';
+  static override infoMarkdown =
+      `Set threshold scores that are used to determine whether examples belong
+      to the positive class.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#binary-classification-thresholds)`;
   static override numCols = 3;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>
@@ -134,7 +138,8 @@ export class ThresholderModule extends LitModule {
 
   @computed
   private get binaryClassificationKeys() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    if (!this.model) return [];
+    const outputSpec = this.appState.getModelSpec(this.model).output;
     const classificationKeys = findSpecKeys(outputSpec, MulticlassPreds);
     return classificationKeys.filter(
         key => isBinaryClassification(outputSpec[key]));
@@ -251,14 +256,18 @@ export class ThresholderModule extends LitModule {
         "using the cost ratio and a number of different techniques";
     return html`
         ${this.facetingControl}
-        <div title=${costRatioTooltip}>Cost ratio (FP/FN):</div>
+        <lit-tooltip content=${costRatioTooltip}>
+          <div slot="tooltip-anchor">Cost ratio (FP/FN):</div>
+        </lit-tooltip>
         <input type=number class="cost-ratio-input" step="0.1" min=0 max=20
                .value=${this.costRatio.toString()}
                @input=${handleCostRatioInput}>
-        <button class='hairline-button' title=${calculateTooltip}
-           @click=${this.calculateThresholds}>
-          Get optimal thresholds
-        </button>`;
+        <lit-tooltip content=${calculateTooltip}>
+          <button class='hairline-button' slot="tooltip-anchor"
+            @click=${this.calculateThresholds}>
+            Get optimal thresholds
+          </button>
+        </lit-tooltip>`;
   }
 
   override renderImpl() {

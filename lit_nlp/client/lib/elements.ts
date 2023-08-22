@@ -21,7 +21,7 @@
 
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {property} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
 import {IReactionDisposer, IReactionOptions, IReactionPublic, observable, reaction} from 'mobx';
 
 type ReactionInputFn<T> = (r: IReactionPublic) => T;

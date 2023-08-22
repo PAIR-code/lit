@@ -24,7 +24,7 @@
 import '../elements/span_graph_vis';
 import '../elements/span_graph_vis_vertical';
 
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
 import {computed, observable} from 'mobx';
 
@@ -56,7 +56,7 @@ const moduleStyles = css`
   }
 
   .token-group {
-    padding-top: 30pt;
+    padding-top: 40px;
   }
 
   .field-title {
@@ -92,10 +92,9 @@ function mapTokenToTags(spec: Spec): FieldNameMultimap {
   const tokenToTags: FieldNameMultimap = {};
   for (const tagKey of tagKeys) {
     const {align: tokenKey} = spec[tagKey] as LitTypeWithAlign;
-    if (!tokenKeys.includes(tokenKey)) {
+    if (tokenKey == null || !tokenKeys.includes(tokenKey)) {
       continue;
-    }
-    if (tokenToTags[tokenKey] == null) {
+    } else if (tokenToTags[tokenKey] == null) {
       tokenToTags[tokenKey] = [];
     }
     tokenToTags[tokenKey].push(tagKey);

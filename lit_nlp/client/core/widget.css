@@ -38,17 +38,17 @@
   font-family: 'Google Sans', sans;
   min-height: var(--lit-widget-header-height);
   color: rgb(32, 33, 36);
-  line-height: 16pt;
+  line-height: 21px;
   display: flex;
   flex-direction: row;
   align-items: center;
-  padding: 0pt 4pt;
+  padding: 0px 5px;
   border-bottom: 1px solid rgb(218, 220, 224);
   box-sizing: border-box;
 }
 
 .subtitle {
-  font-size: 8pt;
+  font-size: 11px;
   color: gray;
 }
 

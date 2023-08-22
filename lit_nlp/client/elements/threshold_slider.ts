@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {css, html, LitElement} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getMarginFromThreshold, getThresholdFromMargin} from '../lib/utils';
@@ -44,29 +44,17 @@ export class ThresholdSlider extends LitElement {
     return [sharedStyles, css`
         .slider-row {
           display: flex;
-          flex-wrap: wrap;
-          align-items: start;
+          flex-direction: row;
+          align-items: center;
           justify-content: center;
         }
 
         .text-with-controls {
-          padding-top: 9px;
+          padding-top: 0;
         }
 
         .text-no-controls {
           padding-top: 2px;
-        }
-
-        .slider-val {
-          color: var(--lit-neutral-600);
-          margin-top: -3px; /*Accounts for custom thumb offset in lit-slider*/
-          margin-left: 2px;
-          width: 30px;
-        }
-
-        .hairline-button.reset-button {
-          margin: 5px;
-          padding: 5px 10px;
         }
     `];
   }
@@ -81,8 +69,8 @@ export class ThresholdSlider extends LitElement {
     // from -5 to 5, and can be converted the threshold through the equation
     // margin = ln(threshold / (1 - threshold)).
     const onChange = (e: Event) => {
-      const newThresh = +(e.target as HTMLInputElement).value;
-      const newMargin = getMarginFromThreshold(newThresh);
+      const newThresh = (e.target as HTMLInputElement).value;
+      const newMargin = getMarginFromThreshold(Number(newThresh));
       const event = new CustomEvent<ThresholdChange>('threshold-changed', {
         detail: {
           label,
@@ -91,12 +79,12 @@ export class ThresholdSlider extends LitElement {
       });
       this.dispatchEvent(event);
     };
-    const marginToVal = (margin: number) => {
+    function marginToVal(margin: number) {
       const val = getThresholdFromMargin(+margin);
       return Math.round(100 * val) / 100;
-    };
+    }
     return this.renderSlider(
-        margin, label, 0, 1, 0.01, onChange, marginToVal, 'threshold');
+        margin, label, 0, 1, 0.01, onChange, marginToVal, 'Threshold');
   }
 
   renderMarginSlider(margin: number, label: string) {
@@ -110,7 +98,7 @@ export class ThresholdSlider extends LitElement {
       });
       this.dispatchEvent(event);
     };
-    const marginToVal = (margin: number) => margin;
+    function marginToVal (margin: number) {return margin;}
     return this.renderSlider(
         margin, label, -5, 5, 0.05, onChange, marginToVal, 'margin');
   }
@@ -135,11 +123,6 @@ export class ThresholdSlider extends LitElement {
       'text-with-controls': this.showControls,
       'text-no-controls': !this.showControls
     };
-    const valClasses = {
-      'text-with-controls': this.showControls,
-      'text-no-controls': !this.showControls,
-      'slider-val': true
-    };
 
     const renderLabel = () => {
       if (this.showControls) {
@@ -153,9 +136,8 @@ export class ThresholdSlider extends LitElement {
     return html`
         <div class="slider-row">
           ${renderLabel()}
-          <lit-slider min="${min}" max="${max}" step="${step}" val="${val}"
-                      .onChange=${onChange}></lit-slider>
-          <div class=${classMap(valClasses)}>${val}</div>
+          <lit-numeric-input min="${min}" max="${max}" step="${step}"
+            value="${val}" @change=${onChange}></lit-numeric-input>
           ${this.showControls ?
               html`<button class='hairline-button reset-button' @click=${reset}
                    ?disabled="${isDefaultValue}">Reset</button>` : null}

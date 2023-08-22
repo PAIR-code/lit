@@ -1,5 +1,5 @@
 """Interpreter component for models that return their own salience."""
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from lit_nlp.api import components
 from lit_nlp.api import dataset as lit_dataset
@@ -16,11 +16,15 @@ JsonDict = types.JsonDict
 SalienceTypes = Union[dtypes.FeatureSalience, dtypes.TokenSalience,
                       dtypes.SequenceSalienceMap, str]
 
+_SALIENCE_FIELD_TYPES = (
+    types.FeatureSalience, types.ImageSalience, types.TokenSalience,
+    types.SequenceSalience)
+
 
 class ModelSalience(components.Interpreter):
   """Model-provided salience interpreter."""
 
-  def __init__(self, models: Dict[str, lit_model.Model]):
+  def __init__(self, models: dict[str, lit_model.Model]):
     # Populate saliency fields in meta spec based on saliency returned by
     # model output specs.
     self._spec = {}
@@ -29,16 +33,11 @@ class ModelSalience(components.Interpreter):
       for field in fields:
         self._spec[f'{model_name}:{field}'] = model.output_spec()[field]
 
-  def find_fields(self, model: lit_model.Model) -> List[str]:
-    sal_keys = utils.find_spec_keys(
-        model.output_spec(),
-        (types.FeatureSalience, types.ImageSalience, types.TokenSalience,
-         types.SequenceSalience))
-    return sal_keys
+  def find_fields(self, model: lit_model.Model) -> list[str]:
+    return utils.find_spec_keys(model.output_spec(), _SALIENCE_FIELD_TYPES)
 
-  def _run_single(
-      self, ex: JsonDict, mo: JsonDict,
-      fields: List[str], model: lit_model.Model) -> Dict[str, SalienceTypes]:
+  def _run_single(self, ex: JsonDict, mo: JsonDict, fields: list[str],
+                  model: lit_model.Model) -> dict[str, SalienceTypes]:
     # Extract the saliency outputs from the model.
     result = {}
     for sal_field in fields:
@@ -46,11 +45,11 @@ class ModelSalience(components.Interpreter):
     return result
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     del dataset
     del config
 
@@ -66,8 +65,10 @@ class ModelSalience(components.Interpreter):
         for ex, mo in zip(inputs, model_outputs)
     ]
 
-  def is_compatible(self, model: lit_model.Model):
-    return len(self.find_fields(model))
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as salience comes from the model.
+    return utils.spec_contains(model.output_spec(), _SALIENCE_FIELD_TYPES)
 
   def meta_spec(self) -> types.Spec:
     return self._spec

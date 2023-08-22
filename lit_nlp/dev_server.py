@@ -13,13 +13,13 @@
 # limitations under the License.
 # ==============================================================================
 """Development wrapper for LIT server."""
-import importlib
 import inspect
 from typing import Optional, Union
 
 from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp.lib import wsgi_serving
+import termcolor
 
 LitServerType = Union[lit_app.LitApp, wsgi_serving.BasicDevServer,
                       wsgi_serving.NotebookWsgiServer]
@@ -87,51 +87,30 @@ class Server(object):
       is 'notebook', otherwise None when serving is complete.
     """
 
-    while True:
-      logging.info(get_lit_logo())
-      logging.info('Starting LIT server...')
-      app = lit_app.LitApp(*self._app_args, **self._app_kw)
+    logging.info(termcolor.colored(get_lit_logo(), 'red', attrs=['bold']))
+    logging.info(
+        termcolor.colored('Starting LIT server...', 'green', attrs=['bold'])
+    )
+    app = lit_app.LitApp(*self._app_args, **self._app_kw)
 
-      # If using a separate server program to serve the app, such as gunicorn,
-      # then just return the WSGI app instead of serving it directly.
-      if self._server_type == 'external':
-        return app
-      # Pre-bake mode runs any warm-start functions, saves the cache,
-      # and exits. Designed to be used in container setup for faster launching.
-      if self._server_type == 'prebake':
-        app.save_cache()
-        logging.info('Pre-bake completed; exiting server.')
-        return
-
-      server_fn = WSGI_SERVERS[self._server_type]
-      server = server_fn(app, **self._server_kw)
-
-      # server.serve isn't blocking for notebook server type.
-      # For other types, the underlying server registers a SIGINT handler,
-      # so if you hit Ctrl+C it will return.
-      server.serve()
-      if self._server_type == 'notebook':
-        return server
+    # If using a separate server program to serve the app, such as gunicorn,
+    # then just return the WSGI app instead of serving it directly.
+    if self._server_type == 'external':
+      return app
+    # Pre-bake mode runs any warm-start functions, saves the cache,
+    # and exits. Designed to be used in container setup for faster launching.
+    if self._server_type == 'prebake':
       app.save_cache()
-      # Optionally, reload server for development.
-      # Potentially brittle - don't use this for real deployments.
-      prompt = input('[Enter] to restart server, Q to quit.')
-      if len(prompt) > 0:  # pylint: disable=g-explicit-length-test
-        return
+      logging.info('Pre-bake completed; exiting server.')
+      return
 
-      ##
-      # pylint: disable=g-import-not-at-top
-      # Hot-reload Python sources for the next iteration.
-      # Add any dependencies you want to reload here, as:
-      #   from lit_nlp.components import foobar
-      #   importlib.reload(foobar)
-      from lit_nlp.components import projection
-      importlib.reload(projection)
-      from lit_nlp.components import pca
-      importlib.reload(pca)
-      # Be careful about reloading the 'types' module, since this will re-define
-      # the type classes and can break code that relies on isinstance().
+    server_fn = WSGI_SERVERS[self._server_type]
+    server = server_fn(app, **self._server_kw)
 
-      # Finally, reload the lit_app library.
-      importlib.reload(lit_app)
-      # pylint: enable=g-import-not-at-top
+    # server.serve isn't blocking for notebook server type.
+    # For other types, the underlying server registers a SIGINT handler,
+    # so if you hit Ctrl+C it will return.
+    server.serve()
+    if self._server_type == 'notebook':
+      return server
+    app.save_cache()

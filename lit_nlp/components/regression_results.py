@@ -14,7 +14,7 @@
 # ==============================================================================
 """An interpreter for analyzing regression results."""
 
-from typing import Optional
+from typing import cast, Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -52,14 +52,14 @@ class RegressionInterpreter(lit_components.Interpreter):
     for i, inp in enumerate(inputs):
       input_result: dict[str, dtypes.RegressionResult] = {}
       for key in supported_keys:
+        field_spec = cast(types.RegressionScore, output_spec[key])
         score = model_outputs[i][key]
         error = None
         sq_error = None
         # If there is ground truth information, calculate error and squared
         # error.
-        if (output_spec[key].parent and
-            output_spec[key].parent in inp):
-          ground_truth = inp[output_spec[key].parent]
+        if (field_spec.parent and field_spec.parent in inp):
+          ground_truth = inp[field_spec.parent]
           error = score - ground_truth
           sq_error = error * error
 
@@ -68,9 +68,10 @@ class RegressionInterpreter(lit_components.Interpreter):
       results.append(input_result)
     return results
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    output_spec = model.output_spec()
-    return True if self._find_supported_pred_keys(output_spec) else False
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused as regressions depend on model only
+    return lit_utils.spec_contains(model.output_spec(), types.RegressionScore)
 
   def _find_supported_pred_keys(self, output_spec: types.Spec) -> list[str]:
     return lit_utils.find_spec_keys(output_spec, types.RegressionScore)

@@ -20,19 +20,18 @@ from absl import logging
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import dtypes as lit_dtypes
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import file_cache
 import pandas as pd
-import transformers  # for file caching
 
 EdgeLabel = lit_dtypes.EdgeLabel
 
 DATA_ROOT = "https://raw.githubusercontent.com/rudinger/winogender-schemas/master/data/"  # pylint: disable=line-too-long
 
 
-def get_data(name):
+def cache_data(url):
   """Download data or return local cache path."""
-  url = os.path.join(DATA_ROOT, name)
   logging.info("Winogender: retrieving data file %s", url)
-  return transformers.file_utils.cached_path(url)
+  return file_cache.cached_path(url)
 
 
 ## From gap-coreference/constants.py
@@ -144,17 +143,23 @@ class WinogenderDataset(lit_dataset.Dataset):
   def __init__(self,
                templates_path: Optional[str] = None,
                occupation_stats_path: Optional[str] = None):
-    templates_path = templates_path or get_data("templates.tsv")
-    occupation_stats_path = occupation_stats_path or get_data(
-        "occupations-stats.tsv")
+    templates_path_to_cache = templates_path or os.path.join(
+        DATA_ROOT, "templates.tsv"
+    )
+    cached_templates_path = cache_data(templates_path_to_cache)
+
+    occupation_stats_path_to_cache = occupation_stats_path or os.path.join(
+        DATA_ROOT, "occupations-stats.tsv"
+    )
+    cached_occupation_stats_path = cache_data(occupation_stats_path_to_cache)
 
     # Load templates and make a DataFrame.
-    with open(templates_path) as fd:
+    with open(cached_templates_path) as fd:
       self.templates_df = pd.read_csv(
           fd, sep="\t", header=0, names=self.TSV_COLUMN_NAMES)
 
     # Load occpuation stats.
-    with open(occupation_stats_path) as fd:
+    with open(cached_occupation_stats_path) as fd:
       self.occupation_df = pd.read_csv(fd, sep="\t").set_index("occupation")
 
     # Make examples for each {someone} x {gender} x {template}

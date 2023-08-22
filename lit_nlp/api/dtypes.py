@@ -29,11 +29,11 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Dict, List, Optional, Sequence, Text, Tuple, Union
+from typing import Any, Optional, Sequence, Union
 
 import attr
 
-JsonDict = Dict[Text, Any]
+JsonDict = dict[str, Any]
 
 
 class EnumSerializableAsValues(object):
@@ -71,23 +71,23 @@ class SpanLabel(DataTuple):
   """Dataclass for individual span label preds. Can use this in model preds."""
   start: int  # inclusive
   end: int  # exclusive
-  label: Optional[Text] = None
-  align: Optional[Text] = None  # name of field (segment) this aligns to
+  label: Optional[str] = None
+  align: Optional[str] = None  # name of field (segment) this aligns to
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class EdgeLabel(DataTuple):
   """Dataclass for individual edge label preds. Can use this in model preds."""
-  span1: Tuple[int, int]  # inclusive, exclusive
-  span2: Tuple[int, int]  # inclusive, exclusive
-  label: Union[Text, int, float]
+  span1: tuple[int, int]  # inclusive, exclusive
+  span2: tuple[int, int]  # inclusive, exclusive
+  label: Union[str, int, float]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AnnotationCluster(DataTuple):
   """Dataclass for annotation clusters, which may span multiple segments."""
-  label: Text
-  spans: List[SpanLabel]
+  label: str
+  spans: list[SpanLabel]
   score: Optional[float] = None
 
   def to_json(self) -> JsonDict:
@@ -101,22 +101,22 @@ class AnnotationCluster(DataTuple):
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class TokenSalience(DataTuple):
   """Dataclass for a salience map over tokens."""
-  tokens: List[str]
-  salience: List[float]  # parallel to tokens
+  tokens: Sequence[str]
+  salience: Sequence[float]  # parallel to tokens
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class FeatureSalience(DataTuple):
   """Dataclass for a salience map over categorical and/or scalar features."""
-  salience: Dict[str, float]
+  salience: dict[str, float]
 
 
 # TODO(b/196886684): document API for salience interpreters.
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SequenceSalienceMap(DataTuple):
   """Dataclass for a salience map over a target sequence."""
-  tokens_in: List[str]
-  tokens_out: List[str]
+  tokens_in: list[str]
+  tokens_out: list[str]
   # <float>[num_tokens_out, num_tokens_in + num_tokens_out]
   salience: Sequence[Sequence[float]]  # usually, a np.ndarray
 
@@ -132,6 +132,6 @@ class RegressionResult(DataTuple):
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ClassificationResult(DataTuple):
   """Dataclass for classification interpreter result."""
-  scores: List[float]
+  scores: list[float]
   predicted_class: str
   correct: Optional[bool]

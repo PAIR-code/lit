@@ -16,10 +16,10 @@
  */
 
 import {Checkbox} from '@material/mwc-checkbox';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {css, html, LitElement} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 
 /**
  * A custom wrapper around the mwc-checkbox which is a) smaller and b) has a
@@ -37,14 +37,17 @@ export class LitCheckbox extends LitElement {
     return css`
       :host {
         outline: none;
+        --lit-checkbox-label-white-space: normal;
       }
 
       .wrapper {
         display: flex;
         align-items: center;
-        font-size: 10pt;
+        font-size: 13px;
         height: 28px;
         margin-left: -12px;
+        margin-right: 4px;
+        line-height: 14px;
       }
 
       .wrapper.disabled {
@@ -58,6 +61,7 @@ export class LitCheckbox extends LitElement {
 
       .checkbox-label {
         cursor: pointer;
+        white-space: var(--lit-checkbox-label-white-space);
       }
     `;
   }

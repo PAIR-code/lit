@@ -21,6 +21,7 @@ from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import dataset as lit_dataset
@@ -33,6 +34,16 @@ from lit_nlp.examples.models import t5
 from lit_nlp.lib import caching  # for hash id fn
 
 # NOTE: additional flags defined in server_flags.py
+
+_CNNDM_TRAIN_HOSTED = f"{summarization.CNNDMData.tfds_name}_train"
+_CNNDM_VALIDATION_HOSTED = f"{summarization.CNNDMData.tfds_name}_validation"
+_WMT14_DE_EN_HOSTED = f"{mt.WMT14Data.tfds_name}_de-en_validation"
+_WMT14_FR_EN_HOSTED = f"{mt.WMT14Data.tfds_name}_fr-en_validation"
+
+_CNNDM_TRAIN_HOSTED_URL = "https://storage.googleapis.com/what-if-tool-resources/lit-data/cnn_dailymail_train.csv"
+_CNNDM_VALIDATION_HOSTED_URL = "https://storage.googleapis.com/what-if-tool-resources/lit-data/cnn_dailymail_validation.csv"
+_WMT14_DE_EN_HOSTED_URL = "https://storage.googleapis.com/what-if-tool-resources/lit-data/wmt14_translate_de-en_validation.csv"
+_WMT14_FR_EN_HOSTED_URL = "https://storage.googleapis.com/what-if-tool-resources/lit-data/wmt14_translate_fr-en_validation.csv"
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", 200,
@@ -51,6 +62,9 @@ _TOKEN_TOP_K = flags.DEFINE_integer(
 _NUM_TO_GEN = flags.DEFINE_integer(
     "num_to_generate", 4, "Number of generations to produce for each input.")
 
+_HOSTED_DATASETS = flags.DEFINE_list("hosted_datasets", [],
+                                     "Datasets hosted by the LIT team to use.")
+
 ##
 # Options for nearest-neighbor indexer.
 _USE_INDEXER = flags.DEFINE_boolean(
@@ -67,25 +81,35 @@ FLAGS.set_default("development_demo", True)
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
+  """Returns a LitApp instance for consumption by gunicorn."""
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)
   FLAGS.set_default("data_dir", "./t5_data/")
   FLAGS.set_default("initialize_index", False)
+  FLAGS.set_default("hosted_datasets", [
+      _CNNDM_TRAIN_HOSTED, _CNNDM_VALIDATION_HOSTED, _WMT14_DE_EN_HOSTED,
+      _WMT14_FR_EN_HOSTED
+  ])
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("t5_demo:get_wsgi_app() called with unused args: %s", unused)
+  return main([])
 
 
 def build_indexer(models):
   """Build nearest-neighbor indices."""
   assert FLAGS.data_dir, "--data_dir must be set to use the indexer."
   # Datasets for indexer - this one loads the training corpus instead of val.
-  index_datasets = {
-      "CNNDM":
-          summarization.CNNDMData(
-              split="train", max_examples=_MAX_INDEX_EXAMPLES.value),
-  }
+  index_datasets = {}
+  if _CNNDM_TRAIN_HOSTED in _HOSTED_DATASETS.value:
+    index_datasets["CNNDM"] = summarization.CNNDMData(
+        filepath=_CNNDM_TRAIN_HOSTED_URL)
+  else:
+    index_datasets["CNNDM"] = summarization.CNNDMData(
+        split="train", max_examples=_MAX_INDEX_EXAMPLES.value)
+
   index_datasets = lit_dataset.IndexedDataset.index_all(index_datasets,
                                                         caching.input_hash)
   # TODO(lit-dev): add training data and indexing for MT task. This will be
@@ -125,7 +149,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           model_name=model_name_or_path,
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
-          output_attention=False)
+          output_attention=False,
+      )
+
+  model_loaders: lit_app.ModelLoadersMap = {
+      "T5 summarization": (t5.T5Summarization, t5.T5Summarization.init_spec()),
+      "T5 translation": (t5.T5Translation, t5.T5Translation.init_spec()),
+  }
 
   ##
   # Load eval sets and model wrappers for each task.
@@ -133,18 +163,39 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # and post-processing code.
   models = {}
   datasets = {}
-
+  dataset_loaders: lit_app.DatasetLoadersMap = {}
   if "summarization" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_summarization"] = t5.SummarizationWrapper(m)
-    datasets["CNNDM"] = summarization.CNNDMData(
-        split="validation", max_examples=_MAX_EXAMPLES.value)
+    if _CNNDM_VALIDATION_HOSTED in _HOSTED_DATASETS.value:
+      datasets["CNNDM"] = summarization.CNNDMData(
+          filepath=_CNNDM_VALIDATION_HOSTED_URL)
+    else:
+      datasets["CNNDM"] = summarization.CNNDMData(
+          split="validation", max_examples=_MAX_EXAMPLES.value)
+
+    dataset_loaders["CNN DailyMail"] = (
+        summarization.CNNDMData,
+        summarization.CNNDMData.init_spec(),
+    )
 
   if "mt" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_translation"] = t5.TranslationWrapper(m)
-    datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
-    datasets["wmt14_ende"] = mt.WMT14Data(version="de-en", reverse=True)
+
+    if _WMT14_DE_EN_HOSTED in _HOSTED_DATASETS.value:
+      datasets["wmt14_ende"] = mt.WMT14Data(
+          version="de-en", reverse=True, filepath=_WMT14_DE_EN_HOSTED_URL)
+    else:
+      datasets["wmt14_ende"] = mt.WMT14Data(version="de-en", reverse=True)
+
+    if _WMT14_FR_EN_HOSTED in _HOSTED_DATASETS.value:
+      datasets["wmt14_enfr"] = mt.WMT14Data(
+          version="fr-en", reverse=True, filepath=_WMT14_FR_EN_HOSTED_URL)
+    else:
+      datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
+
+    dataset_loaders["WMT 14"] = (mt.WMT14Data, mt.WMT14Data.init_spec())
 
   # Truncate datasets if --max_examples is set.
   for name in datasets:
@@ -170,7 +221,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Actually start the LIT server, using the models, datasets, and other
   # components constructed above.
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      model_loaders=model_loaders,
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 

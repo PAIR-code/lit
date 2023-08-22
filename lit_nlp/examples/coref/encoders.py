@@ -12,7 +12,7 @@ import tensorflow as tf
 import transformers
 
 
-class BertEncoderWithOffsets(lit_model.Model):
+class BertEncoderWithOffsets(lit_model.BatchedModel):
   """BERT encoder for pre-tokenized text."""
 
   @property

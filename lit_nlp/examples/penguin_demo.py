@@ -11,20 +11,50 @@ from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
+from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.api import layout
 from lit_nlp.components import minimal_targeted_counterfactuals
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
 
-MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
-import transformers
-MODEL_PATH = transformers.file_utils.cached_path(MODEL_PATH)
+# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
+# both google3 and OSS integration testing setups.
+from lit_nlp.lib import file_cache
+MODEL_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
+)
 
 FLAGS = flags.FLAGS
+FLAGS.set_default('default_layout', 'penguins')
 _MODEL_PATH = flags.DEFINE_string('model_path', MODEL_PATH,
                                   'Path to load trained model.')
+
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    'max_examples',
+    None,
+    (
+        'Maximum number of examples to load into LIT. '
+        'Set --max_examples=200 for a quick start.'
+    ),
+)
+
+# Custom frontend layout; see api/layout.py
+modules = layout.LitModuleName
+PENGUIN_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        'Main': [
+            modules.DiveModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ]
+    },
+    lower=layout.STANDARD_LAYOUT.lower,
+    description='Custom layout for the Palmer Penguins demo.',
+)
+CUSTOM_LAYOUTS = {'penguins': PENGUIN_LAYOUT}
 
 
 # Function for running demo through gunicorn instead of the local dev server.
@@ -34,7 +64,10 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info('penguin_demo:get_wsgi_app() called with unused args: %s',
+                 unused)
+  return main([])
 
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
@@ -43,12 +76,23 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   models = {'species classifier': penguin_model.PenguinModel(_MODEL_PATH.value)}
   datasets = {'penguins': penguin_data.PenguinDataset()}
+  # Truncate datasets if --max_examples is set.
+  if _MAX_EXAMPLES.value is not None:
+    for name in datasets:
+      logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
+      datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
+      logging.info('  truncated to %d examples', len(datasets[name]))
+
   generators = {
       'Minimal Targeted Counterfactuals':
           minimal_targeted_counterfactuals.TabularMTC()
   }
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      layouts=CUSTOM_LAYOUTS,
+      **server_flags.get_flags())
   return lit_demo.serve()
 
 

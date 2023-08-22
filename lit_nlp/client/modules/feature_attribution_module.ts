@@ -19,16 +19,17 @@
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
-import {FeatureSalience as FeatureSalienceLitType, SingleFieldMatcher} from '../lib/lit_types';
+import {FeatureSalience as FeatureSalienceLitType, LitTypeWithVocab, SingleFieldMatcher} from '../lib/lit_types';
 import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
@@ -41,6 +42,11 @@ import {styles} from './feature_attribution_module.css';
 
 const ALL_DATA = 'Entire Dataset';
 const SELECTION = 'Selection';
+const LEGEND_INFO_TITLE_SIGNED =
+    "Salience is relative to the model's prediction of a class. A positive " +
+    "score (more green) for a token means that token influenced the model to " +
+    "predict that class, whereas a negaitve score (more pink) means the " +
+    "token influenced the model to not predict that class.";
 
 interface AttributionStats {
   min: number;
@@ -230,16 +236,18 @@ export class FeatureAttributionModule extends LitModule {
     const defaultCallConfig: {[key: string]: unknown} = {};
 
     for (const [configKey, configInfo] of Object.entries(configSpec)) {
-      if (configInfo instanceof SingleFieldMatcher) {
-        if (configInfo.default) {
-          defaultCallConfig[configKey] = configInfo.default;
-        } else if (configInfo.vocab && configInfo.vocab.length) {
-          defaultCallConfig[configKey] = configInfo.vocab[0];
+      if (configInfo.default) {
+        defaultCallConfig[configKey] = configInfo.default;
+      } else {
+        const asVocabType = configInfo as LitTypeWithVocab;
+        if (asVocabType.vocab?.length) {
+          defaultCallConfig[configKey] = asVocabType.vocab[0];
         }
       }
     }
 
-    const callConfig = this.settings.get(name) || defaultCallConfig;
+    const callConfig = Object.assign(
+        {}, defaultCallConfig, this.settings.get(name));
     const promise = this.apiService.getInterpretations(
         data, this.model, this.appState.currentDataset, name, callConfig,
         `Running ${name}`);
@@ -431,6 +439,9 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   override renderImpl() {
+    const scale = (val: number) => this.colorMap.bgCmap(val);
+    scale.domain = () => this.colorMap.colorScale.domain();
+
     // clang-format off
     return html`
       <div class='module-container'>
@@ -466,6 +477,12 @@ export class FeatureAttributionModule extends LitModule {
                        </lit-spinner>`: null}
             </div>
           </div>
+        </div>
+        <div class="module-footer">
+          <color-legend label="Salience" .scale=${scale}
+              .paletteTooltipText=${LEGEND_INFO_TITLE_SIGNED}
+              legendType=${LegendType.SEQUENTIAL} numBlocks=${7}>
+          </color-legend>
         </div>
       </div>`;
     // clang-format on

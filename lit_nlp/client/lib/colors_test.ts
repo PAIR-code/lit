@@ -18,8 +18,10 @@
  */
 
 import 'jasmine';
-import {range} from './utils';
 
+import * as d3 from 'd3';
+
+// clang-format off
 import {
   ColorValue, MinorColorValue,
   BRAND_COLORS, getBrandColor, LitBrandPaletteKey,
@@ -31,8 +33,13 @@ import {
   CATEGORICAL_NORMAL,
   CYEA_DISCRETE, MAGE_DISCRETE, CYEA_CONTINUOUS, MAGE_CONTINUOUS,
   DIVERGING_4, DIVERGING_5, DIVERGING_6,
-  labBrandColors, labVizColors
+  labBrandColors, labVizColors,
+  colorToRGB,
+  SignedSalienceCmap, UnsignedSalienceCmap,
+  CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB
 } from './colors';
+// clang-format on 
+import {range} from './utils';
 
 const STANDARD_COLOR_VALUE_NAMES: ColorValue[] = [ '50', '500', '600', '700' ];
 const MINOR_COLOR_VALUE_NAMES: MinorColorValue[] = [ '1', '2', '3', '4', '5'];
@@ -318,5 +325,131 @@ describe('Pre-baked Colors, Palettes, and Ramps Test', () => {
     expect(mageCyeaLAB.length).toEqual(256);
     expect(mageCyeaLAB[0]).toEqual('rgb(71, 0, 70)');
     expect(mageCyeaLAB[mageCyeaLAB.length - 1]).toEqual('rgb(4, 30, 53)');
+  });
+});
+
+describe('colorToRGB', () => {
+  it('parses CSS color strings to RGB objects', () => {
+    const colors = [
+      '#abc',                 // Valid 3-digit hex-color with hash
+      '#2ca25f',              // Valid 6-digit hex-color with hash
+      'steelblue',            // Valid named color
+      'rgb(255, 255, 255)',   // Valid RGB for white
+    ];
+
+    for (const color of colors) {
+      expect(colorToRGB(color)).toBeDefined();
+      expect(colorToRGB(color).opacity).toBe(1);
+    }
+  });
+
+  it('sets the opacity for parsed color strings', () => {
+    const colors = [
+      '#abc',                 // Valid 3-digit hex-color with hash
+      '#2ca25f',              // Valid 6-digit hex-color with hash
+      'steelblue',            // Valid named color
+      'rgb(255, 255, 255)',   // Valid RGB for white
+    ];
+
+    const alphas = [0, 0.5, 1];
+
+    for (const color of colors) {
+      for (const alpha of alphas) {
+        expect(colorToRGB(color, alpha).opacity).toBe(alpha);
+      }
+    }
+  });
+
+  it('throws a RangeError if parsing an invalid string', () => {
+    const colors = [
+      '#00',          // Invalid 2-digit hex-color with hash
+      '#0000000',     // Invalid 7-digit hex-color with hash
+      '#000000000',   // Invalid 9-digit hex-color with hash
+      'cyea-700',     // Invalid characters in hex-color without hash
+    ];
+
+    function getError (color: string) {
+      return new RangeError(`Invalid CSS color '${color}'`);
+    }
+
+    for (const color of colors) {
+      expect(() => colorToRGB(color)).toThrow(getError(color));
+    }
+  });
+});
+
+describe('UnsignedSalienceCmap', () => {
+  const cmap = new UnsignedSalienceCmap();
+  const expectedScale =
+      d3.scaleSequential(CONTINUOUS_UNSIGNED_LAB).domain([0, 1]);
+
+  it('mapsLinearly', () => {
+    for (const val of [0.0, 0.4, 0.6, 1.0]) {
+      expect(cmap.bgCmap(val)).toBe(expectedScale(val));
+    }
+  });
+
+  it('mapsWithGamma', () => {
+    const gamma = 2.0;
+    const cmapG2 = new UnsignedSalienceCmap(gamma);
+    for (const val of [0.0, 0.4, 0.6, 1.0]) {
+      // Higher gamma = darker colors
+      expect(cmapG2.lightness(val)).toBeGreaterThanOrEqual(val);
+      // Verify exact values
+      expect(cmapG2.bgCmap(val)).toBe(expectedScale((1 - (1 - val) ** gamma)));
+    }
+  });
+
+  it('clipsToRange', () => {
+    expect(cmap.bgCmap(-0.5)).toBe(cmap.bgCmap(0.0));
+    expect(cmap.bgCmap(1.5)).toBe(cmap.bgCmap(1.0));
+  });
+
+  it('handlesWiderRange', () => {
+    const cmap3 = new UnsignedSalienceCmap(1.0, [0, 3.0]);
+    for (const val of [0.0, 0.4, 0.6, 1.0]) {
+      expect(cmap3.bgCmap(3.0 * val)).toBe(expectedScale(val));
+    }
+  });
+});
+
+describe('SignedSalienceCmap', () => {
+  const cmap = new SignedSalienceCmap();
+  const expectedScale =
+      d3.scaleSequential(CONTINUOUS_SIGNED_LAB).domain([-1, 1]);
+
+  it('mapsLinearly', () => {
+    for (const val of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
+      expect(cmap.bgCmap(val)).toBe(expectedScale(val));
+    }
+  });
+
+  it('mapsWithGamma', () => {
+    const gamma = 2.0;
+    const cmapG2 = new SignedSalienceCmap(gamma);
+    for (const val of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
+      // Higher gamma = darker colors
+      expect(cmapG2.lightness(val)).toBeGreaterThanOrEqual(Math.abs(val));
+      // Verify exact values
+      if (val >= 0) {
+        expect(cmapG2.bgCmap(val))
+            .toBe(expectedScale((1 - (1 - val) ** gamma)));
+      } else {
+        expect(cmapG2.bgCmap(val))
+            .toBe(expectedScale(-1 * (1 - (1 + val) ** gamma)));
+      }
+    }
+  });
+
+  it('clipsToRange', () => {
+    expect(cmap.bgCmap(-1.5)).toBe(cmap.bgCmap(-1.0));
+    expect(cmap.bgCmap(1.5)).toBe(cmap.bgCmap(1.0));
+  });
+
+  it('handlesWiderRange', () => {
+    const cmap3 = new SignedSalienceCmap(1.0, [-3.0, 3.0]);
+    for (const val of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
+      expect(cmap3.bgCmap(3.0 * val)).toBe(expectedScale(val));
+    }
   });
 });

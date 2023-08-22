@@ -24,7 +24,7 @@ import './app_toolbar';
 import './modules';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
 
 import {AppState} from '../services/services';

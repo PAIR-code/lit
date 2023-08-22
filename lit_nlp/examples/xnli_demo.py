@@ -26,8 +26,7 @@ from lit_nlp import server_flags
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
-
-import transformers  # for path caching
+from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -38,14 +37,18 @@ FLAGS.set_default("development_demo", True)
 _LANGUAGES = flags.DEFINE_list(
     "languages", ["en", "es", "hi", "zh"],
     "Languages to load from XNLI. Available languages: "
-    "ar,bg,de,el,en,es,fr,hi,ru,sw,th,tr,ur,zh,vi")
+    "ar,bg,de,el,en,es,fr,hi,ru,sw,th,tr,ur,zh,vi"
+)
 
 _MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/mbert_mnli.tar.gz",
-    "Path to fine-tuned model files. Expects model to be in standard "
-    "transformers format, e.g. as saved by model.save_pretrained() and "
-    "tokenizer.save_pretrained().")
+    (
+        "Path to fine-tuned model files. Expects model to be in standard "
+        "transformers format, e.g. as saved by model.save_pretrained() and "
+        "tokenizer.save_pretrained()."
+    ),
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", None, "Maximum number of examples to load into LIT. "
@@ -60,7 +63,9 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("xnli_demo:get_wsgi_app() called with unused args: %s", unused)
+  return main([])
 
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
@@ -71,7 +76,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # extract to the transformers cache.
   model_path = _MODEL_PATH.value
   if model_path.endswith(".tar.gz"):
-    model_path = transformers.file_utils.cached_path(
+    model_path = file_cache.cached_path(
         model_path, extract_compressed_file=True)
 
   models = {"nli": glue_models.MNLIModel(model_path, inference_batch_size=16)}

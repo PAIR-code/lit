@@ -19,15 +19,14 @@
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
-import {observable} from 'mobx';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './expansion_panel.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** Custom expansion event interface for ExpansionPanel */
 export interface ExpansionToggle {
@@ -44,10 +43,11 @@ export class ExpansionPanel extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  @observable @property({type: String}) label = '';
-  @observable @property({type: Boolean}) expanded = false;
-  @observable @property({type: Boolean}) padLeft = false;
-  @observable @property({type: Boolean}) padRight = false;
+  @property({type: String}) label = '';
+  @property({type: String}) description = '';
+  @property({type: Boolean}) expanded = false;
+  @property({type: Boolean}) padLeft = false;
+  @property({type: Boolean}) padRight = false;
 
   override render() {
     const contentPadding = (this.padLeft ? 8 : 0) + (this.padRight ? 16 : 0);
@@ -66,9 +66,17 @@ export class ExpansionPanel extends ReactiveElement {
       this.dispatchEvent(event);
     };
 
+    const description = this.description ?? this.label;
+
+    // clang-format off
     return html`
         <div class="expansion-header" @click=${toggle}>
-          <div class="expansion-label">${this.label}</div>
+          <div class="expansion-label" title=${description}>${this.label}</div>
+          <div class='bar-spacer'></div>
+          <div class='bar-content'
+            @click=${(e: Event) => { e.stopPropagation(); }}>
+            <slot name="bar-content"></slot>
+          </div>
           <mwc-icon class="icon-button min-button">
             ${this.expanded ? 'expand_less' : 'expand_more'}
           </mwc-icon>
@@ -76,6 +84,7 @@ export class ExpansionPanel extends ReactiveElement {
         ${this.expanded ?
             html`<div class=${classes} style=${styles}><slot></slot></div>` :
             null}`;
+    // clang-format on
   }
 }
 

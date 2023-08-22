@@ -39,22 +39,25 @@
 
 #holder {
   display: flex;
-  height: calc(100% - 48pt);
+  height: calc(100% - 64px);
 }
 
 #title-bar {
   font-family: 'Google Sans', sans;
   border-bottom: 1px solid #dadce0;
-  font-size: 18pt;
-  line-height: 24pt;
-  padding: 12pt;
+  font-size: 24px;
+  line-height: 32px;
+  padding: 16px;
+  display:flex;
+  align-items:center;
+  column-gap: 4;
 }
 
 #sidebar {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 220pt;
+  width: 293px;
   border-right: 1px solid #dadce0;
 }
 
@@ -75,11 +78,7 @@ a {
 
 a.link-out {
   color: #888;
-  padding: 0 5pt;
-}
-
-mwc-icon {
-  padding-right: 5pt;
+  padding: 0 7px;
 }
 
 a:hover {
@@ -88,11 +87,11 @@ a:hover {
 
 .tab{
   font-family: 'Google Sans', sans;
-  padding: 12pt;
-  height: 12pt;
-  border-top-right-radius: 24pt;
-  border-bottom-right-radius: 24pt;
-  margin: 6pt;
+  padding: 16px;
+  height: 16px;
+  border-top-right-radius: 32px;
+  border-bottom-right-radius: 32px;
+  margin: 8px;
   margin-left: 0;
   cursor: pointer;
 }
@@ -119,11 +118,11 @@ a:hover {
   border-top: 1px solid #dadce0;
   height: 60px;
   align-items: center;
-  padding: 0 24pt;
+  padding: 0 32px;
 }
 
 #state {
-  font-size: 9pt;
+  font-size: 12px;
   color: #888;
 }
 .info {
@@ -148,7 +147,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5pt;
+  padding: 7px;
 }
 
 #config {
@@ -161,9 +160,9 @@ a:hover {
 
 .config-list {
   border: 1px solid #dadce0;
-  margin: 12pt;
-  overflow: auto;
-  height: 100%;
+  flex: 1 1;
+  margin: 16px;
+  overflow-y: scroll;
 }
 
 .config-line {
@@ -172,6 +171,7 @@ a:hover {
   border-bottom: 1px solid #dadce0;
   display: flex;
   justify-content: space-between;
+  gap: 4px;
   align-items: center;
   min-width: 0;
 }
@@ -194,11 +194,83 @@ a:hover {
 
 .expander {
   cursor: pointer;
-  padding-right: 5pt;
 }
 
 .left-offset {
-  margin-left: 40pt;
+  margin-left: 53px;
+}
+
+.model-dataset-loading {
+  flex: 1 1;
+  margin: 0 16px;
+  width: calc(100% - 24pt);
+}
+
+.model-dataset-loading .controls {
+  border: 1px solid var(--lit-neutral-300);
+  display: flex;
+  flex-grow: 1;
+  flex-direction: row;
+  padding: 16px;
+}
+
+.model-dataset-loading .controls .actions {
+  align-items: end;
+  row-gap: 4px;
+}
+
+.model-dataset-loading .controls .actions,
+.model-dataset-loading .controls .selector {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.model-dataset-loading .controls .options {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: scroll;
+  padding: 0 16px;
+  row-gap: 8px;
+}
+
+.model-dataset-loading .controls .options .option-entry {
+  align-items: center;
+  column-gap: 4px;
+  display: flex;
+  flex-direction: row;
+}
+
+/* The first child of .options is always the new_name field, which is special */
+.model-dataset-loading .controls .options .option-entry:first-child {
+  border-bottom: 1px solid var(--lit-neutral-300);
+  padding-bottom: 8px;
+}
+
+.model-dataset-loading .controls .options .option-entry label {
+  flex: 0 0 200px;
+}
+
+.model-dataset-loading .controls .options .option-entry lit-input-field {
+  flex-grow: 1;
+}
+
+.model-dataset-loading .controls .options .option-entry.missing label {
+  color: var(--google-red-500);
+  font-weight: bold;
+}
+
+.model-dataset-loading .header {
+  color: var(--lit-neutral-700);
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+#bottombar .status-area {
+  color: var(--google-red-500);
 }
 
 .expanded-info {
@@ -206,7 +278,7 @@ a:hover {
   max-height: 0;
   background: #f8f9fa;
   overflow: hidden;
-  font-size: 8pt;
+  font-size: 11px;
   color: #3c4043;
   box-sizing: border-box;
 }
@@ -236,10 +308,14 @@ a:hover {
 }
 
 .expanded-info.open {
+  gap: 4px;
   padding: 6px 6px 6px 0;
   max-height: 25vh;
-  overflow: auto;
   border-bottom: 1px solid #dadce0;
+}
+
+.expanded-info > * {
+  overflow-y: auto;
 }
 
 .expanded-info mwc-icon {
@@ -261,12 +337,12 @@ a:hover {
 }
 
 .info-line {
-  align-items: center;
-  display: flex;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .indent-line {
-  padding-left: 5pt;
+  padding-left: 7px;
   border-left: 1px solid #dadce0;
 }
 
@@ -277,21 +353,32 @@ a:hover {
 .config-title {
   font-family: 'Google Sans', sans;
   font-size: 1.5rem;
-  padding: 12pt 12pt 0 12pt;
+  padding: 16px 16px 0 16px;
   margin-bottom: 4px;
 }
 
 .description {
-  padding: 0 12pt 0 12pt;
+  padding: 0 16px 0 16px;
   color: #888;
 }
 
+/**
+ * Undo marked's handling of line breaks and restore normal whitespace handling.
+ * This gives much better formatting of descriptions that were designed to be
+ * readable in plaintext / code comments:
+ * - Single newlines don't get <p> tags, but are preserved by pre-wrap.
+ * - Double newlines get <p> tags from marked(), so we strip the extra margins
+ *   and let pre-wrap handle the line break instead.
+ */
 .description-text {
-  white-space: pre-wrap; /* preserve newlines */
+  white-space: pre-wrap;
+}
+.description-text > p {
+  margin-block: 0;
 }
 
 .status {
-  padding: 0 12pt;
+  padding: 0 16px;
   color: #888;
   display: flex;
   align-items: center;
@@ -301,6 +388,7 @@ a:hover {
   color: #129eaf;
 }
 .status mwc-icon {
+  padding-right: 5px;
 }
 
 .prev-next-buttons {
@@ -308,7 +396,7 @@ a:hover {
 }
 
 button mwc-icon {
-  font-size: 12pt;
+  font-size: 16px;
 }
 
 button.next {
@@ -333,9 +421,24 @@ button.prev {
   flex-direction: column;
 }
 
-.col-end {
+.fixed-third-col {
+  width: 33%;
+  min-width: 33%;
+}
+
+.flex-col {
+  flex: 1;
+}
+
+.status-col {
+  margin-left: 8px;
+  margin-right: 8px;
   display: flex;
   flex-direction: row;
-  align-items: center;
   justify-content: flex-end;
+  align-items: center;
+}
+
+#configure-lit-icon {
+  margin-left: 8px;
 }

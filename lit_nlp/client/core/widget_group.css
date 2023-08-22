@@ -24,11 +24,12 @@
   height: var(--lit-group-header-height);
   display: flex;
   padding: 0 8px;
-  line-height: 20pt;
+  line-height: 27px;
   align-items: center;
   justify-content: space-between;
   border: 1px solid rgb(218, 220, 224);
   box-sizing: border-box;
+  gap: 8px;
 }
 
 .title {
@@ -51,13 +52,6 @@
 
 .scroll-toggle {
   --mdc-icon-button-size: 24px;
-}
-
-.icon-button {
-  height: 24px;
-  width: 24px;
-  min-width: 24px;
-  --mdc-icon-size: 24px;
 }
 
 .holder {
@@ -124,7 +118,7 @@ lit-widget {
   max-width: var(--lit-group-header-height);
 }
 
-:host([minimized]) .header {
+:host([minimized]) .header:not(.tooltip-text){
   padding-top: 8px;
   padding-bottom: 2px; /* top icon should align with horizontal toolbar */
   padding-left: 0;
@@ -141,6 +135,12 @@ lit-widget {
 :host([minimized]) mwc-icon {
   /* Undo outer rotation, so these are oriented normally. */
   transform: rotate(90deg);
+}
+
+:host([minimized]) lit-tooltip {
+  /* Undo outer rotation, so these are oriented normally. */
+  transform: rotate(180deg);
+  writing-mode: horizontal-tb;
 }
 
 :host([minimized]) .title {

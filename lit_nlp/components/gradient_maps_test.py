@@ -21,9 +21,9 @@ from lit_nlp.components import gradient_maps
 from lit_nlp.lib import testing_utils
 import numpy as np
 
-CLASS_KEY = gradient_maps.CLASS_KEY
-INTERPOLATION_KEY = gradient_maps.INTERPOLATION_KEY
-NORMALIZATION_KEY = gradient_maps.NORMALIZATION_KEY
+_CLASS_KEY = gradient_maps.CLASS_KEY
+_INTERPOLATION_KEY = gradient_maps.INTERPOLATION_KEY
+_NORMALIZATION_KEY = gradient_maps.NORMALIZATION_KEY
 
 
 class GradientMapsTest(parameterized.TestCase):
@@ -38,7 +38,7 @@ class GradientMapsTest(parameterized.TestCase):
 
     # Basic test with dummy outputs from the model.
     inputs = [{'segment': '_'}]
-    model = testing_utils.TestModelClassification()
+    model = testing_utils.ClassificationModelForTesting()
     dataset = lit_dataset.Dataset(None, None)
     output = self.ig.run(inputs, model, dataset)
 
@@ -97,12 +97,12 @@ class GradientMapsTest(parameterized.TestCase):
     if autorun is not None:
       self.assertEqual(ig.meta_spec()['saliency'].autorun, autorun)
     if class_key is not None:
-      self.assertEqual(config_spec[CLASS_KEY].default, class_key)
+      self.assertEqual(config_spec[_CLASS_KEY].default, class_key)
     if interpolation_steps is not None:
-      self.assertEqual(config_spec[INTERPOLATION_KEY].default,
+      self.assertEqual(config_spec[_INTERPOLATION_KEY].default,
                        interpolation_steps)
     if normalize is not None:
-      self.assertEqual(config_spec[NORMALIZATION_KEY].default, normalize)
+      self.assertEqual(config_spec[_NORMALIZATION_KEY].default, normalize)
 
 
 if __name__ == '__main__':

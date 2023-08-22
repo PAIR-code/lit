@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
-import '@material/mwc-icon-button-toggle';
-// tslint:disable:no-new-decorators
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
 import {html, LitElement} from 'lit';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+// tslint:disable:no-new-decorators
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
-import {styles} from './data_matrix.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
+
 import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+
+import {styles} from './data_matrix.css';
 
 
 // Custom color ramp for the Data Matrix
@@ -218,7 +220,7 @@ export class DataMatrix extends LitElement {
   private renderColTotalCell(colIndex: number) {
     let totalColIds = 0;
     for (const row of this.matrixCells) {
-      totalColIds += row[colIndex].size;
+      totalColIds += row[colIndex]?.size || 0;
     }
     return this.renderTotalCell(totalColIds);
   }
@@ -249,13 +251,12 @@ export class DataMatrix extends LitElement {
 
     // clang-format off
     return html`
-      <mwc-icon-button-toggle class="icon-button"
-        title="Rotate column labels"
-        onIcon="text_rotate_up" offIcon="text_rotation_none"
-        ?on="${this.verticalColumnLabels}"
-        @MDCIconButtonToggle:change="${toggleVerticalColumnLabels}"
-        @icon-button-toggle-change="${toggleVerticalColumnLabels}">
-      </mwc-icon-button-toggle>
+      <lit-tooltip content="Rotate column labels">
+        <mwc-icon class="icon-button" slot="tooltip-anchor"
+          @click="${toggleVerticalColumnLabels}">
+          ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
+        </mwc-icon>
+      </lit-tooltip>
     `;
     // clang-format on
   }

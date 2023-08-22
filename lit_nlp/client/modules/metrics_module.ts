@@ -18,38 +18,24 @@
 // tslint:disable:no-new-decorators
 
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement, query} from 'lit/decorators.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, TableData} from '../elements/table';
+import {ColumnHeader, DataTable, TableData} from '../elements/table';
+import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {MetricsResponse, MetricsValues} from '../services/api_service';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-import {styles} from './metrics_module.css';
-
-// Each entry from the server.
-interface MetricsResponse {
-  // Using case to achieve parity with the property names in Python code
-  // tslint:disable-next-line:enforce-name-casing
-  pred_key: string;
-  // tslint:disable-next-line:enforce-name-casing
-  label_key: string;
-  metrics: MetricsValues;
-}
 
 // A dict of metrics type to the MetricsValues for one metric generator.
 interface ModelHeadMetrics {
   [metricsType: string]: MetricsValues;
-}
-
-// A dict of metric names to values, from one metric generator.
-interface MetricsValues {
-  [metricName: string]: number;
 }
 
 // The source of datapoints for a row in the metrics table.
@@ -98,7 +84,7 @@ export class MetricsModule extends LitModule {
   static override duplicateForModelComparison = false;
 
   static override get styles() {
-    return [sharedStyles, styles];
+    return [sharedStyles];
   }
 
   private readonly sliceService = app.getService(SliceService);
@@ -110,9 +96,10 @@ export class MetricsModule extends LitModule {
   @observable private selectedFacetBins: NumericFeatureBins = {};
 
   @observable private metricsMap: MetricsMap = {};
-  @observable private facetBySlice: boolean = false;
+  @observable private facetBySlice = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
+  @query('#metrics-table') private readonly table?: DataTable;
 
   constructor() {
     super();
@@ -143,13 +130,21 @@ export class MetricsModule extends LitModule {
         }
       });
       if (this.selectionService.lastUser === this) {
+        // If selection made through this module, no need to show a separate
+        // "selection" row in the metrics table, as the selected row will
+        // be highlighted to indicate that it is selected.
         return;
+      } else if (this.table != null) {
+        // If selection changed outside of this module, clear the highlight in
+        // the metrics table.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
       }
       if (this.selectionService.selectedInputData.length > 0) {
-        this.addMetrics(this.selectionService.selectedInputData,
-                        Source.SELECTION);
-        this.updateFacetedMetrics(this.selectionService.selectedInputData,
-                                  true);
+        // If a selection is made outside of this module,, then calculate a row
+        // in the metrics table for the selection.
+        this.addMetrics(
+            this.selectionService.selectedInputData, Source.SELECTION);
       }
     });
     this.react(() => this.classificationService.allMarginSettings, margins => {
@@ -182,8 +177,7 @@ export class MetricsModule extends LitModule {
 
     // Add the returned metrics for each model and head to the metricsMap.
     datasetMetrics.forEach((returnedMetrics, i) => {
-      Object.keys(returnedMetrics).forEach(metricsType => {
-        const metricsRespones: MetricsResponse[] = returnedMetrics[metricsType];
+      Object.entries(returnedMetrics).forEach(([metricsType, metricsRespones]) => {
         metricsRespones.forEach(metricsResponse => {
           const rowKey = this.getRowKey(
               models[i], name, metricsResponse.pred_key, facetMap);
@@ -248,7 +242,6 @@ export class MetricsModule extends LitModule {
     });
     // Get the intersectional feature bins.
     if (this.selectedFacets.length > 0) {
-      this.updateFacetedMetrics(this.selectionService.selectedInputData, true);
       this.updateFacetedMetrics(this.appState.currentInputData, false);
     }
   }
@@ -272,53 +265,87 @@ export class MetricsModule extends LitModule {
     }
   }
 
-  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
+  private async getMetrics(
+      selectedInputs: IndexedInput[], model: string): Promise<MetricsResponse> {
     this.pendingCalls += 1;
-    try {
-      const config =
-          this.classificationService.marginSettings[model] as CallConfig || {};
-      const metrics = await this.apiService.getInterpretations(
-          selectedInputs, model, this.appState.currentDataset, 'metrics', config);
-      this.pendingCalls -= 1;
-      return metrics;
+    const {metrics: compatMetrics} = this.appState.metadata.models[model];
+    // TODO(b/254832560): Allow the user to configure which metrics component
+    // are run via the UI and pass them in to this ApiService call.
+    const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
+    const config =
+        this.classificationService.marginSettings[model] as CallConfig || {};
+
+    let metrics: MetricsResponse;
+    if (selectedInputs.length) {
+      try {
+        metrics = await this.apiService.getMetrics(
+            selectedInputs, model, this.appState.currentDataset,
+            metricsToRun, config);
+      } catch {
+        metrics = {};
+      }
+    } else {
+      metrics = {};
     }
-    catch {
-      this.pendingCalls -= 1;
-      return {};
-    }
+
+    this.pendingCalls -= 1;
+    return metrics;
   }
 
   /** Convert the metricsMap information into table data for display. */
-  @computed
-  get tableData(): TableHeaderAndData {
-    const tableRows = [] as TableData[];
-    const allMetricNames = new Set<string>();
+  @computed get tableData(): TableHeaderAndData {
+    const metricsInfo = this.appState.metadata.metrics;
+    if (Object.keys(metricsInfo).length === 0) {
+      return {'header': [], 'data': []};
+    }
+
+    const tableRows: TableData[] = [];
+    const metricBests = new Map<string, number>();
+    function getMetricKey(t: string, n: string) {return `${t}: ${n}`;}
+
     Object.values(this.metricsMap).forEach(row => {
-      Object.keys(row.headMetrics).forEach(metricsType => {
-        const metricsValues = row.headMetrics[metricsType];
-        Object.keys(metricsValues).forEach(metricName => {
-          allMetricNames.add(`${metricsType}: ${metricName}`);
+      Object.entries(row.headMetrics).forEach(([metricsT, metricsV]) => {
+        const {metaSpec} = metricsInfo[metricsT];
+        Object.entries(metricsV).forEach(([name, val]) => {
+          const key = getMetricKey(metricsT, name);
+          const max = metricBests.get(key)!;
+          const spec = metaSpec[name];
+          if (!(spec instanceof MetricResult)) return;
+          const bestCase = spec.best_value;
+
+          const bestsUndefined = !metricBests.has(key);
+          const bestIshighValIsHigher =
+              bestCase === MetricBestValue.HIGHEST && max < val;
+          const bestIsLowValIsLower =
+              bestCase === MetricBestValue.LOWEST && max > val;
+          const bestIsZeroValIsCloser =
+              bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val);
+          const shouldUpdate = bestsUndefined || bestIshighValIsHigher ||
+                               bestIsLowValIsLower || bestIsZeroValIsCloser;
+
+          if (bestCase != null && shouldUpdate) {
+            metricBests.set(key,
+                            bestCase === MetricBestValue.NONE ? Infinity : val);
+          }
         });
       });
     });
 
-    const metricNames = [...allMetricNames];
+    const metricNames = [...metricBests.keys()];
 
     for (const row of Object.values(this.metricsMap)) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
-        if (row.headMetrics[metricsType] == null) {
-          return '-';
-        }
-        const num = row.headMetrics[metricsType][metricName];
-        if (num == null) {
-          return '-';
-        }
+        if (row.headMetrics[metricsType] == null) {return '-';}
+
+        const raw = row.headMetrics[metricsType][metricName];
+        if (raw == null) {return '-';}
+        const isBest = raw === metricBests.get(metricKey);
         // If the metric is not a whole number, then round to 3 decimal places.
-        if (typeof num === 'number' && num % 1 !== 0) {
-          return num.toFixed(3);
-        }
-        return num;
+        const value = typeof raw === 'number' && !Number.isInteger(raw) ?
+            raw.toFixed(3) : raw;
+        const styles = styleMap({'font-weight': isBest ? 'bold' : 'normal'});
+        return html`<span style=${styles}>${value}</span>`;
       });
       // Add the "Facet by" columns.
       const rowFacets = this.selectedFacets.map((facet: string) => {
@@ -336,7 +363,20 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      return {name, rightAlign: true};
+      const [metricsType, metricName] = name.split(": ");
+      const spec =
+          metricsInfo[metricsType].metaSpec[metricName] as MetricResult;
+      const [group, metric] = name.split(': ');
+      return {
+        name,
+        html: html`<div slot="tooltip-anchor" class="header-text">
+          ${group}<br>${metric}
+        </div>`,
+        rightAlign: true,
+        tooltip: spec.description,
+        tooltipWidth: 200,
+        width: 100
+      };
     });
 
     return {
@@ -363,13 +403,43 @@ export class MetricsModule extends LitModule {
   }
 
   renderTable() {
-    // TODO(b/180903904): Add onSelect behavior to rows for selection.
+    const onSelect = (idxs: number[]) => {
+      if (this.table == null) {
+        return;
+      }
+      const primaryId = this.table.primarySelectedIndex;
+      if (primaryId < 0) {
+        this.selectionService.selectIds([], this);
+        this.table.selectedIndices = [];
+        return;
+      }
+      const mapEntry = Object.values(this.metricsMap)[primaryId];
+      const ids = mapEntry.exampleIds;
+      // If the metrics table row selected isn't the row indicating the current
+      // selection, then change the datapoints selection to the ones represented
+      // by that row.
+      if (mapEntry.source !== Source.SELECTION) {
+        this.selectionService.selectIds(ids, this);
+        this.table.selectedIndices = [primaryId];
+      } else {
+        // Don't highlight the row of the selected datapoint if this is clicked
+        // as it has no effect.
+        this.table.primarySelectedIndex = -1;
+        this.table.selectedIndices = [];
+      }
+    };
+    // clang-format off
     return html`
-      <lit-data-table
+      <lit-data-table id="metrics-table"
         .columnNames=${this.tableData.header}
         .data=${this.tableData.data}
+        selectionEnabled
+        .onSelect=${(idxs: number[]) => {
+          onSelect(idxs);
+        }}
       ></lit-data-table>
     `;
+    // clang-format on
   }
 
   renderFacetSelector() {
@@ -383,8 +453,7 @@ export class MetricsModule extends LitModule {
 
     // clang-format off
     return html`
-      <label class="cb-label">Show slices</label>
-      <lit-checkbox
+      <lit-checkbox label="Show slices"
         ?checked=${this.facetBySlice}
         @change=${onSlicesCheckboxChecked}
         ?disabled=${slicesDisabled}>
@@ -403,12 +472,8 @@ export class MetricsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('metrics') !== -1) {
-        return true;
-      }
-    }
-    return false;
+    return Object.values(modelSpecs).some(
+        (modelInfo) => modelInfo.metrics.length);
   }
 }
 

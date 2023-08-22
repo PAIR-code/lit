@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import {html, TemplateResult} from 'lit';
-import {property} from 'lit/decorators';
+import {property} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
@@ -34,7 +34,7 @@ export interface ParentWidgetElement {
 }
 
 type IsLoadingFn = (isLoading: boolean) => void;
-type OnScrollFn = () => void;
+type OnScrollFn = (scrollTop: number, scrollLeft: number) => void;
 
 /**
  * The base class from which all Lit Module classes extends, in order to have
@@ -54,10 +54,15 @@ export abstract class LitModule extends ReactiveElement {
    * used in an element in the module. Otherwise scrolling is syncronized using
    * the outer container that contains the module.
    */
-  @observable @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
+  @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
 
   // Name of this module, to show in the UI.
   static title: string = '';
+
+  /**
+   * Information about this module that displays on hover.
+   */
+  static infoMarkdown = '';
 
   // Number of columns of the 12 column horizontal layout.
   static numCols: number = 4;
@@ -95,18 +100,24 @@ export abstract class LitModule extends ReactiveElement {
 
   override updated() {
     // If the class defined by SCROLL_SYNC_CSS_CLASS is used in the module then
-    // set its onscroll callback to be the provided onSyncScroll.
+    // set its onscroll callback to propagate to the parent widget.
     // There is no need to use this class if a module scrolls through the
     // normal mechanism of its parent container div from the LitWidget element
     // that wraps modules. But if a module doesn't scroll using that parent
     // container, but through some element internal to the module, then using
     // this class on that element will allow for scrolling to be syncronized
     // across duplicated modules of this type.
-    const scrollElems = this.shadowRoot!.querySelectorAll(
+    const scrollElems = this.shadowRoot!.querySelectorAll<HTMLElement>(
         `.${SCROLL_SYNC_CSS_CLASS}`);
-    scrollElems.forEach(elem => {
-      (elem as HTMLElement).onscroll = this.onSyncScroll;
-    });
+    for (const elem of scrollElems) {
+      // The "proper" way to do this is with events, but there is some weirdness
+      // with re-raising the event to properly cross the shadow DOM boundary
+      // that leads to very laggy scrolling behavior.
+      // This direct, imperative callback is much, much smoother.
+      elem.onscroll = () => {
+        this.onSyncScroll?.(elem.scrollTop, elem.scrollLeft);
+      };
+    }
   }
 
   /**

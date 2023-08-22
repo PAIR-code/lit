@@ -25,13 +25,13 @@ import './global_settings';
 import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {html} from 'lit';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {StatusService} from '../services/services';
+import {AppState, StatusService} from '../services/services';
 
 import {app} from './app';
 import {styles} from './app_statusbar.css';
@@ -45,6 +45,7 @@ export class StatusbarComponent extends MobxLitElement {
     return [sharedStyles, styles];
   }
 
+  private readonly appState = app.getService(AppState);
   private readonly statusService = app.getService(StatusService);
   @observable private renderFullMessages = false;
 
@@ -53,6 +54,10 @@ export class StatusbarComponent extends MobxLitElement {
       'progress-line': this.statusService.isLoading,
       'no-progress-line': !this.statusService.isLoading
     });
+
+    const bugLink = 'https://github.com/PAIR-code/lit/issues';
+    const docLink = 'https://github.com/PAIR-code/lit/wiki';
+    const helpLink = 'mailto:lit-dev@google.com';
 
     // clang-format off
     return html`
@@ -64,13 +69,27 @@ export class StatusbarComponent extends MobxLitElement {
             </div>
             <div class="signature">
               <div>Made with <img src="static/favicon.png" class="emoji"> by the LIT team</div>
-              <div title="Send feedback" id="feedback">
-                <a href="mailto:lit-dev@google.com" target="_blank">
-                  <mwc-icon class="icon-button">
-                    feedback
-                  </mwc-icon>
+
+              <lit-tooltip content="File a bug" tooltipPosition="above left">
+                <a slot="tooltip-anchor" class="link-icon" href=${bugLink}
+                  target="_blank">
+                  <mwc-icon class="icon-button cyea-icon">bug_report</mwc-icon>
                 </a>
-              </div>
+              </lit-tooltip>
+
+              <lit-tooltip content="View docs" tooltipPosition="above left">
+                <a slot="tooltip-anchor" class="link-icon" href=${docLink}
+                  target="_blank">
+                  <mwc-icon class="icon-button cyea-icon">plagiarism</mwc-icon>
+                </a>
+              </lit-tooltip>
+
+              <lit-tooltip content="Get help" tooltipPosition="above left">
+                <a class="link-icon" href=${helpLink} target="_blank"
+                  slot="tooltip-anchor">
+                  <mwc-icon class="icon-button cyea-icon">feedback</mwc-icon>
+                </a>
+              </lit-tooltip>
             </div>
           </div>
           <div class=${progressClass}></div>
@@ -87,10 +106,21 @@ export class StatusbarComponent extends MobxLitElement {
     `;
   }
 
-  renderPopup() {
+  renderPopupControls() {
     const close = () => {
       this.renderFullMessages = false;
     };
+
+    // clang-format off
+    return html`
+      <button class='hairline-button' @click=${() => {close();}}>
+        Close
+      </button>
+    `;
+    // clang-format on
+  }
+
+  renderPopup() {
     // clang-format off
     return html`
       <div class='modal-container'>
@@ -102,9 +132,7 @@ export class StatusbarComponent extends MobxLitElement {
                 message => html`<div class="error-message">${message}</div>`)}
           </div>
           <div class='close-button-holder'>
-            <button class='hairline-button' @click=${() => {close();}}>
-              Close
-            </button>
+            ${this.renderPopupControls()}
           </div>
         </div>
       </div>`;

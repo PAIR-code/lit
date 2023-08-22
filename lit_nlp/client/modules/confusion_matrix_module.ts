@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -52,12 +52,17 @@ interface CmatOption {
 @customElement('confusion-matrix-module')
 export class ConfusionMatrixModule extends LitModule {
   static override title = 'Confusion Matrix';
+  static override infoMarkdown =
+      `Compare predictions to gold labels, between two different models,
+      or relative to other categorical fields. Click on cells or rows/column
+      headers to select the associated examples.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#confusion-matrix)`;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
-        return html`
-  <confusion-matrix-module model=${model} .shouldReact=${shouldReact}
-    selectionServiceIndex=${selectionServiceIndex}>
-  </confusion-matrix-module>`;
+        return html`<confusion-matrix-module
+            model=${model} .shouldReact=${shouldReact}
+            selectionServiceIndex=${selectionServiceIndex}>
+        </confusion-matrix-module>`;
       };
   static override numCols = 4;
   static override duplicateForModelComparison = false;
@@ -176,9 +181,8 @@ export class ConfusionMatrixModule extends LitModule {
     const data = this.dataService.dataVals;
 
     // From the data, we can bin by any categorical feature.
-    const categoricalFeatures = this.groupService.categoricalFeatures;
-    for (const labelKey of Object.keys(categoricalFeatures)) {
-      const labelList = categoricalFeatures[labelKey];
+    const {categoricalFeatures} = this.groupService;
+    for (const [labelKey, labelList] of Object.entries(categoricalFeatures)) {
       if (labelList.length > this.MAX_ENTRIES) {
         continue;
       }
@@ -190,10 +194,29 @@ export class ConfusionMatrixModule extends LitModule {
           this.groupService.getFeatureValForInput(bins, d, labelKey);
       const labelsRunner = async (dataset: IndexedInput[]) =>
           dataset.map(getLabelsFn);
-      options.push({name: labelKey, labelList, runner: labelsRunner});
+      const option: CmatOption = {
+        name: labelKey, labelList, runner: labelsRunner
+      };
+      for (const model of this.appState.currentModels) {
+        if (labelKey.startsWith(`${model}:`)) {
+          const {output: outputSpec} = this.appState.getModelSpec(model);
+          const feature = labelKey.split(':')[1];
+          const featureType = outputSpec[feature];
+          if (featureType instanceof MulticlassPreds) {
+            option.parent = featureType.parent;
+          }
+        }
+      }
+      options.push(option);
     }
 
     return options;
+  }
+
+  override firstUpdated() {
+    this.reactImmediately(
+        () => this.options,
+        () => {this.setInitialOptions();});
   }
 
   override renderImpl() {
@@ -288,15 +311,16 @@ class ConfusionMatrix extends ReactiveElement {
     return [sharedStyles, styles];
   }
 
-  @observable @property({type: Boolean}) hideEmptyLabels = false;
   /** Feature to use for the rows of the matrix */
   @observable @property({type: Object}) row?: CmatOption;
   /** Feature to use for the columns of the matrix */
   @observable @property({type: Object}) col?: CmatOption;
   /** Dataset to map into the cells of the matrix */
   @observable @property({type: Array}) data?: IndexedInput[];
+  /** If true, don't show rows or columns containing only empty cells */
+  @property({type: Boolean}) hideEmptyLabels = false;
   /** Label for the matrix */
-  @observable @property({type: String}) label = 'Confusion Matrix';
+  @property({type: String}) label = 'Confusion Matrix';
 
   @observable private cells: MatrixCell[][] = [];
 
@@ -341,10 +365,8 @@ class ConfusionMatrix extends ReactiveElement {
       this.col.labelList = this.row.labelList;
     }
 
-    const rowLabels = this.row.labelList;
-    const colLabels = this.col.labelList;
-    const rowName = this.row.name;
-    const colName = this.col.name;
+    const {labelList: rowLabels, name: rowName} = this.row;
+    const {labelList: colLabels, name: colName} = this.col;
     const resultsDict = {[rowName]: results[0], [colName]: results[1]};
 
     // Since groupService.groupExamplesByFeatures only uses indexedInput data

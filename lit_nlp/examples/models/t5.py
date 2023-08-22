@@ -46,6 +46,27 @@ class T5ModelConfig(object):
   token_top_k: int = 10
   output_attention: bool = False
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "inference_batch_size": lit_types.Integer(
+            default=4, min_val=1, max_val=16, required=False
+        ),
+        "beam_size": lit_types.Integer(
+            default=4, min_val=1, max_val=32, required=False
+        ),
+        "max_gen_length": lit_types.Integer(
+            default=50, min_val=1, max_val=100, required=False
+        ),
+        "num_to_generate": lit_types.Integer(
+            default=1, min_val=1, max_val=10, required=False
+        ),
+        "token_top_k": lit_types.Integer(
+            default=10, min_val=1, max_val=25, required=False
+        ),
+        "output_attention": lit_types.Boolean(default=False, required=False),
+    }
+
 
 def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
   """Validate that a given model looks like a T5 model.
@@ -81,7 +102,7 @@ def validate_t5_model(model: lit_model.Model) -> lit_model.Model:
   return model
 
 
-class T5SavedModel(lit_model.Model):
+class T5SavedModel(lit_model.BatchedModel):
   """T5 from a TensorFlow SavedModel, for black-box access.
 
   To create a SavedModel from a regular T5 checkpoint, see
@@ -112,6 +133,13 @@ class T5SavedModel(lit_model.Model):
         "output_text": m.decode("utf-8")
     } for m in model_outputs["outputs"].numpy()]
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "saved_model_path": lit_types.String(),
+        **T5ModelConfig.init_spec(),
+    }
+
   def input_spec(self):
     return {
         "input_text": lit_types.TextSegment(),
@@ -122,7 +150,7 @@ class T5SavedModel(lit_model.Model):
     return {"output_text": lit_types.GeneratedText(parent="target_text")}
 
 
-class T5HFModel(lit_model.Model):
+class T5HFModel(lit_model.BatchedModel):
   """T5 using HuggingFace Transformers and Keras.
 
   This version supports embeddings, attention, and force-decoding of the target
@@ -314,6 +342,13 @@ class T5HFModel(lit_model.Model):
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
     return list(map(self._postprocess, unbatched_outputs))
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }
+
   def input_spec(self):
     return {
         "input_text": lit_types.TextSegment(),
@@ -388,22 +423,11 @@ class TranslationWrapper(lit_model.ModelWrapper):
   def description(self) -> str:
     return "T5 for machine translation\n" + self.wrapped.description()
 
-  # TODO(b/170662608): remove these after batching API is cleaned up.
-  def max_minibatch_size(self) -> int:
-    raise NotImplementedError("Use predict() instead.")
-
-  def predict_minibatch(self, inputs):
-    raise NotImplementedError("Use predict() instead.")
-
   def predict(self, inputs):
     """Predict on a single minibatch of examples."""
     model_inputs = (self.preprocess(ex) for ex in inputs)
     outputs = self.wrapped.predict(model_inputs)
     return (utils.remap_dict(mo, self.FIELD_RENAMES) for mo in outputs)
-
-  def predict_with_metadata(self, indexed_inputs):
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex["data"] for ex in indexed_inputs))
 
   def input_spec(self):
     spec = lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
@@ -448,13 +472,6 @@ class SummarizationWrapper(lit_model.ModelWrapper):
   def description(self) -> str:
     return "T5 for summarization\n" + self.wrapped.description()
 
-  # TODO(b/170662608): remove these after batching API is cleaned up.
-  def max_minibatch_size(self) -> int:
-    raise NotImplementedError("Use predict() instead.")
-
-  def predict_minibatch(self, inputs):
-    raise NotImplementedError("Use predict() instead.")
-
   def predict(self, inputs):
     """Predict on a single minibatch of examples."""
     inputs = list(inputs)  # needs to be referenced below, so keep full list
@@ -470,10 +487,6 @@ class SummarizationWrapper(lit_model.ModelWrapper):
       mo["rougeL"] = float(score["rougeL"].fmeasure)
       yield mo
 
-  def predict_with_metadata(self, indexed_inputs):
-    """As predict(), but inputs are IndexedInput."""
-    return self.predict((ex["data"] for ex in indexed_inputs))
-
   def input_spec(self):
     return lit_types.remap_spec(self.wrapped.input_spec(), self.FIELD_RENAMES)
 
@@ -481,3 +494,47 @@ class SummarizationWrapper(lit_model.ModelWrapper):
     spec = lit_types.remap_spec(self.wrapped.output_spec(), self.FIELD_RENAMES)
     spec["rougeL"] = lit_types.Scalar()
     return spec
+
+
+class T5Translation(TranslationWrapper):
+  """T5 translation model.
+
+  TranslationWrapper class has input_specs compatible with the corresponding
+  dataset, but its init args are not supported by the front-end system, thus
+  we set up a layer of init args on top to work with the front-end.
+  """
+
+  def __init__(
+      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+  ):
+    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    super().__init__(model)
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }
+
+
+class T5Summarization(SummarizationWrapper):
+  """T5 summarization model.
+
+  SummarizationWrapper class has input_specs compatible with the corresponding
+  dataset, but its init args are not supported by the front-end system, thus
+  we set up a layer of init args on top to work with the front-end.
+  """
+
+  def __init__(
+      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+  ):
+    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    super().__init__(model)
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name": lit_types.String(default="t5-small", required=False),
+        **T5ModelConfig.init_spec(),
+    }

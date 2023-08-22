@@ -1,14 +1,17 @@
 """Wrapper for fine-tuned HuggingFace models in LIT."""
+# TODO(b/261736863): Update to PEP 585 typings, consider using f-strings, and
+# make common substrings into module CONSTANTS.
 
 import os
 import re
 import threading
-from typing import Optional, Dict, List, Iterable
+from typing import Optional, Dict, List, Iterable, Sequence, Any
 
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
@@ -16,6 +19,9 @@ import transformers
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
+TFSequenceClassifierOutput = (
+    transformers.modeling_tf_outputs.TFSequenceClassifierOutput
+)
 
 
 @attr.s(auto_attribs=True, kw_only=True)
@@ -32,9 +38,35 @@ class GlueModelConfig(object):
   labels: Optional[List[str]] = None  # set to None for regression
   null_label_idx: Optional[int] = None
   compute_grads: bool = True  # if True, compute and return gradients.
+  output_attention: bool = True
+  output_embeddings: bool = True
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        "model_name_or_path": lit_types.String(
+            default="bert-base-uncased",
+            required=False,
+        ),
+        "max_seq_length": lit_types.Integer(
+            default=128,
+            max_val=512,
+            min_val=1,
+            required=False,
+        ),
+        "inference_batch_size": lit_types.Integer(
+            default=32,
+            max_val=64,
+            min_val=1,
+            required=False,
+        ),
+        "compute_grads": lit_types.Boolean(default=True, required=False),
+        "output_attention": lit_types.Boolean(default=True, required=False),
+        "output_embeddings": lit_types.Boolean(default=True, required=False),
+    }
 
 
-class GlueModel(lit_model.Model):
+class GlueModel(lit_model.BatchedModel):
   """GLUE benchmark model, using Keras/TF2 and Huggingface Transformers.
 
   This is a general-purpose classification or regression model. It works for
@@ -49,10 +81,26 @@ class GlueModel(lit_model.Model):
   For a more minimal example, see ../simple_tf2_demo.py.
   """
 
+  def _verify_num_layers(self, hidden_states: Sequence[Any]):
+    """Verify correct # of layer activations returned."""
+    # First entry is embeddings, then output from each transformer layer.
+    expected_hidden_states_len = self.model.config.num_hidden_layers + 1
+    actual_hidden_states_len = len(hidden_states)
+    if actual_hidden_states_len != expected_hidden_states_len:
+      raise ValueError(
+          "Unexpected size of hidden_states. Should be one "
+          "more than the number of hidden layers to account "
+          "for the embeddings. Expected "
+          f"{expected_hidden_states_len}, got "
+          f"{actual_hidden_states_len}."
+      )
+
   @property
   def is_regression(self) -> bool:
     return self.config.labels is None
 
+  # TODO(b/254110131): Move file_cache.cached_path() call inside this __init__
+  # function to reduce boilerplate in other locations (e.g., TCAV tests).
   def __init__(self,
                model_name_or_path="bert-base-uncased",
                **config_kw):
@@ -62,6 +110,13 @@ class GlueModel(lit_model.Model):
 
   def _load_model(self, model_name_or_path):
     """Load model. Can be overridden for testing."""
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
         model_name_or_path)
     self.vocab = self.tokenizer.convert_ids_to_tokens(
@@ -70,6 +125,7 @@ class GlueModel(lit_model.Model):
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
         return_dict=False,  # default for training; overridden for predict
+        output_attentions=self.config.output_attention,
     )
     self.model = model_utils.load_pretrained(
         transformers.TFAutoModelForSequenceClassification,
@@ -96,7 +152,7 @@ class GlueModel(lit_model.Model):
         tokens_a,
         tokens_b,
         max_length=self.config.max_seq_length)
-    return encoded_input
+    return encoded_input  # pytype: disable=bad-return-type
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
     """Make a tf.data.Dataset from inputs in LIT format."""
@@ -185,7 +241,7 @@ class GlueModel(lit_model.Model):
     slicer_b = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
     return slicer_a, slicer_b
 
-  def _postprocess(self, output: Dict[str, np.ndarray]):
+  def _postprocess(self, output: dict[str, Any]):
     """Per-example postprocessing, on NumPy output."""
     ntok = output.pop("ntok")
     output["tokens"] = self.tokenizer.convert_ids_to_tokens(
@@ -198,30 +254,36 @@ class GlueModel(lit_model.Model):
       output["tokens_" + self.config.text_b_name] = output["tokens"][slicer_b]
 
     # Embeddings for each segment, individually.
-    output["input_embs_" + self.config.text_a_name] = (
-        output["input_embs"][slicer_a])
-    if self.config.text_b_name:
-      output["input_embs_" + self.config.text_b_name] = (
-          output["input_embs"][slicer_b])
+    if self.config.output_embeddings:
+      output["input_embs_" + self.config.text_a_name] = (
+          output["input_embs"][slicer_a])
+      if self.config.text_b_name:
+        output["input_embs_" + self.config.text_b_name] = (
+            output["input_embs"][slicer_b])
 
     # Gradients for each segment, individually.
     if self.config.compute_grads:
+      # Gradients for the CLS token.
+      output["cls_grad"] = output["input_emb_grad"][0]
       output["token_grad_" +
              self.config.text_a_name] = output["input_emb_grad"][slicer_a]
       if self.config.text_b_name:
         output["token_grad_" +
                self.config.text_b_name] = output["input_emb_grad"][slicer_b]
-      if self.is_regression:
-        output["grad_class"] = None  # pytype: disable=container-type-mismatch
-      else:
+
+      # TODO(b/294613507): remove output[self.config.label_name] once TCAV
+      # is updated.
+      if not self.is_regression:
         # Return the label corresponding to the class index used for gradients.
-        output["grad_class"] = self.config.labels[output["grad_class"]]
+        output[self.config.label_name] = self.config.labels[
+            output[self.config.label_name]
+        ]  # pytype: disable=container-type-mismatch
 
-    # Gradients for the CLS token.
-    output["cls_grad"] = output["input_emb_grad"][0]
+      # Remove "input_emb_grad" since it's not in the output spec.
+      del output["input_emb_grad"]
 
-    # Remove "input_emb_grad" since it's not in the output spec.
-    del output["input_emb_grad"]
+    if not self.config.output_attention:
+      return output
 
     # Process attention.
     for key in output:
@@ -268,7 +330,7 @@ class GlueModel(lit_model.Model):
     scatter_indices = []
     for (batch_index, sentence_embs, offset) in zip(batch_indices,
                                                     filtered_embs, offsets):
-      for (token_index, emb) in enumerate(sentence_embs):
+      for (token_index, _) in enumerate(sentence_embs):
         scatter_indices.append([batch_index, token_index + offset])
 
     # Scatters passed word embeddings into embeddings gathered from tokens.
@@ -320,13 +382,47 @@ class GlueModel(lit_model.Model):
             offsets=(lengths + 2))
     return input_embs
 
+  def get_target_scores(self, inputs: Iterable[JsonDict], scores):
+    """Get target-class scores, as a 1D tensor.
+
+    Args:
+      inputs: list of input examples
+      scores: <tf.float32>[batch_size, num_classes], either logits or probas
+
+    Returns:
+      <tf.float32>[batch_size] target scores for each input
+    """
+    arg_max = tf.math.argmax(scores, axis=-1).numpy()
+    grad_classes = [
+        ex.get(self.config.label_name, arg_max[i])
+        for (i, ex) in enumerate(inputs)
+    ]
+    # Convert the class names to indices if needed.
+    grad_idxs = [
+        self.config.labels.index(label) if isinstance(label, str) else label
+        for label in grad_classes
+    ]
+    # list of tuples (batch idx, label idx)
+    gather_indices = list(enumerate(grad_idxs))
+    # <tf.float32>[batch_size]
+    return tf.gather_nd(scores, gather_indices), grad_idxs
+
   ##
   # LIT API implementation
   def max_minibatch_size(self):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
+<<<<<<< HEAD
     return self.vocab, self.model.bert.embeddings.weight.numpy()
+=======
+    # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
+    # transformers is updated to v4.25.1 (or newer).
+    if hasattr(self.model.bert.embeddings, "word_embeddings"):
+      return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
+    else:
+      return self.vocab, self.model.bert.embeddings.weight.numpy()
+>>>>>>> 03f2d162cb0687180996007246edda90242cb4a5
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
@@ -338,7 +434,16 @@ class GlueModel(lit_model.Model):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
+<<<<<<< HEAD
       word_embeddings = self.model.bert.embeddings.weight
+=======
+      # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
+      # transformers is updated to v4.25.1 (or newer).
+      if hasattr(self.model.bert.embeddings, "word_embeddings"):
+        word_embeddings = self.model.bert.embeddings.word_embeddings
+      else:
+        word_embeddings = self.model.bert.embeddings.weight
+>>>>>>> 03f2d162cb0687180996007246edda90242cb4a5
       # <tf.float32>[batch_size, num_tokens, emb_size]
       input_embs = tf.gather(word_embeddings, input_ids)
 
@@ -350,60 +455,62 @@ class GlueModel(lit_model.Model):
 
       model_inputs = encoded_input.copy()
       model_inputs["input_ids"] = None
-      out: transformers.modeling_tf_outputs.TFSequenceClassifierOutput = \
-          self.model(model_inputs, inputs_embeds=input_embs, training=False,
-                     output_hidden_states=True, output_attentions=True,
-                     return_dict=True)
+      out: TFSequenceClassifierOutput = self.model(
+          model_inputs,
+          inputs_embeds=input_embs,
+          training=False,
+          output_hidden_states=True,
+          output_attentions=True,
+          return_dict=True)
 
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
           "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
           "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
-          "input_embs": input_embs,
       }
 
-      # First entry is embeddings, then output from each transformer layer.
-      assert len(out.hidden_states) == self.model.config.num_hidden_layers + 1
-      # <float32>[batch_size, num_tokens, 1]
-      token_mask = tf.expand_dims(
-          tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
-      # <float32>[batch_size, 1]
-      denom = tf.reduce_sum(token_mask, axis=1)
-      for i, layer_output in enumerate(out.hidden_states):
-        # layer_output is <float32>[batch_size, num_tokens, emb_dim]
-        # average over tokens to get <float32>[batch_size, emb_dim]
-        batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
-            layer_output * token_mask, axis=1) / denom
+      if self.config.output_embeddings:
+        batched_outputs["input_embs"] = input_embs
 
-      assert len(out.attentions) == self.model.config.num_hidden_layers
-      for i, layer_attention in enumerate(out.attentions):
-        batched_outputs[f"layer_{i+1}/attention"] = layer_attention
+        self._verify_num_layers(out.hidden_states)
+
+        # <float32>[batch_size, num_tokens, 1]
+        token_mask = tf.expand_dims(
+            tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
+        # <float32>[batch_size, 1]
+        denom = tf.reduce_sum(token_mask, axis=1)
+        for i, layer_output in enumerate(out.hidden_states):
+          # layer_output is <float32>[batch_size, num_tokens, emb_dim]
+          # average over tokens to get <float32>[batch_size, emb_dim]
+          batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
+              layer_output * token_mask, axis=1) / denom
+
+      if self.config.output_attention:
+        if len(out.attentions) != self.model.config.num_hidden_layers:
+          raise ValueError("Unexpected size of attentions. Should be the same "
+                           "size as the number of hidden layers. Expected "
+                           f"{self.model.config.num_hidden_layers}, got "
+                           f"{len(out.attentions)}.")
+        for i, layer_attention in enumerate(out.attentions):
+          batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
         # <tf.float32>[batch_size]
         batched_outputs["score"] = tf.squeeze(out.logits, axis=-1)
-        scalar_pred_for_gradients = batched_outputs["score"]
+        # <tf.float32>[batch_size], a single target per example
+        scalar_targets = batched_outputs["score"]
       else:
         # <tf.float32>[batch_size, num_labels]
         batched_outputs["probas"] = tf.nn.softmax(out.logits, axis=-1)
-
-        # If a class for the gradients has been specified in the input,
-        # calculate gradients for that class. Otherwise, calculate gradients for
-        # the arg_max class.
-        arg_max = tf.math.argmax(batched_outputs["probas"], axis=-1).numpy()
-        grad_classes = [ex.get("grad_class", arg_max[i]) for (i, ex) in
-                        enumerate(inputs)]
-        # Convert the class names to indices if needed.
-        grad_classes = [self.config.labels.index(label)
-                        if isinstance(label, str) else label
-                        for label in grad_classes]
-
-        gather_indices = list(enumerate(grad_classes))
-        # <tf.float32>[batch_size]
-        scalar_pred_for_gradients = tf.gather_nd(batched_outputs["probas"],
-                                                 gather_indices)
+        # <tf.float32>[batch_size], a single target per example
+        scalar_targets, grad_idxs = self.get_target_scores(
+            inputs, batched_outputs["probas"]
+        )
+        # TODO(b/294613507): remove once TCAV updated.
         if self.config.compute_grads:
-          batched_outputs["grad_class"] = tf.convert_to_tensor(grad_classes)
+          batched_outputs[self.config.label_name] = tf.convert_to_tensor(
+              grad_idxs
+          )
 
     # Request gradients after the tape is run.
     # Note: embs[0] includes position and segment encodings, as well as subword
@@ -411,7 +518,8 @@ class GlueModel(lit_model.Model):
     if self.config.compute_grads:
       # <tf.float32>[batch_size, num_tokens, emb_dim]
       batched_outputs["input_emb_grad"] = tape.gradient(
-          scalar_pred_for_gradients, input_embs)
+          scalar_targets, input_embs
+      )
 
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
     # Sequence of dicts, one per example.
@@ -423,23 +531,28 @@ class GlueModel(lit_model.Model):
     ret[self.config.text_a_name] = lit_types.TextSegment()
     ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
         parent=self.config.text_a_name, required=False)
+
     if self.config.text_b_name:
       ret[self.config.text_b_name] = lit_types.TextSegment()
       ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
           parent=self.config.text_b_name, required=False)
+
     if self.is_regression:
       ret[self.config.label_name] = lit_types.RegressionScore(required=False)
     else:
       ret[self.config.label_name] = lit_types.CategoryLabel(
           required=False, vocab=self.config.labels)
-    # The input_embs_ and grad_class fields are used for Integrated Gradients.
-    ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
-        align="tokens", required=False)
-    if self.config.text_b_name:
-      ret["input_embs_" + self.config.text_b_name] = lit_types.TokenEmbeddings(
+
+    if self.config.output_embeddings:
+      # The input_embs_ fields are used for Integrated Gradients.
+      text_a_embs = "input_embs_" + self.config.text_a_name
+      ret[text_a_embs] = lit_types.TokenEmbeddings(
           align="tokens", required=False)
-    ret["grad_class"] = lit_types.CategoryLabel(required=False,
-                                                vocab=self.config.labels)
+      if self.config.text_b_name:
+        text_b_embs = "input_embs_" + self.config.text_b_name
+        ret[text_b_embs] = lit_types.TokenEmbeddings(
+            align="tokens", required=False
+        )
     return ret
 
   def output_spec(self) -> Spec:
@@ -456,39 +569,52 @@ class GlueModel(lit_model.Model):
           parent=self.config.label_name,
           vocab=self.config.labels,
           null_idx=self.config.null_label_idx)
-    ret["cls_emb"] = lit_types.Embeddings()
-    # Average embeddings, one per layer including embeddings.
-    for i in range(1 + self.model.config.num_hidden_layers):
-      ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
 
-    ret["cls_grad"] = lit_types.Gradients(
-        grad_for="cls_emb", grad_target_field_key="grad_class")
+    if self.config.output_embeddings:
+      ret["cls_emb"] = lit_types.Embeddings()
+      # Average embeddings, one per layer including embeddings.
+      for i in range(1 + self.model.config.num_hidden_layers):
+        ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
 
-    # The input_embs_ and grad_class fields are used for Integrated Gradients.
-    ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
-        align="tokens_" + self.config.text_a_name)
-    if self.config.text_b_name:
-      ret["input_embs_" + self.config.text_b_name] = lit_types.TokenEmbeddings(
-          align="tokens_" + self.config.text_b_name)
+      # The input_embs_ fields are used for Integrated Gradients.
+      ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
+          align="tokens_" + self.config.text_a_name)
+      if self.config.text_b_name:
+        text_b_embs = "input_embs_" + self.config.text_b_name
+        ret[text_b_embs] = lit_types.TokenEmbeddings(align="tokens_" +
+                                                     self.config.text_b_name)
 
     # Gradients, if requested.
     if self.config.compute_grads:
-      ret["grad_class"] = lit_types.CategoryLabel(required=False,
-                                                  vocab=self.config.labels)
-      ret["token_grad_" + self.config.text_a_name] = lit_types.TokenGradients(
-          align="tokens_" + self.config.text_a_name,
-          grad_for="input_embs_" + self.config.text_a_name,
-          grad_target_field_key="grad_class")
-      if self.config.text_b_name:
-        ret["token_grad_" + self.config.text_b_name] = lit_types.TokenGradients(
-            align="tokens_" + self.config.text_b_name,
-            grad_for="input_embs_" + self.config.text_b_name,
-            grad_target_field_key="grad_class")
+      ret["cls_grad"] = lit_types.Gradients(
+          align=("score" if self.is_regression else "probas"),
+          grad_for="cls_emb",
+          grad_target_field_key=self.config.label_name,
+      )
+      if not self.is_regression:
+        ret[self.config.label_name] = lit_types.CategoryLabel(
+            required=False, vocab=self.config.labels
+        )
+      if self.config.output_embeddings:
+        text_a_token_grads = "token_grad_" + self.config.text_a_name
+        ret[text_a_token_grads] = lit_types.TokenGradients(
+            align="tokens_" + self.config.text_a_name,
+            grad_for="input_embs_" + self.config.text_a_name,
+            grad_target_field_key=self.config.label_name,
+        )
+        if self.config.text_b_name:
+          text_b_token_grads = "token_grad_" + self.config.text_b_name
+          ret[text_b_token_grads] = lit_types.TokenGradients(
+              align="tokens_" + self.config.text_b_name,
+              grad_for="input_embs_" + self.config.text_b_name,
+              grad_target_field_key=self.config.label_name,
+          )
 
-    # Attention heads, one field for each layer.
-    for i in range(self.model.config.num_hidden_layers):
-      ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
-          align_in="tokens", align_out="tokens")
+    if self.config.output_attention:
+      # Attention heads, one field for each layer.
+      for i in range(self.model.config.num_hidden_layers):
+        ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
+            align_in="tokens", align_out="tokens")
     return ret
 
 
@@ -540,3 +666,12 @@ class ToxicityModel(GlueModel):
         labels=["non-toxic", "toxic"],
         null_label_idx=0,
         **kw)
+
+  def output_spec(self) -> Spec:
+    ret = super().output_spec()
+    ret["probas"] = lit_types.MulticlassPreds(
+        parent=self.config.label_name,
+        vocab=self.config.labels,
+        null_idx=self.config.null_label_idx,
+        threshold=0.3)
+    return ret

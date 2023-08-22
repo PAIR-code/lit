@@ -22,10 +22,27 @@
 import 'jasmine';
 
 import {CategoryLabel, GeneratedText, LitType, MulticlassPreds, RegressionScore, Scalar, StringLitType, TextSegment, TokenGradients} from '../lib/lit_types';
-import {mockMetadata, mockSerializedMetadata} from './testing_utils';
-import {Spec} from '../lib/types';
+import {CallConfig, IndexedInput, Spec} from '../lib/types';
 
 import * as utils from './utils';
+
+describe('argmax text', () => {
+  it('works when argmax is in the middle', () => {
+    expect(utils.argmax([1, 5, 0, 2])).toEqual(1);
+  });
+
+  it('works when argmax is at the beginning', () => {
+    expect(utils.argmax([9, 5, 0, 2])).toEqual(0);
+  });
+
+  it('works when argmax is at the end', () => {
+    expect(utils.argmax([1, 5, 0, 7])).toEqual(3);
+  });
+
+  it('returns the first-encountered max value', () => {
+    expect(utils.argmax([1, 5, 5, 0])).toEqual(1);
+  });
+});
 
 describe('mean test', () => {
   it('computes a mean', () => {
@@ -210,42 +227,6 @@ describe('createLitType test', () => {
   });
 });
 
-describe('deserializeLitTypesInSpec test', () => {
-  const testSpec = {
-    'probabilities': {
-      '__name__': 'MulticlassPreds',
-      'required': true,
-      'vocab': ['0', '1'],
-      'null_idx': 0,
-      'parent': 'label'
-    },
-    'pooled_embs': {
-      '__name__': 'Embeddings',
-      'required': true
-    }
-  };
-
-  it('returns serialized littypes', () => {
-    expect(testSpec['probabilities'] instanceof MulticlassPreds)
-        .toBe(false);
-    const result = utils.deserializeLitTypesInSpec(testSpec);
-    expect(result['probabilities'])
-        .toEqual(utils.createLitType(
-            MulticlassPreds,
-            {'vocab': ['0', '1'], 'null_idx': 0, 'parent': 'label'}));
-    expect(result['probabilities'] instanceof MulticlassPreds)
-        .toBe(true);
-  });
-});
-
-describe('deserializeLitTypesInLitMetadata test', () => {
-  it('deserializes lit metadata', () => {
-    const result =
-        utils.deserializeLitTypesInLitMetadata(mockSerializedMetadata);
-    expect(result).toEqual(mockMetadata);
-  });
-});
-
 describe('cloneSpec test', () => {
   const testSpec = {
     'probabilities': utils.createLitType(MulticlassPreds, {
@@ -259,7 +240,7 @@ describe('cloneSpec test', () => {
   it('deeply copies', () => {
     const testSpec2 = utils.cloneSpec(testSpec);
 
-    const oldProbs = testSpec['probabilities'];
+    const oldProbs = testSpec.probabilities;
     const newProbs = testSpec2['probabilities'] as MulticlassPreds;
 
     newProbs.null_idx = 1;
@@ -387,18 +368,6 @@ describe('getThresholdFromMargin test', () => {
   });
   it('Behaves correctly for 0 input', () => {
     expect(utils.getThresholdFromMargin(0)).toEqual(.5);
-  });
-});
-
-describe('shortenID test', () => {
-  it('Shortens an id to 6 characters, for display', () => {
-    expect(utils.shortenId('b6ea684bec7bb1d4b9f2736b749c3030'))
-        .toEqual('b6ea68');
-    expect(utils.shortenId('924d4976b4ac56d053ed956671652892'))
-        .toEqual('924d49');
-  });
-  it('Behaves correctly for null input', () => {
-    expect(utils.shortenId(null)).toEqual(undefined);
   });
 });
 
@@ -618,6 +587,24 @@ describe('mapsContainSame test', () => {
   });
 });
 
+
+describe('canParseNumberRange test', () => {
+  let numberRanges = ['1', '-3', '-20--10', '-4-4 10-20', '1, 3-5'];
+  for (const range of numberRanges) {
+    it('can parse valid number ranges', () => {
+      expect(utils.canParseNumberRangeFnFromString(range)).toBe(true);
+    });
+  }
+
+  numberRanges = ['', 'not numeric', '123x', '3.*4'];
+  for (const range of numberRanges) {
+    it('cannot parse invalid number ranges', () => {
+      expect(utils.canParseNumberRangeFnFromString(range)).toBe(false);
+    });
+  }
+});
+
+
 describe('numberRangeFnFromString test', () => {
   it('handles single items', () => {
     const input = '1, 2 -3';
@@ -677,29 +664,200 @@ describe('numberRangeFnFromString test', () => {
 });
 
 describe('linearSpace test', () => {
-  it('returns evenly spaced numbers between minValue and maxValue', () => {
-    let minValue = 0;
-    let maxValue = 1;
-    let numSteps = 5;
-    let result = [0, 0.25, 0.5, 0.75, 1];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+  [
+    {
+      testcaseName: '[0, 1] @ 5 steps',
+      minValue: 0,
+      maxValue: 1,
+      numSteps: 5,
+      result: [0, 0.25, 0.5, 0.75, 1]
+    },
+    {
+      testcaseName: '[-1, 1] @ 5 steps',
+      minValue: -1,
+      maxValue: 1,
+      numSteps: 5,
+      result: [-1, -0.5, 0, 0.5, 1]
+    },
+    {
+      testcaseName: '[0.25, 0.75] @ 3 steps',
+      minValue: 0.25,
+      maxValue: 0.75,
+      numSteps: 3,
+      result: [0.25, 0.5, 0.75]
+    },
+    {
+      testcaseName: '[1, 0.75] @ 3 steps',
+      minValue: 1,
+      maxValue: 0.75,
+      numSteps: 3,
+      result: []
+    }
+  ].forEach(({testcaseName, minValue, maxValue, numSteps, result}) => {
+    it(`returns evenly spaced numbers between ${testcaseName}`, () => {
+      expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+    });
+  });
+});
 
-    minValue = -1;
-    maxValue = 1;
-    numSteps = 5;
-    result = [-1, -0.5, 0, 0.5, 1];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+describe('measureTextLength test', () => {
+  [
+    {
+      testcaseName: 'an empty string',
+      text: '',
+      expected: 0,
+    },
+    {
+      testcaseName: 'a short string',
+      text: 'hi',
+      expected: 11,
+    },
+    {
+      testcaseName: 'a long string',
+      text: 'a fairly long string containing 65 letters/numbers/spaces. So fun',
+      expected: 345,
+    }
+  ].forEach(({testcaseName, text, expected}) => {
+    it(`should correctly measure the length of ${testcaseName}`, () => {
+      expect(utils.measureTextLength(text)).toEqual(expected);
+    });
+  });
+});
 
-    minValue = 0.25;
-    maxValue = 0.75;
-    numSteps = 3;
-    result = [0.25, 0.5, 0.75];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+describe('validateCallConfig test', () => {
+  const optionalString = new StringLitType();
+  optionalString.required = false;
 
-    minValue = 1;
-    maxValue = 0.75;
-    numSteps = 3;
-    result = [];
-    expect(utils.linearSpace(minValue, maxValue, numSteps)).toEqual(result);
+  const TEST_SPEC: Spec = {
+    'a': new StringLitType(),
+    'b': new StringLitType(),
+    'c': optionalString,
+  };
+
+  [
+    {
+      testcaseName: 'config has all fields',
+      config: {'a': 0, 'b': true, 'c': 'c'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'config has only required fields',
+      config: {'a': 'a', 'b': 'b'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'config has non-null falsy required values',
+      config: {'a': '', 'b': false} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'spec is null',
+      config: {} as CallConfig,
+      spec: null,
+    },
+  ].forEach(({testcaseName, config, spec}) => {
+    it(`returns an empty list if the ${testcaseName}`, () => {
+      expect(utils.validateCallConfig(config, spec)).toEqual([]);
+    });
+  });
+
+
+  [
+    {
+      testcaseName: 'the config is empty',
+      config: {} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'the config has only optional fields',
+      config: {'c': 'c'} as CallConfig,
+      spec: TEST_SPEC,
+    },
+    {
+      testcaseName: 'the config has nullish required fields',
+      config: {'a': null, 'b': undefined} as CallConfig,
+      spec: TEST_SPEC,
+    },
+  ].forEach(({testcaseName, config, spec}) => {
+    it(`returns only the missing required fields when ${testcaseName}`, () => {
+      expect(utils.validateCallConfig(config, spec)).toEqual(['a', 'b']);
+    });
+  });
+});
+
+
+describe('makeModifiedInput test', () => {
+  const testInput: IndexedInput = {
+    'data': {
+      'foo': 123,
+      'bar': 234,
+      '_id': 'a1b2c3',
+      '_meta': {parentId: '000000'}
+    },
+    'id': 'a1b2c3',
+    'meta': {parentId: '000000'}
+  };
+
+  it('overrides one field', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'bar': 345}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {'foo': 123, 'bar': 345, '_id': '', '_meta': expectedNewMeta},
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('overrides two fields', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'foo': 234, 'bar': 345}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {'foo': 234, 'bar': 345, '_id': '', '_meta': expectedNewMeta},
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('adds a field with a new name', () => {
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'baz': 'spam and eggs'}, 'testFn');
+    const expectedNewMeta = {
+      added: true,
+      source: 'testFn',
+      parentId: testInput.id
+    };
+    expect(modifiedInput).toEqual({
+      'data': {
+        'foo': 123,
+        'bar': 234,
+        'baz': 'spam and eggs',
+        '_id': '',
+        '_meta': expectedNewMeta
+      },
+      'id': '',
+      'meta': expectedNewMeta,
+    });
+  });
+
+  it('returns original if no fields modified', () => {
+    // Overrides match original values, so should be a no-op.
+    const modifiedInput =
+        utils.makeModifiedInput(testInput, {'foo': 123, 'bar': 234}, 'testFn');
+    expect(modifiedInput).toEqual(testInput);
+  });
+
+  it('returns original if overrides empty', () => {
+    const modifiedInput = utils.makeModifiedInput(testInput, {}, 'testFn');
+    expect(modifiedInput).toEqual(testInput);
   });
 });

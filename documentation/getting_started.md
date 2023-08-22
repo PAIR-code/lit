@@ -18,8 +18,8 @@ For a guide to the many features available, check out the
 LIT provides a simple [Python API](./api.md) for use with custom models and
 data, as well as components such as metrics and counterfactual generators. Most
 LIT users will take this route, which involves writing a short `demo.py` binary
-to link in `Model` and `Dataset` implementations. In many cases, this can be
-just a few lines of logic:
+to link in `Model` and `Dataset` implementations and configure the server. In
+most cases this can be just a few lines:
 
 ```python
   datasets = {
@@ -33,8 +33,9 @@ just a few lines of logic:
 
 Check out the [API documentation](./api.md#adding-models-and-data) for more, and
 the [demos directory](./demos.md) for a wealth of examples. The
-[components guide](./components.md) also gives a good overview of the different
-features that are available, and how to enable them for your model.
+[components guide](./components.md) also gives an overview of interpretability
+methods and other features available in LIT, and describes how to enable each
+for your task.
 
 ## Using LIT in notebooks <!-- DO NOT REMOVE {#colab} -->
 
@@ -42,7 +43,8 @@ LIT can also be used directly from Colab and Jupyter notebooks, with the LIT UI
 rendered in an output cell. See https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb for an example.
 
 Note: if you see a 403 error in the output cell where LIT should render, you may
-need to enable cookies on the Colab site.
+need to enable cookies on the Colab site, or pass a custom `port=` to the
+`LitWidget` constructor.
 
 ## Stand-alone components <!-- DO NOT REMOVE {#standalone} -->
 
@@ -50,7 +52,7 @@ Many LIT components - such as models, datasets, metrics, and salience methods -
 are stand-alone Python classes and can be easily used outside of the LIT UI. For
 additional details, see the
 [API documentation](./api.md#using-components-outside-lit) and an example Colab
-at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
+at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
 
 ## Run an existing example <!-- DO NOT REMOVE {#running-lit} -->
 

@@ -20,8 +20,9 @@
  */
 import difflib from 'difflib';
 
-import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent} from './lit_types';
-import {GeneratedTextCandidate, IndexedInput, Input, Preds, Spec} from './types';
+import {ScoredTextCandidates} from './dtypes';
+import {GeneratedText, GeneratedTextCandidates, LitTypeTypesList, LitTypeWithParent, ReferenceScores} from './lit_types';
+import {IndexedInput, Input, Preds, Spec} from './types';
 import {findSpecKeys} from './utils';
 
 // tslint:disable-next-line:no-any difflib does not support Closure imports
@@ -31,7 +32,7 @@ import {findSpecKeys} from './utils';
  * Preds type for text generation.
  */
 export interface GeneratedTextResult {
-  [outputFieldName: string]: GeneratedTextCandidate[];
+  [outputFieldName: string]: ScoredTextCandidates;
 }
 
 /**
@@ -89,7 +90,8 @@ export function getAllReferenceTexts(
 
   // Search input fields: anything referenced in model's output spec
   const inputReferenceKeys = new Set<string>();
-  for (const outKey of findSpecKeys(outputSpec, GENERATION_TYPES)) {
+  for (const outKey of findSpecKeys(
+           outputSpec, [ReferenceScores, ...GENERATION_TYPES])) {
     const {parent} = outputSpec[outKey] as LitTypeWithParent;
     if (parent && dataSpec[parent]) {
       inputReferenceKeys.add(parent);
@@ -104,6 +106,41 @@ export function getAllReferenceTexts(
 export function getAllOutputTexts(
     outputSpec: Spec, preds?: GeneratedTextResult|null): string[] {
   return getFlatTexts(findSpecKeys(outputSpec, GENERATION_TYPES), preds);
+}
+
+/**
+ * Source info for TargetOption, below.
+ */
+export enum TargetSource {
+  REFERENCE = 'Reference',
+  MODEL_OUTPUT = 'Output',
+}
+
+/**
+ * A possible target sequence for salience, scoring, etc.
+ * with a text generation model.
+ */
+export interface TargetOption {
+  text: string;
+  source: TargetSource;
+  // TODO track original field name as well?
+  score?: number;  // TODO populate this
+}
+
+/**
+ * Get all possible target strings from reference and model output.
+ */
+export function getAllTargetOptions(
+    dataSpec: Spec, outputSpec: Spec, input?: IndexedInput|null,
+    preds?: GeneratedTextResult|null): TargetOption[] {
+  const ret: TargetOption[] = [];
+  for (const text of getAllReferenceTexts(dataSpec, outputSpec, input)) {
+    ret.push({text, source: TargetSource.REFERENCE});
+  }
+  for (const text of getAllOutputTexts(outputSpec, preds)) {
+    ret.push({text, source: TargetSource.MODEL_OUTPUT});
+  }
+  return ret;
 }
 
 /**
