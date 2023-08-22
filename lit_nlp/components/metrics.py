@@ -21,7 +21,6 @@ from absl import logging
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
-from lit_nlp.api import dtypes
 from lit_nlp.api import types
 from lit_nlp.components import classification_results
 import numpy as np
