@@ -98,6 +98,12 @@ python -m pip pytorch  # optional, for PyTorch
 (cd lit_nlp; yarn && yarn build)
 ```
 
+Note: Use the `-r requirements.txt` option to install every dependency required
+for the LIT library, its test suite, and the built-in examples. You can also
+install subsets of these using the `-r requirements_core.txt` (core library),
+`-r requirements_test.txt` (test suite), `-r requirements_examples.txt`
+(examples), and/or any combination thereof.
+
 Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
 running `yarn` on Ubuntu/Debian, be sure you have the
 [correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
