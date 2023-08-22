@@ -6,9 +6,10 @@ To run locally with a small number of examples:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+from collections.abc import Sequence
 import os
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags

@@ -189,12 +189,6 @@ export function formatAnnotationCluster(ac: AnnotationCluster): string {
   return `${ac.label}${ac.score != null ? ` (${ac.score})` : ''}`;
 }
 
-<<<<<<< HEAD
-/**
- * Element of GeneratedTextCandidates and ReferenceTexts fields.
- */
-export type GeneratedTextCandidate = [text: string, score: number | null];
-=======
 export function formatScoredTextCandidate([t, s]: ScoredTextCandidate): string {
   return `${t}${typeof s === 'number' ? ` (${formatNumber(s)})` : ''}`;
 }
@@ -207,7 +201,6 @@ export function formatScoredTextCandidatesList(
     list: ScoredTextCandidates[]): string {
   return list.map(formatScoredTextCandidates).join('\n\n');
 }
->>>>>>> b56b56dfc7623644657cd9721ed04513fc83b61e
 
 /**
  * Info about individual classifications including computed properties.

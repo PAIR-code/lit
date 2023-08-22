@@ -1,10 +1,10 @@
 """LIT wrappers for TyDiModel"""
+from collections.abc import Iterable
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.datasets import question_answering
 import numpy as np
 import transformers
-from typing import List
 
 
 BertTokenizer = transformers.BertTokenizer
@@ -14,7 +14,7 @@ JsonDict = lit_types.JsonDict
 
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset"""
-                  
+
   def __init__(self,
               model_name: str,
               model=None,
@@ -25,7 +25,7 @@ class TyDiModel(lit_model.Model):
     self.model = model or FlaxBertForQuestionAnswering.from_pretrained(
         model_name)
 
-  def _segment_slicers(self, tokens: List[str]):
+  def _segment_slicers(self, tokens: list[str]):
     """Slicers along the tokens dimension for each segment.
 
     For tokens ['[CLS]', a0, a1, ..., '[SEP]', b0, b1, ..., '[SEP]'],
@@ -49,7 +49,7 @@ class TyDiModel(lit_model.Model):
     return 8
 
 
-  def predict_minibatch(self, inputs):
+  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
     """Predict on a single minibatch of examples.
 
     Takes question & context from the dataset tokenizes &
@@ -91,7 +91,7 @@ class TyDiModel(lit_model.Model):
           "tokens_grad_question": np.asarray(gradient[slicer_question]),
           "tokens_embs_context": np.asarray(gradient[slicer_context])
       })
-  
+
     return prediction_output
 
 
