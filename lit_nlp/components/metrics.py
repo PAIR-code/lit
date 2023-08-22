@@ -174,36 +174,6 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
                              margin_config)
 
 
-class ExactMatchMetrics(SimpleMetrics):
-  """Exact Match metrics."""
-  def is_field_compatible(self, pred_spec: LitType,
-                          parent_spec: Optional[LitType]) -> bool:
-    """Return true if compatible with this field."""
-    return isinstance(pred_spec, types.GeneratedText) and isinstance(parent_spec, types.MultiSegmentAnnotations)
-
-  def compute(self,
-              inputs: Sequence[Sequence[dtypes.AnnotationCluster]],
-              preds: Sequence[JsonDict],
-              label_spec: types.MultiSegmentAnnotations,
-              pred_spec: types.GeneratedText,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
-    """Compute metric(s) between labels and predictions."""
-    del config
-    del label_spec
-    del pred_spec
-
-    if not inputs or not preds:
-      return {}
-
-    matches = 0
-    for annotations, pred in zip(inputs, preds):
-      answers = [annotation.label for annotation in annotations]
-      if any(pred == answer for answer in answers):
-        matches += 1
-
-    return {'pct_correct': matches/len(preds) * 100}
-
-
 class RegressionMetrics(SimpleMetrics):
   """Standard regression metrics."""
 

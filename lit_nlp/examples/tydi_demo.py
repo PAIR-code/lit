@@ -37,7 +37,6 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
 )
 
 
-
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   FLAGS.set_default("server_type", "external")
   FLAGS.set_default("demo_mode", True)

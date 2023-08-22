@@ -107,6 +107,7 @@ def default_interpreters(
       'Integrated Gradients': gradient_maps.IntegratedGradients(),
       'LIME': lime_explainer.LIME(),
   }
+
   # pyformat: disable
   core_interpreters: dict[str, lit_components.Interpreter] = {
       'Model-provided salience': model_salience.ModelSalience(models),
