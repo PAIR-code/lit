@@ -1,8 +1,8 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2021-12-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-16' } *-->
 
-This is a user guide for the Language Interpretability Tool (LIT) UI.
+This is a user guide for the Learning Interpretability Tool (LIT) UI.
 
 For a quick video tour of LIT, check out this
 [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
@@ -54,16 +54,16 @@ primary selection is highlighted in a darker blue in the *Data Table* module and
 its ID is displayed in the selection toolbar.
 
 A selection of datapoints can be saved as a "slice" through the *Slice Editor*.
-Saving a selection as a slice allows for easy navigation back to that
-selection in the future. It also allows for comparison of metrics across subsets
-of datapoints, as described in the *[Metrics Module](#metrics-table)* section.
+Saving a selection as a slice allows for easy navigation back to that selection
+in the future. It also allows for comparison of metrics across subsets of
+datapoints, as described in the *[Metrics Module](#metrics-table)* section.
 
 ## Toolbars
 
 There are three toolbars in the LIT tool. The top bar includes the tool name,
 selected model(s) and dataset, and a settings button. Below that is the main
-toolbar with the menus and controls for navigation and selection control.
-At the bottom of the page is a status bar.
+toolbar with the menus and controls for navigation and selection control. At the
+bottom of the page is a status bar.
 
 ### Global Settings
 
@@ -85,44 +85,43 @@ compatible modules that LIT contains.
 
 ### Main Toolbar
 
-The main toolbar is right below the top bar and contains a number of
-different controls and information. On the left side of the toolbar, it contains
-a set of menus for quick controlling of datapoint selection and coloring. This
-includes controls such as:
+The main toolbar is right below the top bar and contains a number of different
+controls and information. On the left side of the toolbar, it contains a set of
+menus for quick controlling of datapoint selection and coloring. This includes
+controls such as:
 
 *   The **"Select related"** option looks at all the datapoints in the current
     selection and adds any datapoints "related" to them to the current
     selection. In LIT, "related" is defined as datapoints created from some
     source datapoint (through manual editing or a datapoint generator), or a
     source datapoint that a selected datapoint was created from.
-*   The **"Clear selection"** button deselects all selected datapoints.
-    The dropdown also contains a color legend for the current color setting.
+*   The **"Clear selection"** button deselects all selected datapoints. The
+    dropdown also contains a color legend for the current color setting.
 *   The **Slices** option allows quick selection of an already-created slice of
     datapoints.
 *   The **"Datapoint color"** menu enables setting of the color of each
     datapoint in the modules that visualize all datapoints (such as the
-    *Embeddings* and *Scalars* modules) by any number of datapoint
-    features or model outputs on those datapoints (such as coloring by some
-    categorical input feature, or by prediction error for a regression task).
+    *Embeddings* and *Scalars* modules) by any number of datapoint features or
+    model outputs on those datapoints (such as coloring by some categorical
+    input feature, or by prediction error for a regression task).
 
 Next to the menus is a button for pinning/unpinning a datapoint. Pinning a
 datapoint puts LIT into datapoint comparison mode, where two datapoints can be
 compared against each other, across all applicable modules. This mode is
 described in more detail [below](#comparing-datapoints).
 
-On the right side of the toolbar, it displays
-how many datapoints are in the loaded dataset and how many of those are
-currently selected. The ID of the primary selected datapoint is displayed, along
-with a favorite button to mark this datapoint as a favorite. Favorited
-datapoints are stored in the automatically-created **"Favorites"** slice,
-accessible in the slice controls. If only a single datapoint is selected, then
-the left and right arrow buttons in this toolbar allow cycling of the selected
-datapoint through the loaded dataset. If the current selection is a set of
-datapoints, then the left and right arrow buttons control which of those
-datapoints is the primary selected datapoint, cycling through the datapoints in
-the current selection. A **"random"** button between the arrows allows selection
-of a random datapoint, as opposed to the ordered cycling done through the left
-and right arrows.
+On the right side of the toolbar, it displays how many datapoints are in the
+loaded dataset and how many of those are currently selected. The ID of the
+primary selected datapoint is displayed, along with a favorite button to mark
+this datapoint as a favorite. Favorited datapoints are stored in the
+automatically-created **"Favorites"** slice, accessible in the slice controls.
+If only a single datapoint is selected, then the left and right arrow buttons in
+this toolbar allow cycling of the selected datapoint through the loaded dataset.
+If the current selection is a set of datapoints, then the left and right arrow
+buttons control which of those datapoints is the primary selected datapoint,
+cycling through the datapoints in the current selection. A **"random"** button
+between the arrows allows selection of a random datapoint, as opposed to the
+ordered cycling done through the left and right arrows.
 
 ### Status Bar
 
@@ -148,12 +147,12 @@ models.
 ## Comparing Datapoints
 
 Pinning a datapoint, through either the toolbar button or controls in modules
-(e.g., the pin icons in Data Table rows), puts LIT into 
-**datapoint comparison mode**. In this mode, the pinned datapoint is used as a
-reference to compare the primary selection. The pinned datapoint is indicated 
-by a pin icon in modules that support datapoint comparison, such as the Data
-Table. Any changes to the primary selection will update datapoint comparison
-visualizations in all supporting modules.
+(e.g., the pin icons in Data Table rows), puts LIT into **datapoint comparison
+mode**. In this mode, the pinned datapoint is used as a reference to compare the
+primary selection. The pinned datapoint is indicated by a pin icon in modules
+that support datapoint comparison, such as the Data Table. Any changes to the
+primary selection will update datapoint comparison visualizations in all
+supporting modules.
 
 As with model comparison, some modules may be duplicated, one showing the pinned
 datapoint and one showing the primary selected datapoint.
@@ -167,9 +166,9 @@ counterfactual datapoints, or any other datapoint from the loaded dataset.
 
 The *Slice Editor* allows for creating, editing, selecting, and deleting of
 slices. The current selection can be saved as a slice by giving it a name and
-clicking "Create slice". The slice list allows you to select any of
-the previously-saved slices. This includes the "Favorites" slice that is
-described above in the [Main Toolbar](#main-toolbar) section.
+clicking "Create slice". The slice list allows you to select any of the
+previously-saved slices. This includes the "Favorites" slice that is described
+above in the [Main Toolbar](#main-toolbar) section.
 
 The feature checkboxes enable the user to facet the data by input feature when
 creating a slice. In the screenshot below, we are creating a new slice named
@@ -186,13 +185,13 @@ set to "1".
 
 ## URL Sharing
 
-Many states of the LIT app, such as models and datasets loaded, datapoints
-selected, and modules minimized, are all stored in URL parameters. In this way,
-if a user wants to share the tool with a specific view set up with someone else,
-they can copy the URL (either manually or via the share link button) as a means 
-of sharing it.
+Much of the LIT app's state &mdash; the loaded models and datasets, selected
+datapoints, minimized and/or full-screen modules &mdash; are stored in URL
+parameters. In this way, if a user wants to share the tool with a specific view
+set up with someone else, they can copy the URL (either manually or via the
+share link button) as a means of sharing it.
 
-The base url that will be copied with the share link button can be configured by 
+The base url that will be copied with the share link button can be configured by
 passing the `--canonical_url=<url base>` flag to the server.
 
 ## Module Details
@@ -206,10 +205,10 @@ full-screen button in the top-right of each module.
 
 ### Embedding Projector
 
-When using LIT with a model that returns embeddings (or activations), in
-addition to predictions, the embedding projector will show all datapoints by
-their embeddings projected down to 3 dimensions. This is useful for exploring
-and understanding clusters of datapoints.
+When using LIT with a model that returns embeddings (or activations) in addition
+to predictions, the embedding projector will show all datapoints by their
+embeddings projected down to 3 dimensions. This is useful for exploring and
+understanding clusters of datapoints.
 
 ![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")<!-- DO NOT REMOVE {width="500"} -->
 
@@ -223,8 +222,8 @@ through control+click-and-drag. A datapoint can be selected with a click, or a
 set of datapoints can be selected using a lasso through a shift+click-and-drag
 interaction.
 
-The color of that datapoints is controlled by the color settings in the
-selection toolbar.
+The color of the datapoints is controlled by the color settings in the selection
+toolbar.
 
 ### Data Table
 
@@ -243,12 +242,13 @@ dataset, but with newly-generated datapoints being placed directly below their
 
 The sort order can be changed to sort by columns through use of the up and down
 arrows in the table header row. Additionally, the data table can be filtered
-through a text search using the search buttons for each column in the table
-header row. All columns that have filters set on them have their search button
-outlined. Clicking the **"x"** button in the search box for a column will clear
-that column's filter.
+through text, regex, numerical ranges, and column-name prefixes using a global
+search box. The table can also be filtered by column through a text search using
+the search buttons for each column in the header row. All columns that have
+filters set on them have their search button outlined. Clicking the **"x"**
+button in the search box for a column will clear that column's filter.
 
-The **"only show selected"** checkbox toggles the data table to only show the
+The **"show only selected"** checkbox toggles the data table to only show the
 datapoints that are currently selected.
 
 The **"reset view"** button returns the data table to its standard, default
@@ -259,15 +259,30 @@ what the data table shows. Model predictions can be added as columns through
 this dropdown, but they are not shown in the data table by default, in order to
 keep the table decluttered.
 
-The below data table shows one sorted by the "label" field, with the "passage"
-field being filtered to only those datapoints that contain the word "sound" in
-them.
+Column names that exceed the maximum length are truncated with an ellipsis to
+the left, and can be viewed in their entirety when hovered over. Similarly,
+table cells that exceed 3 lines of text are truncated with a Show More icon,
+which can be clicked to view the full content. Text cells can be collapsed to
+their default state using the **"reset view"** button.
 
-A datapoint can be pinned to enable comparison by clicking the pin icon on the 
+The below data table shows one sorted by the "label" field, with the "sentence"
+field being filtered to show only those datapoints that contain the word "film"
+in them.
+
+![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
+
+A datapoint can be pinned to enable comparison by clicking the pin icon on the
 left side of the datapoint's table entry when the datapoint is hovered over or
 selected. A pinned datapoint can be unpinned by clicking on its pin icon again.
 
-![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
+You can also export data to CSV using the copy or download buttons in the bottom
+right:
+
+![LIT data table](./images/lit-datatable-export.png "LIT data table export controls")<!-- DO NOT REMOVE {width="400"} -->
+
+This will export all data in the current table view. To export only the
+selection, use the "Show only selected" toggle. To include additional columns
+such as model predictions, enable them from the "Columns" dropdown.
 
 ### Datapoint Editor
 
@@ -283,6 +298,8 @@ filled out by hand to create a completely new datapoint.
 Features shown with a "(\*)" next to their name are required as model input and
 must be filled out to create a new datapoint. Other fields are optional.
 
+![LIT datapoint editor](./images/lit-datapoint-editor.png "LIT datapoint editor")<!-- DO NOT REMOVE {width="500"} -->
+
 ### Datapoint Generator
 
 The datapoint generator module allows creation of new datapoints from all
@@ -296,8 +313,8 @@ the dataset either individually, or altogether, through the add buttons.
 Generators built into LIT include:
 
 *   **Scrambler**: Scrambles the words in a text feature randomly.
-*   **Back-translation**: Translates a text feature into other languages and then
-    back to the source language to create paraphrases of the initial text
+*   **Back-translation**: Translates a text feature into other languages and
+    then back to the source language to create paraphrases of the initial text
     feature.
 *   **Hotflip**: When analyzing a classification task and the model provides
     token-based gradients, this generator will change the token with the highest
@@ -350,14 +367,14 @@ and also for two named slices that have been created by a user.
 The confusion matrix buckets all datapoints from the dataset (or the current
 selection, if one is made) into buckets in a 2D matrix. This is normally used to
 compare classification predictions on a model versus the ground truth classes of
-the datapoints. But, the axes of the matrix are configurable to be set to any
-categorical field in the dataset or return from a model. So, when comparing two
-models, the confusion matrix can be set up to show agreements/disagreements
-between classifications in the two models, as opposed to
-agreements/disagreements between one model's classifications and the ground
+the datapoints. In this case, the axes of the matrix are configurable to be set
+to any categorical field in the dataset or return from a model. For example,
+when comparing two models, the confusion matrix can be set up to show
+agreements/disagreements between classifications in the two models, as opposed
+to agreements/disagreements between one model's classifications and the ground
 truth.
 
-The individual cells, and the row and column headers, are all clickable to
+The individual cells and the row and column headers are all clickable to
 toggle on/off selection of the datapoints in that cell or row or column. In this
 way, the confusion matrix module can be used to select points of interest, such
 as all false positives in a binary classification task, or all datapoints where
@@ -367,18 +384,18 @@ two models being compared disagree on classification.
 
 ### Scalars
 
-The scalars module shows a set of scatter or jitter plots, one for each
-scalar output of a loaded model (such as a regression score, or a classification
-score for a specific class). Each of them contains all datapoints in the
-dataset, laid out horizontally by the score. For classification scores, the Y
-axis is a random jitter of the data to better view all datapoints. For
-regression scores, where ground truth is known, the Y axis is the error in the
-prediction (points below the x-axis are under-predicted).
+The scalars module shows a set of scatter or jitter plots, one for each scalar
+output of a loaded model (such as a regression score, or a classification score
+for a specific class). Each of them contains all datapoints in the dataset, laid
+out horizontally by the score. For classification scores, the Y axis is a random
+jitter of the data to better view all datapoints. For regression scores, where
+ground truth is known, the Y axis is the error in the prediction (points below
+the x-axis are under-predicted).
 
 Datapoints can be selected either though clicking, or through lasso selection
-through clicking and dragging.
+by clicking and dragging.
 
-The color of that datapoints is controlled by the color settings in the
+The color of the datapoints is controlled by the color settings in the
 selection toolbar.
 
 For binary classification tasks, this module also contains a threshold slider in
@@ -470,7 +487,7 @@ Does a system encode gendered associations, which might lead to incorrect
 predictions? We load a coreference model trained on OntoNotes, and load the
 Winogender dataset into LIT for evaluation. Each Winogender example has a
 pronoun and two candidate referents, one a occupation term like (“technician”)
-and one is an “other participant” (like “customer”). Our model predicts 
+and one is an “other participant” (like “customer”). Our model predicts
 coreference probabilities for each candidate. We can explore the model’s
 sensitivity to pronouns by comparing two examples side-by-side (see structured
 predictions in screenshot). We can see how commonly the model makes similar

@@ -10,3 +10,8 @@
 .classification-row-holder {
   padding-bottom: 10px;
 }
+
+.module-footer {
+  /* Avoid spurious scrollbar from mwc-switch */
+  overflow-x: clip;
+}

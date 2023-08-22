@@ -43,7 +43,11 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info(
+        "quickstart_sst_demo:get_wsgi_app() called with unused "
+        "args: %s", unused)
+  return main([])
 
 
 def run_finetuning(train_path):

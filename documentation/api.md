@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-07-29' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-06-29' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -30,11 +30,12 @@ The frontend is a stateful single-page app, built using
 state management. It consists of a core UI framework, a set of shared "services"
 which manage persistent state, and a set of independent modules which render
 visualizations and support user interaction. For more details, see the
-[UI guide](./ui_guide.md) and the 
+[UI guide](./ui_guide.md) and the
 [frontend developer guide](./frontend_development.md).
 
-[^1]: Naming is just a happy coincidence; the Language Interpretability Tool is
+[^1]: Naming is just a happy coincidence; the Learning Interpretability Tool is
       not related to the Lit projects.
+
 
 ## Adding Models and Data
 
@@ -69,6 +70,24 @@ and [`Model`](#models) classes implement this, and provide metadata (see the
 
 For pre-built `demo.py` examples, check out
 https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples
+
+### Validating Models and Data
+
+Datasets and models can optionally be validated by LIT to ensure that dataset
+examples match their spec and that model output values match their spec.
+This can be very helpful during development of new model and dataset wrappers
+to ensure correct behavior in LIT.
+
+At LIT server startup, the `validate` flag can be used to enable validation.
+There are three modes:
+
+*   `--validate=first` will check the first example in each dataset.
+*   `--validate=sample` will validate a sample of 5% of each dataset.
+*   `--validate=all` will run validation on all examples from all datasets.
+
+Additionally, if using LIT datasets and models outside of the LIT server,
+validation can be called directly through the
+[`validation`](../lit_nlp/lib/validation.py) module.
 
 ## Datasets
 
@@ -174,9 +193,8 @@ of three methods:
     fields
 *   `output_spec()` should return a flat dict that describes the model's
     predictions and any additional outputs
-*   `predict_minibatch()` and/or `predict()` should take a sequence of inputs
-    (satisfying `input_spec()`) and yields a parallel sequence of outputs
-    matching `output_spec()`.
+*   `predict()` should take a sequence of inputs (satisfying `input_spec()`) and
+    yields a parallel sequence of outputs matching `output_spec()`.
 
 Implementations should subclass
 [`Model`](../lit_nlp/api/model.py). An example for
@@ -215,14 +233,16 @@ class NLIModel(Model):
 ```
 
 Unlike the dataset example, this model implementation is incomplete - you'll
-need to customize `predict()` (or `predict_minibatch()`) accordingly with any
-pre- or post-processing needed, such as tokenization.
+need to customize `predict()` accordingly with any pre- or post-processing
+needed, such as tokenization.
 
-Note: The `Model` base class implements simple batching, aided by the
-`max_minibatch_size()` function. This is purely for convenience, since most deep
-learning models will want this behavior. But if you don't need it, you can
-simply override the `predict()` function directly and handle large inputs
-accordingly.
+Many deep learning models support a batched prediction behavior. Thus, we
+provide the `BatchedModel` class that implements simple batching. Users of this 
+class must implement the `predict_minibatch()` function, which should convert
+a `Sequence` of `JsonDict` objects to the appropriate batch representation
+(typically, a `Mapping` of strings to aligned `Sequences` or `Tensors`) before
+calling the model. Optionally, you may want to override the
+`max_minibatch_size()` function, which determines the batch size.
 
 Note: there are a few additional methods in the model API - see
 [`Model`](../lit_nlp/api/model.py) for details.
@@ -299,11 +319,11 @@ can accept pre-tokenized inputs might have the following spec:
       }
 ```
 
-And in the model's `predict()` or `predict_minibatch()`, you would have logic to
-use these and bypass the tokenizer:
+And in the model's `predict()`, you would have logic to use these and bypass the
+tokenizer:
 
 ```python
-    def predict_minibatch(inputs):
+    def predict(inputs):
       input_tokens = [ex.get('tokens') or self.tokenizer.tokenize(ex['text'])
                       for ex in inputs]
       # ...rest of your predict logic...
@@ -312,56 +332,6 @@ use these and bypass the tokenizer:
 `required=False` can also be used for label fields (such as `"label":
 lit_types.CategoryLabel(required=False)`), though these can also be omitted from
 the input spec entirely if they are not needed to compute model outputs.
-
-## UI Layouts
-
-You can also specify one or more custom layouts for the frontend UI. To do this,
-pass a dict of `LitCanonicalLayout` objects in `layouts=` when initializing the
-server. These objects represent a tabbed layout of modules, such as:
-
-```python
-LM_LAYOUT = layout.LitCanonicalLayout(
-    upper={
-        "Main": [
-            modules.EmbeddingsModule,
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-            modules.SliceModule,
-        ]
-    },
-    lower={
-        "Predictions": [
-            modules.LanguageModelPredictionModule,
-            modules.ConfusionMatrixModule,
-        ],
-        "Counterfactuals": [modules.GeneratorModule],
-    },
-    description="Custom layout for language models.",
-)
-```
-
-You can pass this to the server as:
-
-```python
-lit_demo = dev_server.Server(
-    models,
-    datasets,
-    # other args...
-    layouts={"lm": LM_LAYOUT},
-    **server_flags.get_flags())
-return lit_demo.serve()
-```
-
-For a full example, see
-[`lm_demo.py`](../lit_nlp/examples/lm_demo.py) You
-can see the default layouts as well as the list of available modules in
-[`layout.py`](../lit_nlp/api/layout.py).
-
-To use a specific layout for a given LIT instance, pass the key (e.g., "simple"
-or "default" or the name of a custom layout defined in Python) as a server flag
-when initializing LIT (`--default_layout=<layout>`). Commonly, this is done
-using `FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
-also be set on-the-fly the `layout=` URL param, which will take precedence.
 
 ## Interpretation Components
 
@@ -394,10 +364,6 @@ The core API involves implementing the `run()` method:
     # config is any runtime options to this component, such as a threshold for
     # (binary) classification metrics.
 ```
-
-Note: a more general `run_with_metadata()` method is also available; this
-receives a list of `IndexedInput` which contain additional metadata, such as
-parent pointers for tracking counterfactuals.
 
 Output from an interpreter component is unconstrained; it's up to the frontend
 component requesting it to process the output correctly. In particular, some
@@ -604,11 +570,402 @@ operate on. For example,to choose which input fields to perturb, or which output
 field of a multi-head model to run an adversarial attack (such as HotFlip)
 against.
 
-## Using components outside LIT
+## Type System
 
-All LIT backend components (models, datasets, metrics, generators, etc.) are
-standalone Python classes which don't depend on the serving framework, so you
-can easily use them from Colab or stand-alone scripts or libraries. This can
+LIT passes data around (e.g., between the server and the web app) as flat
+records with `string` keys. In Python types these are `Mapping[str, ...]` and in
+TypeScript types these are `{[key: string]: unknown}`. LIT serializes these
+records to JSON when communicating between the server and the web app client. It
+is because of this serialization that we introduced LIT's type system; LIT needs
+a way to communicate how to process and understand the semantics of the _shape_
+and (allowable) _values_ for the records being passed around in
+[JSON's more limited type system][json].
+
+<!--
+  TODO(b/290782213): Update the serialization discussion above to reflect any
+  changes to LIT's wrire format for HTTP APIs.
+-->
+
+<!--
+  TODO(b/258531316): Update Spec type once converted to a readonly type
+-->
+The _shape_ of a record &ndash; its specific keys and the types of their values
+&ndash; is defined by a `Spec`; a `dict[str, LitType]`. Each `LitType` class has
+a `default` property whose type annotation describes the type of the _value_ for
+that field in a JSON record. `LitType`s are implemented using hierarchical
+inheritance; the canonical types can be found in [types.py][types_py], with
+parallel implementations in [lit_types.ts][types_ts].
+
+### Conventions
+
+LIT supports several different "kinds" of `Spec`s (input vs output vs meta,
+etc.), and their use in context has specific implications, described
+per base class below.
+
+* [`lit_nlp.api.dataset.Dataset`][dataset-py]
+    * **`.spec() -> Spec`** describes the shape of every record in the
+      `Sequence` returned by `Dataset.examples()`.
+    * **`.init_spec() -> Optional[Spec]`** describes the user-configurable
+      arguments for loading a new instance of this `Dataset` class via the web
+      app's UI. Returning `None` or an empty `Spec` means that there is nothing
+      configurable about how this `Dataset` is loaded, and it will not show up
+      in the dataset loading section of the web app's Global Settings.
+* [`lit_nlp.api.model.Model`][model-py]
+    * **`.input_spec() -> Spec`** describes the shape required of all records
+      passed into the `Model.predict()` function via the `inputs` argument. LIT
+      checks for compatibility between a `Dataset` and a `Model` by ensuring
+      that `Model.input_spec()` is a subset of `Dataset.spec()`.
+    * **`.output_spec() -> Spec`** describes the shape of all records returned
+      by the `Model.predict()` function.
+    * **`.init_spec() -> Optional[Spec]`** describes the user-configurable
+      arguments for loading a new instance of this `Model` class via the web
+      app's UI. Returning `None` or an empty `Spec` means that there is nothing
+      configurable about how this `model` is loaded, and it will not show up in
+      the model loading section of the web app's Global Settings.
+* [`lit_nlp.api.components.[Interpreter | Generator]`][components-py]
+    * **`.config_spec() -> Spec`** describes the user-configurable parameters
+      for running this component. Returning an empty `Spec` means that this
+      component always processes inputs in the same way.
+    * **`.meta_spec() -> Spec`** is essentially unconstrained, but ideally
+      describes the shape of the records returned by this component's `.run()`
+      method. Note that this `Spec` has different semantics depending on the
+      component type. `Interpreter.run()` typically returns an
+      `Iterable[Mapping[str, ...]]` of records (i.e., the `Mapping`) with this
+      shape, because each input corresponds to one interpretation. Whereas
+      `Generator.run()` typically returns an
+      `Iterable[Iterable[Mapping[str, ...]]]` of records with this shape,
+      because each input may enable the generation of one or more new examples.
+* [`lit_nlp.api.components.Metrics`][components-py]
+    * **`.config_spec() -> Spec`** describes the user-configurable parameters
+      for running this component. Returning an empty `Spec` means that this
+      component always processes inputs in the same way.
+    * **`.meta_spec() -> Spec`** is a slight variation on the tradition `Spec`;
+      it will always be a `Mapping[str, MetricResult]` describing the single
+      record returned by the `Metrics.run()` method for each pair of compatible
+      keys in the `Model.output_spec()` and `Dataset.spec()`. The `MetricResult`
+      type also describes how to interpret the values in each record, e.g., if
+      higher, lower, or numbers closer to zero are better.
+
+Each `LitType` subclass encapsulates its own semantics (see
+[types.py][types_py]), but there are a few conventions all subclasses follow:
+
+*   The **`align=` attribute** references another field _in the same spec_ and
+    implies that both fields have index-aligned elements. For
+    example, `Model.output_spec()` may contain `'tokens': lit_types.Tokens(...)`
+    and `'pos': lit_types.SequenceTags(align='tokens')`, which references the
+    "tokens" field. This implies that the "pos" field contains a corresponding
+    value for every item in "tokens" and that you can access them with numeric
+    indices. Transitively, this means that using `zip(..., strict=True)` (in
+    Python 3.10 and above) will act as a pseudo-validator of this expectation.
+
+*   The **`parent=` attribute** is _typically_ used by `LitType`s in a
+    `Model.output_spec()`, and must be a field in the _input spec_ (i.e. the
+    `Dataset.spec()`) against which this field's value will be compared. For
+    example, the `Model.output_spec()` may contain
+    `'probas': lit_types.MulticlassPreds(parent='label', ...)` and the
+    `Dataset.spec()` may contain `'label': lit_types.CategoryLabel()`, which
+    means that the `Dataset`'s "label" field contains the ground truth values
+    for that example, and the class prediction in the "probas" field can be
+    compared to this label, e.g., by multi-class metrics.
+
+*   The **`vocab=` attribute** is used to represent the allowable values for
+    that field, such as a set of classes for a `MulticlassPreds` field, or the
+    set of labels for a `CategoryLabel` field.
+
+*   A field that appears in _both_ the model's input and output specs is assumed
+    to represent the same value. This pattern is used for model-based input
+    manipulation. For example, a
+    [language model](../lit_nlp/examples/models/pretrained_lms.py)
+    might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
+    input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
+    component could take output from the former, swap one or more tokens (e.g.
+    with `[MASK]`), and feed them in the corresponding input field to compute
+    masked fills.
+
+### Compatibility Checks
+
+LIT's type system plays a critical role in ensuring reliability of and
+interoperability between the `Model`, `Dataset`, `Interpreter`, `Generator`, and
+`Metrics` classes:
+
+*   The **Model-Dataset compatibility check** ensures that the
+    `Model.input_spec()` is a subset of the `Dataset.spec()`. The base
+    [`Model` class][model-py] provides a robust and universal implementation of
+    this check in the `is_compatible_with_dataset()` API, but you can override
+    this method in your `Model` subclass if you so choose.
+*   All [`lit_nlp.api.components` classes][components-py] provide an
+    `is_compatible` API to check their compatibility against `Model`s and
+    `Dataset`s, as appropriate. For example, the
+    [`WordReplacer` generator][word-replacer] only checks against the `Dataset`
+    spec because it does not depend on model outputs, whereas the
+    [`Curves` interpreter][curves-interp] checks the `Model` and `Dataset`
+    because it needs labeled predictions, and the
+    [`GradientDotInput` interpreter][grad-maps] only checks against the
+    `Model.output_spec()` because it needs data that only the model can provide.
+
+The LIT web app also uses `Spec` based compatibility checks. Each TypeScript
+module defines a [`shouldDisplayModule` function][should_display_module] that
+returns `true` if any active model-dataset pair provides sufficient information
+to support the visualization methods encapsulated by that module. If this
+function returns `false`, the module is not displayed in the layout. Note that
+this can cause jitter (UI modules appearing, disappearing, reordering, resizing,
+etc.) when switching between models or datasets with heterogeneous `Spec`s.
+
+When implementing your own LIT components and modules, you can use
+[`utils.find_spec_keys()`][utils-lib]
+(Python) and
+[`findSpecKeys()`][utils-lib]
+(TypeScript) to identify fields of interest in a `Spec`. These methods recognize
+and respect subclasses. For example,
+`utils.find_spec_keys(spec, Scalar)` will also match any `RegressionScore`
+fields, but `utils.find_spec_keys(spec, RegressionScore)` will not return all
+`Scalar` fields in the `Spec`.
+
+Important: Compatibility checks are performed automatically when
+[building the `LitMetadata`][build-metadata] for an instance of `LitApp`,
+typically by calling `dev_server.Serve()`. **These checks are not performed when
+using components in a raw Python context** (e.g., Colab, Jupyter, a REPL), as
+[described below](#using-lit-components-outside-of-lit), and it is encouraged
+that you call these explicitly to ensure compatibility and avoid chasing red
+herrings.
+
+### An In-Depth Example
+
+Consider the following example from the [MNLI demo][mnli-demo]. The
+[MultiNLI][mnli-dataset] dataset might define the following `Spec`.
+
+```python
+# Dataset.spec()
+{
+  "premise": lit_types.TextSegment(),
+  "hypothesis": lit_types.TextSegment(),
+  "label": lit_types.CategoryLabel(
+      vocab=["entailment", "neutral", "contradiction"]
+  ),
+  "genre": lit_types.CategoryLabel(),
+}
+```
+
+An example record in this `Dataset` might be:
+
+```python
+# dataset.examples[0]
+{
+  "premise": "Buffet and a la carte available.",
+  "hypothesis": "It has a buffet."
+  "label": "entailment",
+  "genre": "travel",
+}
+```
+
+A classification model for this task might have the following `input_spec()` and
+`output_spec()`. Notice that the input spec is a subset of the `Dataset.spec()`,
+thus LIT considers these to be compatible.
+
+```python
+# model.input_spec()
+{
+  "premise": lit_types.TextSegment(),
+  "hypothesis": lit_types.TextSegment(),
+}
+
+# model.output_spec()
+{
+  "probas": lit_types.MulticlassPreds(
+      parent="label",
+      vocab=["entailment", "neutral", "contradiction"]
+  ),
+}
+```
+
+Running this model over the input might yield the following prediction.
+
+```python
+# model.predict([dataset.examples[0]])[0]
+{
+  "probas": [0.967, 0.024, 0.009],
+}
+```
+
+Passing this input and the prediction to the `ClassificationResults` interpreter
+would yield additional human-readable information as follows.
+
+```python
+# classification_results.run(
+#     dataset.examples[:1], model, dataset, [prediction]
+# )[0]
+{
+  "probas": {
+      "scores": [0.967, 0.024, 0.009],
+      "predicted_class": "entailment",
+      "correct": True,
+  },
+}
+```
+
+_See the [examples](../lit_nlp/examples) for more._
+
+### Available types
+
+The full set of `LitType`s is defined in
+[types.py](../lit_nlp/api/types.py), and summarized
+in the table below.
+
+Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
+NumPy arrays where each element inside the brackets is an integer.
+
+Name                      | Description                                                                                                                                                           | Value Type
+------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------
+`TextSegment`             | Natural language text, untokenized.                                                                                                                                   | `string`
+`GeneratedText`           | Untokenized text, generated from a model (such as seq2seq).                                                                                                           | `string`
+`URL`                     | TextSegment, but interpreted as a URL.                                                                                                                                | `string`
+`GeneratedURL`            | Generated TextSegment, but interpreted as a URL (i.e., it maye not be real/is inappropriate as a label).                                                              | `string`
+`SearchQuery`             | TextSegment, but interpreted as a search query.                                                                                                                       | `string`
+`String`                  | Opaque string data; ignored by components such as perturbation methods that operate on natural language.                                                              | `string`
+`ReferenceTexts`          | Multiple texts, such as a set of references for summarization or MT.                                                                                                  | `List[Tuple[string, float]]`
+`GeneratedTextCandidates` | Multiple generation candidates, such as beam search output from a seq2seq model.                                                                                      | `List[Tuple[string, float]]`
+`Tokens`                  | Tokenized text.                                                                                                                                                       | `List[string]`
+`TokenTopKPreds`          | Predicted tokens and their scores, as from a language model or seq2seq model.                                                                                         | `List[List[Tuple[string, float]]]`
+`Boolean`                 | Boolean value.                                                                                                                                                        | `bool`
+`Scalar`                  | Scalar numeric value.                                                                                                                                                 | `float`
+`Integer`                 | Integer value.                                                                                                                                                        | `int`
+`ImageBytes`              | Image, represented by a base64 encoded string. LIT also provides `JPEGBytes` and `PNGBytes` types for those specific encodings.                                       | `string`
+`RegressionScore`         | Scalar value, treated as a regression target or prediction.                                                                                                           | `float`
+`ReferenceScores`         | Scores for one or more reference texts.                                                                                                                               | `List[float]`
+`CategoryLabel`           | Categorical label, from open or fixed vocabulary.                                                                                                                     | `string`
+`MulticlassPreds`         | Multiclass predicted probabilities.                                                                                                                                   | `<float>[num_labels]`
+`SparseMultilabel`        | Multiple non-exclusive labels, such as a set of attributes.                                                                                                           | `List[string]`
+`SparseMultilabelPreds`   | Sparse multi-label predictions, represented as scored candidates.                                                                                                     | `List[Tuple[string, float]]`
+`SequenceTags`            | Sequence tags, aligned to tokens.                                                                                                                                     | `List[string]`
+`SpanLabels`              | Span labels, aligned to tokens. Each label is (i,j,label).                                                                                                            | `List[SpanLabel]`
+`EdgeLabels`              | Edge labels, aligned to tokens. This is a general way to represent many structured prediction tasks, such as coreference or SRL. See https://arxiv.org/abs/1905.06316 | `List[EdgeLabel]`
+`MultiSegmentAnnotations` | In-line byte-span annotations, which can span multiple text segments.                                                                                                 | `List[AnnotationCluster]`
+`Embeddings`              | Fixed-length embeddings or model activations.                                                                                                                         | `<float>[emb_dim]`
+`Gradients`               | Gradients with respect to embeddings or model activations.                                                                                                            | `<float>[emb_dim]`
+`TokenEmbeddings`         | Per-token embeddings or model activations.                                                                                                                            | `<float>[num_tokens, emb_dim]`
+`TokenGradients`          | Gradients with respect to per-token embeddings or model activations.                                                                                                  | `<float>[num_tokens, emb_dim]`
+`ImageGradients`          | Gradients with respect to image pixels.                                                                                                                               | `<float>[image_height, image_width, color_channels]`
+`AttentionHeads`          | Attention heads, grouped by layer.                                                                                                                                    | `<float>[num_heads, num_tokens, num_tokens]`
+
+Values can be plain data, NumPy arrays, or custom dataclasses - see
+[dtypes.py](../lit_nlp/api/dtypes.py) and
+[serialize.py](../lit_nlp/api/serialize.py) for
+further detail.
+
+*Note: Note that `String`, `Boolean` and `URL` types in Python are represented
+as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
+naming collisions with protected TypeScript keywords.*
+
+## Server Configuration
+
+Some properties of the LIT frontend can be configured from Python as
+**arguments to `dev_server.Server()`**. These include:
+
+*   `page_title`: set a custom page title, such as "Coreference Demo".
+*   `canonical_url`: set a "canonical" URL (such as a shortlink) that will be
+    used as the base when copying links from the LIT UI.
+*   `default_layout`: set the default UI layout, by name. See `layout.ts` and
+    the section below for available layouts.
+*   `demo_mode`: demo / kiosk mode, which disables some functionality (such as
+    save/load datapoints) which you may not want to expose to untrusted users.
+*   `inline_doc`: a markdown string that will be rendered in a documentation
+    module in the main LIT panel.
+*   `onboard_start_doc`: a markdown string that will be rendered as the first
+    panel of the LIT onboarding splash-screen.
+*   `onboard_end_doc`: a markdown string that will be rendered as the last
+    panel of the LIT onboarding splash-screen.
+
+For detailed documentation, see
+[server_flags.py](../lit_nlp/server_flags.py).
+
+Most Python components (such as `Model`, `Dataset`, and `Interpreter`) also have
+a `description()` method which can be used to specify a human-readable
+description or help text that will appear in the UI.
+
+### Customizing the Layout
+
+You can specify custom web app layouts from Python via the `layouts=` attribute.
+The value should be a `Mapping[str, LitCanonicalLayout]`, such as:
+
+```python
+LM_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [
+            modules.EmbeddingsModule,
+            modules.DataTableModule,
+            modules.DatapointEditorModule,
+        ]
+    },
+    lower={
+        "Predictions": [
+            modules.LanguageModelPredictionModule,
+            modules.ConfusionMatrixModule,
+        ],
+        "Counterfactuals": [modules.GeneratorModule],
+    },
+    description="Custom layout for language models.",
+)
+```
+
+You can pass this to the server as:
+
+```python
+lit_demo = dev_server.Server(
+    models,
+    datasets,
+    # other args...
+    layouts={"lm": LM_LAYOUT},
+    **server_flags.get_flags())
+return lit_demo.serve()
+```
+
+For a full example, see
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py) You
+can see the default layouts as well as the list of available modules in
+[`layout.py`](../lit_nlp/api/layout.py).
+
+To use a specific layout by default for a given LIT instance, pass the key
+(e.g., "simple", "default", or the name of a custom layout) as a server flag
+when initializing LIT (`--default_layout=<layout>`) or by setting the default
+value for that flag in you `server.py` file, e.g.,
+`FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
+also be set on-the-fly with the `layout=` URL param, which will take precedence.
+
+## Accessing the LIT UI in Notebooks
+
+As an alternative to running a LIT server and connecting to it through a web
+browser, LIT can be used directly inside of python notebook environments, such
+as [Colab](https://colab.research.google.com/) and
+[Jupyter](https://jupyter.org/).
+
+After installing LIT through pip, create a `lit_nlp.notebook.LitWidget` object,
+passing in a dict of models and a dict of datasets, similar to the
+`lit_nlp.dev_server.Server` constructor. You can optionally provide a height
+parameter that specifies the height in pixels to render the LIT UI.
+
+Then, in its own output cell, call the `render` method on the widget object to
+render the LIT UI. The LIT UI can be rendered in multiple cells if desired. The
+LIT UI can also be rendered in its own browser tab, outside of the notebook, by
+passing the parameter `open_in_new_tab=True` to the `render` method. The
+`render` method can optionally take in a configuration object to specify
+certain options to render the LIT UI using, such as the selected layout,
+current display tab, dataset, and models. See
+[notebook.py](../lit_nlp/notebook.py) for details.
+
+The widget has a `stop` method which shuts down the widget's server. This can be
+important for freeing up resources if you plan to create multiple LIT widget
+instances in a single notebook. Stopping the server doesn't disable the model
+and dataset instances used by the server; they can still be used in the notebook
+and take up the resources they require.
+
+Check out an
+[example notebook](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+
+## Using LIT components outside of LIT
+
+All LIT Python components (models, datasets, interpreters, metrics, generators,
+etc.) are standalone classes that do not depend on the serving framework. You
+can easily use them from Colab, in scripts, or in your libraries. This can
 also be handy for development, as you can test new models or components without
 needing to reload the server or click the UI.
 
@@ -641,246 +998,23 @@ lime.run([dataset.examples[0]], model, dataset)
 # will return {"tokens": ..., "salience": ...} for each example given
 ```
 
-For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_Components_Example.ipynb.
+For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
 
-## Type System
 
-Input examples and model outputs in LIT are flat records (i.e. Python `dict` and
-JavaScript `object`). Field names (keys) are user-specified strings, and we use
-a system of "specs" to describe the types of the values. This spec system is
-semantic: in addition to defining the data type (string, float, etc.), spec 
-types define how a field should be interpreted by LIT components and frontend
-modules.
+<!-- Links -->
 
-For example, the [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) dataset
-might define the following spec:
-
-```python
-# dataset.spec()
-{
-  "premise": lit_types.TextSegment(),
-  "hypothesis": lit_types.TextSegment(),
-  "label": lit_types.CategoryLabel(vocab=["entailment", "neutral", "contradiction"]),
-  "genre": lit_types.CategoryLabel(),
-}
-```
-
-for which an example record might be
-
-```python
-# dataset.examples[0]
-{
-  "premise": "Buffet and a la carte available.",
-  "hypothesis": "It has a buffet."
-  "label": "entailment",
-  "genre": "travel",
-}
-```
-
-A classifier for this task might have the following input spec, matching a
-subset of the dataset fields:
-
-```python
-# model.input_spec()
-{
-  "premise": lit_types.TextSegment(),
-  "hypothesis": lit_types.TextSegment(),
-}
-```
-
-And the output spec:
-
-```python
-# model.output_spec()
-{
-  "probas": lit_types.MulticlassPreds(
-        parent="label",
-        vocab=["entailment", "neutral", "contradiction"]),
-}
-```
-
-for which example predictions might be:
-
-```python
-# model.predict([dataset.examples[0]])[0]
-{
-  "probas": [0.967, 0.024, 0.009],
-}
-```
-
-_For a more detailed example, see the
-[examples](../lit_nlp/examples)._
-
-LIT components use this spec to find and operate on relevant fields, as well as
-to access metadata like label vocabularies. For example, the multiclass metrics
-module will recognize the `MulticlassPreds` field in the output, use the `vocab`
-annotation to decode to string labels, and evaluate these against the input
-field described by the `parent` annotation.
-
-This spec system allows LIT to be flexible and extensible in model support.
-Multiple input segments - such as for NLI or QA - are easily supported by
-defining multiple `TextSegment` fields as in the above example, while
-multi-headed models can simply define multiple output fields. Furthermore, new
-types can easily be added to support custom input modalities, output types, or
-to provide access to model internals. For a more detailed example, see the
-[`Model` documentation](python_api#models).
-
-The actual spec types, such as `MulticlassLabel`, are simple dataclasses (built
-using [`attr.s`](https://www.attrs.org/en/stable/). They are defined in Python,
-but are available in
-[TypeScript](../lit_nlp/client/lib/lit_types.ts) as
-well.
-
-[`utils.find_spec_keys()`](../lit_nlp/lib/utils.py)
-(Python) and
-[`findSpecKeys()`](../lit_nlp/client/lib/utils.ts)
-(TypeScript) are commonly used to interact with a full spec and identify fields
-of interest. These recognize subclasses: for example,
-`utils.find_spec_keys(spec, Scalar)` will also match any `RegressionScore`
-fields.
-
-### Available types
-
-The full set of spec types is defined in
-[types.py](../lit_nlp/api/types.py), and summarized
-in the table below.
-
-_Note: bracket syntax like `<float>[num_tokens]` refers to the shapes of NumPy
-arrays._
-
-Name                      | Description                                                                                                                                                           | Value Type
-------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------
-`TextSegment`             | Natural language text, untokenized.                                                                                                                                   | `string`
-`GeneratedText`           | Untokenized text, generated from a model (such as seq2seq).                                                                                                           | `string`
-`URL`                     | TextSegment, but interpreted as a URL.                                                                                                                                | `string`
-`SearchQuery`             | TextSegment, but interpreted as a search query.                                                                                                                       | `string`
-`String`                  | Opaque string data; ignored by components such as perturbation methods that operate on natural language.                                                              | `string`
-`ReferenceTexts`          | Multiple texts, such as a set of references for summarization or MT.                                                                                                  | `List[Tuple[string, float]]`
-`GeneratedTextCandidates` | Multiple generation candidates, such as beam search output from a seq2seq model.                                                                                      | `List[Tuple[string, float]]`
-`Tokens`                  | Tokenized text.                                                                                                                                                       | `List[string]`
-`TokenTopKPreds`          | Predicted tokens and their scores, as from a language model or seq2seq model.                                                                                         | `List[List[Tuple[string, float]]]`
-`Boolean`                 | Boolean value.                                                                                                                                                        | `bool`
-`Scalar`                  | Scalar numeric value.                                                                                                                                                 | `float`
-`ImageBytes`              | Image, represented by a base64 encoded string.                                                                                                                       | `string`
-`RegressionScore`         | Scalar value, treated as a regression target or prediction.                                                                                                           | `float`
-`ReferenceScores`         | Scores for one or more reference texts.                                                                                                                               | `List[float]`
-`CategoryLabel`           | Categorical label, from open or fixed vocabulary.                                                                                                                     | `string`
-`MulticlassPreds`         | Multiclass predicted probabilities.                                                                                                                                   | `<float>[num_labels]`
-`SparseMultilabel`        | Multiple non-exclusive labels, such as a set of attributes.                                                                                                           | `List[string]`
-`SparseMultilabelPreds`   | Sparse multi-label predictions, represented as scored candidates.                                                                                                     | `List[Tuple[string, float]]`
-`SequenceTags`            | Sequence tags, aligned to tokens.                                                                                                                                     | `List[string]`
-`SpanLabels`              | Span labels, aligned to tokens. Each label is (i,j,label).                                                                                                            | `List[SpanLabel]`
-`EdgeLabels`              | Edge labels, aligned to tokens. This is a general way to represent many structured prediction tasks, such as coreference or SRL. See https://arxiv.org/abs/1905.06316 | `List[EdgeLabel]`
-`MultiSegmentAnnotations` | In-line byte-span annotations, which can span multiple text segments.                                                                                                 | `List[AnnotationCluster]`
-`Embeddings`              | Fixed-length embeddings or model activations.                                                                                                                         | `<float>[emb_dim]`
-`Gradients`               | Gradients with respect to embeddings or model activations.                                                                                                            | `<float>[emb_dim]`
-`TokenEmbeddings`         | Per-token embeddings or model activations.                                                                                                                            | `<float>[num_tokens, emb_dim]`
-`TokenGradients`          | Gradients with respect to per-token embeddings or model activations.                                                                                                  | `<float>[num_tokens, emb_dim]`
-`ImageGradients`          | Gradients with respect to image pixels.                                                                                                                                | `<float>[image_height, image_width, color_channels]`
-`AttentionHeads`          | Attention heads, grouped by layer.                                                                                                                                    | `<float>[num_heads, num_tokens, num_tokens]`
-
-Values can be plain data, NumPy arrays, or custom dataclasses - see
-[dtypes.py](../lit_nlp/api/dtypes.py) and
-[serialize.py](../lit_nlp/api/serialize.py) for
-further detail.
-
-*Note: Note that `String`, `Boolean` and `URL` types in Python are represented
-as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
-naming collisions with protected TypeScript keywords.*
-
-### Conventions
-
-The semantics of each type are defined individually, and documented in
-[types.py](../lit_nlp/api/types.py); however, there
-are a few conventions we try to follow:
-
-*   The `align=` attribute references another field in the same spec: for
-    example, model output spec may contain `'tokens': lit_types.Tokens(...)` and
-    `'pos': lit_types.SequenceTags(align='tokens')` which references the tokens
-    field.
-
-*   The `parent=` attribute is _usually_ used in model output, and references a
-    field name in the _input_ (i.e. the Dataset spec) that this field can be
-    compared to. For example, the data spec may contain `'label':
-    lit_types.CategoryLabel()` and the model output spec may contain `'probas':
-    lit_types.MulticlassPreds(parent='label', ...)`.
-
-*   A field that appears in _both_ the model's input and output spec is assumed
-    to represent the same value. This pattern is used for model-based input
-    manipulation. For example, a
-    [language model](../lit_nlp/examples/models/pretrained_lms.py)
-    might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
-    input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
-    component could take output from the former, swap one or more tokens (e.g.
-    with `[MASK]`), and feed them in the corresponding input field to compute
-    masked fills.
-
-## UI Configuration
-
-Some properties of the LIT frontend can be configured from Python as arguments
-to `dev_server.Server()`. These include:
-
-*   `page_title`: set a custom page title, such as "Coreference Demo".
-*   `canonical_url`: set a "canonical" URL (such as a shortlink) that will be
-    used as the base when copying links from the LIT UI.
-*   `default_layout`: set the default UI layout, by name. See `layout.ts` and
-    the section below for available layouts.
-*   `demo_mode`: demo / kiosk mode, which disables some functionality (such as
-    save/load datapoints) which you may not want to expose to untrusted users.
-*   `inline_doc`: a markdown string that will be rendered in a documentation
-    module in the main LIT panel.
-*   `onboard_start_doc`: a markdown string that will be rendered as the first
-    panel of the LIT onboarding splash-screen.
-*   `onboard_end_doc`: a markdown string that will be rendered as the last
-    panel of the LIT onboarding splash-screen.
-
-For detailed documentation, see
-[server_flags.py](../lit_nlp/server_flags.py).
-
-Most Python components (such as `Model`, `Dataset`, and `Interpreter`) also have
-a `description()` method which can be used to specify a human-readable
-description or help text that will appear in the UI.
-
-### Customizing the Layout
-
-Along with `models`, `datasets`, `generators`, and `interpreters`, you can also
-specify custom layouts from Python. These should be an instance of the
-`dtypes.LitComponentLayout` dataclass, which has the same structure as the
-layouts defined in
-[layouts.ts](../lit_nlp/client/default/layouts.ts).
-For example usage, see
-[coref_demo.py](../lit_nlp/examples/coref/coref_demo.py).
-
-Note: if further customization is desired, such as custom visualization modules,
-you can also set up a
-[custom frontend build](frontend_development.md#custom-client-modules).
-
-## Colab / Notebooks
-
-As an alternative to running a LIT server and connecting to it through a web
-browser, LIT can be used directly inside of python notebook environments, such
-as [Colab](https://colab.research.google.com/) and
-[Jupyter](https://jupyter.org/).
-
-After installing LIT through pip, create a `lit_nlp.notebook.LitWidget` object,
-passing in a dict of models and a dict of datasets, similar to the
-`lit_nlp.dev_server.Server` constructor. You can optionally provide a height
-parameter that specifies the height in pixels to render the LIT UI.
-
-Then, in its own output cell, call the `render` method on the widget object to
-render the LIT UI. The LIT UI can be rendered in multiple cells if desired. The
-LIT UI can also be rendered in its own browser tab, outside of the notebook, by
-passing the parameter `open_in_new_tab=True` to the `render` method. The
-`render` method can optionally take in a configuration object to specify
-certain options to render the LIT UI using, such as the selected layout,
-current display tab, dataset, and models. See
-[notebook.py](../lit_nlp/notebook.py) for details.
-
-The widget has a `stop` method which shuts down the widget's server. This can be
-important for freeing up resources if you plan to create multiple LIT widget
-instances in a single notebook. Stopping the server doesn't disable the model
-and dataset instances used by the server; they can still be used in the notebook
-and take up the resources they require.
-
-Check out an
-[example notebook](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+[build-metadata]: ../lit_nlp/app.py
+[components-py]: ../lit_nlp/api/dataset.py
+[curves-interp]: ../lit_nlp/components/curves.py
+[dataset-py]: ../lit_nlp/api/dataset.py
+[grad-maps]: ../lit_nlp/components/gradient_maps.py
+[json]: https://www.json.org
+[mnli-dataset]: https://cims.nyu.edu/~sbowman/multinli/
+[mnli-demo]: https://pair-code.github.io/lit/demos/glue.html
+[model-compat-check]:
+[model-py]: ../lit_nlp/api/dataset.py
+[should_display_module]: ../lit_nlp/client/core/lit_module.ts
+[types_py]: ../lit_nlp/api/types.py
+[types_ts]: ../lit_nlp/client/lib/lit_types.ts
+[utils-lib]: ../lit_nlp/client/lib/utils.ts
+[word-replacer]: ../lit_nlp/components/word_replacer.py

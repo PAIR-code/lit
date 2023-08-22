@@ -15,6 +15,7 @@
 """Tests for lit_nlp.generators.word_replacer."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
@@ -22,241 +23,228 @@ from lit_nlp.components import word_replacer
 from lit_nlp.lib import testing_utils
 
 
-class WordReplacerTest(absltest.TestCase):
+class WordReplacerTest(parameterized.TestCase):
 
-  def test_all_replacements(self):
-    input_spec = {'text': lit_types.TextSegment()}
-    model = testing_utils.TestRegressionModel(input_spec)
+  def setUp(self):
+    super().setUp()
+    test_spec: lit_types.Spec = {'text': lit_types.TextSegment()}
+    self.model = testing_utils.RegressionModelForTesting(test_spec)
     # Dataset is only used for spec in word_replacer so define once
-    dataset = lit_dataset.Dataset(input_spec, [{'text': 'blank'}])
+    self.dataset = lit_dataset.Dataset(
+        spec=test_spec, examples=[{'text': 'blank'}]
+    )
+    self.generator = word_replacer.WordReplacer()
 
-    ## Test replacements
-    generator = word_replacer.WordReplacer()
-    # Unicode to Unicode
-    input_dict = {'text': '♞ is a black chess knight.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: '♞ -> ♟',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': '♟ is a black chess knight.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
+  def test_default_replacements(self):
+    example = {'text': 'xyz yzy zzz.'}
+    config = {word_replacer.FIELDS_TO_REPLACE_KEY: ['text']}
+    generated = self.generator.generate(
+        example, self.model, self.dataset, config
+    )
+    self.assertEqual(generated, [])
 
-    # Unicode to ASCII
-    input_dict = {'text': 'Is répertoire a unicode word?'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'répertoire -> repertoire',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'Is repertoire a unicode word?'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
+  def test_init_replacements(self):
+    generator = word_replacer.WordReplacer(replacements={'tree': ['car']})
+    example = {'text': 'black truck hit the tree'}
+    config = {word_replacer.FIELDS_TO_REPLACE_KEY: ['text']}
+    generated = generator.generate(example, self.model, self.dataset, config)
+    self.assertEqual(generated, [{'text': 'black truck hit the car'}])
 
-    # Ignore capitalization
-    input_dict = {'text': 'Capitalization is ignored.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'Capitalization -> blank',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'blank is ignored.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='ascii_to_ascii_ignore_caps',
+          example={'text': 'Capitalization is ignored.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'capitalization -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'blank is ignored.'}],
+      ),
+      dict(
+          testcase_name='ascii_to_ascii_respect_caps_change',
+          example={'text': 'Capitalization is ignored.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'Capitalization -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+              word_replacer.IGNORE_CASING_KEY: False,
+          },
+          expected=[{'text': 'blank is ignored.'}],
+      ),
+      dict(
+          testcase_name='ascii_to_ascii_respect_caps_no_change',
+          example={'text': 'Capitalization is ignored.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'capitalization -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+              word_replacer.IGNORE_CASING_KEY: False,
+          },
+          expected=[],
+      ),
+      dict(
+          testcase_name='deletion',
+          example={'text': 'A storm is raging.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'storm -> ',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'A  is raging.'}],
+      ),
+      dict(
+          testcase_name='multiple_targets',
+          example={'text': 'It`s raining cats and dogs.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'dogs -> horses|donkeys',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[
+              {'text': 'It`s raining cats and horses.'},
+              {'text': 'It`s raining cats and donkeys.'}
+          ],
+      ),
+      dict(
+          testcase_name='multiple_words',
+          example={'text': 'A red cat is coming.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'red cat -> black dog',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'A black dog is coming.'}],
+      ),
+      dict(
+          testcase_name='no_partial_match',
+          example={'text': 'A catastrophic storm'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'cat -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[],
+      ),
+      dict(
+          testcase_name='special_chars_punctuation',
+          example={'text': 'A catastrophic storm .'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: '. -> -',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'A catastrophic storm -'}],
+      ),
+      dict(
+          testcase_name='special_chars_repeated_punctuation',
+          example={'text': 'A.catastrophic. storm'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: '. -> -',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[
+              {'text': 'A-catastrophic. storm'},
+              {'text': 'A.catastrophic- storm'},
+          ],
+      ),
+      dict(
+          testcase_name='special_chars_repeated_multichar_punctuation',
+          example={'text': 'A...catastrophic.... storm'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: '.. -> --',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[
+              {'text': 'A--.catastrophic.... storm'},
+              {'text': 'A...catastrophic--.. storm'},
+              {'text': 'A...catastrophic..-- storm'},
+          ],
+      ),
+      dict(
+          testcase_name='special_chars_underscore',
+          example={'text': 'A nasty_storm is raging.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'nasty_storm -> nice_storm',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'A nice_storm is raging.'}],
+      ),
+      dict(
+          testcase_name='two_repetitions_yields_two_examples',
+          example={'text': 'maybe repetition repetition maybe'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'repetition -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[
+              {'text': 'maybe blank repetition maybe'},
+              {'text': 'maybe repetition blank maybe'},
+          ],
+      ),
+      dict(
+          testcase_name='unicode_latin_to_ascii',
+          example={'text': 'Is répertoire a unicode word?'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'répertoire -> repertoire',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'Is repertoire a unicode word?'}],
+      ),
+      dict(
+          testcase_name='unicode_pictograph_to_unicode_pictograph',
+          example={'text': '♞ is a black chess knight.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: '♞ -> ♟',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': '♟ is a black chess knight.'}],
+      ),
+      dict(
+          testcase_name='words_with_and_near_punctuation',
+          example={'text': 'It`s raining cats and dogs.'},
+          config={
+              word_replacer.SUBSTITUTIONS_KEY: 'dogs -> blank',
+              word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
+          },
+          expected=[{'text': 'It`s raining cats and blank.'}],
+      ),
+  )
+  def test_replacement(
+      self,
+      example: lit_types.JsonDict,
+      config: lit_types.JsonDict,
+      expected: list[lit_types.JsonDict]
+  ):
+    generated = self.generator.generate(
+        example, self.model, self.dataset, config
+    )
+    self.assertCountEqual(generated, expected)
 
-    input_dict = {'text': 'Capitalization is ignored.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'capitalization -> blank',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'blank is ignored.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Do not Ignore capitalization
-    input_dict = {'text': 'Capitalization is important.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'Capitalization -> blank',
-        word_replacer.IGNORE_CASING_KEY: False,
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'blank is important.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    input_dict = {'text': 'Capitalization is important.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'capitalization -> blank',
-        word_replacer.IGNORE_CASING_KEY: False,
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = []
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Repetition
-    input_dict = {'text': 'maybe repetition repetition maybe'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'repetition -> blank',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'maybe blank repetition maybe'},
-                {'text': 'maybe repetition blank maybe'}]
-    self.assertCountEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # No partial match
-    input_dict = {'text': 'A catastrophic storm'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'cat -> blank',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = []
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    ## Special characters
-    # Punctuation
-    input_dict = {'text': 'A catastrophic storm .'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: '. -> -',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A catastrophic storm -'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    input_dict = {'text': 'A.catastrophic. storm'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: '. -> -',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A-catastrophic. storm'},
-                {'text': 'A.catastrophic- storm'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    input_dict = {'text': 'A...catastrophic.... storm'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: '.. -> --',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A--.catastrophic.... storm'},
-                {'text': 'A...catastrophic--.. storm'},
-                {'text': 'A...catastrophic..-- storm'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Underscore
-    input_dict = {'text': 'A catastrophic_storm is raging.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'catastrophic_storm -> nice_storm',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A nice_storm is raging.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Deletion
-    input_dict = {'text': 'A storm is raging.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'storm -> ',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A  is raging.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Word next to punctuation and words with punctuation.
-    input_dict = {'text': 'It`s raining cats and dogs.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'dogs -> blank',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'It`s raining cats and blank.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    # Multiple target tokens.
-    input_dict = {'text': 'It`s raining cats and dogs.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'dogs -> horses|donkeys',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'It`s raining cats and horses.'},
-                {'text': 'It`s raining cats and donkeys.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    ## Test default_replacements applied at init.
-    replacements = {'tree': ['car']}
-    generator = word_replacer.WordReplacer(replacements=replacements)
-    input_dict = {'text': 'black truck hit the tree'}
-    expected = [{'text': 'black truck hit the car'}]
-    config_dict = {
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-    ## Test not passing replacements not breaking.
-    generator = word_replacer.WordReplacer()
-    input_dict = {'text': 'xyz yzy zzz.'}
-    expected = []
-
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset), expected)
-
-    # Multi word match.
-    input_dict = {'text': 'A red cat is coming.'}
-    config_dict = {
-        word_replacer.SUBSTITUTIONS_KEY: 'red cat -> black dog',
-        word_replacer.FIELDS_TO_REPLACE_KEY: ['text'],
-    }
-    expected = [{'text': 'A black dog is coming.'}]
-    self.assertEqual(
-        generator.generate(input_dict, model, dataset, config=config_dict),
-        expected)
-
-  def test_parse_sub_string(self):
-    generator = word_replacer.WordReplacer()
-
-    query_string = 'foo -> bar, spam -> eggs'
-    expected = {'foo': ['bar'], 'spam': ['eggs']}
-    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
-
-    # Should ignore the malformed rule
-    query_string = 'foo -> bar, spam eggs'
-    expected = {'foo': ['bar']}
-    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
-
-    # Multiple target tokens.
-    query_string = 'foo -> bar, spam -> eggs|donuts | cream'
-    expected = {'foo': ['bar'], 'spam': ['eggs', 'donuts', 'cream']}
-    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
-
-    query_string = ''
-    expected = {}
-    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
-
-    query_string = '♞ -> ♟'
-    expected = {'♞': ['♟']}
-    self.assertDictEqual(generator.parse_subs_string(query_string), expected)
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='multiple_replacements_all_valid',
+          query_string='foo -> bar, spam -> eggs',
+          expected={'foo': ['bar'], 'spam': ['eggs']},
+      ),
+      dict(
+          testcase_name='multiple_replacements_ignore_malformed',
+          query_string='foo -> bar, spam eggs',
+          expected={'foo': ['bar']},
+      ),
+      dict(
+          testcase_name='multiple_replacements_mulitple_targets',
+          query_string='foo -> bar, spam -> eggs|donuts | cream',
+          expected={'foo': ['bar'], 'spam': ['eggs', 'donuts', 'cream']},
+      ),
+      dict(
+          testcase_name='empty',
+          query_string='',
+          expected={},
+      ),
+      dict(
+          testcase_name='single_unicode_replacement',
+          query_string='♞ -> ♟',
+          expected={'♞': ['♟']},
+      )
+  )
+  def test_parse_sub_string(
+      self, query_string: str, expected: dict[str, list[str]]
+  ):
+    parsed = self.generator.parse_subs_string(query_string)
+    self.assertEqual(parsed, expected)
 
 if __name__ == '__main__':
   absltest.main()

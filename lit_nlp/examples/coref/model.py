@@ -17,7 +17,7 @@ EdgeLabel = lit_dtypes.EdgeLabel
 JsonDict = lit_types.JsonDict
 
 
-class FrozenEncoderCoref(lit_model.Model):
+class FrozenEncoderCoref(lit_model.BatchedModel):
   """Frozen-encoder coreference model."""
 
   @classmethod
@@ -131,5 +131,5 @@ class FrozenEncoderCoref(lit_model.Model):
             lit_types.EdgeLabels(align='tokens'),
         'pred_answer':
             lit_types.MulticlassPreds(
-                vocab=winogender.ANSWER_VOCAB, parent='answer'),
+                required=False, vocab=winogender.ANSWER_VOCAB, parent='answer'),
     }

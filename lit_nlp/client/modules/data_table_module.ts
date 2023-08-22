@@ -16,25 +16,65 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
 import '../elements/checkbox';
+import '../elements/popup_container';
 
 import {html} from 'lit';
-import {customElement, query} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, query} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, DataTable, TableData} from '../elements/table';
-import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
+import {ColumnHeader, DataTable, SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {BooleanLitType, LitType, LitTypeWithVocab, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays} from '../lib/utils';
-import {DataService, FocusService, SelectionService} from '../services/services';
+import {DataService, FocusService, SelectionService, SliceService} from '../services/services';
+import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
+
+type ColWidths = [minWidth?: number, maxWidth?: number];
+/** A map of LitType class names to their minimum and maximum widths, in px.  */
+const LIT_TYPE_MIN_MAX_WIDTHS: {[key: string]: ColWidths} = {
+  "TextSegment": [220, 600],
+  "CategoryLabel": [60, 100],
+  "BooleanLitType": [60, 100],
+  "MulticlassPreds": [60, 200],
+  "Scalar": [60, 100],
+  "RegressionScore": [60, 100],
+  "ImageBytes": [60, undefined],
+  "SearchQuery": [100, 300],
+  "Tokens": [220, 600],
+  "SequenceTags": [100, 600],
+  "SpanLabels": [150, 200],
+  "EdgeLabels": [150, 200],
+  "MultiSegmentAnnotations": [60, 200],
+  "GeneratedTextCandidates": [150, 400]
+};
+
+// TODO(b/275101197): consolidate this with other rendering code.
+// This is here for now as formatForDisplay() only returns a string.
+function formatForTable(
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): TableEntry {
+  if (fieldSpec instanceof URLLitType) {
+    // Prevent clicking the URL from selecting or de-selecting the table row.
+    const stopClickThrough = (e: Event) => {
+      e.stopPropagation();
+    };
+    // clang-format off
+    const template = html`
+      <a href=${input as string} target="_blank"
+       @click=${stopClickThrough}>${input as string}</a>`;
+    // clang-format on
+    return {template, value: (input as string)} as SortableTemplateResult;
+  }
+
+  return formatForDisplay(input, fieldSpec, limitWords);
+}
 
 /**
  * A LIT module showing a table containing the InputData examples. Allows the
@@ -59,15 +99,18 @@ export class DataTableModule extends LitModule {
 
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
+  private readonly sliceService = app.getService(SliceService);
   private readonly referenceSelectionService =
       app.getService(SelectionService, 'pinned');
 
   @observable columnVisibility = new Map<string, boolean>();
-  @observable searchText = '';
+  @observable globalSearchText = '';
+  // If text box has been edited but not yet applied.
+  @observable globalSearchEdited = false;
 
   // Module options / configuration state
-  @observable private onlyShowSelected: boolean = false;
-  @observable private columnDropdownVisible: boolean = false;
+  @observable private onlyShowGenerated = false;
+  @observable private onlyShowSelected = false;
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -80,13 +123,23 @@ export class DataTableModule extends LitModule {
   // Column names from the current data for the data table.
   @computed
   get keys(): ColumnHeader[] {
-    const createColumnHeader = (name: string, type: LitType) => {
-      const header = {name, vocab: (type as LitTypeWithVocab).vocab};
+    function createColumnHeader(name: string, type: LitType) {
+      const [minWidth, maxWidth] = type.name in LIT_TYPE_MIN_MAX_WIDTHS ?
+        LIT_TYPE_MIN_MAX_WIDTHS[type.name] : [];
+
+      const header = {
+        name,
+        maxWidth,
+        minWidth,
+        width: maxWidth,
+        vocab: (type as LitTypeWithVocab).vocab
+      };
+
       if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
       }
       return header;
-    };
+    }
 
     // Use currentInputData to get keys / column names because filteredData
     // might have 0 length;
@@ -115,13 +168,25 @@ export class DataTableModule extends LitModule {
   // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): ColumnHeader[] {
-    return [{name: 'index'}, ...this.keys];
+    return [{name: 'index', minWidth: 75, maxWidth: 105, width: 75},
+      ...this.keys];
+  }
+
+  @computed
+  get pinnedInputData(): IndexedInput[] {
+    return this.appState.currentInputData.filter((inputData) => {
+      return this.referenceSelectionService.primarySelectedId === inputData.id;
+    });
   }
 
   @computed
   get filteredData(): IndexedInput[] {
-    return this.onlyShowSelected ? this.selectionService.selectedInputData :
-                                   this.appState.currentInputData;
+    // Baseline data is either the selection or the whole dataset
+    const data = this.onlyShowSelected ?
+        this.selectionService.selectedInputData :
+        this.appState.currentInputData;
+    // Filter to only the generated datapoints, if desired
+    return this.onlyShowGenerated ? data.filter((d) => d.meta.added) : data;
   }
 
   @computed
@@ -134,7 +199,7 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
-  get dataEntries(): Array<Array<string|number>> {
+  get dataEntries(): TableEntry[][] {
     return this.sortedData.map((d) => {
       const index = this.appState.indicesById.get(d.id);
       if (index == null) return [];
@@ -142,8 +207,10 @@ export class DataTableModule extends LitModule {
       const dataEntries =
           this.keys.filter(k => this.columnVisibility.get(k.name))
               .map(
-                  k => formatForDisplay(
+                  k => formatForTable(
                       this.dataService.getVal(d.id, k.name),
+                      // TODO(b/283282667): Get field spec from Dataset or Model
+                      // as appropriate for this column.
                       this.dataSpec[k.name]));
       return dataEntries;
     });
@@ -179,6 +246,15 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
+  get starredIndices(): number[] {
+    const starredIds = this.sliceService.getSliceByName(STARRED_SLICE_NAME);
+    if (starredIds) {
+      return starredIds.map(sid => this.indexOfId(sid));
+    }
+    return [];
+  }
+
+  @computed
   get focusedIndex(): number {
     // Set focused index if a datapoint is focused according to the focus
     // service. If the focusData is null then nothing is focused. If focusData
@@ -201,6 +277,20 @@ export class DataTableModule extends LitModule {
     return ancestorIds.map((id) => this.appState.indicesById.get(id)!)
         .reverse();
   }
+
+  private isStarred(id: string|null): boolean {
+    return (id !== null) && this.sliceService.isInSlice(STARRED_SLICE_NAME, id);
+  }
+
+  private toggleStarred(id: string|null) {
+    if (id == null) return;
+    if (this.isStarred(id)) {
+      this.sliceService.removeIdsFromSlice(STARRED_SLICE_NAME, [id]);
+    } else {
+      this.sliceService.addIdsToSlice(STARRED_SLICE_NAME, [id]);
+    }
+  }
+
 
   // TODO(lit-dev): figure out why this updates so many times;
   // it gets run _four_ times every time a new datapoint is added.
@@ -225,63 +315,92 @@ export class DataTableModule extends LitModule {
         event.stopPropagation();
       };
 
+      const starClick = (event: Event) => {
+        this.toggleStarred(d.id);
+        event.stopPropagation();
+        event.preventDefault();
+      };
+
       // Provide a template function for the 'index' column so that the
       // rendering can be based on the selection/hover state of the datapoint
       // represented by the row.
-      const templateFn =
-          (isSelected: boolean, isPrimarySelection: boolean,
-           isReferenceSelection: boolean, isFocused: boolean) => {
-            const indexHolderDivStyle = styleMap({
-              'display': 'flex',
-              'flex-direction': 'row-reverse',
-              'justify-content': 'space-between',
-              'width': '100%'
+      function templateFn(
+          isSelected: boolean, isPrimarySelection: boolean,
+          isReferenceSelection: boolean, isFocused: boolean,
+          isStarred: boolean) {
+        const indexHolderDivStyle = styleMap({
+          'display': 'flex',
+          'justify-content': 'space-between',
+          'width': '100%'
+        });
+        const indexButtonsDivStyle = styleMap({
+          'display': 'flex',
+          'flex-direction': 'row',
+          'column-gap': '8px',
+        });
+        const indexDivStyle = styleMap({
+          'text-align': 'right',
+          'flex': '1',
+        });
+        // Render the action button next to the index if datapoint is selected,
+        // hovered, or active (pinned, starred).
+        function renderActionButtons() {
+          function getActionStyle(isActive: boolean) {
+            return styleMap({
+              'visibility': isPrimarySelection || isFocused || isActive ?
+                  'default' :
+                  'hidden',
             });
-            const indexDivStyle = styleMap({
-              'text-align': 'right',
+          }
+
+          function getActionClass(isActive: boolean) {
+            return classMap({
+              'icon-button': true,
+              'cyea': true,
+              'mdi-outlined': !isActive,
             });
-            // Render the pin button next to the index if datapoint is pinned,
-            // selected, or hovered.
-            const renderPin = () => {
-              const iconClass = classMap({
-                'icon-button': true,
-                'cyea': true,
-                'mdi-outlined': !isReferenceSelection,
-              });
-              if (isReferenceSelection || isPrimarySelection || isFocused) {
-                return html`
-                <mwc-icon class="${iconClass}" @click=${pinClick}>
-                    push_pin
-                </mwc-icon>`;
-              }
-              return null;
-            };
+          }
+
+          if (isPrimarySelection || isFocused || isReferenceSelection ||
+              isStarred) {
+            // TODO(b/255799266): Add fast tooltips to icons.
+            // There's an issue with table resizing and mwc-icon interactions.
             return html`
+              <mwc-icon style="${getActionStyle(isReferenceSelection)}"
+                class="${getActionClass(isReferenceSelection)}"
+                @click=${pinClick}
+                title=${`${isReferenceSelection ? 'Pin' : 'Unpin'} datapoint`}>
+                push_pin
+              </mwc-icon>
+              <mwc-icon style="${getActionStyle(isStarred)}" @click=${starClick}
+                class="${getActionClass(isStarred)}"
+                title=${isStarred ? 'Remove from starred slice' :
+                                    'Add to starred slice'}>
+                ${isStarred ? 'star' : 'star_border'}
+              </mwc-icon>`;
+          }
+          return null;
+        }
+
+        return html`
             <div style="${indexHolderDivStyle}">
+              <div style=${indexButtonsDivStyle}>
+               ${renderActionButtons()}
+              </div>
               <div style="${indexDivStyle}">${index}</div>
-              ${renderPin()}
             </div>`;
-          };
+      }
+
       const indexEntry = {template: templateFn, value: index};
       return [indexEntry, ...dataEntry];
     });
   }
 
-  override firstUpdated() {
-    const getCurrentModels = () => this.appState.currentModels;
-    this.react(getCurrentModels, currentModels => {
-      this.updateColumns();
-    });
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.react(getCurrentDataset, currentDataset => {
-      this.updateColumns();
-    });
-    const getKeys = () => this.keys;
-    this.react(getKeys, keys => {
-      this.updateColumns();
-    });
-
-    this.updateColumns();
+  override connectedCallback() {
+    super.connectedCallback();
+    const updateColsChange = () =>
+      [this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.reactImmediately(updateColsChange, () => {this.updateColumns();});
   }
 
   private updateColumns() {
@@ -294,6 +413,12 @@ export class DataTableModule extends LitModule {
           this.defaultKeys.includes(column) || column.name === 'index');
     }
     this.columnVisibility = columnVisibility;
+  }
+
+  private datasetIndexToRowIndex(inputIndex: number): number {
+    const indexedInput = this.appState.currentInputData[inputIndex];
+    if (indexedInput == null) return -1;
+    return this.sortedData.findIndex(d => d.id === indexedInput.id);
   }
 
   /**
@@ -336,7 +461,8 @@ export class DataTableModule extends LitModule {
     // clang-format off
     return html`
       <div>
-        <lit-checkbox label=${key} ?checked=${checked}
+        <lit-checkbox class='column-select'
+         label=${key} ?checked=${checked}
                       @change=${toggleChecked}>
         </lit-checkbox>
       </div>
@@ -346,63 +472,113 @@ export class DataTableModule extends LitModule {
 
   renderColumnDropdown() {
     const names = [...this.columnVisibility.keys()].filter(c => c !== 'index');
-    const classes =
-        this.columnDropdownVisible ? 'column-dropdown' : 'column-dropdown-hide';
+
     // clang-format off
     return html`
-      <div class='${classes} popup-container'>
-        ${names.map(key => this.renderDropdownItem(key))}
-      </div>
+      <popup-container class='column-dropdown-container'>
+        <button class='hairline-button' slot='toggle-anchor-closed'>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_more</span>
+        </button>
+        <button class='hairline-button' slot='toggle-anchor-open'>
+          &nbsp;Columns&nbsp;
+          <span class='material-icon'>expand_less</span>
+        </button>
+        <div class='column-dropdown'>
+          ${names.map(key => this.renderDropdownItem(key))}
+        </div>
+      </popup-container>
     `;
     // clang-format on
   }
 
   renderControls() {
     const onClickResetView = () => {
-      this.table!.resetView();
+      this.table?.resetView();
+      this.globalSearchText = '';
     };
 
-    const onClickSelectAll = () => {
+    const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
     };
-
-    const onToggleShowColumn = () => {
-      this.columnDropdownVisible = !this.columnDropdownVisible;
-    };
-
-    const onClickSwitch = () => {
+    const toggleSelectedCheckbox = () => {
       this.onlyShowSelected = !this.onlyShowSelected;
+    };
+    const toggleGeneratedCheckbox = () => {
+      this.onlyShowGenerated = !this.onlyShowGenerated;
     };
 
     // clang-format off
     return html`
-      <div class='switch-container' @click=${onClickSwitch}>
-        <div>Hide unselected</div>
-        <mwc-switch .checked=${this.onlyShowSelected}></mwc-switch>
+      ${this.renderColumnDropdown()}
+      <div class="checkbox-row">
+        <lit-checkbox label="Show selected"
+                  ?checked=${this.onlyShowSelected}
+                  @change=${toggleSelectedCheckbox}>
+        </lit-checkbox>
+        <lit-checkbox label="Show generated"
+              ?checked=${this.onlyShowGenerated}
+              @change=${toggleGeneratedCheckbox}>
+        </lit-checkbox>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
           ?disabled="${this.table?.isDefaultView ?? true}">
           Reset view
         </button>
-        <button class='hairline-button' @click=${onClickSelectAll}>
-          Select all
-        </button>
-        <button class='hairline-button' @click=${onToggleShowColumn}>
-          Columns&nbsp;
-          <span class='material-icon'>
-            ${this.columnDropdownVisible ? "expand_less" : "expand_more"}
-          </span>
+        <button class='hairline-button' @click=${onClickSelectFiltered}
+          ?disabled="${!this.table?.isFiltered ?? true}">
+          Select filtered
         </button>
       </div>
-      ${this.renderColumnDropdown()}
     `;
     // clang-format on
+  }
+
+  renderSearch() {
+    const handleGlobalSearchInput = (e: KeyboardEvent) => {
+      // Check for update, for highlighting purposes
+      const searchQuery = (e.target as HTMLInputElement)?.value || '';
+      this.globalSearchEdited = (searchQuery !== this.globalSearchText);
+    };
+
+    const handleGlobalSearchEnter = (e: KeyboardEvent) => {
+      // Trigger an update on "enter" key.
+      if(e.key=== "Enter") {
+        const searchQuery = (e.target as HTMLInputElement)?.value || '';
+        this.globalSearchText = searchQuery;
+        this.globalSearchEdited = false;
+      }
+    };
+
+    const containerClasses = classMap({
+      'search-container': true,
+      'search-container-edited': this.globalSearchEdited,
+    });
+
+    const tooltipContent = `Search using text, regex, numerical ranges,
+      and column-name prefixes. Use AND and OR for joint queries. For example,
+      'query AND ^query2 OR columnName:1-10.'`;
+    return html`
+      <div class=${containerClasses}>
+        <mwc-icon class='icon material-icon-outlined'>search</mwc-icon>
+        <div class='search-input-container'>
+          <input type="search" id="search-input" .value=${this.globalSearchText}
+            @input=${handleGlobalSearchInput}
+            @keydown=${handleGlobalSearchEnter} placeholder="Search"/>
+        </div>
+        <lit-tooltip content=${tooltipContent}></lit-tooltip>
+      </div>`;
   }
 
   renderTable() {
     const columnNames =
         this.defaultColumns.filter(col => this.columnVisibility.get(col.name));
+
+    const shiftSelectStartRowIndex = this.datasetIndexToRowIndex(
+        this.selectionService.shiftSelectionStartIndex);
+    const shiftSelectEndRowIndex = this.datasetIndexToRowIndex(
+        this.selectionService.shiftSelectionEndIndex);
 
     // clang-format off
     return html`
@@ -412,13 +588,20 @@ export class DataTableModule extends LitModule {
         .selectedIndices=${this.selectedRowIndices}
         .primarySelectedIndex=${this.primarySelectedIndex}
         .referenceSelectedIndex=${this.referenceSelectedIndex}
+        .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
+        .headerTextMaxWidth=${150}
+        .globalSearchText=${this.globalSearchText}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
         .onHover=${(i: number|null)=> { this.onHover(i); }}
         searchEnabled
         selectionEnabled
         paginationEnabled
+        exportEnabled
+        showMoreEnabled
+        shiftSelectionStartIndex=${shiftSelectStartRowIndex}
+        shiftSelectionEndIndex=${shiftSelectEndRowIndex}
       ></lit-data-table>
     `;
     // clang-format on
@@ -432,7 +615,9 @@ export class DataTableModule extends LitModule {
           <div class='module-toolbar'>
             ${this.renderControls()}
           </div>
-        ` : null}
+          <div class='module-toolbar'>
+            ${this.renderSearch()}
+          </div>` : null}
         <div class='module-results-area'>
           ${this.renderTable()}
         </div>

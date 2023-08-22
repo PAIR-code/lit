@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-13' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -8,36 +8,44 @@
 
 ### Dataset Size
 
-Currently, LIT can comfortably handle around 10,000 datapoints, though with a
-couple caveats:
+LIT can comfortably handle 10k-100k datapoints, depending on the speed of the
+server (for hosting the model) and your local machine (for viewing the UI). When
+working with large datasets, there are a couple caveats:
 
 *   LIT expects predictions to be available on the whole dataset when the UI
     loads. This can take a while if you have a lot of examples or a larger model
-    like BERT. In this case, you can pass `warm_start=1.0` to the server (or use
-    `--warm_start=1.0`) to warm up the cache on server load.
+    like BERT. In this case, we recommend adding the flag `--warm_start=1` (or
+    pass `warm_start=1` to the `Server` constructor in Python) to pre-compute
+    predictions before starting the server.
 
-*   If you're using the embedding projector - i.e. if your model returns any
-    `Embeddings` fields to visualize - this runs in the browser using WebGL (via
-    [ScatterGL](https://github.com/PAIR-code/scatter-gl)), and so may be slow on
-    older machines if you have more than a few thousand points.
+*   Datasets containing images may take a while to load. If full "native"
+    resolution is not needed (such as if the model operates on a smaller size
+    anyway, such as 256x256), then you can speed things up by resizing images in
+    your `Dataset` loading code.
 
-We're hoping to scale the UI to support 50-100k points soon. In the meantime,
-you can use `Dataset.sample` or `Dataset.slice` to select a smaller number of
-examples to load. You can also pass individual examples to LIT through URL
-params, or load custom data files at runtime using the settings (⚙️) menu.
+*   LIT uses WebGL for the embedding projector (via
+    [ScatterGL](https://github.com/PAIR-code/scatter-gl)) and for the Scalars
+    and Dive modules (via [Megaplot](https://github.com/PAIR-code/megaplot)),
+    which may be slow on older machines if you have more than a few thousand
+    points.
+
+If you have more data, you can use `Dataset.sample` or `Dataset.slice` to select
+a smaller number of examples to load. You can also pass individual examples to
+LIT [through URL params](#sending-examples-from-another-tool), or load custom
+data files at runtime using the settings (⚙️) menu.
 
 ### Large Models
 
 LIT can work with large or slow models, as long as you can wrap them into the
 model API. If you have more than a few preloaded datapoints, however, you'll
-probably want to use `warm_start=1.0` (or pass `--warm_start=1.0` as a flag) to
+probably want to use `warm_start=1` (or pass `--warm_start=1` as a flag) to
 pre-compute predictions when the server loads, so you don't have to wait when
 you first visit the UI.
 
 Also, beware of memory usage: since LIT keeps the models in memory to support
-new queries, only so many can fit on a single node or GPU. If you want to load
-more models than can fit in local memory, you can host your model with your
-favorite serving framework and interface with it using a custom
+new queries, only so many models can fit on a single node or GPU. If you want to
+load more or larger models than can fit in local memory, you can host your model
+with your favorite serving framework and connect to it using a custom
 [`Model`](api.md#models) class.
 
 We also have experimental support for using LIT as a lightweight model server;
@@ -107,13 +115,17 @@ but using `data0`, `data1`, `data2`, e.g. `data0_<fieldname>=<value>`.
 
 ### Downloading or exporting data
 
-There is currently limited support for this via the settings (⚙️) menu. Click
-the "Dataset" tab and enter a path to save to. This is done server-side, so be
-sure the path is accessible to the server process.
+Currently, there are three ways to export data from the LIT UI:
 
-In the future, we hope to make this workflow more robust, including more control
-over data format, as well as browser-based uploads and downloads of the examples
-(such as from csv files or Google Sheets).
+-   In the Data Table, you can copy or download the current view in CSV format -
+    see [the UI guide](./ui_guide.md#data-table) for more details.
+-   In the "Dataset" tab of the settings (⚙️) menu, you can enter a path to save
+    data to. Data is pushed to the server and written by the server backend, so
+    be sure the path is writable.
+
+-   If using LIT in a Colab or other notebook environment, you can access the
+    current selection from another cell using `widget.ui_state.primary`,
+    `widget.ui_state.selection`, and `widget.ui_state.pinned`.
 
 ### Loading data from the UI
 

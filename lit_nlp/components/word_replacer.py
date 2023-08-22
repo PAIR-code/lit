@@ -14,9 +14,9 @@
 # ==============================================================================
 """Word replacement generator."""
 
-import copy
+from collections.abc import Iterator, Sequence
 import re
-from typing import Dict, Iterator, List, Text, Optional, Pattern
+from typing import Optional, Pattern
 
 from absl import logging
 
@@ -26,7 +26,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import utils
 
-JsonDict = types.JsonDict
+_JsonDict = types.JsonDict
 
 IGNORE_CASING_KEY = 'ignore_casing'
 SUBSTITUTIONS_KEY = 'Substitutions'
@@ -39,18 +39,18 @@ class WordReplacer(lit_components.Generator):
   Substitutions must be of the form 'foo -> bar, spam -> eggs'.
   """
 
-  def __init__(self, replacements: Optional[Dict[Text, List[Text]]] = None):
+  def __init__(self, replacements: Optional[dict[str, list[str]]] = None):
     # Populate dictionary with replacement options.
     if replacements is not None:
       assert isinstance(replacements, dict), 'Replacements must be a dict.'
       assert all([isinstance(tgt, list) for tgt in replacements.values()
-                 ]), 'Replacement dict must be Text->List[Text]'
+                 ]), 'Replacement dict must be str->list[str]'
       self.default_replacements = replacements
     else:
       self.default_replacements = {}
 
-  def parse_subs_string(self, subs_string: Text,
-                        ignore_casing: bool = True) -> Dict[Text, List[Text]]:
+  def parse_subs_string(self, subs_string: str,
+                        ignore_casing: bool = True) -> dict[str, list[str]]:
     """Parse a substitutions list of the form 'foo -> bar, spam -> eggs' ."""
     replacements = {}
     # TODO(lit-dev) Use pyparsing if the pattern gets more complicated.
@@ -68,7 +68,7 @@ class WordReplacer(lit_components.Generator):
     return replacements
 
   def _get_replacement_pattern(self,
-                               replacements: Dict[Text, List[Text]],
+                               replacements: dict[str, list[str]],
                                ignore_casing: bool = True) -> Pattern[str]:
     r"""Generate replacement pattern for whole word match.
 
@@ -103,11 +103,16 @@ class WordReplacer(lit_components.Generator):
 
     return re.compile('|'.join(re_strings), casing_flag)
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del model  # Unused by WordReplacer
+    return utils.spec_contains(dataset.spec(), types.TextSegment)
+
   def generate_counterfactuals(
-      self, text: Text,
+      self, text: str,
       replacement_regex: Pattern[str],
-      replacements: Dict[Text, List[Text]],
-      ignore_casing: bool = True) -> Iterator[Text]:
+      replacements: dict[str, list[str]],
+      ignore_casing: bool = True) -> Iterator[str]:
     """Replace each token and yield a new string each time that succeeds.
 
     Note: ignores casing.
@@ -134,11 +139,37 @@ class WordReplacer(lit_components.Generator):
       for tgt in replacements[token]:
         yield text[:start] + tgt + text[end:]
 
-  def generate(self,
-               example: JsonDict,
-               model: lit_model.Model,
-               dataset: lit_dataset.Dataset,
-               config: Optional[JsonDict] = None) -> List[JsonDict]:
+  def generate_all(self,
+                   inputs: list[_JsonDict],
+                   model: lit_model.Model,
+                   dataset: lit_dataset.Dataset,
+                   config: Optional[_JsonDict] = None) -> list[list[_JsonDict]]:
+    """Run generation on a set of inputs.
+
+    Args:
+      inputs: sequence of inputs, following model.input_spec()
+      model: optional model to use to generate new examples.
+      dataset: optional dataset which the current examples belong to.
+      config: optional runtime config.
+
+    Returns:
+      list of list of new generated inputs, following model.input_spec()
+    """
+    config: _JsonDict = config or {}
+    text_fields_to_replace = self._compute_fields_to_replace(dataset, config)
+    return [
+        self.generate(ex, model, dataset, config, text_fields_to_replace)
+        for ex in inputs
+    ]
+
+  def generate(
+      self,
+      example: _JsonDict,
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      config: Optional[_JsonDict] = None,
+      text_fields_to_replace: Optional[Sequence[str]] = None,
+  ) -> list[_JsonDict]:
     """Replace words based on replacement list.
 
     Note: If multiple fields are selected for replacement, this method will
@@ -150,16 +181,17 @@ class WordReplacer(lit_components.Generator):
 
     Args:
       example: the example used for basis of generated examples.
-      model: the model.
+      model: unused.
       dataset: the dataset.
       config: user-provided config properties.
+      text_fields_to_replace: Opionally the fields over which the replacer runs.
 
     Returns:
       examples: a list of generated examples.
     """
     del model  # Unused.
 
-    config = config or {}
+    config: _JsonDict = config or {}
 
     ignore_casing = config.get(IGNORE_CASING_KEY, True)
     subs_string = config.get(SUBSTITUTIONS_KEY, None)
@@ -177,37 +209,44 @@ class WordReplacer(lit_components.Generator):
         replacements, ignore_casing=ignore_casing)
 
     # If config key is missing, generate no examples.
-    fields_to_replace = list(config.get(FIELDS_TO_REPLACE_KEY, []))
+    if text_fields_to_replace is None:
+      text_fields_to_replace = self._compute_fields_to_replace(
+          dataset, config
+      )
+    if not text_fields_to_replace:
+      return []
+
+    new_examples = []
+    for text_field in text_fields_to_replace:
+      for new_val in self.generate_counterfactuals(
+          example[text_field],
+          replacement_regex,
+          replacements,
+          ignore_casing=ignore_casing,
+      ):
+        new_examples.append(
+            utils.make_modified_input(
+                example, {text_field: new_val}, 'WordReplacer'
+            )
+        )
+
+    return new_examples
+
+  def _compute_fields_to_replace(
+      self, dataset: lit_dataset.Dataset, config: _JsonDict
+  ) -> Sequence[str]:
+    fields_to_replace: tuple[str] = tuple(config.get(FIELDS_TO_REPLACE_KEY, []))
     if not fields_to_replace:
       return []
 
-    # TODO(lit-dev): move this to generate_all(), so we read the spec once
-    # instead of on every example.
-    text_keys = utils.find_spec_keys(dataset.spec(), types.TextSegment)
-    if not text_keys:
-      return []
-
-    text_keys = [key for key in text_keys if key in fields_to_replace]
-
-    new_examples = []
-    for text_key in text_keys:
-      text_data = example[text_key]
-      for new_val in self.generate_counterfactuals(
-          text_data, replacement_regex, replacements,
-          ignore_casing=ignore_casing):
-        new_example = copy.deepcopy(example)
-        new_example[text_key] = new_val
-        new_examples.append(new_example)
-
-    return new_examples
+    text_fields = utils.find_spec_keys(dataset.spec(), types.TextSegment)
+    return [key for key in text_fields if key in fields_to_replace]
 
   def config_spec(self) -> types.Spec:
     return {
         # Requires a substitution string. Include a default.
         SUBSTITUTIONS_KEY: types.TextSegment(default='great -> terrible'),
-        FIELDS_TO_REPLACE_KEY:
-            types.MultiFieldMatcher(
-                spec='input',
-                types=['TextSegment'],
-                select_all=True),
+        FIELDS_TO_REPLACE_KEY: types.MultiFieldMatcher(
+            spec='input', types=['TextSegment'], select_all=True
+        ),
     }

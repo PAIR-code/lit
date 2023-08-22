@@ -1,7 +1,8 @@
 :host {
-  --table-header-height: 40px;
-  --table-footer-height: 26px;
-  --table-cell-padding: 4px 8px;
+  --table-header-height: 24px;
+  --table-footer-height: 20px;
+  --table-cell-padding: 2px 8px;
+  --header-text-max-width: none;
 }
 
 .holder {
@@ -18,7 +19,7 @@
   z-index: 0;
 }
 
-.holder table.paginated {
+.holder table.has-footer {
   height: 100%;
   min-height: 100%;
 }
@@ -35,9 +36,10 @@
 }
 
 .holder table > thead > th {
-  font-weight: 400;
+  font-weight: 500;
   color: #04394b;
   border-bottom: solid 1px #dadce0;
+  position: relative;
 }
 
 .column-header {
@@ -61,12 +63,29 @@
   padding: var(--table-cell-padding);
 }
 
+.header-holder lit-tooltip {
+  display: flex;
+  align-items: center;
+}
+
 .header-text {
   flex: 1;
   text-align: center;
   text-overflow: ellipsis;
   overflow: hidden;
   max-height: 100%;
+  direction: rtl;
+  max-width: calc(var(--header-text-max-width) - 16px);   /* 16px for arrows */
+  white-space: nowrap;
+}
+
+:host([searchenabled]) .header-text {
+  /* Adjust max-width down by 40px to account for search (24) + arrows (16). */
+  max-width: calc(var(--header-text-max-width) - 40px);
+}
+
+.column-header.right-align .header-text {
+  text-align: right;
 }
 
 .arrow-container {
@@ -78,9 +97,10 @@
 }
 
 .arrow {
+  display: none;
   position: absolute;
   --mdc-icon-size: 24px;
-  color: rgba(0,0,0,0.1);
+  color: var(--lit-neutral-300);
   left: -4px;
 }
 
@@ -93,11 +113,11 @@
 }
 
 .arrow.active {
-  color: var(--app-dark-color);
+  color: var(--lit-neutral-800);
 }
 
 .arrow.inactive {
-  color: rgba(0,0,0,0);
+  color: var(--lit-neutral-300);
 }
 
 .menu-button-container {
@@ -107,9 +127,20 @@
   padding-left: 4px;
 }
 
+.column-header:hover {
+  padding-right: 0;
+}
+
+.column-header:hover .arrow-container > .arrow,
+.column-header:hover .menu-button-container > .menu-button {
+  display: block;
+}
+
 .menu-button {
+  display: none;
   --mdc-icon-size: 16px;
   margin-top: 2px;
+  outline: 'none';
 }
 
 .menu-button:hover {
@@ -119,7 +150,7 @@
 .togglable-menu-holder {
   background-color: #eff6f8; /* light gray-blue */
   border: 1px solid;
-  border-radius: 2pt;
+  border-radius: 3px;
   border-color: rgb(218, 220, 224);
   position: absolute;
 }
@@ -131,10 +162,18 @@
 /**
  * Body styles
  */
+tbody tr {
+  height: 20px;
+}
+
 tbody tr:hover {
   background: var(--lit-mage-200);
+}
+
+:host([selectionenabled]) tbody tr:hover {
   cursor: pointer;
 }
+
 tbody tr.filler:hover {
   background: none;
   cursor: default;
@@ -162,7 +201,6 @@ tbody tr.focused {
 
 tbody td {
   vertical-align: top;
-  min-width: 80px;
   box-sizing: border-box;
 }
 
@@ -179,12 +217,18 @@ tbody td {
 
 .cell-holder.right-align {
   justify-content: flex-end;
+  padding-right: 24px;
+}
+
+:host([searchenabled]) .cell-holder.right-align {
+  padding-right: 46px;
 }
 
 .text-cell {
   max-height: 150px;
   overflow: auto;
   white-space: pre-wrap;
+  display: inline;
 }
 
 /* TODO(lit-dev): Make the table image width configurable. */
@@ -207,12 +251,34 @@ tbody td {
 .footer {
   color: #04394b;
   font-weight: 400;
-  font-size: 10pt;
-  line-height: 12pt;
-  padding: 3px;
+  padding: 3px 0;
 
   display: flex;
   flex-direction: row;
+}
+
+.footer .pagination-controls-group {
+  position: sticky;
+  left: 4px;
+
+  display: flex;
+  align-items: center;
+}
+
+.icon-button-fix-offset {
+  vertical-align: -3px;
+}
+
+.footer .export-controls-group {
+  position: sticky;
+  right: 4px;
+
+  display: flex;
+  align-items: center;
+}
+
+.footer-spacer {
+  flex: 1;
 }
 
 .current-page-num {
@@ -221,21 +287,10 @@ tbody td {
   min-width: 16px;
 }
 
-/**
- * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
- * adds a large backdrop and extra whitespace.
- */
-.icon-button:hover {
-  color: var(--lit-neutral-900);
-}
-.button-extra-margin {
-  margin-left: 4px;
-}
-
 .checkbox-holder{
   padding: 4px;
 }
 
 .right-aligned-search {
-  right: 0;
+  right: 20px;
 }

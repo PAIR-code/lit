@@ -42,7 +42,7 @@
           <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
           <span class="mdl-layout__title">
             <a href="/lit/">
-              Language Interpretability Tool
+              Learning Interpretability Tool
             </a>
           </span>
           <!-- Add spacer, to align navigation to the right -->
@@ -59,7 +59,7 @@
         </div>
       </header>
       <div class="mdl-layout__drawer">
-        <span class="mdl-layout__title"><a href="/lit/">Language Interpretability Tool</a></span>
+        <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
         <nav class="mdl-navigation">
           <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
           <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
@@ -105,7 +105,7 @@
 viewed in an output cell of the notebook.</p>
 <h2>Quick-start: Classification and regression</h2>
 <p>To explore classification and regression models tasks from the popular <a href="https://gluebenchmark.com/">GLUE benchmark</a>:</p>
-<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.glue_demo --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
+<pre class="language-bash"><code class="language-bash">blaze run -c opt --config<span class="token operator">=</span>cuda examples:glue_demo -- --port<span class="token operator">=</span><span class="token number">5432</span> --quickstart</code></pre>
 <p>Navigate to http://localhost:5432 to access the LIT UI.</p>
 <p>Your default view will be a
 <a href="https://arxiv.org/abs/1908.08962">small BERT-based model</a> fine-tuned on the
@@ -114,7 +114,7 @@ but you can switch to
 <a href="http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark">STS-B</a> or <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> using the toolbar or the gear icon in
 the upper right.</p>
 <h2>Language modeling</h2>
-<pre class="language-bash"><code class="language-bash">python -m lit_nlp.examples.lm_demo <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
+<pre class="language-bash"><code class="language-bash">blaze run -c opt --config<span class="token operator">=</span>cuda examples:lm_demo -- <span class="token punctuation">\</span><br>  --models<span class="token operator">=</span>bert-base-uncased --port<span class="token operator">=</span><span class="token number">5432</span></code></pre>
 <p>In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).
 Navigate to http://localhost:5432 for the UI.</p>
 <h2>More examples</h2>
@@ -175,22 +175,23 @@ API consists of three methods:</p>
 fields</li>
 <li><code>output_spec()</code> should return a flat dict that describes the model's
 predictions and any additional outputs</li>
-<li><code>predict_minibatch()</code> and/or <code>predict()</code> should take a sequence of inputs
-(satisfying <code>input_spec()</code>) and yields a parallel sequence of outputs
-matching <code>output_spec()</code>.</li>
+<li><code>predict()</code> should take a sequence of inputs (satisfying <code>input_spec()</code>)
+and yields a parallel sequence of outputs matching <code>output_spec()</code>.</li>
 </ul>
 <p>Implementations should subclass
 <a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py"><code>Model</code></a>. An example for
 <a href="https://cims.nyu.edu/~sbowman/multinli/">MultiNLI</a> might look something like:</p>
 <pre class="language-py"><code class="language-py"><span class="token keyword">class</span> <span class="token class-name">NLIModel</span><span class="token punctuation">(</span>Model<span class="token punctuation">)</span><span class="token punctuation">:</span><br>  <span class="token triple-quoted-string string">"""Wrapper for a Natural Language Inference model."""</span><br><br>  NLI_LABELS <span class="token operator">=</span> <span class="token punctuation">[</span><span class="token string">'entailment'</span><span class="token punctuation">,</span> <span class="token string">'neutral'</span><span class="token punctuation">,</span> <span class="token string">'contradiction'</span><span class="token punctuation">]</span><br><br>  <span class="token keyword">def</span> <span class="token function">__init__</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> model_path<span class="token punctuation">,</span> <span class="token operator">**</span>kw<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token comment"># Load the model into memory so we're ready for interactive use.</span><br>    self<span class="token punctuation">.</span>_model <span class="token operator">=</span> _load_my_model<span class="token punctuation">(</span>model_path<span class="token punctuation">,</span> <span class="token operator">**</span>kw<span class="token punctuation">)</span><br><br>  <span class="token comment">##</span><br>  <span class="token comment"># LIT API implementations</span><br>  <span class="token keyword">def</span> <span class="token function">predict</span><span class="token punctuation">(</span>self<span class="token punctuation">,</span> inputs<span class="token punctuation">:</span> List<span class="token punctuation">[</span>Input<span class="token punctuation">]</span><span class="token punctuation">)</span> <span class="token operator">-</span><span class="token operator">></span> Iterable<span class="token punctuation">[</span>Preds<span class="token punctuation">]</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Predict on a single minibatch of examples."""</span><br>    examples <span class="token operator">=</span> <span class="token punctuation">[</span>self<span class="token punctuation">.</span>_model<span class="token punctuation">.</span>convert_dict_input<span class="token punctuation">(</span>d<span class="token punctuation">)</span> <span class="token keyword">for</span> d <span class="token keyword">in</span> inputs<span class="token punctuation">]</span>  <span class="token comment"># any custom preprocessing</span><br>    <span class="token keyword">return</span> self<span class="token punctuation">.</span>_model<span class="token punctuation">.</span>predict_examples<span class="token punctuation">(</span>examples<span class="token punctuation">)</span>  <span class="token comment"># returns a dict for each input</span><br><br>  <span class="token keyword">def</span> <span class="token function">input_spec</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Describe the inputs to the model."""</span><br>    <span class="token keyword">return</span> <span class="token punctuation">{</span><br>        <span class="token string">'premise'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>        <span class="token string">'hypothesis'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>TextSegment<span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span><br><br>  <span class="token keyword">def</span> <span class="token function">output_spec</span><span class="token punctuation">(</span>self<span class="token punctuation">)</span><span class="token punctuation">:</span><br>    <span class="token triple-quoted-string string">"""Describe the model outputs."""</span><br>    <span class="token keyword">return</span> <span class="token punctuation">{</span><br>      <span class="token comment"># The 'parent' keyword tells LIT where to look for gold labels when computing metrics.</span><br>      <span class="token string">'probas'</span><span class="token punctuation">:</span> lit_types<span class="token punctuation">.</span>MulticlassPreds<span class="token punctuation">(</span>vocab<span class="token operator">=</span>NLI_LABELS<span class="token punctuation">,</span> parent<span class="token operator">=</span><span class="token string">'label'</span><span class="token punctuation">)</span><span class="token punctuation">,</span><br>    <span class="token punctuation">}</span></code></pre>
 <p>Unlike the dataset example, this model implementation is incomplete - you'll
-need to customize <code>predict()</code> (or <code>predict_minibatch()</code>) accordingly with any
-pre- or post-processing needed, such as tokenization.</p>
-<p>Note: The <code>Model</code> base class implements simple batching, aided by the
-<code>max_minibatch_size()</code> function. This is purely for convenience, since most deep
-learning models will want this behavior. But if you don't need it, you can
-simply override the <code>predict()</code> function directly and handle large inputs
-accordingly.</p>
+need to customize <code>predict()</code> accordingly with any pre- or post-processing needed, such
+as tokenization.</p>
+<p>Many deep learning models support a batched prediction behavior. Thus, we provide the
+<code>BatchedModel</code> class that implements simple batching. Users of this class must implement
+the <code>predict_minibatch()</code> function, which should convert a <code>Sequence</code> of
+<code>JsonDict</code> objects to the appropriate batch representation (typically, a
+<code>Mapping</code> of strings to aligned <code>Sequences</code> or <code>Tensors</code>) before
+calling the model. Optionally, you may want to override the <code>max_minibatch_size()</code>
+function, which determines the batch size.</p>
 <p>Note: there are a few additional methods in the model API - see
 <a href="https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py"><code>Model</code></a> for details.</p>
 <h1>Run LIT inside python notebooks</h1>

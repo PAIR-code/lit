@@ -32,10 +32,11 @@ The pip installation will install all necessary prerequisite packages for use of
 ```bash
 # Set up Python environment
 cd ~/lit
-conda env create -f environment.yml
-conda activate lit-nlp
-conda install cudnn cupti  # optional, for GPU support
-conda install -c pytorch pytorch  # optional, for PyTorch
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install cudnn cupti  # optional, for GPU support
+python -m pip pytorch  # optional, for PyTorch
 ```
 
 If you want to update any of the frontend or core code, you can install a local copy from source:
@@ -49,10 +50,11 @@ git clone https://github.com/PAIR-code/lit.git ~/lit
 
 # Set up Python environment
 cd ~/lit
-conda env create -f environment.yml
-conda activate lit-nlp
-conda install cudnn cupti  # optional, for GPU support
-conda install -c pytorch pytorch  # optional, for PyTorch
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install cudnn cupti  # optional, for GPU support
+python -m pip pytorch  # optional, for PyTorch
 
 # Build the frontend
 pushd lit_nlp; yarn && yarn build; popd

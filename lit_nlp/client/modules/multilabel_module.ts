@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import '../elements/score_bar';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
 import {observable} from 'mobx';
 

@@ -15,33 +15,70 @@
 """Tests for lit_nlp.lib.image_utils."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.lib import image_utils
 import numpy as np
 from PIL import Image as PILImage
 
 
-class CachingTest(absltest.TestCase):
+def _create_image_array(shape: tuple[int, int, int]) -> np.ndarray[np.uint8]:
+  height, width, channels = shape
+  array = np.zeros(shape=shape, dtype=np.uint8)
+  for i in range(1000):
+    array[i % height, i % width, i % channels] = i % 256
+  return array
 
-  def test_format_conversions(self):
-    # Create a PIL image.
-    image_array = np.zeros(shape=(100, 70, 3), dtype=np.uint8)
-    for i in range(1000):
-      image_array[i % 100, i % 70, i % 3] = i % 256
-    pil_image = PILImage.fromarray(image_array)
 
-    # Test conversion of the PIL image to string.
-    image_str = image_utils.convert_pil_to_image_str(pil_image)
+_TEST_IMAGE_SHAPE = (100, 70, 3)
+_TEST_IMAGE_ARRAY = _create_image_array(_TEST_IMAGE_SHAPE)
+_TEST_IMAGE_RGB: PILImage.Image = PILImage.fromarray(_TEST_IMAGE_ARRAY)
+_TEST_IMAGE_ARRAY_GREY: np.ndarray = np.asarray(_TEST_IMAGE_RGB.convert('L'))
+
+
+class ImageUtilsTest(parameterized.TestCase):
+
+  def test_pil_to_str(self):
+    image_str = image_utils.convert_pil_to_image_str(_TEST_IMAGE_RGB)
     self.assertIsNotNone(image_str)
 
-    # Test conversion of the string back to PIL image.
-    pil_image_2 = image_utils.convert_image_str_to_pil(image_str)
-    image_array_2 = np.asarray(pil_image_2)
-    np.testing.assert_array_equal(image_array, image_array_2)
+  def test_str_to_pil(self):
+    image_str = image_utils.convert_pil_to_image_str(_TEST_IMAGE_RGB)
+    pil_image = image_utils.convert_image_str_to_pil(image_str)
+    image_array = np.asarray(pil_image)
+    np.testing.assert_array_equal(_TEST_IMAGE_ARRAY, image_array)
 
-    # Test conversion of the string back to array.
-    image_array_3 = image_utils.convert_image_str_to_array(
-        image_str, shape=(100, 70, 3))
-    np.testing.assert_array_almost_equal(image_array / 255, image_array_3)
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='greyscale_normalized',
+          mode='L',
+          normalize=True,
+          expected=_TEST_IMAGE_ARRAY_GREY / 255,
+      ),
+      dict(
+          testcase_name='greyscale_not_normalized',
+          mode='L',
+          normalize=False,
+          expected=_TEST_IMAGE_ARRAY_GREY,
+      ),
+      dict(
+          testcase_name='rgb_normalized',
+          mode='RGB',
+          normalize=True,
+          expected=_TEST_IMAGE_ARRAY / 255,
+      ),
+      dict(
+          testcase_name='rgb_not_normalized',
+          mode='RGB',
+          normalize=False,
+          expected=_TEST_IMAGE_ARRAY,
+      ),
+  )
+  def test_str_to_array(self, mode: str, normalize: bool, expected: np.ndarray):
+    image_str = image_utils.convert_pil_to_image_str(_TEST_IMAGE_RGB)
+    image_array = image_utils.convert_image_str_to_array(
+        image_str, shape=_TEST_IMAGE_SHAPE, mode=mode, normalize=normalize
+    )
+    np.testing.assert_array_almost_equal(expected, image_array)
 
   def test_clip_unsigned_saliency(self):
     a = np.linspace(0, 100, num=101, endpoint=True)

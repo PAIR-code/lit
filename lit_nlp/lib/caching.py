@@ -14,15 +14,14 @@
 # ==============================================================================
 """Miscellaneous helper functions."""
 
-import functools
-import hashlib
+from collections.abc import Callable, Iterable
 import os
 import pickle
 import threading
-from typing import Any, Callable, Iterable, Optional, Union
+from typing import Any, Optional, Union
 
 from absl import logging
-
+from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.lib import serialize
@@ -44,12 +43,7 @@ PredLockKey = frozenset[CacheKey]
 PRED_LOCK_KEY_WHEN_NO_CONCURRENT_ACCESS: CacheKey = (
     "NO_CONCURRENT_PREDICTION", "")
 
-
-def input_hash(example: JsonDict) -> str:
-  """Create stable hash of an input example."""
-  json_str = serialize.to_json(
-      example, simple=True, sort_keys=True).encode("utf-8")
-  return hashlib.md5(json_str).hexdigest()
+input_hash = lit_dataset.input_hash
 
 
 class PickleCacheLoader(object):
@@ -69,13 +63,16 @@ class PickleCacheLoader(object):
         data = pickle.load(fd)
     except FileNotFoundError:
       logging.info("No cache to load at %s.", self._cache_path)
+      data = {}
     except EOFError:
       logging.error(
           "Failed loading cache, possibly due to malformed cache data."
           "Please remove %s and try again.", self._cache_path)
+      data = {}
     except IOError:
       logging.error("Failed loading cache at %s.", self._cache_path)
-    return data
+      data = {}
+    return data  # pytype: disable=name-error  # py310-upgrade
 
 
 class PredsCache(object):
@@ -97,23 +94,18 @@ class PredsCache(object):
 
     # A map of keys needing predictions to a lock for that model predict call.
     # Used for not duplicating concurrent prediction calls on the same inputs.
-    self._pred_locks: dict[frozenset[CacheKey], threading.RLock] = dict()
+    self._pred_locks: dict[PredLockKey, threading.RLock] = dict()
 
   @property
   def lock(self):
     return self._lock
 
   def put(self, data, key: CacheKey):
-    if key is None:
-      logging.info("Ignoring put(data, None) due to sentinel values in key.")
-      return
-    self._d[key] = data
+    if key is not None:
+      self._d[key] = data
 
   def get(self, key: CacheKey) -> Optional[Any]:
-    if key is None:
-      logging.info("Ignoring get(None) due to sentinel values in key.")
-      return None
-    return self._d.get(key, None)
+    return self._d.get(key) if key is not None else None
 
   def info(self) -> str:
     """Print some info, for logging."""
@@ -171,46 +163,69 @@ class PredsCache(object):
     """Save cache data to disk."""
     # No cache loader is created if no cache directory was provided, in which
     # case this is a no-op.
-    if not self._cache_loader:
+    cache_loader = self._cache_loader
+    if not cache_loader:
       return
     if self._num_persisted == len(self._d):
       logging.info("No need to re-save cache to %s", self._cache_dir)
       return
-    logging.info("Saving cache (%d entries) to %s", len(self._d),
-                 self._cache_dir)
-    self._cache_loader.save(self._d)
+    logging.info(
+        "Saving cache (%d entries) to %s", len(self._d), self._cache_dir
+    )
+    cache_loader.save(self._d)
     self._num_persisted = len(self._d)
 
   def load_from_disk(self):
     """Load cache data from disk."""
     # No cache loader is created if no cache directory was provided, in which
     # case this is a no-op.
-    if not self._cache_loader:
+    cache_loader = self._cache_loader
+    if not cache_loader:
       return
-    self._d = self._cache_loader.load()
+    self._d = cache_loader.load()
     self._num_persisted = len(self._d)
-    logging.info("Loaded cache (%d entries) from %s", self._num_persisted,
-                 self._cache_dir)
+    logging.info(
+        "Loaded cache (%d entries) from %s",
+        self._num_persisted,
+        self._cache_dir,
+    )
 
 
 class CachingModelWrapper(lit_model.ModelWrapper):
   """Wrapper to add per-example caching to a LIT model."""
 
-  def __init__(self,
-               model: lit_model.Model,
-               name: str,
-               cache_dir: Optional[str] = None):
+  def __init__(
+      self,
+      model: lit_model.Model,
+      name: str,
+      cache_dir: Optional[str] = None,
+      strict_id_validation: bool = False,
+      id_hash_fn: Optional[lit_dataset.IdFnType] = None,
+  ):
     """Wrap a model to add caching.
 
     Args:
       model: a LIT model
       name: name, used for logging and data files
       cache_dir: if given, will load/save data to disk
+      strict_id_validation: if true, will re-compute hashes using id_hash_fn and
+        verify that they match the provided IDs. See b/293984290.
+      id_hash_fn: function of example --> string id, used by
+        strict_id_validation mode.
     """
+    if strict_id_validation and id_hash_fn is None:
+      raise ValueError(
+          "Must provide id_hash_fn to use strict_id_validation mode."
+      )
+
     super().__init__(model)
+    self._name = name
     self._log_prefix = f"CachingModelWrapper '{name:s}'"
+    self._strict_id_validation = strict_id_validation
+    self._id_hash_fn = id_hash_fn
     self._cache = PredsCache(
-        name, model.supports_concurrent_predictions, cache_dir)
+        name, model.supports_concurrent_predictions, cache_dir
+    )
     self.load_cache()
 
   def load_cache(self):
@@ -219,99 +234,100 @@ class CachingModelWrapper(lit_model.ModelWrapper):
   def save_cache(self):
     self._cache.save_to_disk()
 
-  def key_fn(self, d, group_name) -> CacheKey:
-    if d["id"] == "":  # pylint: disable=g-explicit-bool-comparison
-      logging.warning("Found empty example ID - using empty cache ID.")
-      return None
-    return (group_name, d["id"])
+  def key_fn(self, d) -> CacheKey:
+    return (self._name, d_id) if (d_id := d.get("_id")) else None
+
+  def _validate_ids(self, inputs: Iterable[JsonDict]):
+    for ex in inputs:
+      if not (given_id := ex.get("_id")):
+        continue
+      if (computed_id := self._id_hash_fn(types.Input(ex))) != given_id:
+        raise ValueError(
+            f"Given id '{given_id}' does not match computed id '{computed_id}'"
+            f" for example {str(ex)}."
+        )
 
   ##
   # For internal use
-  def fit_transform_with_metadata(self, indexed_inputs: list[JsonDict],
-                                  dataset_name: str):
-    """For use with UMAP and other preprocessing transforms."""
-    outputs = list(self.wrapped.fit_transform_with_metadata(indexed_inputs))
-    key_fn = functools.partial(self.key_fn, group_name=dataset_name)
+  def fit_transform(self, inputs: Iterable[JsonDict]):
+    """Cache projections from ProjectorModel dimensionality reducers."""
+    wrapped = self.wrapped
+    if not isinstance(wrapped, lit_model.ProjectorModel):
+      raise TypeError(
+          "Attempted to call fit_transform() on a non-ProjectorModel."
+      )
+
+    inputs_as_list = list(inputs)
+    cache_keys = [self.key_fn(d) for d in inputs_as_list]
+    if (none_keys := [k for k in cache_keys if k is None]):
+      logging.warning(
+          "Attmepting to cache %d (of %d) where the cache key is None "
+          "- this can be from a missing or empty example id. These"
+          " will be recomputed on subsequent attempts.",
+          len(none_keys),
+          len(cache_keys),
+      )
+    outputs = list(wrapped.fit_transform(inputs_as_list))
     with self._cache.lock:
-      for i, output in enumerate(outputs):
-        self._cache.put(output, key_fn(indexed_inputs[i]))
+      for cache_key, output in zip(cache_keys, outputs, strict=True):
+        self._cache.put(output, cache_key)
     return outputs
 
-  def predict_minibatch(self, *args, **kw):
-    logging.warning(
-        "CachingModelWrapper.predict_minibatch() bypasses the cache - "
-        "if this is not intended, use predict_with_metadata() instead "
-        "to access cache via example IDs.")
-    return self.wrapped.predict_minibatch(*args, **kw)
+  def predict(self,
+              inputs: Iterable[JsonDict],
+              progress_indicator: Optional[ProgressIndicator] = lambda x: x,
+              **kw) -> list[JsonDict]:
+    inputs_as_list = list(inputs)
 
-  def predict(self, *args, **kw):
-    logging.warning(
-        "CachingModelWrapper.predict() bypasses the cache - "
-        "if this is not intended, use predict_with_metadata() instead "
-        "to access cache via example IDs.")
-    return self.wrapped.predict(*args, **kw)
-
-  def predict_with_metadata(self, *args, **kw):
-    """As predict(), but inputs are IndexedInput."""
-    results = self._predict_with_metadata(*args, **kw)
-    return results
-
-  def _get_results_from_cache(self, input_keys: list[str]):
-    with self._cache.lock:
-      return [self._cache.get(input_key) for input_key in input_keys]
-
-  def _predict_with_metadata(
-      self,
-      indexed_inputs: list[JsonDict],
-      dataset_name: Optional[str] = None,
-      progress_indicator: Optional[ProgressIndicator] = lambda x: x,
-      **kw) -> list[JsonDict]:
-    """As predict(), but inputs are IndexedInput."""
-    # TODO(lit-dev): consider moving this to example level
-    # (null keys skip cache), and removing this codepath.
-    if dataset_name is None:
-      logging.info("\n\nCache disabled for current call.\n\n")
-      results = list(self.wrapped.predict_with_metadata(indexed_inputs))
-      return results
-
-    key_fn = functools.partial(self.key_fn, group_name=dataset_name)
+    if self._strict_id_validation:
+      self._validate_ids(inputs_as_list)
 
     # Try to get results from the cache.
-    input_keys = [key_fn(d) for d in indexed_inputs]
+    input_keys = [self.key_fn(d) for d in inputs_as_list]
+    if (none_keys := [k for k in input_keys if k is None]):
+      logging.warning(
+          "Attmepting to retrieve %d (of %d) predictions from the cache where"
+          " the cache key is None - this can be from a missing or empty example"
+          " id. These will call model.predict() on this and subsequent calls.",
+          len(none_keys),
+          len(input_keys),
+      )
     if self._cache.pred_lock_key(input_keys):
       with self._cache.get_pred_lock(input_keys):
-        results = self._get_results_from_cache(input_keys)
+        cached_results = self._get_results_from_cache(input_keys)
     else:
-      results = self._get_results_from_cache(input_keys)
+      cached_results = self._get_results_from_cache(input_keys)
 
     # Make a single list of everything that wasn't found in the cache,
     # to actually run the model on these inputs.
-    miss_idxs = [i for i, v in enumerate(results) if v is None]
-    misses = [indexed_inputs[i] for i in miss_idxs]
+    miss_idxs = [i for i, v in enumerate(cached_results) if v is None]
+    misses = [inputs_as_list[i] for i in miss_idxs]
     if misses:
-      logging.info("%s: misses (dataset=%s): %s", self._log_prefix,
-                   dataset_name, str([miss["id"] for miss in misses]))
       logging.info("%s: %d misses out of %d inputs", self._log_prefix,
-                   len(miss_idxs), len(results))
+                   len(miss_idxs), len(cached_results))
     else:
       # If all results were already cached, return them.
-      return results
+      return cached_results
 
     with self._cache.get_pred_lock(input_keys):
-      model_preds = list(
-          self.wrapped.predict_with_metadata(progress_indicator(misses)))
+      model_preds = list(self.wrapped.predict(progress_indicator(misses)))
       logging.info("Received %d predictions from model", len(model_preds))
-      assert len(model_preds) == len(
-          misses
-      ), f"Received {len(model_preds)} predictions, which does not match {len(misses)}, the number of inputs."
+
+      if len(model_preds) != len(misses):
+        raise ValueError(f"Received {len(model_preds)} predictions, which does "
+                         f"not match {len(misses)}, the number of inputs.")
 
       # Merge results back into the output list.
       with self._cache.lock:
         for i, orig_idx in enumerate(miss_idxs):
-          self._cache.put(model_preds[i], key_fn(indexed_inputs[orig_idx]))
-          results[orig_idx] = model_preds[i]
+          self._cache.put(model_preds[i], self.key_fn(inputs_as_list[orig_idx]))
+          cached_results[orig_idx] = model_preds[i]
 
       # Remove the prediction lock from the cache as the request is complete
       self._cache.delete_pred_lock(input_keys)
 
-    return results
+    return cached_results
+
+  def _get_results_from_cache(self, input_keys: list[CacheKey]):
+    with self._cache.lock:
+      return [self._cache.get(input_key) for input_key in input_keys]

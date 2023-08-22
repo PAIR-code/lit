@@ -17,6 +17,11 @@
   overflow: hidden;
 }
 
+/* *
+ * TODO(https://github.com/PAIR-code/scatter-gl/issues/113): Remove when fixed.
+ */
+.module-results-area {overflow: hidden}
+
 .module-footer > * { min-width: 0; }
 
 .selected-nearest-button:disabled {

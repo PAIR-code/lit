@@ -16,14 +16,14 @@ from typing import Optional, Sequence
 
 from absl import app
 from absl import flags
+from absl import logging
 
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.models import glue_models
-
-import transformers
+from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -39,7 +39,9 @@ _MODEL = flags.DEFINE_string(
 # Use our custom frontend build from this directory.
 FLAGS.set_default(
     "client_root",
-    os.path.join(pathlib.Path(__file__).parent.absolute(), "build"))
+    os.path.join(pathlib.Path(__file__).parent.absolute(), "build")
+)
+
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
@@ -61,7 +63,10 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
-  return main(unused)
+  if unused:
+    logging.info("potato_demo:get_wsgi_app() called with unused args: %s",
+                 unused)
+  return main([])
 
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
@@ -71,7 +76,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load our trained model.
   model = _MODEL.value
   if model.endswith(".tar.gz"):
-    model = transformers.file_utils.cached_path(
+    model = file_cache.cached_path(
         model, extract_compressed_file=True)
 
   models = {"sst": glue_models.SST2Model(model)}

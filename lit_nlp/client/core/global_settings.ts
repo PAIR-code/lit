@@ -30,18 +30,22 @@ import '../elements/checkbox';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {html, TemplateResult} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY} from '../lib/types';
-import {linkifyUrls} from '../lib/utils';
+import {StringLitType} from '../lib/lit_types';
+import {CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
+import {getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
+import {LitInputField} from '../elements/lit_input_field';
 import {resolveModuleConfig} from '../services/modules_service';
 import {ApiService, AppState, SettingsService} from '../services/services';
 
 import {app} from './app';
 import {styles} from './global_settings.css';
+
+type EventHandler = (e: Event) => void;
 
 /**
  * Names of available settings tabs.
@@ -55,6 +59,17 @@ const LAYOUT_DESC = 'Use a preset layout to optimize your workflow';
 const SELECTED_TXT = 'Selected';
 const COMPATIBLE_TXT = 'Compatible';
 const INCOMPATIBLE_TXT = 'Incompatible';
+
+const NEW_NAME_FIELD = 'new_name';
+const LOAD_DISABLED_TXT = 'Provide a value for "new_name" to load';
+
+function initializeCallConfig(spec: Spec): CallConfig {
+  const config: CallConfig = {};
+  for (const [key, litType] of Object.entries(spec)) {
+    if (litType.default != null) {config[key] = litType.default;}
+  }
+  return config;
+}
 
 /**
  * The global settings menu
@@ -70,48 +85,62 @@ export class GlobalSettingsComponent extends MobxLitElement {
   private readonly appState = app.getService(AppState);
   private readonly settingsService = app.getService(SettingsService);
 
-  @observable private selectedDataset: string = '';
-  @observable private selectedLayout: string = '';
+  @observable private selectedDataset = '';
+  @observable private selectedLayout = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
   @observable selectedTab: TabName = 'Models';
+  @observable private status?: string;
 
-  @observable private pathForDatapoints: string = '';
-  @observable private datapointsStatus: string = '';
-  @observable private pathForModel: string = '';
-  @observable private modelStatus: string = '';
+  // TODO(b/207137261): Determine if datapointsStatus, modelStatus,
+  // pathForDatapoints, and pathForModel are still necessary/how to use convey
+  // this information to the user following the load-from-init_spec refactor.
+  // @observable private pathForDatapoints = '';
+  // @observable private datapointsStatus = '';
+  // @observable private pathForModel = '';
+  // @observable private modelStatus = '';
 
   // tslint:disable:no-inferrable-new-expression
   @observable private readonly openModelKeys: Set<string> = new Set();
   @observable private readonly openDatasetKeys: Set<string> = new Set();
   @observable private readonly openLayoutKeys: Set<string> = new Set();
 
-  @computed
-  get selectedModels() {
+  @observable private datasetToLoad?: string;
+  @observable private modelToLoad?: string;
+  @observable private loadingCallConfig: CallConfig = {};
+  @observable private missingCallConfigFields: string[] = [];
+
+  @computed get loadableDatasets(): string[] {
+    const {datasets} = this.appState.metadata.initSpecs;
+    const loadable = Object.entries(datasets)
+        .filter(([unused, spec]) => spec != null)
+        .map(([name, unused]) => name);
+    return loadable;
+  }
+
+  @computed get loadableModels(): string[] {
+    const {models} = this.appState.metadata.initSpecs;
+    const loadable = Object.entries(models)
+        .filter(([unused, spec]) => spec != null)
+        .map(([name, unused]) => name);
+    return loadable;
+  }
+
+  @computed get selectedModels() {
     const modelEntries = [...this.modelCheckboxValues.entries()];
-    return modelEntries.filter(([modelName, isSelected]) => isSelected)
-        .map(([modelName, isSelected]) => modelName);
+    return modelEntries.filter(([, isSelected]) => isSelected)
+        .map(([modelName,]) => modelName);
   }
 
-  @computed
-  get loadDatapointButtonsDisabled() {
-    return this.pathForDatapoints === '';
-  }
-
-  @computed
-  get saveDatapointButtonDisabled() {
-    return this.pathForDatapoints === '' || this.newDatapoints.length === 0 ||
-        this.appState.currentDataset !== this.selectedDataset;
-  }
-
-  @computed
-  get newDatapoints() {
-   return this.appState.currentInputData.filter(input => input.meta['added']);
-  }
-
-  @computed
-  get loadModelButtonDisabled() {
-    return this.selectedModels.length !== 1 || this.pathForModel === '';
-  }
+  // TODO(b/207137261): Determine where and how dataset saving happens after the
+  // load from init_spec() refactor.
+  // @computed get saveDatapointButtonDisabled() {
+  //   return this.pathForDatapoints === '' || this.newDatapoints.length === 0 ||
+  //       this.appState.currentDataset !== this.selectedDataset;
+  // }
+  //
+  // @computed get newDatapoints() {
+  //  return this.appState.currentInputData.filter(input => input.meta.added);
+  // }
 
   /**
    * Open the settings menu.
@@ -121,6 +150,23 @@ export class GlobalSettingsComponent extends MobxLitElement {
     this.initializeLocalState();
     this.requestUpdate();
     this.isOpen = true;
+    this.resetLoadingCallConfig();
+  }
+
+  private resetLoadingCallConfig() {
+    let spec;
+
+    if (this.selectedTab === 'Dataset') {
+      const name = this.datasetToLoad || this.loadableDatasets[0];
+      spec = this.appState.metadata.initSpecs.datasets[name];
+    } else if (this.selectedTab === 'Models') {
+      const name = this.modelToLoad || this.loadableModels[0];
+      spec = this.appState.metadata.initSpecs.models[name];
+    }
+
+    if (spec != null) {
+      this.loadingCallConfig = initializeCallConfig(spec);
+    }
   }
 
   /**
@@ -133,9 +179,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @action
   initializeLocalState() {
     this.modelCheckboxValues.clear();
-    Object.keys(this.appState.metadata.models).forEach(modelName => {
-      this.modelCheckboxValues.set(modelName, false);
-    });
+    Object.keys(this.appState.metadata.models)
+        .filter(modelName => !modelName.startsWith('_'))  // hidden models
+        .forEach(modelName => {
+          this.modelCheckboxValues.set(modelName, false);
+        });
     this.appState.currentModels.forEach(modelName => {
       this.modelCheckboxValues.set(modelName, true);
     });
@@ -158,14 +206,25 @@ export class GlobalSettingsComponent extends MobxLitElement {
   }
 
   override render() {
-    const hiddenClassMap = classMap({hide: !this.isOpen});
+    const hiddenClassMap = classMap({'hide': !this.isOpen});
     // clang-format off
     return html`
       <div id="global-settings-holder">
         <div id="overlay" class=${hiddenClassMap}
          @click=${() => { this.close(); }}></div>
         <div id="global-settings" class=${hiddenClassMap}>
-        <div id="title-bar">Configure LIT</div>
+        <div id="title-bar">
+          Configure LIT
+
+          <lit-tooltip content="Go to reference">
+            <a slot="tooltip-anchor" target='_blank'
+              href='https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#global-settings'>
+            <mwc-icon class="icon-button large-icon" id="configure-lit-icon">
+              open_in_new
+            </mwc-icon>
+            </a>
+          </lit-tooltip>
+        </div>
         <div id="holder">
           <div id="sidebar">
             ${this.renderTabs()}
@@ -186,8 +245,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
   private renderTabs() {
     const tabs: TabName[] = ['Models', 'Dataset', 'Layout'];
     const renderTab = (tab: TabName) => {
-      const click = () => this.selectedTab = tab;
-      const classes = classMap({tab: true, selected: this.selectedTab === tab});
+      const click = () => {
+        this.selectedTab = tab;
+        this.resetLoadingCallConfig();
+      };
+      const classes = classMap({
+        'tab': true,
+        'selected': this.selectedTab === tab
+      });
       return html`<div class=${classes} @click=${click}>${tab}</div>`;
     };
     return html`
@@ -225,15 +290,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         this.selectedDataset, this.selectedModels);
 
     const modelClasses = classMap({
-      info: true,
-      disabled: !this.selectedModels.length,
-      error: noModelsSelected
+      'info': true,
+      'disabled': !this.selectedModels.length,
+      'error': noModelsSelected
     });
     const modelsStr = this.selectedModels.length ?
         this.selectedModels.join(', ') :
         'No models selected';
 
-    const datasetClasses = classMap({info: true, error: !datasetValid});
+    const datasetClasses = classMap({'info': true, 'error': !datasetValid});
 
     return html`
     <div id="bottombar">
@@ -241,11 +306,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         <div> selected model(s):
           <span class=${modelClasses}> ${modelsStr} </span>
         </div>
-        <div> selected dataset(s):
+        <div> selected dataset:
           <span class=${datasetClasses}>
             ${datasetDisplayName(this.selectedDataset)}
           </span>
         </div>
+      </div>
+      <div class="status-area">
+        ${this.status}
+        ${this.status != null ? 'See error in lower left corner.' : ''}
       </div>
       <div> ${this.renderButtons(noModelsSelected, datasetValid)} </div>
     </div>
@@ -261,8 +330,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     const submit = () => {
       this.submitSettings();
-      this.selectedTab = 'Models';
-      this.close();
+      cancel();
     };
 
     const submitDisabled = noModelsSelected || !datasetValid;
@@ -323,7 +391,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
           }
         }
       };
-      const renderSelector = () => html`
+      const selectorHtml = html`
           <mwc-formfield label=${name}>
             <lit-checkbox
               class='checkbox'
@@ -345,11 +413,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const compatible = this.settingsService.isDatasetValidForModels(
             datasetName, [name]);
           const error = !compatible && (this.selectedDataset === datasetName);
-          const classes = classMap({compatible, error, 'info-line': true});
+          const classes = classMap({
+            'compatible': compatible,
+            'error': error,
+            'info-line': true
+          });
           const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
           return html`
             <div class=${classes}>
-              <mwc-icon>${icon}</mwc-icon>
+              <span class='material-icon'>${icon}</span>
               ${datasetDisplayName(datasetName)}
             </div>`;
         })}
@@ -366,50 +438,69 @@ export class GlobalSettingsComponent extends MobxLitElement {
       // clang-format on
       const description = this.appState.metadata.models[name].description;
       return this.renderLine(
-          name, renderSelector, selected, disabled, expanderOpen,
-          onExpanderClick, false, expandedInfoHtml, description);
+          name, selectorHtml, selected, disabled, expanderOpen, onExpanderClick,
+          false, expandedInfoHtml, description);
     };
 
     const configListHTML = availableModels.map(name => renderModelSelect(name));
     const buttonsHTML = html`${this.nextPrevButton('Dataset', true)}`;
 
-    const updatePath = (e: Event) => {
-      const input = e.target! as HTMLInputElement;
-      this.pathForModel = input.value;
-    };
-    const loadNewModel = async () => {
-      const newInfo = await this.apiService.createModel(
-          this.selectedModels[0], this.pathForModel);
-      if (newInfo == null) {
-        this.modelStatus = 'Unable to load model from path.';
-        return;
-      }
-      this.appState.metadata = newInfo[0];
-      this.appState.currentModels.push(newInfo[1]);
-      this.initializeLocalState();
-      this.datapointsStatus = 'New model added to models list';
-    };
-    const modelLoadingControlsHTML =
-      this.appState.metadata.demoMode ? html`` : html`
-        <div class='datapoints-line'>
-          <div class='datapoints-label-holder'>
-            <label for="path">File path:</label>
-            <input type="text" name="path" class="datapoints-file-input"
-                   value=${this.pathForModel}
-                   @input=${updatePath}>
-          </div>
-          <button class="filled-button"
-                  ?disabled=${this.loadModelButtonDisabled}
-                  @click=${loadNewModel}>
-            Create new model from path
-          </button>
-          <div class='datapoints-label-holder'>
-            <div>${this.modelStatus}</div>
-          </div>
-        </div>`;
+    const loaderModel = this.modelToLoad || this.loadableModels[0];
+    const loaderSpec = this.appState.metadata.initSpecs.models[loaderModel];
 
-    return this.renderConfigPage('Models', MODEL_DESC, configListHTML,
-                                 buttonsHTML, modelLoadingControlsHTML);
+    const selectModel = (e: Event) => {
+      this.modelToLoad = (e.target as HTMLSelectElement).value;
+      const initSpec =
+          this.appState.metadata.initSpecs.models[this.modelToLoad];
+      if (initSpec != null) {
+        this.loadingCallConfig = initializeCallConfig(initSpec);
+      }
+    };
+
+    const loadModel = async () => {
+      this.missingCallConfigFields = validateCallConfig(
+        this.loadingCallConfig, loaderSpec);
+      this.status = this.missingCallConfigFields.length ?
+          "Missing required model initialization parameters." : undefined;
+
+      if (this.missingCallConfigFields.length) return;
+
+      this.status = undefined;
+      let newInfo;
+
+      try {
+        newInfo = await this.apiService.createModel(
+            loaderModel, this.loadingCallConfig);
+      } catch {
+        this.status = 'Unable to load model.';
+      }
+
+      if (newInfo == null) {return;}
+
+      const [metadata, modelName] = newInfo;
+      if (loaderSpec != null) {
+        this.loadingCallConfig = initializeCallConfig(loaderSpec);
+      }
+      this.appState.metadata = metadata;
+      this.appState.currentModels.push(modelName);
+      this.initializeLocalState();
+      // this.status = 'New model initialized and added auccessfully.';
+    };
+
+    const hideLoadingControls = this.appState.metadata.demoMode ||
+                                loaderModel == null || loaderSpec == null;
+    const loadingControls = hideLoadingControls ?
+        html`` : this.renderLoader(
+          'Model',
+          this.loadableModels,
+          loaderModel,
+          loaderSpec,
+          selectModel,
+          loadModel
+        );
+
+    return this.renderConfigPage(
+        'Models', MODEL_DESC, configListHTML, buttonsHTML, loadingControls);
   }
 
   /** Render the datasets page content. */
@@ -418,8 +509,10 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const renderDatasetSelect = (name: string) => {
       const displayName = datasetDisplayName(name);
       const handleDatasetChange = () => {
-        this.pathForDatapoints = '';
-        this.datapointsStatus = '';
+        // TODO(b/207137261): Update or remove path resetting behaivor after the
+        // save datapoints functionality is resolved.
+        // this.pathForDatapoints = '';
+        // this.datapointsStatus = '';
         this.selectedDataset = name;
       };
 
@@ -431,7 +524,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
       const onExpanderClick = () => {
           this.toggleInSet(this.openDatasetKeys, name);
         };
-      const renderSelector = () => html`
+      // clang-format off
+      const selectorHtml = html`
             <mwc-formfield label=${displayName}>
               <mwc-radio
                 name="dataset"
@@ -442,7 +536,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
                 @change=${handleDatasetChange}>
               </mwc-radio>
             </mwc-formfield>
-        `;
+      `;
+      // clang-format on
 
       // Expanded info contains available datasets.
       const datasetInfo = this.appState.metadata.datasets[name];
@@ -468,11 +563,15 @@ export class GlobalSettingsComponent extends MobxLitElement {
         const compatible = this.settingsService.isDatasetValidForModels(
           name, [modelName]);
         const error = !compatible && (this.selectedModels.includes(modelName));
-        const classes = classMap({compatible, error, 'info-line': true});
+        const classes = classMap({
+          'compatible': compatible,
+          'error': error,
+          'info-line': true
+        });
         const icon = compatible ? 'check' : (error ? 'warning_amber' : 'clear');
         return html`
         <div class=${classes}>
-          <mwc-icon>${icon}</mwc-icon>
+          <span class='material-icon'>${icon}</span>
           ${modelName}
         </div>`;
         })}
@@ -480,8 +579,8 @@ export class GlobalSettingsComponent extends MobxLitElement {
       // clang-format on
       const description = this.appState.metadata.datasets[name].description;
       return this.renderLine(
-          name, renderSelector, selected, disabled, expanderOpen,
-          onExpanderClick, true, expandedInfoHtml, description);
+          name, selectorHtml, selected, disabled, expanderOpen, onExpanderClick,
+          true, expandedInfoHtml, description);
     };
     const configListHTML = allDatasets.map(name => renderDatasetSelect(name));
     // clang-format off
@@ -491,89 +590,196 @@ export class GlobalSettingsComponent extends MobxLitElement {
     `;
     // clang-format on
 
-    const updatePath = (e: Event) => {
-      const input = e.target! as HTMLInputElement;
-      this.pathForDatapoints = input.value;
-    };
-    const save = async () => {
-      const newPath = await this.apiService.saveDatapoints(
-          this.newDatapoints, this.appState.currentDataset,
-          this.pathForDatapoints);
-      this.datapointsStatus =
-          `Saved ${this.newDatapoints.length} datapoint` +
-          `${this.newDatapoints.length === 1 ? '' : 's'} at ${newPath}`;
-    };
-    const load = async () => {
-      const datapoints = await this.apiService.loadDatapoints(
-          this.selectedDataset, this.pathForDatapoints);
-      if (datapoints == null || datapoints.length === 0) {
-        this.datapointsStatus =
-            `No persisted datapoints found in ${this.pathForDatapoints}`;
-        return;
+    // TODO(b/207137261): Figure out where the save button should go after the
+    // dataset loading refactor.
+    // const save = async () => {
+    //   const newPath = await this.apiService.saveDatapoints(
+    //       this.newDatapoints, this.appState.currentDataset,
+    //       this.pathForDatapoints);
+    //   this.datapointsStatus =
+    //       `Saved ${this.newDatapoints.length} datapoint` +
+    //       `${this.newDatapoints.length === 1 ? '' : 's'} at ${newPath}`;
+    // };
+    // const load = async () => {
+    //   const datapoints = await this.apiService.loadDatapoints(
+    //       this.selectedDataset, this.pathForDatapoints);
+    //   if (datapoints == null || datapoints.length === 0) {
+    //     this.datapointsStatus =
+    //         `No persisted datapoints found in ${this.pathForDatapoints}`;
+    //     return;
+    //   }
+    //   // Update input data for new datapoints.
+    //   this.appState.commitNewDatapoints(datapoints);
+    //   this.datapointsStatus = `Loaded ${datapoints.length} ` +
+    //       `datapoint${datapoints.length === 1 ? '' : 's'} from `+
+    //       `${this.pathForDatapoints}`;
+    // };
+    const loaderDataset = this.datasetToLoad || this.loadableDatasets[0];
+    const loaderSpec = this.appState.metadata.initSpecs.datasets[loaderDataset];
+
+    const selectDataset = (e: Event) => {
+      this.datasetToLoad = (e.target as HTMLSelectElement).value;
+      const initSpec =
+          this.appState.metadata.initSpecs.datasets[this.datasetToLoad];
+      if (initSpec != null) {
+        this.loadingCallConfig = initializeCallConfig(initSpec);
       }
-      // Update input data for new datapoints.
-      this.appState.commitNewDatapoints(datapoints);
-      this.datapointsStatus = `Loaded ${datapoints.length} ` +
-          `datapoint${datapoints.length === 1 ? '' : 's'} from `+
-          `${this.pathForDatapoints}`;
     };
-    const loadNewDataset = async () => {
-      const newInfo = await this.apiService.createDataset(
-          this.selectedDataset, this.pathForDatapoints);
-      if (newInfo == null) {
-        this.datapointsStatus = 'Unable to load from path.';
-        return;
+
+    const loadDataset = async () => {
+      this.missingCallConfigFields = validateCallConfig(
+        this.loadingCallConfig, loaderSpec);
+      this.status = this.missingCallConfigFields.length ?
+          "Missing required dataset initialization parameters." : undefined;
+
+      if (this.missingCallConfigFields.length) return;
+
+      let newInfo;
+
+      try {
+        newInfo = await this.apiService.createDataset(
+          loaderDataset, this.loadingCallConfig);
+      } catch {
+        this.status = 'Unable to load dataset';
       }
-      this.appState.metadata = newInfo[0];
-      this.datapointsStatus = 'New dataset added to datasets list';
-      this.selectedDataset = newInfo[1];
+
+      if (newInfo == null) {return;}
+      const [metadata, datasetName] = newInfo;
+      if (loaderSpec != null) {
+        this.loadingCallConfig = initializeCallConfig(loaderSpec);
+      }
+      this.appState.metadata = metadata;
+      this.selectedDataset = datasetName;
     };
-    const datapointsControlsHTML =
-      this.appState.metadata.demoMode ? html`` : html`
-        <div class='datapoints-line'>
-          <div class='datapoints-label-holder'>
-            <label for="path">File path:</label>
-            <input type="text" name="path" class="datapoints-file-input"
-                   value=${this.pathForDatapoints}
-                   @input=${updatePath}>
-          </div>
-          <button class="filled-button"
-                  ?disabled=${this.saveDatapointButtonDisabled}
-                  @click=${save}>
-            Save new datapoints
-          </button>
-          <button class="filled-button"
-                  ?disabled=${this.loadDatapointButtonsDisabled}
-                  @click=${load}>
-            Load additional datapoints
-          </button>
-          <button class="filled-button"
-                  ?disabled=${this.loadDatapointButtonsDisabled}
-                  @click=${loadNewDataset}>
-            Create new dataset from path
-          </button>
-          <div class='datapoints-label-holder'>${this.datapointsStatus}</div>
-        </div>`;
+
+    const hideLoadingControls = this.appState.metadata.demoMode ||
+                                loaderDataset == null || loaderSpec == null;
+    const loadingControls = hideLoadingControls ?
+        html`` : this.renderLoader(
+          'Dataset',
+          this.loadableDatasets,
+          loaderDataset,
+          loaderSpec,
+          selectDataset,
+          loadDataset
+        );
 
     return this.renderConfigPage(
-        'Dataset', DATASET_DESC, configListHTML, buttonsHTML,
-        datapointsControlsHTML);
+        'Dataset', DATASET_DESC, configListHTML, buttonsHTML, loadingControls);
+  }
+
+  /**
+   * Renders the UI for loading a Dataset or Model based on its `init_spec()`.
+   *
+   * @param panel The type of component that will be loaded, either 'Dataset' or
+   *    'Model'.
+   * @param options The list of components of the type indicated by `panel` that
+   *    are loadable, i.e., they provide a non-`null` `init_spec()`.
+   * @param selectedOption The name of the component to load.
+   * @param spec The `init_spec()` associated with the selected component.
+   * @param select A callback function for updating the application state when
+   *    the user changes the selected component in the drop-down list. Note that
+   *    `this.loadingCallConfig` will always be cleared before the select
+   *    function is called.
+   * @param load A callback function for telling the LIT server to load a new
+   *    instance of the selected component given the configured parameters.
+   */
+  private renderLoader(panel: string, options: string[], selectedOption: string,
+                       spec: Spec, select: EventHandler, load: EventHandler) {
+    const disableReset =
+        Object.entries(this.loadingCallConfig)
+          .map(([name, value]) =>
+              name === NEW_NAME_FIELD ? !value : spec[name]?.default === value)
+          .reduce((a, b) => a && b, true);
+    const disableSubmit = !this.loadingCallConfig[NEW_NAME_FIELD];
+    const specEntries = Object.entries(spec);
+    const reset = () => {this.resetLoadingCallConfig();};
+    const selectionChanged = (e: Event) => {select(e);};
+
+    const configInputs = specEntries.length ?
+      Object.entries({
+        [NEW_NAME_FIELD]: new StringLitType(),
+        ...spec
+      }).map(([fieldName, fieldType]) => {
+        const value = this.loadingCallConfig[fieldName];
+        const updateConfig = (e: Event) => {
+          const {value} = e.target as LitInputField;
+          this.loadingCallConfig[fieldName] = value;
+        };
+
+        const fieldClasses = classMap({
+          'missing': this.missingCallConfigFields.includes(fieldName),
+          'option-entry': true
+        });
+
+        // TODO(b/277252824): Wrap <label> elements in a LitTooltip describing
+        // what that feature does.
+        return html`<div class=${fieldClasses}>
+          <label>${fieldName}:</label>
+          <lit-input-field @change=${updateConfig} .type=${fieldType}
+            .value=${value} fill-container>
+          </lit-input-field>
+        </div>`;
+      }) :
+      `${panel} '${selectedOption}' does not support configurable loading.`;
+
+    return html`<div class="model-dataset-loading">
+      <div class="header">Load a new ${panel.toLowerCase()}</div>
+      <div class="controls">
+        <div class="selector">
+          <label for="model-dataset-select">
+            Select a base ${panel.toLowerCase()}
+          </label>
+          <select class="dropdown"
+            id="model-dataset-select" name="model-dataset-select"
+            @change=${selectionChanged} value=${selectedOption}>
+            ${options.map(name =>
+              html`<option value=${name} ?selected=${name === selectedOption}>
+                ${name}
+              </option>`
+            )}
+          </select>
+        </div>
+        <div class="options">${configInputs}</div>
+        <div class="actions">
+          <lit-tooltip tooltipPosition="left"
+                      content=${disableSubmit ? LOAD_DISABLED_TXT : ''}>
+            <button class="filled-button" slot="tooltip-anchor" @click=${load}
+                    ?disabled=${disableSubmit}>
+              Load ${panel}
+            </button>
+          </lit-tooltip>
+          <button class="hairline-button" @click=${reset}
+                  ?disabled=${disableReset}>
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>`;
   }
 
   renderLayoutConfig() {
     const layouts = Object.keys(this.appState.layouts);
 
     const renderLayoutAreaInfo = (groupLayout: LitTabGroupLayout) => {
-      return Object.keys(groupLayout).map((tabName: string) => {
+      const entries = Object.entries(groupLayout);
+
+      if (entries.length === 0) {
+        return html`<div class='info-group'>
+          <div class="info-group-subtitle">Unused in this layout</div>
+        </div>`;
+      }
+
+      return entries.map(([tabName, tabModules]) => {
         // clang-format off
         return html`
           <div class='info-group'>
             <div class='info-group-subtitle'>
               ${tabName}
             </div>
-            ${groupLayout[tabName].map(module => html`
+            ${tabModules.map(tabModule => html`
               <div class='indent-line'>
-                ${resolveModuleConfig(module).title}
+                ${resolveModuleConfig(tabModule).title}
               </div>`)}
           </div>`;
         // clang-format on
@@ -584,7 +790,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         (name: string) => {
           const checked = this.selectedLayout === name;
           // clang-format off
-          const renderSelector = () => html`
+          const selectorHtml = html`
             <mwc-formfield label=${name}>
               <mwc-radio
                 name="layouts"
@@ -603,19 +809,20 @@ export class GlobalSettingsComponent extends MobxLitElement {
           const disabled = false;
 
           // The expanded info contains info about the components.
-          const layout = this.appState.layouts[name];
+          const {description, left, lower, upper} = this.appState.layouts[name];
           // clang-format off
           const expandedInfoHtml = html`
+            <div class='info-group-title'>Left</div>
+            ${renderLayoutAreaInfo(left)}
             <div class='info-group-title'>Upper</div>
-            ${renderLayoutAreaInfo(layout.upper)}
+            ${renderLayoutAreaInfo(upper)}
             <div class='info-group-title'>Lower</div>
-            ${renderLayoutAreaInfo(layout.lower)}
+            ${renderLayoutAreaInfo(lower)}
           `;
           // clang-format on
-          const description = this.appState.layouts[name].description || '';
           return this.renderLine(
-              name, renderSelector, selected, disabled, expanderOpen,
-              onExpanderClick, false, expandedInfoHtml, description);
+              name, selectorHtml, selected, disabled, expanderOpen,
+              onExpanderClick, false, expandedInfoHtml, (description || ''));
         };
 
     const configListHTML = layouts.map(name => renderLayoutOption(name));
@@ -635,7 +842,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
         SELECTED_TXT :
         (disabled ? INCOMPATIBLE_TXT : COMPATIBLE_TXT);
 
-    const statusClasses = classMap({status: true, selected, error: disabled});
+    const statusClasses = classMap({
+      'status': true,
+      'selected': selected,
+      'error': disabled
+    });
     // clang-format off
     return html`
     <div class=${statusClasses}>
@@ -648,7 +859,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   }
 
   private renderLine(
-      name: string, renderSelector: (name: string) => TemplateResult, selected: boolean,
+      name: string, selectorHtml: TemplateResult, selected: boolean,
       disabled: boolean, expanderOpen: boolean, onExpanderClick: () => void,
       renderStatus: boolean, expandedInfoHtml: TemplateResult,
       description = '') {
@@ -657,28 +868,29 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
     const classes = classMap({
       'config-line': true,
-      selected,
-      disabled,
+      'selected': selected,
+      'disabled': disabled,
     });
 
     // In collapsed bar, show the first line only.
     const descriptionPreview = description.split('\n')[0];
+    const formattedPreview = getTemplateStringFromMarkdown(descriptionPreview);
     // Make any links clickable.
-    const formattedDescription = linkifyUrls(description, '_blank');
+    const formattedDescription = getTemplateStringFromMarkdown(description);
 
     const expandedInfoClasses =
-        classMap({'expanded-info': true, open: expanderOpen});
+        classMap({'expanded-info': true, 'open': expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
     return html`
       <div class=${classes}>
-        <div class='one-col'>
-          ${renderSelector(name)}
+        <div class='fixed-third-col'>
+          ${selectorHtml}
         </div>
-        <div class='one-col description-preview'>
-         ${linkifyUrls(descriptionPreview, '_blank')}
+        <div class='flex-col description-preview'>
+          ${formattedPreview}
         </div>
-        <div class='one-col col-end'>
-            ${status}
+        <div class='status-col'>
+          ${status}
           <div class=expander>
             <mwc-icon @click=${onExpanderClick}>
               ${expanderIcon}
@@ -714,11 +926,14 @@ export class GlobalSettingsComponent extends MobxLitElement {
       'hairline-button': true,
       [next ? 'next' : 'prev']: true
     });
-    const onClick = () => this.selectedTab = tab;
+    const onClick = () => {
+      this.selectedTab = tab;
+      this.resetLoadingCallConfig();
+    };
     // clang-format off
     return html`
      <button class=${classes} @click=${onClick}>
-      <mwc-icon>${icon}</mwc-icon>
+      <span class='material-icon'>${icon}</span>
       ${tab}
     </button>
     `;

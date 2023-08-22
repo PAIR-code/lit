@@ -16,25 +16,23 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-icon';
 import '../elements/spinner';
 
 import * as d3 from 'd3';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {observable} from 'mobx';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
+
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './line_chart.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Line chart visualization component.
  */
 @customElement('line-chart')
 export class LineChart extends ReactiveElement {
-  @observable @property({type: Object}) scores = new Map<number, number>();
+  @property({type: Object}) scores = new Map<number, number>();
   @property({type: Number}) margin = 30;  // Default margin size.
   @property({type: Number}) width = 0;
   @property({type: Number}) height = 0;
@@ -130,7 +128,6 @@ export class LineChart extends ReactiveElement {
         .attr("stroke", 'var(--lit-cyea-400)');
 
     const mousemove = () => {
-      console.log(d3.mouse(this));
       const xLocation = d3.mouse(this)[0] - this.margin;
       const x0 = x.invert(xLocation);
       const bisect = d3.bisect(data.map(data => data[0]), x0);

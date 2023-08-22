@@ -15,12 +15,12 @@
 """Implementation of PCA as a dimensionality reduction model."""
 
 from absl import logging
-from lit_nlp.components import projection
+from lit_nlp.api import model
 from lit_nlp.lib import utils
 import numpy as np
 
 
-class PCAModel(projection.ProjectorModel):
+class PCAModel(model.ProjectorModel):
   """LIT model API implementation for PCA."""
 
   def __init__(self, **pca_kw):
@@ -57,7 +57,7 @@ class PCAModel(projection.ProjectorModel):
   # LIT model API
   def predict_minibatch(self, inputs, **unused_kw):
     if not self._fitted:
-      return ({"z": [0, 0, 0]} for i in inputs)
+      return ({"z": [0, 0, 0]} for _ in inputs)
     x = np.stack([i["x"] for i in inputs])
     x = x - self._mean
     zs = np.dot(x, self._evecs)

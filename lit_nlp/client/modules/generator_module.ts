@@ -16,12 +16,13 @@
  */
 
 import '../elements/interpreter_controls';
+import '../elements/interstitial';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -87,6 +88,9 @@ export class GeneratedRowControls extends MobxLitElement {
 @customElement('generator-module')
 export class GeneratorModule extends LitModule {
   static override title = 'Datapoint Generator';
+  static override infoMarkdown =
+      `Automatically generate counterfactuals using various techniques.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#generators)`;
   static override numCols = 10;
 
   static override template =
@@ -305,22 +309,18 @@ export class GeneratorModule extends LitModule {
   renderInterstitial() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <img src="static/interstitial-select.png" />
-        <p>
-          <strong>Counterfactual Generators</strong>
-          Create new datapoints derived from the current selection.
-        </p>
-      </div>`;
+      <lit-interstitial headline="Counterfactual Generators">
+        Create new datapoints derived from the current selection.
+      </lit-interstitial>`;
     // clang-format on
   }
 
   renderEmptyNotice() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <p>No examples generated.</p>
-      </div>`;
+      <lit-interstitial>
+        No examples generated.
+      </lit-interstitial>`;
     // clang-format on
   }
 
@@ -345,6 +345,7 @@ export class GeneratorModule extends LitModule {
         <lit-data-table class="table"
             .columnNames=${Object.keys(rows[0])}
             .data=${rows}
+            exportEnabled
         ></lit-data-table>
       </div>
     `;
@@ -369,7 +370,9 @@ export class GeneratorModule extends LitModule {
         const removePoint = () => {
           this.generated[parentIndex].splice(generatedIndex, 1);
         };
-        const fieldNames = Object.keys(generated.data);
+        // Don't display private / internal fields.
+        const fieldNames = Object.keys(generated.data)
+                               .filter(k => (k !== '_id' && k !== '_meta'));
 
         // render values for each datapoint.
         const row: {[key: string]: TableEntry} = {};

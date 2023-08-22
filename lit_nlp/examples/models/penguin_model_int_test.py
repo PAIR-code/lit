@@ -2,7 +2,7 @@
 
 from absl.testing import absltest
 from lit_nlp.examples.models import penguin_model
-import transformers
+from lit_nlp.lib import file_cache
 
 
 class PenguinModelIntTest(absltest.TestCase):
@@ -12,7 +12,7 @@ class PenguinModelIntTest(absltest.TestCase):
     # Create model.
     model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5"  # pylint: disable=line-too-long
     if model_path.endswith(".h5"):
-      model_path = transformers.file_utils.cached_path(model_path)
+      model_path = file_cache.cached_path(model_path)
     model = penguin_model.PenguinModel(model_path)
 
     # Run prediction to ensure no failure.

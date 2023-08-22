@@ -1,0 +1,29 @@
+
+/* Show More */
+:host {
+  --show-more-max-width: 20px;
+}
+
+.lit-showmore {
+    background-color: var(--lit-cyea-400);
+    display: inline;
+    width: var(--show-more-max-width);
+    border-radius: 10px;
+    vertical-align: top;
+}
+
+/* TODO(lit-dev): Make this behavior keyed on host attribute selector once
+show more functionality is expanded. */
+.lit-showmore:hover {
+  background-color: var(--lit-mage-400);
+}
+
+.icon-button {
+  color: white;
+  font-size: 24px;
+  vertical-align: top;
+}
+
+.icon-button:hover {
+  color: white;
+}

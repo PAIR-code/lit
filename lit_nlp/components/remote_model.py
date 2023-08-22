@@ -50,7 +50,7 @@ def query_lit_server(url: Text,
   return serialize.from_json(six.ensure_text(response_bytes))
 
 
-class RemoteModel(lit_model.Model):
+class RemoteModel(lit_model.BatchedModel):
   """LIT model backed by a remote LIT server."""
 
   def __init__(self, url: Text, name: Text, max_minibatch_size: int = 256):
@@ -66,16 +66,17 @@ class RemoteModel(lit_model.Model):
 
     # Get specs
     server_info = query_lit_server(self._url, 'get_info')
-    self._spec = lit_model.ModelSpec(
-        **server_info['models'][self._name]['spec'])
+    model_spec = server_info['models'][self._name]['spec']
+    self._input_spec = model_spec['input']
+    self._output_spec = model_spec['output']
 
     self._max_minibatch_size = max_minibatch_size
 
   def input_spec(self):
-    return self._spec.input
+    return self._input_spec
 
   def output_spec(self):
-    return self._spec.output
+    return self._output_spec
 
   def max_minibatch_size(self):
     return self._max_minibatch_size
@@ -83,7 +84,6 @@ class RemoteModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
     # Package data as IndexedInput with dummy ids.
     indexed_inputs = [{'id': None, 'data': d} for d in inputs]
-    # Omit dataset_name to bypass remote cache.
     logging.info('Querying remote model: /get_preds on %d examples',
                  len(indexed_inputs))
     preds = query_lit_server(

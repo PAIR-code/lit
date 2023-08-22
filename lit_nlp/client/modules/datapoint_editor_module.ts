@@ -20,17 +20,18 @@ import '../elements/checkbox';
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable, when} from 'mobx';
+
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
 import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {defaultValueByField,  formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype, makeModifiedInput} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -62,33 +63,26 @@ export class DatapointEditorModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.resize();
+  });
+
   private isShiftPressed = false; /** Newline edits are shift + enter */
 
   protected addButtonText = 'Add';
   protected showAddAndCompare = true;
 
   @computed
-  get emptyDatapoint(): Input {
-    const data: Input = {};
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of this.appState.currentInputDataKeys) {
-      data[key] = defaultValueByField(key, spec);
-    }
-    return data;
-  }
-
-  @computed
-  get baseData(): Input {
+  get baseData(): IndexedInput {
     const input = this.selectionService.primarySelectedInputData;
-    return input == null ? this.emptyDatapoint : input.data;
+    return input ?? this.appState.makeEmptyDatapoint('manual');
   }
 
   @observable dataEdits: Input = {};
 
   @computed
-  get editedData(): Input {
-    return Object.assign({}, this.baseData, this.dataEdits);
+  get editedData(): IndexedInput {
+    return makeModifiedInput(this.baseData, this.dataEdits, 'manual');
   }
 
   @computed
@@ -108,15 +102,22 @@ export class DatapointEditorModule extends LitModule {
    const dataTextKeys: string[] = [];
 
    for (const key of this.appState.currentInputDataKeys) {
-      // Skip numerical and categorical keys.
-      if (this.groupService.categoricalFeatureNames.includes(key)) continue;
-      if (this.groupService.numericalFeatureNames.includes(key)) continue;
+     // Skip numerical and categorical keys.
+     if (this.groupService.categoricalFeatureNames.includes(key)) continue;
+     if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Skip fields with value type string[]
-      const fieldSpec = this.appState.currentDatasetSpec[key];
-      const isListField = fieldSpec instanceof ListLitType;
-      if (isListField) continue;
-      dataTextKeys.push(key);
+     // Skip fields with value type string[] or number[]
+     const fieldSpec = this.appState.currentDatasetSpec[key];
+     if (fieldSpec instanceof ListLitType) continue;
+     if (fieldSpec instanceof Embeddings) continue;
+
+     // Skip image fields
+     if (fieldSpec instanceof ImageBytes) continue;
+
+     // Skip boolean fields
+     if (fieldSpec instanceof BooleanLitType) continue;
+
+     dataTextKeys.push(key);
     }
     return dataTextKeys;
   }
@@ -128,13 +129,13 @@ export class DatapointEditorModule extends LitModule {
   }
 
   private calculateQuantileLengthsForFields(
-      fieldKeys: string[],
-      percentile: number = .8) {
+      fieldKeys: string[], percentile = .8) {
     const defaultLengths: {[key: string]: number} = {};
 
     for (const key of fieldKeys) {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
+      let calculateStringLength: ((s: string) => number)|
+          ((s: string[]) => number);
 
       if (fieldSpec instanceof StringLitType) {
         calculateStringLength = (s: string) => s.length;
@@ -145,9 +146,9 @@ export class DatapointEditorModule extends LitModule {
           Object.values(s).join(separator).length;
       }
       else {
-            throw new Error(
-              `Attempted to convert unrecognized type to string: ${key}.`);
-        }
+        throw new Error(`Attempted to convert field ${
+            key} of unrecognized type to string.`);
+      }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
         return calculateStringLength(indexedInput.data[key]);
@@ -177,29 +178,32 @@ export class DatapointEditorModule extends LitModule {
       this.sparseMultilabelInputKeys);
   }
 
-  override firstUpdated() {
-    const container = this.shadowRoot!.querySelector('.module-container')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
-    });
-    this.resizeObserver.observe(container);
-
-
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.reactImmediately(getCurrentDataset, () => {
-      when(() => this.appState.currentInputDataIsLoaded, () => {
-        this.resize();
-      });
-    });
-
+  override connectedCallback() {
+    super.connectedCallback();
     this.reactImmediately(
-        () => this.selectionService.primarySelectedInputData, unusedData => {
-          this.resetEditedData();
+        () => this.appState.currentDataset,
+        () => {
+          when(() => this.appState.currentInputDataIsLoaded,
+               () => {this.resize();});
         });
+
+    this.react(
+        () => this.selectionService.primarySelectedInputData,
+        () => {this.resetEditedData();});
   }
 
   override updated() {
     super.updated();
+
+    // Resize observer only if element is rendered.
+    // TODO(lit-dev): consider moving this logic to the LitModule base class,
+    // where the decision to render or not is made.
+    const container = this.shadowRoot!.querySelector('.module-container')!;
+    if (container != null) {
+      this.resizeObserver.observe(container);
+    } else {
+      this.resizeObserver.disconnect();
+    }
 
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
     // update the displayed value of textareas. See
@@ -218,10 +222,10 @@ export class DatapointEditorModule extends LitModule {
 
   private getHeightForInputBox(
       textLength: number, clientWidth: number,
-      convertToString: boolean = true) {
+      convertToString = true) {
     const characterWidth = 8.3;  // estimate for character width in pixels
     const numLines = Math.ceil(characterWidth * textLength / clientWidth);
-    const height = this.convertNumLinesToHeight(numLines);
+    const height = this.convertNumLinesToHeight(Math.max(1, numLines));
     return convertToString ? `${height}ex` : height;
   }
 
@@ -233,7 +237,8 @@ export class DatapointEditorModule extends LitModule {
     if (inputBoxElement == null) return;
 
     // Set heights for string-based input boxes.
-    for (const [key, defaultCharLength] of Object.entries(this.dataTextLengths)) {
+    for (const [key, defaultCharLength] of
+             Object.entries(this.dataTextLengths)) {
       if (defaultCharLength === -Infinity) {
         continue;
       }
@@ -244,7 +249,8 @@ export class DatapointEditorModule extends LitModule {
     }
 
     // Set heights for multi-label input boxes.
-    for (const [key, textLength] of Object.entries(this.sparseMultilabelInputLengths)) {
+    for (const [key, textLength] of
+             Object.entries(this.sparseMultilabelInputLengths)) {
 
       // Truncate input height to 4 lines maximum.
       const maxHeight = this.convertNumLinesToHeight(4);
@@ -258,6 +264,7 @@ export class DatapointEditorModule extends LitModule {
 
   private resetEditedData() {
     this.editingTokenIndex = -1;
+    this.editingTokenField = undefined;
     this.dataEdits = {};
   }
 
@@ -286,16 +293,8 @@ export class DatapointEditorModule extends LitModule {
     const clearEnabled = this.selectionService.primarySelectedInputData != null;
 
     const onClickNew = async () => {
-      const datum: IndexedInput = {
-        data: this.editedData,
-        id: '',  // will be overwritten
-        meta: {
-          source: 'manual',
-          added: true,
-          parentId: this.selectionService.primarySelectedId!
-        },
-      };
-      const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
+      const data: IndexedInput[] =
+          await this.appState.annotateNewData([this.editedData]);
       this.appState.commitNewDatapoints(data);
       const newIds = data.map(d => d.id);
       this.selectionService.selectIds(newIds);
@@ -358,7 +357,7 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div id="edit-table">
        ${keys.map(
-            key => this.renderEntry(key, this.editedData[key]))}
+            key => this.renderEntry(key, this.editedData.data[key]))}
       </div>
     `;
     // clang-format on
@@ -370,7 +369,7 @@ export class DatapointEditorModule extends LitModule {
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
           // tslint:disable-next-line:no-any
           const value = converterFn((e as any).target.value as string);
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;
@@ -418,7 +417,7 @@ export class DatapointEditorModule extends LitModule {
         const reader = new FileReader();
         reader.addEventListener('load', () => {
           const value = reader.result as string;
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;
@@ -457,18 +456,14 @@ export class DatapointEditorModule extends LitModule {
 
     const inputStyle = {'height': this.inputHeights[key]};
     // Render a multi-line text input.
-    const renderFreeformInput = () => {
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}>${value}</textarea>`;
-    };
+    const renderFreeformInput =
+        () => html`<textarea class="input-box" style="${styleMap(inputStyle)}"
+          @input=${handleInputChange}>${value}</textarea>`;
 
     // Render a single-line text input.
-    const renderShortformInput = () => {
-      return html`
-      <input type="text" class="input-short" @input=${handleInputChange}
-        .value=${value}></input>`;
-    };
+    const renderShortformInput =
+        () => html`<input type="text" class="input-short"
+          @input=${handleInputChange} .value=${value} />`;
 
     // Render a single-line text input, and convert entered value to a number.
     const renderNumericInput = () => {
@@ -477,21 +472,21 @@ export class DatapointEditorModule extends LitModule {
       };
       return html`
       <input type="text" class="input-short" @input=${handleNumberInput}
-        .value=${value}></input>`;
+        .value=${value} />`;
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
-        html`<div class="span-label">${formatSpanLabel(d)}</div>`;
+        html`<div class="monospace-label">${formatSpanLabel(d)}</div>`;
 
     // Non-editable render for span labels.
-    const renderSpanLabelsNonEditable = () => {
-      return html`<div>${
+    const renderSpanLabelsNonEditable =
+        () => html`<div>${
           value ? (value as SpanLabel[]).map(renderSpanLabel) : null}</div>`;
-    };
-    // Non-editable render for edge labels.
+
+          // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
-        return html`<div class="edge-label">${formatEdgeLabel(d)}</div>`;
+        return html`<div class="monospace-label">${formatEdgeLabel(d)}</div>`;
       };
       return html`<div>${
           value ? (value as EdgeLabel[]).map(renderLabel) : null}</div>`;
@@ -507,6 +502,17 @@ export class DatapointEditorModule extends LitModule {
       return html`<div class="multi-segment-annotation">${
           value ? (value as AnnotationCluster[]).map(renderLabel) : ''}</div>`;
     };
+
+    // Non-editable render for embeddings fields.
+    // We technically can use the token editor for these, but it is very
+    // unwieldy.
+    function renderEmbeddingsNonEditable() {
+      // clang-format off
+      return html`<div class="monospace-label">
+        ${value ? html`&lt;float&gt;[${value.length}]` : null}
+      </div>`;
+      // clang-format on
+    }
 
     // For boolean values, render a checkbox.
     const renderBoolean = () => {
@@ -542,11 +548,12 @@ export class DatapointEditorModule extends LitModule {
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
     } else if (isLitSubtype(
-                   fieldSpec,
-                   [Tokens, SequenceTags, Embeddings, SparseMultilabel])) {
+                   fieldSpec, [Tokens, SequenceTags, SparseMultilabel])) {
       renderInput = renderTokensInput;
       entryContentClasses['entry-content-long'] = true;
       entryContentClasses['left-align'] = true;
+    } else if (fieldSpec instanceof Embeddings) {
+      renderInput = renderEmbeddingsNonEditable;
     } else if (fieldSpec instanceof SpanLabels) {
       renderInput = renderSpanLabelsNonEditable;
     } else if (fieldSpec instanceof EdgeLabels) {
@@ -634,7 +641,7 @@ export class DatapointEditorModule extends LitModule {
   renderTokensInput(
       key: string, value: string[],
       handleInputChange: (e: Event, converterFn: InputConverterFn) => void,
-      dynamicTokenLength: boolean = true) {
+      dynamicTokenLength = true) {
     const tokenValues = value == null ? [] : [...value];
     const tokenRenders = [];
     for (let i = 0; i < tokenValues.length; i++) {
@@ -679,7 +686,7 @@ export class DatapointEditorModule extends LitModule {
       const handleTokenFocusOut = (e: Event) => {
         // Reset our editingTokenIndex after a timeout so as to allow for
         // the delete token button to be pressed, as that also removes focus.
-        setTimeout(() => {
+        window.setTimeout(() => {
           if (this.editingTokenIndex === i) {
             this.editingTokenIndex = -1;
           }

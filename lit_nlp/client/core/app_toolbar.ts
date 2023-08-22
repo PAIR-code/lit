@@ -26,14 +26,13 @@ import './global_settings';
 import './main_toolbar';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {query} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
+import {query} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {datasetDisplayName} from '../lib/types';
-import {copyToClipboard} from '../lib/utils';
 import {AppState, ModulesService, SettingsService, StatusService} from '../services/services';
 
 import {app} from './app';
@@ -123,6 +122,7 @@ export class ToolbarComponent extends MobxLitElement {
   renderModelInfo() {
     const compatibleModels =
         Object.keys(this.appState.metadata.models)
+            .filter(model => !model.startsWith('_'))  // hidden models
             .filter(
                 model => this.settingsService.isDatasetValidForModels(
                     this.appState.currentDataset, [model]));
@@ -148,51 +148,69 @@ export class ToolbarComponent extends MobxLitElement {
           this.settingsService.updateSettings({'models': [...modelSet]});
           this.requestUpdate();
         };
+
+        const tooltip = `${isSelected ? 'Unselect' : 'Select'} model ${name}`;
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title="${name}"
-            @click=${updateModelSelection}>
-            <span class='material-icon'>${icon}</span>
-            &nbsp;${name}
-          </button>
+          <lit-tooltip content=${tooltip}>
+            <button class=${classMap(classes)}
+              slot='tooltip-anchor'
+              @click=${updateModelSelection}>
+              <span class='material-icon'>${icon}</span>
+              &nbsp;
+              <span class='headline-button-text'>${name}</span>
+            </button>
+          </lit-tooltip>
         `;
         // clang-format on
       });
       // clang-format off
       return html`
         ${modelChips}
-        <button class='headline-button' title="Select model(s)"
-          @click=${() => { this.jumpToSettingsTab("Models"); }}>
-          <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;<span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select model(s)">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Models"); }}>
+            <span class='material-icon-outlined'>smart_toy</span>
+            &nbsp;<span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     } else {
       // Otherwise, give a regular button that opens the models menu.
+      const buttonText = this.appState.currentModels.join(', ');
       // clang-format off
       return html`
-        <button class='headline-button' title="Select model(s)"
-          @click=${() => { this.jumpToSettingsTab("Models"); }}>
-          <span class='material-icon-outlined'>smart_toy</span>
-          &nbsp;${this.appState.currentModels.join(', ')}&nbsp;
-          <span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select model(s)">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Models"); }}>
+            <span class='material-icon-outlined'>smart_toy</span>
+            &nbsp;
+            <span class='headline-button-text'>${buttonText}</span>
+            &nbsp;
+            <span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     }
   }
 
   renderDatasetInfo() {
+    const buttonText = datasetDisplayName(this.appState.currentDataset);
     // clang-format off
     return html`
       <div class='vertical-separator'></div>
-      <button class='headline-button' title="Select dataset"
-        @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
-        <span class='material-icon'>storage</span>
-        &nbsp;${datasetDisplayName(this.appState.currentDataset)}&nbsp;
-        <span class='material-icon'>arrow_drop_down</span>
-      </button>
+      <lit-tooltip content="Select dataset">
+        <button class='headline-button' slot="tooltip-anchor"
+          @click=${() => { this.jumpToSettingsTab("Dataset"); }}>
+          <span class='material-icon'>storage</span>
+          &nbsp;
+          <span class='headline-button-text'>${buttonText}</span>
+          &nbsp;
+          <span class='material-icon'>arrow_drop_down</span>
+        </button>
+      </lit-tooltip>
     `;
     // clang-format on
   }
@@ -217,14 +235,16 @@ export class ToolbarComponent extends MobxLitElement {
           this.settingsService.updateSettings({'layoutName': name});
           this.requestUpdate();
         };
-        const title = `Change layout to ${name}`;
         // clang-format off
         return html`
-          <button class=${classMap(classes)} title=${title}
-            @click=${updateLayoutSelection}>
-            <span class=${iconClass}>view_compact</span>
-            &nbsp;${name}
-          </button>
+          <lit-tooltip content="Select ${name} layout">
+            <button class=${classMap(classes)} slot="tooltip-anchor"
+              @click=${updateLayoutSelection}>
+              <span class=${iconClass}>view_compact</span>
+              &nbsp;
+              <span class='headline-button-text'>${name}</span>
+            </button>
+          </lit-tooltip>
         `;
         // clang-format on
       });
@@ -235,12 +255,16 @@ export class ToolbarComponent extends MobxLitElement {
       // Otherwise, give a regular button that opens the layouts menu.
       // clang-format off
       return html`
-        <button class='headline-button' title="Select UI layout."
-          @click=${() => { this.jumpToSettingsTab("Layout"); }}>
-          <span class='material-icon'>view_compact</span>
-          &nbsp;${currentLayout}&nbsp;
-          <span class='material-icon'>arrow_drop_down</span>
-        </button>
+        <lit-tooltip content="Select UI layout.">
+          <button class='headline-button' slot="tooltip-anchor"
+            @click=${() => { this.jumpToSettingsTab("Layout"); }}>
+            <span class='material-icon'>view_compact</span>
+            &nbsp;
+            <span class='headline-button-text'>${currentLayout}</span>
+            &nbsp;
+            <span class='material-icon'>arrow_drop_down</span>
+          </button>
+        </lit-tooltip>
       `;
       // clang-format on
     }
@@ -253,39 +277,49 @@ export class ToolbarComponent extends MobxLitElement {
       ${this.appState.initialized ? this.renderDatasetInfo() : null}
       <div class='vertical-separator'></div>
       ${this.renderLayoutInfo()}
-      <div class='vertical-separator'></div>
-      <div title="Configure models, dataset, and UI." id="config">
-        <mwc-icon class="icon-button"
-          @click=${this.toggleGlobalSettings}>
-          settings
-        </mwc-icon>
-      </div>
     `;
     // clang-format on
   }
 
   onClickCopyLink() {
-    const urlBase =
-        (this.appState.metadata.canonicalURL || window.location.host);
-    copyToClipboard(urlBase + window.location.search);
+    const url = this.appState.getBestURL();
+    navigator.clipboard.writeText(url);
+    // For user; keep this log statement.
+    console.log('Copied URL to this instance: ', url);
   }
 
   renderRightCorner() {
     // clang-format off
+    const settingsButton = html`
+      <lit-tooltip content="Configure models, datasets, and UI.">
+        <button class='headline-button unbordered' id="config"
+          slot="tooltip-anchor"
+          @click=${this.toggleGlobalSettings}>
+          <span class='material-icon'>settings</span>
+          &nbsp;Configure
+        </button>
+      </lit-tooltip>`;
+
     const docButton = this.appState.metadata != null ?
         html`
-          <mwc-icon class="icon-button"
-            title="Documentation"
+        <lit-tooltip content="Go to documentation" tooltipPosition="left">
+          <mwc-icon class="icon-button large-icon white-icon icon-margin"
+            slot="tooltip-anchor"
             @click=${this.toggleDocumentation}>
             help_outline
-          </mwc-icon>` : null;
+          </mwc-icon>
+        </lit-tooltip>` : null;
+
     return html`
+      ${settingsButton}
+      <lit-tooltip content="Copy link to this page" tooltipPosition="left">
+        <button class='headline-button unbordered' slot="tooltip-anchor"
+          @click=${this.onClickCopyLink}>
+          <span class='material-icon'>link</span>
+          &nbsp;Copy Link
+        </button>
+      </lit-tooltip>
       ${docButton}
-      <button class='headline-button unbordered' title="Copy link to this page"
-        @click=${this.onClickCopyLink}>
-        <span class='material-icon'>link</span>
-        &nbsp;Share
-      </button>
     `;
     // clang-format on
   }

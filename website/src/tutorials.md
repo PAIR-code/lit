@@ -17,13 +17,19 @@ color: "#fef0f7"
 ## Discover the basics
 
 {% include partials/tutorial-link-element c-title: "A Tour of LIT", link: "/tutorials/tour",
-c-copy: "Get familiar with the interface of the Language Interpretability Tool." %}
+c-copy: "Get familiar with the interface of the Learning Interpretability Tool." %}
 
 {% include partials/spacer height:50 %}
 
 <a name="analysis"></a>
 
 ## Conducting analysis in LIT
+
+{% include partials/tutorial-link-element c-title: "Salience Maps for Text", link: "/tutorials/text-salience",
+c-copy: "Learn how to use salience maps for text data in LIT." %}
+
+{% include partials/tutorial-link-element c-title: "Tabular Feature Attribution", link: "/tutorials/tab-feat-attr",
+c-copy: "Learn how to use the Kernel SHAP based Tabular Feature Attribution module in LIT." %}
 
 {% include partials/tutorial-link-element c-title: "Global Model Analysis with TCAV", link: "/tutorials/tcav",
 c-copy: "Learn about examining model behavior through user-curated concepts." %}

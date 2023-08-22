@@ -16,10 +16,11 @@
 
 import functools
 import glob
-import os
+import math
 import random
+import threading
 import time
-from typing import Optional, Mapping, Sequence, Union, Callable, Iterable
+from typing import Any, Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
 
 from absl import logging
 
@@ -30,9 +31,11 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import core
 from lit_nlp.lib import caching
+from lit_nlp.lib import flag_helpers
 from lit_nlp.lib import serialize
 from lit_nlp.lib import ui_state
 from lit_nlp.lib import utils
+from lit_nlp.lib import validation
 from lit_nlp.lib import wsgi_app
 import tqdm
 
@@ -45,6 +48,46 @@ PredsCache = caching.PredsCache
 
 ProgressIndicator = Callable[[Iterable], Iterable]
 
+DatasetLoader = tuple[Callable[..., lit_dataset.Dataset], Optional[types.Spec]]
+DatasetLoadersMap = dict[str, DatasetLoader]
+
+ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
+ModelLoadersMap = dict[str, ModelLoader]
+
+_EMPTY_DATASET_KEY = '_union_empty'
+
+
+# LINT.IfChange
+class ComponentInfo(TypedDict):
+  configSpec: types.Spec  # pylint: disable=invalid-name  # Named for JSON struct
+  metaSpec: types.Spec    # pylint: disable=invalid-name  # Named for JSON struct
+  description: str
+# LINT.ThenChange(./client/lib/types.ts)
+
+
+def _get_component_info(
+    obj: lit_components.Interpreter,
+) -> ComponentInfo:
+  """Returns the ComponentInfo for an Interpreter, Generator, Metric, etc."""
+  return ComponentInfo(
+      configSpec=obj.config_spec(),
+      metaSpec=obj.meta_spec(),
+      description=obj.description(),
+  )
+
+
+def _get_compatible_names(
+    candidates: Mapping[str, lit_components.Interpreter],
+    model: lit_model.Model,
+    dataset: lit_dataset.Dataset,
+) -> Sequence[str]:
+  """Returns the names of the candidates compatible with the model/dataset."""
+  return [
+      name
+      for name, candidate in candidates.items()
+      if candidate.is_compatible(model=model, dataset=dataset)
+  ]
+
 
 class LitApp(object):
   """LIT WSGI application."""
@@ -52,25 +95,48 @@ class LitApp(object):
   def _build_metadata(self):
     """Build metadata from model and dataset specs."""
     model_info = {}
-    for name, m in self._models.items():
-      mspec: lit_model.ModelSpec = m.spec()
-      info = {}
-      info['spec'] = {'input': mspec.input, 'output': mspec.output}
+    for name, model in self._models.items():
+      info = {
+          'description': model.description(),
+          'spec': {
+              'input': model.input_spec(),
+              'output': model.output_spec(),
+          }
+      }
+
       # List compatible datasets.
       info['datasets'] = [
-          dname for dname, ds in self._datasets.items()
-          if mspec.is_compatible_with_dataset(ds.spec())
+          name for name, dataset in self._datasets.items()
+          if model.is_compatible_with_dataset(dataset)
       ]
       if len(info['datasets']) == 0:  # pylint: disable=g-explicit-length-test
         logging.error("Error: model '%s' has no compatible datasets!", name)
+
+      compat_gens: set[str] = set()
+      compat_interps: set[str] = set()
+      compat_metrics: set[str] = set()
+
+      for d in info['datasets']:
+        dataset: lit_dataset.Dataset = self._datasets[d]
+        compat_gens.update(
+            _get_compatible_names(self._generators, model, dataset)
+        )
+        compat_interps.update(
+            _get_compatible_names(self._interpreters, model, dataset)
+        )
+        compat_metrics.update(
+            _get_compatible_names(self._metrics, model, dataset)
+        )
+
       info['generators'] = [
-          name for name, gen in self._generators.items() if gen.is_compatible(m)
+          name for name in self._generators.keys() if name in compat_gens
       ]
       info['interpreters'] = [
-          name for name, interp in self._interpreters.items()
-          if interp.is_compatible(m)
+          name for name in self._interpreters.keys() if name in compat_interps
       ]
-      info['description'] = m.description()
+      info['metrics'] = [
+          name for name in self._metrics.keys() if name in compat_metrics
+      ]
       model_info[name] = info
 
     dataset_info = {}
@@ -81,21 +147,24 @@ class LitApp(object):
           'size': len(ds),
       }
 
-    generator_info = {}
-    for name, gen in self._generators.items():
-      generator_info[name] = {
-          'configSpec': gen.config_spec(),
-          'metaSpec': gen.meta_spec(),
-          'description': gen.description()
-      }
+    generator_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(gen) for name, gen in self._generators.items()
+    }
 
-    interpreter_info = {}
-    for name, interpreter in self._interpreters.items():
-      interpreter_info[name] = {
-          'configSpec': interpreter.config_spec(),
-          'metaSpec': interpreter.meta_spec(),
-          'description': interpreter.description()
-      }
+    interpreter_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(interp)
+        for name, interp in self._interpreters.items()
+    }
+
+    metrics_info: Mapping[str, ComponentInfo] = {
+        name: _get_component_info(metric)
+        for name, metric in self._metrics.items()
+    }
+
+    init_specs = {
+        'datasets': {n: s for n, (_, s) in self._dataset_loaders.items()},
+        'models': {n: s for n, (_, s) in self._model_loaders.items()},
+    }
 
     return {
         # Component info and specs
@@ -103,6 +172,7 @@ class LitApp(object):
         'datasets': dataset_info,
         'generators': generator_info,
         'interpreters': interpreter_info,
+        'metrics': metrics_info,
         'layouts': self._layouts,
         # Global configuration
         'demoMode': self._demo_mode,
@@ -113,6 +183,7 @@ class LitApp(object):
         'onboardStartDoc': self._onboard_start_doc,
         'onboardEndDoc': self._onboard_end_doc,
         'syncState': self.ui_state_tracker is not None,
+        'initSpecs': init_specs,
     }
 
   def _get_model_spec(self, name: str):
@@ -122,67 +193,114 @@ class LitApp(object):
     """Get model info and send to frontend."""
     return self._info
 
-  def _reconstitute_inputs(self, inputs: Sequence[Union[IndexedInput, str]],
-                           dataset_name: str) -> list[IndexedInput]:
+  def _reconstitute_inputs(
+      self, inputs: Sequence[Union[IndexedInput, str]], dataset_name: str
+  ) -> list[IndexedInput]:
     """Reconstitute any inputs sent as references (bare IDs)."""
     index = self._datasets[dataset_name].index
     # TODO(b/178228238): set up proper debug logging and hide this by default.
+    # TODO(b/171513556): Reconsistute as Inputs instead of IndexedInputs
     num_aliased = sum([isinstance(ex, str) for ex in inputs])
     logging.info(
         "%d of %d inputs sent as IDs; reconstituting from dataset '%s'",
-        num_aliased, len(inputs), dataset_name)
+        num_aliased,
+        len(inputs),
+        dataset_name,
+    )
     return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
 
-  def _save_datapoints(self, data, dataset_name: str, path: str, **unused_kw):
+  def _save_datapoints(
+      self,
+      data,
+      dataset_name: Optional[str] = None,
+      path: Optional[str] = None,
+      **unused_kw,
+  ):
     """Save datapoints to disk."""
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to save datapoints.')
+    if path is None:
+      raise ValueError('Must provide a "path" to save datapoints.')
+
     if self._demo_mode:
-      logging.warn('Attempted to save datapoints in demo mode.')
+      logging.warning('Attempted to save datapoints in demo mode.')
       return None
     return self._datasets[dataset_name].save(data['inputs'], path)
 
-  def _load_datapoints(self, unused_data, dataset_name: str, path: str,
-                       **unused_kw):
+  def _load_datapoints(
+      self,
+      unused_data,
+      dataset_name: Optional[str] = None,
+      path: Optional[str] = None,
+      **unused_kw,
+  ):
     """Load datapoints from disk."""
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to load datapoints.')
+    if path is None:
+      raise ValueError('Must provide a "path" from which to load datapoints.')
+
     if self._demo_mode:
-      logging.warn('Attempted to load datapoints in demo mode.')
+      logging.warning('Attempted to load datapoints in demo mode.')
       return None
     dataset = self._datasets[dataset_name].load(path)
     return dataset.indexed_examples
 
   def _get_preds(self,
-                 data,
-                 model: str,
-                 dataset_name: Optional[str] = None,
+                 data: types.JsonDict,
+                 model: Optional[str] = None,
                  requested_types: Optional[str] = None,
+                 requested_fields: Optional[str] = None,
                  **kw):
     """Get model predictions.
 
     Args:
       data: data payload, containing 'inputs' field
       model: name of the model to run
-      dataset_name: name of the active dataset
       requested_types: optional, comma-separated list of type names to return
-      **kw: additional args passed to model.predict_with_metadata()
+      requested_fields: optional, comma-separated list of field names to return
+        in addition to the ones returned due to 'requested_types'.
+      **kw: additional args passed to model.predict()
 
     Returns:
       list[JsonDict] containing requested fields of model predictions
+
+    Raises:
+      KeyError: If `data` does not have an 'inputs' property.
+      TypeError: If one of entries in `requested_types` is not a valid LitType.
+      ValueError: If the model returns a different number of predictions than
+        the number of inputs.
     """
-    preds = list(self._models[model].predict_with_metadata(
-        data['inputs'], dataset_name=dataset_name, **kw))
-    if not requested_types:
+    if model is None:
+      raise ValueError('Must provide a "model" name to get preds from.')
+
+    inputs = data['inputs']
+    preds = list(self._models[model].predict(
+        [ex['data'] for ex in inputs], **kw))
+
+    num_preds = len(preds)
+    num_inputs = len(inputs)
+    if num_preds != num_inputs:
+      raise ValueError(
+          f'Different number of model predictions ({num_preds}) than inputs'
+          f' ({num_inputs}).'
+      )
+
+    if not requested_types and not requested_fields:
       return preds
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']
-    requested_types = requested_types.split(',')
-    logging.info('Requested types: %s', str(requested_types))
-    ret_keys = []
+    requested_types = requested_types.split(',') if requested_types else []
+    requested_fields = requested_fields.split(',') if requested_fields else []
+    logging.info('Requested types: %s, fields: %s', str(requested_types),
+                 str(requested_fields))
     for t_name in requested_types:
       t_class = getattr(types, t_name, None)
-      assert issubclass(
-          t_class, types.LitType), f"Class '{t_name}' is not a valid LitType."
-      ret_keys.extend(utils.find_spec_keys(output_spec, t_class))
-    ret_keys = set(ret_keys)  # de-dupe
+      if not issubclass(t_class, types.LitType):
+        raise TypeError(f"Class '{t_name}' is not a valid LitType.")
+      requested_fields.extend(utils.find_spec_keys(output_spec, t_class))
+    ret_keys = set(requested_fields)  # de-dupe
 
     # Return selected keys.
     logging.info('Will return keys: %s', str(ret_keys))
@@ -191,12 +309,13 @@ class LitApp(object):
     return ret
 
   def _annotate_new_data(self,
-                         data,
+                         data: types.JsonDict,
                          dataset_name: Optional[str] = None,
                          **unused_kw) -> list[IndexedInput]:
     """Fill in index and other extra data for the provided datapoints."""
     # TODO(lit-dev): unify this with hash fn on dataset objects.
-    assert dataset_name is not None, 'No dataset specified.'
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to annotate.')
 
     # Generate annotated versions of new datapoints.
     dataset = self._datasets[dataset_name]
@@ -207,65 +326,204 @@ class LitApp(object):
 
     # Add annotations and IDs to new datapoints.
     for i, example in enumerate(data['inputs']):
-      example['data'] = annotated_dataset.examples[i]
-      example['id'] = caching.input_hash(example['data'])
+      new_id = caching.input_hash(example['data'])
+      example['data'] = dict(annotated_dataset.examples[i], _id=new_id)
+      example['id'] = new_id
 
-    return data['inputs']
+    return data['inputs']  # pytype: disable=bad-return-type  # always-use-return-annotations
 
-  def _get_dataset(self,
-                   unused_data,
-                   dataset_name: Optional[str] = None,
-                   **unused_kw) -> list[IndexedInput]:
+  def _post_new_data(
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw
+  ) -> dict[str, str]:
+    """Save datapoints provided, after annotatation, for later retrieval.
+
+    Args:
+      data: JsonDict of datapoints to add, in dict under key 'inputs', per
+        format for other requests.
+      dataset_name: Dataset containing the format of data to add, necessary for
+        proper datapoint annotation.
+
+    Returns:
+      A dict of two URLs (minus the root of the webserver). 'load' value is
+      for loading LIT with those datapoints. 'remove' value is for removing
+      those new datapoints from this server after they have been loaded, if
+      desired.
+
+    Raises:
+      KeyError: If the `data` dictionary does not have an "inputs" field.
+      ValueError: If a "dataset_name" is not provided.
+    """
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to save new datapoints.')
+    if 'inputs' not in data:
+      raise KeyError('Data dict does not contain "inputs" field.')
+
+    data_with_metadata = [
+        {'data': d, 'meta': {'added': True, 'source': 'POST', 'parentId': None}}
+        for d in data['inputs']
+    ]
+    annotation_input = {'inputs': data_with_metadata}
+    annotated_data = self._annotate_new_data(annotation_input, dataset_name)
+    datapoints_id = utils.get_uuid()
+    with self._saved_datapoints_lock:
+      self._saved_datapoints[datapoints_id] = annotated_data
+    return {
+        'load': f'?saved_datapoints_id={datapoints_id}',
+        'remove': f'/remove_new_data?saved_datapoints_id={datapoints_id}',
+    }
+
+  def _fetch_new_data(
+      self, unused_data, saved_datapoints_id: Optional[str] = None, **unused_kw
+  ):
+    if not saved_datapoints_id:
+      raise ValueError('Must provide a "saved_datapoints_id" to get data from.')
+
+    with self._saved_datapoints_lock:
+      if saved_datapoints_id not in self._saved_datapoints:
+        raise ValueError(f'No saved data with ID: {saved_datapoints_id}')
+      return self._saved_datapoints[saved_datapoints_id]
+
+  def _remove_new_data(
+      self, unused_data, saved_datapoints_id: Optional[str] = None, **unused_kw
+  ):
+    if not saved_datapoints_id:
+      raise ValueError('Must provide a "saved_datapoints_id" to remove data.')
+
+    with self._saved_datapoints_lock:
+      if saved_datapoints_id not in self._saved_datapoints:
+        raise ValueError(f'No saved data with ID: {saved_datapoints_id}')
+      del self._saved_datapoints[saved_datapoints_id]
+
+  def _get_dataset(
+      self, unused_data, dataset_name: Optional[str] = None, **unused_kw
+  ) -> list[IndexedInput]:
     """Attempt to get dataset, or override with a specific path."""
-    return self._datasets[dataset_name].indexed_examples
+    if not dataset_name:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
+    return list(self._datasets[dataset_name].indexed_examples)
 
-  def _create_dataset(self,
-                      unused_data,
-                      dataset_name: Optional[str] = None,
-                      dataset_path: Optional[str] = None,
-                      **unused_kw):
-    """Create dataset from a path, updating and returning the metadata."""
+  def _create_dataset(
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw,
+  ):
+    """Create a dataset, updating and returning the metadata."""
+    if dataset_name is None:
+      raise ValueError('No base dataset specified.')
 
-    assert dataset_name is not None, 'No dataset specified.'
-    assert dataset_path is not None, 'No dataset path specified.'
-    new_dataset = self._datasets[dataset_name].load(dataset_path)
-    if new_dataset is not None:
-      new_dataset_name = dataset_name + '-' + os.path.basename(dataset_path)
-      self._datasets[new_dataset_name] = new_dataset
-      self._info = self._build_metadata()
-      return (self._info, new_dataset_name)
-    else:
-      return None
+    config: Optional[dict[str, Any]] = data.get('config')
+    if config is None:
+      raise ValueError('No config specified.')
+
+    new_name: Optional[str] = config.pop('new_name', None)
+    if new_name is None:
+      raise ValueError('No name provided for the new dataset.')
+    elif new_name in self._datasets:
+      return (self._info, new_name)  # Return the existing dataset
+
+    if (loader_info := self._dataset_loaders.get(dataset_name)) is None:
+      raise ValueError(
+          f'No loader information (Cls + init_spec) found for {dataset_name}'
+      )
+
+    dataset_cls, dataset_init_spec = loader_info
+
+    if dataset_init_spec is not None:
+      utils.validate_config_against_spec(
+          config,
+          dataset_init_spec,
+          f'{dataset_name} ({dataset_cls.__name__})',
+          raise_for_unsupported=True,
+      )
+
+    new_dataset = dataset_cls(**config)
+    annotated_dataset = self._run_annotators(new_dataset)
+    self._datasets[new_name] = lit_dataset.IndexedDataset(
+        base=annotated_dataset, id_fn=caching.input_hash
+    )
+    self._info = self._build_metadata()
+    return (self._info, new_name)
 
   def _create_model(self,
-                    unused_data,
+                    data: types.JsonDict,
                     model_name: Optional[str] = None,
-                    model_path: Optional[str] = None,
                     **unused_kw):
-    """Create model from a path, updating and returning the metadata."""
+    """Create a model, updating and returning the metadata."""
+    if model_name is None:
+      raise ValueError('No base model specified.')
 
-    assert model_name is not None, 'No model specified.'
-    assert model_path is not None, 'No model path specified.'
-    # Load using the underlying model class, then wrap explicitly in a cache.
-    new_model = self._models[model_name].wrapped.load(model_path)
-    if new_model is not None:
-      new_model_name = model_name + ':' + os.path.basename(model_path)
-      self._models[new_model_name] = caching.CachingModelWrapper(
-          new_model, new_model_name, cache_dir=self._data_dir)
-      self._info = self._build_metadata()
-      return (self._info, new_model_name)
-    else:
-      return None
+    config: Optional[dict[str, Any]] = data.get('config')
+    if config is None:
+      raise ValueError('No config specified.')
 
-  def _get_generated(self, data, model: str, dataset_name: str, generator: str,
-                     **unused_kw):
+    new_name: Optional[str] = config.pop('new_name', None)
+    if new_name is None:
+      raise ValueError('No name provided for the new model.')
+    elif new_name in self._models:
+      return (self._info, new_name)  # Return the existing model
+
+    if (loader_info := self._model_loaders.get(model_name)) is None:
+      raise ValueError(
+          f'No loader information (Cls + init_spec) found for {model_name}'
+      )
+
+    model_cls, model_init_spec = loader_info
+
+    if model_init_spec is not None:
+      utils.validate_config_against_spec(
+          config,
+          model_init_spec,
+          f'{model_name} ({model_cls.__name__})',
+          raise_for_unsupported=True,
+      )
+
+    new_model = model_cls(**config)
+    self._models[new_name] = caching.CachingModelWrapper(
+        new_model, new_name, **self._caching_model_wrapper_kw
+    )
+    empty_dataset = lit_dataset.NoneDataset(self._models)
+    self._datasets[_EMPTY_DATASET_KEY] = lit_dataset.IndexedDataset(
+        base=self._run_annotators(empty_dataset), id_fn=caching.input_hash
+    )
+    self._info = self._build_metadata()
+    return (self._info, new_name)
+
+  def _get_generated(
+      self,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
+      generator: Optional[str] = None,
+      **unused_kw,
+  ):
     """Generate new datapoints based on the request."""
-    generator_name = generator
-    generator: lit_components.Generator = self._generators[generator_name]
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get base examples.')
+    if generator is None:
+      raise ValueError('Must provide a "generator" name to generate examples.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
+    genny: lit_components.Generator = self._generators[generator]
+    config_spec: types.Spec = genny.config_spec()
+    config: Optional[types.JsonDict] = data.get('config')
+
+    if config_spec and config is not None:
+      utils.validate_config_against_spec(
+          config, config_spec, f'{generator} ({type(genny).__name__})'
+      )
+
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: list[list[Input]] = generator.run_with_metadata(
-        data['inputs'], self._models[model], dataset, config=data.get('config'))
+    all_generated: list[list[Input]] = genny.run(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
+        [ex['data'] for ex in data['inputs']],
+        self._models[model],
+        dataset,
+        config=config)
 
     # Annotate datapoints
     def annotate_generated(datapoints):
@@ -286,42 +544,201 @@ class LitApp(object):
       for generated in indexed_generated:
         generated['meta'].update({
             'parentId': parent['id'],
-            'source': generator_name,
+            'source': generator,
             'added': True,
         })
     return all_generated_indexed
 
-  def _get_interpretations(self, data, model: str, dataset_name: str,
-                           interpreter: str, **unused_kw):
+  def _get_interpretations(
+      self,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
+      interpreter: Optional[str] = None,
+      # boolean but via URL param, so encoding as "0" /  "1" is safer.
+      do_predict: str = '1',
+      **unused_kw,
+  ):
     """Run an interpretation component."""
-    interpreter = self._interpreters[interpreter]
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
+    if interpreter is None:
+      raise ValueError('Must provide a "interpreter" name to interpret preds.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
+    interp: lit_components.Interpreter = self._interpreters[interpreter]
+    mdl: lit_model.Model = self._models[model]
+
+    config_spec: types.Spec = interp.config_spec()
+    config: Optional[types.JsonDict] = data.get('config')
+    if config_spec and config is not None:
+      utils.validate_config_against_spec(
+          config, config_spec, f'{interpreter} ({type(interp).__name__})'
+      )
+
+    model_inputs = [ex['data'] for ex in data['inputs']]
+
     # Get model preds before the interpreter call. Usually these are cached.
-    # TODO(lit-dev): see if we can remove this path and just allow interpreters
-    # to call the model directly.
-    if model:
-      assert model in self._models, f"Model '{model}' is not a valid model."
-      model_outputs = self._get_preds(data, model, dataset_name)
-      model = self._models[model]
+    # TODO(b/278586715): See if we can remove this path and just allow
+    # interpreters to call the model directly.
+    if utils.coerce_bool(do_predict):
+      # Workaround so that interpreters can skip the predict() call when it
+      # is unnecessary and may be slow.
+      # TODO(b/278586715): Remove this once we can ensure that model_outputs
+      # can be removed from the Interpreter API.
+      model_outputs = list(mdl.predict(model_inputs))
+      assert len(model_outputs) == len(model_inputs)
     else:
       model_outputs = None
-      model = None
 
-    return interpreter.run_with_metadata(
-        data['inputs'],
-        model,
+    return interp.run(
+        model_inputs,
+        mdl,
         self._datasets[dataset_name],
         model_outputs=model_outputs,
-        config=data.get('config'))
+        config=data.get('config'),
+    )
 
-  def _push_ui_state(self, data, dataset_name: str, **unused_kw):
+  def _get_metrics(
+      self,
+      data: types.JsonDict,
+      model: Optional[str] = None,
+      dataset_name: Optional[str] = None,
+      metrics: Optional[str] = None,
+      # TODO(b/278586715): Remove this parameter once linked bug is fixed.
+      do_predict: str = '1',  # bool URL param; encoding as "0" /  "1" is safer.
+      **unused_kw,
+  ) -> types.JsonDict:
+    """Run the specified Metrics components.
+
+    Args:
+      data: JSON parsed from the HTTP Request body containing the inputs
+        (required) and config (optional) for parameterizing the Metrics calls.
+      model: The name of the model loaded in LIT, used to fetch the model
+        predictions.
+      dataset_name: The name of the dataset containing the ground truth labels
+        for the provided inputs.
+      metrics: An optional comma-separated string of metrics to run, if None it
+        will run all Metrics loaded in this LitApp instance.
+      do_predict: If true (default), will fetch the model predictions in this
+        function using `_get_preds()` and pass them through to each Metrics
+        component's run function.
+      **unused_kw: Unused keyword arguments.
+
+    Returns:
+      A dictionary of metrics results where the keys are the name of the
+      Metrics component and the values are list of dictionaries containing the
+      prediction key (`pred_key`), the label key (`label_key`), and `metrics`
+      for that pair of keys as a `Mapping[str, float]`.
+
+    Raises:
+      KeyError: If a model, dataset, or metric with the specified name is not
+        loaded in the LitApp instance.
+      ValueError: If there are no inputs.
+    """
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get examples.')
+    if model is None:
+      raise ValueError('Must provide a "model" name to get predictions.')
+
+    inputs = data.get('inputs')
+    if not inputs:
+      raise ValueError('Metrics cannot be computed without inputs.')
+
+    if metrics:
+      metrics_to_run = tuple(m for m in metrics.split(',') if m)
+      unknown_metrics = [m for m in metrics_to_run if m not in self._metrics]
+      if unknown_metrics:
+        raise KeyError(f'Requested unknown metrics "{unknown_metrics}".')
+    else:
+      metrics_to_run = tuple(self._metrics.keys())
+
+    if utils.coerce_bool(do_predict):
+      model_outputs = self._get_preds(data=data, model=model)
+    else:
+      model_outputs = None
+
+    dataset: lit_dataset.IndexedDataset = self._datasets[dataset_name]
+    mdl: lit_model.Model = self._models[model]
+    config: Optional[types.JsonDict] = data.get('config')
+
+    results: dict[str, Any] = {}
+    for name in metrics_to_run:
+      # TODO(b/254833485): Add type annotation once the metrics wrapper classes
+      # inherit from lit_component.Metrics.
+      metric = self._metrics[name]
+
+      config_spec: types.Spec = metric.config_spec()
+      if config_spec and config is not None:
+        utils.validate_config_against_spec(
+            config, config_spec, f'Metric {name}'
+        )
+
+      results[name] = metric.run(
+          [ex['data'] for ex in inputs],
+          mdl,
+          dataset,
+          model_outputs=model_outputs,
+          config=config
+      )
+
+    return results
+
+  def _push_ui_state(
+      self,
+      data: types.JsonDict,
+      dataset_name: Optional[str] = None,
+      **unused_kw,
+  ):
     """Push UI state back to Python."""
-    if self.ui_state_tracker is None:
-      raise RuntimeError('Attempted to push UI state, but that is not enabled '
-                         'for this server.')
+    tracker: Optional[ui_state.UIStateTracker] = self.ui_state_tracker
+    if tracker is None:
+      raise RuntimeError(
+          'Attempted to push UI state, but that is not enabled for this server.'
+      )
+    if dataset_name is None:
+      raise ValueError('Must provide a "dataset_name" to get base examples.')
+
     options = data.get('config', {})
-    self.ui_state_tracker.update_state(data['inputs'],
-                                       self._datasets[dataset_name],
-                                       dataset_name, **options)
+    tracker.update_state(
+        data['inputs'], self._datasets[dataset_name], dataset_name, **options
+    )
+
+  def _validate(
+      self,
+      validate: Optional[flag_helpers.ValidationMode],
+      enforce_dataset_fields_required: bool = False,
+      report_all: bool = False,
+  ):
+    """Validate all datasets and models loaded for proper setup."""
+    if validate is None or validate == flag_helpers.ValidationMode.OFF:
+      return
+
+    datasets_to_validate = {}
+    for dataset in self._datasets:
+      if validate == flag_helpers.ValidationMode.ALL:
+        datasets_to_validate[dataset] = self._datasets[dataset]
+      elif validate == flag_helpers.ValidationMode.FIRST:
+        datasets_to_validate[dataset] = self._datasets[dataset].slice[:1]
+      elif validate == flag_helpers.ValidationMode.SAMPLE:
+        sample_size = math.ceil(len(self._datasets[dataset]) * 0.05)
+        datasets_to_validate[dataset] = self._datasets[dataset].sample(
+            sample_size)
+
+    for dataset in datasets_to_validate:
+      logging.info("Validating dataset '%s'", dataset)
+      validation.validate_dataset(
+          datasets_to_validate[dataset],
+          enforce_all_fields_required=enforce_dataset_fields_required,
+          report_all=report_all
+      )
+
+    for model, model_info in self._info['models'].items():
+      for dataset in model_info['datasets']:
+        logging.info("Validating model '%s' on dataset '%s'", model, dataset)
+        validation.validate_model(
+            self._models[model], datasets_to_validate[dataset], report_all)
 
   def _warm_start(self,
                   rate: float,
@@ -339,30 +756,35 @@ class LitApp(object):
                        len(examples), len(all_examples))
         else:
           examples = all_examples
-        _ = self._get_preds({'inputs': examples},
-                            model,
-                            dataset_name,
+        _ = self._get_preds(data={'inputs': examples},
+                            model=model,
                             progress_indicator=progress_indicator)
 
   def _warm_projections(self, interpreters: list[str]):
     """Pre-compute UMAP/PCA projections with default arguments."""
-    for model, model_info in self._info['models'].items():
-      for dataset_name in model_info['datasets']:
-        embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
-                                                types.Embeddings)
-        # Only warm-start on the first embedding field, since if models return
-        # many different embeddings this can take a long time.
-        for field_name in embedding_fields[:1]:
-          config = dict(
-              dataset_name=dataset_name,
-              model_name=model,
-              field_name=field_name,
-              use_input=False,
-              proj_kw={'n_components': 3})
-          data = {'inputs': [], 'config': config}
-          for interpreter_name in interpreters:
+    for interpreter_name in interpreters:
+      if interpreter_name not in self._interpreters:
+        continue
+
+      for model, model_info in self._info['models'].items():
+        for dataset_name in model_info['datasets']:
+          embedding_fields = utils.find_spec_keys(model_info['spec']['output'],
+                                                  types.Embeddings)
+          # Only warm-start on the first embedding field, since if models return
+          # many different embeddings this can take a long time.
+          for field_name in embedding_fields[:1]:
+            config = dict(
+                dataset_name=dataset_name,
+                model_name=model,
+                field_name=field_name,
+                use_input=False,
+                proj_kw={'n_components': 3})
+            data = {'inputs': [], 'config': config}
             _ = self._get_interpretations(
-                data, model, dataset_name, interpreter=interpreter_name)
+                data=data,
+                model=model,
+                dataset_name=dataset_name,
+                interpreter=interpreter_name)
 
   def _run_annotators(self,
                       dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
@@ -393,12 +815,29 @@ class LitApp(object):
       # but for requests from Python we may want to use the invertible encoding
       # so that datatypes from remote models are the same as local ones.
       response_simple_json = utils.coerce_bool(
-          kw.pop('response_simple_json', True))
+          kw.pop('response_simple_json', True)
+      )
       data = serialize.from_json(request.data) if len(request.data) else None
       # Special handling to dereference IDs.
-      if data and 'inputs' in data.keys() and 'dataset_name' in kw:
-        data['inputs'] = self._reconstitute_inputs(data['inputs'],
-                                                   kw['dataset_name'])
+      if (
+          data
+          and 'inputs' in data.keys()
+          and len(data.get('inputs'))
+          and 'dataset_name' in kw
+      ):
+        data['inputs'] = self._reconstitute_inputs(
+            data['inputs'], kw['dataset_name']
+        )
+        # Validate that id and data._id match.
+        # TODO(b/171513556): consider removing this if we can simplify the
+        # data representation on the frontend so id and meta are not replicated.
+        for ex in data['inputs']:
+          if ex['id'] != ex['data'].get('_id'):
+            raise ValueError(
+                'Error: malformed example with inconsistent ids:'
+                f' {str(ex)}\nfrom request'
+                f' {request.path} {str(request.args.to_dict())}'
+            )
 
       outputs = fn(data, **kw)
       response_body = serialize.to_json(outputs, simple=response_simple_json)
@@ -412,13 +851,17 @@ class LitApp(object):
       datasets: Mapping[str, lit_dataset.Dataset],
       generators: Optional[Mapping[str, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[str, lit_components.Interpreter]] = None,
+      metrics: Optional[Mapping[str, lit_components.Metrics]] = None,
       annotators: Optional[list[lit_components.Annotator]] = None,
       layouts: Optional[layout.LitComponentLayouts] = None,
+      dataset_loaders: Optional[DatasetLoadersMap] = None,
+      model_loaders: Optional[ModelLoadersMap] = None,
       # General server config; see server_flags.py.
       data_dir: Optional[str] = None,
       warm_start: float = 0.0,
-      warm_start_progress_indicator: Optional[ProgressIndicator] = tqdm
-      .tqdm,  # not in server_flags
+      warm_start_progress_indicator: Optional[
+          ProgressIndicator
+      ] = tqdm.tqdm,  # not in server_flags
       warm_projections: bool = False,
       client_root: Optional[str] = None,
       demo_mode: bool = False,
@@ -430,6 +873,10 @@ class LitApp(object):
       onboard_start_doc: Optional[str] = None,
       onboard_end_doc: Optional[str] = None,
       sync_state: bool = False,  # notebook-only; not in server_flags
+      validate: Optional[flag_helpers.ValidationMode] = None,
+      report_all: bool = False,
+      enforce_dataset_fields_required: bool = False,
+      strict_cache_id_validation: bool = False,
   ):
     if client_root is None:
       raise ValueError('client_root must be set on application')
@@ -445,32 +892,50 @@ class LitApp(object):
     if data_dir and not os.path.isdir(data_dir):
       os.mkdir(data_dir)
 
+    self._caching_model_wrapper_kw = dict(
+        cache_dir=self._data_dir,
+        strict_id_validation=strict_cache_id_validation,
+        id_hash_fn=caching.input_hash,
+    )
+
     # TODO(lit-dev): override layouts instead of merging, to allow clients
     # to opt-out of the default bundled layouts. This will require updating
     # client code to manually merge when this is the desired behavior.
     self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
 
-    # Wrap models in caching wrapper
-    self._models = {
-        name: caching.CachingModelWrapper(model, name, cache_dir=data_dir)
-        for name, model in models.items()
-    }
+    self._model_loaders: ModelLoadersMap = model_loaders or {}
+    self._models: dict[str, caching.CachingModelWrapper] = {}
+    for name, model in models.items():
+      if model_loaders is None:
+        # Attempt to infer an init spec for the model before we lose access to
+        # the original after wrapping it in a CachingModelWrapper.
+        self._model_loaders[name] = (type(model), model.init_spec())
+      # Wrap model in caching wrapper and add it to the app
+      self._models[name] = caching.CachingModelWrapper(
+          model, name, **self._caching_model_wrapper_kw
+      )
 
-    self._datasets = dict(datasets)
+    self._annotators: list[lit_components.Annotator] = annotators or []
+    self._saved_datapoints = {}
+    self._saved_datapoints_lock = threading.Lock()
+
+    tmp_datasets: dict[str, lit_dataset.Dataset] = dict(datasets)
     # TODO(b/202210900): get rid of this, just dynamically create the empty
     # dataset on the frontend.
-    self._datasets['_union_empty'] = lit_dataset.NoneDataset(self._models)
+    tmp_datasets[_EMPTY_DATASET_KEY] = lit_dataset.NoneDataset(self._models)
 
-    self._annotators = annotators or []
-
-    # Run annotation on each dataset, creating an annotated dataset and
-    # replace the datasets with the annotated versions.
-    for ds_key, ds in self._datasets.items():
-      self._datasets[ds_key] = self._run_annotators(ds)
-
-    # Index all datasets
-    self._datasets = lit_dataset.IndexedDataset.index_all(
-        self._datasets, caching.input_hash)
+    self._dataset_loaders: DatasetLoadersMap = dataset_loaders or {}
+    self._datasets: dict[str, lit_dataset.IndexedDataset] = {}
+    for name, ds in tmp_datasets.items():
+      if dataset_loaders is None:
+        # Attempt to infer an init spec for the dataset before we lose access to
+        # the original during dataset annotation and indexing.
+        self._dataset_loaders[name] = (type(ds), ds.init_spec())
+      # Anotate the dataset
+      annotated_ds = self._run_annotators(ds)
+      # Index the annotated dataset and add it to the app
+      self._datasets[name] = lit_dataset.IndexedDataset(
+          base=annotated_ds, id_fn=caching.input_hash)
 
     # Generator initialization
     if generators is not None:
@@ -480,9 +945,14 @@ class LitApp(object):
 
     # Interpreter initialization
     if interpreters is not None:
-      self._interpreters = interpreters
+      self._interpreters = core.required_interpreters() | interpreters
     else:
       self._interpreters = core.default_interpreters(self._models)
+
+    if metrics is not None:
+      self._metrics = metrics
+    else:
+      self._metrics = core.default_metrics()
 
     # Component to sync state from TS -> Python. Used in notebooks.
     if sync_state:
@@ -492,6 +962,13 @@ class LitApp(object):
 
     # Information on models, datasets, and other components.
     self._info = self._build_metadata()
+
+    # Validate datasets and models if specified.
+    self._validate(
+        validate,
+        enforce_dataset_fields_required=enforce_dataset_fields_required,
+        report_all=report_all
+    )
 
     # Optionally, run models to pre-populate cache.
     if warm_projections:
@@ -526,15 +1003,20 @@ class LitApp(object):
         '/save_datapoints': self._save_datapoints,
         '/load_datapoints': self._load_datapoints,
         '/annotate_new_data': self._annotate_new_data,
+        '/post_new_data': self._post_new_data,
+        '/fetch_new_data': self._fetch_new_data,
+        '/remove_new_data': self._remove_new_data,
         '/push_ui_state': self._push_ui_state,
         # Model prediction endpoints.
         '/get_preds': self._get_preds,
         '/get_interpretations': self._get_interpretations,
+        '/get_metrics': self._get_metrics,
     }
+    wrapped_handlers = {k: self.make_handler(v) for k, v in handlers.items()}
 
     self._wsgi_app = wsgi_app.App(
         # Wrap endpoint fns to take (handler, request, environ)
-        handlers={k: self.make_handler(v) for k, v in handlers.items()},
+        handlers=wrapped_handlers,
         project_root=client_root,
         index_file='static/index.html',
     )

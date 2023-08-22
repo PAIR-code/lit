@@ -19,8 +19,8 @@
 import {action, computed, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {getTypes, findSpecKeys} from '../lib/utils';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {findSpecKeys, getTypes} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -59,9 +59,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
-  @observable compareExamplesEnabled: boolean = false;
+  @observable compareExamplesEnabled = false;
   @observable layoutName!: string;
-  @observable layouts: {[name: string]: LitCanonicalLayout} = {};
+  @observable layouts: LitComponentLayouts = {};
   private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
 
   @computed
@@ -73,7 +73,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Enforce setting currentDataset through the setCurrentDataset method by
    * making the currentDatasetInternal private...
    */
-  @observable private currentDatasetInternal: string = '';
+  @observable private currentDatasetInternal = '';
   @computed
   get currentDataset(): string {
     return this.currentDatasetInternal;
@@ -193,7 +193,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const ret: string[] = [];
     while (id) {
       ret.push(id);
-      id = this.getCurrentInputDataById(id)?.meta['parentId'];
+      id = this.getCurrentInputDataById(id)?.meta.parentId;
     }
     return ret;
   }
@@ -227,7 +227,12 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the input and output spec for a particular model.
    */
   getModelSpec(modelName: string): ModelSpec {
-    return this.metadata.models[modelName].spec;
+    const modelInfo = this.metadata.models[modelName];
+    if (modelInfo != null) {
+      return modelInfo.spec;
+    } else {
+      throw new Error(`Model ${modelName} not found in LitMetadata.`);
+    }
   }
 
   /**
@@ -244,6 +249,18 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
 
   //=================================== Generation logic
+  /**
+   * Create an empty datapoint with appropriate default values for each field.
+   */
+  makeEmptyDatapoint(source?: string) {
+    const data: Input = {'_id': '', '_meta': {source, added: true}};
+    const spec = this.currentDatasetSpec;
+    for (const key of this.currentInputDataKeys) {
+      data[key] = defaultValueByField(key, spec);
+    }
+    return {data, id: '', meta: data['_meta']};
+  }
+
   /**
    * Annotate one or more bare datapoints.
    * @param data input examples; ids will be overwritten.
@@ -288,9 +305,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Initialization logic
   addLayouts(layouts: LitComponentLayouts) {
-    for (const name of Object.keys(layouts)) {
-      this.layouts[name] = canonicalizeLayout(layouts[name]);
-    }
+    Object.assign(this.layouts, layouts);
   }
 
   @action
@@ -392,7 +407,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     urlNewDatasetPath: string){
     try {
       const newInfo = await this.apiService.createDataset(
-        urlSelectedDataset, urlNewDatasetPath);
+        urlSelectedDataset, {});
       this.metadata = newInfo[0];
       return newInfo[1];
     } catch {
@@ -407,5 +422,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
   getUrlConfiguration() {
     return this.urlConfiguration;
+  }
+
+  /**
+   * Get best URL for this server.
+   */
+  getBestURL() {
+    let urlBase = (this.metadata.canonicalURL || window.location.origin);
+    return new URL(`${urlBase}${window.location.search}`).href;
   }
 }

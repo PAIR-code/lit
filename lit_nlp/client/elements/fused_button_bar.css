@@ -1,0 +1,37 @@
+:host {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.button-bar-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.button-bar-item {
+  position: relative;
+}
+
+.button-bar-item button {
+  margin: 0;
+  border-radius: 0;
+  padding: 0 6px;
+  margin-left: -1px;  /* avoid double border */
+  z-index: 0;
+  position: relative;  /* enable z-index */
+  white-space: nowrap;
+}
+
+.button-bar-item:first-child button {
+  border-radius: 3px 0 0 3px;
+}
+
+.button-bar-item:last-child button {
+  border-radius: 0 3px 3px 0;
+}
+
+.button-bar-item button.active {
+  z-index: 2;  /* show active border above neighbors */
+}

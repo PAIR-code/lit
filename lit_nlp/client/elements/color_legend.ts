@@ -20,8 +20,9 @@
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {DEFAULT} from '../lib/colors';
@@ -41,124 +42,142 @@ export enum LegendType {
 }
 
 // default width of a character
-const DEFAULT_CHAR_WIDTH: number = 5.7;
+const DEFAULT_CHAR_WIDTH = 5.7;
+
+/** Removes non-digit chars from a style value and converts it to a number. */
+function stylePropToNumber(styles: CSSStyleDeclaration,
+                           property: string): number {
+  try {
+    return Number(styles.getPropertyValue(property).replace(/[^\d\.]/g, ''));
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Color legend visualization component.
  */
 @customElement('color-legend')
 export class ColorLegend extends ReactiveElement {
-  @observable
-  @property({type: Object})
-  scale: D3Scale = d3.scaleOrdinal([DEFAULT]).domain(['all']) as D3Scale;
-  @observable @property({type: String}) legendType = LegendType.CATEGORICAL;
-  // legendWidth allow the surrounding module to determine the width of a legend
-  @observable @property({type: Number}) legendWidth = 150;
-  @observable @property({type: String}) selectedColorName = '';
-  @property({type: Number}) numBlocks?: number;
+  @observable @property({type: Object}) scale: D3Scale =
+      d3.scaleOrdinal([DEFAULT]).domain(['all']) as D3Scale;
+  @property({type: String}) legendType = LegendType.CATEGORICAL;
+  @property({type: String}) label = '';
+  /** Optional hover tooltip text on the color palette icon. */
+  @property({type: String}) paletteTooltipText = '';
+  @property({type: String}) tooltipPosition = 'above';
+  /** Width of the container. Used to determine if blocks should be labeled. */
+  @property({type: Number}) legendWidth = 150;
+  @property({type: Boolean}) alignRight = false;
 
-  private fontFamily: string = '';
-  private fontStyle: string = '';
-  private fontSize: string = '';
+  // font attributes used to compute whether or not to show the text labels
+  private fontFamily = '';
+  private fontStyle = '';
+  private fontSize = '';
 
   // label margin values will be updated to be correct one in firstUpdated
-  private labelMarginLeft: number = 3;
-  private labelMarginRight: number = 2;
+  private labelMarginLeft = 3;
+  private labelMarginRight = 2;
 
-  private boxWidth: number = 13;
-  private boxMargin: number = 2;
+  private boxWidth = 13;
+  private boxMargin = 2;
 
-  private selectedColorLabelWidth: number = 46;
-  private iconWidth: number = 16;
+  private selectedColorLabelWidth = 46;
+  private iconWidth = 16;
 
   static override get styles() {
     return [sharedStyles, styles];
   }
 
   override firstUpdated() {
-    /**
-     * retrieve the font styling information from the legend-label style
-     */
-    const legendLabelElement = this.shadowRoot!.querySelector('.legend-label');
+    const {host} = this.shadowRoot!;
+    if (host) {
+      const style = window.getComputedStyle(host);
+      this.legendWidth = stylePropToNumber(style, 'width') || this.legendWidth;
+    }
 
+    /** Get font styles from the legend-label */
+    const legendLabelElement = this.shadowRoot!.querySelector('.legend-label');
     if (legendLabelElement) {
       const style = window.getComputedStyle(legendLabelElement);
       this.fontFamily = style.getPropertyValue('font-family');
       this.fontStyle = style.getPropertyValue('font-style');
       this.fontSize = style.getPropertyValue('font-size');
 
-      // get the numerical value only (remove "px")
       this.labelMarginLeft =
-          Number(style.getPropertyValue('margin-left').replace(/[^\d]/g, '')) ||
-          this.labelMarginLeft;
+          stylePropToNumber(style, 'margin-left') || this.labelMarginLeft;
       this.labelMarginRight =
-          Number(
-              style.getPropertyValue('margin-right').replace(/[^\d]/g, '')) ||
-          this.labelMarginRight;
+          stylePropToNumber(style, 'margin-right') || this.labelMarginRight;
     }
 
-    /**
-     * retrieve the styling information from the legend-box style
-     */
+    /** Get styles from the legend-box */
     const boxElement = this.shadowRoot!.querySelector('.legend-box');
-
     if (boxElement) {
       const style = window.getComputedStyle(boxElement);
-      this.boxWidth =
-          Number(style.getPropertyValue('width').replace(/[^\d]/g, '')) ||
-          this.boxWidth;
-      this.boxMargin =
-          Number(style.getPropertyValue('margin').replace(/[^\d]/g, '')) ||
-          this.boxMargin;
+      this.boxWidth = stylePropToNumber(style, 'width') || this.boxWidth;
+      this.boxMargin = stylePropToNumber(style, 'margin') || this.boxMargin;
     }
 
-    /**
-     * retrieve the styling information from the color-label style
-     */
+    /** Get styles from the color-label */
     const colorLabelElement = this.shadowRoot!.querySelector('.color-label');
-
     if (colorLabelElement) {
       const style = window.getComputedStyle(colorLabelElement);
-      const marginLeft =
-          Number(style.getPropertyValue('margin-left').replace(/[^\d]/g, ''))
-          || 3;
-      const marginRight =
-          Number(style.getPropertyValue('margin-right').replace(/[^\d]/g, ''))
-          || 3;
+      const marginLeft = stylePropToNumber(style, 'margin-left') || 3;
+      const marginRight = stylePropToNumber(style, 'margin-right') || 3;
       this.selectedColorLabelWidth = marginLeft + marginRight +
-          Number(style.getPropertyValue('width').replace(/[^\\d]/g, '')) ||
-          this.selectedColorLabelWidth;
+          stylePropToNumber(style, 'width') || this.selectedColorLabelWidth;
     }
 
-    /**
-     * retrieve the styling information from the palette-icon style
-     */
+    /** Get styles from the palette-icon */
      const iconElement = this.shadowRoot!.querySelector('.palette-icon');
-
      if (iconElement) {
        const style = window.getComputedStyle(iconElement);
-       this.iconWidth =
-           Number(style.getPropertyValue('width').replace(/[^\d]/g, '')) ||
-           this.iconWidth;
+       this.iconWidth = stylePropToNumber(style, 'width') || this.iconWidth;
      }
   }
 
+  // TODO(b/237418328): Add a custom tooltip for a faster display time.
   /**
    * Render individual color block and the associated Label
    * Hide the labels if it's a squential legendType or
    * a categorical legendType which width exceeds legendWidth
    */
-  private renderLegendBlock(val: string|number) {
-    const background = this.scale(val);
-    const style = styleMap({'background': background});
-    const hideLabels = this.legendType === LegendType.SEQUENTIAL ||
-        this.fullLegendWidth > this.legendWidth;
+   private renderLegendBlock(val: string|number, hideLabels: boolean) {
+    const style = styleMap({'background': this.scale(val)});
 
     // clang-format off
     return html`
       <div class='legend-line'>
-        <div class='legend-box' title=${val} style=${style}></div>
+        <lit-tooltip content=${val} tooltipPosition=${this.tooltipPosition}>
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+        </lit-tooltip>
         <div class='legend-label' ?hidden=${hideLabels}>${val}</div>
+      </div>
+    `;
+    // clang-format on
+  }
+
+  /**
+   * Render color blocks for sequential values.
+   * When hovering over the blocks, a range of mapping values will be displayed
+   * @param {string|number} startVal - the min value of a range
+   * @param {string|number} endVal - the max value of a range
+   * @param {string|number} colorVal - for coloring the block
+   * @param {boolean} includeMax - whether to include the max value in a range
+   */
+  private renderSequentialBlock(startVal: string|number, endVal: number|string,
+    colorVal: string|number, includeMax = false) {
+    const title =
+        startVal === endVal ? startVal :
+        includeMax ? `[${startVal}, ${endVal}]` : `[${startVal}, ${endVal})`;
+    const style = styleMap({'background': this.scale(colorVal)});
+
+    // clang-format off
+    return html`
+      <div class='legend-line'>
+        <lit-tooltip content=${title} tooltipPosition=${this.tooltipPosition}>
+          <div class='legend-box' slot="tooltip-anchor" style=${style}></div>
+        </lit-tooltip>
       </div>
     `;
     // clang-format on
@@ -169,22 +188,21 @@ export class ColorLegend extends ReactiveElement {
    */
   private renderCategoricalLegend() {
     const domain = this.scale.domain();
-    const hideLegend =
-        domain.length === 1 && domain[0].toString().toLowerCase() === 'all';
-
+    const hideLabels = domain.length === 1 ||
+                       this.fullLegendWidth > this.legendWidth;
     // clang-format off
     return html`
-        <div class="legend-container">
-          <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
-          <div class="color-label" title=${this.selectedColorName}
-            name="color-name">
-            ${this.selectedColorName}
-          </div>
-          ${domain && !hideLegend
-            ? domain.map((val: string|number) => this.renderLegendBlock(val))
-            : null}
-        </div>
-        `;
+      <lit-tooltip .content=${this.paletteTooltipText}
+        .tooltipPosition=${this.tooltipPosition}>
+        <mwc-icon class="icon material-icon-outlined"
+          slot="tooltip-anchor">palette</mwc-icon>
+      </lit-tooltip>
+      <div class="color-label" name="color-name">
+        ${this.label}
+      </div>
+      ${this.scale.domain().map(
+          (val: string|number) => this.renderLegendBlock(val, hideLabels))}
+    `;
     // clang-format on
   }
 
@@ -192,27 +210,39 @@ export class ColorLegend extends ReactiveElement {
    * Render color legend for sequential legend type
    */
   private renderSequentialLegend() {
-    const numDomain = this.scale.domain() as number[];
-    const minValue = numDomain ? Math.min(...numDomain) : 0;
-    const maxValue = numDomain ? Math.max(...numDomain) : 0;
-    const domain = linearSpace(minValue, maxValue, this.numBlocks || 5);
+    const [minValue, maxValue] = this.scale.domain() as [number, number];
+    const blocks = 7;
+    const domain = linearSpace(minValue, maxValue, blocks);
+    let curMin = minValue;
+    let rangeUnit = (maxValue - minValue) / blocks;
+    // round it to an integer if the value is greater than or equal to 5
+    rangeUnit = rangeUnit >= 5 ? Math.round(rangeUnit) : rangeUnit;
 
     // clang-format off
     return html`
-        <div class="legend-container">
-          <mwc-icon class="palette-icon icon-outlined">palette</mwc-icon>
-          <div class="color-label" title=${this.selectedColorName}
-            name="color-name">
-            ${this.selectedColorName}
-          </div>
-          <div class='legend-label'>${this.toStringValue(minValue)}</div>
-          ${domain
-            ? domain.map((val: number) =>
-                this.renderLegendBlock(this.toStringValue(val)))
-            : null}
-          <div class='legend-label'>${this.toStringValue(maxValue)}</div>
-        </div>
-        `;
+      <lit-tooltip .content=${this.paletteTooltipText}
+        .tooltipPosition=${this.tooltipPosition}>
+        <mwc-icon class="icon material-icon-outlined"
+          slot="tooltip-anchor">palette</mwc-icon>
+      </lit-tooltip>
+      <div class="color-label" name="color-name">
+        ${this.label}
+      </div>
+      <div class='legend-label'>${this.toStringValue(minValue)}</div>
+      ${domain.map((colorVal: number) => {
+        if (colorVal !== minValue) {
+          curMin += rangeUnit;
+        }
+
+        return this.renderSequentialBlock(
+          this.toStringValue(curMin),
+          this.toStringValue(
+            colorVal === maxValue ? maxValue : curMin + rangeUnit),
+          this.toStringValue(colorVal),
+          colorVal === maxValue);
+      })}
+      <div class='legend-label'>${this.toStringValue(maxValue)}</div>
+    `;
     // clang-format on
   }
 
@@ -255,9 +285,20 @@ export class ColorLegend extends ReactiveElement {
   }
 
   override render() {
-    return this.legendType === LegendType.CATEGORICAL ?
-        this.renderCategoricalLegend() :
-        this.renderSequentialLegend();
+    const containerClasses = classMap({
+      'legend-container': true,
+      'align-right': this.alignRight,
+    });
+
+    // clang-format off
+    return html`
+      <div class=${containerClasses}>
+        ${this.legendType === LegendType.CATEGORICAL ?
+            this.renderCategoricalLegend() :
+            this.renderSequentialLegend()}
+      </div>
+    `;
+    // clang-format on
   }
 }
 

@@ -65,5 +65,12 @@ export interface FeatureSalience extends DataTuple {
 export interface SequenceSalienceMap extends DataTuple {
   tokens_in: string[];
   tokens_out: string[];
+  /** [tokens_out.length, tokens_in.length + tokens_out.length] */
   salience: number[][];
 }
+
+/** A tuple of text and its score. */
+export type ScoredTextCandidate = [text: string, score: number|null];
+
+/** A list of (text, score) tuples. */
+export type ScoredTextCandidates = ScoredTextCandidate[];

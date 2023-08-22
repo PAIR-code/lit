@@ -29,7 +29,7 @@ import numpy as np
 JsonDict = lit_types.JsonDict
 
 
-class TestModelNearestNeighbors(lit_model.Model):
+class TestModelNearestNeighbors(lit_model.BatchedModel):
   """Implements lit.Model interface for nearest neighbors.
 
      Returns the same output for every input.
@@ -68,28 +68,29 @@ class NearestNeighborTest(absltest.TestCase):
   def test_run_nn(self):
     examples = [
         {
-            'segment': 'a'
+            'segment': 'a',
+            '_id': 'a'
         },
         {
-            'segment': 'b'
+            'segment': 'b',
+            '_id': 'b'
         },
         {
-            'segment': 'c'
+            'segment': 'c',
+            '_id': 'c'
         },
     ]
-    indexed_inputs = [{'id': caching.input_hash(ex), 'data': ex}
-                      for ex in examples]
 
     model = TestModelNearestNeighbors()
     dataset = lit_dataset.IndexedDataset(id_fn=caching.input_hash,
-                                         indexed_examples=indexed_inputs)
+                                         examples=examples)
     config = {
         'embedding_name': 'input_embs',
         'num_neighbors': 2,
     }
-    result = self.nearest_neighbors.run_with_metadata([indexed_inputs[1]],
-                                                      model, dataset,
-                                                      config=config)
+    result = self.nearest_neighbors.run(
+        dataset.examples[1:2], model, dataset, config=config
+    )
     expected = {'nearest_neighbors': [
         {'id': '1', 'nn_distance': 0.0},
         {'id': '0', 'nn_distance': 1.7320508075688772}]}

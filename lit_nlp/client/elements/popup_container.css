@@ -1,0 +1,30 @@
+:host {
+  --popup-left: unset;
+  --popup-right: unset;
+  --popup-top: unset;
+  --popup-bottom: unset;
+}
+
+.popup-toggle-anchor {
+  cursor: pointer;
+}
+
+.popup-outer-holder {
+  position: relative;
+}
+
+.popup-container {
+  padding: 4px;
+  background: white;
+  border: 1px solid var(--lit-neutral-300);
+  border-radius: 4px;
+  box-shadow: var(--lit-box-shadow);
+
+  position: absolute;
+  z-index: 9001;  /* over 9000! */
+
+  left: var(--popup-left);
+  right: var(--popup-right);
+  top: var(--popup-top);
+  bottom: var(--popup-bottom);
+}

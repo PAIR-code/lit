@@ -1,4 +1,4 @@
-"""GLUE benchmark datasets, using TFDS.
+"""GLUE benchmark datasets, using TFDS or from CSV.
 
 See https://gluebenchmark.com/ and
 https://www.tensorflow.org/datasets/catalog/glue
@@ -6,9 +6,12 @@ https://www.tensorflow.org/datasets/catalog/glue
 Note that this requires the TensorFlow Datasets package, but the resulting LIT
 datasets just contain regular Python/NumPy data.
 """
+from typing import Optional
+
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-
+from lit_nlp.lib import utils
+import pandas as pd
 import tensorflow_datasets as tfds
 
 
@@ -55,19 +58,76 @@ class SST2Data(lit_dataset.Dataset):
   """
 
   LABELS = ['0', '1']
+  TFDS_SPLITS = ['test', 'train', 'validation']
 
-  def __init__(self, split: str):
-    self._examples = []
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
+      raise ValueError(
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
+      )
+    df['label'] = df.label.map(str)
+    return df.to_dict(orient='records')
+
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/sst2', split=split):
-      self._examples.append({
+      ret.append({
           'sentence': ex['sentence'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+    return ret
+
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
+    return {
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {
         'sentence': lit_types.TextSegment(),
         'label': lit_types.CategoryLabel(vocab=self.LABELS)
+    }
+
+
+class SST2DataForLM(SST2Data):
+  """Stanford Sentiment Treebank, binary version (SST-2).
+
+  See https://www.tensorflow.org/datasets/catalog/glue#gluesst2.
+  This data is reformatted to serve the language models.
+  """
+
+  def __init__(self, path_or_splitname: str, max_examples: int = -1):
+    super().__init__(path_or_splitname, max_examples)
+    self._examples = [
+        utils.remap_dict(ex, {'sentence': 'text'}) for ex in self._examples
+    ]
+
+  def spec(self):
+    return {
+        'text': lit_types.TextSegment(),
+        'label': lit_types.CategoryLabel(vocab=self.LABELS),
     }
 
 
@@ -128,15 +188,52 @@ class STSBData(lit_dataset.Dataset):
 
   See https://www.tensorflow.org/datasets/catalog/glue#gluestsb.
   """
+  TFDS_SPLITS = ['test', 'train', 'validation']
 
-  def __init__(self, split: str):
-    self._examples = []
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
+      raise ValueError(
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
+      )
+    df['label'] = df.label.map(float)
+    return df.to_dict(orient='records')
+
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/stsb', split=split):
-      self._examples.append({
+      ret.append({
           'sentence1': ex['sentence1'].decode('utf-8'),
           'sentence2': ex['sentence2'].decode('utf-8'),
           'label': ex['label'],
       })
+    return ret
+
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
+    return {
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {
@@ -153,15 +250,58 @@ class MNLIData(lit_dataset.Dataset):
   """
 
   LABELS = ['entailment', 'neutral', 'contradiction']
+  TFDS_SPLITS = [
+      'test_matched',
+      'test_mismatched',
+      'train',
+      'validation_matched',
+      'validation_mismatched',
+  ]
 
-  def __init__(self, split: str):
-    self._examples = []
+  def load_from_csv(self, path: str):
+    with open(path) as fd:
+      df = pd.read_csv(fd)
+    if set(df.columns) != set(self.spec().keys()):
+      raise ValueError(
+          f'CSV columns {list(df.columns)} do not match expected'
+          f' {list(self.spec().keys())}.'
+      )
+    df['label'] = df.label.map(str)
+    return df.to_dict(orient='records')
+
+  def load_from_tfds(self, split: str):
+    if split not in self.TFDS_SPLITS:
+      raise ValueError(
+          f"Unsupported split '{split}'. Allowed values: {self.TFDS_SPLITS}"
+      )
+    ret = []
     for ex in load_tfds('glue/mnli', split=split):
-      self._examples.append({
+      ret.append({
           'premise': ex['premise'].decode('utf-8'),
           'hypothesis': ex['hypothesis'].decode('utf-8'),
           'label': self.LABELS[ex['label']],
       })
+    return ret
+
+  def __init__(
+      self, path_or_splitname: str, max_examples: Optional[int] = None
+  ):
+    if path_or_splitname.endswith('.csv'):
+      self._examples = self.load_from_csv(path_or_splitname)[:max_examples]
+    else:
+      self._examples = self.load_from_tfds(path_or_splitname)[:max_examples]
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
+    return {
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
 
   def spec(self):
     return {

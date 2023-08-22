@@ -165,7 +165,9 @@
   --lit-bold-label-color: var(--lit-majtonal-nv-800);
   --lit-light-label-color: var(--lit-majtonal-nv-600);
 
-  --lit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14), 0 3px 1px -2px rgba(0, 0, 0, .2), 0 1px 5px 0 rgba(0, 0, 0, .12);
+  --lit-box-shadow: 0 2px 2px 0 rgba(0, 0, 0, .14),
+                    0 3px 1px -2px rgba(0, 0, 0, .2),
+                    0 1px 5px 0 rgba(0, 0, 0, .12);
 }
 
 button {
@@ -178,7 +180,7 @@ button {
   margin: 5px;
   text-align: center;
   padding: 5px 10px;
-  font-size: 10pt;
+  font-size: 13px;
   border-radius: 3px;
   justify-content: center;
   align-items: center;
@@ -225,7 +227,6 @@ button:disabled {
   -webkit-appearance: none;
   padding: 4px 18px 3px 4px;
   margin:  2px  8px 2px 0;
-  max-width: 80%;
   color: var(--lit-neutral-800);
   background-color: transparent;
   /* SVG background-image sets fill: var(--lit-neutral-800) as HEX value */
@@ -260,7 +261,7 @@ button:disabled {
 .dropdown.hairline { /* Not currently in use but likely will be in AppToolbar */
   border: 1px solid var(--lit-neutral-400);
   border-radius: 4px;
-  padding: 3pt 12pt 3pt 4pt;
+  padding: 4px 16px 4px 5px;
 }
 
 .dropdown.hairline:disabled {
@@ -285,12 +286,6 @@ button:disabled {
 
 mwc-textfield {
   --mdc-theme-primary: #2f8c9b;
-}
-
-.lit-img{
-  height: 15pt;
-  width: 15pt;
-  padding: 2pt;
 }
 
 /* For in-line icons in a <span> */
@@ -339,7 +334,7 @@ mwc-textfield {
   border-color: #098591;
 }
 
-.token-chip-label:hover {
+.token-chip-label:not(:only-child):hover {
   background: #e4f7fb;
 }
 
@@ -453,6 +448,15 @@ mwc-textfield {
   color: var(--lit-cyea-500);
 }
 
+.icon {
+  height: 16px;
+  width: 16px;
+  min-width: 16px;
+  --mdc-icon-size: 16px;
+  user-select: none;
+  color: var(--lit-neutral-700);
+}
+
 /**
  * For standalone MWC icons as buttons. We don't use mwc-icon-button because it
  * adds a large backdrop and extra whitespace.
@@ -473,8 +477,9 @@ mwc-textfield {
 
 .icon-button:disabled,
 mwc-icon.disabled{
+  pointer-events: none;
   cursor: default;
-  color: var(--lit-neutral-300);
+  color: var(--lit-neutral-200);
 }
 
 .icon-button:active {
@@ -487,6 +492,47 @@ mwc-icon.mdi-outlined {
 
 .span-outlined {
   font-family: "Material Icons Outlined";
+}
+
+.icon-button.large-icon {
+  height: 20px;
+  width: 20px;
+  min-width: 20px;
+  --mdc-icon-size: 20px;
+  padding: 0x 2px 0px 2px;
+}
+
+.icon-button.white-icon {
+  color: var(--lit-neutral-100);
+}
+
+.icon-button.white-icon:hover {
+  color: var(--lit-neutral-400);
+}
+
+.icon-button.cyea-icon {
+  color: var(--lit-cyea-800);
+}
+
+.icon-button.cyea-icon:hover {
+  color: var(--lit-cyea-600);
+}
+
+.large-help-icon{
+  position: relative;
+  height: 14px;
+  width: 14px;
+  min-width: 14px;
+  --mdc-icon-size: 14px;
+  margin: auto;
+}
+
+.help-icon{
+  cursor: pointer;
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-size: 12px;
 }
 
 /**
@@ -528,7 +574,7 @@ mwc-icon.mdi-outlined {
 
 .module-footer {
   align-items: center;
-  border-top: 1px solid #dadce0;
+  border-top: 1px solid var(--viz-color-grey-1);
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
@@ -536,12 +582,12 @@ mwc-icon.mdi-outlined {
   flex-shrink: 0;
   justify-content: space-between;
   height: 36px;
-  padding: 0 4px;
+  padding: 0 8px;
 }
 
 /** Status text in a module footer. **/
 .module-status {
-  color: #3c4043;
+  color: var(--lit-neutral-800);
   font-style: italic;
   font-weight: normal;
   margin: 0 0.5em;
@@ -558,35 +604,17 @@ mwc-icon.mdi-outlined {
   margin-top: 24px; /* match .header height from widget.css */
 }
 
-
-/* Disable Material ripple */
-.switch-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: 32px; /* make the actual switch visible */
-  overflow-y: clip; /* keep mwc-switch overdraw from messing up layout */
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
-}
-
-mwc-switch {
-  --mdc-ripple-hover-opacity: 0;
-  --mdc-ripple-press-opacity: 0;
-  --mdc-ripple-focus-opacity: 0;
-}
-
 mwc-icon.outlined {
   --mdc-icon-font: "Material Icons Outlined";
 }
 
+/* TODO(b/254783802): consolidate this with <popup-container> */
 .popup-container {
   background: white;
   border: 1px solid var(--lit-neutral-600);
-  box-shadow: rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-              rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-              rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+  box-shadow: var(--lit-box-shadow);
+}
+
+.nowrap {
+  white-space: nowrap;
 }

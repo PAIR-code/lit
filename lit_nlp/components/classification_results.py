@@ -15,7 +15,7 @@
 """An interpreter for analyzing classification results."""
 
 import numbers
-from typing import Optional, Sequence
+from typing import cast, Optional, Sequence
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -113,25 +113,26 @@ class ClassificationInterpreter(lit_components.Interpreter):
 
         margin = get_margin_for_input(
             config[key] if (config and key in config) else None, inp)
+        field_spec = cast(types.MulticlassPreds, output_spec[key])
         scores = model_outputs[i][key]
         pred_idx = get_classifications(
-            [scores], output_spec[key], [margin])[0]
-        pred_class = output_spec[key].vocab[pred_idx]
+            [scores], field_spec, [margin])[0]
+        pred_class = field_spec.vocab[pred_idx]
         correct = None
         # If there is ground truth information, calculate error and squared
         # error.
-        if (output_spec[key].parent and
-            output_spec[key].parent in inp):
-          correct = pred_class == inp[output_spec[key].parent]
+        if (field_spec.parent and field_spec.parent in inp):
+          correct = pred_class == inp[field_spec.parent]
 
         result = dtypes.ClassificationResult(scores, pred_class, correct)
         input_result[key] = result
       results.append(input_result)
     return results
 
-  def is_compatible(self, model: lit_model.Model) -> bool:
-    output_spec = model.output_spec()
-    return True if self._find_supported_pred_keys(output_spec) else False
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    del dataset  # Unused during model classification
+    return lit_utils.spec_contains(model.output_spec(), types.MulticlassPreds)
 
   def _find_supported_pred_keys(self, output_spec: types.Spec) -> list[str]:
     return lit_utils.find_spec_keys(output_spec, types.MulticlassPreds)

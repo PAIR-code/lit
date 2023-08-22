@@ -21,31 +21,29 @@ import {customElement, property} from 'lit/decorators';
 import {classMap} from 'lit/directives/class-map';
 import {computed, observable} from 'mobx';
 
-import {AnnotationCluster} from '../lib/dtypes';
 import {ReactiveElement} from '../lib/elements';
 import {DiffMode, getTextDiff, TextDiff} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {GeneratedTextCandidate} from '../lib/types';
+import {ScoredTextCandidates} from '../lib/dtypes';
 
 import {styles} from './generated_text_vis.css';
-
-type SupportedReferences = AnnotationCluster | GeneratedTextCandidate;
 
 /** Generated text display, with optional diffs. */
 @customElement('generated-text-vis')
 export class GeneratedTextVis extends ReactiveElement {
-  /* Data binding */
-  @observable @property({type: String}) fieldName?: string;
-  @observable @property({type: Array}) candidates: GeneratedTextCandidate[] = [];
-  @observable @property({type: String}) referenceFieldName?: string;
-  @observable @property({type: Array}) referenceTexts: SupportedReferences[] = [];
+  // Data bindings used in computed properties.
+  @observable @property({type: Array}) candidates: ScoredTextCandidates = [];
+  @observable @property({type: Array}) referenceTexts: ScoredTextCandidates = [];
   // Optional model scores for the target texts.
   @observable @property({type: Array}) referenceModelScores: number[] = [];
-
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
-  @observable @property({type: Boolean}) highlightMatch: boolean = false;
   @observable @property({type: Number}) selectedIdx = 0;
   @observable @property({type: Number}) selectedRefIdx = 0;
+
+  // Data bindings only used in the render loop.
+  @property({type: String}) fieldName?: string;
+  @property({type: String}) referenceFieldName?: string;
+  @property({type: Boolean}) highlightMatch = false;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -60,8 +58,8 @@ export class GeneratedTextVis extends ReactiveElement {
 
   @computed
   get showTargetScoreColumn() {
-    return this.referenceTexts.filter(candidate => Array.isArray(candidate) &&
-                                      candidate[1] != null).length > 0;
+    return this.referenceTexts.filter(candidate => candidate[1] != null)
+               .length > 0;
   }
 
   @computed
@@ -71,15 +69,13 @@ export class GeneratedTextVis extends ReactiveElement {
 
   @computed
   get textDiff(): TextDiff|undefined {
-    if (this.referenceTexts == null) return;
-    if (this.candidates[this.selectedIdx] == null) return;
+    if (this.referenceTexts === undefined) return;
+    if (this.candidates[this.selectedIdx] === undefined) return;
     if (this.diffMode === DiffMode.NONE) return;
     // Actually compute diffs - first get the selected output/reference.
     const outputText = this.candidates[this.selectedIdx][0];
     const byWord = (this.diffMode === DiffMode.WORD);
-    const reference = this.referenceTexts[this.selectedRefIdx];
-    const referenceText =
-        Array.isArray(reference) ? reference[0] : reference.label;
+    const referenceText = this.referenceTexts[this.selectedRefIdx][0];
     return getTextDiff(referenceText, outputText, byWord);
   }
 
@@ -131,13 +127,12 @@ export class GeneratedTextVis extends ReactiveElement {
   }
 
   renderReferences() {
-    const renderedReferences = this.referenceTexts.map((reference, i) => {
-      const referenceText =
-          Array.isArray(reference) ? reference[0] : reference.label;
-      const formattedText = this.textDiff != null && i === this.selectedRefIdx ?
-          this.renderDiffString(this.textDiff.inputStrings,
-                                this.textDiff.equal) :
-          referenceText;
+    const renderedReferences = this.referenceTexts.map((candidate, i) => {
+      const formattedText =
+          this.textDiff !== undefined && i === this.selectedRefIdx ?
+          this.renderDiffString(
+              this.textDiff.inputStrings, this.textDiff.equal) :
+              candidate[0];
       const classes = classMap({
         'token-chip-label': true,
         'candidate-row': true,
@@ -156,7 +151,7 @@ export class GeneratedTextVis extends ReactiveElement {
           `: null}
           ${this.showTargetScoreColumn ? html`
             <div class='reference-score' title="Reference score">
-              ${(reference as GeneratedTextCandidate)[1]?.toFixed(3) ?? null}
+              ${candidate[1]?.toFixed(3) ?? null}
             </div>
           ` : null}
           <div class='candidate-text'>${formattedText}</div>

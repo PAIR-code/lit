@@ -1,19 +1,23 @@
 import 'jasmine';
-import {LitElement} from 'lit';
-import {FacetingControl, FacetsChange} from './faceting_control';
 
 import {Checkbox} from '@material/mwc-checkbox';
+import {LitElement} from 'lit';
+
 import {LitApp} from '../core/app';
 import {LitCheckbox} from '../elements/checkbox';
+import {PopupContainer} from '../elements/popup_container';
+import {LitTooltip} from '../elements/tooltip';
 import {mockMetadata} from '../lib/testing_utils';
 import {AppState, DataService, GroupService} from '../services/services';
+
+import {FacetingControl, FacetsChange} from './faceting_control';
 
 
 describe('faceting control test', () => {
   let facetCtrl: FacetingControl;
+  let popupContainer: PopupContainer;
   let facetButton: HTMLButtonElement;
   let configPanel: HTMLDivElement;
-  let closeButton: HTMLElement;
 
   beforeEach(async () => {
     // Set up.
@@ -31,12 +35,9 @@ describe('faceting control test', () => {
     document.body.appendChild(facetCtrl);
     await facetCtrl.updateComplete;
 
-    facetButton =
-        facetCtrl.renderRoot.children[0].children[0] as HTMLButtonElement;
-    configPanel =
-        facetCtrl.renderRoot.children[0].children[2] as HTMLDivElement;
-    closeButton =
-        configPanel.querySelector('.icon-button') as HTMLElement;
+    popupContainer = facetCtrl.renderRoot.children[0] as PopupContainer;
+    facetButton = popupContainer.children[0].children[0] as HTMLButtonElement;
+    configPanel = popupContainer.children[1] as HTMLDivElement;
   });
 
   afterEach(() => {
@@ -51,52 +52,18 @@ describe('faceting control test', () => {
   it('comprises a div with a button, span, and div as children', () => {
     expect(facetCtrl.renderRoot.children.length).toEqual(1);
 
-    const innerDiv = facetCtrl.renderRoot.children[0];
-    expect(innerDiv instanceof HTMLDivElement).toBeTrue();
-    expect((innerDiv as HTMLDivElement).className).toEqual('faceting-info');
-    expect(innerDiv.children.length).toEqual(3);
+    expect(popupContainer instanceof PopupContainer).toBeTrue();
+    expect(popupContainer.children.length).toEqual(2);
 
-    const [facetButton, facetList, configPanel] = innerDiv.children;
-    expect(facetButton instanceof HTMLButtonElement).toBeTrue();
-    expect(facetList instanceof HTMLSpanElement).toBeTrue();
-    expect((facetList as HTMLSpanElement).className).toEqual(' active-facets ');
+    const [facetingInfo, configPanel] = popupContainer.children;
+    expect(facetingInfo instanceof HTMLDivElement).toBeTrue();
+    expect((facetingInfo as HTMLDivElement).className).toEqual('faceting-info');
+    const [facetButton, facetList] = facetingInfo.children;
+    expect(facetButton instanceof LitTooltip).toBeTrue();
+    expect(facetList instanceof HTMLDivElement).toBeTrue();
+    expect((facetList as HTMLDivElement).className).toEqual(' active-facets ');
     expect(configPanel instanceof HTMLDivElement).toBeTrue();
-    expect((configPanel as HTMLDivElement).className)
-        .toEqual('config-panel popup-container');
-  });
-
-  it('shows configPanel after facet button click', async () => {
-    facetButton.click();
-    await facetCtrl.updateComplete;
-    expect(configPanel.style.display).toEqual('flex');
-    expect(configPanel.style.visibility).toEqual('visible');
-  });
-
-  it('hides configPanel after second facet button click', async () => {
-    facetButton.click();
-    await facetCtrl.updateComplete;
-    facetButton.click();
-    await facetCtrl.updateComplete;
-    expect(configPanel.style.display).toEqual('none');
-    expect(configPanel.style.visibility).toEqual('hidden');
-  });
-
-  it('hides configPanel after closeButton click', async () => {
-    facetButton.click();
-    await facetCtrl.updateComplete;
-    closeButton.click();
-    await facetCtrl.updateComplete;
-    expect(configPanel.style.display).toEqual('none');
-    expect(configPanel.style.visibility).toEqual('hidden');
-  });
-
-  it('hides configPanel by clicking anything else', async () => {
-    facetButton.click();
-    await facetCtrl.updateComplete;
-    document.body.click();
-    await facetCtrl.updateComplete;
-    expect(configPanel.style.display).toEqual('none');
-    expect(configPanel.style.visibility).toEqual('hidden');
+    expect((configPanel as HTMLDivElement).className).toEqual('config-panel');
   });
 
   it('emits a custom facets-change event after checkbox click', async () => {

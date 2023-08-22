@@ -14,7 +14,7 @@
 # ==============================================================================
 """kmeans clustering of salience weights."""
 
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
@@ -33,10 +33,11 @@ REPRESENTATION_KEY = 'representations'
 TOP_TOKEN_KEY = 'top_tokens'
 
 # Config items.
-N_CLUSTERS_KEY = 'Number of Clusters'
-N_TOP_TOKENS_KEY = 'Number of Top Tokens'
+N_CLUSTERS_KEY = 'Number of clusters'
+TOP_K_TOKENS_KEY = 'Number of top salient tokens to consider per data point'
+N_TOKENS_TO_DISPLAY_KEY = 'Number of tokens to display per cluster'
 SALIENCE_MAPPER_KEY = 'Salience Mapper'
-SEED_KEY = 'Clustering Seed'
+SEED_KEY = 'Clustering seed'
 
 # Config items not to need to be surfaced in the controls for this interpreter.
 REUSE_CLUSTERING = 'reuse_clustering'
@@ -45,7 +46,7 @@ REUSE_CLUSTERING = 'reuse_clustering'
 class SalienceClustering(lit_components.Interpreter):
   """Salience map clustering."""
 
-  def __init__(self, salience_mappers: Dict[str, lit_components.Interpreter]):
+  def __init__(self, salience_mappers: dict[str, lit_components.Interpreter]):
     self.salience_mappers = salience_mappers
     self.kmeans = {}
     self.vocab_lookup = {}
@@ -53,7 +54,7 @@ class SalienceClustering(lit_components.Interpreter):
 
   def _build_vocab(
       self,
-      token_saliencies: List[JsonDict]) -> Tuple[Dict[str, int], List[str]]:
+      token_saliencies: list[JsonDict]) -> tuple[dict[str, int], list[str]]:
     """Build a vocabulary from the given token saliencies.
 
     This creates a mapping from word type to index in the vocabulary taken from
@@ -82,7 +83,8 @@ class SalienceClustering(lit_components.Interpreter):
     return vocab_lookup, vocab
 
   def _convert_to_bow_vector(self, token_weights: JsonDict,
-                             vocab_lookup: Dict[str, int]) -> np.ndarray:
+                             vocab_lookup: dict[str, int],
+                             top_k: int) -> np.ndarray:
     """Converts the given variable length-vector into a fixed-length vector.
 
     This function creates a zero vector of the length of the vocabulary and
@@ -91,6 +93,7 @@ class SalienceClustering(lit_components.Interpreter):
     Args:
       token_weights: Mapping from tokens to their salience weights.
       vocab_lookup: Mapping from word type to its index in the vocabulary.
+      top_k: Number of tokens to be considered to represent each sentence.
 
     Returns:
       Vector of the size of the vocabulary that contains salience weights at
@@ -98,14 +101,29 @@ class SalienceClustering(lit_components.Interpreter):
     """
     vocab_vector = np.zeros((len(vocab_lookup),))
 
-    for token, token_weight in token_weights.items():
-      if token in vocab_lookup:
-        vocab_vector[vocab_lookup[token]] = token_weight
+    # Find k-th largest weight value
+    sorted_token_weights = list(
+        sorted(token_weights.items(), key=lambda x: abs(x[1]), reverse=True))
+    index_end = min(top_k, len(sorted_token_weights))
+    weight_threshold = abs(sorted_token_weights[index_end - 1][1])
+
+    # Check if there exist ties
+    for token_weight in sorted_token_weights[index_end:]:
+      if abs(token_weight[1]) == weight_threshold:
+        index_end += 1
+      else:
+        break
+
+    # Consider only top-k (including ties)
+    for token_weight in sorted_token_weights[:index_end]:
+      if token_weight[0] in vocab_lookup:
+        vocab_vector[vocab_lookup[token_weight[0]]] = token_weight[1]
     return vocab_vector
 
   def _compute_fixed_length_representation(
-      self, token_saliencies: List[JsonDict],
-      vocab_lookup: Dict[str, int]) -> List[Dict[str, np.ndarray]]:
+      self, token_saliencies: list[JsonDict],
+      vocab_lookup: dict[str, int],
+      top_k: int) -> list[dict[str, np.ndarray]]:
     """Compute a fixed-length representation from the variable-length salience.
 
     The representation is a simple vocabulary vector with salience weights as
@@ -119,6 +137,8 @@ class SalienceClustering(lit_components.Interpreter):
         objects. This is the result of a post-hoc explanation method, such as
         gradient l2.
       vocab_lookup: Mapping from word type to its index in the vocabulary.
+      top_k: Number of tokens to be considered to represent each sentence. They
+        will be determined based on their saliency scores.
 
     Returns:
       List of one mapping per example. Every element maps a salience field to
@@ -136,7 +156,7 @@ class SalienceClustering(lit_components.Interpreter):
                                      key=abs)
 
         representation = self._convert_to_bow_vector(token_weights,
-                                                     vocab_lookup)
+                                                     vocab_lookup, top_k)
         # Normalize to unit length.
         representation = np.asarray(representation) / np.linalg.norm(
             representation)
@@ -144,22 +164,12 @@ class SalienceClustering(lit_components.Interpreter):
       representations.append(per_field_results)
     return representations
 
-  def run(self,
-          inputs: List[JsonDict],
-          model: lit_model.Model,
-          dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None):
-    """Run this component, given a model and input(s)."""
-    raise NotImplementedError(
-        'Not implemented. Call run_with_metadata() directly.')
-
-  def run_with_metadata(
+  def run(
       self,
-      indexed_inputs: Sequence[IndexedInput],
+      inputs: Sequence[JsonDict],
       model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[List[JsonDict]] = None,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[JsonDict]:
     """Run this component, given a model and input(s).
 
@@ -168,7 +178,7 @@ class SalienceClustering(lit_components.Interpreter):
     vocabulary will be ignored.
 
     Args:
-      indexed_inputs: Inputs to cluster.
+      inputs: Inputs to cluster.
       model: Model that provides salience maps.
       dataset: Dataset to compute salience maps for.
       model_outputs: Precomputed model outputs.
@@ -183,14 +193,33 @@ class SalienceClustering(lit_components.Interpreter):
         `TOP_TOKEN_KEY`: Top tokens are the tokens that have highest mean
           salience over all examples. They are sorted according to their
           salience.
+
+    Raises:
+      RuntimeError: Salience interpreter incompatible with model and dataset
+      TypeError: config is not provided
+      ValueError: config["Salience Mapper"] is not provided
     """
-    config = config or {}
+
+    if not config:
+      raise TypeError('config must be provided')
+
+    salience_key: Optional[str] = config.get(SALIENCE_MAPPER_KEY)
+    if not salience_key:
+      raise ValueError(f'config[{SALIENCE_MAPPER_KEY}] must be provided')
+
+    if not (salience_interpreter := self.salience_mappers.get(salience_key)):
+      raise ValueError(f'No interpreter registered for ${salience_key}.')
+
+    if not salience_interpreter.is_compatible(model=model, dataset=dataset):
+      raise RuntimeError(
+          f'The {salience_key} interpreter is incompatible with this model and'
+          ' dataset pair.'
+      )
+
     # If no specific inputs provided, use the entire dataset.
-    inputs_to_use = indexed_inputs or dataset.examples
-    token_saliencies = self.salience_mappers[
-        config[SALIENCE_MAPPER_KEY]].run_with_metadata(inputs_to_use, model,
-                                                       dataset, model_outputs,
-                                                       config)
+    inputs_to_use = inputs or dataset.examples
+    token_saliencies = salience_interpreter.run(
+        inputs_to_use, model, dataset, model_outputs, config)
 
     if not token_saliencies:
       return None
@@ -207,16 +236,20 @@ class SalienceClustering(lit_components.Interpreter):
       except NotImplementedError:
         self.vocab_lookup, self.vocab = self._build_vocab(token_saliencies)
 
+    top_k = int(config.get(TOP_K_TOKENS_KEY,
+                           self.config_spec()[TOP_K_TOKENS_KEY].default))
+
     representations = self._compute_fixed_length_representation(
-        token_saliencies, self.vocab_lookup)
+        token_saliencies, self.vocab_lookup, top_k)
 
     cluster_ids = {}
     salience_field_to_representations = {}
     salience_field_to_top_tokens = {}
 
     for salience_field in salience_fields:
-      weight_matrix = np.vstack(
-          representation[salience_field] for representation in representations)
+      weight_matrix = np.vstack([
+          representation[salience_field] for representation in representations
+      ])
       n_clusters = int(
           config.get(N_CLUSTERS_KEY,
                      self.config_spec()[N_CLUSTERS_KEY].default))
@@ -247,12 +280,14 @@ class SalienceClustering(lit_components.Interpreter):
 
         # <float32>[vocab size]
         mean_weight_matrix = weight_matrix_of_cluster.mean(axis=0)
+        num_tokens_to_display = int(
+            config.get(N_TOKENS_TO_DISPLAY_KEY,
+                       self.config_spec()[N_TOKENS_TO_DISPLAY_KEY].default))
         top_indices = (
-            mean_weight_matrix.argsort()[::-1][:int(
-                config.get(N_TOP_TOKENS_KEY,
-                           self.config_spec()[N_TOP_TOKENS_KEY].default))])
+            np.abs(mean_weight_matrix).argsort()[::-1][:num_tokens_to_display])
         top_tokens = [
-            (self.vocab[i], mean_weight_matrix[i]) for i in top_indices
+            (self.vocab[i], mean_weight_matrix[i])
+            for i in top_indices if mean_weight_matrix[i] != 0.0
         ]
         salience_field_to_top_tokens[salience_field].append(top_tokens)
 
@@ -262,6 +297,12 @@ class SalienceClustering(lit_components.Interpreter):
         TOP_TOKEN_KEY: salience_field_to_top_tokens,
     }
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    return any(
+        interp.is_compatible(model=model, dataset=dataset)
+        for interp in self.salience_mappers.values())
+
   def config_spec(self) -> types.Spec:
     return {
         SALIENCE_MAPPER_KEY:
@@ -269,8 +310,10 @@ class SalienceClustering(lit_components.Interpreter):
                 required=True, vocab=list(self.salience_mappers.keys())),
         N_CLUSTERS_KEY:
             types.Scalar(min_val=2, max_val=100, default=10, step=1),
-        N_TOP_TOKENS_KEY:
+        TOP_K_TOKENS_KEY:
             types.Scalar(min_val=1, max_val=20, default=5, step=1),
+        N_TOKENS_TO_DISPLAY_KEY:
+            types.Scalar(min_val=5, max_val=50, default=10, step=1),
         SEED_KEY:
             types.TextSegment(default='0'),
     }

@@ -15,31 +15,33 @@
  * limitations under the License.
  */
 
-import '../elements/expansion_panel';
-
-import {html} from 'lit';
+import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
+import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
-import {SortableTemplateResult, TableData} from '../elements/table';
+import {TableData} from '../elements/table';
+import {TokenWithWeight} from '../elements/token_chips';
 import {CategoryLabel, FieldMatcher, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, Input, ModelInfoMap} from '../lib/types';
+import {CallConfig, IndexedInput, ModelInfoMap} from '../lib/types';
 import {cloneSpec, createLitType, findSpecKeys} from '../lib/utils';
+import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {ColumnData} from '../services/data_service';
 import {DataService} from '../services/services';
 
 import {styles} from './salience_clustering_module.css';
 
 const SALIENCE_MAPPER_KEY = 'Salience Mapper';
-const N_CLUSTERS_KEY = 'Number of Clusters';
+const N_CLUSTERS_KEY = 'Number of clusters';
+const TOP_K_TOKENS_KEY =
+    'Number of top salient tokens to consider per data point';
+const N_TOKENS_TO_DISPLAY_KEY = 'Number of tokens to display per cluster';
 const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'Salience Clustering';
-const RESULT_TOP_TOKENS = 'Top Tokens';
 const REUSE_CLUSTERING = 'reuse_clustering';
 
 interface ModuleState {
@@ -50,33 +52,22 @@ interface ModuleState {
 }
 
 // Aggregated result of the clustering interpreter.
+interface Cluster {
+  exampleIds: string[];
+  topTokens: TokenWithWeight[];
+}
+
+interface ClusterInfos {
+  [clusterId: number]: Cluster;
+}
+
 interface ClusteringState {
-  clusterInfos: {[gradKey: string]: ClusterInfo[]};
-  topTokenInfosByClusters: {[gradKey: string]: TopTokenInfosByCluster[]};
+  clusterInfosByField: {[gradKey: string]: ClusterInfos};
   isLoading: boolean;
+  colorMap: {[gradKey: string]: SalienceCmap};
+  clusteringConfig: {[gradKey: string]: CallConfig};
 }
 
-// Clustering result for a single piece of text.
-interface ClusterInfo {
-  example: Input;
-  clusterId: number;
-}
-
-// Top token information per cluster, sorted by the ascending by cluster IDs.
-interface TopTokenInfosByCluster {
-  topTokenInfos: TopTokenInfo[];
-}
-
-// Data for 1 top token instance.
-interface TopTokenInfo {
-  token: string;
-  weight: number;
-}
-
-// Indicators which expandable areas are open or closed.
-interface VisToggles {
-  [name: string]: boolean;
-}
 
 /**
  * A LIT module that renders salience clustering results.
@@ -92,27 +83,30 @@ export class SalienceClusteringModule extends LitModule {
   </salience-clustering-module>`;
 
   private readonly dataService = app.getService(DataService);
-  private runCount: number = 0;
-  private statusMessage: string = '';
+  private runCount = 0;
+  private statusMessage = '';
 
   static override get styles() {
     return [sharedStyles, styles];
   }
 
-  // Mapping from salience mapper to clustering results.
-  @observable private state: ModuleState = {
-      dataColumns: [],
-      clusteringConfig: {},
-      salienceConfigs: {},
-      clusteringState: {
-        clusterInfos: {},
-        topTokenInfosByClusters: {},
-        isLoading: false,
-      },
-    };
+  // For color legend
+  private readonly cmapGamma: number = 2.0;
+  private readonly signedCmap = new SignedSalienceCmap(this.cmapGamma);
+  private readonly unsignedCmap = new UnsignedSalienceCmap(this.cmapGamma);
 
-  @observable private readonly expanded: VisToggles = {
-    [RESULT_TOP_TOKENS]: true,
+  // Mapping from salience mapper to clustering results.
+  @observable
+  private state: ModuleState = {
+    dataColumns: [],
+    clusteringConfig: {},
+    salienceConfigs: {},
+    clusteringState: {
+      clusterInfosByField: {},
+      isLoading: false,
+      colorMap: {},
+      clusteringConfig: {},
+    },
   };
 
   override firstUpdated() {
@@ -121,9 +115,10 @@ export class SalienceClusteringModule extends LitModule {
       clusteringConfig: {},
       salienceConfigs: {},
       clusteringState: {
-        clusterInfos: {},
-        topTokenInfosByClusters: {},
+        clusterInfosByField: {},
         isLoading: false,
+        colorMap: {},
+        clusteringConfig: {},
       },
     };
 
@@ -132,7 +127,6 @@ export class SalienceClusteringModule extends LitModule {
 
   private async runInterpreter() {
     const salienceMapper = this.state.clusteringConfig[SALIENCE_MAPPER_KEY];
-    this.state.clusteringState.clusterInfos = {};
     const inputs = this.selectionService.selectedOrAllInputData;
     if (!this.canRunClustering) {
       return;
@@ -173,45 +167,58 @@ export class SalienceClusteringModule extends LitModule {
     };
 
     for (const gradKey of Object.keys(clusteringResult['cluster_ids'])) {
-      // Store per-example cluster IDs.
-      const clusterInfos: ClusterInfo[] = [];
-      const clusterIds = clusteringResult['cluster_ids'][gradKey];
-      const featName = 'Cluster IDs: ' +
-          `${this.state.clusteringConfig[SALIENCE_MAPPER_KEY]}, ` +
-          `${this.state.clusteringConfig[N_CLUSTERS_KEY]}, ${gradKey}, ` +
-          `${this.runCount}`;
-      const dataMap: ColumnData = new Map();
-
-      for (let i = 0; i < clusterIds.length; i++) {
-        const clusterInfo: ClusterInfo = {
-            example: inputs[i].data, clusterId: clusterIds[i]};
-        clusterInfos.push(clusterInfo);
-        dataMap.set(inputs[i].id, clusterInfo.clusterId.toString());
+      this.state.clusteringState.clusterInfosByField[gradKey] = {};
+      const numClusters =
+        Math.max(...clusteringResult['cluster_ids'][gradKey])+1;
+      for (let i = 0; i < numClusters; i++) {
+        const cluster: Cluster = {exampleIds: [], topTokens: []};
+        this.state.clusteringState.clusterInfosByField[gradKey][i] = cluster;
       }
-      this.state.clusteringState.clusterInfos[gradKey] = clusterInfos;
+      // Store per-example cluster IDs.
+      const clusterIds = clusteringResult['cluster_ids'][gradKey];
+      const numDataPoints = clusterIds.length;
+      const featName = 'saliency cluster index (' +
+          `${this.state.clusteringConfig[SALIENCE_MAPPER_KEY]}, ${gradKey}, ` +
+          `${this.state.clusteringConfig[N_CLUSTERS_KEY]}, ` +
+          `${this.state.clusteringConfig[TOP_K_TOKENS_KEY]}, ` +
+          `${this.runCount})`;
+      const dataMap: ColumnData = new Map();
+      this.state.clusteringState.clusteringConfig[gradKey] = {
+          ...this.state.clusteringConfig};
+
+      for (let i = 0; i < numDataPoints; i++) {
+        const exampleId = inputs[i].id;
+        const clusterId = clusterIds[i];
+        this.state.clusteringState.clusterInfosByField[gradKey][clusterId]
+          .exampleIds.push(exampleId);
+        dataMap.set(inputs[i].id, clusterId.toString());
+      }
       const localGetValueFn = (input: IndexedInput) =>
           getValueFn(gradKey, input);
       this.dataService.addColumn(
           dataMap, SALIENCE_CLUSTERING_INTERPRETER_NAME, featName, dataType,
           'Interpreter', localGetValueFn);
-      this.statusMessage = `New column added: ${featName}.`;
+      this.statusMessage = `Clustered ${numDataPoints} datapoints ` +
+          `(Generated column name: ${featName}).`;
 
       // Store top tokens.
-      this.state.clusteringState.topTokenInfosByClusters[gradKey] = [];
       const topTokenInfosByClusters = clusteringResult['top_tokens'][gradKey];
       const clusterCount = topTokenInfosByClusters.length;
 
       for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
-        const topTokenInfosByCluster: TopTokenInfosByCluster = {
-            topTokenInfos: []};
-
         for (const topTokenTuple of topTokenInfosByClusters[clusterId]) {
-          topTokenInfosByCluster.topTokenInfos.push(
-              {token: topTokenTuple[0], weight: topTokenTuple[1]});
+            this.state.clusteringState.clusterInfosByField[gradKey][clusterId]
+              .topTokens.push(
+                {token: topTokenTuple[0], weight: topTokenTuple[1]});
         }
-        this.state.clusteringState.topTokenInfosByClusters[gradKey].push(
-            topTokenInfosByCluster);
       }
+
+      // Determine color map.
+      const interpreters = this.appState.metadata.interpreters;
+      const salienceSpecInfo =
+          interpreters[salienceMapper].metaSpec['saliency'] as TokenSalience;
+      this.state.clusteringState.colorMap[gradKey] =
+          !!salienceSpecInfo.signed ? this.signedCmap : this.unsignedCmap;
     }
     this.runCount++;
   }
@@ -223,127 +230,67 @@ export class SalienceClusteringModule extends LitModule {
         <lit-spinner size=${24} color="var(--app-secondary-color)">
         </lit-spinner>
       </div>`;
-    // clang format on
+    // clang-format on
   }
 
-  renderDataTable() {
-    const renderSingleGradKeyClusterInfos =
-        (gradKey: string, clusterInfos: ClusterInfo[]) => {
-          const rows: TableData[] = clusterInfos.map((clusterInfo) => {
-            const row: string[] = [];
-            for (const dataColumn of this.state.dataColumns) {
-              row.push(clusterInfo.example[dataColumn]);
-            }
-            row.push(clusterInfo.clusterId.toString());
-            return row;
-          });
+  // Render a table that lists clusters with their top tokens.
+  private renderSingleGradKeyTopTokenInfos(
+      gradKey: string, clusterInfosByFields: ClusterInfos,
+      colorMap: SalienceCmap) {
+    // TODO(b/268221058): Compute number of data points per cluster from backend
+    // clang-format off
+    const rowsByClusters: TableData[] =
+      Object.entries(clusterInfosByFields).map(([clusterId, clusterInfo])  => {
+        return [
+          Number(clusterId),
+          clusterInfo.exampleIds.length,
+          html`
+          <lit-token-chips
+            .tokensWithWeights=${clusterInfo.topTokens}
+            .cmap=${colorMap}>
+          </lit-token-chips>`
+        ];
+      });
+    // clang-format on
+    const onSelectClusters = (clusterIdxs: number[]) => {
+      const dataPointIds = Object.entries(clusterInfosByFields)
+        .flatMap(([k, v]) =>
+          clusterIdxs.includes(Number(k)) ? v.exampleIds : []);
+      this.selectionService.selectIds(dataPointIds, this);
+    };
 
-          // clang-format off
-          return html`
-            <div class="grad-key-row">
-              <div class="grad-key-label">${gradKey}</div>
-              <lit-data-table
-                .columnNames=${
-                    [...this.state.dataColumns, 'cluster ID']}
-                .data=${rows}
-                searchEnabled
-                selectionEnabled
-                paginationEnabled
-              ></lit-data-table>
-            </div>`;
-          // clang format on
-        };
-
-    const renderClusterInfos =
-        (gradKeyClusterInfos: {[name: string]: ClusterInfo[]}) => {
-          const gradKeys = Object.keys(gradKeyClusterInfos);
-          // clang-format off
-          return html`
-              ${
-              gradKeys.map(
-                  gradKey => renderSingleGradKeyClusterInfos(
-                      gradKey, gradKeyClusterInfos[gradKey]))}
-              ${
-              this.state.clusteringState.isLoading ? this.renderSpinner() :
-                                                     null}`;
-          // clang format on
-        };
-
-    return renderClusterInfos(this.state.clusteringState.clusterInfos);
-  }
-
-  // Render a table that contains all top tokens and their weights per cluster.
-  private renderSingleGradKeyTopTokenInfos(gradKey: string,
-      topTokenInfosByClusters: TopTokenInfosByCluster[]) {
-    const clusterCount = topTokenInfosByClusters.length;
-    const maxTopTokenCount = Math.max(...topTokenInfosByClusters.map(
-        topTokenInfosByCluster => topTokenInfosByCluster.topTokenInfos.length
-    ));
-
-    const columnNames: string[] = [];
-
-    for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
-      columnNames.push(`Cluster ${clusterId}`);
-    }
-
-    const rows: TableData[] = [];
-    const tokenWeightStyle = styleMap({
-      'display': 'flex',
-      'flex-direction': 'row',
-      'justify-content': 'space-between',
-      'width': '100%',
-    });
-
-    for (let exampleIdx = 0; exampleIdx < maxTopTokenCount;
-          exampleIdx++) {
-      const row: SortableTemplateResult[] = [];
-
-      for (let clusterId = 0; clusterId < clusterCount; clusterId++) {
-        const topTokenInfos = topTokenInfosByClusters[clusterId];
-        if (topTokenInfos.topTokenInfos.length < maxTopTokenCount) {
-          row.push({template: html``, value: 0});
-        } else {
-          const {token, weight} = topTokenInfos.topTokenInfos[exampleIdx];
-          row.push({
-            template: html`
-              <div style=${tokenWeightStyle}>
-                <span>${token}</span>
-                <span>(${weight.toFixed(2)})</span>
-              </div>
-            `,
-            value: weight
-          });
-        }
-      }
-      rows.push(row);
-    }
+    const numTokensPerCluster =
+        this.state.clusteringState
+            .clusteringConfig[gradKey][N_TOKENS_TO_DISPLAY_KEY];
 
     // clang-format off
     return html`
       <div class="grad-key-row">
         <div class="grad-key-label">${gradKey}</div>
         <lit-data-table
-          .columnNames=${columnNames}
-          .data=${rows}
-          searchEnabled
+          .columnNames=${[
+            {'name':'Cluster index', 'width': 125},
+            {'name': 'N', 'width': 75},
+            `Tokens with high average saliency (up to ${numTokensPerCluster})`
+          ]}
+          .data=${rowsByClusters}
           selectionEnabled
-          paginationEnabled
+          .onSelect=${onSelectClusters}
         ></lit-data-table>
       </div>`;
-    // clang format on
+    // clang-format on
   }
 
   renderTopTokens() {
-    const gradKeyTopTokenInfos =
-        this.state.clusteringState.topTokenInfosByClusters;
-    const gradKeys = Object.keys(gradKeyTopTokenInfos);
+    const {clusterInfosByField, colorMap} =
+        this.state.clusteringState;
     // clang-format off
     return html`
-      ${gradKeys.map(
-          gradKey => this.renderSingleGradKeyTopTokenInfos(
-              gradKey, gradKeyTopTokenInfos[gradKey]))}
+      ${Object.entries(clusterInfosByField).map(
+        ([gradKey, clusterInfo]) => this.renderSingleGradKeyTopTokenInfos(
+          gradKey, clusterInfo, colorMap[gradKey]))}
       ${this.state.clusteringState.isLoading ? this.renderSpinner() : null}`;
-    // clang format on
+    // clang-format on
   }
 
   private getSalienceInterpreterNames() {
@@ -363,7 +310,7 @@ export class SalienceClusteringModule extends LitModule {
 
   renderControlsAndResults() {
     if (this.state.clusteringState == null ||
-        this.state.clusteringState.clusterInfos == null) {
+        this.state.clusteringState.clusterInfosByField == null) {
       return html`<div>Nothing to show.</div>`;
     }
 
@@ -379,7 +326,6 @@ export class SalienceClusteringModule extends LitModule {
           this.state.salienceConfigs[name] = settings;
         };
 
-    // clang-format off
     const renderInterpreterControls = (name: string) => {
       const spec = this.appState.metadata.interpreters[name].configSpec;
       const clonedSpec = cloneSpec(spec);
@@ -394,6 +340,7 @@ export class SalienceClusteringModule extends LitModule {
       if (Object.keys(clonedSpec).length === 0) {
         return;
       }
+      // clang-format off
       return html`
         <lit-interpreter-controls
           .spec=${clonedSpec}
@@ -404,30 +351,22 @@ export class SalienceClusteringModule extends LitModule {
                   moduleControlsApplyCallback :
                   methodControlsApplyCallback}>
         </lit-interpreter-controls>`;
+      // clang-format on
     };
     // Always show the clustering config first.
-    const interpreters: string[] = [SALIENCE_CLUSTERING_INTERPRETER_NAME,
-                                    ...this.getSalienceInterpreterNames()];
-    const expansionArea = (resultName: string) => {
-      let content = html``;
+    const interpreters: string[] = [
+      SALIENCE_CLUSTERING_INTERPRETER_NAME,
+      ...this.getSalienceInterpreterNames()
+    ];
 
-      if (resultName === RESULT_TOP_TOKENS) {
-        content = this.renderTopTokens();
-      }
-      return html`
-          <expansion-panel
-              .label=${resultName}
-              ?expanded=${this.expanded[resultName]}>
-            ${content}
-          </expansion-panel>`;
-    };
+    // clang-format off
     return html`
       <div class="controls-and-results-container">
         <div class="clustering-controls-container">
           ${interpreters.map(renderInterpreterControls)}
         </div>
         <div class="clustering-results-container">
-          ${expansionArea(RESULT_TOP_TOKENS)}
+          ${this.renderTopTokens()}
         </div>
       </div>`;
     // clang-format on
@@ -441,29 +380,57 @@ export class SalienceClusteringModule extends LitModule {
   private renderSelectionWarning() {
     // clang-format off
     return html`
-      <div class="selection-warning">
+      <span class="selection-warning">
         Please select no datapoint (for entire dataset) or >= 2 datapoints to
         compute clusters.
-      </div>`;
-    // clang format on
+      </span>`;
+    // clang-format on
+  }
+
+  private renderColorLegend(
+      colorName: string, colorMap: SalienceCmap, numBlocks: number) {
+    // clang-format off
+    return html`
+      <color-legend legendType=${LegendType.SEQUENTIAL}
+        label=${colorName}
+        .scale=${colorMap.asScale()}
+        numBlocks=${numBlocks}>
+      </color-legend>`;
+    // clang-format on
+  }
+
+  private renderColorLegends() {
+    // Determine which color maps are currently used.
+    const enabledColorMaps: {[key: string]: TemplateResult} = {};
+    for (const gradKey of Object.keys(this.state.clusteringState.colorMap)) {
+      if (this.state.clusteringState.colorMap[gradKey] === this.signedCmap) {
+        enabledColorMaps['Signed'] =
+            this.renderColorLegend('Signed', this.signedCmap, 7);
+      }
+      if (this.state.clusteringState.colorMap[gradKey] === this.unsignedCmap) {
+        enabledColorMaps['Unsigned'] =
+            this.renderColorLegend('Unsigned', this.unsignedCmap, 5);
+      }
+    }
+    return Object.values(enabledColorMaps);
   }
 
   override renderImpl() {
     // clang-format off
     return html`
-      <div class='module-container'>
-        <div class='module-results-area'>
+      <div class="module-container">
+        <div class="module-results-area">
           ${this.renderControlsAndResults()}
         </div>
         <div class="module-footer">
           <p class="module-status">
-            ${this.canRunClustering ? null : this.renderSelectionWarning()}
+            ${this.canRunClustering ? '' : this.renderSelectionWarning()}
+            ${this.statusMessage}
           </p>
-          <p class="module-status">${this.statusMessage}</p>
+          ${this.renderColorLegends()}
         </div>
       </div>`;
-    // clang format on
-
+    // clang-format on
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap) {

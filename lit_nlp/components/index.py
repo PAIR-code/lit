@@ -69,10 +69,10 @@ class Indexer(object):
     self._models = models
 
     # Create/Load indices.
-    for model_name, model_info in self._models.items():
+    for model_name, model in self._models.items():
       compatible_datasets = [
-          dname for dname, ds in self.datasets.items()
-          if model_info.spec().is_compatible_with_dataset(ds.spec())
+          dataset_name for dataset_name, dataset in self.datasets.items()
+          if model.is_compatible_with_dataset(dataset)
       ]
       for dataset in compatible_datasets:
         self._create_empty_indices(model_name, dataset)
@@ -130,7 +130,7 @@ class Indexer(object):
     """Create all indices for a single model."""
     model = self._models.get(model_name)
     assert model is not None, "Invalid model name."
-    examples = self.datasets[dataset_name].indexed_examples
+    examples = self.datasets[dataset_name].examples
     model_embeddings_names = utils.find_spec_keys(model.output_spec(),
                                                   lit_types.Embeddings)
     lookup_key = self._get_lookup_key(model_name, dataset_name)
@@ -158,7 +158,7 @@ class Indexer(object):
     # Cold start: Get embeddings for non-initialized settings.
     if self._initialize_new_indices:
       for res_ix, (result, example) in enumerate(
-          zip(model.predict_with_metadata(examples), examples)):
+          zip(model.predict(examples), examples)):
         for emb_name in embeddings_to_index:
           index_key = self._get_index_key(model_name, dataset_name, emb_name)
           # Initialize saving in the first iteration.
@@ -170,7 +170,7 @@ class Indexer(object):
           # Each item has an incrementing ID res_ix.
           self._indices[index_key].add_item(res_ix, result[emb_name])
         # Add item to lookup table.
-        self._example_lookup[lookup_key][res_ix] = example["data"]
+        self._example_lookup[lookup_key][res_ix] = example
 
       # Create the trees from the indices - using 10 as recommended by doc.
       for emb_name in embeddings_to_index:

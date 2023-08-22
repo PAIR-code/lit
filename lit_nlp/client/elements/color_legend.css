@@ -7,6 +7,14 @@
   overflow-y: hidden;
 }
 
+.legend-container.align-right {
+  justify-content: flex-end;
+}
+
+.legend-container mwc-icon {
+  vertical-align: -2px;
+}
+
 .legend-line {
   display: flex;
   flex-direction: row;
@@ -19,6 +27,9 @@
   margin: 2px;
   border: 1px solid gray;
   border-radius: 1px;
+  /* This helps to offset a rendering differential between
+   * tooltip and color blocks. */
+  transform: translateY(2px);
 }
 
 .legend-label {
@@ -43,19 +54,4 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--lit-neutral-800);
-}
-
-.palette-icon {
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
-  user-select: none;
-  color: var(--lit-neutral-700);
-}
-
-.icon-outlined {
-  font-family: 'Material Icons Outlined';
-  vertical-align: middle;
-  margin: 0;
 }

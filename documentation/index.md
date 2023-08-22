@@ -1,10 +1,11 @@
-# Language Interpretability Tool (LIT)
+# Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-09-08' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2022-12-02' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
-Welcome to the Language Interpretability Tool (🔥LIT)!
+Welcome to 🔥LIT, the Learning Interpretability Tool (formerly the Language
+Interpretability Tool)!
 
 If you want to jump in and start playing with the LIT UI, check out
 https://pair-code.github.io/lit/demos/ for links to our hosted demos.

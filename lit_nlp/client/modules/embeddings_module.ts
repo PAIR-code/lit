@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
+import '../elements/tooltip';
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
+import '@material/mwc-icon';
+
 import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -57,11 +60,19 @@ interface EmbeddingOptions {
 }
 
 const NN_INTERPRETER_NAME = 'nearest neighbors';
-// TODO(lit-dev): Make the number of nearest neighbors configurable in the UI.
+// TODO(b/272281218): Make the number of nearest neighbors configurable in the
+// UI.
 const DEFAULT_NUM_NEAREST = 10;
 
 // Pixel width and height of thumbnails for datapoints with image features.
 const SPRITE_THUMBNAIL_SIZE = 48;
+
+// TODO(b/272281218): consolidate these, can just store a mapping of
+// interpreterName --> displayName
+const PROJECTOR_CHOICES: {[key: string]: ProjectorOptions} = {
+  'pca': {displayName: 'PCA', interpreterName: 'pca'},
+  'umap': {displayName: 'UMAP', interpreterName: 'umap'},
+};
 
 /**
  * A LIT module showing a Scatter-GL rendering of the projected embeddings
@@ -70,6 +81,10 @@ const SPRITE_THUMBNAIL_SIZE = 48;
 @customElement('embeddings-module')
 export class EmbeddingsModule extends LitModule {
   static override title = 'Embeddings';
+  static override infoMarkdown =
+      `Pan, zoom, rotate, and click to visualize datapoints in the latent space
+      of your model, in order to find clusters or patterns in the data.<br>
+      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#embedding-projector)`;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
         return html`
@@ -84,21 +99,18 @@ export class EmbeddingsModule extends LitModule {
 
   static override duplicateForModelComparison = false;
 
-  static projectorChoices: {[key: string]: ProjectorOptions} = {
-    'pca': {displayName: 'PCA', interpreterName: 'pca'},
-    'umap': {displayName: 'UMAP', interpreterName: 'umap'},
-  };
+  private readonly projectorChoices: {[key: string]: ProjectorOptions} = {};
 
   static override numCols = 3;
 
   @observable
-  private isLoading: boolean = false;
+  private isLoading = false;
 
   // Selection of one of the above configs.
-  @observable private projectorName: string = 'umap';
+  @observable private projectorName: string;
   @computed
   get projector(): ProjectorOptions {
-    return EmbeddingsModule.projectorChoices[this.projectorName];
+    return this.projectorChoices[this.projectorName];
   }
 
   // Actual projected points.
@@ -106,16 +118,41 @@ export class EmbeddingsModule extends LitModule {
 
   @observable private spriteImage?: HTMLImageElement|string;
 
-  @observable private legendWidth = 150;  // width of the color legend
-
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
   private readonly dataService = app.getService(DataService);
   private readonly pinnedSelectionService =
       app.getService(SelectionService, 'pinned');
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    // Protect against resize when container isn't rendered, which can happen
+    // during model switching.
+    const resultsArea = this.shadowRoot!.querySelector('.module-results-area');
+    const container = this.shadowRoot!.getElementById('scatter-gl-container');
+    if (resultsArea == null || container == null) {return;}
 
-  private scatterGL!: ScatterGL;
+    /**
+     * While investigating the jitter, we found that this callback function was
+     * being called twice for every selection change. After the first call, the
+     * `container.offsetHeight` would always be less than
+     * `resultsArea.offsetHeight`, and after the second they would be the same.
+     * We were unable to figure out why this is happening because of the
+     * opqueness of the ResizeObserver API's triggers.
+     *
+     * Thus we added this guard to only resize ScatterGL when the heights are
+     * the same, i.e., when container is meeting its `height: 100%;` style rule.
+     *
+     * TODO(b/257440141): Figure out why this callback is happening twice
+     */
+    const resultsAreaRect = resultsArea.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (containerRect.width && containerRect.height &&
+        containerRect.width === resultsAreaRect.width &&
+        containerRect.height === resultsAreaRect.height) {
+      this.scatterGL?.resize();
+    }
+  });
+
+  private scatterGL?: ScatterGL;
 
   /**
    * Cache for embeddings, so we don't need to retrieve the entire
@@ -179,16 +216,14 @@ export class EmbeddingsModule extends LitModule {
         const labelKey = labelByFields[this.selectedLabelIndex];
         label = d.data[labelKey];
       }
-      const added = d.meta['added'] ? 1 : 0;
+      const added = d.meta.added ? 1 : 0;
       return {label, added};
     });
   }
 
   @computed
   get scatterGLDataset(): Dataset|null {
-    if (this.projectedPoints.length === 0) {
-      return null;
-    }
+    if (this.projectedPoints.length === 0) {return null;}
     const labels = this.displayLabels.slice(0, this.projectedPoints.length);
     const dataset = new Dataset(this.projectedPoints, labels);
 
@@ -211,13 +246,13 @@ export class EmbeddingsModule extends LitModule {
     const key = `${dataset}:${model}:${projector}:${JSON.stringify(config)}`;
     if (!this.embeddingCache.has(key)) {
       // Not found, create a new one.
-      const keyFn = (d: IndexedInput) => d['id'];
       const requestFn =
-          async(inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
-        return this.apiService.getInterpretations(
-            inputs, model, dataset, projector, config, 'Fetching projections');
-      };
-      const cache = new BatchRequestCache(requestFn, keyFn);
+        async (inputs: IndexedInput[]): Promise<ProjectionBackendResult[]> => {
+          return this.apiService.getInterpretations(
+              inputs, model, dataset, projector, config,
+              'Fetching projections');
+        };
+      const cache = new BatchRequestCache(requestFn, (d: IndexedInput) => d.id);
       this.embeddingCache.set(key, cache);
     }
 
@@ -229,9 +264,7 @@ export class EmbeddingsModule extends LitModule {
     const {modelName, fieldName} =
         this.embeddingOptions[this.selectedEmbeddingsIndex];
     const useInput = modelName === '';
-    const datasetName = this.appState.currentDataset;
     const config: CallConfig = {
-      'dataset_name': datasetName,
       'embedding_name': fieldName,
       'num_neighbors': numNeighbors,
       'use_input': useInput,
@@ -247,18 +280,40 @@ export class EmbeddingsModule extends LitModule {
     if (result === null) return;
 
     const nearestIds = result[0]['nearest_neighbors'].map(
-        (neighbor: NearestNeighborsResult) => {
-          return neighbor['id'];
-        });
+        (neighbor: NearestNeighborsResult) => neighbor.id);
 
     this.selectionService.selectIds(nearestIds);
   }
 
   constructor() {
     super();
-    // Default to PCA on large datasets.
-    if (this.appState.currentInputData.length > 1000) {
+
+    // Filter to only available projectors.
+    // TODO(b/272281218): configure this from metadata instead of using a
+    // hard-coded PROJECTOR_CHOICES list.
+    const interpreters = this.appState.metadata.interpreters;
+    for (const [key, value] of Object.entries(PROJECTOR_CHOICES)) {
+      if (interpreters.hasOwnProperty(value.interpreterName)) {
+        this.projectorChoices[key] = value;
+      }
+    }
+
+    if (Object.keys(this.projectorChoices).length <= 0) {
+      throw new Error('Embeddings module: no projection methods available.');
+    }
+
+    // Set default projection method.
+    if (this.appState.currentInputData.length > 1000 &&
+        this.projectorChoices.hasOwnProperty('pca')) {
+      // Default to PCA on large datasets.
       this.projectorName = 'pca';
+    } else if (this.projectorChoices.hasOwnProperty('umap')) {
+      // Otherwise, use UMAP if available.
+      // TODO(b/272281218): use order from backend rather than special defaults
+      // here.
+      this.projectorName = 'umap';
+    } else {
+      this.projectorName = Object.keys(this.projectorChoices)[0];
     }
   }
 
@@ -266,8 +321,6 @@ export class EmbeddingsModule extends LitModule {
     const container =
         this.shadowRoot!.getElementById('scatter-gl-container')!;
 
-    // invoke handleResize to assign a value for legendWidth
-    this.handleResize();
     this.scatterGL = new ScatterGL(container, {
       pointColorer: (i, selectedIndices, hoverIndex) =>
           this.pointColorer(i, selectedIndices, hoverIndex),
@@ -281,91 +334,83 @@ export class EmbeddingsModule extends LitModule {
       rotateOnStart: false
     });
 
-    this.setupReactions();
-
     // Resize the scatter GL container.
-    this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
-    });
     this.resizeObserver.observe(container);
   }
 
-  private handleResize() {
-    // Protect against resize when container isn't rendered, which can happen
-    // during model switching.
-    const scatterContainer =
-        this.shadowRoot!.getElementById('scatter-gl-container')!;
-    this.legendWidth =
-        scatterContainer ? scatterContainer.clientWidth / 2 : this.legendWidth;
-    if (scatterContainer.offsetWidth > 0) {
-      this.scatterGL.resize();
-    }
+  override connectedCallback() {
+    super.connectedCallback();
+    this.setupReactions();
   }
 
   /**
    * Trigger imperative updates, such as backend calls or scatterGL.
    */
   private setupReactions() {
-    // Don't react immediately; we'll wait and make a single update.
-    const getColorAll = () => this.colorService.all;
-    this.react(getColorAll, allColorOptions => {
-      this.scatterGL.setPointColorer(
-          (i, selectedIndices, hoverIndex) =>
-              this.pointColorer(i, selectedIndices, hoverIndex));
-    });
-    this.react(() => this.dataService.dataVals, () => {
-      this.updateScatterGL();
-    });
-    this.react(() => this.selectedSpriteIndex, idx => {
-      this.computeSpriteMap();
-    });
 
-    // Compute or update embeddings.
+    // Compute or update embeddings immediately as this requires an API call.
     // Since this is potentially expensive, set a small delay so mobx can batch
     // updates (e.g. if another component is adding several datapoints).
     // TODO(lit-dev): consider putting this delay somewhere shared,
     // like the LitModule class.
-    const embeddingRecomputeData = () =>
-        [this.appState.currentInputData, this.selectedEmbeddingsIndex,
-         this.projectorName];
-    this.reactImmediately(embeddingRecomputeData, () => {
-      this.computeProjectedEmbeddings();
-    }, {delay: 0.2});
-
-    // Actually render the points.
-    this.reactImmediately(() => this.scatterGLDataset, dataset => {
-      this.updateScatterGL();
-    });
-
+    const embeddingRecomputeData = () => [
+      this.appState.currentInputData, this.selectedEmbeddingsIndex,
+      this.projectorName
+    ];
     this.reactImmediately(
-        () => this.selectionService.selectedIds, selectedIds => {
+        embeddingRecomputeData,
+        () => {this.computeProjectedEmbeddings();},
+        {delay: 0.2});
+
+    // Setup the reactions that don't need to be triggered immediately. The
+    // majority of these will trigger once the embeddings have been computed,
+    // the rest require user interaction before they should be called.
+
+    // Render the points once embeddings are computed.
+    const dataChanges = () => [
+      this.dataService.dataVals, this.scatterGLDataset,
+      this.colorService.selectedColorOption
+    ];
+    this.reactImmediately(dataChanges, () => {this.updateScatterGL();});
+
+    // Update the selection based on user interaction.
+    this.reactImmediately(
+        () => this.selectionService.selectedIds,
+        (selectedIds) => {
           const selectedIndices = this.uniqueIdsToIndices(selectedIds);
-          this.scatterGL.select(selectedIndices);
+          this.scatterGL?.select(selectedIndices);
         });
-    this.reactImmediately(() => this.focusService.focusData, focusData => {
-      const hoveredId = this.focusService.focusData != null &&
-              this.focusService.focusData.datapointId != null &&
-              this.focusService.focusData.io == null ?
-          this.focusService.focusData.datapointId :
-          null;
-      if (hoveredId != null) {
-        const hoveredIdx = this.uniqueIdsToIndices([hoveredId])[0];
-        this.scatterGL.setHoverPointIndex(hoveredIdx);
+
+    // Recompute the sprite map as apprioriate.
+    this.react(
+        () => this.selectedSpriteIndex,
+        () => {this.computeSpriteMap();});
+
+    this.reactImmediately(() => this.focusService.focusData, () => {
+      const {isLoading, scatterGL} = this;
+      const {focusData} = this.focusService;
+      // Return early if there's nothing to draw or draw into, or if there is
+      // sub-field focus, such as from hovering over tokens. The latter isn't
+      // useful as it almost always implies that the example is already
+      // selected. Ignore it to avoid annoying flashing in the UI.
+      if (isLoading || !scatterGL || !focusData || focusData.fieldName) return;
+
+      const hoveredIdx =
+          this.currentInputIndicesById.get(focusData.datapointId);
+      if (hoveredIdx == null) {
+        scatterGL.setHoverPointIndex(null);
       } else {
-        this.scatterGL.setHoverPointIndex(null);
+        scatterGL.setHoverPointIndex(hoveredIdx);
       }
     });
   }
 
   private updateScatterGL() {
-    if (this.scatterGLDataset) {
-      this.scatterGL.render(this.scatterGLDataset);
-      if (this.spriteImage) {
-        this.scatterGL.setSpriteRenderMode();
-      } else {
-        this.scatterGL.setPointRenderMode();
-      }
-    }
+    const {scatterGL, scatterGLDataset, spriteImage} = this;
+    if (!(scatterGLDataset && scatterGL)) return;
+    scatterGL.render(scatterGLDataset);
+    spriteImage ?
+        scatterGL.setSpriteRenderMode() : scatterGL.setPointRenderMode();
   }
 
   // Maps from unique identifiers of points in inputData to indices of points in
@@ -376,8 +421,6 @@ export class EmbeddingsModule extends LitModule {
   }
 
   private async computeProjectedEmbeddings() {
-    this.isLoading = true;
-
     // Clear projections if dataset is empty.
     if (!this.appState.currentInputData.length) {
       this.projectedPoints = [];
@@ -388,12 +431,13 @@ export class EmbeddingsModule extends LitModule {
     if (!embeddingsInfo) {
       return;
     }
+
+    this.isLoading = true;
     const {modelName, fieldName} = embeddingsInfo;
 
     const datasetName = this.appState.currentDataset;
     const useInput = modelName === '';
     const projConfig = {
-      'dataset_name': datasetName,
       'model_name': modelName,
       'field_name': fieldName,
       'use_input': useInput,
@@ -407,7 +451,10 @@ export class EmbeddingsModule extends LitModule {
     const promise = embeddingRequestCache.call(this.appState.currentInputData);
     const results =
         await this.loadLatest(`proj-${JSON.stringify(projConfig)}`, promise);
-    if (results === null) return;
+    if (results === null) {
+      this.isLoading = false;
+      return;
+    }
 
     // Compute sprite map if image data.
     if (this.appState.datasetHasImages) {
@@ -416,10 +463,10 @@ export class EmbeddingsModule extends LitModule {
       this.spriteImage = undefined;
     }
 
-    this.projectedPoints = results.map((d: {z: Point3D}) => d['z']);
+    this.projectedPoints = results.map((d: {z: Point3D}) => d.z);
 
     // Add an artificial timeout to indicate that the display has changed.
-    setTimeout(() => this.isLoading = false, 400);
+    window.setTimeout(() => this.isLoading = false, 400);
   }
 
   private getLabelByFields() {
@@ -539,7 +586,15 @@ export class EmbeddingsModule extends LitModule {
     }
   }
 
-  override renderImpl() {
+  // Overriding render directly instead of renderImpl to avoid WebGL losing
+  // context when the module is collapsed and re-opened. Rendered elements will
+  // persist in the background and continue to update via reactions. This may
+  // cause performance issues with lage datasets, but the specific impacts of
+  // this are unknown at this time. There is a way to rearchitect this so that
+  // ScatterGL can be used with `renderImpl()` and thus avoid potential
+  // performance penalties for updating off screen.
+  // TODO(b/260699752): Rearchitect to use `renderImpl()`
+  override render() {
     // check the type of the labels.
     const domain = this.colorService.selectedColorOption.scale.domain();
     const sequentialScale = typeof domain[0] === 'number';
@@ -552,9 +607,7 @@ export class EmbeddingsModule extends LitModule {
             this.selectionService.primarySelectedInputData);
       }
     };
-    const onClickReset = () => {
-      this.scatterGL.resetZoom();
-    };
+    const onClickReset = () => {this.scatterGL?.resetZoom();};
 
     const disabled = this.selectionService.selectedIds.length !== 1;
     return html`
@@ -565,9 +618,12 @@ export class EmbeddingsModule extends LitModule {
           ${this.renderLabelBySelect()}
           ${this.renderSpriteBySelect()}
           <div>
-            <mwc-icon class="icon-button mdi-outlined button-extra-margin"
-              title="Reset view"
-              @click=${onClickReset}>view_in_ar</mwc-icon>
+            <lit-tooltip .content=${'Reset view'}>
+              <mwc-icon class="icon-button mdi-outlined" slot="tooltip-anchor"
+                @click=${onClickReset}>
+                view_in_ar
+              </mwc-icon>
+            </lit-tooltip>
           </div>
         </div>
         <div class="module-results-area">
@@ -575,15 +631,18 @@ export class EmbeddingsModule extends LitModule {
         </div>
         <div class="module-footer">
           <color-legend legendType=${legendType}
-            legendWidth=${this.legendWidth}
-            selectedColorName=${this.colorService.selectedColorOption.name}
+            label=${this.colorService.selectedColorOption.name}
             .scale=${this.colorService.selectedColorOption.scale}>
           </color-legend>
-          <button class="hairline-button selected-nearest-button"
-            ?disabled=${disabled}
-            @click=${onSelectNearest}
-            title=${disabled ? 'Select a single point to use this feature' : ''}
-          >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
+          <lit-tooltip content=${disabled ?
+            'Select nearest neighbors for the current datapoint. To enable, select a single datapoint.' : ''}
+            tooltipPosition="above">
+            <button class="hairline-button selected-nearest-button"
+              ?disabled=${disabled}
+              @click=${onSelectNearest}
+              slot="tooltip-anchor"
+            >Select ${DEFAULT_NUM_NEAREST} nearest neighbors</button>
+          </lit-tooltip>
         </div>
       </div>
     `;
@@ -608,7 +667,7 @@ export class EmbeddingsModule extends LitModule {
   }
 
   renderProjectorSelect() {
-    const options = EmbeddingsModule.projectorChoices;
+    const options = this.projectorChoices;
     const htmlOptions = Object.keys(options).map((key) => {
       return html`
         <option value=${key} ?selected=${key === this.projectorName}>
@@ -697,15 +756,19 @@ export class EmbeddingsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+    // Check if there are Embeddings in the input data.
+    if (findSpecKeys(datasetSpec, Embeddings).length > 0) return true;
+
     // Ensure there are embeddings to use and that projection interpreters
     // are loaded.
     if (!doesOutputSpecContain(modelSpecs, Embeddings)) {
       return false;
     }
     for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('umap') !== -1 ||
-          modelInfo.interpreters.indexOf('pca') !== -1) {
-        return true;
+      for (const key of Object.keys(PROJECTOR_CHOICES)) {
+        if (modelInfo.interpreters.indexOf(key) !== -1) {
+          return true;
+        }
       }
     }
     return false;

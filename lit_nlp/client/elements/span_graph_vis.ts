@@ -21,9 +21,9 @@
 
 import * as d3 from 'd3';
 import {html, LitElement, svg} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 
 import {getVizColor} from '../lib/colors';
 import {EdgeLabel} from '../lib/dtypes';

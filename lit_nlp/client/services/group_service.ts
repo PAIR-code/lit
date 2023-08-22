@@ -32,6 +32,8 @@ import {DataService} from './data_service';
 import {LitService} from './lit_service';
 import {AppState} from './state_service';
 
+type Range = [min: number, max: number];
+
 /**
  * A map of categorical features to their possible values.
  */
@@ -43,11 +45,11 @@ export interface CategoricalFeatures {
  * A map of numeric features to their min and max values.
  */
 export interface NumericFeatures {
-  [feature: string]: [number, number];
+  [feature: string]: Range;
 }
 
 interface NumericBins {
-  [name: string]: number[];
+  [name: string]: Range;
 }
 
 /**
@@ -213,7 +215,7 @@ export class GroupService extends LitService {
                           `[${start}, ${end}${isLast ? ']' : ')'}`;
   }
 
-  private numericBinRange(start: number, end: number, isLast: boolean) {
+  private numericBinRange(start: number, end: number, isLast: boolean): Range {
     return [start, end + (isLast ? 1e-6 : 0)];
   }
 
@@ -238,14 +240,14 @@ export class GroupService extends LitService {
     const bins: NumericBins = {};
 
     for (const bin of generatedBins) {
-      const isLastBin = bin.x1 === max;
-      const start = roundToDecimalPlaces(bin.x0!, 3);
-      const end = roundToDecimalPlaces(bin.x1!, 3);
+      const {x0: start, x1: end} = bin;
+      const isLast = end === max;
       // Return if there's an error in the histogram generator and the bin
       // object doesn't contain valid boundary numbers.
       if (start == null || end == null) continue;
-      const range = this.numericBinRange(start, end, isLastBin);
-      const key = this.numericBinKey(start, end, isLastBin);
+      const range = this.numericBinRange(start, end, isLast);
+      const key = this.numericBinKey(
+          roundToDecimalPlaces(start, 3), roundToDecimalPlaces(end, 3), isLast);
       bins[key] = range;
     }
 
@@ -277,10 +279,12 @@ export class GroupService extends LitService {
     const step = (max - min) / numBins;
 
     for (let i = 0; i < numBins; i++) {
-      const start = roundToDecimalPlaces(min + step * i, 3);
-      const end = roundToDecimalPlaces(min + step * (i + 1), 3);
-      const range = this.numericBinRange(start, end, (i === (numBins - 1)));
-      const key = this.numericBinKey(start, end, (i === (numBins - 1)));
+      const isLast = i === (numBins - 1);
+      const start = min + step * i;
+      const end = min + step * (i + 1);
+      const range = this.numericBinRange(start, end, isLast);
+      const key = this.numericBinKey(
+          roundToDecimalPlaces(start, 3), roundToDecimalPlaces(end, 3), isLast);
       bins[key] = range;
     }
 
@@ -295,12 +299,11 @@ export class GroupService extends LitService {
 
     for (let i = 0; i < numBins; i++) {
       const isLast = i === (numBins - 1);
-      const start = step * i;
-      const end = isLast ? values.length - 1 : step * (i + 1);
-      const lower = roundToDecimalPlaces(values[start], 3);
-      const upper = roundToDecimalPlaces(values[end], 3);
-      const range = this.numericBinRange(lower, upper, isLast);
-      const key = this.numericBinKey(lower, upper, isLast);
+      const start = values[step * i];
+      const end = values[isLast ? values.length - 1 : step * (i + 1)];
+      const range = this.numericBinRange(start, end, isLast);
+      const key = this.numericBinKey(
+          roundToDecimalPlaces(start, 3), roundToDecimalPlaces(end, 3), isLast);
       bins[key] = range;
     }
 
@@ -461,7 +464,7 @@ export class GroupService extends LitService {
         const val = getFeatValForInput(bins, datum, i, feature);
         if (val == null) { continue; }
         if (Array.isArray(val)) {   // Numeric features are number[], need key
-          const binIdx = Object.values(bins[feature]).indexOf(val);
+          const binIdx = Object.values(bins[feature]).indexOf(val as Range);
           const displayVal = Object.keys(bins[feature])[binIdx];
           dFilters[feature] = {val, displayVal};
         } else {                    // Otherwise, val is the displayVal

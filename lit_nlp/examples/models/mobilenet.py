@@ -6,7 +6,6 @@ from lit_nlp.api import model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import imagenet_labels
 from lit_nlp.lib import image_utils
-from lit_nlp.lib import utils as lit_utils
 import numpy as np
 import tensorflow as tf
 
@@ -14,17 +13,10 @@ import tensorflow as tf
 IMAGE_SHAPE = (224, 224, 3)
 
 
-class MobileNet(model.Model):
+class MobileNet(model.BatchedModel):
   """MobileNet model trained on ImageNet dataset."""
 
-  class MobileNetSpec(model.ModelSpec):
-
-    def is_compatible_with_dataset(self, dataset_spec: lit_types.Spec) -> bool:
-      image_field_names = lit_utils.find_spec_keys(dataset_spec,
-                                                   lit_types.ImageBytes)
-      return bool(image_field_names)
-
-  def __init__(self) -> None:
+  def __init__(self, name='mobilenet_v2') -> None:
     # Initialize imagenet labels.
     self.labels = [''] * len(imagenet_labels.IMAGENET_2012_LABELS)
     self.label_to_idx = {}
@@ -33,7 +25,10 @@ class MobileNet(model.Model):
       self.labels[i] = l
       self.label_to_idx[l] = i
 
-    self.model = tf.keras.applications.mobilenet_v2.MobileNetV2()
+    if name == 'mobilenet_v2':
+      self.model = tf.keras.applications.mobilenet_v2.MobileNetV2()
+    elif name == 'mobilenet':
+      self.model = tf.keras.applications.mobilenet.MobileNet()
 
   def predict_minibatch(
       self, input_batch: List[lit_types.JsonDict]) -> List[lit_types.JsonDict]:
@@ -48,8 +43,7 @@ class MobileNet(model.Model):
       x = tf.convert_to_tensor(x)
       preds = self.model(x).numpy()[0]
       # Determine the gradient target.
-      grad_target = example.get('grad_target')
-      if grad_target is None:
+      if (grad_target := example.get('label')) is None:
         grad_target_idx = np.argmax(preds)
       else:
         grad_target_idx = self.label_to_idx[grad_target]
@@ -62,34 +56,24 @@ class MobileNet(model.Model):
       output.append({
           'preds': preds,
           'grads': grads,
-          'grad_target': imagenet_labels.IMAGENET_2012_LABELS[grad_target_idx]
       })
 
     return output
 
   def input_spec(self):
     return {
-        'image':
-            lit_types.ImageBytes(),
+        'image': lit_types.ImageBytes(),
         # If `grad_target` is not specified then the label with the highest
         # predicted score is used as the gradient target.
-        'grad_target':
-            lit_types.CategoryLabel(vocab=self.labels, required=False)
+        'label': lit_types.CategoryLabel(vocab=self.labels, required=False),
     }
 
   def output_spec(self):
     return {
-        'preds':
-            lit_types.MulticlassPreds(
-                vocab=self.labels,
-                autosort=True),
-        'grads':
-            lit_types.ImageGradients(
-                align='image', grad_target_field_key='grad_target'),
-        'grad_target':
-            lit_types.CategoryLabel(vocab=self.labels)
+        'preds': lit_types.MulticlassPreds(
+            vocab=self.labels, autosort=True, parent='label'
+        ),
+        'grads': lit_types.ImageGradients(
+            align='image', grad_target_field_key='label'
+        ),
     }
-
-  def spec(self) -> model.ModelSpec:
-    return self.MobileNetSpec(
-        input=self.input_spec(), output=self.output_spec())

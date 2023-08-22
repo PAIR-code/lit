@@ -281,7 +281,7 @@ reconciliation of what needs to be updated per render.
 
 Some modules may contain stateful child elements, where the element has some
 internal state that can have an effect on the module that contains it. Examples of this include any modules that contain the
-[elements/faceting_control.ts](../lit_nlp/client/elements/faceting_control.ts) element.
+[core/faceting_control.ts](../lit_nlp/client/core/faceting_control.ts) element.
 
 With these types of child elements, it's important for the containing module
 to construct them programmatically and store them in a class member variable,

@@ -89,7 +89,7 @@ class EdgeFeaturesDataset(lit_dataset.Dataset):
   @classmethod
   def build(cls,
             inputs: List[JsonDict],
-            encoder: lit_model.Model,
+            encoder: lit_model.BatchedModel,
             edge_field: str,
             embs_field: str,
             offset_field: str,
@@ -140,7 +140,7 @@ class EdgeFeaturesDataset(lit_dataset.Dataset):
     }
 
 
-class SingleEdgePredictor(lit_model.Model):
+class SingleEdgePredictor(lit_model.BatchedModel):
   """Coref model for a single edge. Compatible with EdgeFeaturesDataset."""
 
   def build_model(self, input_dim: int, hidden_dim: int = 256):

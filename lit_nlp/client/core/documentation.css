@@ -43,7 +43,7 @@
 a {
   text-decoration: none;
   color: var(--lit-neutral-700);
-  padding: 0 5pt;
+  padding: 0 7px;
 }
 
 #holder {

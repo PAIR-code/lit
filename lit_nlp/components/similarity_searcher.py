@@ -14,13 +14,14 @@
 # ==============================================================================
 """Uses nearest neighbor search for similar examples."""
 
-from typing import List, Optional
+from typing import Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types
 from lit_nlp.components import index
+from lit_nlp.lib import utils
 
 JsonDict = types.JsonDict
 IndexedInput = types.IndexedInput
@@ -32,13 +33,10 @@ class SimilaritySearcher(lit_components.Generator):
   def __init__(self, indexer: index.Indexer):
     self.index = indexer
 
-  def _get_embedding(self, example: JsonDict, model: lit_model.Model,
-                     dataset: lit_dataset.IndexedDataset, embedding_name: str,
-                     dataset_name: str):
+  def _get_embedding(self, example: types.Input, model: lit_model.Model,
+                     embedding_name: str):
     """Calls the model on the example to get the embedding."""
-    model_input = dataset.index_inputs([example])
-    model_output = model.predict_with_metadata(
-        model_input, dataset_name=dataset_name)
+    model_output = model.predict([example])
     embedding = list(model_output)[0][embedding_name]
     return embedding
 
@@ -48,18 +46,24 @@ class SimilaritySearcher(lit_components.Generator):
         model_name, dataset_name, embedding_name, embedding, num_neighbors=25)
     return similar_examples
 
+  def is_compatible(self, model: lit_model.Model,
+                    dataset: lit_dataset.Dataset) -> bool:
+    dataset_embs = utils.spec_contains(dataset.spec(), types.Embeddings)
+    model_in_embs = utils.spec_contains(model.input_spec(), types.Embeddings)
+    model_out_embs = utils.spec_contains(model.output_spec(), types.Embeddings)
+    return dataset_embs or model_in_embs or model_out_embs
+
   def generate(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
       self,
-      example: JsonDict,
+      example: types.Input,
       model: lit_model.Model,
       dataset: lit_dataset.IndexedDataset,
-      config: Optional[JsonDict] = None) -> List[JsonDict]:
+      config: Optional[JsonDict] = None) -> list[JsonDict]:
     """Find similar examples for an example/model/dataset."""
     model_name = config['model_name']
     dataset_name = config['dataset_name']
     embedding_name = config['Embedding Field']
-    embedding = self._get_embedding(example, model, dataset, embedding_name,
-                                    dataset_name)
+    embedding = self._get_embedding(example, model, embedding_name)
     neighbors = self._find_nn(model_name, dataset_name, embedding_name,
                               embedding)
     return neighbors

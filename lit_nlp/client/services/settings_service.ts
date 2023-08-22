@@ -73,15 +73,17 @@ export class SettingsService extends LitService {
    */
   @action
   async updateSettings(updateParams: UpdateSettingsParams) {
-    // Clear all modules.
-    this.modulesService.clearLayout();
-
-    // After one animation frame, the modules have been cleared. Now make
-    // settings changes and recompute the layout.
-    await this.raf();
     const nextModels = updateParams.models ?? this.appState.currentModels;
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
+
+    // Clear all modules.
+    if (nextLayout !== this.appState.layoutName) {
+      this.modulesService.clearLayout();
+      // After one animation frame, the modules have been cleared. Now make
+      // settings changes and recompute the layout.
+      await this.raf();
+    }
 
     // Compare the updated models
     const haveModelsChanged =
@@ -104,8 +106,13 @@ export class SettingsService extends LitService {
           true);
     }
 
-    // If the entire layout has changed, reinitialize the layout.
-    if (this.appState.layoutName !== nextLayout) {
+    // TOOD(b/265218467): update both `initializeLayout()` and
+    // `quickUpdateLayout()` when implementing three-panel layouts.
+    // Reinitialize the layout if the entire layout has changed or if either the
+    // upper or lower part of the layout is empty.
+    if (this.appState.layoutName !== nextLayout ||
+        Object.keys(this.modulesService.declaredLayout.upper).length === 0 ||
+        Object.keys(this.modulesService.declaredLayout.lower).length === 0) {
       this.appState.layoutName = nextLayout;
       this.modulesService.initializeLayout(
         this.appState.layout, this.appState.currentModelSpecs,

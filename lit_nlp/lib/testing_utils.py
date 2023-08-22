@@ -28,7 +28,7 @@ import numpy.testing as npt
 JsonDict = lit_types.JsonDict
 
 
-class TestRegressionModel(lit_model.Model):
+class RegressionModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing.
 
   This class allows flexible input spec to allow different testing scenarios.
@@ -52,11 +52,13 @@ class TestRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return 0.0 regression values for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:
@@ -65,7 +67,7 @@ class TestRegressionModel(lit_model.Model):
     return map(lambda x: {'scores': 0.0}, inputs)
 
 
-class TestIdentityRegressionModel(lit_model.Model):
+class IdentityRegressionModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing.
 
   This class reflects the input in the prediction for simple testing.
@@ -83,11 +85,13 @@ class TestIdentityRegressionModel(lit_model.Model):
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
     return self.predict(inputs)
 
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterator[JsonDict]:
+  def predict(self, inputs: Iterable[JsonDict], *args,
+              **kw) -> Iterator[JsonDict]:
     """Return input value for all examples.
 
     Args:
       inputs: input examples
+      *args: unused
       **kw: unused
 
     Returns:
@@ -103,7 +107,7 @@ class TestIdentityRegressionModel(lit_model.Model):
     return self._count
 
 
-class TestModelClassification(lit_model.Model):
+class ClassificationModelForTesting(lit_model.BatchedModel):
   """Implements lit.Model interface for testing classification models.
 
      Returns the same output for every input.
@@ -135,50 +139,24 @@ class TestModelClassification(lit_model.Model):
     }
 
   def predict_minibatch(self, inputs: List[JsonDict], **kw):
-    output = {'probas': np.array([0.2, 0.8]),
-              'input_embs': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
-                                      [0, 0, 0, 0], [0, 0, 0, 0]]),
-              'input_embs_grad': np.array([[0, 0, 0, 0], [0, 0, 0, 0],
-                                           [0, 0, 0, 0], [0, 0, 0, 0]]),
-              'tokens': ['test'],
-              'grad_class': '1'
-              }
+    output = {
+        'probas': np.array([0.2, 0.8]),
+        'input_embs': np.array(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        ),
+        'input_embs_grad': np.array(
+            [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+        ),
+        'tokens': ['test'],
+        'grad_class': '1',
+    }
     return map(lambda x: output, inputs)
-
-
-class TestModelBatched(lit_model.Model):
-  """Implements lit.Model interface for testing with a max minibatch size of 3.
-  """
-
-  def __init__(self):
-    self._count = 0
-
-  # LIT API implementation
-  def max_minibatch_size(self):
-    return 3
-
-  def input_spec(self):
-    return {'value': lit_types.Scalar()}
-
-  def output_spec(self):
-    return {'scores': lit_types.RegressionScore()}
-
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
-    assert len(inputs) <= self.max_minibatch_size()
-    self._count += 1
-
-    return map(lambda x: {'scores': x['value']}, inputs)
-
-  @property
-  def count(self):
-    """Returns the number of times predict_minibatch has been called."""
-    return self._count
 
 
 def fake_projection_input(n, num_dims):
   """Generates random embeddings in the correct format."""
   rng = np.random.RandomState(42)
-  return [{'x': rng.rand(num_dims)} for i in range(n)]
+  return [{'x': rng.rand(num_dims)} for _ in range(n)]
 
 
 def assert_deep_almost_equal(testcase, result, actual, places=4):
@@ -188,7 +166,7 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
   elif isinstance(result, (list)):
     if all(isinstance(n, (int, float)) for n in result):
       rtol = 10 ** (-1 * places)
-      npt.assert_allclose(result, actual, rtol=rtol)
+      npt.assert_allclose(result, actual, rtol=rtol, atol=1e-4)
     elif all(isinstance(n, dict) for n in result):
       for i in range(len(result)):
         assert_deep_almost_equal(testcase, result[i], actual[i])
@@ -197,3 +175,42 @@ def assert_deep_almost_equal(testcase, result, actual, places=4):
       testcase.fail('results and actual have different keys')
     for key in result:
       assert_deep_almost_equal(testcase, result[key], actual[key])
+
+
+class CustomOutputModelForTesting(lit_model.BatchedModel):
+  """Implements lit.Model interface for testing.
+
+  This class allows user-specified outputs for testing return values.
+  """
+
+  def __init__(
+      self,
+      input_spec: lit_types.Spec,
+      output_spec: lit_types.Spec,
+      results: List[JsonDict],
+  ):
+    """Set model internals.
+
+    Args:
+      input_spec: An input spec.
+      output_spec: An output spec.
+      results: Results to return.
+    """
+    self._input_spec = input_spec
+    self._output_spec = output_spec
+    self._predict_counter = 0
+    self._results = results
+
+  # LIT API implementation
+  def input_spec(self):
+    return self._input_spec
+
+  def output_spec(self):
+    return self._output_spec
+
+  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+    def predict_single(_):
+      output = self._results[self._predict_counter % len(self._results)]
+      self._predict_counter += 1
+      return output
+    return map(predict_single, inputs)

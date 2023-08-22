@@ -11,7 +11,7 @@ bc-category-title: "Analysis"
 bc-title: "TCAV"
 
 time: "15 minutes"
-takeaways: "Learn what TCAV is and how to perform TCAV analysis in the Language Interpretability Tool."
+takeaways: "Learn what TCAV is and how to perform TCAV analysis in the Learning Interpretability Tool."
 ---
 
 ## Performing Global Model Analysis with TCAV
