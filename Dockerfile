@@ -35,22 +35,19 @@ WORKDIR $APP_HOME
 COPY ./requirements*.txt ./
 RUN python -m pip install -r requirements.txt
 
-# Build front-end with yarn
+# Copy the rest of the lit_nlp package
 COPY . ./
-WORKDIR /app/lit_nlp/client
+
+# Build front-end with yarn
+WORKDIR $APP_HOME/lit_nlp/client
 ENV NODE_OPTIONS "--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
-WORKDIR $APP_HOME
-
-# Default demo app command to run.
-ARG DEFAULT_DEMO="glue_demo"
-ENV DEMO_NAME $DEFAULT_DEMO
-
-ARG DEFAULT_PORT="5432"
-ENV DEMO_PORT $DEFAULT_PORT
 
 # Run LIT server
-ENTRYPOINT exec gunicorn \
-           -c lit_nlp/examples/gunicorn_config.py \
-           --bind="0.0.0.0:$DEMO_PORT" \
-           "lit_nlp.examples.$DEMO_NAME:get_wsgi_app()"
+# Note that the config file supports configuring the LIT demo that is launched
+# via the DEMO_NAME and DEMO_PORT environment variables.
+WORKDIR $APP_HOME
+ENTRYPOINT [ \
+  "gunicorn", \
+  "--config=lit_nlp/examples/gunicorn_config.py" \
+]

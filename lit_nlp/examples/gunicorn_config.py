@@ -14,6 +14,13 @@
 # ==============================================================================
 """Config for gunicorn for cloud-hosted demos."""
 
+import os
+
+_DEMO_NAME = os.getenv('DEMO_NAME', 'glue_demo')
+_DEMO_PORT = os.getenv('DEMO_PORT', '5432')
+
+bind = f'0.0.0.0:{_DEMO_PORT}'
 timeout = 3600
 threads = 8
 worker_class = 'gthread'
+wsgi_app = f'lit_nlp.examples.{_DEMO_NAME}:get_wsgi_app()'
