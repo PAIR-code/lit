@@ -219,17 +219,15 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the configs of only the current models.
    */
   @computed
-  get currentModelSpecs() {
-    const allModelSpecs = this.metadata.models;
-
-    // Get the specs of only the selected models.
-    const currentModelSpecs: ModelInfoMap = {};
-    Object.keys(allModelSpecs).forEach(modelName => {
-      if (this.currentModels.includes(modelName)) {
-        currentModelSpecs[modelName] = allModelSpecs[modelName];
-      }
-    });
-    return currentModelSpecs;
+  get currentModelSpecs(): ModelInfoMap {
+    const {currentModels} = this;
+    return Object.entries(this.metadata.models).reduce(
+        (currentModelSpecs: ModelInfoMap, [modelName, modelInfo]) => {
+          if (currentModels.includes(modelName)) {
+            currentModelSpecs[modelName] = modelInfo;
+          }
+          return currentModelSpecs;
+        }, {});
   }
 
   /**

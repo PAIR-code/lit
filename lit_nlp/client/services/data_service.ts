@@ -145,7 +145,7 @@ export class DataService extends LitService {
    * Run classification interpreter and store results in data service.
    */
   private async runClassification(model: string, data: IndexedInput[]) {
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     if (findSpecKeys(output, MulticlassPreds).length === 0) {
       return;
     }
@@ -203,7 +203,7 @@ export class DataService extends LitService {
 
   private async runGeneratedTextPreds(model: string, data: IndexedInput[]) {
     const genTextTypes = [GeneratedText, GeneratedTextCandidates];
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     if (findSpecKeys(output, genTextTypes).length === 0) {return;}
 
     const predsPromise = this.apiService.getPreds(
@@ -229,7 +229,7 @@ export class DataService extends LitService {
    * Run regression interpreter and store results in data service.
    */
   private async runRegression(model: string, data: IndexedInput[]) {
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     if (findSpecKeys(output, RegressionScore).length === 0) {
       return;
     }
@@ -277,7 +277,7 @@ export class DataService extends LitService {
    * Run scalar predictions and store results in data service.
    */
   private async runScalarPreds(model: string, data: IndexedInput[]) {
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     if (findSpecKeys(output, Scalar).length === 0) {
       return;
     }

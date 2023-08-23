@@ -1,7 +1,7 @@
 import 'jasmine';
 import {MulticlassPreds} from '../lib/lit_types';
 import {getMarginFromThreshold} from '../lib/utils';
-import {GroupedExamples, ModelSpec} from '../lib/types';
+import {FacetedData, GroupedExamples, ModelSpec} from '../lib/types';
 import {AppState} from './state_service';
 import {ClassificationService} from './classification_service';
 
@@ -46,7 +46,7 @@ const INVALID_SPEC_NO_MULTICLASS_PRED: ModelSpec = {
 
 const UPDATED_MARGIN = getMarginFromThreshold(0.8);
 
-type MinimalAppState = Pick<AppState, 'currentModels' | 'currentModelSpecs'>;
+type MinimalAppState = Pick<AppState, 'currentModels' | 'getModelSpec'>;
 
 describe('classification service test', () => {
   [   // Parameterized tests for models with valid specs.
@@ -81,20 +81,14 @@ describe('classification service test', () => {
   ].forEach(({name, spec, facets, expThreshold, expMargin}) => {
     const mockAppState: MinimalAppState = {
       currentModels: [MODEL_NAME],
-      currentModelSpecs: {[MODEL_NAME]: {
-        spec,
-        datasets: [],
-        generators: [],
-        interpreters: [],
-        metrics: []
-      }}
+      getModelSpec: () => spec
     };
 
     const classificationService =
         new ClassificationService(mockAppState as {} as AppState);
 
     function getMargin (facet?: string) {
-      const facetData = facet != null ?
+      const facetData: FacetedData|undefined = facet != null ?
           {displayName: facet, data: [], facets: {}} : undefined;
       return classificationService.getMargin(MODEL_NAME, FIELD_NAME, facetData);
     }
@@ -162,13 +156,7 @@ describe('classification service test', () => {
     it(`should not compute margins ${name}`, () => {
       const mockAppState: MinimalAppState = {
         currentModels: [MODEL_NAME],
-        currentModelSpecs: {[MODEL_NAME]: {
-          spec,
-          datasets: [],
-          generators: [],
-          interpreters: [],
-          metrics: []
-        }}
+        getModelSpec: () => spec
       };
 
       const {marginSettings} =

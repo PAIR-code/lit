@@ -111,12 +111,11 @@ export class ThresholderModule extends LitModule {
         'facets-change', facetsChange as EventListener);
   }
 
-  override firstUpdated() {
-    const getGroupedExamples = () => this.groupedExamples;
+  override connectedCallback() {
+    super.connectedCallback();
     this.reactImmediately(
-        getGroupedExamples, groupedExamples => {
-          this.updateMarginCategories(groupedExamples);
-        });
+        () => this.groupedExamples,
+        (groupedExamples) => {this.updateMarginCategories(groupedExamples);});
   }
 
   /**
@@ -124,10 +123,12 @@ export class ThresholderModule extends LitModule {
    * facet groups selected.
    */
   private updateMarginCategories(groupedExamples: GroupedExamples) {
+    const {model} = this;
+    if (!model) return;   // Bail early if model falsy.
     this.calculatedMargins = {};
     for (const predKey of this.binaryClassificationKeys) {
       this.classificationService.setMarginGroups(
-          this.model, predKey, groupedExamples);
+          model, predKey, groupedExamples);
       const marginsForKey: CalculatedMarginsPerFacet = {};
       for (const facets of Object.keys(groupedExamples)) {
         marginsForKey[facets] = {};

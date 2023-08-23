@@ -138,7 +138,7 @@ export class ClassificationModule extends LitModule {
   private parseResult(model: string, inputs: IndexedInput[]):
       LabeledPredictions {
     // currentModelSpecs getter accesses appState.metadata.models before init???
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
     const colorOption = this.colorService.selectedColorOption;

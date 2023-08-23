@@ -87,7 +87,7 @@ export class AttentionModule extends LitModule {
   private clearFocusTimer: number|undefined;
 
   @observable private selectedLayer?: string;
-  @observable private selectedHeadIndex: number = 0;
+  @observable private selectedHeadIndex = 0;
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
   override firstUpdated() {
@@ -141,7 +141,7 @@ export class AttentionModule extends LitModule {
   }
 
   private renderAttnHead() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    const {output: outputSpec} = this.appState.getModelSpec(this.model);
     const fieldSpec =
         outputSpec[this.selectedLayer!] as AttentionHeadsLitType;
 
@@ -286,7 +286,7 @@ export class AttentionModule extends LitModule {
    * Render the dropdown with the layer names.
    */
   private renderLayerSelector() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    const {output: outputSpec} = this.appState.getModelSpec(this.model);
     const attnKeys = findSpecKeys(outputSpec, AttentionHeadsLitType);
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];

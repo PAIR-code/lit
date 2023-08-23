@@ -113,7 +113,7 @@ export class MultilabelModule extends LitModule {
     // Store all ground truth labels for all models, for use in display.
     this.groundTruthLabels.clear();
     for (const model of models) {
-      const outputSpec = this.appState.currentModelSpecs[model].spec.output;
+      const {output: outputSpec} = this.appState.getModelSpec(model);
       const predKeys = findSpecKeys(outputSpec, SparseMultilabelPreds);
       for (const predKey of predKeys) {
         const labelField =
