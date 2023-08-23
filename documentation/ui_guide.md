@@ -1,6 +1,6 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-16' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
 
 This is a user guide for the Learning Interpretability Tool (LIT) UI.
 
@@ -19,13 +19,16 @@ the module that shows classification results will only show if the model returns
 
 ![LIT overall UI](./images/lit-ui.png "LIT overall UI")
 
-In general, the module layout consists of two sections, a top section and a
-bottom section, separated by a draggable divider to control the height of each
-section. The top section contains a single set of modules, always shown in the
-tool. This section is generally used for the main modules that are critical to
-tool navigation, such as the data table and datapoint editor. The bottom section
-is comprised of tabs that contain any number of individual modules. The tabs in
-this section are generally grouped into task-specific sets of modules.
+LIT's layout consist of as many as three sections, described in the API docs for
+[custom layouts](./api.md#ui-layouts). When the layout provides more than one
+major content section, they are separated by draggable dividers that are built
+into LIT's toolbars (for allocating vertical space) or in the space between
+sections and modules (for allocating horizontal space). Any section may include
+multiple tabs, where each tab contains a collection of modules. LIT's
+[pre-configured layouts](./frontend_development.md#layout) group modules into
+tabs based on analytical task (e.g., metrics analysis vs. input salience
+visualization vs. counterfactual example generation), but you can adopt whatever
+organizational scheme you desire in your custom layouts.
 
 ## Datapoint Selections
 
