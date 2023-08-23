@@ -413,16 +413,12 @@ class GlueModel(lit_model.BatchedModel):
     return self.config.inference_batch_size
 
   def get_embedding_table(self):
-<<<<<<< HEAD
-    return self.vocab, self.model.bert.embeddings.weight.numpy()
-=======
     # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
     # transformers is updated to v4.25.1 (or newer).
     if hasattr(self.model.bert.embeddings, "word_embeddings"):
       return self.vocab, self.model.bert.embeddings.word_embeddings.numpy()
     else:
       return self.vocab, self.model.bert.embeddings.weight.numpy()
->>>>>>> 03f2d162cb0687180996007246edda90242cb4a5
 
   def predict_minibatch(self, inputs: Iterable[JsonDict]):
     # Use watch_accessed_variables to save memory by having the tape do nothing
@@ -434,16 +430,12 @@ class GlueModel(lit_model.BatchedModel):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-<<<<<<< HEAD
-      word_embeddings = self.model.bert.embeddings.weight
-=======
       # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
       # transformers is updated to v4.25.1 (or newer).
       if hasattr(self.model.bert.embeddings, "word_embeddings"):
         word_embeddings = self.model.bert.embeddings.word_embeddings
       else:
         word_embeddings = self.model.bert.embeddings.weight
->>>>>>> 03f2d162cb0687180996007246edda90242cb4a5
       # <tf.float32>[batch_size, num_tokens, emb_size]
       input_embs = tf.gather(word_embeddings, input_ids)
 
