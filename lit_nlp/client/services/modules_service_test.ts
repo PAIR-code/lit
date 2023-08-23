@@ -21,7 +21,7 @@ import {toJS} from 'mobx';
 
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
-import {LitCanonicalLayout} from '../lib/types';
+import {IndexedInput, LitCanonicalLayout} from '../lib/types';
 import {AttentionModule} from '../modules/attention_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 
@@ -56,13 +56,10 @@ describe('modules service test', () => {
     // tslint:disable-next-line:no-any (to spyOn a private method)
     spyOn<any>(app.getService(ApiService), 'queryServer').and.returnValue(null);
     appState = app.getService(AppState);
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness.)
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
 
     appState.metadata = mockMetadata;
     await appState.setCurrentModels(['sst_0_micro']);
-    appState.setCurrentDataset('sst_dev');
+    appState.setDatasetForTest('sst_dev', new Map<string, IndexedInput>());
     // Stop all calls to the backend (causes test flakiness.)
     modulesService = app.getService(ModulesService);
   });

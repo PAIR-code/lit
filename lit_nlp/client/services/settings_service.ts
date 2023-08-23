@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, reaction} from 'mobx';
+import {action, computed, reaction, runInAction} from 'mobx';
 
 import {arrayContainsSame} from '../lib/utils';
 
@@ -77,6 +77,10 @@ export class SettingsService extends LitService {
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
 
+    // Make sure the new dataset is loaded. This just loads in the background,
+    // and doesn't change the settings yet.
+    await this.appState.loadDataset(nextDataset);
+
     // Clear all modules.
     if (nextLayout !== this.appState.layoutName) {
       this.modulesService.clearLayout();
@@ -85,26 +89,29 @@ export class SettingsService extends LitService {
       await this.raf();
     }
 
-    // Compare the updated models
     const haveModelsChanged =
         !arrayContainsSame(this.appState.currentModels, nextModels);
 
     const hasDatasetChanged =
         nextDataset !== this.appState.currentDataset && nextDataset;
 
-    if (haveModelsChanged) {
-      await this.appState.setCurrentModels(nextModels);
-    }
+    // The regular @action does not work properly for an async function,
+    // so we wrap the parts that directly update selection, dataset, and model
+    // to make sure these run in a single transaction and do not trigger any
+    // reactions on incompatible or inconsistent state.
+    runInAction(() => {
+      if (hasDatasetChanged) {
+        // Unselect all selected points if the dataset is changing.
+        this.selectionService.selectIds([]);
 
-    // Compare the updated dataset
-    if (hasDatasetChanged) {
-      // Unselect all selected points if the dataset is changing.
-      this.selectionService.selectIds([]);
+        // Atomic switch to the new dataset.
+        this.appState.setCurrentDataset(nextDataset);
+      }
 
-      this.appState.setCurrentDataset(
-          nextDataset, /** load data */
-          true);
-    }
+      if (haveModelsChanged) {
+        this.appState.setCurrentModels(nextModels);
+      }
+    });
 
     // TOOD(b/265218467): update both `initializeLayout()` and
     // `quickUpdateLayout()` when implementing three-panel layouts.
