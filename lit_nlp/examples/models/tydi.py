@@ -15,15 +15,18 @@ JsonDict = lit_types.JsonDict
 class TyDiModel(lit_model.Model):
   """Question Answering Jax model based on TyDiQA Dataset"""
 
-  def __init__(self,
-              model_name: str,
-              model=None,
-              tokenizer=None,
-              **config_kw):
+  def __init__(
+      self,
+      model_name: str,
+      model=None,
+      tokenizer=None,
+      **unused_kw,
+  ):
     super().__init__()
     self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
     self.model = model or FlaxBertForQuestionAnswering.from_pretrained(
-        model_name)
+        model_name
+    )
 
   def _segment_slicers(self, tokens: list[str]):
     """Slicers along the tokens dimension for each segment.
@@ -41,8 +44,10 @@ class TyDiModel(lit_model.Model):
       split_point = tokens.index(self.tokenizer.sep_token)
     except ValueError:
       split_point = len(tokens) - 1
-    slicer_question = slice(1, split_point)  # start after [CLS]
-    slicer_context = slice(split_point + 1, len(tokens) - 1)  # end before last [SEP]
+    # Question starts after the [CLS] token
+    slicer_question = slice(1, split_point)
+    # Context ends before the last [SEP] token
+    slicer_context = slice(split_point + 1, len(tokens) - 1)
     return slicer_question, slicer_context
 
   def max_minibatch_size(self) -> int:
@@ -60,13 +65,16 @@ class TyDiModel(lit_model.Model):
 
     for inp in inputs:
       tokenized_text = self.tokenizer(
-          inp["question"], inp["context"], return_tensors="jax", padding=True)
+          inp["question"], inp["context"], return_tensors="jax", padding=True
+      )
       results = self.model(
-          **tokenized_text, output_hidden_states=True)
+          **tokenized_text, output_hidden_states=True
+      )
       answer_start_index = results.start_logits.argmax()
       answer_end_index = results.end_logits.argmax()
       predict_answer_tokens = tokenized_text.input_ids[
-          0, answer_start_index : answer_end_index + 1]
+          0, answer_start_index : answer_end_index + 1
+      ]
 
       # get id's for question & context
       tokens = np.asarray(tokenized_text["input_ids"])
@@ -82,7 +90,8 @@ class TyDiModel(lit_model.Model):
       prediction_output.append({
           "generated_text" : self.tokenizer.decode(predict_answer_tokens),
           "answers_text": inp["answers_text"],
-          "cls_emb": results.hidden_states[-1][:, 0][0],  # last layer, first token,
+          # Embeddings come from the first token of the last layer.
+          "cls_emb": results.hidden_states[-1][:, 0][0],
           "tokens_question": total_tokens[slicer_question],
           "tokens_context": total_tokens[slicer_context],
           "grad_class": None,
@@ -101,21 +110,27 @@ class TyDiModel(lit_model.Model):
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(required=False, vocab=question_answering.TYDI_LANG_VOCAB),
-
+        "language": lit_types.CategoryLabel(
+            required=False, vocab=question_answering.TYDI_LANG_VOCAB
+        ),
     }
 
   def output_spec(self):
     return {
         "generated_text": lit_types.GeneratedText(parent="answers_text"),
-         "cls_emb": lit_types.Embeddings(),
-         "tokens_question": lit_types.Tokens(parent="question"),
-         "tokens_embs_question": lit_types.TokenEmbeddings(align="tokens_question"),
-         "tokens_grad_question" : lit_types.TokenGradients(
-              align="tokens_question", grad_for="tokens_embs_question"),
-         "tokens_context": lit_types.Tokens(parent="question"),
-         "tokens_embs_context": lit_types.TokenEmbeddings(align="tokens_context"),
-          "token_grad_context" : lit_types.TokenGradients(
-              align="tokens_context", grad_for="tokens_embs_context")
-
+        "cls_emb": lit_types.Embeddings(),
+        "tokens_question": lit_types.Tokens(parent="question"),
+        "tokens_embs_question": lit_types.TokenEmbeddings(
+            align="tokens_question"
+        ),
+        "tokens_grad_question" : lit_types.TokenGradients(
+            align="tokens_question", grad_for="tokens_embs_question"
+        ),
+        "tokens_context": lit_types.Tokens(parent="question"),
+        "tokens_embs_context": lit_types.TokenEmbeddings(
+            align="tokens_context"
+        ),
+        "token_grad_context" : lit_types.TokenGradients(
+            align="tokens_context", grad_for="tokens_embs_context"
+        ),
     }

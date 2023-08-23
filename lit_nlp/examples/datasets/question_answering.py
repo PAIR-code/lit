@@ -1,24 +1,30 @@
 """Data loaders for Question answering model."""
+import re
 
 from lit_nlp.api import dataset as lit_dataset
-from lit_nlp.api import types as lit_types
 from lit_nlp.api import dtypes
-import re
+from lit_nlp.api import types as lit_types
 import tensorflow_datasets as tfds
 
 
-TYDI_LANG_VOCAB = ['english','bengali', 'russian', 'telugu','swahili',
-    'korean','indonesian','arabic','finnish']
+TYDI_LANG_VOCAB = [
+    'english',
+    'bengali',
+    'russian',
+    'telugu',
+    'swahili',
+    'korean',
+    'indonesian',
+    'arabic',
+    'finnish',
+]
 
 class TyDiQA(lit_dataset.Dataset):
   """TyDiQA dataset."""
-  
+
   def __init__(self, split: str, max_examples=-1):
-    
-    """Dataset constructor, loads the data into memory."""
-    
     ds = tfds.load("tydi_qa", split=split)
- 
+
     # populate this with data records
     self._examples = []
     for row in ds.take(max_examples):
@@ -31,23 +37,26 @@ class TyDiQA(lit_dataset.Dataset):
       language = ''.join(str(r) for r in filter)
 
       for label, start in zip(answers_text, answers_start):
-        span = dtypes.SpanLabel(start, start + len(label), align= "context")
-        answers.append(dtypes.AnnotationCluster(label=label.decode(), spans=[span]))
+        span = dtypes.SpanLabel(start, start + len(label), align="context")
+        answers.append(
+            dtypes.AnnotationCluster(label=label.decode('utf-8'), spans=[span])
+        )
 
       self._examples.append({
-        'answers_text': answers,
-        'title': row['title'].numpy().decode('utf-8'),
-        'context': row['context'].numpy().decode('utf-8'),
-        'question': row['question'].numpy().decode('utf-8'),
-        'language': language,
+          'answers_text': answers,
+          'title': row['title'].numpy().decode('utf-8'),
+          'context': row['context'].numpy().decode('utf-8'),
+          'question': row['question'].numpy().decode('utf-8'),
+          'language': language,
       })
 
   def spec(self) -> lit_types.Spec:
-    """Dataset spec"""
     return {
         "title":lit_types.TextSegment(),
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(required=False, vocab=TYDI_LANG_VOCAB)
+        "language": lit_types.CategoryLabel(
+            required=False, vocab=TYDI_LANG_VOCAB
+        )
     }
