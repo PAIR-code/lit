@@ -3,26 +3,20 @@
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 
+_CANNED_PROMPTS = (
+    "A pikachu that looks lika a pug",
+    "Trail cam footage of gollum eating watermelon",
+    "An astronaut riding a horse in a photorealistic style",
+    "Pixar coronavirus movie",
+    "Darth Vader in Soviet space propaganda poster",
+)
+
 class Dalle(lit_dataset.Dataset):
-  """Example prompts dataset for use with Dall-E 
-  and other text-to-image generative models."""
+  """Example prompts to use with Dall-E and other text-to-image GenAI models."""
 
   def __init__(self):
-
-    prompt = ["A pikachu that looks lika a pug",
-              "Trail cam footage of gollum eating watermelon",
-              "An astronaut riding a horse in a photorealistic style",
-              "Pixar coronavirus movie",
-              "Darth Vader in Soviet space propaganda poster",]
-    
-    # populate this with data records
-    for phrase in prompt:
-      self._examples.append({
-          "prompt": phrase
-      })
+    for phrase in _CANNED_PROMPTS:
+      self._examples.append({"prompt": phrase})
 
   def spec(self) -> lit_types.Spec:
-    """Dataset spec"""
-    return {
-        "prompt": lit_types.TextSegment(),
-    }
+    return {"prompt": lit_types.TextSegment()}

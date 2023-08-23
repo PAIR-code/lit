@@ -1,28 +1,21 @@
 """Tests for lit_nlp.examples.models.dalle."""
 
 from absl.testing import absltest
-from lit_nlp.examples.models import dalle
-from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.models import dalle
 
-class dallemodelfortest(dalle.DalleModel):
-  """The model requires an API to dwnload hence it won't pass test
-  that's why took this approach.
-  """
+
+class DalleModelForTesting(dalle.DalleModel):
+  """Dummy model to avoid API keys required to download models during init."""
   def __init__(self, *unused_args, **unused_kw_args):
       pass
-class dalle_mini_validation_test(absltest.TestCase):
 
+
+class DalleModelTest(absltest.TestCase):
   """Test that model classes conform to the expected spec."""
 
-  def validate_dalle_mini_model(self,model: lit_model.Model):
-    """Validate that a given model looks like a dalle mini model.
-    Args:
-      model: a LIT model
-    Raises:
-      AssertionError: if the model's spec does not match that expected for a
-          dalle mini model.
-    """
+  def test_model_specs(self):
+    model = DalleModelForTesting()
     # Check inputs
     ispec = model.input_spec()
     self.assertIn("prompt", ispec)
@@ -33,16 +26,9 @@ class dalle_mini_validation_test(absltest.TestCase):
     self.assertIn("image", ospec)
     self.assertIsInstance(ospec["image"], lit_types.ImageBytesList)
     self.assertIn("clip_score", ospec)
-    self.assertIsInstance(ospec["clip_score"],
-                          lit_types.GeneratedTextCandidates)
-    self.assertEqual(ospec["clip_score"].parent, "prompt")
-
-
-
-  def test_DalleModel(self):
-    model = dallemodelfortest()
-    self.validate_dalle_mini_model(model)  # uses asserts internally
-
+    clip_score_field = ospec["clip_score"]
+    self.assertIsInstance(clip_score_field, lit_types.GeneratedTextCandidates)
+    self.assertEqual(clip_score_field.parent, "prompt")
 
 
 if __name__ == "__main__":

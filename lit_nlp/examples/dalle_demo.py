@@ -6,9 +6,10 @@ To run locally with a small number of examples:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+from collections.abc import Sequence
 import os
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
@@ -21,23 +22,29 @@ from lit_nlp.examples.datasets import dalle_prompt
 from lit_nlp.examples.models import dalle
 
 # NOTE: additional flags defined in server_flags.py
-
-FLAGS = flags.FLAGS
-
-FLAGS.set_default("development_demo", True)
+_FLAGS = flags.FLAGS
+_FLAGS.set_default("development_demo", True)
+_FLAGS.set_default("default_layout", "DALLE_LAYOUT")
 
 _MODELS = flags.DEFINE_list(
-    "models", ["dalle-mini/dalle-mini/mega-1-fp16:latest","dalle-mini/dalle-mini/mini-1:v0"],
-    "Models to load")
+    "models",
+    [
+        "dalle-mini/dalle-mini/mega-1-fp16:latest",
+        "dalle-mini/dalle-mini/mini-1:v0",
+    ],
+    "Models to load",
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 5,
-    "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
+    "max_examples",
+    5,
+    "Maximum number of examples to load from each evaluation set. Set to None "
+    "to load the full set.",
 )
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
-DALLE_LAYOUT = layout.LitCanonicalLayout(
+_DALLE_LAYOUT = layout.LitCanonicalLayout(
     upper={
         "Main": [
             modules.DataTableModule,
@@ -53,14 +60,12 @@ DALLE_LAYOUT = layout.LitCanonicalLayout(
     },
     description="Custom layout for Text to Image models.",
 )
-CUSTOM_LAYOUTS = {"DALLE_LAYOUT": DALLE_LAYOUT}
+_CUSTOM_LAYOUTS = {"DALLE_LAYOUT": _DALLE_LAYOUT}
 
-# You can also change this via URL param e.g. localhost:5432/?layout=default
-FLAGS.set_default("default_layout", "DALLE_LAYOUT")
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
-  FLAGS.set_default("server_type", "external")
-  FLAGS.set_default("demo_mode", True)
+  _FLAGS.set_default("server_type", "external")
+  _FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
@@ -71,14 +76,15 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
-
   # Load models, according to the --models flag.
   models = {}
   for model_name_or_path in _MODELS.value:
     model_name = os.path.basename(model_name_or_path)
     # set number of images to generate default is 6
-    models[model_name] = dalle.DalleModel(model_name=model_name_or_path, predictions=6)
- 
+    models[model_name] = dalle.DalleModel(
+      model_name=model_name_or_path, predictions=6
+    )
+
   datasets = {"Dalle_prompt": dalle_prompt.Dalle()}
 
   for name in datasets:
@@ -89,8 +95,9 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   lit_demo = dev_server.Server(
       models,
       datasets,
-      layouts=CUSTOM_LAYOUTS,
-      **server_flags.get_flags())
+      layouts=_CUSTOM_LAYOUTS,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 
