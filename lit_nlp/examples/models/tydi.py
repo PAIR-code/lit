@@ -1,4 +1,4 @@
-"""LIT wrappers for TyDiModel"""
+"""LIT wrappers for TyDiModel."""
 from collections.abc import Iterable
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -7,13 +7,13 @@ import numpy as np
 import transformers
 
 
-BertTokenizer = transformers.BertTokenizer
-FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
-JsonDict = lit_types.JsonDict
+_BertTokenizer = transformers.BertTokenizer
+_FlaxBertForQuestionAnswering = transformers.FlaxBertForQuestionAnswering
+_JsonDict = lit_types.JsonDict
 
 
 class TyDiModel(lit_model.Model):
-  """Question Answering Jax model based on TyDiQA Dataset"""
+  """Question Answering Jax model based on TyDiQA Dataset."""
 
   def __init__(
       self,
@@ -23,8 +23,8 @@ class TyDiModel(lit_model.Model):
       **unused_kw,
   ):
     super().__init__()
-    self.tokenizer = tokenizer or BertTokenizer.from_pretrained(model_name)
-    self.model = model or FlaxBertForQuestionAnswering.from_pretrained(
+    self.tokenizer = tokenizer or _BertTokenizer.from_pretrained(model_name)
+    self.model = model or _FlaxBertForQuestionAnswering.from_pretrained(
         model_name
     )
 
@@ -53,15 +53,9 @@ class TyDiModel(lit_model.Model):
   def max_minibatch_size(self) -> int:
     return 8
 
-
-  def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
-    """Predict on a single minibatch of examples.
-
-    Takes question & context from the dataset tokenizes &
-    predicts answer.
-
-    """
-    prediction_output = []
+  def predict(self, inputs: Iterable[_JsonDict], **kw) -> Iterable[_JsonDict]:
+    """Predict the answer given the question and context."""
+    prediction_output: list[_JsonDict] = []
 
     for inp in inputs:
       tokenized_text = self.tokenizer(
@@ -78,17 +72,17 @@ class TyDiModel(lit_model.Model):
 
       # get id's for question & context
       tokens = np.asarray(tokenized_text["input_ids"])
-      #convert id's to tokens
+      # convert id's to tokens
       total_tokens = self.tokenizer.convert_ids_to_tokens(tokens[0])
-      #split by question & context
+      # split by question & context
       slicer_question, slicer_context = self._segment_slicers(total_tokens)
-      #get embeddings
+      # get embeddings
       embeddings = results.hidden_states[0][0]
-      #gradient
+      # gradient
       gradient = results.hidden_states[-1][0]
 
       prediction_output.append({
-          "generated_text" : self.tokenizer.decode(predict_answer_tokens),
+          "generated_text": self.tokenizer.decode(predict_answer_tokens),
           "answers_text": inp["answers_text"],
           # Embeddings come from the first token of the last layer.
           "cls_emb": results.hidden_states[-1][:, 0][0],
@@ -102,7 +96,6 @@ class TyDiModel(lit_model.Model):
       })
 
     return prediction_output
-
 
   def input_spec(self):
     return {
@@ -123,14 +116,14 @@ class TyDiModel(lit_model.Model):
         "tokens_embs_question": lit_types.TokenEmbeddings(
             align="tokens_question"
         ),
-        "tokens_grad_question" : lit_types.TokenGradients(
+        "tokens_grad_question": lit_types.TokenGradients(
             align="tokens_question", grad_for="tokens_embs_question"
         ),
         "tokens_context": lit_types.Tokens(parent="question"),
         "tokens_embs_context": lit_types.TokenEmbeddings(
             align="tokens_context"
         ),
-        "token_grad_context" : lit_types.TokenGradients(
+        "token_grad_context": lit_types.TokenGradients(
             align="tokens_context", grad_for="tokens_embs_context"
         ),
     }

@@ -19,11 +19,12 @@ TYDI_LANG_VOCAB = [
     'finnish',
 ]
 
+
 class TyDiQA(lit_dataset.Dataset):
   """TyDiQA dataset."""
 
   def __init__(self, split: str, max_examples=-1):
-    ds = tfds.load("tydi_qa", split=split)
+    ds = tfds.load('tydi_qa', split=split)
 
     # populate this with data records
     self._examples = []
@@ -33,11 +34,11 @@ class TyDiQA(lit_dataset.Dataset):
       answers = []
       # gets language id example: finnish--9069599​462862564793-0
       language_id = row['id'].numpy().decode('utf-8')
-      filter = re.findall(r"[a-z]",language_id)
-      language = ''.join(str(r) for r in filter)
+      alpha_chars_filter = re.findall(r'[a-z]', language_id)
+      language = ''.join(str(r) for r in alpha_chars_filter)
 
       for label, start in zip(answers_text, answers_start):
-        span = dtypes.SpanLabel(start, start + len(label), align="context")
+        span = dtypes.SpanLabel(start, start + len(label), align='context')
         answers.append(
             dtypes.AnnotationCluster(label=label.decode('utf-8'), spans=[span])
         )
@@ -52,11 +53,11 @@ class TyDiQA(lit_dataset.Dataset):
 
   def spec(self) -> lit_types.Spec:
     return {
-        "title":lit_types.TextSegment(),
-        "context": lit_types.TextSegment(),
-        "question": lit_types.TextSegment(),
-        "answers_text": lit_types.MultiSegmentAnnotations(),
-        "language": lit_types.CategoryLabel(
+        'title': lit_types.TextSegment(),
+        'context': lit_types.TextSegment(),
+        'question': lit_types.TextSegment(),
+        'answers_text': lit_types.MultiSegmentAnnotations(),
+        'language': lit_types.CategoryLabel(
             required=False, vocab=TYDI_LANG_VOCAB
         )
     }

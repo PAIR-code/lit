@@ -16,7 +16,7 @@ class TyDiModelTest(absltest.TestCase):
     self.assertIsInstance(ispec["context"], lit_types.TextSegment)
     self.assertIn("answers_text", ispec)
     self.assertIsInstance(
-      ispec["answers_text"], lit_types.MultiSegmentAnnotations
+        ispec["answers_text"], lit_types.MultiSegmentAnnotations
     )
 
     # Check outputs
