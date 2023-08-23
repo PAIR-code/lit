@@ -13,7 +13,8 @@ color: "#fef0f7"
 
 <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
 
-For complete details on setting up and using LIT, see the GitHub [documentation](https://github.com/PAIR-code/lit/wiki).
+For complete details on setting up and using LIT, see the GitHub
+[documentation](https://github.com/PAIR-code/lit/wiki).
 
 <a name="install"></a>
 
@@ -27,7 +28,12 @@ LIT can be installed via pip, or can be built from source.
 pip install lit-nlp
 ```
 
-The pip installation will install all necessary prerequisite packages for use of the core LIT package. It also installs the code to run our demo examples. It does not install the prerequisites for those demos, so you need to install those yourself if you wish to run the demos. To install those, we recommend using conda with our included [environment.yml](https://github.com/PAIR-code/lit/blob/main/environment.yml).
+The pip installation will install all necessary prerequisite packages for use of
+the core LIT package. It also installs the code to run our demo examples. It
+does not install the prerequisites for those demos, so you need to install those
+yourself if you wish to run the demos. To install those, install the
+requirements from
+[requirements_examples.txt](https://github.com/PAIR-code/lit/blob/main/requirements_examples.txt).
 
 ```bash
 # Set up Python environment
@@ -43,7 +49,8 @@ If you want to update any of the frontend or core code, you can install a local 
 
 ## Install from source
 
-Download the code from our [GitHub repo](https://github.com/PAIR-code/lit/) and set up a Python environment:
+Download the code from our [GitHub repo](https://github.com/PAIR-code/lit/) and
+set up a Python environment:
 
 ```bash
 git clone https://github.com/PAIR-code/lit.git ~/lit
@@ -75,20 +82,22 @@ viewed in an output cell of the notebook.
 
 ## Quick-start: Classification and regression
 
-To explore classification and regression models tasks from the popular [GLUE benchmark](https://gluebenchmark.com/):
+To explore classification and regression models tasks from the popular
+[GLUE benchmark](https://gluebenchmark.com/):
 
 ```bash
 python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
 ```
 
-Navigate to http://localhost:5432 to access the LIT UI. 
+Navigate to http://localhost:5432 to access the LIT UI.
 
-Your default view will be a 
+Your default view will be a
 [small BERT-based model](https://arxiv.org/abs/1908.08962) fine-tuned on the
 [Stanford Sentiment Treebank](https://nlp.stanford.edu/sentiment/treebank.html),
-but you can switch to 
-[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the gear icon in 
-the upper right.
+but you can switch to
+[STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
+[MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
+gear icon in the upper right.
 
 ## Language modeling
 
@@ -97,15 +106,18 @@ python -m lit_nlp.examples.lm_demo \
   --models=bert-base-uncased --port=5432
 ```
 
-In this demo, you can explore predictions from a pretrained language model (i.e. fill in the blanks).
-Navigate to http://localhost:5432 for the UI.
+In this demo, you can explore predictions from a pre-trained language model
+(i.e. fill in the blanks). Navigate to http://localhost:5432 for the UI.
 
 ## More examples
-The [examples](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples) directory contains additional examples to explore, all of which can be run similarly to those above.
+The [examples](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples)
+directory contains additional examples to explore, all of which can be run
+similarly to those above.
 
 ## Notebook usage
 
-A simple colab demo can be found [here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
+A simple Colab demo can be found
+[here](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 Just run all the cells to see LIT on an example classification model right in
 the notebook.
 
@@ -144,32 +156,37 @@ if __name__ == '__main__':
 
 Conceptually, a dataset is just a list of examples and a model is just a
 function that takes examples and returns predictions. The [`Dataset`](#datasets)
-and [`Model`](#models) classes implement this, and provide metadata to describe themselves to other
-components.
+and [`Model`](#models) classes implement this, and provide metadata to describe
+themselves to other components.
 
 For full examples, see
-[examples](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples). In particular:
+[examples](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples). In
+particular:
 
 *   [`simple_tf2_demo.py`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_tf2_demo.py)
     for a self-contained Keras/TF2 model for sentiment analysis.
 *   [`simple_pytorch_demo.py`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/examples/simple_pytorch_demo.py)
     for a self-contained PyTorch model for sentiment analysis.
-  
-You can also specify custom frontend modules and layouts by writing a TypeScript entrypoint; see the full docs on [custom clients](https://github.com/PAIR-code/lit/wiki/frontend_development.md#custom-client--modules) for more.
+
+You can also specify custom frontend modules and layouts by writing a TypeScript
+entrypoint; see the full docs on
+[custom clients](https://github.com/PAIR-code/lit/wiki/frontend_development.md#custom-client--modules)
+for more.
 
 <a name="datasets"></a>
 ## Datasets
 
-Datasets ([`Dataset`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py)) are
-just a list of examples, with associated type information following LIT's type system.
+Datasets ([`Dataset`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py))
+are just a list of examples, with associated type information following LIT's
+type system.
 
 *   `spec()` should return a flat dict that describes the fields in each example
 *   `self._examples` should be a list of flat dicts
 
 Implementations should subclass
-[`Dataset`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py). Usually this
-is just a few lines of code - for example, the following is a complete dataset
-loader for [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/):
+[`Dataset`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/dataset.py).
+Usually this is just a few lines of code - for example, the following is a
+complete dataset loader for [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/):
 
 ```py
 class MultiNLIData(Dataset):
@@ -210,10 +227,9 @@ interpretation components such as custom metrics.
 <a name="models"></a>
 ## Models
 
-Models ([`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py)) are
-functions which take inputs and produce outputs, with associated type
-information following LIT's type system. The core
-API consists of three methods:
+Models ([`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py))
+are functions which take inputs and produce outputs, with associated type
+information following LIT's type system. The core API consists of three methods:
 
 *   `input_spec()` should return a flat dict that describes necessary input
     fields
@@ -224,7 +240,8 @@ API consists of three methods:
     matching `output_spec()`.
 
 Implementations should subclass
-[`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py). An example for
+[`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py). An
+example for
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) might look something like:
 
 ```py
@@ -270,9 +287,10 @@ simply override the `predict()` function directly and handle large inputs
 accordingly.
 
 Note: there are a few additional methods in the model API - see
-[`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py) for details.
+[`Model`](https://github.com/PAIR-code/lit/tree/main/lit_nlp/api/model.py) for
+details.
 
-# Run LIT inside python notebooks
+# Run LIT inside Python notebooks
 
 It's very easy to use LIT inside of Colab and Jupyter notebooks. Just install
 the pip package and use the `LitWidget` object with your models and datasets.

@@ -77,7 +77,8 @@ The `pip` installation will install all necessary prerequisite packages for use
 of the core LIT package.
 
 It **does not** install the prerequisites for the provided demos, so you need to
-install those yourself. See [environment.yml](./environment.yml) for the list of
+install those yourself. See
+[requirements_examples.txt](./requirements_examples.txt) for the list of
 packages required to run the demos.
 
 ### Install from source
