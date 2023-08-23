@@ -73,7 +73,7 @@ describe('modules service test', () => {
 
   it('tests initializeLayout', () => {
     modulesService.initializeLayout(
-        MOCK_LAYOUT, appState.currentModelSpecs, appState.currentDatasetSpec,
+        MOCK_LAYOUT, appState.currentModelInfos, appState.currentDatasetSpec,
         false);
     expect(modulesService.declaredLayout).toEqual(MOCK_LAYOUT);
   });
@@ -82,7 +82,7 @@ describe('modules service test', () => {
     modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = false;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the component groups are the same.
@@ -104,7 +104,7 @@ describe('modules service test', () => {
     modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = true;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
@@ -118,7 +118,7 @@ describe('modules service test', () => {
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = false;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
@@ -132,7 +132,7 @@ describe('modules service test', () => {
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = true;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules

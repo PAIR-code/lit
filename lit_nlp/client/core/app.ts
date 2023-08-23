@@ -76,7 +76,7 @@ export class LitApp {
 
     // Initilize the module layout
     modulesService.initializeLayout(
-        appState.layout, appState.currentModelSpecs,
+        appState.layout, appState.currentModelInfos,
         appState.currentDatasetSpec, appState.compareExamplesEnabled);
 
     // Select the initial datapoint, if one was set in the URL.

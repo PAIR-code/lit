@@ -141,9 +141,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get currentModelRequiredInputSpecKeys(): string[] {
     // Add all required keys from current model input specs.
     const keys = new Set<string>();
-    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelInfo) => {
-      Object.keys(modelSpec.spec.input).forEach(key => {
-        if (modelSpec.spec.input[key].required === true) {
+    Object.values(this.currentModelInfos).forEach((modelInfo: ModelInfo) => {
+      Object.keys(modelInfo.spec.input).forEach(key => {
+        if (modelInfo.spec.input[key].required === true) {
           keys.add(key);
         }
       });
@@ -219,14 +219,14 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the configs of only the current models.
    */
   @computed
-  get currentModelSpecs(): ModelInfoMap {
+  get currentModelInfos(): ModelInfoMap {
     const {currentModels} = this;
     return Object.entries(this.metadata.models).reduce(
-        (currentModelSpecs: ModelInfoMap, [modelName, modelInfo]) => {
+        (currentModelInfos: ModelInfoMap, [modelName, modelInfo]) => {
           if (currentModels.includes(modelName)) {
-            currentModelSpecs[modelName] = modelInfo;
+            currentModelInfos[modelName] = modelInfo;
           }
-          return currentModelSpecs;
+          return currentModelInfos;
         }, {});
   }
 
@@ -248,9 +248,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
-      spec = this.currentModelSpecs[modelName].spec.output;
+      spec = this.getModelSpec(modelName).output;
     } else if (matcher.spec === 'input') {
-      spec = this.currentModelSpecs[modelName].spec.input;
+      spec = this.getModelSpec(modelName).input;
     }
     return findSpecKeys(spec, getTypes(matcher.types));
   }

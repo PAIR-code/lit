@@ -45,7 +45,7 @@ export class SettingsService extends LitService {
     // If compare examples changes, update layout using the 'quick' path.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
       this.modulesService.quickUpdateLayout(
-          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          this.appState.currentModelInfos, this.appState.currentDatasetSpec,
           compareExamplesEnabled);
     });
   }
@@ -122,13 +122,13 @@ export class SettingsService extends LitService {
         Object.keys(this.modulesService.declaredLayout.lower).length === 0) {
       this.appState.layoutName = nextLayout;
       this.modulesService.initializeLayout(
-        this.appState.layout, this.appState.currentModelSpecs,
+        this.appState.layout, this.appState.currentModelInfos,
         this.appState.currentDatasetSpec, this.appState.compareExamplesEnabled);
       this.modulesService.renderModules();
     } else {
       // Recompute layout using the 'quick' path.
       this.modulesService.quickUpdateLayout(
-          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          this.appState.currentModelInfos, this.appState.currentDatasetSpec,
           this.appState.compareExamplesEnabled);
     }
   }
