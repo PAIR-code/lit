@@ -201,34 +201,35 @@ export class ClassificationModule extends LitModule {
   }
 
   override renderImpl() {
-    const clsFieldSpecs =
-        this.appState.currentModels.flatMap((model) =>
-            Object.values(this.appState.currentModelSpecs[model].spec.output)
-                  .filter(
-                    (fieldSpec) => fieldSpec instanceof MulticlassPreds
-                  ) as MulticlassPreds[]);
+    const {currentModels, currentDatasetSpec} = this.appState;
+    const clsFieldSpecs = currentModels.flatMap((model) =>
+        Object.values(this.appState.getModelSpec(model).output)
+              .filter((fieldSpec) => fieldSpec instanceof MulticlassPreds)
+    ) as MulticlassPreds[];
 
-    const hasGroundTruth = clsFieldSpecs.some((fs) =>
-        fs.parent != null && fs.parent in this.appState.currentDatasetSpec);
+    const hasGroundTruth = clsFieldSpecs.some(
+        (fs) => fs.parent != null && fs.parent in currentDatasetSpec);
 
     const allowSparseMode = clsFieldSpecs.some((fs) => fs.vocab.length > 10);
 
     const onClickSwitch = () => {this.sparseMode = !this.sparseMode;};
 
+    const activeLabeledPreds =
+        Object.entries(this.labeledPredictions).filter(([fieldName,]) =>
+          currentModels.some((model) => fieldName.startsWith(model)));
+
     // clang-format off
     return html`<div class='module-container'>
-      <div class="module-results-area">
-        ${
-        Object.entries(this.labeledPredictions)
-            .map(([fieldName, labelRow], i, arr) => {
-              const featureTable =
-                  this.renderFeatureTable(labelRow, hasGroundTruth);
-              return arr.length === 1 ? featureTable : html`
-                  <expansion-panel .label=${fieldName} expanded>
-                    ${featureTable}
-                  </expansion-panel>`;
-            })}
-      </div>
+      <div class="module-results-area">${
+        activeLabeledPreds.map(([fieldName, labelRow], i, arr) => {
+          const featureTable =
+              this.renderFeatureTable(labelRow, hasGroundTruth);
+          return arr.length === 1 ? featureTable : html`
+              <expansion-panel .label=${fieldName} expanded>
+                ${featureTable}
+              </expansion-panel>`;
+        })
+      }</div>
       <div class="module-footer">
         <annotated-score-bar-legend ?hasTruth=${hasGroundTruth}>
         </annotated-score-bar-legend>

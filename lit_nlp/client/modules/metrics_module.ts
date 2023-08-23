@@ -115,60 +115,76 @@ export class MetricsModule extends LitModule {
         'facets-change', facetsChange as EventListener);
   }
 
-  override firstUpdated() {
-    this.react(() => this.appState.currentInputData, entireDataset => {
-      this.metricsMap = {};
-      this.addMetrics(this.appState.currentInputData, Source.DATASET);
-      this.updateAllFacetedMetrics();
-    });
-    this.reactImmediately(() => this.selectionService.selectedInputData, () => {
-      // When the selection changes, remove all existing selection-based rows
-      // from the metrics table.
-      Object.keys(this.metricsMap).forEach(key => {
-        if (this.metricsMap[key].source === Source.SELECTION) {
-          delete this.metricsMap[key];
-        }
-      });
-      if (this.selectionService.lastUser === this) {
-        // If selection made through this module, no need to show a separate
-        // "selection" row in the metrics table, as the selected row will
-        // be highlighted to indicate that it is selected.
-        return;
-      } else if (this.table != null) {
-        // If selection changed outside of this module, clear the highlight in
-        // the metrics table.
-        this.table.primarySelectedIndex = -1;
-        this.table.selectedIndices = [];
-      }
-      if (this.selectionService.selectedInputData.length > 0) {
-        // If a selection is made outside of this module,, then calculate a row
-        // in the metrics table for the selection.
-        this.addMetrics(
+  override connectedCallback() {
+    super.connectedCallback();
+
+    this.react(
+        () => this.appState.currentInputData,
+        () => {
+          this.metricsMap = {};
+          this.addMetrics(this.appState.currentInputData, Source.DATASET);
+          this.updateAllFacetedMetrics();
+        });
+    this.react(
+        () => this.classificationService.allMarginSettings,
+        () => {
+          this.addMetrics(this.appState.currentInputData, Source.DATASET);
+          this.addMetrics(
             this.selectionService.selectedInputData, Source.SELECTION);
-      }
-    });
-    this.react(() => this.classificationService.allMarginSettings, margins => {
-      this.addMetrics(this.appState.currentInputData, Source.DATASET);
-      this.updateAllFacetedMetrics();
-    });
-    this.react(() => this.sliceService.sliceNames, slices => {
-      this.facetBySlice = true;
-      this.updateSliceMetrics();
-    });
+          this.updateAllFacetedMetrics();
+        });
+    this.react(
+        () => this.sliceService.sliceNames,
+        () => {
+          this.facetBySlice = true;
+          this.updateSliceMetrics();
+        });
+
+    this.react(
+        () => this.selectionService.selectedInputData,
+        () => {
+          // When the selection changes, remove all existing selection-based
+          // rows from the metrics table.
+          Object.keys(this.metricsMap).forEach(key => {
+            if (this.metricsMap[key].source === Source.SELECTION) {
+              delete this.metricsMap[key];
+            }
+          });
+          if (this.selectionService.lastUser === this) {
+            // If selection made through this module, no need to show a separate
+            // "selection" row in the metrics table, as the selected row will
+            // be highlighted to indicate that it is selected.
+            return;
+          } else if (this.table != null) {
+            // If selection changed outside of this module, clear the highlight
+            // in the metrics table.
+            this.table.primarySelectedIndex = -1;
+            this.table.selectedIndices = [];
+          }
+          if (this.selectionService.selectedInputData.length > 0) {
+            // If a selection is made outside of this module,, then calculate a
+            // row in the metrics table for the selection.
+            this.addMetrics(
+                this.selectionService.selectedInputData, Source.SELECTION);
+          }
+        });
 
     // Do this once, manually, to avoid duplicate calls on load.
     this.addMetrics(this.appState.currentInputData, Source.DATASET);
+    this.addMetrics(
+      this.selectionService.selectedInputData, Source.SELECTION);
     this.updateAllFacetedMetrics();
   }
 
   /** Gets and adds metrics information for datapoints to the metricsMap. */
   async addMetrics(datapoints: IndexedInput[], source: Source,
                    facetMap?: FacetMap, displayName?: string) {
-    const models = this.appState.currentModels;
+    const {currentModels: models} = this.appState;
 
     // Get the metrics for all models for the provided datapoints.
-    const datasetMetrics = await Promise.all(models.map(
-        async (model: string) => this.getMetrics(datapoints, model)));
+    const datasetMetrics = await Promise.all(
+        models.map(async (model: string) => this.getMetrics(datapoints, model))
+    );
 
     let name = displayName != null ? displayName : source.toString();
     if (facetMap !=null) {
@@ -267,8 +283,25 @@ export class MetricsModule extends LitModule {
 
   private async getMetrics(
       selectedInputs: IndexedInput[], model: string): Promise<MetricsResponse> {
+    const {currentDataset} = this.appState;
+    const {
+      metrics: compatMetrics,
+      datasets: compatDatasets
+    } = this.appState.metadata.models[model];
+
+    if (!compatDatasets.includes(currentDataset)) {
+      // There is a small window in which the this.appState.currentModels has
+      // updated for a render loop but the this.appState.currentDataset has not,
+      // after changing the relevant selections in the Global Settings. This
+      // guard prevents this module from requesting metrics computations for
+      // incompatible model/dataset pairs.
+      // TODO(b/297072974): Console logging the current model and dataset from
+      // this line, and checking this against requests in the Network tab of
+      // Chrome DevTools, is a good place to verify the possible timing bug.
+      return Promise.resolve({});
+    }
+
     this.pendingCalls += 1;
-    const {metrics: compatMetrics} = this.appState.metadata.models[model];
     // TODO(b/254832560): Allow the user to configure which metrics component
     // are run via the UI and pass them in to this ApiService call.
     const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
@@ -279,8 +312,7 @@ export class MetricsModule extends LitModule {
     if (selectedInputs.length) {
       try {
         metrics = await this.apiService.getMetrics(
-            selectedInputs, model, this.appState.currentDataset,
-            metricsToRun, config);
+            selectedInputs, model, currentDataset, metricsToRun, config);
       } catch {
         metrics = {};
       }
@@ -294,6 +326,7 @@ export class MetricsModule extends LitModule {
 
   /** Convert the metricsMap information into table data for display. */
   @computed get tableData(): TableHeaderAndData {
+    const {currentModels} = this.appState;
     const metricsInfo = this.appState.metadata.metrics;
     if (Object.keys(metricsInfo).length === 0) {
       return {'header': [], 'data': []};
@@ -333,7 +366,9 @@ export class MetricsModule extends LitModule {
 
     const metricNames = [...metricBests.keys()];
 
-    for (const row of Object.values(this.metricsMap)) {
+    const rowsForActiveModels = Object.values(this.metricsMap).filter(
+        (row) => currentModels.some((model) => model === row.model));
+    for (const row of rowsForActiveModels) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
         if (row.headMetrics[metricsType] == null) {return '-';}

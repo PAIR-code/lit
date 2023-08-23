@@ -102,19 +102,22 @@ export class DatapointEditorModule extends LitModule {
    const dataTextKeys: string[] = [];
 
    for (const key of this.appState.currentInputDataKeys) {
-      // Skip numerical and categorical keys.
-      if (this.groupService.categoricalFeatureNames.includes(key)) continue;
-      if (this.groupService.numericalFeatureNames.includes(key)) continue;
+     // Skip numerical and categorical keys.
+     if (this.groupService.categoricalFeatureNames.includes(key)) continue;
+     if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Skip fields with value type string[] or number[]
-      const fieldSpec = this.appState.currentDatasetSpec[key];
-      if (fieldSpec instanceof ListLitType) continue;
-      if (fieldSpec instanceof Embeddings) continue;
+     // Skip fields with value type string[] or number[]
+     const fieldSpec = this.appState.currentDatasetSpec[key];
+     if (fieldSpec instanceof ListLitType) continue;
+     if (fieldSpec instanceof Embeddings) continue;
 
-      // Skip image fields
-      if (fieldSpec instanceof ImageBytes) continue;
+     // Skip image fields
+     if (fieldSpec instanceof ImageBytes) continue;
 
-      dataTextKeys.push(key);
+     // Skip boolean fields
+     if (fieldSpec instanceof BooleanLitType) continue;
+
+     dataTextKeys.push(key);
     }
     return dataTextKeys;
   }
@@ -131,7 +134,8 @@ export class DatapointEditorModule extends LitModule {
 
     for (const key of fieldKeys) {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
+      let calculateStringLength: ((s: string) => number)|
+          ((s: string[]) => number);
 
       if (fieldSpec instanceof StringLitType) {
         calculateStringLength = (s: string) => s.length;
@@ -144,7 +148,7 @@ export class DatapointEditorModule extends LitModule {
       else {
         throw new Error(`Attempted to convert field ${
             key} of unrecognized type to string.`);
-        }
+      }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
         return calculateStringLength(indexedInput.data[key]);
