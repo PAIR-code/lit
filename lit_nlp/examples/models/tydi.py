@@ -99,7 +99,7 @@ class TyDiModel(lit_model.Model):
 
   def input_spec(self):
     return {
-        "title":lit_types.TextSegment(),
+        "title": lit_types.TextSegment(),
         "context": lit_types.TextSegment(),
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
