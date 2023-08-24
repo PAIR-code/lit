@@ -704,20 +704,6 @@ class Gradients(_GradientsBase):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _InfluenceEncodings(_Tensor):
-  """A single vector of <float>[enc_dim]."""
-  grad_target: Optional[str] = None  # class for computing gradients (string)
-
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
-    super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
-    self.validate_ndim(value, 1)
-
-
-@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(_Tensor):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
   align: Optional[str] = None  # name of a Tokens field
