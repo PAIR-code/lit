@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# LINT.IfChange
-gunicorn==20.1.0
-sentencepiece==0.1.99
-tensorflow-datasets==4.8.0
-torch==2.0.1
-transformers==4.27.1
-jax==0.3.16
-jaxlib==0.3.15
-flax==0.5.3
-# LINT.ThenChange(./pyproject.toml)
+
+-r ../../../requirements_core.txt
+
+jax==0.3.25
+jaxlib==0.3.25
+flax==0.6.3
+dalle-mini==0.1.5
+ipywidgets==7.5.0
+orbax==0.0.23
+vqgan-jax @ git+https://github.com/patil-suraj/vqgan-jax@10ef240

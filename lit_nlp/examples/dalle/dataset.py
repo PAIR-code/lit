@@ -1,4 +1,4 @@
-"""Example prompts dataset for use with Dall-E and other text-to-image generative models"""
+"""Example prompts to use with Dall-E and other text-to-image GenAI models."""
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
@@ -8,10 +8,10 @@ _CANNED_PROMPTS = (
     "Trail cam footage of gollum eating watermelon",
     "An astronaut riding a horse in a photorealistic style",
     "Pixar coronavirus movie",
-    "Darth Vader in Soviet space propaganda poster",
+    "Darth Vader in a Soviet space propaganda poster",
 )
 
-class Dalle(lit_dataset.Dataset):
+class DallePrompts(lit_dataset.Dataset):
   """Example prompts to use with Dall-E and other text-to-image GenAI models."""
 
   def __init__(self):

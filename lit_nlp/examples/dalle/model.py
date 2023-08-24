@@ -7,9 +7,9 @@ from typing import Optional
 
 import dalle_mini
 import flax
-import flax.training.common_utils
+from flax.training import common_utils as flax_common_utils
 import jax
-import jax.numpy as jnp
+from jax import numpy as jnp
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import image_utils
@@ -17,8 +17,7 @@ import numpy as np
 from PIL import Image
 import tqdm.notebook
 import transformers
-import vqgan_jax
-import vqgan_jax.modeling_flax_vqgan
+from vqgan_jax import modeling_flax_vqgan as vqgan_flax
 
 # DalleBart, VQModel & CLIP to generate Score
 _JsonDict = lit_types.JsonDict
@@ -26,12 +25,12 @@ _CLIPProcessor = transformers.CLIPProcessor
 _DalleBart = dalle_mini.DalleBart
 _DalleBartProcessor = dalle_mini.DalleBartProcessor
 _FlaxCLIPModel = transformers.FlaxCLIPModel
-_VQModel = vqgan_jax.modeling_flax_vqgan.VQModel
+_VQModel = vqgan_flax.VQModel
 
 # Some other functions
 _flax_replicate = flax.jax_utils.replicate
-_flax_shard = flax.training.common_utils.shard
-_flax_shard_prng_key = flax.training.common_utils.shard_prng_key
+_flax_shard = flax_common_utils.shard
+_flax_shard_prng_key = flax_common_utils.shard_prng_key
 _trange = tqdm.notebook.trange
 
 

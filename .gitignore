@@ -12,5 +12,6 @@ lit_nlp/package-lock.json
 website/www/**
 
 **/.DS_Store
+.dalle-venv/
 .venv/
 .vscode/

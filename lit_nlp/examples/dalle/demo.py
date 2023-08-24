@@ -18,8 +18,8 @@ from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
-from lit_nlp.examples.datasets import dalle_prompt
-from lit_nlp.examples.models import dalle
+from lit_nlp.examples.dalle import model
+from lit_nlp.examples.dalle import dataset
 
 # NOTE: additional flags defined in server_flags.py
 _FLAGS = flags.FLAGS
@@ -43,19 +43,18 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
 )
 
 # Custom frontend layout; see api/layout.py
-modules = layout.LitModuleName
+_modules = layout.LitModuleName
 _DALLE_LAYOUT = layout.LitCanonicalLayout(
     upper={
         "Main": [
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-            modules.SliceModule,
+            _modules.DataTableModule,
+            _modules.DatapointEditorModule,
         ]
     },
     lower={
         "Predictions": [
-            modules.GeneratedImageModule,
-            modules.GeneratedTextModule,
+            _modules.GeneratedImageModule,
+            _modules.GeneratedTextModule,
         ],
     },
     description="Custom layout for Text to Image models.",
@@ -68,7 +67,7 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   _FLAGS.set_default("demo_mode", True)
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
-  unused = flags.FLAGS(sys.argv, known_only=True)
+  unused = _FLAGS(sys.argv, known_only=True)
   return main(unused)
 
 
@@ -81,11 +80,11 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   for model_name_or_path in _MODELS.value:
     model_name = os.path.basename(model_name_or_path)
     # set number of images to generate default is 6
-    models[model_name] = dalle.DalleModel(
+    models[model_name] = model.DalleModel(
       model_name=model_name_or_path, predictions=6
     )
 
-  datasets = {"Dalle_prompt": dalle_prompt.Dalle()}
+  datasets = {"Dalle_prompt": dataset.DallePrompts()}
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
