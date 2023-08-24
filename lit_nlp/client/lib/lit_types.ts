@@ -155,6 +155,12 @@ export class ReferenceTexts extends _StringCandidateList {
 export class TopTokens extends _StringCandidateList {
 }
 
+/**
+ * A list of ImageBytes.
+ */
+@registered
+export class ImageBytesList extends ListLitType {
+}
 
 /**
  * TextSegment that should be interpreted as a URL.
