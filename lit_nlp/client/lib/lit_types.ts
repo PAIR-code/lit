@@ -405,14 +405,6 @@ export class Gradients extends _GradientsBase {
 }
 
 /**
- * A single vector of <float>[enc_dim].
- */
-class _InfluenceEncodings extends _Tensor {
-  /** Class for computing gradients (string). */
-  grad_target?: string = undefined;
-}
-
-/**
  * Per-token embeddings, as <float>[num_tokens, emb_dim].
  */
 @registered
