@@ -1,7 +1,7 @@
 """Dalle model based on https://github.com/borisdayma/dalle-mini."""
 
 from collections.abc import Iterable
-from functools import partial
+import functools
 import random
 from typing import Optional
 
@@ -70,7 +70,7 @@ class DalleModel(lit_model.Model):
         self.model, revision=mode_revision, dtype=jnp.float16, _do_init=False
     )
     self.processor = _DalleBartProcessor.from_pretrained(
-       self.model, revision=mode_revision
+        self.model, revision=mode_revision
     )
 
     # Load the VQGan model
@@ -86,10 +86,9 @@ class DalleModel(lit_model.Model):
         clip_repo, revision=clip_revision, dtype=jnp.float16, _do_init=False
     )
     self.clip_processor = _CLIPProcessor.from_pretrained(
-       clip_repo, revision=clip_revision
+        clip_repo, revision=clip_revision
     )
     self.clip_params = _flax_replicate(clip_params)
-
 
   # LIT API implementation
   def max_minibatch_size(self) -> int:
@@ -119,7 +118,7 @@ class DalleModel(lit_model.Model):
     #     with the generated images.
 
     # BART model inference function
-    @partial(jax.pmap, axis_name="batch")
+    @functools.partial(jax.pmap, axis_name="batch")
     def p_generate(
         tokenized_prompt,
         key,
@@ -129,26 +128,26 @@ class DalleModel(lit_model.Model):
         temperature: Optional[float] = None,
         condition_scale: float = 10.0
     ):
-        return self.dalle_bart_model.generate(
-            **tokenized_prompt,
-            prng_key=key,
-            params=params,
-            top_k=top_k,
-            top_p=top_p,
-            temperature=temperature,
-            condition_scale=condition_scale,
-        )
+      return self.dalle_bart_model.generate(
+          **tokenized_prompt,
+          prng_key=key,
+          params=params,
+          top_k=top_k,
+          top_p=top_p,
+          temperature=temperature,
+          condition_scale=condition_scale,
+      )
 
     # VQGAN image decoder function
-    @partial(jax.pmap, axis_name="batch")
+    @functools.partial(jax.pmap, axis_name="batch")
     def p_decode(indices, params):
-        return self.vqgan.decode_code(indices, params=params)
+      return self.vqgan.decode_code(indices, params=params)
 
     # CLIP <image, prompt> scoring function
-    @partial(jax.pmap, axis_name="batch")
+    @functools.partial(jax.pmap, axis_name="batch")
     def p_clip(inputs, params):
-        logits = self.clip(params=params, **inputs).logits_per_image
-        return logits
+      logits = self.clip(params=params, **inputs).logits_per_image
+      return logits
 
     # create a random key
     seed = random.randint(0, 2**32 - 1)
@@ -162,26 +161,26 @@ class DalleModel(lit_model.Model):
     images = []
     pil_images = []
     for i in _trange(max(self.n_predictions // jax.device_count(), 1)):
-        # Get a new key; passed to the model on each device to generate unique
-        # inference.
-        key, subkey = jax.random.split(key)
-        # generate images
-        encoded_images = p_generate(tokenized_prompt,
-                                    _flax_shard_prng_key(subkey),
-                                    self.params)
+      # Get a new key; passed to the model on each device to generate unique
+      # inference.
+      key, subkey = jax.random.split(key)
+      # generate images
+      encoded_images = p_generate(
+          tokenized_prompt, _flax_shard_prng_key(subkey), self.params
+      )
 
-        # remove BOS
-        encoded_images = encoded_images.sequences[..., 1:]
-        # decode images
-        decoded_images = p_decode(encoded_images, self.vqgan_params)
-        decoded_images = decoded_images.clip(0.0, 1.0).reshape((-1, 256, 256, 3))
-        for decoded_img in decoded_images:
-            img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
-            # need pil format images too to generate CLIP score
-            pil_images.append(img)
-            # convert to ImageBytes
-            image_str = image_utils.convert_pil_to_image_str(img)
-            images.append(image_str)
+      # remove BOS
+      encoded_images = encoded_images.sequences[..., 1:]
+      # decode images
+      decoded_images = p_decode(encoded_images, self.vqgan_params)
+      decoded_images = decoded_images.clip(0.0, 1.0).reshape((-1, 256, 256, 3))
+      for decoded_img in decoded_images:
+        img = Image.fromarray(np.asarray(decoded_img * 255, dtype=np.uint8))
+        # need pil format images too to generate CLIP score
+        pil_images.append(img)
+        # convert to ImageBytes
+        image_str = image_utils.convert_pil_to_image_str(img)
+        images.append(image_str)
 
     # get CLIP scores
     clip_inputs = self.clip_processor(
@@ -215,7 +214,7 @@ class DalleModel(lit_model.Model):
     # ]
     #
     # ...and also adds clip score to check image accuracy
-    final_images =[]
+    final_images = []
     clip_score = []
     images_per_prompt = []
 

@@ -11,6 +11,7 @@ _CANNED_PROMPTS = (
     "Darth Vader in a Soviet space propaganda poster",
 )
 
+
 class DallePrompts(lit_dataset.Dataset):
   """Example prompts to use with Dall-E and other text-to-image GenAI models."""
 

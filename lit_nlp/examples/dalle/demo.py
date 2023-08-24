@@ -14,12 +14,11 @@ from typing import Optional
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
-from lit_nlp.examples.dalle import model
 from lit_nlp.examples.dalle import dataset
+from lit_nlp.examples.dalle import model
 
 # NOTE: additional flags defined in server_flags.py
 _FLAGS = flags.FLAGS
@@ -81,7 +80,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name = os.path.basename(model_name_or_path)
     # set number of images to generate default is 6
     models[model_name] = model.DalleModel(
-      model_name=model_name_or_path, predictions=6
+        model_name=model_name_or_path, predictions=6
     )
 
   datasets = {"Dalle_prompt": dataset.DallePrompts()}
@@ -89,7 +88,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   for name in datasets:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
     logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
-
 
   lit_demo = dev_server.Server(
       models,
