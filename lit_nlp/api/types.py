@@ -313,6 +313,12 @@ class TopTokens(_StringCandidateList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageBytesList(ListLitType):
+  """A list of ImageBytes."""
+  default: Sequence[Any] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URLLitType(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass
