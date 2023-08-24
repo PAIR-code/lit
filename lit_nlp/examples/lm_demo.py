@@ -6,11 +6,10 @@ Currently supports the following model types:
 
 To run locally:
   python -m lit_nlp.examples.lm_demo \
-      --models=bert-base-uncased --top_k 10 --port=5432
+      --models=bert-base-uncased --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
-import os
 import sys
 from typing import Optional, Sequence
 
@@ -35,8 +34,14 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 
 _MODELS = flags.DEFINE_list(
-    "models", ["bert-base-uncased", "gpt2"],
-    "Models to load. Currently supports variants of BERT and GPT-2.")
+    "models",
+    [
+        "bert-base-uncased:https://storage.googleapis.com/what-if-tool-resources/lit-models/bert-base-uncased.tar.gz",
+        "gpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
+    ],
+    "Models to load, as <name>:<path>. Currently supports variants of BERT and"
+    " GPT-2.",
+)
 
 _TOP_K = flags.DEFINE_integer(
     "top_k", 10, "Rank to which the output distribution is pruned.")
@@ -104,20 +109,20 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   ##
   # Load models, according to the --models flag.
   models = {}
-  for model_name_or_path in _MODELS.value:
-    # Ignore path prefix, if using /path/to/<model_name> to load from a
-    # specific directory rather than the default shortcut.
-    model_name = os.path.basename(model_name_or_path)
+  for model_string in _MODELS.value:
+    # Only split on the first ':', because path may be a URL
+    # containing 'https://'
+    model_name, path = model_string.split(":", 1)
+    logging.info("Loading model '%s' from '%s'", model_name, path)
     if model_name.startswith("bert-"):
-      models[model_name] = pretrained_lms.BertMLM(
-          model_name_or_path, top_k=_TOP_K.value)
+      models[model_name] = pretrained_lms.BertMLM(path, top_k=_TOP_K.value)
     elif model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
       models[model_name] = pretrained_lms.GPT2LanguageModel(
-          model_name_or_path, top_k=_TOP_K.value)
+          path, top_k=_TOP_K.value
+      )
     else:
       raise ValueError(
-          f"Unsupported model name '{model_name}' from path '"
-          f"{model_name_or_path}'"
+          f"Unsupported model name '{model_name}' from path '{path}'"
       )
 
   datasets = {

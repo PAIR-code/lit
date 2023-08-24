@@ -12,8 +12,8 @@ from typing import Dict, List, Tuple
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
-
 import numpy as np
 import tensorflow as tf
 import transformers
@@ -35,17 +35,27 @@ class BertMLM(lit_model.BatchedModel):
         "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
     }
 
-  def __init__(self, model_name="bert-base-uncased", top_k=10):
+  def __init__(self, model_name_or_path="bert-base-uncased", top_k=10):
     super().__init__()
+
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, use_fast=False)
+        model_name_or_path, use_fast=False
+    )
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
     self.model = model_utils.load_pretrained(
         transformers.TFBertForMaskedLM,
-        model_name,
+        model_name_or_path,
         output_hidden_states=True,
-        output_attentions=True)
+        output_attentions=True,
+    )
     self.top_k = top_k
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
@@ -156,19 +166,30 @@ class GPT2LanguageModel(lit_model.BatchedModel):
         "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
     }
 
-  def __init__(self, model_name="gpt2", top_k=10):
+  def __init__(self, model_name_or_path="gpt2", top_k=10):
     """Constructor for GPT2LanguageModel.
 
     Args:
-      model_name: gpt2, gpt2-medium, gpt2-large, gpt2-xl, distilgpt2, etc.
+      model_name_or_path: gpt2, gpt2-medium, gpt2-large, gpt2-xl, distilgpt2,
+        etc.
       top_k: How many predictions to prune.
     """
     super().__init__()
+
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, pad_token="<|endoftext|>", use_fast=False)
+        model_name_or_path, pad_token="<|endoftext|>", use_fast=False
+    )
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True)
+        model_name_or_path, output_hidden_states=True, output_attentions=True
+    )
     self.top_k = top_k
 
   @staticmethod

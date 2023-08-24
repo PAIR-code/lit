@@ -6,6 +6,7 @@ import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 
 import tensorflow as tf
@@ -161,21 +162,32 @@ class T5HFModel(lit_model.BatchedModel):
   def num_layers(self):
     return self.model.config.num_layers
 
-  def __init__(self,
-               model_name="t5-small",
-               model=None,
-               tokenizer=None,
-               **config_kw):
+  def __init__(
+      self,
+      model_name_or_path="t5-small",
+      model=None,
+      tokenizer=None,
+      **config_kw,
+  ):
     super().__init__()
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.config = T5ModelConfig(**config_kw)
     assert self.config.num_to_generate <= self.config.beam_size
     self.tokenizer = tokenizer or transformers.T5Tokenizer.from_pretrained(
-        model_name)
+        model_name_or_path
+    )
     self.model = model or model_utils.load_pretrained(
         transformers.TFT5ForConditionalGeneration,
-        model_name,
+        model_name_or_path,
         output_hidden_states=True,
-        output_attentions=self.config.output_attention)
+        output_attentions=self.config.output_attention,
+    )
 
   def _encode_texts(self, texts: List[str]):
     return self.tokenizer.batch_encode_plus(

@@ -13,7 +13,6 @@ to load):
 
 Then navigate to localhost:5432 to access the demo UI.
 """
-import os
 import sys
 from typing import Optional, Sequence
 
@@ -53,7 +52,13 @@ _MAX_INDEX_EXAMPLES = flags.DEFINE_integer(
     "max_index_examples", 2000,
     "Maximum number of examples to index from the train set.")
 
-_MODELS = flags.DEFINE_list("models", ["t5-small"], "Which model(s) to load.")
+_MODELS = flags.DEFINE_list(
+    "models",
+    [
+        "t5-small:https://storage.googleapis.com/what-if-tool-resources/lit-models/t5-small.tar.gz",
+    ],
+    "Which model(s) to load, as <name>:<task>.",
+)
 _TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
                            "Which task(s) to load.")
 
@@ -134,19 +139,19 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # models side-by-side, and can also include models of different types that use
   # different datasets.
   base_models = {}
-  for model_name_or_path in _MODELS.value:
-    # Ignore path prefix, if using /path/to/<model_name> to load from a
-    # specific directory rather than the default shortcut.
-    model_name = os.path.basename(model_name_or_path)
-    if model_name_or_path.startswith("SavedModel"):
-      saved_model_path = model_name_or_path.split(":", 1)[1]
+  for model_string in _MODELS.value:
+    # Only split on the first ':', because path may be a URL
+    # containing 'https://'
+    model_name, path = model_string.split(":", 1)
+    if path.startswith("SavedModel"):
+      saved_model_path = path.split(":", 1)[1]
       base_models[model_name] = t5.T5SavedModel(saved_model_path)
     else:
       # TODO(lit-dev): attention is temporarily disabled, because O(n^2) between
       # tokens in a long document can get very, very large. Re-enable once we
       # can send this to the frontend more efficiently.
       base_models[model_name] = t5.T5HFModel(
-          model_name=model_name_or_path,
+          model_name_or_path=path,
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
           output_attention=False,

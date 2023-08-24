@@ -9,7 +9,7 @@ class PretrainedLmsIntTest(absltest.TestCase):
 
   def test_bertmlm(self):
     # Run prediction to ensure no failure.
-    model_path = "bert-base-uncased"
+    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/bert-base-uncased.tar.gz"
     model = pretrained_lms.BertMLM(model_path)
     model_in = [{"text": "test text", "tokens": ["test", "[MASK]"]}]
     model_out = list(model.predict(model_in))
@@ -21,7 +21,7 @@ class PretrainedLmsIntTest(absltest.TestCase):
 
   def test_gpt2(self):
     # Run prediction to ensure no failure.
-    model_path = "gpt2"
+    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
     model = pretrained_lms.GPT2LanguageModel(model_path)
     model_in = [{"text": "test text"}]
     model_out = list(model.predict(model_in))
