@@ -1,6 +1,6 @@
 # Frontend Developer Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-02-14' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -58,23 +58,41 @@ then builds the app services and kicks off app initialization and loading data.
 
 ### Layout
 
-A layout is defined by a structure of `LitModule` classes, and includes a set of
-main components that are always visible, (designated in the object by the "main"
-key) and a set of tabs that each contain a group other components.
+A layout defines the arraignment of `LitModule` classes in the UI. Layouts are
+specified in Python as `LitCanonicalLayout` instances, and LIT includes three
+pre-configured layouts in
+[`layout.py`](../lit_nlp/api/layout.py):
 
-Layouts are generally specified in Python (see
-[Custom Layouts](./api.md#ui-layouts)) through the `LitCanonicalLayout` object.
-The default layouts are defined in
-[`layout.py`](../lit_nlp/api/layout.py), and you can
-add your own by defining one or more `LitCanonicalLayout` objects and passing
-them to the server. For an example, see `CUSTOM_LAYOUTS` in
+* `simple`: A minimalist layout with the examples on top (either individually
+  (selected by default) or in a table) and predictions on the bottom;
+* `default`: The original LIT layout with a single group of modules on top for
+  exploring and selecting data, and a collection of tabs supporting different
+  analytical tasks on the bottom; and
+* `experimental`: A three-panel layout that puts exploratory data visualizations at
+  full-page height on the left, tools for inspecting and manipulating examples
+  and their associated predictions in the upper right, and a collection of tabs
+  supporting different analytical tasks in the lower left. Note that this was
+  introduced in v1.0 as an experimental feature, your feedback is appreciated.
+
+You can also add [custom layouts](./api.md#ui-layouts) to your LIT instance
+by defining one or more `LitCanonicalLayout` instances and passing them to the
+server. For an example, see `CUSTOM_LAYOUTS` in
 [`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
 
-The actual layout of components in
-[`<lit-modules>`](../lit_nlp/client/core/modules.ts)
-can be different than the simple declared layout, since the visibility of
-modules depends on a number of factors, including the user-chosen visibility and
-whether or not specific modules show multiple copies per selected model. This
+Note: The pre-configured layouts are added to every `LitApp` instance using
+[dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict)
+where the Mapping passed to the `LitApp` constructor overrides the
+pre-configured layouts `Mapping`. Thus, you can remove or change these
+pre-configured layouts as you like by passing a `Mapping` where the values of
+`simple`, `default`, and/or `experimental` is `None` (to remove) or a
+`LitCanonicalLayout` instance (to override) as you desire.
+
+The actual layout of components in the LIT UI, see
+[`<lit-modules>`](../lit_nlp/client/core/modules.ts),
+can be different than the declared layout, since the visibility of modules
+depends on a number of factors, including the user-chosen visibility, the
+compatibility of the configured modules with the selected model and dataset, and
+whether or not specific modules show multiple copies per selected model. The
 actual layout is computed in
 [`modules_service`](../lit_nlp/client/services/modules_service.ts).
 

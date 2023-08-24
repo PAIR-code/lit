@@ -4,6 +4,7 @@ import {LitElement} from 'lit';
 
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
+import {IndexedInput} from '../lib/types';
 import {AppState} from '../services/services';
 
 import {DocumentationComponent} from './documentation';
@@ -18,11 +19,8 @@ describe('documentation display test', () => {
     // Set up.
     const app = new LitApp();
     const appState = app.getService(AppState);
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness).
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('sst_dev');
+    appState.setDatasetForTest('sst_dev', new Map<string, IndexedInput>());
 
     docComponent = new DocumentationComponent(appState);
     document.body.appendChild(docComponent);

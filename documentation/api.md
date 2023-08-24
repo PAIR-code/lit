@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-06-29' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -237,7 +237,7 @@ need to customize `predict()` accordingly with any pre- or post-processing
 needed, such as tokenization.
 
 Many deep learning models support a batched prediction behavior. Thus, we
-provide the `BatchedModel` class that implements simple batching. Users of this 
+provide the `BatchedModel` class that implements simple batching. Users of this
 class must implement the `predict_minibatch()` function, which should convert
 a `Sequence` of `JsonDict` objects to the appropriate batch representation
 (typically, a `Mapping` of strings to aligned `Sequences` or `Tensors`) before
@@ -920,16 +920,35 @@ return lit_demo.serve()
 ```
 
 For a full example, see
-[`lm_demo.py`](../lit_nlp/examples/lm_demo.py) You
-can see the default layouts as well as the list of available modules in
-[`layout.py`](../lit_nlp/api/layout.py).
+[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
+
+You can see the pre-configured layouts provided by LIT, as well as the list of
+modules that can be included in your custom layout in
+[`layout.py`](../lit_nlp/api/layout.py). A
+`LitCanonicalLayout` can be defined to achieve four different configurations of
+the major content areas:
+
+* Single-panel: Define only the `upper=` parameter.
+* Two-panel, upper/lower: Define the `upper=` and `lower=` parameters.
+* Two-panel, left/right: Define the `left=` and `upper=` parameters; the
+  `upper=` section will be shown on the right.
+* Three-panel: Define the `left=`, `upper=`, and `lower=` parameters; the
+  `upper=` and `lower=` sections will be shown on the right.
 
 To use a specific layout by default for a given LIT instance, pass the key
 (e.g., "simple", "default", or the name of a custom layout) as a server flag
 when initializing LIT (`--default_layout=<layout>`) or by setting the default
 value for that flag in you `server.py` file, e.g.,
-`FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
+`flags.FLAGS.set_default('default_layout', 'my_layout_name')`. The layout can
 also be set on-the-fly with the `layout=` URL param, which will take precedence.
+
+Note: The pre-configured layouts are added to every `LitApp` instance using
+[dictionary comprehension](https://docs.python.org/3/library/stdtypes.html#dict)
+where the Mapping passed to the `LitApp` constructor overrides the
+pre-configured layouts `Mapping`. Thus, you can remove or change these
+pre-configured layouts as you like by passing a `Mapping` where the values of
+`simple`, `default`, and/or `experimental` is `None` (to remove) or a
+`LitCanonicalLayout` instance (to override) as you desire.
 
 ## Accessing the LIT UI in Notebooks
 

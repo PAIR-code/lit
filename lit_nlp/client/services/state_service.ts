@@ -80,17 +80,26 @@ export class AppState extends LitService implements StateObservedByUrlService {
   }
 
   /**
-   * When we set the current dataset, we need to load new data
-   * from the server if the data is not already loaded...
+   * Set current dataset.
    */
   @action
-  setCurrentDataset(dataset: string, shouldLoadDataset = false) {
-    this.currentDatasetInternal = dataset;
-    if (!this.currentInputDataIsLoaded && shouldLoadDataset) {
-      // TODO (b/154508392): We need to do this in an async/race condition safe
-      // way and guarantee that we won't fetch multiple datasets simultaneously
-      this.loadData();
+  setCurrentDataset(dataset: string) {
+    if (!this.inputData.has(dataset)) {
+      throw new Error(
+          `Dataset '${dataset}' is not loaded. Call loadDataset() first.`);
     }
+    this.currentDatasetInternal = dataset;
+  }
+
+  /**
+   * Set dataset with given examples. Only use this in tests.
+   * TODO(b/297232000): get rid of test-only methods, have some mock init
+   * instead.
+   */
+  @action
+  setDatasetForTest(dataset: string, dataMap: Map<string, IndexedInput>) {
+    this.inputData.set(dataset, dataMap);  // simulates a call to loadDataset()
+    this.setCurrentDataset(dataset);
   }
 
   @computed
@@ -132,9 +141,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get currentModelRequiredInputSpecKeys(): string[] {
     // Add all required keys from current model input specs.
     const keys = new Set<string>();
-    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelInfo) => {
-      Object.keys(modelSpec.spec.input).forEach(key => {
-        if (modelSpec.spec.input[key].required === true) {
+    Object.values(this.currentModelInfos).forEach((modelInfo: ModelInfo) => {
+      Object.keys(modelInfo.spec.input).forEach(key => {
+        if (modelInfo.spec.input[key].required === true) {
           keys.add(key);
         }
       });
@@ -202,7 +211,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Select models.
    */
   @action
-  async setCurrentModels(currentModels: string[]) {
+  setCurrentModels(currentModels: string[]) {
     this.currentModels = currentModels;
   }
 
@@ -210,17 +219,15 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the configs of only the current models.
    */
   @computed
-  get currentModelSpecs() {
-    const allModelSpecs = this.metadata.models;
-
-    // Get the specs of only the selected models.
-    const currentModelSpecs: ModelInfoMap = {};
-    Object.keys(allModelSpecs).forEach(modelName => {
-      if (this.currentModels.includes(modelName)) {
-        currentModelSpecs[modelName] = allModelSpecs[modelName];
-      }
-    });
-    return currentModelSpecs;
+  get currentModelInfos(): ModelInfoMap {
+    const {currentModels} = this;
+    return Object.entries(this.metadata.models).reduce(
+        (currentModelInfos: ModelInfoMap, [modelName, modelInfo]) => {
+          if (currentModels.includes(modelName)) {
+            currentModelInfos[modelName] = modelInfo;
+          }
+          return currentModelInfos;
+        }, {});
   }
 
   /**
@@ -241,9 +248,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
-      spec = this.currentModelSpecs[modelName].spec.output;
+      spec = this.getModelSpec(modelName).output;
     } else if (matcher.spec === 'input') {
-      spec = this.currentModelSpecs[modelName].spec.input;
+      spec = this.getModelSpec(modelName).input;
     }
     return findSpecKeys(spec, getTypes(matcher.types));
   }
@@ -321,24 +328,21 @@ export class AppState extends LitService implements StateObservedByUrlService {
     // TODO(b/160480922) Move away from AppState being the source of truth for
     // URL configuration data.
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
-    this.setCurrentDataset(
-        await this.determineCurrentDatasetFromUrl(urlConfiguration),
-        /** should Load Data */ false);
+    // This is async because it may trigger the backend to load data from disk.
+    const dataset = await this.determineCurrentDatasetFromUrl(urlConfiguration);
+    await this.loadDataset(dataset);
+    this.setCurrentDataset(dataset);
 
-    await this.loadData();
     this.initialized = true;
   }
 
-  async loadData() {
-    if (!this.currentDataset) return;
+  async loadDataset(dataset: string) {
+    if (!dataset) return;
+    if (this.inputData.has(dataset)) return;
 
-    const inputResponse = await this.apiService.getDataset(this.currentDataset);
-    this.updateInputData(this.currentDataset, inputResponse);
-  }
-
-  private updateInputData(dataset: string, data: IndexedInput[]) {
+    const response = await this.apiService.getDataset(dataset);
     const map = new Map<Id, IndexedInput>();
-    data.forEach(entry => {
+    response.forEach(entry => {
       map.set(entry.id, entry);
     });
     this.inputData.set(dataset, map);

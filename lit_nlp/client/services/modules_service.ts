@@ -136,10 +136,10 @@ export class ModulesService extends LitService implements
    * visible render layout based on the app config
    */
   initializeLayout(
-      layout: LitCanonicalLayout, currentModelSpecs: ModelInfoMap,
+      layout: LitCanonicalLayout, currentModelInfos: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
     this.declaredLayout = layout;
-    this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
+    this.updateRenderLayout(currentModelInfos, datasetSpec, compareExamples);
   }
 
   @action
@@ -155,10 +155,10 @@ export class ModulesService extends LitService implements
    */
   @action
   quickUpdateLayout(
-      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
+      currentModelInfos: ModelInfoMap, datasetSpec: Spec,
       compareExamples: boolean) {
     // Recompute layout
-    this.updateRenderLayout(currentModelSpecs, datasetSpec, compareExamples);
+    this.updateRenderLayout(currentModelInfos, datasetSpec, compareExamples);
     this.renderModules();
   }
 
@@ -220,7 +220,7 @@ export class ModulesService extends LitService implements
    * copies of a module per model based on the module behavior.
    */
   computeTabGroupLayout(
-      groupContents: LitTabGroupLayout, currentModelSpecs: ModelInfoMap,
+      groupContents: LitTabGroupLayout, currentModelInfos: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean) {
     const tabGroupConfig: LitTabGroupConfig = {};
     for (const [tabName, tabContents] of Object.entries(groupContents)) {
@@ -229,7 +229,7 @@ export class ModulesService extends LitService implements
       // First, map all of the modules to render configs, filtering out those
       // that are not visible.
       const configs = this.getRenderConfigs(
-          moduleConfigs, currentModelSpecs, datasetSpec, compareExamples,
+          moduleConfigs, currentModelInfos, datasetSpec, compareExamples,
           tabName);
 
       if (configs.length !== 0) {
@@ -240,16 +240,16 @@ export class ModulesService extends LitService implements
   }
 
   updateRenderLayout(
-      currentModelSpecs: ModelInfoMap, datasetSpec: Spec,
+      currentModelInfos: ModelInfoMap, datasetSpec: Spec,
       compareExamples: boolean) {
     const upper = this.computeTabGroupLayout(
-        this.declaredLayout.upper, currentModelSpecs, datasetSpec,
+        this.declaredLayout.upper, currentModelInfos, datasetSpec,
         compareExamples);
     const lower = this.computeTabGroupLayout(
-        this.declaredLayout.lower, currentModelSpecs, datasetSpec,
+        this.declaredLayout.lower, currentModelInfos, datasetSpec,
         compareExamples);
     const left = this.computeTabGroupLayout(
-        this.declaredLayout.left, currentModelSpecs, datasetSpec,
+        this.declaredLayout.left, currentModelInfos, datasetSpec,
         compareExamples);
 
     const renderLayout: LitRenderConfig = {upper, lower, left};
@@ -292,7 +292,7 @@ export class ModulesService extends LitService implements
    * to render.
    */
   private getRenderConfigs(
-      modules: ResolvedModuleConfig[], currentModelSpecs: ModelInfoMap,
+      modules: ResolvedModuleConfig[], currentModelInfos: ModelInfoMap,
       datasetSpec: Spec, compareExamples: boolean,
       tabName: string): RenderConfig[][] {
     const renderConfigs: RenderConfig[][] = [];
@@ -300,7 +300,7 @@ export class ModulesService extends LitService implements
     // modules that display one per model.
     for (const moduleConfig of modules) {
       const moduleType = moduleConfig.constructor;
-      if (!moduleType.shouldDisplayModule(currentModelSpecs, datasetSpec)) {
+      if (!moduleType.shouldDisplayModule(currentModelInfos, datasetSpec)) {
         if (moduleConfig.requiredForTab) {
           // Abort this tab if a required module is not compatible.
           return [];
@@ -322,7 +322,7 @@ export class ModulesService extends LitService implements
       // this.appState.currentModels.
       let selectedModels: Array<string|undefined> = [undefined];
       if (moduleType.duplicateForModelComparison) {
-        selectedModels = Object.keys(currentModelSpecs);
+        selectedModels = Object.keys(currentModelInfos);
       }
       for (const modelName of selectedModels) {
         if (compare) {

@@ -36,6 +36,10 @@ export interface Spec {
   [key: string]: LitType;
 }
 
+export interface SpecMap {
+  [model: string]: Spec;
+}
+
 interface InitSpecMap {
   [name: string]: Spec|null;  // using null here because None ==> null in Python
 }

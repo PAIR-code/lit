@@ -91,13 +91,10 @@ describe('Color service test', () => {
     inputData.set('color_test', dataMap);
 
     const appState = app.getService(AppState);
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness.)
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
     spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('color_test');
+    appState.setDatasetForTest('color_test', dataMap);
 
     // With no change in settings, the color should be the default color.
     let color = colorService.getDatapointColor(mockInput);
