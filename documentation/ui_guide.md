@@ -30,48 +30,74 @@ tabs based on analytical task (e.g., metrics analysis vs. input salience
 visualization vs. counterfactual example generation), but you can adopt whatever
 organizational scheme you desire in your custom layouts.
 
+### Layout Options
+<!--
+  TODO: Add an image of the 3 LIT layouts side by side.
+-->
+
+LIT provides three pre-configured layouts:
+
+*   `simple`: A minimalist layout with the examples on top (either individually
+    (selected by default) or in a table) and predictions on the bottom;
+*   `default`: The original LIT layout with a single group of modules on top for
+    exploring and selecting data, and a collection of tabs supporting different
+    analytical tasks on the bottom; and
+*   `experimental`: A three-panel layout that puts exploratory data
+    visualizations at full-page height on the left, tools for inspecting and
+    manipulating examples and their associated predictions in the upper right,
+    and a collection of tabs supporting different analytical tasks in the lower
+    left. Note that this was introduced in v1.0 as an experimental feature, your
+    feedback is appreciated.
+
 ## Datapoint Selections
 
 LIT displays a loaded dataset and its model results across the set of selected
 models. Users can dive into detailed results by selecting datapoints from the
 dataset.
 
-There are two selection concepts that LIT users need to be aware of. The first
-concept is the current selection, which consists of one or more datapoints that
-are selected through one of the interactive modules (such as the *Data Table*,
-*Embeddings*, *Scalars*, or *Confusion Matrix* module). When a set of
-datapoints are selected in a module, this selection is reflected across all
-other modules, along with the selection toolbar. For example, the *Metrics*
-module shows model metrics not just across the entire dataset, but also for the
-current selection of datapoints.
+![LIT datapoint selection](./images/lit-datapoint-selection.png "LIT datapoint selection")
 
-The second concept is the primary selection. The primary selection is a single
-datapoint within the current selection that is being explored in more detail in
-modules that focus on a single datapoints (such as the *Datapoint Editor* and
-*Salience Maps* modules). If the current selection only consists of a single
-datapoint, then that datapoint is also the primary selection. If the current
-selection consists of multiple datapoints, the primary selection defaults to the
-first datapoint in that selection but can be changed through the arrow controls
-in the selection toolbar or by clicking another datapoint in the selection. The
-primary selection is highlighted in a darker blue in the *Data Table* module and
-its ID is displayed in the selection toolbar.
+LIT provides two levels of precision for selections. The first is the current
+selection, which consists of one or more datapoints that are selected through
+one of the interactive modules (such as the *Data Table*, *Embeddings*,
+*Scalars*, or *Confusion Matrix* module). When a set of datapoints is selected
+in a module, this selection is reflected across all other modules, along with
+the selection toolbar. For example, the *Metrics* module shows model metrics not
+just across the entire dataset, but also for the current selection of
+datapoints.
 
-A selection of datapoints can be saved as a "slice" through the *Slice Editor*.
-Saving a selection as a slice allows for easy navigation back to that selection
-in the future. It also allows for comparison of metrics across subsets of
-datapoints, as described in the *[Metrics Module](#metrics-table)* section.
+The second is the primary selection. This is a single datapoint within the
+current selection that is being explored in more detail in modules that focus on
+a single datapoint (such as the *Datapoint Editor* and *Salience Maps* modules).
+If the current selection only consists of a single datapoint, then that
+datapoint is also the primary selection. If the current selection consists of
+multiple datapoints, the primary selection defaults to the first datapoint in
+that selection but can be changed through the arrow controls in the selection
+toolbar or by clicking another datapoint in the selection. The primary selection
+is highlighted in a darker blue in the *Data Table* module and its ID is
+displayed in the selection toolbar.
+
+A selection of datapoints can be saved as a "slice" through the
+*[Slice Editor](#slices)*. Saving a selection as a slice allows for easy
+navigation back to that selection in the future. It also allows for comparison
+of metrics across subsets of datapoints, as described in the
+*[Metrics Module](#metrics-table)* section.
 
 ## Toolbars
 
-There are three toolbars in the LIT tool. The top bar includes the tool name,
-selected model(s) and dataset, and a settings button. Below that is the main
-toolbar with the menus and controls for navigation and selection control. At the
-bottom of the page is a status bar.
+There are three toolbars provided in LIT. The top bar includes the selected
+model(s) and dataset, a settings button, and URL sharing functionality. Below
+that is the main toolbar with the menus and controls for navigation and
+selection. At the bottom of the page is a status bar.
 
-### Global Settings
+![LIT toolbars](./images/lit-toolbars.png "LIT toolbars")
 
-The global settings dialog is accessible through the settings icon in the top
-bar.
+### Top Bar
+
+#### Global Settings
+
+The global settings dialog is accessible through the **"Configure"** button in
+the top bar.
 
 LIT can be launched with a set of models and datasets. The settings screen
 allows users to select which models to analyze. Any number of models can be
@@ -84,17 +110,27 @@ The settings dialog also contains controls switching the layout of the tool.
 This can help declutter the UI when analysis doesn't require all of the
 compatible modules that LIT contains.
 
-![LIT global settings](./images/lit-settings.png "LIT global settings")<!-- DO NOT REMOVE {width="600"} -->
+![LIT global settings](./images/lit-settings.png "LIT global settings")
+
+#### URL Sharing
+
+Much of the LIT app's state &mdash; the loaded models and datasets, selected
+datapoints, minimized and/or full-screen modules &mdash; is stored in URL
+parameters. The **"Copy Link"** button in the top bar allows a user to share
+their specific LIT view and setup with someone else. The URL can also be copied
+manually from the address bar.
+
+The base url that will be copied with the **"Copy Link"** button can be
+configured by passing the `--canonical_url=<url base>` flag to the server.
 
 ### Main Toolbar
 
 The main toolbar is right below the top bar and contains a number of different
-controls and information. On the left side of the toolbar, it contains a set of
-menus for quick controlling of datapoint selection and coloring. This includes
-controls such as:
+controls and information. The left side of the toolbar contains a set of menus
+for quickly controlling datapoint selection and coloring. This includes the
+following controls:
 
-*   The **"Select related"** option looks at all the datapoints in the current
-    selection and adds any datapoints "related" to them to the current
+*   The **"Select related"** option adds any datapoints "related" to the current
     selection. In LIT, "related" is defined as datapoints created from some
     source datapoint (through manual editing or a datapoint generator), or a
     source datapoint that a selected datapoint was created from.
@@ -113,18 +149,16 @@ datapoint puts LIT into datapoint comparison mode, where two datapoints can be
 compared against each other, across all applicable modules. This mode is
 described in more detail [below](#comparing-datapoints).
 
-On the right side of the toolbar, it displays how many datapoints are in the
-loaded dataset and how many of those are currently selected. The ID of the
-primary selected datapoint is displayed, along with a favorite button to mark
-this datapoint as a favorite. Favorited datapoints are stored in the
-automatically-created **"Favorites"** slice, accessible in the slice controls.
-If only a single datapoint is selected, then the left and right arrow buttons in
-this toolbar allow cycling of the selected datapoint through the loaded dataset.
-If the current selection is a set of datapoints, then the left and right arrow
-buttons control which of those datapoints is the primary selected datapoint,
-cycling through the datapoints in the current selection. A **"random"** button
-between the arrows allows selection of a random datapoint, as opposed to the
-ordered cycling done through the left and right arrows.
+The right side of the toolbar displays how many datapoints are in the loaded
+dataset and how many of those are currently selected. If only a single datapoint
+is selected, the left and right arrow buttons in this toolbar allow cycling of
+the selected datapoint through the loaded dataset. If the current selection is a
+set of datapoints, then the left and right arrow buttons control which of those
+datapoints is the primary selected datapoint, cycling through the datapoints in
+the current selection. A **"Select random"** button allows selection of a random
+datapoint, as opposed to the ordered cycling done through the left and right
+arrows.The **"Select all"** and **"Clear selection"** buttons are also provided
+to easily select all or none of the datapoints, respectively.
 
 ### Status Bar
 
@@ -135,7 +169,8 @@ displayed in the status bar along with an indeterminant progress bar showing
 that a result is pending. If a call to the backend fails, information about the
 failure will be displayed in this area in red to call out the error, and that
 information will persist in the status bar until the user clicks the **"x"**
-button by the error to clear the status display.
+button by the error to clear the status display. The full error log can also be
+displayed by clicking the error icon in the message.
 
 ## Comparing Models
 
@@ -167,11 +202,11 @@ counterfactual datapoints, or any other datapoint from the loaded dataset.
 
 ## Slices
 
-The *Slice Editor* allows for creating, editing, selecting, and deleting of
-slices. The current selection can be saved as a slice by giving it a name and
-clicking "Create slice". The slice list allows you to select any of the
-previously-saved slices. This includes the "Favorites" slice that is described
-above in the [Main Toolbar](#main-toolbar) section.
+The *Slice Editor* allow users to create, edit, select, and delete slices. The
+current selection can be saved as a slice by giving it a name and clicking
+"Create slice". The slice list allows you to select any of the previously-saved
+slices. This includes the "Starred" slice that is described above in the
+[Main Toolbar](#main-toolbar) section.
 
 The feature checkboxes enable the user to facet the data by input feature when
 creating a slice. In the screenshot below, we are creating a new slice named
@@ -185,17 +220,6 @@ label set to 0, and one named "interesting label:1" for those with their label
 set to "1".
 
 ![LIT slice controls](./images/lit-slices.png "LIT slice controls")
-
-## URL Sharing
-
-Much of the LIT app's state &mdash; the loaded models and datasets, selected
-datapoints, minimized and/or full-screen modules &mdash; are stored in URL
-parameters. In this way, if a user wants to share the tool with a specific view
-set up with someone else, they can copy the URL (either manually or via the
-share link button) as a means of sharing it.
-
-The base url that will be copied with the share link button can be configured by
-passing the `--canonical_url=<url base>` flag to the server.
 
 ## Module Details
 
@@ -251,8 +275,12 @@ the search buttons for each column in the header row. All columns that have
 filters set on them have their search button outlined. Clicking the **"x"**
 button in the search box for a column will clear that column's filter.
 
-The **"show only selected"** checkbox toggles the data table to only show the
+The **"show selected"** checkbox toggles the data table to only show the
 datapoints that are currently selected.
+
+The **"show generated"** checkbox toggles the data table to only show generated
+datapoints, that is, the datapoints that have been added through modules such as
+the *Datapoint Editor* or the *Counterfactual Generators*.
 
 The **"reset view"** button returns the data table to its standard, default
 view.
@@ -277,6 +305,9 @@ in them.
 A datapoint can be pinned to enable comparison by clicking the pin icon on the
 left side of the datapoint's table entry when the datapoint is hovered over or
 selected. A pinned datapoint can be unpinned by clicking on its pin icon again.
+Similarly, a datapoint can be starred and unstarred by clicking the neighboring
+star icon. Starred datapoints are tracked in an automatically generated Starred
+slice for convenience.
 
 You can also export data to CSV using the copy or download buttons in the bottom
 right:
@@ -377,11 +408,11 @@ agreements/disagreements between classifications in the two models, as opposed
 to agreements/disagreements between one model's classifications and the ground
 truth.
 
-The individual cells and the row and column headers are all clickable to
-toggle on/off selection of the datapoints in that cell or row or column. In this
-way, the confusion matrix module can be used to select points of interest, such
-as all false positives in a binary classification task, or all datapoints where
-two models being compared disagree on classification.
+The individual cells and the row and column headers are all clickable to toggle
+on/off selection of the datapoints in that cell or row or column. In this way,
+the confusion matrix module can be used to select points of interest, such as
+all false positives in a binary classification task, or all datapoints where two
+models being compared disagree on classification.
 
 ![LIT confusion matrix](./images/lit-conf-matrix.png "LIT confusion matrix")
 
@@ -395,11 +426,11 @@ jitter of the data to better view all datapoints. For regression scores, where
 ground truth is known, the Y axis is the error in the prediction (points below
 the x-axis are under-predicted).
 
-Datapoints can be selected either though clicking, or through lasso selection
-by clicking and dragging.
+Datapoints can be selected either though clicking, or through lasso selection by
+clicking and dragging.
 
-The color of the datapoints is controlled by the color settings in the
-selection toolbar.
+The color of the datapoints is controlled by the color settings in the selection
+toolbar.
 
 For binary classification tasks, this module also contains a threshold slider in
 order to change the positive classification threshold at which datapoints are
