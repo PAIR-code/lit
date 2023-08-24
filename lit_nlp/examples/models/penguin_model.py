@@ -3,6 +3,7 @@
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.datasets import penguin_data
+from lit_nlp.lib import file_cache
 import numpy as np
 import tensorflow as tf
 
@@ -13,6 +14,7 @@ class PenguinModel(lit_model.BatchedModel):
   """TensorFlow Keras model for penguin classification."""
 
   def __init__(self, path: str):
+    path = file_cache.cached_path(path)
     self.model = tf.keras.models.load_model(path)
     # Feature column means and variance to normalize values before
     # prediction.

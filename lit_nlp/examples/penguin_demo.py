@@ -12,7 +12,6 @@ from typing import Optional, Sequence
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
@@ -20,12 +19,7 @@ from lit_nlp.components import minimal_targeted_counterfactuals
 from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.models import penguin_model
 
-# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
-# both google3 and OSS integration testing setups.
-from lit_nlp.lib import file_cache
-MODEL_PATH = file_cache.cached_path(
-    'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
-)
+MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
 
 FLAGS = flags.FLAGS
 FLAGS.set_default('default_layout', 'penguins')
