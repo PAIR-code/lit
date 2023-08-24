@@ -126,13 +126,6 @@ export class ListLitType extends LitType {
 }
 
 /**
- * A list of ImageBytes.
- */
- @registered
- export class ImageBytesList extends ListLitType {
-
- }
-/**
  * A list of (text, score) tuples.
  */
 class _StringCandidateList extends ListLitType {

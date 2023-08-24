@@ -263,12 +263,6 @@ class ListLitType(LitType):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class ImageBytesList(ListLitType):
-  """A list of ImageBytes."""
-  default: Sequence[Any] = []
-
-
-@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class _StringCandidateList(ListLitType):
   """A list of (text, score) tuples."""
   default: ScoredTextCandidates = None
