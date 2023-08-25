@@ -183,10 +183,14 @@ class GPT2LanguageModel(lit_model.BatchedModel):
           model_name_or_path, extract_compressed_file=True
       )
 
-    # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name_or_path, pad_token="<|endoftext|>", use_fast=False
+        model_name_or_path, use_fast=False
     )
+    # Set this after init, as if pad_token= is passed to
+    # AutoTokenizer.from_pretrained() above it will create a new token with
+    # with id = max_vocab_length and cause out-of-bounds errors in
+    # the embedding lookup.
+    self.tokenizer.pad_token = self.tokenizer.eos_token
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
         model_name_or_path, output_hidden_states=True, output_attentions=True
     )
@@ -281,7 +285,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
   ##
   # LIT API implementations
   def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
+    # The BatchedModel base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 6
 

@@ -23,11 +23,11 @@ class PretrainedLmsIntTest(absltest.TestCase):
     # Run prediction to ensure no failure.
     model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
     model = pretrained_lms.GPT2LanguageModel(model_path)
-    model_in = [{"text": "test text"}]
+    model_in = [{"text": "test text"}, {"text": "longer test text"}]
     model_out = list(model.predict(model_in))
 
     # Sanity-check output vs output spec.
-    self.assertLen(model_out, 1)
+    self.assertLen(model_out, 2)
     for key in model.output_spec().keys():
       self.assertIn(key, model_out[0].keys())
 
