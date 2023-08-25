@@ -1,5 +1,5 @@
 """Helpers for working with transformers models."""
-from typing import List, Optional
+from typing import Optional
 
 from absl import logging
 import transformers
@@ -16,12 +16,13 @@ def load_pretrained(cls, *args, **kw):
     return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
-def batch_encode_pretokenized(tokenizer: transformers.PreTrainedTokenizerBase,
-                              tokenized_inputs: List[List[str]],
-                              tokenized_pair_inputs: Optional[List[
-                                  List[str]]] = None,
-                              tensor_type="tf",
-                              **kw) -> transformers.BatchEncoding:
+def batch_encode_pretokenized(
+    tokenizer: transformers.PreTrainedTokenizerBase,
+    tokenized_inputs: list[list[str]],
+    tokenized_pair_inputs: Optional[list[list[str]]] = None,
+    tensor_type="tf",
+    **kw
+) -> transformers.BatchEncoding:
   """Batch encode pre-tokenized text, without further splitting.
 
   This is necessary because tokenizer(..., is_split_into_words=True) doesn't

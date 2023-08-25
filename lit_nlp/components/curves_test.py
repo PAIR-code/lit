@@ -14,10 +14,9 @@
 # ==============================================================================
 """Tests for lit_nlp.components.curves."""
 
-from typing import List, NamedTuple, Text, Tuple
+from typing import NamedTuple
 from absl.testing import absltest
 from absl.testing import parameterized
-
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -33,7 +32,7 @@ _Model = lit_model.BatchedModel
 
 class _DataEntryForTesting(NamedTuple):
   prediction: tuple[float, float, float]
-  label: Text
+  label: str
 
 
 TEST_DATA = {
@@ -55,11 +54,12 @@ class _StaticTestModel(_Model):
         'aux_pred': lit_types.MulticlassPreds(vocab=COLORS, parent='label')
     }
 
-  def predict_minibatch(self, inputs: List[lit_types.JsonDict],
-                        **unused) -> List[lit_types.JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[lit_types.JsonDict], **unused
+  ) -> list[lit_types.JsonDict]:
     output = []
 
-    def predict_example(ex: lit_types.JsonDict) -> Tuple[float, float, float]:
+    def predict_example(ex: lit_types.JsonDict) -> tuple[float, float, float]:
       x = ex['x']
       return TEST_DATA[x].prediction
 
@@ -80,8 +80,9 @@ class _IncompatiblePredictionTestModel(_Model):
   def output_spec(self) -> lit_types.Spec:
     return {'pred': lit_types.RegressionScore(parent='label')}
 
-  def predict_minibatch(self, inputs: List[lit_types.JsonDict],
-                        **unused) -> List[lit_types.JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[lit_types.JsonDict], **unused
+  ) -> list[lit_types.JsonDict]:
     return []
 
 

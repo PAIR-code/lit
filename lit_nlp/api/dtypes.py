@@ -29,7 +29,8 @@ Classes inheriting from DataTuple will be handled by serialize.py, and available
 on the frontend as corresponding JavaScript objects.
 """
 import abc
-from typing import Any, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, Optional, Union
 
 import attr
 

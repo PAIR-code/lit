@@ -1,6 +1,6 @@
 """Client code for querying remote models hosted by a LIT server."""
 
-from typing import Text, Optional, Any, List, Dict
+from typing import Any, Optional
 import urllib
 
 from absl import logging
@@ -15,11 +15,13 @@ urlopen = urllib.urlopen
 JsonDict = types.JsonDict
 
 
-def query_lit_server(url: Text,
-                     endpoint: Text,
-                     params: Optional[Dict[Text, Text]] = None,
-                     inputs: Optional[Any] = None,
-                     config: Optional[Any] = None) -> Any:
+def query_lit_server(
+    url: str,
+    endpoint: str,
+    params: Optional[dict[str, str]] = None,
+    inputs: Optional[Any] = None,
+    config: Optional[Any] = None,
+) -> Any:
   """Query a LIT server from Python."""
   # Pack data for LIT request
   data = {'inputs': inputs, 'config': config}
@@ -53,7 +55,7 @@ def query_lit_server(url: Text,
 class RemoteModel(lit_model.BatchedModel):
   """LIT model backed by a remote LIT server."""
 
-  def __init__(self, url: Text, name: Text, max_minibatch_size: int = 256):
+  def __init__(self, url: str, name: str, max_minibatch_size: int = 256):
     """Initialize model wrapper from remote server.
 
     Args:
@@ -81,7 +83,7 @@ class RemoteModel(lit_model.BatchedModel):
   def max_minibatch_size(self):
     return self._max_minibatch_size
 
-  def predict_minibatch(self, inputs: List[JsonDict]) -> List[JsonDict]:
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
     # Package data as IndexedInput with dummy ids.
     indexed_inputs = [{'id': None, 'data': d} for d in inputs]
     logging.info('Querying remote model: /get_preds on %d examples',
@@ -98,7 +100,7 @@ class RemoteModel(lit_model.BatchedModel):
     return preds
 
 
-def models_from_server(url: Text, **model_kw) -> Dict[Text, RemoteModel]:
+def models_from_server(url: str, **model_kw) -> dict[str, RemoteModel]:
   """Wrap all the models on a given LIT server."""
   server_info = query_lit_server(url, 'get_info')
   models = {}

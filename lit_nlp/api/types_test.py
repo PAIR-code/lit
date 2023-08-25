@@ -1,7 +1,9 @@
 """Tests for types."""
 
+from collections.abc import Callable
 import os
-from typing import Any, Callable, Optional, Union
+from typing import Any, Optional, Union
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from etils import epath
@@ -23,7 +25,7 @@ class TypesTest(parameterized.TestCase):
   def test_requires_parent_custom_properties(self):
     # TokenSalience requires the `signed` property of its parent class.
     with self.assertRaises(TypeError):
-      _ = types.TokenSalience(autorun=True)
+      _ = types.TokenSalience(**{"autorun": True})
 
   def test_inherit_parent_custom_properties(self):
     lit_type = types.TokenSalience(autorun=True, signed=True)

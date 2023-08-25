@@ -175,7 +175,7 @@ or decoder.
     accordingly.
 *   To use a model in scoring mode over one or more predefined target sequences,
     the model can also output a `ReferenceScores` field (with values as
-    `List[float]`) with `parent=` set to reference a `TextSegment` or
+    `list[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
 *   For modeling examples, see
     [lit_nlp/examples/models/t5.py](../lit_nlp/examples/models/t5.py)
@@ -322,7 +322,7 @@ $$S(i) \propto ||\nabla_{x_i} \hat{y}||_2$$
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
 
-*   Return a `Tokens` field with values (as `List[str]`) containing the
+*   Return a `Tokens` field with values (as `list[str]`) containing the
     tokenized input.
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`). Values should be arrays
@@ -351,7 +351,7 @@ if that token was removed.
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
 
-*   Return a `Tokens` field with values (as `List[str]`) containing the
+*   Return a `Tokens` field with values (as `list[str]`) containing the
     tokenized input.
 *   Return a `TokenEmbeddings` field with values as arrays of shape
     `<float>[num_tokens, emb_dim]` containing the input embeddings $x$.

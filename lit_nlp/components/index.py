@@ -15,14 +15,14 @@
 """Indexer class for fast nearest neighbor lookups."""
 
 import collections
+from collections.abc import Mapping
 import os
 # TODO(b/151080311): don't use pickle for this.
 import pickle
-from typing import Optional, Text, List, Mapping
+from typing import Optional
 
 from absl import logging
 import annoy
-
 from lit_nlp.api import dataset as lit_data
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -52,9 +52,9 @@ class Indexer(object):
 
   def __init__(
       self,
-      models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_data.IndexedDataset],
-      data_dir: Optional[Text],
+      models: Mapping[str, lit_model.Model],
+      datasets: Mapping[str, lit_data.IndexedDataset],
+      data_dir: Optional[str],
       initialize_new_indices: Optional[bool] = False,
   ):
     self.datasets = datasets
@@ -203,12 +203,14 @@ class Indexer(object):
       with open(file_path, "wb") as f:
         pickle.dump(lookup_table, f, pickle.HIGHEST_PROTOCOL)
 
-  def find_nn(self,
-              model_name: Text,
-              dataset_name: Text,
-              embedding_name: Text,
-              embedding: List[float],
-              num_neighbors: Optional[int] = 25):
+  def find_nn(
+      self,
+      model_name: str,
+      dataset_name: str,
+      embedding_name: str,
+      embedding: list[float],
+      num_neighbors: Optional[int] = 25,
+  ):
     """Find the nearest neighbor in index for an embedding.
 
     This function implements the search API for this class.

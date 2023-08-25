@@ -14,13 +14,14 @@
 # ==============================================================================
 """LIT backend, as a standard WSGI app."""
 
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import functools
 import glob
 import math
 import random
 import threading
 import time
-from typing import Any, Callable, Iterable, Optional, Mapping, Sequence, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union
 
 from absl import logging
 

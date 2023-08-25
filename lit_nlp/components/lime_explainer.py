@@ -14,8 +14,9 @@
 # ==============================================================================
 """LIME perturbation-based feature attribution for text sequences."""
 
+from collections.abc import Iterable
 import functools
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components

@@ -3,7 +3,8 @@
 See https://www.tensorflow.org/datasets/catalog/penguins. for details.
 """
 
-from typing import Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Optional, Union
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 import tensorflow_datasets as tfds

@@ -14,8 +14,9 @@
 # ==============================================================================
 """Finds the k nearest neighbors to an input embedding."""
 
+from collections.abc import Sequence
 import dataclasses
-from typing import Optional, Sequence
+from typing import Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset

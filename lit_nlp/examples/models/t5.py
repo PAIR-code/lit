@@ -1,6 +1,5 @@
 """LIT wrappers for T5, supporting both HuggingFace and SavedModel formats."""
 import re
-from typing import List
 
 import attr
 from lit_nlp.api import model as lit_model
@@ -189,7 +188,7 @@ class T5HFModel(lit_model.BatchedModel):
         output_attentions=self.config.output_attention,
     )
 
-  def _encode_texts(self, texts: List[str]):
+  def _encode_texts(self, texts: list[str]):
     return self.tokenizer.batch_encode_plus(
         texts,
         return_tensors="tf",
@@ -220,7 +219,7 @@ class T5HFModel(lit_model.BatchedModel):
       encoded_targets: Dict as returned from Tokenizer for outputs
 
     Returns:
-      batched_outputs: Dict[str, tf.Tensor]
+      batched_outputs: dict[str, tf.Tensor]
     """
     results = self.model(
         input_ids=encoded_inputs["input_ids"],
@@ -266,7 +265,7 @@ class T5HFModel(lit_model.BatchedModel):
     preds["target_tokens"] = self.tokenizer.convert_ids_to_tokens(target_ids)
 
     # Decode predicted top-k tokens.
-    # token_topk_preds will be a List[List[(word, prob)]]
+    # token_topk_preds will be a list[list[(word, prob)]]
     # Initialize prediction for 0th token as N/A.
     token_topk_preds = [[("N/A", 1.)]]
     pred_ids = preds.pop("top_k_indices")[:target_ntok]  # <int>[num_tokens, k]
@@ -314,15 +313,8 @@ class T5HFModel(lit_model.BatchedModel):
     # implementation of predict(), and uses this value as the batch size.
     return self.config.inference_batch_size
 
-  def predict_minibatch(self, inputs):
-    """Run model on a single batch.
-
-    Args:
-      inputs: List[Dict] with fields as described by input_spec()
-
-    Returns:
-      outputs: List[Dict] with fields as described by output_spec()
-    """
+  def predict_minibatch(self, inputs: list[JsonDict]) -> list[JsonDict]:
+    """Run model on a single batch."""
     # Text as sequence of sentencepiece ID"s.
     encoded_inputs = self._encode_texts([ex["input_text"] for ex in inputs])
     encoded_targets = self._encode_texts(
@@ -466,7 +458,7 @@ class SummarizationWrapper(lit_model.ModelWrapper):
 
     # TODO(gehrmann): temp solution for ROUGE.
     self._scorer = rouge_scorer.RougeScorer(["rougeL"], use_stemmer=True)
-    # If output is List[(str, score)] instead of just str
+    # If output is list[(str, score)] instead of just str
     self._multi_output = isinstance(self.output_spec()["output_text"],
                                     lit_types.GeneratedTextCandidates)
     self._get_pred_string = (

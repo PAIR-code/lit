@@ -14,7 +14,8 @@
 # ==============================================================================
 """kmeans clustering of salience weights."""
 
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset

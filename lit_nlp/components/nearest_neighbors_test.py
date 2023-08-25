@@ -14,8 +14,6 @@
 # ==============================================================================
 """Tests for lit_nlp.components.gradient_maps."""
 
-from typing import List
-
 from absl.testing import absltest
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -50,7 +48,7 @@ class TestModelNearestNeighbors(lit_model.BatchedModel):
             'input_embs': lit_types.TokenEmbeddings(align='tokens'),
             }
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     embs = [np.array([0, 0, 0, 0]),
             np.array([1, 1, 1, 0]),
             np.array([5, 8, -10, 0])]

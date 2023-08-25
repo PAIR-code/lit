@@ -7,7 +7,6 @@ functions to predict a batch of examples and extract information such as
 hidden states and attention.
 """
 import re
-from typing import Dict, List, Tuple
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -60,8 +59,9 @@ class BertMLM(lit_model.BatchedModel):
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
   # and de-duplicate code with the other text generation functions.
-  def _get_topk_tokens(self,
-                       scores: np.ndarray) -> List[List[Tuple[str, float]]]:
+  def _get_topk_tokens(
+      self, scores: np.ndarray
+  ) -> list[list[tuple[str, float]]]:
     """Convert raw scores to top-k token predictions."""
     # scores is [num_tokens, vocab_size]
     # Find the vocab indices of top k predictions, at each token.
@@ -82,7 +82,7 @@ class BertMLM(lit_model.BatchedModel):
     # TODO(lit-dev): consider returning indices and a vocab, since repeating
     # strings is slow and redundant.
 
-  def _postprocess(self, output: Dict[str, np.ndarray]):
+  def _postprocess(self, output: dict[str, np.ndarray]):
     """Postprocess, modifying output dict in-place."""
     # Slice to remove padding, omitting initial [CLS] and final [SEP]
     slicer = slice(1, output.pop("ntok") - 1)
@@ -216,7 +216,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
 
     Each prediction has the following returns:
     logits: tf.Tensor (batch_size, sequence_length, config.vocab_size).
-    past: List[tf.Tensor] of length config.n_layers with each tensor shape
+    past: list[tf.Tensor] of length config.n_layers with each tensor shape
              (2, batch_size, num_heads, sequence_length, embed_size_per_head)).
     states: Tuple of tf.Tensor (one for embeddings + one for each layer),
             with shape (batch_size, sequence_length, hidden_size).
@@ -258,7 +258,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     preds["tokens"] = self._detokenize(ids)
 
     # Decode predicted top-k tokens.
-    # token_topk_preds will be a List[List[(word, prob)]]
+    # token_topk_preds will be a list[list[(word, prob)]]
     # Initialize prediction for 0th token as N/A.
     token_topk_preds = [[("N/A", 1.)]]
     pred_ids = preds.pop("top_k_indices")[:ntok]  # <int>[num_tokens, k]

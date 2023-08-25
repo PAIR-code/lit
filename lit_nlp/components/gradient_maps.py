@@ -83,10 +83,9 @@ class GradientNorm(lit_components.Interpreter):
       model_outputs = list(model.predict(inputs))
     assert len(model_outputs) == len(inputs)
 
-    all_results = []
+    all_results: list[JsonDict] = []
     for o in model_outputs:
-      # Dict[field name -> interpretations]
-      result = {}
+      result: dict[str, dtypes.TokenSalience] = {}
       for grad_field in grad_fields:
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
@@ -162,10 +161,9 @@ class GradientDotInput(lit_components.Interpreter):
       model_outputs = list(model.predict(inputs))
     assert len(model_outputs) == len(inputs)
 
-    all_results = []
+    all_results: list[JsonDict] = []
     for o in model_outputs:
-      # Dict[field name -> interpretations]
-      result = {}
+      result: dict[str, dtypes.TokenSalience] = {}
       for grad_field in grad_fields:
         embeddings_field = cast(types.TokenGradients,
                                 output_spec[grad_field]).grad_for

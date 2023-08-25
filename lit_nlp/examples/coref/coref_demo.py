@@ -42,9 +42,11 @@ get around 85% F1 on the OntoNotes development set. Exact numbers on Winogender
 will vary, but the qualitative behavior on slices by gender and answer should
 match Figure 3 of the paper.
 """
+
+from collections.abc import Sequence
 import os
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags

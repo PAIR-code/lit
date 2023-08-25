@@ -17,8 +17,9 @@ implementation is just a wrapper around HuggingFace Transformers, using
 AutoTokenizer, AutoConfig, and TFAutoModelForSequenceClassification, and can
 load anything compatible with those classes.
 """
+
+from collections.abc import Sequence
 import os
-from typing import Sequence
 
 from absl import app
 from absl import flags

@@ -1,6 +1,5 @@
 """LIT model implementation for frozen-encoder coreference."""
 import os
-from typing import List
 
 from absl import logging
 from lit_nlp.api import dtypes as lit_dtypes
@@ -41,7 +40,7 @@ class FrozenEncoderCoref(lit_model.BatchedModel):
     self.extractor_kw = dict(
         edge_field='coref', embs_field=embs_field, offset_field=offset_field)
 
-  def _make_edges(self, inputs: List[JsonDict], show_progress=False):
+  def _make_edges(self, inputs: list[JsonDict], show_progress=False):
     if show_progress:
       progress = lambda x: tqdm.tqdm(x, total=len(inputs))
     else:
@@ -53,8 +52,12 @@ class FrozenEncoderCoref(lit_model.BatchedModel):
         verbose=show_progress,
         **self.extractor_kw)
 
-  def train(self, train_inputs: List[JsonDict],
-            validation_inputs: List[JsonDict], **train_kw):
+  def train(
+      self,
+      train_inputs: list[JsonDict],
+      validation_inputs: list[JsonDict],
+      **train_kw
+  ):
     # Extract encoder features.
     logging.info('Train: extracting span representations...')
     train_edges = self._make_edges(train_inputs, show_progress=True)
@@ -81,7 +84,7 @@ class FrozenEncoderCoref(lit_model.BatchedModel):
   def max_minibatch_size(self):
     return self.encoder.max_minibatch_size()
 
-  def predict_minibatch(self, inputs: List[JsonDict]):
+  def predict_minibatch(self, inputs: list[JsonDict]):
     edges = self._make_edges(inputs, show_progress=False)
     edge_preds = list(self.classifier.predict(edges.examples))
     # Re-pack outputs to align with inputs.

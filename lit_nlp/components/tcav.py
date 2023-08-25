@@ -14,10 +14,11 @@
 # ==============================================================================
 """Quantitative Testing with Concept Activation Vectors (TCAV)."""
 
+from collections.abc import Sequence
 import dataclasses
 import math
 import random
-from typing import Any, Optional, Sequence, cast
+from typing import Any, Optional, cast
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset

@@ -16,7 +16,7 @@
 
 from collections.abc import Iterator, Sequence
 import re
-from typing import Optional, Pattern
+from typing import Optional
 
 from absl import logging
 
@@ -69,7 +69,7 @@ class WordReplacer(lit_components.Generator):
 
   def _get_replacement_pattern(self,
                                replacements: dict[str, list[str]],
-                               ignore_casing: bool = True) -> Pattern[str]:
+                               ignore_casing: bool = True) -> re.Pattern[str]:
     r"""Generate replacement pattern for whole word match.
 
     If the source word does not end or begin with non-word characters
@@ -110,7 +110,7 @@ class WordReplacer(lit_components.Generator):
 
   def generate_counterfactuals(
       self, text: str,
-      replacement_regex: Pattern[str],
+      replacement_regex: re.Pattern[str],
       replacements: dict[str, list[str]],
       ignore_casing: bool = True) -> Iterator[str]:
     """Replace each token and yield a new string each time that succeeds.

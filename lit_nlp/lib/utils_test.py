@@ -13,8 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for lit_nlp.lib.utils."""
+
+from collections.abc import Callable, Sequence
 import copy
-from typing import Any, Callable, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import types

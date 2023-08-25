@@ -35,7 +35,7 @@ This generator extends ideas from the following papers.
 
 from collections.abc import Iterator, Mapping
 import itertools
-from typing import Any, cast, Optional, Type
+from typing import Any, cast, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -124,7 +124,7 @@ class HotFlip(lit_components.Generator):
 
   def find_fields(self,
                   spec: Spec,
-                  typ: Type[types.LitType],
+                  typ: type[types.LitType],
                   align_field: Optional[str] = None) -> list[str]:
     # Find fields of provided 'typ'.
     fields = utils.find_spec_keys(spec, typ)
@@ -203,7 +203,6 @@ class HotFlip(lit_components.Generator):
     # consider combinations by ordering tokens by gradient L2 in order to
     # prioritize flipping tokens that may have the largest impact on the
     # prediction.
-    token_idxs = np.arange(len(tokens))
     token_grads_l2 = np.sum(token_grads * token_grads, axis=-1)
     # TODO(ataly, bastings): Consider sorting by attributions (either
     # Integrated Gradients or Shapley values).
@@ -246,7 +245,6 @@ class HotFlip(lit_components.Generator):
                               embedding_matrix: np.ndarray,
                               inv_vocab: list[str],
                               token_grads: np.ndarray,
-                              orig_output: JsonDict,
                               direction: int = -1) -> list[str]:
     """Identifies replacement tokens for each token position."""
     token_grads = token_grads * direction

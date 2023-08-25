@@ -1,7 +1,5 @@
 """MobileNet model trained on ImageNet dataset."""
 
-from typing import List
-
 from lit_nlp.api import model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import imagenet_labels
@@ -31,7 +29,8 @@ class MobileNet(model.BatchedModel):
       self.model = tf.keras.applications.mobilenet.MobileNet()
 
   def predict_minibatch(
-      self, input_batch: List[lit_types.JsonDict]) -> List[lit_types.JsonDict]:
+      self, input_batch: list[lit_types.JsonDict]
+  ) -> list[lit_types.JsonDict]:
     output = []
     for example in input_batch:
       # Convert input to the model acceptable format.

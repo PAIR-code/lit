@@ -168,7 +168,7 @@ but more limited in scope and aimed at supporting quick iteration:
     spec and a slice of the datapoints.
 *   `Dataset.sample(n, seed=42)` will return a new `Dataset` with the same spec
     and a random sample of the datapoints.
-*   `Dataset.remap(field_map: Dict[str, str])` will return a new `Dataset` with
+*   `Dataset.remap(field_map: dict[str, str])` will return a new `Dataset` with
     renamed fields in both the examples and spec.
 
 The latter is a shortcut to use datasets matching one model with another; for
@@ -356,10 +356,10 @@ The core API involves implementing the `run()` method:
 
 ```python
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
+          model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     # config is any runtime options to this component, such as a threshold for
     # (binary) classification metrics.
@@ -379,7 +379,7 @@ for
 we might have:
 
 ```python
-  def find_fields(self, output_spec: Spec) -> List[Text]:
+  def find_fields(self, output_spec: Spec) -> list[str]:
     # Find TokenGradients fields
     grad_fields = utils.find_spec_keys(output_spec, types.TokenGradients)
 
@@ -391,11 +391,11 @@ we might have:
     return grad_fields
 
   def run(self,
-          inputs: List[JsonDict],
+          inputs: list[JsonDict],
           model: lit_model.Model,
           dataset: lit_dataset.Dataset,
-          model_outputs: Optional[List[JsonDict]] = None,
-          config: Optional[JsonDict] = None) -> Optional[List[JsonDict]]:
+          model_outputs: Optional[list[JsonDict]] = None,
+          config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Run this component, given a model and input(s)."""
     # Find gradient fields to interpret
     output_spec = model.output_spec()
@@ -440,7 +440,7 @@ class RegressionMetrics(SimpleMetrics):
               preds: Sequence[float],
               label_spec: types.Scalar,
               pred_spec: types.RegressionScore,
-              config: Optional[JsonDict] = None) -> Dict[Text, float]:
+              config: Optional[JsonDict] = None) -> dict[str, float]:
     """Compute metric(s) between labels and predictions."""
     del config
     mse = sklearn_metrics.mean_squared_error(labels, preds)
@@ -468,10 +468,10 @@ class Generator(Interpreter):
   """Base class for LIT generators."""
 
   def generate_all(self,
-                   inputs: List[JsonDict],
+                   inputs: list[JsonDict],
                    model: lit_model.Model,
                    dataset: lit_dataset.Dataset,
-                   config: Optional[JsonDict] = None) -> List[List[JsonDict]]:
+                   config: Optional[JsonDict] = None) -> list[list[JsonDict]]:
     """Run generation on a set of inputs.
 
     Args:
@@ -816,30 +816,30 @@ NumPy arrays where each element inside the brackets is an integer.
 
 Name                      | Description                                                                                                                                                           | Value Type
 ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------
-`TextSegment`             | Natural language text, untokenized.                                                                                                                                   | `string`
-`GeneratedText`           | Untokenized text, generated from a model (such as seq2seq).                                                                                                           | `string`
-`URL`                     | TextSegment, but interpreted as a URL.                                                                                                                                | `string`
-`GeneratedURL`            | Generated TextSegment, but interpreted as a URL (i.e., it maye not be real/is inappropriate as a label).                                                              | `string`
-`SearchQuery`             | TextSegment, but interpreted as a search query.                                                                                                                       | `string`
-`String`                  | Opaque string data; ignored by components such as perturbation methods that operate on natural language.                                                              | `string`
-`ReferenceTexts`          | Multiple texts, such as a set of references for summarization or MT.                                                                                                  | `List[Tuple[string, float]]`
-`GeneratedTextCandidates` | Multiple generation candidates, such as beam search output from a seq2seq model.                                                                                      | `List[Tuple[string, float]]`
-`Tokens`                  | Tokenized text.                                                                                                                                                       | `List[string]`
-`TokenTopKPreds`          | Predicted tokens and their scores, as from a language model or seq2seq model.                                                                                         | `List[List[Tuple[string, float]]]`
+`TextSegment`             | Natural language text, untokenized.                                                                                                                                   | `str`
+`GeneratedText`           | Untokenized text, generated from a model (such as seq2seq).                                                                                                           | `str`
+`URL`                     | TextSegment, but interpreted as a URL.                                                                                                                                | `str`
+`GeneratedURL`            | Generated TextSegment, but interpreted as a URL (i.e., it maye not be real/is inappropriate as a label).                                                              | `str`
+`SearchQuery`             | TextSegment, but interpreted as a search query.                                                                                                                       | `str`
+`String`                  | Opaque string data; ignored by components such as perturbation methods that operate on natural language.                                                              | `str`
+`ReferenceTexts`          | Multiple texts, such as a set of references for summarization or MT.                                                                                                  | `list[tuple[str, float]]`
+`GeneratedTextCandidates` | Multiple generation candidates, such as beam search output from a seq2seq model.                                                                                      | `list[tuple[str, float]]`
+`Tokens`                  | Tokenized text.                                                                                                                                                       | `list[str]`
+`TokenTopKPreds`          | Predicted tokens and their scores, as from a language model or seq2seq model.                                                                                         | `list[list[tuple[str, float]]]`
 `Boolean`                 | Boolean value.                                                                                                                                                        | `bool`
 `Scalar`                  | Scalar numeric value.                                                                                                                                                 | `float`
 `Integer`                 | Integer value.                                                                                                                                                        | `int`
-`ImageBytes`              | Image, represented by a base64 encoded string. LIT also provides `JPEGBytes` and `PNGBytes` types for those specific encodings.                                       | `string`
+`ImageBytes`              | Image, represented by a base64 encoded string. LIT also provides `JPEGBytes` and `PNGBytes` types for those specific encodings.                                       | `str`
 `RegressionScore`         | Scalar value, treated as a regression target or prediction.                                                                                                           | `float`
-`ReferenceScores`         | Scores for one or more reference texts.                                                                                                                               | `List[float]`
-`CategoryLabel`           | Categorical label, from open or fixed vocabulary.                                                                                                                     | `string`
+`ReferenceScores`         | Scores for one or more reference texts.                                                                                                                               | `list[float]`
+`CategoryLabel`           | Categorical label, from open or fixed vocabulary.                                                                                                                     | `str`
 `MulticlassPreds`         | Multiclass predicted probabilities.                                                                                                                                   | `<float>[num_labels]`
-`SparseMultilabel`        | Multiple non-exclusive labels, such as a set of attributes.                                                                                                           | `List[string]`
-`SparseMultilabelPreds`   | Sparse multi-label predictions, represented as scored candidates.                                                                                                     | `List[Tuple[string, float]]`
-`SequenceTags`            | Sequence tags, aligned to tokens.                                                                                                                                     | `List[string]`
-`SpanLabels`              | Span labels, aligned to tokens. Each label is (i,j,label).                                                                                                            | `List[SpanLabel]`
-`EdgeLabels`              | Edge labels, aligned to tokens. This is a general way to represent many structured prediction tasks, such as coreference or SRL. See https://arxiv.org/abs/1905.06316 | `List[EdgeLabel]`
-`MultiSegmentAnnotations` | In-line byte-span annotations, which can span multiple text segments.                                                                                                 | `List[AnnotationCluster]`
+`SparseMultilabel`        | Multiple non-exclusive labels, such as a set of attributes.                                                                                                           | `list[str]`
+`SparseMultilabelPreds`   | Sparse multi-label predictions, represented as scored candidates.                                                                                                     | `list[tuple[str, float]]`
+`SequenceTags`            | Sequence tags, aligned to tokens.                                                                                                                                     | `list[str]`
+`SpanLabels`              | Span labels, aligned to tokens. Each label is (i,j,label).                                                                                                            | `list[SpanLabel]`
+`EdgeLabels`              | Edge labels, aligned to tokens. This is a general way to represent many structured prediction tasks, such as coreference or SRL. See https://arxiv.org/abs/1905.06316 | `list[EdgeLabel]`
+`MultiSegmentAnnotations` | In-line byte-span annotations, which can span multiple text segments.                                                                                                 | `list[AnnotationCluster]`
 `Embeddings`              | Fixed-length embeddings or model activations.                                                                                                                         | `<float>[emb_dim]`
 `Gradients`               | Gradients with respect to embeddings or model activations.                                                                                                            | `<float>[emb_dim]`
 `TokenEmbeddings`         | Per-token embeddings or model activations.                                                                                                                            | `<float>[num_tokens, emb_dim]`

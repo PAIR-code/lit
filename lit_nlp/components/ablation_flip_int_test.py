@@ -14,7 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.components.ablation_flip."""
 
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
 
 from absl.testing import absltest
 from lit_nlp.api import types

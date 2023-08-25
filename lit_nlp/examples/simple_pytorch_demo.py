@@ -29,8 +29,10 @@ load the data. However, the output of glue.SST2Data is just NumPy arrays and
 plain Python data, and you can easily replace this with a different library or
 directly loading from CSV.
 """
+
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags

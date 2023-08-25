@@ -160,7 +160,7 @@ class DalleModel(lit_model.Model):
     # pil_images has images in pil format for clip score
     images = []
     pil_images = []
-    for i in _trange(max(self.n_predictions // jax.device_count(), 1)):
+    for _ in _trange(max(self.n_predictions // jax.device_count(), 1)):
       # Get a new key; passed to the model on each device to generate unique
       # inference.
       key, subkey = jax.random.split(key)
@@ -236,7 +236,7 @@ class DalleModel(lit_model.Model):
           clip_score.append((str(logits[idx]), None))
         else:
           clip_score.append((str(logits[i][idx]), None))
-      # Append to final List[Dict]
+      # Append to final list[JsonDict]
       final_images.append({
           "image": images_per_prompt,
           "clip_score": clip_score,

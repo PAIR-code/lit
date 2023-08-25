@@ -19,7 +19,8 @@ generate gradient based saliency maps.
 """
 
 import abc
-from typing import Any, Callable, cast, NamedTuple, Optional
+from collections.abc import Callable
+from typing import Any, NamedTuple, Optional, cast
 
 from absl import logging
 from lit_nlp.api import components as lit_components

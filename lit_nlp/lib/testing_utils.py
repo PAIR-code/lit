@@ -18,7 +18,7 @@ Contains things like dummy LIT Model so we don't have to define it in every
 test.
 """
 
-from typing import Iterable, Iterator, List
+from collections.abc import Iterable, Iterator
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -49,7 +49,7 @@ class RegressionModelForTesting(lit_model.BatchedModel):
   def output_spec(self):
     return {'scores': lit_types.RegressionScore(parent='label')}
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     return self.predict(inputs)
 
   def predict(self, inputs: Iterable[JsonDict], *args,
@@ -82,7 +82,7 @@ class IdentityRegressionModelForTesting(lit_model.BatchedModel):
   def output_spec(self):
     return {'score': lit_types.RegressionScore()}
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     return self.predict(inputs)
 
   def predict(self, inputs: Iterable[JsonDict], *args,
@@ -138,7 +138,7 @@ class ClassificationModelForTesting(lit_model.BatchedModel):
             lit_types.CategoryLabel(vocab=['0', '1'])
     }
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     output = {
         'probas': np.array([0.2, 0.8]),
         'input_embs': np.array(
@@ -187,7 +187,7 @@ class CustomOutputModelForTesting(lit_model.BatchedModel):
       self,
       input_spec: lit_types.Spec,
       output_spec: lit_types.Spec,
-      results: List[JsonDict],
+      results: list[JsonDict],
   ):
     """Set model internals.
 
@@ -208,7 +208,7 @@ class CustomOutputModelForTesting(lit_model.BatchedModel):
   def output_spec(self):
     return self._output_spec
 
-  def predict_minibatch(self, inputs: List[JsonDict], **kw):
+  def predict_minibatch(self, inputs: list[JsonDict], **kw):
     def predict_single(_):
       output = self._results[self._predict_counter % len(self._results)]
       self._predict_counter += 1

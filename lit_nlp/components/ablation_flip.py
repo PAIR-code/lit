@@ -29,8 +29,9 @@ This generator builds on ideas from the following paper.
 """
 
 import collections
+from collections.abc import Iterator
 import itertools
-from typing import Any, Iterator, Optional
+from typing import Any, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components

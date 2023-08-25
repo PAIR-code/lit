@@ -24,8 +24,10 @@ To run locally:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags

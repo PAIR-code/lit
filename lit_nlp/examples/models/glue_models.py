@@ -3,9 +3,10 @@
 # make common substrings into module CONSTANTS.
 
 import os
+from collections.abc import Iterable, Sequence
 import re
 import threading
-from typing import Optional, Dict, List, Iterable, Sequence, Any
+from typing import Any, Optional
 
 import attr
 from lit_nlp.api import model as lit_model
@@ -35,7 +36,7 @@ class GlueModelConfig(object):
   text_b_name: Optional[str] = "sentence2"  # set to None for single-segment
   label_name: str = "label"
   # Output options
-  labels: Optional[List[str]] = None  # set to None for regression
+  labels: Optional[list[str]] = None  # set to None for regression
   null_label_idx: Optional[int] = None
   compute_grads: bool = True  # if True, compute and return gradients.
   output_attention: bool = True
@@ -132,12 +133,12 @@ class GlueModel(lit_model.BatchedModel):
         model_name_or_path,
         config=model_config)
 
-  def _get_tokens(self, ex: JsonDict, field_name: str) -> List[str]:
+  def _get_tokens(self, ex: JsonDict, field_name: str) -> list[str]:
     with self._lock:
       return (ex.get("tokens_" + field_name) or
               self.tokenizer.tokenize(ex[field_name]))
 
-  def _preprocess(self, inputs: Iterable[JsonDict]) -> Dict[str, tf.Tensor]:
+  def _preprocess(self, inputs: Iterable[JsonDict]) -> dict[str, tf.Tensor]:
     # Use pretokenized input if available.
     tokens_a = [self._get_tokens(ex, self.config.text_a_name) for ex in inputs]
     tokens_b = None
@@ -169,13 +170,15 @@ class GlueModel(lit_model.BatchedModel):
     # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
     return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
 
-  def train(self,
-            train_inputs: List[JsonDict],
-            validation_inputs: List[JsonDict],
-            learning_rate=2e-5,
-            batch_size=32,
-            num_epochs=3,
-            keras_callbacks=None):
+  def train(
+      self,
+      train_inputs: list[JsonDict],
+      validation_inputs: list[JsonDict],
+      learning_rate=2e-5,
+      batch_size=32,
+      num_epochs=3,
+      keras_callbacks=None,
+  ):
     """Run fine-tuning."""
     train_dataset = self._make_dataset(train_inputs).shuffle(128).batch(
         batch_size).repeat(-1)
@@ -221,7 +224,7 @@ class GlueModel(lit_model.BatchedModel):
     self.tokenizer.save_pretrained(path)
     self.model.save_pretrained(path)
 
-  def _segment_slicers(self, tokens: List[str]):
+  def _segment_slicers(self, tokens: list[str]):
     """Slicers along the tokens dimension for each segment.
 
     For tokens ['[CLS]', a0, a1, ..., '[SEP]', b0, b1, ..., '[SEP]'],

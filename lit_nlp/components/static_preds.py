@@ -13,7 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """LIT model wrapper for pre-computed (offline) predictions."""
-from typing import Iterable, Iterator, Optional
+from collections.abc import Iterable, Iterator
+from typing import Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -27,8 +28,10 @@ class StaticPredictions(lit_model.BatchedModel):
   """Implements lit.Model interface for a set of pre-computed predictions."""
 
   def key_fn(self, example: JsonDict) -> str:
-    reduced_example = lit_types.Input(
-        {k: example[k] for k in self.input_identifier_keys})
+    reduced_example: JsonDict = {
+        k: example[k]
+        for k in self.input_identifier_keys
+    }
     return caching.input_hash(reduced_example)
 
   def description(self):

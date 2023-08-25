@@ -14,8 +14,10 @@ hardware. The monolingual (english) eval sets for MNLI are about 9.8k each,
 while each language for XNLI is about 2.5k examples, so we recommend using the
 --languages flag to load only the languages you're interested in.
 """
+
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags

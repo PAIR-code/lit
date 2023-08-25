@@ -1,5 +1,5 @@
 """Text classification datasets, including single- and two-sentence tasks."""
-from typing import List, Optional
+from typing import Optional
 
 from absl import logging
 from lit_nlp.api import dataset as lit_dataset
@@ -54,7 +54,7 @@ class MNLIDataFromTSV(lit_dataset.Dataset):
     datapoints = self.load_datapoints(path)
     return lit_dataset.Dataset(base=self, examples=datapoints)
 
-  def save(self, examples: List[lit_types.IndexedInput], path: str):
+  def save(self, examples: list[lit_types.IndexedInput], path: str):
     example_data = [ex["data"] for ex in examples]
     df = pd.DataFrame(example_data).rename(columns={
         "premise": "sentence1",
@@ -81,7 +81,7 @@ class XNLIData(lit_dataset.Dataset):
 
   LABELS = ["entailment", "neutral", "contradiction"]
 
-  def _process_example(self, ex, languages: List[str]):
+  def _process_example(self, ex, languages: list[str]):
     # Hypothesis is stored as parallel arrays, so make a map.
     hyp_map = {
         lang.decode("utf-8"): hyp.decode("utf-8") for lang, hyp in zip(

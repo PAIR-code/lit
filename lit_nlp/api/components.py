@@ -14,8 +14,9 @@
 # ==============================================================================
 """Base classes for LIT backend components."""
 import abc
+from collections.abc import Sequence
 import inspect
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model

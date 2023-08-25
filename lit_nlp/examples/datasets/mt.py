@@ -1,6 +1,7 @@
 """Machine translation datasets."""
 
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types

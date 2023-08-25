@@ -9,8 +9,9 @@ To run with the 'normal' defaults, including full-size BERT models:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
@@ -131,7 +132,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
-    split = "validation_matched"  # will read from TFDS
+    split = "validation"  # will read from TFDS
     datasets["mnli_dev"] = glue.MNLIData(split)
     dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
 

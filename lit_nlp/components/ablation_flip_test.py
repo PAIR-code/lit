@@ -14,7 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.components.ablation_flip."""
 
-from typing import Callable
+from collections.abc import Callable
 
 from absl.testing import absltest
 from absl.testing import parameterized

@@ -14,7 +14,8 @@
 # ==============================================================================
 """An interpreters for generating data for ROC and PR curves."""
 
-from typing import cast, Optional, Sequence
+from collections.abc import Sequence
+from typing import cast, Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset

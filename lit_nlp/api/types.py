@@ -25,12 +25,13 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
+from collections.abc import Callable, Mapping, Sequence
 import enum
 import inspect
 import math
 import numbers
 import os
-from typing import Any, Callable, get_args, get_origin, Mapping, NewType, Optional, Sequence, Type, TypedDict, Union
+from typing import Any, get_args, get_origin, NewType, Optional, TypedDict, Union
 
 import attr
 from etils import epath
@@ -937,7 +938,7 @@ String = StringLitType
 URL = URLLitType
 
 
-def get_type_by_name(typename: str) -> Type[LitType]:
+def get_type_by_name(typename: str) -> type[LitType]:
   cls = globals()[typename]
   assert issubclass(cls, LitType)
   return cls
@@ -945,7 +946,7 @@ def get_type_by_name(typename: str) -> Type[LitType]:
 
 # A map from Python's native type annotations to their LitType corollary for use
 # by infer_spec_for_func().
-_INFERENCE_TYPES_TO_LIT_TYPES: dict[Type[Any], Callable[..., LitType]] = {
+_INFERENCE_TYPES_TO_LIT_TYPES: dict[type[Any], Callable[..., LitType]] = {
     bool: Boolean,
     Optional[bool]: Boolean,
     float: Scalar,
