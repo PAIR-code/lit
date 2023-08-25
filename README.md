@@ -83,6 +83,8 @@ packages required to run the demos.
 
 ### Install from source
 
+Note: be sure you are running Python 3.10 or higher.
+
 Clone the repo and set up a Python environment:
 
 ```sh
@@ -93,7 +95,7 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pip install cudnn cupti  # optional, for GPU support
-python -m pip pytorch  # optional, for PyTorch
+python -m pip install torch  # optional, for PyTorch
 
 # Build the frontend
 (cd lit_nlp; yarn && yarn build)

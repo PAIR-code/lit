@@ -57,7 +57,7 @@ _MODELS = flags.DEFINE_list(
     [
         "t5-small:https://storage.googleapis.com/what-if-tool-resources/lit-models/t5-small.tar.gz",
     ],
-    "Which model(s) to load, as <name>:<task>.",
+    "Which model(s) to load, as <name>:<path>.",
 )
 _TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
                            "Which task(s) to load.")
@@ -73,7 +73,8 @@ _HOSTED_DATASETS = flags.DEFINE_list("hosted_datasets", [],
 ##
 # Options for nearest-neighbor indexer.
 _USE_INDEXER = flags.DEFINE_boolean(
-    "use_indexer", True, "If true, will use the nearest neighbor index.")
+    "use_indexer", False, "If true, will use the nearest neighbor index."
+)
 _INITIALIZE_INDEX = flags.DEFINE_boolean(
     "initialize_index", True,
     "If the flag is set, it builds the nearest neighbor index before starting "
