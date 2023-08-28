@@ -116,7 +116,7 @@ class MultiNLIData(Dataset):
 
   NLI_LABELS = ['entailment', 'neutral', 'contradiction']
 
-  def __init__(self, path):
+  def __init__(self, path: str):
     # Read the eval set from a .tsv file as distributed with the GLUE benchmark.
     df = pandas.read_csv(path, sep='\t')
     # Store as a list of dicts, conforming to self.spec()
@@ -127,7 +127,7 @@ class MultiNLIData(Dataset):
       'genre': row['genre'],
     } for _, row in df.iterrows()]
 
-  def spec(self):
+  def spec(self) -> types.Spec:
     return {
       'premise': lit_types.TextSegment(),
       'hypothesis': lit_types.TextSegment(),
@@ -206,25 +206,25 @@ class NLIModel(Model):
 
   NLI_LABELS = ['entailment', 'neutral', 'contradiction']
 
-  def __init__(self, model_path, **kw):
+  def __init__(self, model_path: str, **kw):
     # Load the model into memory so we're ready for interactive use.
     self._model = _load_my_model(model_path, **kw)
 
   ##
   # LIT API implementations
-  def predict(self, inputs: Iterable[Input]) -> Iterator[Preds]:
+  def predict(self, inputs: Iterable[Input]) -> Iterable[Preds]:
     """Predict on a stream of examples."""
     examples = [self._model.convert_dict_input(d) for d in inputs]  # any custom preprocessing
     return self._model.predict_examples(examples)  # returns a dict for each input
 
-  def input_spec(self):
+  def input_spec(self) -> types.Spec:
     """Describe the inputs to the model."""
     return {
         'premise': lit_types.TextSegment(),
         'hypothesis': lit_types.TextSegment(),
     }
 
-  def output_spec(self):
+  def output_spec(self) -> types.Spec:
     """Describe the model outputs."""
     return {
       # The 'parent' keyword tells LIT where to look for gold labels when computing metrics.
@@ -259,7 +259,7 @@ word embeddings, attention, or more. For example, a BERT-based model with
 several such features might have the following `output_spec()`:
 
 ```py
-  def output_spec(self):
+  def output_spec(self) -> types.Spec:
     """Describe the model outputs."""
     return {
       # The 'parent' keyword tells LIT where to look for gold labels when computing metrics.
@@ -312,7 +312,7 @@ to false if you wish to define optional model inputs. For example, a model that
 can accept pre-tokenized inputs might have the following spec:
 
 ```python
-    def input_spec(self):
+    def input_spec(self) -> types.Spec:
       return {
           "text": lit_types.TextSegment(),
           "tokens": lit_types.Tokens(parent='text', required=False),
@@ -323,7 +323,7 @@ And in the model's `predict()`, you would have logic to use these and bypass the
 tokenizer:
 
 ```python
-    def predict(inputs):
+    def predict(self, inputs: Iterable[Input]) -> Iterable[Preds]:
       input_tokens = [ex.get('tokens') or self.tokenizer.tokenize(ex['text'])
                       for ex in inputs]
       # ...rest of your predict logic...

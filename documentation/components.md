@@ -292,7 +292,7 @@ Then the model will receive a modified input with this target:
 To support this, the model should have the label field in the `input_spec`:
 
 ```
-def input_spec(self):
+def input_spec(self) -> types.Spec:
   return {
     'text': lit_types.TextSegment(),
     'label': lit_types.CategoryLabel(..., required=False),
@@ -303,7 +303,7 @@ def input_spec(self):
 and have an output field which references this using `parent=`:
 
 ```
-def output_spec(self):
+def output_spec(self) -> types.Spec:
   return {
     'probas': lit_types.MulticlassPreds(..., parent="label"),
     ...
@@ -391,14 +391,14 @@ needed for grad-dot-input, and also to *accept* modified embeddings as input.
 An example spec would look like:
 
 ```python
-   def input_spec(self):
+   def input_spec(self) -> types.Spec:
      return {
          # ...
          "token_embs": lit_types.TokenEmbeddings(align='tokens', required=False),
          # ...
      }
 
-   def output_spec(self):
+   def output_spec(self) -> types.Spec:
      return {
          # ...
          "tokens": lit_types.Tokens(parent="input_text"),
@@ -497,7 +497,7 @@ num_tokens]`. Each field represents a set of heads at a single layer of the
 model, so models will often have more than one:
 
 ```python
-   def output_spec(self):
+   def output_spec(self) -> types.Spec:
      return {
          # ...
          "tokens": lit_types.Tokens(parent="input_text"),
@@ -552,7 +552,7 @@ output fields, pointing to the name of the input field that it should be
 evaluated against. For example, for classification, the data spec might have:
 
 ```python
-    def spec(self):
+    def spec(self) -> types.Spec:
       return {
           # ...
           "label": lit_types.CategoryLabel(vocab=self.LABELS),
@@ -563,7 +563,7 @@ evaluated against. For example, for classification, the data spec might have:
 and the model would include:
 
 ```python
-    def output_spec(self):
+    def output_spec(self) -> types.Spec:
       return {
           # ...
           "probas": lit_types.MulticlassPreds(vocab=self.LABELS, parent='label'),
