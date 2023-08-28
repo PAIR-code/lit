@@ -198,6 +198,7 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
         'Explanations': [
             modules.SalienceMapModule,
             modules.SequenceSalienceModule,
+            modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
         'Clustering': [modules.SalienceClusteringModule],
