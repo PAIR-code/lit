@@ -19,7 +19,7 @@
 import {action, computed, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
-import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, NONE_DS_DICT_KEY, Spec} from '../lib/types';
 import {findSpecKeys, getTypes} from '../lib/utils';
 
 import {ApiService} from './api_service';
@@ -389,12 +389,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
       return urlSelectedDataset;
     }
 
-    // If the dataset is not compatable with the selected models, return the
-    // first compatable dataset.
+    // If the dataset is not compatible with the selected models, return the
+    // first compatible dataset.
     else {
       if (availableDatasets.size === 0) {
-        this.statusService.addError('No dataset available for loaded models.');
-        return '';
+        console.log(
+            'No dataset available for loaded models, using the empty dataset.');
+        return NONE_DS_DICT_KEY;
       }
       return [...availableDatasets][0];
     }
