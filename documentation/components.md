@@ -138,6 +138,8 @@ faceting, and scatterplots of scalar output. Regression is implemented with the
 *   To provide labels for evaluation, the data should define a `Scalar` field
     which contains numerical targets, and the model's `RegressionScore` field
     should set `parent=` to the name of this field.
+*   For an example, see the STS-B textual similarity task in
+    [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py).
 
 ### Multi-label classification
 

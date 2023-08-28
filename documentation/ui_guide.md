@@ -46,8 +46,8 @@ LIT provides three pre-configured layouts:
     visualizations at full-page height on the left, tools for inspecting and
     manipulating examples and their associated predictions in the upper right,
     and a collection of tabs supporting different analytical tasks in the lower
-    left. Note that this was introduced in v1.0 as an experimental feature, your
-    feedback is appreciated.
+    right. Note that this was introduced in v1.0 as an experimental feature,
+    your feedback is appreciated.
 
 ## Datapoint Selections
 

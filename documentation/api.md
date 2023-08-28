@@ -848,9 +848,8 @@ Name                      | Description                                         
 `AttentionHeads`          | Attention heads, grouped by layer.                                                                                                                                    | `<float>[num_heads, num_tokens, num_tokens]`
 
 Values can be plain data, NumPy arrays, or custom dataclasses - see
-[dtypes.py](../lit_nlp/api/dtypes.py) and
-[serialize.py](../lit_nlp/api/serialize.py) for
-further detail.
+[dtypes.py](../lit_nlp/api/dtypes.py) for further
+detail.
 
 *Note: Note that `String`, `Boolean` and `URL` types in Python are represented
 as `StringLitType`, `BooleanLitType` and `URLLitType` in TypeScript to avoid
@@ -978,7 +977,7 @@ and dataset instances used by the server; they can still be used in the notebook
 and take up the resources they require.
 
 Check out an
-[example notebook](https://colab.research.google.com/github/pair-code/lit/blob/main/examples/notebooks/LIT_sentiment_classifier.ipynb).
+[example notebook](https://colab.research.google.com/github/pair-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 
 ## Using LIT components outside of LIT
 
