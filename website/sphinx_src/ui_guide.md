@@ -20,7 +20,7 @@ the module that shows classification results will only show if the model returns
 ![LIT overall UI](./images/lit-ui.png "LIT overall UI")
 
 LIT's layout consist of as many as three sections, described in the API docs for
-[custom layouts](./api.md#ui-layouts). When the layout provides more than one
+[custom layouts](./api.md#customizing-the-layout). When the layout provides more than one
 major content section, they are separated by draggable dividers that are built
 into LIT's toolbars (for allocating vertical space) or in the space between
 sections and modules (for allocating horizontal space). Any section may include
@@ -237,7 +237,7 @@ to predictions, the embedding projector will show all datapoints by their
 embeddings projected down to 3 dimensions. This is useful for exploring and
 understanding clusters of datapoints.
 
-![LIT embeddings](./images/lit-embeddings.png "LIT embeddings")<!-- DO NOT REMOVE {width="500"} -->
+![LIT embeddings](./images/lit-embeddings.png "LIT embeddings"){w=500px align=center}
 
 The specific embedding used to generate the projection can be selected in a
 dropdown, along with the method of projection (either UMAP or PCA). An
@@ -300,7 +300,7 @@ The below data table shows one sorted by the "label" field, with the "sentence"
 field being filtered to show only those datapoints that contain the word "film"
 in them.
 
-![LIT data table](./images/lit-datatable.png "LIT data table")<!-- DO NOT REMOVE {width="500"} -->
+![LIT data table](./images/lit-datatable.png "LIT data table"){w=500px align=center}
 
 A datapoint can be pinned to enable comparison by clicking the pin icon on the
 left side of the datapoint's table entry when the datapoint is hovered over or
@@ -312,7 +312,7 @@ slice for convenience.
 You can also export data to CSV using the copy or download buttons in the bottom
 right:
 
-![LIT data table](./images/lit-datatable-export.png "LIT data table export controls")<!-- DO NOT REMOVE {width="400"} -->
+![LIT data table](./images/lit-datatable-export.png "LIT data table export controls"){w=400px align=center}
 
 This will export all data in the current table view. To export only the
 selection, use the "Show only selected" toggle. To include additional columns
@@ -332,7 +332,7 @@ filled out by hand to create a completely new datapoint.
 Features shown with a "(\*)" next to their name are required as model input and
 must be filled out to create a new datapoint. Other fields are optional.
 
-![LIT datapoint editor](./images/lit-datapoint-editor.png "LIT datapoint editor")<!-- DO NOT REMOVE {width="500"} -->
+![LIT datapoint editor](./images/lit-datapoint-editor.png "LIT datapoint editor"){w=500px align=center}
 
 ### Datapoint Generator
 
@@ -459,7 +459,7 @@ For structured prediction tasks like span labeling, a span graph module can
 display all tagged spans returned by the model, along with a visualization of
 the ground truth spans if one is available in the dataset.
 
-![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction")<!-- DO NOT REMOVE {width="800"} -->
+![LIT structured prediction](./images/lit-structured-prediction.png "LIT structured prediction"){w=800px align=center}
 
 ### Salience Maps
 
@@ -489,7 +489,7 @@ Dropdowns allow you to select which layer and attention head is being
 visualized. Line opacity is controlled by the magnitude of the attention between
 those tokens.
 
-![LIT attention](./images/lit-attention.png "LIT attention")
+![LIT attention](./images/lit-attention.png "LIT attention"){w=500px align=center}
 
 ## User Journeys
 
@@ -562,4 +562,4 @@ We see that the words “captain” and “former” appear 34 and 16 times in t
 examples–along with 3 occurrences of “replaced by” (screenshot section (e)),
 suggesting a strong prior toward our erroneous phrase.
 
-![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis")<!-- DO NOT REMOVE {width="500"} -->
+![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis"){w=500px align=center}

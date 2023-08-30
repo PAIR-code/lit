@@ -56,7 +56,7 @@ export class ConfusionMatrixModule extends LitModule {
       `Compare predictions to gold labels, between two different models,
       or relative to other categorical fields. Click on cells or rows/column
       headers to select the associated examples.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#confusion-matrix)`;
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#confusion-matrix)`;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
         return html`<confusion-matrix-module

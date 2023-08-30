@@ -14,7 +14,7 @@ LIT server and components are provided as a library which users can use through
 their own demo binaries or via Colab.
 
 The components can also be used as regular Python classes without starting a
-server; see [below](#using-components-outside-lit) for details.
+server; see [below](#using-lit-components-outside-of-lit) for details.
 
 ![LIT system overview](./images/lit-system-diagram.svg)
 
@@ -87,11 +87,11 @@ There are three modes:
 
 Additionally, if using LIT datasets and models outside of the LIT server,
 validation can be called directly through the
-[`validation`](../lit_nlp/lib/validation.py) module.
+[`validation`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/lib/validation.py) module.
 
 ## Datasets
 
-Datasets ([`Dataset`](../lit_nlp/api/dataset.py)) are
+Datasets ([`Dataset`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py)) are
 just a list of examples, with associated type information following LIT's
 [type system](#type-system).
 
@@ -105,7 +105,7 @@ memory on your backend server and can be displayed in the browser.
 NOTE: See the [FAQ](./faq.md) for more details on dataset size limitations.
 
 Implementations should subclass
-[`Dataset`](../lit_nlp/api/dataset.py). Usually this
+[`Dataset`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py). Usually this
 is just a few lines of code - for example, the following is a complete
 implementation for the [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/)
 dataset:
@@ -184,7 +184,7 @@ a `"text"` input via `Dataset.remap({"document":
 
 ## Models
 
-Models ([`Model`](../lit_nlp/api/model.py)) are
+Models ([`Model`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/model.py)) are
 functions which take inputs and produce outputs, with associated type
 information following LIT's [type system](#type-system). The core API consists
 of three methods:
@@ -197,7 +197,7 @@ of three methods:
     yields a parallel sequence of outputs matching `output_spec()`.
 
 Implementations should subclass
-[`Model`](../lit_nlp/api/model.py). An example for
+[`Model`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/model.py). An example for
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) might look something like:
 
 ```py
@@ -245,7 +245,7 @@ calling the model. Optionally, you may want to override the
 `max_minibatch_size()` function, which determines the batch size.
 
 Note: there are a few additional methods in the model API - see
-[`Model`](../lit_nlp/api/model.py) for details.
+[`Model`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/model.py) for details.
 
 If your model is on a remote server, consider using the `BatchedRemoteModel`
 base class, which implements parallel batched requests using a thread pool.
@@ -340,16 +340,16 @@ aids like [UMAP](https://umap-learn.readthedocs.io/en/latest/), and
 counterfactual generator plug-ins.
 
 Most such components implement the
-[`Interpreter`](../lit_nlp/api/components.py) API.
+[`Interpreter`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/components.py) API.
 Conceptually, this is any function that takes a set of datapoints and a model,
 and produces some output.[^identity-component] For example,
-[local gradient-based salience (GradientNorm)](../lit_nlp/components/gradient_maps.py)
+[local gradient-based salience (GradientNorm)](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/gradient_maps.py)
 processes the `TokenGradients` and `Tokens` returned by a model and produces a
 list of scores for each token. The Integrated Gradients saliency method
 additionally requires a `TokenEmbeddings` input and corresponding output, as
 well as a label field `Target` to pin the gradient target to the same class as
 an input and corresponding output. See the
-[GLUE models class](../lit_nlp/examples/models/glue_models.py)
+[GLUE models class](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
 for an example of these spec requirements.
 
 The core API involves implementing the `run()` method:
@@ -375,7 +375,7 @@ Interpreters are also responsible for verifying compatibility by reading the
 model and dataset specs; these are also used to determine what fields to operate
 on. A typical implementation just loops over the relevant specs. For example,
 for
-[simple gradient-based salience](../lit_nlp/components/gradient_maps.py)
+[simple gradient-based salience](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/gradient_maps.py)
 we might have:
 
 ```python
@@ -421,7 +421,7 @@ between fields, and multiple outputs can be easily supported in a loop.
 ### Metrics
 
 For metrics, the
-[`SimpleMetrics`](../lit_nlp/components/metrics.py)
+[`SimpleMetrics`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/metrics.py)
 class implements the spec-matching and input-unpacking logic to satisfy the
 general `Interpreter` API. A subclass of `SimpleMetrics` should implement an
 `is_compatible()` method and a `compute()` method, which is called on compatible
@@ -493,11 +493,11 @@ from batched requests.
 
 As with other interpreter components, a generator can take custom arguments
 through `config`, such as the list of substitutions for the
-[word replacer](../lit_nlp/components/word_replacer.py).
+[word replacer](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/word_replacer.py).
 
 #### Backtranslator Generator
 
-The [backtranslator](../lit_nlp/components/backtranslator.py)
+The [backtranslator](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/backtranslator.py)
 generator translates text segment inputs into foreign languages and back to the
 source language in order to create paraphrases.
 It relies on the Google Cloud Translate API to perform those translations.
@@ -532,15 +532,15 @@ For example, the following spec:
 
 will give this form to configure back-translation:
 
-![Back-translation Config Form](./images/api/backtranslation-form-example.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Back-translation Config Form](./images/api/backtranslation-form-example.png){w=400px align=center}
 
 Currently `config_spec()` is supported only for generators and salience methods,
 though any component can support the `config` argument to its `run()` method,
 which can be useful if
-[running outside of the LIT UI](#using-components-outside-lit).
+[running outside of the LIT UI](#using-lit-components-outside-of-lit).
 
 The following [types](#available-types) are supported (see
-[interpreter_controls.ts](../lit_nlp/client/elements/interpreter_controls.ts)):
+[interpreter_controls.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/elements/interpreter_controls.ts)):
 
 *   `Scalar`, which creates a slider for setting a numeric option. You can
     specify the `min_val`, `max_val`, `default`, and `step`, values for the
@@ -675,7 +675,7 @@ Each `LitType` subclass encapsulates its own semantics (see
 *   A field that appears in _both_ the model's input and output specs is assumed
     to represent the same value. This pattern is used for model-based input
     manipulation. For example, a
-    [language model](../lit_nlp/examples/models/pretrained_lms.py)
+    [language model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
     might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
     input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
     component could take output from the former, swap one or more tokens (e.g.
@@ -803,12 +803,12 @@ would yield additional human-readable information as follows.
 }
 ```
 
-_See the [examples](../lit_nlp/examples) for more._
+_See the [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples) for more._
 
 ### Available types
 
 The full set of `LitType`s is defined in
-[types.py](../lit_nlp/api/types.py), and summarized
+[types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py), and summarized
 in the table below.
 
 Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
@@ -848,7 +848,7 @@ Name                      | Description                                         
 `AttentionHeads`          | Attention heads, grouped by layer.                                                                                                                                    | `<float>[num_heads, num_tokens, num_tokens]`
 
 Values can be plain data, NumPy arrays, or custom dataclasses - see
-[dtypes.py](../lit_nlp/api/dtypes.py) for further
+[dtypes.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dtypes.py) for further
 detail.
 
 *Note: Note that `String`, `Boolean` and `URL` types in Python are represented
@@ -875,7 +875,7 @@ Some properties of the LIT frontend can be configured from Python as
     panel of the LIT onboarding splash-screen.
 
 For detailed documentation, see
-[server_flags.py](../lit_nlp/server_flags.py).
+[server_flags.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/server_flags.py).
 
 Most Python components (such as `Model`, `Dataset`, and `Interpreter`) also have
 a `description()` method which can be used to specify a human-readable
@@ -919,11 +919,11 @@ return lit_demo.serve()
 ```
 
 For a full example, see
-[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
+[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 You can see the pre-configured layouts provided by LIT, as well as the list of
 modules that can be included in your custom layout in
-[`layout.py`](../lit_nlp/api/layout.py). A
+[`layout.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/layout.py). A
 `LitCanonicalLayout` can be defined to achieve four different configurations of
 the major content areas:
 
@@ -968,7 +968,7 @@ passing the parameter `open_in_new_tab=True` to the `render` method. The
 `render` method can optionally take in a configuration object to specify
 certain options to render the LIT UI using, such as the selected layout,
 current display tab, dataset, and models. See
-[notebook.py](../lit_nlp/notebook.py) for details.
+[notebook.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/notebook.py) for details.
 
 The widget has a `stop` method which shuts down the widget's server. This can be
 important for freeing up resources if you plan to create multiple LIT widget
@@ -1016,23 +1016,22 @@ lime.run([dataset.examples[0]], model, dataset)
 # will return {"tokens": ..., "salience": ...} for each example given
 ```
 
-For a full working example in Colab, see https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
+For a full working example in Colab, see [LIT_components_example.ipynb](https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb).
 
 
 <!-- Links -->
 
-[build-metadata]: ../lit_nlp/app.py
-[components-py]: ../lit_nlp/api/dataset.py
-[curves-interp]: ../lit_nlp/components/curves.py
-[dataset-py]: ../lit_nlp/api/dataset.py
-[grad-maps]: ../lit_nlp/components/gradient_maps.py
+[build-metadata]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/app.py
+[components-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+[curves-interp]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/curves.py
+[dataset-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+[grad-maps]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/gradient_maps.py
 [json]: https://www.json.org
 [mnli-dataset]: https://cims.nyu.edu/~sbowman/multinli/
 [mnli-demo]: https://pair-code.github.io/lit/demos/glue.html
-[model-compat-check]:
-[model-py]: ../lit_nlp/api/dataset.py
-[should_display_module]: ../lit_nlp/client/core/lit_module.ts
-[types_py]: ../lit_nlp/api/types.py
-[types_ts]: ../lit_nlp/client/lib/lit_types.ts
-[utils-lib]: ../lit_nlp/client/lib/utils.ts
-[word-replacer]: ../lit_nlp/components/word_replacer.py
+[model-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+[should_display_module]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts
+[types_py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py
+[types_ts]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/lit_types.ts
+[utils-lib]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/utils.ts
+[word-replacer]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/word_replacer.py

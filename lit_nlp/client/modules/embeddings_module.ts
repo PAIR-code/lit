@@ -84,7 +84,7 @@ export class EmbeddingsModule extends LitModule {
   static override infoMarkdown =
       `Pan, zoom, rotate, and click to visualize datapoints in the latent space
       of your model, in order to find clusters or patterns in the data.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#embedding-projector)`;
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#embedding-projector)`;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) => {
         return html`

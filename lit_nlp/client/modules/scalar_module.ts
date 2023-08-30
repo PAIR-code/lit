@@ -94,7 +94,7 @@ export class ScalarModule extends LitModule {
       `Visualize the distribution of scalar (\`Scalar\`, \`RegressionScore\`,
       or \`MulticlassPreds\`) features over their range - for example, to find
       examples near the decision boundary.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#scalar-plots)`;
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#scalar-plots)`;
   static override numCols = 4;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>

@@ -51,7 +51,7 @@ with your favorite serving framework and connect to it using a custom
 We also have experimental support for using LIT as a lightweight model server;
 this can be useful, e.g., for comparing an experimental model running locally
 against a production model already running in an existing LIT demo. See
-[`remote_model.py`](../lit_nlp/components/remote_model.py)
+[`remote_model.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/remote_model.py)
 for more details.
 
 ## Privacy and Security
@@ -80,10 +80,10 @@ All strings in LIT are unicode and most components use model-provided
 tokenization if available, so in most cases non-English languages and non-Latin
 scripts should work without any modifications. For examples, see:
 
-*   [XNLI demo](../lit_nlp/examples/xnli_demo.py) -
+*   [XNLI demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py) -
     cross-lingual NLI, with up to 15 languages supported via a multilingual BERT
     model.
-*   [T5 demo](../lit_nlp/examples/t5_demo.py) -
+*   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
     includes WMT data for machine translation
 
 ## Data Types
@@ -91,15 +91,16 @@ scripts should work without any modifications. For examples, see:
 In addition to text, LIT has good support for different input and output
 modalities, including images and tabular data. For examples, see:
 
-*   [Image demo](../lit_nlp/examples/image_demo.py) -
+*   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
     image classification, using a Mobilenet model.
-*   [Tabular demo](../lit_nlp/examples/penguin_demo.py) -
+*   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
     mult-class classification on tabular (numeric and categorical string) data,
     using the
     [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
     dataset.
 
-For more details, see [the features guide to input and output types](api.md#input-and-output-types).
+For more details, see
+[the features guide to input and output types](api.md#type-system).
 
 ## Workflow and Integrations
 
@@ -144,15 +145,15 @@ Python components such as models, datasets, and generators are designed to
 support standalone use. These don't depend on the LIT serving framework, and you
 can treat them as any other Python class and use from Colab, regular scripts,
 bulk inference pipelines, etc. For an example, see
-[the API documentation](./api.md#using-components-outside-lit).
+[the API documentation](./api.md#using-lit-components-outside-of-lit).
 
 For the frontend, it's a little more difficult. In order to respond to and
 interact with the shared UI state, there's a lot more "framework" code involved
 (see the [frontend development guide](./frontend_development.md) for more).
 We're working on refactoring the LIT
-[`modules`](../lit_nlp/client/modules) to separate
+[`modules`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/modules) to separate
 framework and API code from the visualizations (e.g.
-[`elements`](../lit_nlp/client/elements)), which can
+[`elements`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/elements)), which can
 then be re-used in other environments.
 
 ### Training models with LIT
@@ -162,7 +163,7 @@ official training APIs. However, to facilitate code reuse you can easily add
 training methods to your model class. In fact, several of our demos do exactly
 this, using LIT's `Dataset` objects to manage training data along with standard
 training APIs (such as Keras' `model.fit()`). See
-[`quickstart_sst_demo.py`](../lit_nlp/examples/quickstart_sst_demo.py)
+[`quickstart_sst_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/quickstart_sst_demo.py)
 and/or
-[`glue_models.py`](../lit_nlp/examples/models/glue_models.py)
+[`glue_models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
 for examples.

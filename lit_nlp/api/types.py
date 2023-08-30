@@ -968,7 +968,7 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
   """Infers a Spec from the arguments of a Callable's signature.
 
   LIT uses
-  [Specs](https://github.com/PAIR-code/lit/blob/main/documentation/api.md#type-system)
+  [Specs](https://pair-code.github.io/lit/documentation/api.md#type-system)
   as a mechanism to communicate how the web app should construct user interface
   elements to enable user input for certain tasks, such as parameterizing an
   Interpreter or loading a Model or Dataset at runtime. This includes

@@ -40,7 +40,7 @@ for your task.
 ## Using LIT in notebooks <!-- DO NOT REMOVE {#colab} -->
 
 LIT can also be used directly from Colab and Jupyter notebooks, with the LIT UI
-rendered in an output cell. See https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb for an example.
+rendered in an output cell. See [LIT_sentiment_classifier.ipynb](https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb) for an example.
 
 Note: if you see a 403 error in the output cell where LIT should render, you may
 need to enable cookies on the Colab site, or pass a custom `port=` to the
@@ -51,13 +51,13 @@ need to enable cookies on the Colab site, or pass a custom `port=` to the
 Many LIT components - such as models, datasets, metrics, and salience methods -
 are stand-alone Python classes and can be easily used outside of the LIT UI. For
 additional details, see the
-[API documentation](./api.md#using-components-outside-lit) and an example Colab
-at https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb.
+[API documentation](./api.md#using-lit-components-outside-of-lit) and an example Colab
+at [LIT_components_example.ipynb](https://colab.research.google.com/github/pair-code/lit/blob/dev/lit_nlp/examples/notebooks/LIT_components_example.ipynb).
 
 ## Run an existing example <!-- DO NOT REMOVE {#running-lit} -->
 
 The [demos page](./demos.md) lists some of the pre-built demos available for a
-variety of model types. The code for these is under [lit_nlp/examples](../lit_nlp/examples)
+variety of model types. The code for these is under [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples)
 ;
 each is a small script that loads one or more models and starts a LIT server.
 

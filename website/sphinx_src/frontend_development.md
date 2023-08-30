@@ -4,7 +4,6 @@
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
-
 This document aims to describe the current LIT frontend system, including
 conventions, best practices, and gotchas.
 
@@ -36,23 +35,23 @@ which modules to render).
 ### Bootstrapping
 
 The LIT app bootstrapping takes place in two steps: First, the served
-[`index.html`](../lit_nlp/client/static/index.html)
+[`index.html`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/static/index.html)
 page contains a single web component for the
-[`<lit-app>`](../lit_nlp/client/core/lit_app.ts).
+[`<lit-app>`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_app.ts).
 This component is responsible for the overall layout of the app, including the
 toolbar, footer, and the
-[`<lit-modules>`](../lit_nlp/client/core/modules.ts)
+[`<lit-modules>`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/modules.ts)
 component. The `<lit-modules>` component is responsible for actually laying out
 and rendering the various `LitModule` components, a process about which we'll go
 into greater detail later.
 
 The JS bundle entry point is
-[`main.ts`](../lit_nlp/client/default/main.ts), which
+[`main.ts`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/default/main.ts), which
 first imports the loaded, the `<lit-app>` web component is declared, and
 attaches itself to the DOM, waiting for the app to be initialized.
 
 The second step is kicking off app initialization. The
-[`LitApp`](../lit_nlp/client/core/app.ts) singleton
+[`LitApp`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/app.ts) singleton
 class is provided with a layout declaring which `LitModule` components to use,
 then builds the app services and kicks off app initialization and loading data.
 
@@ -61,40 +60,41 @@ then builds the app services and kicks off app initialization and loading data.
 A layout defines the arraignment of `LitModule` classes in the UI. Layouts are
 specified in Python as `LitCanonicalLayout` instances, and LIT includes three
 pre-configured layouts in
-[`layout.py`](../lit_nlp/api/layout.py):
+[`layout.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/layout.py):
 
-* `simple`: A minimalist layout with the examples on top (either individually
-  (selected by default) or in a table) and predictions on the bottom;
-* `default`: The original LIT layout with a single group of modules on top for
-  exploring and selecting data, and a collection of tabs supporting different
-  analytical tasks on the bottom; and
-* `experimental`: A three-panel layout that puts exploratory data visualizations at
-  full-page height on the left, tools for inspecting and manipulating examples
-  and their associated predictions in the upper right, and a collection of tabs
-  supporting different analytical tasks in the lower left. Note that this was
-  introduced in v1.0 as an experimental feature, your feedback is appreciated.
+*   `simple`: A minimalist layout with the examples on top (either individually
+    (selected by default) or in a table) and predictions on the bottom;
+*   `default`: The original LIT layout with a single group of modules on top for
+    exploring and selecting data, and a collection of tabs supporting different
+    analytical tasks on the bottom; and
+*   `experimental`: A three-panel layout that puts exploratory data
+    visualizations at full-page height on the left, tools for inspecting and
+    manipulating examples and their associated predictions in the upper right,
+    and a collection of tabs supporting different analytical tasks in the lower
+    left. Note that this was introduced in v1.0 as an experimental feature, your
+    feedback is appreciated.
 
-You can also add [custom layouts](./api.md#ui-layouts) to your LIT instance
-by defining one or more `LitCanonicalLayout` instances and passing them to the
-server. For an example, see `CUSTOM_LAYOUTS` in
-[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
+You can also add [custom layouts](./api.md#customizing-the-layout) to your LIT
+instance by defining one or more `LitCanonicalLayout` instances and passing them
+to the server. For an example, see `CUSTOM_LAYOUTS` in
+[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 Note: The pre-configured layouts are added to every `LitApp` instance using
-[dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict)
-where the Mapping passed to the `LitApp` constructor overrides the
-pre-configured layouts `Mapping`. Thus, you can remove or change these
-pre-configured layouts as you like by passing a `Mapping` where the values of
-`simple`, `default`, and/or `experimental` is `None` (to remove) or a
-`LitCanonicalLayout` instance (to override) as you desire.
+[dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict) where
+the Mapping passed to the `LitApp` constructor overrides the pre-configured
+layouts `Mapping`. Thus, you can remove or change these pre-configured layouts
+as you like by passing a `Mapping` where the values of `simple`, `default`,
+and/or `experimental` is `None` (to remove) or a `LitCanonicalLayout` instance
+(to override) as you desire.
 
 The actual layout of components in the LIT UI, see
-[`<lit-modules>`](../lit_nlp/client/core/modules.ts),
+[`<lit-modules>`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/modules.ts),
 can be different than the declared layout, since the visibility of modules
 depends on a number of factors, including the user-chosen visibility, the
 compatibility of the configured modules with the selected model and dataset, and
 whether or not specific modules show multiple copies per selected model. The
 actual layout is computed in
-[`modules_service`](../lit_nlp/client/services/modules_service.ts).
+[`modules_service`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/modules_service.ts).
 
 ### Initialization
 
@@ -109,7 +109,7 @@ starting the initial load of data from the server. This process consists of:
 ## Modules (LitModule)
 
 The
-[`LitModule`](../lit_nlp/client/core/lit_module.ts)
+[`LitModule`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts)
 is the base class from which all module components derive. It provides a number
 of convenience methods for handling common update / data loading patterns. Each
 LIT Module also requires a few static methods by convention, responsible for
@@ -190,26 +190,26 @@ the component template and passes in module properties, such as the name of the
 if duplicate is set to true, the layout engine will create two (or more)
 instances of this module, each responsible for a different model.
 
-_Note: there are additional static attributes which control module behavior; see
+*Note: there are additional static attributes which control module behavior; see
 the
-[`LitModule`](../lit_nlp/client/core/lit_module.ts)
-base class for full definitions._
+[`LitModule`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts)
+base class for full definitions.*
 
 Styles are also declared with a static get method (4), following the lit-element
 convention. These styles can be built using the lit-element `css` template
 function, or by importing a separate .css file. Styles can be shared between
 components by importing a shared styles .css file (for instance,
-[`shared_styles.css`](../lit_nlp/client/lib/shared_styles.css))
+[`shared_styles.css`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/shared_styles.css))
 
 Services are used by requesting them from the LitApp `app` singleton class (5).
 This can be thought of as a super-simple dependency injection system, and allows
 for much easier stubbing / mocking of services in testing. We request the
-[`colorService`](../lit_nlp/client/services/color_service.ts)
+[`colorService`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/color_service.ts)
 here, but the base `LitModule` class initializes the most common services
-([`apiService`](../lit_nlp/client/services/api_service.ts),
-[`appState`](../lit_nlp/client/services/state_service.ts),
+([`apiService`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/api_service.ts),
+[`appState`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/state_service.ts),
 and
-[`selectionService`](../lit_nlp/client/services/selection_service.ts))
+[`selectionService`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/selection_service.ts))
 for us automatically.
 
 The `LitModule` must also provide a static `checkModule` (11) method, which
@@ -298,16 +298,18 @@ reconciliation of what needs to be updated per render.
 ### Stateful Child Elements
 
 Some modules may contain stateful child elements, where the element has some
-internal state that can have an effect on the module that contains it. Examples of this include any modules that contain the
-[core/faceting_control.ts](../lit_nlp/client/core/faceting_control.ts) element.
+internal state that can have an effect on the module that contains it. Examples
+of this include any modules that contain the
+[core/faceting_control.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/faceting_control.ts)
+element.
 
-With these types of child elements, it's important for the containing module
-to construct them programmatically and store them in a class member variable,
-as opposed to only constructing them in the module's html template
-string returned by the `renderImpl` method. Otherwise they will be destroyed
-and recreated when a module is hidden off-screen and then brought back
-on-screen, leading them to lose whatever state they previously held.
-Below is a snippet of example code to handle these types of elements.
+With these types of child elements, it's important for the containing module to
+construct them programmatically and store them in a class member variable, as
+opposed to only constructing them in the module's html template string returned
+by the `renderImpl` method. Otherwise they will be destroyed and recreated when
+a module is hidden off-screen and then brought back on-screen, leading them to
+lose whatever state they previously held. Below is a snippet of example code to
+handle these types of elements.
 
 ```typescript
 // An example of a LITModule using a stateful child element.
@@ -332,6 +334,7 @@ export class ExampleModule extends LitModule {
     return html`${this.facetingControl}`;
   }
 ```
+
 ## Style Guide
 
 *   Please disable clang-format on `lit-html` templates and format these
@@ -347,16 +350,16 @@ export class ExampleModule extends LitModule {
     // clang format on
     ```
 
-*   For new modules, in most cases you should implement two
-    classes: one module (subclassing
-    [`LitModule`](../lit_nlp/client/core/lit_module.ts))
+*   For new modules, in most cases you should implement two classes: one module
+    (subclassing
+    [`LitModule`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts))
     that interfaces with the LIT framework, and another element which subclasses
     `LitElement`, `MobxLitElement`, or preferably,
-    [`ReactiveElement`](../lit_nlp/client/lib/elements.ts?),
+    [`ReactiveElement`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/elements.ts?),
     and implements self-contained visualization code. For an example, see
-    [modules/annotated_text_module.ts](../lit_nlp/client/modules/annotated_text_module.ts)
+    [modules/annotated_text_module.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/modules/annotated_text_module.ts)
     and
-    [elements/annotated_text_vis.ts](../lit_nlp/client/elements/annotated_text_vis.ts).
+    [elements/annotated_text_vis.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/elements/annotated_text_vis.ts).
 
 *   On supported components (`ReactiveElement` and `LitModule`), use
     `this.react()` or `this.reactImmediately()` instead of registering reactions
@@ -365,7 +368,7 @@ export class ExampleModule extends LitModule {
     mode).
 
 *   Use
-    [shared styles](../lit_nlp/client/lib/shared_styles.css)
+    [shared styles](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/shared_styles.css)
     when possible.
 
 ## Development Tips (open-source)
@@ -395,11 +398,11 @@ source from the build output.
 If you're modifying the Python backend, there is experimental support for
 hot-reloading the LIT application logic (`app.py`) and some dependencies without
 needing to reload models or datasets. See
-[`dev_server.py`](../lit_nlp/dev_server.py) for
+[`dev_server.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/dev_server.py) for
 details.
 
 You can use the `--data_dir` flag (see
-[`server_flags.py`](../lit_nlp/server_flags.py) to
+[`server_flags.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/server_flags.py) to
 save the predictions cache to disk, and automatically reload it on a subsequent
 run. In conjunction with `--warm_start`, you can use this to avoid re-running
 inference during development - though if you modify the model at all, you should
@@ -413,7 +416,7 @@ is not as mature as for Python extensions.
 
 An example of a custom LIT client application, including a custom
 (potato-themed) module can be found in
-[`lit_nlp/examples/custom_module`](../lit_nlp/examples/custom_module).
+[`lit_nlp/examples/custom_module`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/custom_module).
 You need only define any custom modules (subclass of `LitModule`) and include
 them in the build.
 
@@ -438,9 +441,10 @@ parent_dir = os.path.join(pathlib.Path(__file__).parent.absolute()
 FLAGS.set_default("client_root", parent_dir, "build"))
 ```
 
-You must also define a [custom layout definition](./api.md#ui-layouts) in Python
-which references your new module. Note that because Python enums are not
-extensible, you need to reference the custom module using its HTML tag name:
+You must also define a
+[custom layout definition](./api.md#customizing-the-layout) in Python which
+references your new module. Note that because Python enums are not extensible,
+you need to reference the custom module using its HTML tag name:
 
 ```python
 modules = layout.LitModuleName
@@ -456,5 +460,5 @@ POTATO_LAYOUT = layout.LitCanonicalLayout(
 ```
 
 See
-[`potato_demo.py`](../lit_nlp/examples/custom_module/potato_demo.py)
+[`potato_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/custom_module/potato_demo.py)
 for the full example.

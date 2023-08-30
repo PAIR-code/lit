@@ -79,7 +79,7 @@ export class TCAVModule extends LitModule {
   static override infoMarkdown =
       `TCAV estimates the importance of high-level concepts (e.g., color,
       gender, race) for a prediction class.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#tcav)`;
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#tcav)`;
   static override numCols = 12;
   static override duplicateForModelComparison = true;
 

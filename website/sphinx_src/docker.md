@@ -14,17 +14,17 @@ your preferred engine. This is how we run our
 [hosted demos](https://pair-code.github.io/lit/demos/).
 
 We provide a basic
-[`Dockerfile`](../lit_nlp/Dockerfile) that you can
+[`Dockerfile`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/Dockerfile) that you can
 use to build and run any of the demos in the `lit_nlp/examples` directory. The
 `Dockerfile` installs all necessary dependencies for LIT and builds the
 front-end code from source. Then it runs [gunicorn](https://gunicorn.org/) as
 the HTTP server, invoking the `get_wsgi_app()` method from our demo file to get
 the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
-[`gunicorn_config.py`](../lit_nlp/examples/gunicorn_config.py).
+[`gunicorn_config.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
-[`glue_demo.py`](../lit_nlp/examples/glue_demo.py) or
-[`lm_demo.py`](../lit_nlp/examples/lm_demo.py).
+[`glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py) or
+[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 Use the following shell commands to build the default Docker image for LIT from
 the provided `Dockerfile`, and then run a container from that image. Comments
@@ -74,7 +74,7 @@ docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-nlp
 
 Many LIT users create their own custom LIT server script to demo or serve, which
 involves creating an executable Python module with a `main()` method, as
-described in the [Python API docs](g3doc/api.md#adding-models-and-data).
+described in the [Python API docs](https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data).
 
 These custom server scripts can be easily integrated with LIT's default image as
 long as your server meets two requirements:

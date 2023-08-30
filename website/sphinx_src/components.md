@@ -19,6 +19,18 @@ Many LIT users implement their own
 [model and dataset classes](./api.md#adding-models-and-data), but we also have
 out-of-the-box support for a few modeling frameworks, described below.
 
+### HuggingFace Transformers
+
+Many of the
+[open-source LIT examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/) use
+HuggingFace Transformers via their TF2/Keras model classes. These give easy
+access to model internals such as embeddings, attention, and gradients, and the
+LIT wrappers for these support many interpretability methods - such as
+[integrated gradients](https://arxiv.org/abs/1703.01365) out-of-the-box.
+
+These models are a great place to start for small-scale experiments or for
+working on academic projects.
+
 ### TF1.x Estimator
 
 LIT supports Estimator and other TF1.x models, but the model wrappers can be
@@ -33,21 +45,9 @@ every invocation.) Generally, you'll need to:
 
 Alternatively, you can export to a `SavedModel` and load this in an eager mode
 runtime. This leads to much simpler code (see
-[this example](../lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
+[this example](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
 but may require changes to your `SavedModel` exporter in order to access model
 internals like embeddings, gradients, or attention.
-
-### HuggingFace Transformers
-
-Many of the
-[open-source LIT examples](../lit_nlp/examples/) use
-HuggingFace Transformers via their TF2/Keras model classes. These give easy
-access to model internals such as embeddings, attention, and gradients, and the
-LIT wrappers for these support many interpretability methods - such as
-[integrated gradients](https://arxiv.org/abs/1703.01365) out-of-the-box.
-
-These models are a great place to start for small-scale experiments or for
-working on academic projects.
 
 ### Remote or hosted models
 
@@ -57,13 +57,13 @@ the server, while the LIT `Model` implementation simply manages the RPC stub and
 handles format conversion and any additional pre- or post-processing.
 
 *   For a general-purpose interface to connect to another LIT server over HTTP,
-    see [lit_nlp/components/remote_model.py](../lit_nlp/components/remote_model.py).
+    see [components/remote_model.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/remote_model.py).
 
 ### Static predictions
 
 LIT works best when the model can be queried interactively, but this isn't
 always possible for all situations. The
-[`StaticPredictions`](../lit_nlp/components/static_preds.py)
+[`StaticPredictions`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/static_preds.py)
 class allows LIT to serve a set of pre-computed predictions by creating a
 "model" backed by a lookup table. This can be handy for quickly browsing data,
 while still retaining access to LIT's rich visualizations.
@@ -106,7 +106,7 @@ confusion matrices, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
 *   For a basic example on a binary sentiment task, see
-    [lit_nlp/examples/simple_tf2_demo.py](../lit_nlp/examples/simple_tf2_demo.py).
+    [examples/simple_tf2_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/simple_tf2_demo.py).
 *   Models should define a `MulticlassPreds` field in their output spec with the
     `vocab=` attribute as the set of class labels, and for each example should
     return a vector of probabilities for each class.
@@ -118,14 +118,14 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
     precision, recall, F1 will be computed for the remaining classes. AUC and
     AUCPR will be computed for binary classification tasks. For an example, see
     the
-    [comment toxicity model](../lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
+    [comment toxicity model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be
     used to change the classification threshold. If `null_idx` is set and there
     are more than two classes, a "margin" can be set which acts as a bias (in
     log space) for the negative class.
 
-![Classification Results Module](images/components/classification-results.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
+![Classification Results Module](images/components/classification-results.png){w=600px align=center}
 
 ### Regression / Scoring
 
@@ -139,7 +139,7 @@ faceting, and scatterplots of scalar output. Regression is implemented with the
     which contains numerical targets, and the model's `RegressionScore` field
     should set `parent=` to the name of this field.
 *   For an example, see the STS-B textual similarity task in
-    [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py).
+    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
 
 ### Multi-label classification
 
@@ -148,7 +148,7 @@ more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
 *   For a basic example on an image labeling task, see
-    [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py).
+    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -180,9 +180,9 @@ or decoder.
     `list[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
 *   For modeling examples, see
-    [lit_nlp/examples/models/t5.py](../lit_nlp/examples/models/t5.py)
+    [examples/models/t5.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py)
 
-![Generated Text Module](images/components/generation-results.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
+![Generated Text Module](images/components/generation-results.png){w=600px align=center}
 
 ### Span Labeling and Structured Prediction
 
@@ -202,7 +202,7 @@ interactive visualizations.
 *   Experimentally, byte-based annotations are supported via the
     `MultiSegmentAnnotations` type.
 
-![Structured Predictions Module](images/components/structured-preds.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Structured Predictions Module](images/components/structured-preds.png){w=400px align=center}
 
 ### Multiple input segments
 
@@ -215,7 +215,7 @@ and otherwise to different parts of the input.
     [Dataset class documentation](./api.md#datasets) and the corresponding
     [Model](./api.md#models).
 *   For a more involved code example including per-token gradients, see
-    [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py).
+    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
 
 ### Tabular data
 
@@ -259,7 +259,7 @@ gradient-based methods as well as black-box techniques like LIME that don't
 require any access to model internals. Output is rendered in the Salience Maps
 module in the LIT UI, which allows for comparison of multiple methods at once:
 
-![Salience Map Module](./images/components/salience-map.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
+![Salience Map Module](./images/components/salience-map.png){w=600px align=center}
 
 For a demo with a BERT-based classifier, see https://pair-code.github.io/lit/demos/glue.html and navigate to the
 "Explanations" tab.
@@ -281,7 +281,7 @@ Our model should return gradients with respect to the class 0. Conversely, we
 might want to ask what features would encourage the model to predict a different
 class. If we select class 1 from the UI:
 
-![Target Selection](./images/components/salience-target-select.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Target Selection](./images/components/salience-target-select.png){w=400px align=center}
 
 Then the model will receive a modified input with this target:
 
@@ -412,7 +412,7 @@ An example spec would look like:
 
 For a more concrete example that also supports multiple segments with separate
 gradients, see our
-[BERT classifier demo model](../lit_nlp/examples/models/glue_models.py),
+[BERT classifier demo model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py),
 or contact the LIT team for assistance.
 
 ### LIME
@@ -428,7 +428,7 @@ slow as it requires many evaluations of the model. Additionally, LIME can be
 noisy on longer inputs, as there are more tokens to ablate. To compensate, you
 can increase the number of samples:
 
-![LIME configuration options](./images/components/lime-options.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
+![LIME configuration options](./images/components/lime-options.png){w=600px align=center}
 
 LIME works out-of-the-box with any classification (`MulticlassPreds`) or
 regression/scoring (`RegressionScore`) model.
@@ -472,7 +472,7 @@ your model should, as part of the
 
     The model should be able to accept input images as numpy arrays in addition
     to accepting base64 URL encoded format. See
-    [mobilenet.py](../lit_nlp/examples/mobilenet.py)
+    [mobilenet.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/mobilenet.py)
     for an example.
 
 A variety of image saliency techniques are implemented for models that return
@@ -489,7 +489,7 @@ through the `ImageSalience` type.
 LIT can display a visualization of attention heads from transformers and other
 models:
 
-![Attention Visualization](./images/components/attention.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Attention Visualization](./images/components/attention.png){w=400px align=center}
 
 To enable this, your model should return one or more fields of the type
 `AttentionHeads`, with values as arrays of shape `<float>[num_heads, num_tokens,
@@ -522,7 +522,7 @@ visualize the latent space of your model, in order to find clusters or patterns
 in the data. [UMAP](https://umap-learn.readthedocs.io/en/latest/) and PCA are
 both supported as projection techniques.
 
-![Embedding Projector](./images/components/embeddings.png)<!-- DO NOT REMOVE {style="max-width:500px"} -->
+![Embedding Projector](./images/components/embeddings.png){w=500px align=center}
 
 The plot can be panned, zoomed, and rotated, and you can click a point to select
 an example, or shift-click to select a group. You can also use LIT's global
@@ -582,7 +582,7 @@ between different categorical features. You can click cells or row/column
 headers to select a subset of examples, which is useful for intersectional
 analysis.
 
-![Confusion Matrix](./images/components/confusion-matrix.png)<!-- DO NOT REMOVE {style="max-width:600px"} -->
+![Confusion Matrix](./images/components/confusion-matrix.png){w=600px align=center}
 
 To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
 
@@ -668,7 +668,7 @@ effect of that feature on model output, given the datapoints chosen.
 If no datapoints are selected, then the calculations are done across all
 datapoints, giving a global view of feature effects.
 
-![Partial Dependence Plots Module](./images/components/lit-pdps.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Partial Dependence Plots Module](./images/components/lit-pdps.png){w=400px align=center}
 
 ### Dive
 
@@ -677,7 +677,7 @@ Dive is a visualization module, inspired by our prior work on
 [What-If Tool](https://pair-code.github.io/what-if-tool/), that enables
 exploration of data subsets grouped by feature values.
 
-![Dive module](./images/components/dive.png)<!-- DO NOT REMOVE {style="max-width:500px"} -->
+![Dive module](./images/components/dive.png){w=500px align=center}
 
 Data are displayed in a matrix of groups based on feature values, with each
 group containing the datapoints at the intersection of the feature values for
@@ -729,11 +729,11 @@ needed
 For this example, we select all examples related to acting in the data table
 using the selector `acting|actor|actress`.
 
-![Data table - select examples](./images/components/tcav-search-examples.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Data table - select examples](./images/components/tcav-search-examples.png){w=400px align=center}
 
 2.) Next, name the slice `acting` and click 'Create slice'.
 
-![Slice](./images/components/tcav-create-slice.png)<!-- DO NOT REMOVE {style="max-width:280px"} -->
+![Slice](./images/components/tcav-create-slice.png){w=280px align=center}
 
 3.) Finally, navigate to the TCAV tab, select the newly created slice, and click
 'Run TCAV'.
@@ -743,7 +743,7 @@ random splits of examples in the rest of the dataset. Alternatively, selecting a
 second 'negative' slice would initiate relative TCAV, which compares the
 selected slice's examples against those in the negative slice.
 
-![TCAV1](./images/components/tcav-select-slice.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
+![TCAV1](./images/components/tcav-select-slice.png){w=800px align=center}
 
 When the run is complete (usually after a few seconds), the results are
 displayed in the table. In this example, the TCAV score is ~0.9 (shown by the
@@ -752,7 +752,7 @@ black bar in the score bar ), indicating that the acting concept positively
 influences the prediction class 1, or positive sentiment. (Technically, the
 baseline represents 'null hypothesis', calculated with random concepts.)
 
-![TCAV2](./images/components/tcav-results-table.png)<!-- DO NOT REMOVE {style="max-width:800px"} -->
+![TCAV2](./images/components/tcav-results-table.png){w=800px align=center}
 
 ### Statistical Significance
 
@@ -803,7 +803,7 @@ components.
 
 Examples can be edited manually in the Datapoint Editor module:
 
-![Manual Edit in the Datapoint Editor](./images/components/manual-edit.png)<!-- DO NOT REMOVE {style="max-width:400px"} -->
+![Manual Edit in the Datapoint Editor](./images/components/manual-edit.png){w=400px align=center}
 
 The "Add and Compare" button can be used to enter comparison mode, which will
 automatically "pin" the original example as a reference selection. Many LIT
@@ -816,7 +816,7 @@ You can also use the toolbar controls to enter comparison mode. LIT also keeps
 track of the relationship between examples, and you can use the pair selection
 controls to cycle through the available (original, edited) examples:
 
-![Pair Selection Controls](./images/components/pair-selection.png)<!-- DO NOT REMOVE {style="max-width:700px"} -->
+![Pair Selection Controls](./images/components/pair-selection.png){w=700px align=center}
 
 ### Generators
 
@@ -837,19 +837,19 @@ customized for particular applications or domains.
 We also include a handful of off-the-shelf methods:
 
 *   The
-    [**scrambler**](../lit_nlp/components/scrambler.py)
+    [**scrambler**](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/scrambler.py)
     simply randomizes word order of the input.
 *   The
-    [**word replacer**](../lit_nlp/components/word_replacer.py)
+    [**word replacer**](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/word_replacer.py)
     makes simple substitutions, such as `great -> terrible`.
-*   [**HotFlip**](../lit_nlp/components/hotflip.py)
+*   [**HotFlip**](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/hotflip.py)
     ([Ebrahimi et al. 2017](https://arxiv.org/abs/1712.06751)) tries to find
     minimal token substitutions to change the model's prediction. Compatible
     with classification models (`MulticlassPreds`) or regression models
     (`RegressionScore`) via thresholding, and requires access to
     `TokenGradients` as well as a special `get_embedding_table()` method on the
     model class.
-*   [**Ablation Flip**](../lit_nlp/components/ablation_flip.py)
+*   [**Ablation Flip**](https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/ablation_flip.py)
     is similar to HotFlip, but tries to change the prediction by selectively
     dropping tokens from the input. Unlike HotFlip, this does not require
     gradients or access to the embedding table and can work with any

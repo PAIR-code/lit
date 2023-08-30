@@ -106,7 +106,7 @@ export class SalienceMapModule extends LitModule {
   static override infoMarkdown =
       `Input salience methods try to explain model predictions as a heatmap
       over input features, such as tokens.<br>
-      [Learn more.](https://github.com/PAIR-code/lit/blob/main/documentation/components.md#token-based-salience)`;
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#token-based-salience)`;
   static override numCols = 6;
   static override duplicateForExampleComparison = true;
   static override template = (model: string, selectionServiceIndex: number, shouldReact: number) => {

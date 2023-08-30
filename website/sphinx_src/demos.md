@@ -1,9 +1,6 @@
 # Demos
 
-<!--*
-  freshness: { owner: 'lit-dev' reviewed: '2023-07-14' }
-  css: "//depot/google3/third_party/py/lit_nlp/g3doc/includes/demos.css"
-*-->
+<!-- freshness: { owner: 'lit-dev' reviewed: '2023-08-29' } -->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -20,7 +17,7 @@ https://pair-code.github.io/lit/demos/.
 ### Sentiment and NLI <!-- DO NOT REMOVE {#glue .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html \
-**Code:** [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py)
+**Code:** [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
 
 *   Multi-task demo:
     *   Sentiment analysis as a binary classification task
@@ -29,8 +26,8 @@ https://pair-code.github.io/lit/demos/.
     *   Natural Language Inference (NLI) using
         [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/), as a three-way
         classification task with two-segment input (premise, hypothesis).
-    *   STS-B textual similarity task (see [Regression / Scoring](#scoring)
-        below).
+    *   STS-B textual similarity task (see
+        [Regression / Scoring](#regression-scoring) below).
     *   Switch tasks using the Settings (⚙️) menu.
 *   BERT models of different sizes, built on HuggingFace TF2 (Keras).
 *   Supports the widest range of LIT interpretability features:
@@ -48,7 +45,7 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 ### Multilingual (XNLI) <!-- DO NOT REMOVE {#xnli .demo-header} -->
 
-**Code:** [lit_nlp/examples/xnli_demo.py](../lit_nlp/examples/xnli_demo.py)
+**Code:** [examples/xnli_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py)
 
 *   [XNLI](https://cims.nyu.edu/~sbowman/xnli/) dataset translates a subset of
     MultiNLI into 14 different languages.
@@ -61,12 +58,12 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 --------------------------------------------------------------------------------
 
-## Regression / Scoring <!-- DO NOT REMOVE {#scoring .demo-section-header} -->
+## Regression / Scoring {.demo-section-header}
 
 ### Textual Similarity (STS-B) <!-- DO NOT REMOVE {#stsb .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html?models=stsb&dataset=stsb_dev \
-**Code:** [lit_nlp/examples/glue_demo.py](../lit_nlp/examples/glue_demo.py)
+**Code:** [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
 
 *   STS-B textual similarity task, predicting scores on a range from 0
     (unrelated) to 5 (very similar).
@@ -83,9 +80,10 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 ## Sequence-to-Sequence <!-- DO NOT REMOVE {#seq2seq .demo-section-header} -->
 
-### Open-source T5 <!-- DO NOT REMOVE {#t5 .demo-header} -->
+### T5 <!-- DO NOT REMOVE {#t5 .demo-header} -->
 
-**Code:** [lit_nlp/examples/t5_demo.py](../lit_nlp/examples/t5_demo.py)
+**Hosted instance:** https://pair-code.github.io/lit/demos/t5.html \
+**Code:** [examples/t5_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py)
 
 *   Supports HuggingFace TF2 (Keras) models as well as TensorFlow SavedModel
     formats.
@@ -107,7 +105,8 @@ https://pair-code.github.io/lit/tutorials/generation
 
 ### BERT and GPT-2 <!-- DO NOT REMOVE {#bert .demo-header} -->
 
-**Code:** [lit_nlp/examples/lm_demo.py](../lit_nlp/examples/lm_demo.py)
+**Hosted instance:** https://pair-code.github.io/lit/demos/lm.html \
+**Code:** [examples/lm_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py)
 
 *   Compare multiple BERT and GPT-2 models side-by-side on a variety of
     plain-text corpora.
@@ -123,7 +122,8 @@ https://pair-code.github.io/lit/tutorials/generation
 
 ### Gender Bias in Coreference <!-- DO NOT REMOVE {#coref .demo-header} -->
 
-**Code:** [lit_nlp/examples/coref/coref_demo.py](../lit_nlp/examples/coref/coref_demo.py)
+**Hosted instance:** https://pair-code.github.io/lit/demos/coref.html \
+**Code:** [examples/coref/coref_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/coref/coref_demo.py)
 
 *   Gold-mention coreference model, trained on
     [OntoNotes](https://catalog.ldc.upenn.edu/LDC2013T19).
@@ -144,7 +144,8 @@ https://pair-code.github.io/lit/tutorials/coref
 
 ### Tabular Data: Penguin Classification <!-- DO NOT REMOVE {#penguin .demo-header} -->
 
-**Code:** [lit_nlp/examples/penguin_demo.py](../lit_nlp/examples/penguin_demo.py)
+**Hosted instance:** https://pair-code.github.io/lit/demos/penguins.html \
+**Code:** [examples/penguin_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
 
 *   Binary classification on
     [penguin dataset](https://www.tensorflow.org/datasets/catalog/penguins).
@@ -157,10 +158,10 @@ https://pair-code.github.io/lit/tutorials/coref
 
 ### Image Classification with MobileNet <!-- DO NOT REMOVE {#mobilenet .demo-header} -->
 
-**Code:** [lit_nlp/examples/image_demo.py](../lit_nlp/examples/image_demo.py)
+**Hosted instance:** https://pair-code.github.io/lit/demos/images.html \
+**Code:** [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py)
 
 *   Classification on ImageNet labels using a MobileNet model.
 *   Showing using of LIT on image data.
 *   Explore results of multiple gradient-based image saliency techniques in the
     Salience Maps module.
-

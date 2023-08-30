@@ -1,4 +1,4 @@
-## Glossary
+# Glossary
 
 There are a few commonly-overloaded terms which refer to specific things in the
 LIT APIs and codebase:
