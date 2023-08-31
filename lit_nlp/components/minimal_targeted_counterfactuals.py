@@ -172,7 +172,7 @@ class TabularMTC(lit_components.Generator):
     # statistics include such information as 'standard deviation' for scalar
     # features and probabilities for categorical features.
     if dataset_name not in self._datasets_stats:
-      self._calculate_stats(dataset, dataset_name)
+      self._datasets_stats[dataset_name] = self._calculate_stats(dataset)
 
     # Find predicted class of the original example.
     original_pred = list(model.predict([example]))[0]
@@ -180,7 +180,6 @@ class TabularMTC(lit_components.Generator):
     # Find dataset examples that are flips.
     filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
         dataset=dataset,
-        dataset_name=dataset_name,
         model=model,
         reference_output=original_pred,
         pred_key=pred_key,
@@ -275,7 +274,6 @@ class TabularMTC(lit_components.Generator):
   def _filter_ds_examples(
       self,
       dataset: lit_dataset.IndexedDataset,
-      dataset_name: str,
       model: lit_model.Model,
       reference_output: JsonDict,
       pred_key: str,
@@ -490,8 +488,7 @@ class TabularMTC(lit_components.Generator):
       supported = [f for f in supported if example[f] is not None]
     return supported
 
-  def _calculate_stats(self, dataset: lit_dataset.Dataset,
-                       dataset_name: str) -> None:
+  def _calculate_stats(self, dataset: lit_dataset.Dataset) -> dict[str, float]:
     # Iterate through all examples in the dataset and store column values
     # in individual lists to facilitate future computation.
     field_values = {}
@@ -516,7 +513,7 @@ class TabularMTC(lit_components.Generator):
       else:
         assert False, 'Should never be reached.'
     # Cache the stats for the given dataset.
-    self._datasets_stats[dataset_name] = field_stats
+    return field_stats
 
   def _calculate_std_dev(self, values: list[float]) -> float:
     return np.std(values)
