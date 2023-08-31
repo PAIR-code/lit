@@ -83,16 +83,35 @@ packages required to run the demos.
 
 ### Install from source
 
-Note: be sure you are running Python 3.10 or higher.
-
-Clone the repo and set up a Python environment:
+Clone the repo:
 
 ```sh
 git clone https://github.com/PAIR-code/lit.git && cd lit
+```
 
-# Set up Python environment
+
+Note: be sure you are running Python 3.10. If you have a different version on  
+your system, use the `conda` instructions below to set up a Python 3.10 
+environment.
+
+Set up a Python environment with `venv`:
+
+```sh
 python -m venv .venv
 source .venv/bin/activate
+```
+
+Or set up a Python environment using `conda`:
+
+```sh
+conda create --name lit-nlp
+conda activate lit-nlp
+conda install python=3.10
+conda install pip
+```
+
+Install dependencies:
+```sh
 python -m pip install -r requirements.txt
 python -m pip install cudnn cupti  # optional, for GPU support
 python -m pip install torch  # optional, for PyTorch

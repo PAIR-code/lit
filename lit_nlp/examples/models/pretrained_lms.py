@@ -30,7 +30,7 @@ class BertMLM(lit_model.BatchedModel):
   @classmethod
   def init_spec(cls) -> lit_model.Spec:
     return {
-        "model_name": lit_types.String(default="bert-base-uncased"),
+        "model_name_or_path": lit_types.String(default="bert-base-uncased"),
         "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
     }
 
@@ -162,7 +162,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
   @classmethod
   def init_spec(cls) -> lit_model.Spec:
     return {
-        "model_name": lit_types.String(default="gpt2"),
+        "model_name_or_path": lit_types.String(default="gpt2"),
         "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
     }
 

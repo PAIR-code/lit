@@ -68,8 +68,11 @@ _TOKEN_TOP_K = flags.DEFINE_integer(
 _NUM_TO_GEN = flags.DEFINE_integer(
     "num_to_generate", 4, "Number of generations to produce for each input.")
 
-_HOSTED_DATASETS = flags.DEFINE_list("hosted_datasets", [],
-                                     "Datasets hosted by the LIT team to use.")
+_HOSTED_DATASETS = flags.DEFINE_list(
+    "hosted_datasets",
+    [_WMT14_DE_EN_HOSTED, _WMT14_FR_EN_HOSTED],
+    "Datasets to use the mirror on storage.googleapis.com.",
+)
 
 ##
 # Options for nearest-neighbor indexer.

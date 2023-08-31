@@ -132,7 +132,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
-    split = "validation"  # will read from TFDS
+    split = "validation_matched"  # will read from TFDS
     datasets["mnli_dev"] = glue.MNLIData(split)
     dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
 
