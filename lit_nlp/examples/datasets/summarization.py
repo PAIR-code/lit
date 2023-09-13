@@ -3,8 +3,10 @@
 from typing import Optional
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import file_cache
 import pandas as pd
 import tensorflow_datasets as tfds
+from google3.pyglib import gfile
 
 
 class GigawordData(lit_dataset.Dataset):
@@ -109,7 +111,9 @@ class CNNDMData(lit_dataset.Dataset):
       The list of exmaples loaded from the file.
     """
     examples = []
-    df = pd.read_csv(path, skiprows=skiplines)
+    path = file_cache.cached_path(path)
+    with open(path) as fd:
+      df = pd.read_csv(fd, skiprows=skiplines)
     for _, row in df.iterrows():
       examples.append({
           "document": row["article"][-max_seq_len:],

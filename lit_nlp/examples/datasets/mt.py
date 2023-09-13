@@ -5,9 +5,12 @@ from typing import Any, Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import file_cache
 import pandas as pd
 import six
 import tensorflow_datasets as tfds
+
+from google3.pyglib import gfile
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
@@ -118,7 +121,9 @@ class WMT14Data(lit_dataset.Dataset):
       raise ValueError(f'Invalid target_key, {target_key}. Expected one of '
                        f'{str(_VALID_WMT14_LANG_CODES)}.')
 
-    df = pd.read_csv(path, skiprows=skiplines)
+    path = file_cache.cached_path(path)
+    with open(path) as fd:
+      df = pd.read_csv(fd, skiprows=skiplines)
     return [
         self._record_to_dict(row, source_key, target_key)
         for _, row in df.iterrows()

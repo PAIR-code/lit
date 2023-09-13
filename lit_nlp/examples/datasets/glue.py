@@ -130,6 +130,18 @@ class SST2DataForLM(SST2Data):
         'label': lit_types.CategoryLabel(vocab=self.LABELS),
     }
 
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    default_path = 'validation'
+    return {
+        'path_or_splitname': lit_types.String(
+            default=default_path, required=False
+        ),
+        'max_examples': lit_types.Integer(
+            default=1000, min_val=0, max_val=10_000, required=False
+        ),
+    }
+
 
 class MRPCData(lit_dataset.Dataset):
   """Microsoft Research Paraphrase Corpus.
