@@ -207,7 +207,7 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
     },
     description=(
         'A three-panel layout with tools for exploring data in the aggregate or'
-        ' per-example (on the left) or reviewing predition results (upper'
+        ' per-example (on the left) or reviewing prediction results (upper'
         ' right) and performance characteristics, etc. (lower left).'
     ),
 )
@@ -257,10 +257,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
 
 DEFAULT_LAYOUTS = {
     'simple': SIMPLE_LAYOUT,
-    # TODO(b/265218467): Make this the 'default' layout prior to pushing the
-    # v1.0 release to PyPI or merging to main.
-    'legacy': STANDARD_LAYOUT,
-    # TODO(b/265218467): Make this the 'experimental' layout prior to pushing
-    # the v1.0 release to PyPI or merging to main.
-    'default': THREE_PANEL_LAYOUT,
+    'default': STANDARD_LAYOUT,
+    'experimental': THREE_PANEL_LAYOUT,
 }
