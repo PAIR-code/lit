@@ -248,3 +248,24 @@ mwc-icon.google-icon {
   margin-left: 0;
 }
 
+.error-icon {
+  height: 12px;
+  width: 12px;
+  min-width: 12px;
+  --mdc-icon-font: "Google Material Icons";
+  --mdc-icon-size: 12px;
+  margin-bottom: 1px;
+  margin-left: 1px;
+  color: var(--google-red-600);
+}
+
+.error-input {
+  border-color: var(--google-red-600);
+  border-style: solid;
+  border-radius: 3px;
+  border-width: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
+}
+
+

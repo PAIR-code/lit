@@ -81,6 +81,12 @@ export class DatapointEditorModule extends LitModule {
   @observable dataEdits: Input = {};
 
   @computed
+  get missingFields(): string[] {
+    return this.appState.currentModelRequiredInputSpecKeys.filter(
+        key => !this.editedData.data[key]);
+  }
+
+  @computed
   get editedData(): IndexedInput {
     return makeModifiedInput(this.baseData, this.dataEdits, 'manual');
   }
@@ -287,7 +293,8 @@ export class DatapointEditorModule extends LitModule {
   }
 
   renderButtons() {
-    const makeEnabled = this.datapointEdited;
+    const hasRequiredFields = this.missingFields.length === 0;
+    const makeEnabled = this.datapointEdited && hasRequiredFields;
     const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
     const clearEnabled = this.selectionService.primarySelectedInputData != null;
@@ -318,7 +325,8 @@ export class DatapointEditorModule extends LitModule {
 
     const analyzeButton = html`
       <button id="make" class='hairline-button'
-        @click=${onClickNew} ?disabled="${!makeEnabled}">
+        @click=${onClickNew}
+        ?disabled="${!makeEnabled}">
         ${this.addButtonText}
       </button>
     `;
@@ -378,14 +386,10 @@ export class DatapointEditorModule extends LitModule {
 
     // For categorical fields, render a dropdown.
     const renderCategoricalInput = (catVals: string[]) => {
-      // Note that the first option is blank (so that the dropdown is blank when
-      // no point is selected), and disabled (so that datapoints can only have
-      // valid values).
       // clang-format off
       return html`
         <select class="dropdown"
           @change=${handleInputChange} .value=${value}>
-          <option value="" ?selected=${"" === value}></option>
           ${catVals.map(val => html`
             <option value="${val}" ?selected=${val === value}>${val}</option>
           `)}
@@ -454,15 +458,29 @@ export class DatapointEditorModule extends LitModule {
       `;
     };
 
+    // TODO(lit-team): Have better indication of model inputs vs other fields.
+    // TODO(lit-team): Should we also display optional input fields that aren't
+    // in the dataset? b/157985221.
+    const isRequiredModelInput =
+        this.appState.currentModelRequiredInputSpecKeys.includes(key);
+
+    const isMissingField = this.missingFields.includes(key);
+    const renderError =
+        isMissingField && this.datapointEdited && isRequiredModelInput;
+    const errorInputClasses = renderError ? 'error-input' : '';
+    const errorIconClasses = renderError ? 'error-icon' : '';
+
     const inputStyle = {'height': this.inputHeights[key]};
     // Render a multi-line text input.
-    const renderFreeformInput =
-        () => html`<textarea class="input-box" style="${styleMap(inputStyle)}"
-          @input=${handleInputChange}>${value}</textarea>`;
+    const renderFreeformInput = () => html`
+      <textarea
+        class="input-box ${errorInputClasses}"
+        style="${styleMap(inputStyle)}"
+        @input=${handleInputChange}>${value}</textarea>`;
 
     // Render a single-line text input.
-    const renderShortformInput =
-        () => html`<input type="text" class="input-short"
+    const renderShortformInput = () =>
+        html`<input type="text" class="input-short ${errorInputClasses}"
           @input=${handleInputChange} .value=${value} />`;
 
     // Render a single-line text input, and convert entered value to a number.
@@ -471,7 +489,8 @@ export class DatapointEditorModule extends LitModule {
         handleInputChange(e, (value: string) => +(value));
       };
       return html`
-      <input type="text" class="input-short" @input=${handleNumberInput}
+      <input type="text" class="input-short ${errorInputClasses}" @input=${
+          handleNumberInput}
         .value=${value} />`;
     };
 
@@ -537,7 +556,7 @@ export class DatapointEditorModule extends LitModule {
     const entryContentClasses = {
       'entry-content': true,
       'entry-content-long': false,
-      'left-align': false
+      'left-align': false,
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const {vocab} = fieldSpec as LitTypeWithVocab;
@@ -582,11 +601,8 @@ export class DatapointEditorModule extends LitModule {
       }
     };
 
-    // TODO(lit-team): Have better indication of model inputs vs other fields.
-    // TODO(lit-team): Should we also display optional input fields that aren't
-    // in the dataset? b/157985221.
-    const isRequiredModelInput =
-        this.appState.currentModelRequiredInputSpecKeys.includes(key);
+    const toolTipContent =
+        renderError ? `Please enter a valid value for the ${key} field.` : ``;
 
     let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
     if (fieldSpec instanceof URLLitType) {
@@ -620,6 +636,11 @@ export class DatapointEditorModule extends LitModule {
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
           <div class='field-type'>${fieldSpec.name}</div>
+          <lit-tooltip content=${toolTipContent}>
+            <mwc-icon slot="tooltip-anchor" class="${errorIconClasses}">
+              ${renderError ? 'error' : null}
+            </mwc-icon>
+          </lit-tooltip>
         </div>
         <div class=${classMap(entryContentClasses)}>
           ${renderInput()}
