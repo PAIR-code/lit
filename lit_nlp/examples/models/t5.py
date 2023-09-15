@@ -16,6 +16,7 @@ import transformers
 from rouge_score import rouge_scorer
 
 JsonDict = lit_types.JsonDict
+_DEFAULT_MODEL_PATH = "https://storage.googleapis.com/what-if-tool-resources/lit-models/t5-small.tar.gz"
 
 
 def masked_token_mean(vectors, masks):
@@ -349,7 +350,9 @@ class T5HFModel(lit_model.BatchedModel):
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
     return {
-        "model_name": lit_types.String(default="t5-small", required=False),
+        "model_name": lit_types.String(
+            default=_DEFAULT_MODEL_PATH, required=False
+        ),
         **T5ModelConfig.init_spec(),
     }
 
@@ -509,15 +512,22 @@ class T5Translation(TranslationWrapper):
   """
 
   def __init__(
-      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+      self,
+      model_name_or_path=_DEFAULT_MODEL_PATH,
+      model=None,
+      tokenizer=None,
+      **config_kw,
   ):
-    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    model = T5HFModel(model_name_or_path, model, tokenizer, **config_kw)
     super().__init__(model)
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
     return {
-        "model_name": lit_types.String(default="t5-small", required=False),
+        "model_name_or_path": lit_types.String(
+            default=_DEFAULT_MODEL_PATH,
+            required=False,
+        ),
         **T5ModelConfig.init_spec(),
     }
 
@@ -531,14 +541,21 @@ class T5Summarization(SummarizationWrapper):
   """
 
   def __init__(
-      self, model_name="t5-small", model=None, tokenizer=None, **config_kw
+      self,
+      model_name_or_path="t5-small",
+      model=None,
+      tokenizer=None,
+      **config_kw,
   ):
-    model = T5HFModel(model_name, model, tokenizer, **config_kw)
+    model = T5HFModel(model_name_or_path, model, tokenizer, **config_kw)
     super().__init__(model)
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
     return {
-        "model_name": lit_types.String(default="t5-small", required=False),
+        "model_name_or_path": lit_types.String(
+            default=_DEFAULT_MODEL_PATH,
+            required=False,
+        ),
         **T5ModelConfig.init_spec(),
     }
