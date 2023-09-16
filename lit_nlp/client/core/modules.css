@@ -186,7 +186,6 @@ lit-widget-group[maximized] {
   align-items: end; /* bottom */
 
   font-size: 12px;
-  overflow-x: scroll;
 }
 
 #center-bar .tabs-container {
