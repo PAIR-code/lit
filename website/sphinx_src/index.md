@@ -4,11 +4,9 @@
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
-Welcome to 🔥LIT, the Learning Interpretability Tool (formerly the Language
-Interpretability Tool)!
+Welcome to 🔥LIT, the Learning Interpretability Tool!
 
-If you want to jump in and start playing with the LIT UI, check out
-https://pair-code.github.io/lit/demos/ for links to our hosted demos.
+If you want to jump in and start playing with the LIT UI, check out the hosted demos at https://pair-code.github.io/lit/demos/.
 
 ```{toctree}
    :maxdepth: 2

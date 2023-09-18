@@ -46,7 +46,7 @@ In the Group-based workspace, modules that offer related insights are organized 
 - Investigate salience maps and attention for different data points in the **Explanations** group.
 - Generate data points using automated generators in the **Counterfactuals** group, and evaluate your model on them instantly.
 
-You can organize modules into groups and define your own layout when you [set up your LIT server](../../setup#custom).
+You can organize modules into groups and define your own layout when you [set up your LIT server](../../documentation/getting_started.html#lit-with-your-model).
 
 ### Toolbars
 

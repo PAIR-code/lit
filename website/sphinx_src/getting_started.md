@@ -4,6 +4,17 @@
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
+## Installation
+
+Using pip:
+
+```sh
+pip install lit-nlp
+```
+
+For more details or to install from source, see
+[GitHub](https://github.com/pair-code/lit#download-and-installation).
+
 ## Hosted demos
 
 If you want to jump in and start playing with the LIT UI, check out

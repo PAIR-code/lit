@@ -258,5 +258,5 @@ STANDARD_LAYOUT = LitCanonicalLayout(
 DEFAULT_LAYOUTS = {
     'simple': SIMPLE_LAYOUT,
     'default': STANDARD_LAYOUT,
-    'experimental': THREE_PANEL_LAYOUT,
+    'three_panel': THREE_PANEL_LAYOUT,
 }

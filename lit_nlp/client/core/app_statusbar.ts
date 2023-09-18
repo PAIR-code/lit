@@ -56,7 +56,7 @@ export class StatusbarComponent extends MobxLitElement {
     });
 
     const bugLink = 'https://github.com/PAIR-code/lit/issues';
-    const docLink = 'https://github.com/PAIR-code/lit/wiki';
+    const docLink = 'https://pair-code.github.io/lit/documentation/';
     const helpLink = 'mailto:lit-dev@google.com';
 
     // clang-format off

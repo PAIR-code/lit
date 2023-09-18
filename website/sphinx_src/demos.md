@@ -58,7 +58,7 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 --------------------------------------------------------------------------------
 
-## Regression / Scoring {.demo-section-header}
+## Regression / Scoring <!-- DO NOT REMOVE {#regression-scoring .demo-section-header} -->
 
 ### Textual Similarity (STS-B) <!-- DO NOT REMOVE {#stsb .demo-header} -->
 

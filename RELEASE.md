@@ -30,6 +30,7 @@ Major changes include:
   capability.
 * Updated to Python 3.10.
 * Updated to Node 18 and Typescript 5.0.
+* Improved documentation pages, now at https://pair-code.github.io/lit/documentation/
 
 
 This release would not have been possible without the work of our new

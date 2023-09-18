@@ -110,7 +110,7 @@ conda install python=3.10
 conda install pip
 ```
 
-Install dependencies:
+Once you have the environment, install LIT's dependencies:
 ```sh
 python -m pip install -r requirements.txt
 python -m pip install cudnn cupti  # optional, for GPU support
@@ -134,7 +134,7 @@ running `yarn` on Ubuntu/Debian, be sure you have the
 ## Running LIT
 
 Explore a collection of hosted demos on the
-[LIT website demos page](https://pair-code.github.io/lit/demos).
+[demos page](https://pair-code.github.io/lit/demos).
 
 ### Quick-start: classification and regression
 

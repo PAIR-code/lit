@@ -27,7 +27,7 @@ LIT supports many techniques like salience maps and counterfactual generators
 for text data. But what if you have a tabular dataset? You might want to find
 out which features (columns) are most relevant to the model’s predictions. LIT's
 Feature Attribution module for
-[tabular datasets](https://pair-code.github.io/lit/documentation/components.md#tabular-data)
+[tabular datasets](../../documentation/components.html#tabular-data)
 support identification of these important features. This tutorial provides a
 walkthrough for this module within LIT, on the
 [Palmer Penguins dataset](https://allisonhorst.github.io/palmerpenguins/).
@@ -41,11 +41,11 @@ walkthrough for this module within LIT, on the
         over tabular data, which is basically a specially weighted local linear
         regression for estimating SHAP values and works for any model. For now,
         the feature attribution module is only shown in the UI when working with
-        [tabular data](https://pair-code.github.io/lit/documentation/components.md#tabular-data)."%}
+        [tabular data](../../documentation/components.html#tabular-data)."%}
 
 ### **Overview**
 
-The [penguins demo](https://pair-code.github.io/lit/demos/penguins.html) is a
+The [penguins demo](../../demos/penguins.html) is a
 simple classifier for predicting penguin species from the Palmer Penguins
 dataset. It classifies the penguins as either Adelie, Chinstrap, or Gentoo based
 on 6 features&mdash;body mass (g), [culmen](https://en.wikipedia.org/wiki/Beak#Culmen)
@@ -238,7 +238,7 @@ min, median and max values are all the same when a single datapoint is selected.
 
 #### **A slice of 5 random data points**
 
-LIT uses a [complex selection model](https://pair-code.github.io/lit/documentation/ui_guide.md#datapoint-selections)
+LIT uses a [complex selection model](../../documentation/ui_guide.md#datapoint-selections)
 and different modules react to it differently. Salience Maps only care about the
 primary selection (the data point highlighted in a deep cyan hue in the data
 table) in a slice of elements, whereas Feature Attribution uses the entire list

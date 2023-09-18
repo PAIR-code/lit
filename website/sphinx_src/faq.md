@@ -4,6 +4,42 @@
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
+Looking for help? Submit bugs, ask questions, suggest content, and request
+features on our
+[Github issues list](https://github.com/pair-code/lit/issues/).
+
+## Model and Data Types
+
+LIT can handle a variety of models with different input and output types, and
+works with any modern ML framework. For more information, see
+[Framework & Model Support](components.md#framework-and-model-support).
+
+In addition to text, LIT has good support for different modalities, including
+images and tabular data. For examples, see:
+
+*   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
+    image classification, using a Mobilenet model.
+*   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
+    mult-class classification on tabular (numeric and categorical string) data,
+    using the
+    [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
+    dataset.
+
+For more details, see
+[the features guide to input and output types](api.md#type-system).
+
+## Languages
+
+All strings in LIT are unicode and most components use model-provided
+tokenization if available, so in most cases non-English languages and non-Latin
+scripts should work without any modifications. For examples, see:
+
+*   [XNLI demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py) -
+    cross-lingual NLI, with up to 15 languages supported via a multilingual BERT
+    model.
+*   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
+    includes WMT data for machine translation
+
 ## Scale
 
 ### Dataset Size
@@ -66,41 +102,19 @@ LIT has the ability to create or edit datapoints in the UI and then save them to
 disk. If you do not want the tool to to be able to write edited datapoints to
 disk, then pass the `--demo_mode` runtime flag to the LIT server.
 
-### Managing Access
+### I have proprietary data. Is LIT secure for my team to use?
+
+We don't store, collect or share datasets, models or any other information
+loaded into LIT. When you run a LIT server, anyone with access to the web
+address of the server will be able to see data from the loaded datasets and
+interact with the loaded models. If you need to restrict access to a LIT
+server, then make sure to configure the hosting of your LIT server to do so.
 
 The default LIT development server does not implement any explicit access
-controls. However, this is just a thin convenience wrapper, and the underlying
-WSGI App can be easily exported and used with additional middleware layers or
-external serving frameworks. See
-[Running LIT in a Docker container](./docker.md) for an example of this usage.
-
-## Languages
-
-All strings in LIT are unicode and most components use model-provided
-tokenization if available, so in most cases non-English languages and non-Latin
-scripts should work without any modifications. For examples, see:
-
-*   [XNLI demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py) -
-    cross-lingual NLI, with up to 15 languages supported via a multilingual BERT
-    model.
-*   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
-    includes WMT data for machine translation
-
-## Data Types
-
-In addition to text, LIT has good support for different input and output
-modalities, including images and tabular data. For examples, see:
-
-*   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
-    image classification, using a Mobilenet model.
-*   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
-    mult-class classification on tabular (numeric and categorical string) data,
-    using the
-    [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
-    dataset.
-
-For more details, see
-[the features guide to input and output types](api.md#type-system).
+controls. However, this server is just a thin convenience wrapper, and the
+underlying WSGI App can be easily exported and used with additional middleware
+layers or external serving frameworks. See
+[Running LIT in a Docker container](./docker.md) for an example.
 
 ## Workflow and Integrations
 
