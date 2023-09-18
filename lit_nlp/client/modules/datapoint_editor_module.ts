@@ -28,7 +28,7 @@ import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
-import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype, makeModifiedInput} from '../lib/utils';
@@ -74,9 +74,19 @@ export class DatapointEditorModule extends LitModule {
 
   @computed
   get baseData(): IndexedInput {
-    const input = this.selectionService.primarySelectedInputData;
-    return input ?? this.appState.makeEmptyDatapoint('manual');
+    const input = this.selectionService.primarySelectedInputData ??
+        this.appState.makeEmptyDatapoint('manual');
+
+    const defaultValues: Input = {};
+    for (const key of Object.keys(this.appState.currentDatasetSpec)) {
+      const fieldSpec = this.appState.currentDatasetSpec[key];
+      if (fieldSpec instanceof CategoryLabel && fieldSpec.vocab) {
+        defaultValues[key] = fieldSpec.vocab[0];
+      }
+    }
+    return makeModifiedInput(input, defaultValues, 'manual');
   }
+
 
   @observable dataEdits: Input = {};
 
