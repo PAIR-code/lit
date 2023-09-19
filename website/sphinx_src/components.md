@@ -724,7 +724,7 @@ and class.
 
 Every dataset/model is different, but for images, as low as 15 data points are
 shown to be sufficient. Start by adding at least 3 data points and add more as
-needed
+needed.
 
 For this example, we select all examples related to acting in the data table
 using the selector `acting|actor|actress`.

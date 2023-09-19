@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-07' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-19' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -20,7 +20,7 @@ images and tabular data. For examples, see:
 *   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
     image classification, using a Mobilenet model.
 *   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
-    mult-class classification on tabular (numeric and categorical string) data,
+    multi-class classification on tabular (numeric and categorical string) data,
     using the
     [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
     dataset.
@@ -99,7 +99,7 @@ manually entered in the web UI) are stored in server memory, and if `--data_dir`
 is specified, may be cached to disk.
 
 LIT has the ability to create or edit datapoints in the UI and then save them to
-disk. If you do not want the tool to to be able to write edited datapoints to
+disk. If you do not want the tool to be able to write edited datapoints to
 disk, then pass the `--demo_mode` runtime flag to the LIT server.
 
 ### I have proprietary data. Is LIT secure for my team to use?
