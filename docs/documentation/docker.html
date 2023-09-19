@@ -1,0 +1,416 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Glossary" href="glossary.html" /><link rel="prev" title="Frontend Developer Guide" href="frontend_development.html" />
+
+    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+        <title>Running LIT in a Docker container - 🔥LIT 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="_static/furo_custom.css?v=6173ce67" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f8f8f8;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-half" viewBox="0 0 24 24">
+    <title>Auto light/dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M13 12h5" />
+      <path d="M13 15h4" />
+      <path d="M13 18h1" />
+      <path d="M13 9h4" />
+      <path d="M13 6h1" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+  <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+  <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <div class="visually-hidden">Toggle site navigation sidebar</div>
+        <i class="icon"><svg><use href="#svg-menu"></use></svg></i>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">🔥LIT 1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle">
+          <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <div class="visually-hidden">Toggle table of contents sidebar</div>
+        <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  
+  <span class="sidebar-brand-text">🔥LIT 1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1"><a class="reference external" href="https://pair-code.github.io/lit/">   Main Site</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">   Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demos.html">   Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ui_guide.html">   UI Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">   Components &amp; Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">   Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="frontend_development.html">   Frontend Development</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">   Running in Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">   Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">   FAQ</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/pair-code/lit">   GitHub</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle">
+              <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <div class="visually-hidden">Toggle table of contents sidebar</div>
+            <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
+          </label>
+        </div>
+        <article role="main">
+          <section class="tex2jax_ignore mathjax_ignore" id="running-lit-in-a-docker-container">
+<h1>Running LIT in a Docker container<a class="headerlink" href="#running-lit-in-a-docker-container" title="Link to this heading">#</a></h1>
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-07-10' } *-->
+<p>Users might want to deploy LIT onto servers for public-facing, long-running
+instances. This is how we host the LIT demos found on
+<a class="reference external" href="https://pair-code.github.io/lit/demos/">https://pair-code.github.io/lit/demos/</a>. This doc describes the basic usage of
+LIT’s built-in demos, how to integrate your custom demo into this</p>
+<section id="basic-usage">
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h2>
+<p>LIT can be run as a containerized app using <a class="reference external" href="https://www.docker.com/">Docker</a> or
+your preferred engine. This is how we run our
+<a class="reference external" href="https://pair-code.github.io/lit/demos/">hosted demos</a>.</p>
+<p>We provide a basic
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/Dockerfile"><code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code></a> that you can
+use to build and run any of the demos in the <code class="docutils literal notranslate"><span class="pre">lit_nlp/examples</span></code> directory. The
+<code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> installs all necessary dependencies for LIT and builds the
+front-end code from source. Then it runs <a class="reference external" href="https://gunicorn.org/">gunicorn</a> as
+the HTTP server, invoking the <code class="docutils literal notranslate"><span class="pre">get_wsgi_app()</span></code> method from our demo file to get
+the WSGI app to serve. The options provided to gunicorn for our use-case can be
+found in
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py"><code class="docutils literal notranslate"><span class="pre">gunicorn_config.py</span></code></a>.
+You can find a reference implementation in
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py"><code class="docutils literal notranslate"><span class="pre">glue_demo.py</span></code></a> or
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_demo.py</span></code></a>.</p>
+<p>Use the following shell commands to build the default Docker image for LIT from
+the provided <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code>, and then run a container from that image. Comments
+are provided in-line to help explain what each step does.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the docker image using the -t argument to name the image. Remember to</span>
+<span class="c1"># include the trailing . so Docker knows where to look for the Dockerfile.</span>
+docker<span class="w"> </span>build<span class="w"> </span>--file<span class="w"> </span>Dockerfile<span class="w"> </span>--tag<span class="w"> </span>lit-nlp<span class="w"> </span>.
+
+<span class="c1"># Now you can run LIT as a containerized app using the following command. Note</span>
+<span class="c1"># that the last parameter to the run command is the value you passed to the -t</span>
+<span class="c1"># argument in the build command above.</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>lit-nlp
+</pre></div>
+</div>
+<p>The image above defaults to launching the GLUE demo on port 5432, but you can
+override this using the DEMO_NAME and DEMO_PORT environment variables, as shown
+below.</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># DEMO_NAME is used to complete the Python module path</span>
+<span class="c1">#</span>
+<span class="c1">#     &quot;lit_nlp.examples.$DEMO_NAME&quot;</span>
+<span class="c1">#</span>
+<span class="c1"># Therefore, valid values for DEMO_NAME are Python module paths in the</span>
+<span class="c1"># lit_nlp/examples directory, such as</span>
+<span class="c1">#</span>
+<span class="c1">#   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.</span>
+<span class="c1">#   * And nested children -- coref.coref_demo, is_eval.is_eval_demo, etc.</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>lm_demo<span class="w"> </span>lit-nlp
+
+<span class="c1"># Use the DEMO_PORT environment variable as to change the port that LIT uses in</span>
+<span class="c1"># the container. Be sure to also change the -p option to map the container&#39;s</span>
+<span class="c1"># DEMO_PORT to a port on the host system.</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">2345</span>:2345<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_PORT</span><span class="o">=</span><span class="m">2345</span><span class="w"> </span>lit-nlp
+
+<span class="c1"># Bringing this all together, you can run multiple LIT apps in separate</span>
+<span class="c1"># containers on your machine using the combination of the DEMO_NAME and</span>
+<span class="c1"># DEMO_PORT arguments, and docker run with the -d flag to run the container in</span>
+<span class="c1"># the background.</span>
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>t5_demo<span class="w"> </span>lit-nlp
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">2345</span>:2345<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>lm_demo<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_PORT</span><span class="o">=</span><span class="m">2345</span><span class="w"> </span>lit-nlp
+</pre></div>
+</div>
+</section>
+<section id="integrating-custom-lit-instances-with-the-default-docker-image">
+<h2>Integrating Custom LIT Instances with the Default Docker Image<a class="headerlink" href="#integrating-custom-lit-instances-with-the-default-docker-image" title="Link to this heading">#</a></h2>
+<p>Many LIT users create their own custom LIT server script to demo or serve, which
+involves creating an executable Python module with a <code class="docutils literal notranslate"><span class="pre">main()</span></code> method, as
+described in the <a class="reference external" href="https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data">Python API docs</a>.</p>
+<p>These custom server scripts can be easily integrated with LIT’s default image as
+long as your server meets two requirements:</p>
+<ol class="arabic simple">
+<li><p>Ensure your server script is located in the <code class="docutils literal notranslate"><span class="pre">lit_nlp/examples</span></code> directory (or
+in a nested directory under <code class="docutils literal notranslate"><span class="pre">lit_nlp/examples</span></code>).</p></li>
+<li><p>Ensure that your server script defines a <code class="docutils literal notranslate"><span class="pre">get_wsgi_app()</span></code> function similar
+to the minimal example shown below.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_wsgi_app</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dev_server</span><span class="o">.</span><span class="n">LitServerType</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Return WSGI app for container-hosted demos.&quot;&quot;&quot;</span>
+  <span class="c1"># Set any flag defaults for this LIT instance</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="s2">&quot;server_type&quot;</span><span class="p">,</span> <span class="s2">&quot;external&quot;</span><span class="p">)</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="s2">&quot;demo_mode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+  <span class="c1"># Parse flags before calling main()</span>
+  <span class="n">unused</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="n">known_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">unused</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get_wsgi_app() called with unused args: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">unused</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">main</span><span class="p">([])</span>
+</pre></div>
+</div>
+<p>Assuming your custom script meets the two requirements above, you can simply
+rebuild the default Docker image and run a container using the steps above,
+ensuring that you pass the <code class="docutils literal notranslate"><span class="pre">-e</span> <span class="pre">DEMO_NAME=your_server_script_path_here</span></code> to the
+run command.</p>
+<p>A more detailed description of the <code class="docutils literal notranslate"><span class="pre">get_wsgi_app()</span></code> code can be found below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_wsgi_app</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">dev_server</span><span class="o">.</span><span class="n">LitServerType</span><span class="p">]:</span>
+<span class="w">  </span><span class="sd">&quot;&quot;&quot;Returns a WSGI app for gunicorn to consume in container-hosted demos.&quot;&quot;&quot;</span>
+  <span class="c1"># Start by setting any default values for flags your LIT instance requires.</span>
+  <span class="c1"># Here we set:</span>
+  <span class="c1">#</span>
+  <span class="c1">#     server_type to &quot;external&quot; (required), and</span>
+  <span class="c1">#     demo_mode to &quot;True&quot; (optional)</span>
+  <span class="c1">#</span>
+  <span class="c1"># You can add additional defaults as required for your use case.</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="s2">&quot;server_type&quot;</span><span class="p">,</span> <span class="s2">&quot;external&quot;</span><span class="p">)</span>
+  <span class="n">FLAGS</span><span class="o">.</span><span class="n">set_default</span><span class="p">(</span><span class="s2">&quot;demo_mode&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># Parse any parameters from flags before calling main(). All flags should</span>
+  <span class="c1"># defined using one of absl&#39;s flags.DEFINE methods.</span>
+  <span class="c1">#</span>
+  <span class="c1"># Note the use of the known_only=True parameter here. This ensures that only</span>
+  <span class="c1"># those flags that have been define using one of absl&#39;s flags.DEFINE methods</span>
+  <span class="c1"># will be parsed from the command line arguments in sys.argv. All unused</span>
+  <span class="c1"># arguments will be returned as a Sequence[str].</span>
+  <span class="n">unused</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="n">known_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># Running a LIT instance in a container based on the default Dockerfile and</span>
+  <span class="c1"># image will always produce unused arguments, because sys.argv contains the</span>
+  <span class="c1"># command and parameters used to run the gunicorn sever. While not stricly</span>
+  <span class="c1"># required, we recommend logging these to the console, e.g., in case you need</span>
+  <span class="c1"># to verify the value of an environment variable.</span>
+  <span class="k">if</span> <span class="n">unused</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;get_wsgi_app() called with unused args: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">unused</span><span class="p">)</span>
+
+  <span class="c1"># Always pass an empty list to main() inside of get_wsgi_app() functions, as</span>
+  <span class="c1"># absl apps are supposed to use absl.flags to define any and all flags</span>
+  <span class="c1"># required to run the app.</span>
+  <span class="k">return</span> <span class="n">main</span><span class="p">([])</span>
+</pre></div>
+</div>
+</section>
+<section id="building-your-own-image">
+<h2>Building Your Own Image<a class="headerlink" href="#building-your-own-image" title="Link to this heading">#</a></h2>
+<p>Coming soon.</p>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="glossary.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Glossary</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="frontend_development.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Frontend Developer Guide</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2023, Google LLC
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Running LIT in a Docker container</a><ul>
+<li><a class="reference internal" href="#basic-usage">Basic Usage</a></li>
+<li><a class="reference internal" href="#integrating-custom-lit-instances-with-the-default-docker-image">Integrating Custom LIT Instances with the Default Docker Image</a></li>
+<li><a class="reference internal" href="#building-your-own-image">Building Your Own Image</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    </body>
+</html>
