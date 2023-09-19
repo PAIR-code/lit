@@ -10,6 +10,7 @@ from typing import Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import pandas as pd
 import tensorflow_datasets as tfds
@@ -61,6 +62,7 @@ class SST2Data(lit_dataset.Dataset):
   TFDS_SPLITS = ['test', 'train', 'validation']
 
   def load_from_csv(self, path: str):
+    path = file_cache.cached_path(path)
     with open(path) as fd:
       df = pd.read_csv(fd)
     if set(df.columns) != set(self.spec().keys()):
@@ -94,10 +96,9 @@ class SST2Data(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    default_path = 'validation'
     return {
         'path_or_splitname': lit_types.String(
-            default=default_path, required=False
+            default='validation', required=True
         ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
@@ -132,10 +133,9 @@ class SST2DataForLM(SST2Data):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    default_path = 'validation'
     return {
         'path_or_splitname': lit_types.String(
-            default=default_path, required=False
+            default='validation', required=True
         ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
@@ -203,6 +203,7 @@ class STSBData(lit_dataset.Dataset):
   TFDS_SPLITS = ['test', 'train', 'validation']
 
   def load_from_csv(self, path: str):
+    path = file_cache.cached_path(path)
     with open(path) as fd:
       df = pd.read_csv(fd)
     if set(df.columns) != set(self.spec().keys()):
@@ -237,10 +238,9 @@ class STSBData(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    default_path = 'validation'
     return {
         'path_or_splitname': lit_types.String(
-            default=default_path, required=False
+            default='validation', required=True
         ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False
@@ -271,6 +271,7 @@ class MNLIData(lit_dataset.Dataset):
   ]
 
   def load_from_csv(self, path: str):
+    path = file_cache.cached_path(path)
     with open(path) as fd:
       df = pd.read_csv(fd)
     if set(df.columns) != set(self.spec().keys()):
@@ -305,10 +306,9 @@ class MNLIData(lit_dataset.Dataset):
 
   @classmethod
   def init_spec(cls) -> lit_types.Spec:
-    default_path = 'validation'
     return {
         'path_or_splitname': lit_types.String(
-            default=default_path, required=False
+            default='validation_matched', required=True
         ),
         'max_examples': lit_types.Integer(
             default=1000, min_val=0, max_val=10_000, required=False

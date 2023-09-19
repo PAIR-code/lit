@@ -120,19 +120,25 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load datasets for each task that we have a model for
   if "sst2" in tasks_to_load:
     logging.info("Loading data for SST-2 task.")
-    split = "validation"  # will read from TFDS
+    # split = 'validation' will also work, but this will cause TDFS to download
+    # the entire dataset which can be very slow.
+    split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2.validation.csv"
     datasets["sst_dev"] = glue.SST2Data(split)
     dataset_loaders["sst2"] = (glue.SST2Data, glue.SST2Data.init_spec())
 
   if "stsb" in tasks_to_load:
     logging.info("Loading data for STS-B task.")
-    split = "validation"  # will read from TFDS
+    # split = 'validation' will also work, but this will cause TDFS to download
+    # the entire dataset which can be very slow.
+    split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/stsb.validation.csv"
     datasets["stsb_dev"] = glue.STSBData(split)
     dataset_loaders["stsb"] = (glue.STSBData, glue.STSBData.init_spec())
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
-    split = "validation_matched"  # will read from TFDS
+    # split = 'validation_matched' will also work, but this will cause TDFS to
+    # download the entire dataset which can be very slow.
+    split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/mnli.validation_matched.csv"
     datasets["mnli_dev"] = glue.MNLIData(split)
     dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
 
