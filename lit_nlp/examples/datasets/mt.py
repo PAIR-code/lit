@@ -10,8 +10,6 @@ import pandas as pd
 import six
 import tensorflow_datasets as tfds
 
-from google3.pyglib import gfile
-
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
 

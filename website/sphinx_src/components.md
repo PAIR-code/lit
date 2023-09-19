@@ -233,7 +233,7 @@ these cases, LIT validates model compatibility by checking that:
     (`SparseMultilabel`) field.
 
 For a demo using a penguin stats dataset/binary classification task, see
-google3/third_party/py/lit_nlp/examples/penguin_demo.py.
+[examples/penguin_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py).
 
 ### Images
 
@@ -246,11 +246,11 @@ NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See `google3/third_party/py/lit_nlp/examples/datasets/open_images.py` for a
+*   See [examples/datasets/open_images.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/open_images.py) for a
     dataset containing images, including converting images to base64 encoded
     strings.
 *   For a demo of an image classifier, see
-    `google3/third_party/py/lit_nlp/examples/image_demo.py`.
+    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
 
 ## Token-based Salience
 

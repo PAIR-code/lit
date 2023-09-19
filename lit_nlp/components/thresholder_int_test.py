@@ -23,8 +23,6 @@ from lit_nlp.examples.models import glue_models
 from lit_nlp.lib import caching  # for hash id fn
 
 
-# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
-# both google3 and OSS integration testing setups.
 from lit_nlp.lib import file_cache
 BERT_TINY_PATH = file_cache.cached_path(
     'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long

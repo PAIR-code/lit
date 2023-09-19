@@ -21,9 +21,6 @@ from lit_nlp.components import hotflip
 from lit_nlp.examples.models import glue_models
 import numpy as np
 
-
-# TODO(b/254110131): Determine if we can use the file_cache.cached_path() in
-# both google3 and OSS integration testing setups.
 from lit_nlp.lib import file_cache
 BERT_TINY_PATH = file_cache.cached_path(
     'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
@@ -33,7 +30,6 @@ STSB_PATH = file_cache.cached_path(
     'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz',  # pylint: disable=line-too-long
     extract_compressed_file=True,
 )
-
 
 _CONFIG_CLASSIFICATION = {
     hotflip.FIELDS_TO_HOTFLIP_KEY: ['tokens_sentence'],

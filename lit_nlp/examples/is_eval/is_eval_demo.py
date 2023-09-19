@@ -1,8 +1,8 @@
 r"""Example demo loading a handful of IS eval models.
 
-For a quick-start set of models, run:
+To run:
   blaze run -c opt --config=cuda examples/is_eval:is_eval_demo -- \
-    --quickstart --port=5432
+    --port=5432
 """
 import sys
 
@@ -35,35 +35,32 @@ _DOC_STRING = (
     "*zeroa*, *onea*, *synt*.")
 
 _MODELS = flags.DEFINE_list(
-    "models", [
+    "models",
+    [
         "sst2_single_token:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_single_token_bert.tar.gz",
         "sst2_token_in_context:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_token_in_context_bert.tar.gz",
         "sst2_ordered_pair:https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_simple_order_bert.tar.gz",
         "toxicity_single_token:https://storage.googleapis.com/what-if-tool-resources/lit-models/toxicity_single_token_bert.tar.gz",
         "toxicity_token_in_context:https://storage.googleapis.com/what-if-tool-resources/lit-models/toxicity_token_in_context_bert.tar.gz",
         "toxicity_ordered_pair:https://storage.googleapis.com/what-if-tool-resources/lit-models/toxicity_simple_order_bert.tar.gz",
-    ], "List of models to load, as <name>:<path>. "
+    ],
+    "List of models to load, as <name>:<path>. "
     "Path should be the output of saving a transformer model, e.g. "
     "model.save_pretrained(path) and tokenizer.save_pretrained(path). Remote "
-    ".tar.gz files will be downloaded and cached locally.")
+    ".tar.gz files will be downloaded and cached locally.",
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", None, "Maximum number of examples to load into LIT. Set "
     "--max_examples=200 for a quick start.")
 
 DATASETS = {
-    "sst2_single_token_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_single_token-dev.100syn.tsv",
-    "sst2_token_in_context_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_token_in_context-dev.100syn.tsv",
-    "sst2_ordered_pair_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_simple_order-dev.100syn.tsv",
-    "toxicity_single_token_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_single_token-dev.100syn.tsv",
-    "toxicity_token_in_context_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_token_in_context-dev.100syn.tsv",
-    "toxicity_ordered_pair_dev_100_syn":
-        "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_simple_order-dev.100syn.tsv",
+    "sst2_single_token_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_single_token-dev.100syn.tsv",
+    "sst2_token_in_context_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_token_in_context-dev.100syn.tsv",
+    "sst2_ordered_pair_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2_simple_order-dev.100syn.tsv",
+    "toxicity_single_token_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_single_token-dev.100syn.tsv",
+    "toxicity_token_in_context_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_token_in_context-dev.100syn.tsv",
+    "toxicity_ordered_pair_dev_100_syn": "https://storage.googleapis.com/what-if-tool-resources/lit-data/toxicity_simple_order-dev.100syn.tsv",
 }
 
 modules = layout.LitModuleName

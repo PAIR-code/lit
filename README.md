@@ -180,7 +180,7 @@ And navigate to http://localhost:5432 for the UI.
 ### Notebook usage
 
 Colab notebooks showing the use of LIT inside of notebooks can be found at
-google3/third_party/py/lit_nlp/examples/notebooks.
+[lit_nlp/examples/notebooks](./lit_nlp/examples/notebooks).
 
 We provide a simple
 [Colab demo](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
@@ -188,7 +188,8 @@ Run all the cells to see LIT on an example classification model in the notebook.
 
 ### More Examples
 
-See [lit_nlp/examples](./lit_nlp/examples). Run similarly to the above:
+See [lit_nlp/examples](./lit_nlp/examples). Most are run similarly to the
+quickstart example above:
 
 ```sh
 python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]

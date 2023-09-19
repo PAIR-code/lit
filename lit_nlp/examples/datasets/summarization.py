@@ -1,12 +1,12 @@
 """Data loaders for summarization datasets."""
 
 from typing import Optional
+
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import file_cache
 import pandas as pd
 import tensorflow_datasets as tfds
-from google3.pyglib import gfile
 
 
 class GigawordData(lit_dataset.Dataset):
