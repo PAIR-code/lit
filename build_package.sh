@@ -9,5 +9,5 @@ command -v yarn > /dev/null
 (cd lit_nlp && yarn && yarn build)
 
 # Build the latest source distribution and wheel, including the front-end.
-python3 -m pip install --upgrade build
-python3 -m build
+python -m pip install --upgrade build
+python -m build

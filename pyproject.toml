@@ -100,5 +100,5 @@ test = [
 "Bug Tracker" = "https://github.com/PAIR-code/lit/issues"
 
 [tool.setuptools.packages.find]
-where = ["lit_nlp"]
+include = ["lit_nlp*"]
 exclude = ["*_test"]
