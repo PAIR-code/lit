@@ -318,6 +318,10 @@ export function defaultValueByField(key: string, spec: Spec) {
   const fieldSpec: LitType = spec[key];
   // Explicitly check against undefined, as this value is often false-y if set.
   if (fieldSpec.default !== undefined) {
+    if (fieldSpec instanceof CategoryLabel &&
+        fieldSpec.vocab && !fieldSpec.vocab.includes(fieldSpec.default)) {
+      return fieldSpec.vocab[0];
+    }
     return fieldSpec.default;
   }
   // TODO(lit-dev): remove these and always use the spec default value.
