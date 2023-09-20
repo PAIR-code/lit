@@ -45,10 +45,11 @@
           <div class="mdl-layout-spacer"></div>
           <!-- Navigation. We hide it in small screens. -->
           <nav class="mdl-navigation mdl-layout--large-screen-only">
-            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
             <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
             <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
-            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
             <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
             <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
           </nav>
@@ -57,10 +58,11 @@
       <div class="mdl-layout__drawer">
         <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
         <nav class="mdl-navigation">
-          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
           <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
           <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
-          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
           <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
           <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
         </nav>
@@ -81,7 +83,7 @@
 for text data. But what if you have a tabular dataset? You might want to find
 out which features (columns) are most relevant to the model’s predictions. LIT's
 Feature Attribution module for
-<a href="https://pair-code.github.io/lit/documentation/components.md#tabular-data">tabular datasets</a>
+<a href="../../documentation/components.html#tabular-data">tabular datasets</a>
 support identification of these important features. This tutorial provides a
 walkthrough for this module within LIT, on the
 <a href="https://allisonhorst.github.io/palmerpenguins/">Palmer Penguins dataset</a>.</p>
@@ -94,10 +96,10 @@ In particular LIT uses
 over tabular data, which is basically a specially weighted local linear
 regression for estimating SHAP values and works for any model. For now,
 the feature attribution module is only shown in the UI when working with
-<a href="https://pair-code.github.io/lit/documentation/components.md#tabular-data">tabular data</a>.</div>
+<a href="../../documentation/components.html#tabular-data">tabular data</a>.</div>
 </div>
 <h3><strong>Overview</strong></h3>
-<p>The <a href="https://pair-code.github.io/lit/demos/penguins.html">penguins demo</a> is a
+<p>The <a href="../../demos/penguins.html">penguins demo</a> is a
 simple classifier for predicting penguin species from the Palmer Penguins
 dataset. It classifies the penguins as either Adelie, Chinstrap, or Gentoo based
 on 6 features—body mass (g), <a href="https://en.wikipedia.org/wiki/Beak#Culmen">culmen</a>
@@ -276,7 +278,7 @@ min, median and max values are all the same when a single datapoint is selected.
         modules will be the same for single datapoint selections.</div>
 </div>
 <h4><strong>A slice of 5 random data points</strong></h4>
-<p>LIT uses a <a href="https://github.com/PAIR-code/lit/blob/main/documentation/ui_guide.md#datapoint-selections">complex selection model</a>
+<p>LIT uses a <a href="../../documentation/ui_guide.md#datapoint-selections">complex selection model</a>
 and different modules react to it differently. Salience Maps only care about the
 primary selection (the data point highlighted in a deep cyan hue in the data
 table) in a slice of elements, whereas Feature Attribution uses the entire list

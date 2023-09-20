@@ -45,10 +45,11 @@
           <div class="mdl-layout-spacer"></div>
           <!-- Navigation. We hide it in small screens. -->
           <nav class="mdl-navigation mdl-layout--large-screen-only">
-            <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
             <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
             <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
-            <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
             <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
             <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
           </nav>
@@ -57,10 +58,11 @@
       <div class="mdl-layout__drawer">
         <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
         <nav class="mdl-navigation">
-          <a class="mdl-navigation__link" href="/lit/setup/">SETUP GUIDE</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
           <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
           <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
-          <a class="mdl-navigation__link" href="/lit/faqs/">FAQs</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
           <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
           <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
         </nav>
@@ -76,7 +78,7 @@
             <h2>Performing Global Model Analysis with TCAV</h2>
 <div class="link-out"><a href="../../demos/glue.html" target="_blank">Follow along in the hosted demo.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
 <div class="spacer" style="height:10px;"></div>
-<p>LIT contains many techniques to analyze individual predictions, such as salience maps and counterfactual analysis. But, what if you want to understand more global characteristics about a model, and not just its behavior on a single example/prediction? Or what if you have too many input features or your input features are too complicated that saliency maps aren’t as insightful? One technique that can help here is called <a href="https://arxiv.org/abs/1711.11279">Testing with Concept Activation Vectors</a>, or TCAV. For more technical details on how TCAV works, see our <a href="https://github.com/PAIR-code/lit/wiki/components.md#tcav">LIT documentation on the feature</a>. This tutorial provides a walkthrough of using TCAV inside of LIT.</p>
+<p>LIT contains many techniques to analyze individual predictions, such as salience maps and counterfactual analysis. But, what if you want to understand more global characteristics about a model, and not just its behavior on a single example/prediction? Or what if you have too many input features or your input features are too complicated that saliency maps aren’t as insightful? One technique that can help here is called <a href="https://arxiv.org/abs/1711.11279">Testing with Concept Activation Vectors</a>, or TCAV. For more technical details on how TCAV works, see our <a href="../../documentation/components.html#tcav">LIT documentation on the feature</a>. This tutorial provides a walkthrough of using TCAV inside of LIT.</p>
 <p>TCAV shows the importance of high-level concepts on a model’s prediction, as opposed to showing the importance of individual feature values (such as tokens for a language model). Another difference is that TCAV gives aggregated explanations for many data points (a global explanation) instead of one data point at a time, like saliency maps (a local explanation).The concepts are defined by the user creating a subset of datapoints (a “slice” in the LIT tool) containing the concept they wish to test. LIT runs TCAV over the slice to determine if that concept has a positive or negative effect on the prediction of a given class by a classification model, or if that concept has no statistically significant effect on the prediction of that class.</p>
 <div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
   <div class="info-box-title">TCAV example use-case</div>
@@ -125,7 +127,7 @@
   <img class="tutorial-image" src="/lit/assets/images/tcav_result.png"/>
   <div class="tutorial-caption">TCAV results for our “acting” concept</div>
 </div>
-<p>Now, let’s try a different concept.  We’ll go through the same process, except with datapoints containing the word “music”, so we can see if mentions of music in a review have a significant effect on prediction. We can repeat the steps above to select matching datapoints, create a slice of these datapoints, and run TCAV on that slice. After doing so, we get a new line in the TCAV table, but it indicates “this run was not statistically significant”. That means that TCAV did not find a statistically significant difference between the effect of this concept versus concepts made of randomly sampled datapoints. So, we have found that mentions of music don’t seem to have any specific effect on predicting positive sentiment in this classifier. For details on this check, read the <a href="https://github.com/PAIR-code/lit/wiki/components.md#tcav">LIT TCAV documentation</a>.</p>
+<p>Now, let’s try a different concept.  We’ll go through the same process, except with datapoints containing the word “music”, so we can see if mentions of music in a review have a significant effect on prediction. We can repeat the steps above to select matching datapoints, create a slice of these datapoints, and run TCAV on that slice. After doing so, we get a new line in the TCAV table, but it indicates “this run was not statistically significant”. That means that TCAV did not find a statistically significant difference between the effect of this concept versus concepts made of randomly sampled datapoints. So, we have found that mentions of music don’t seem to have any specific effect on predicting positive sentiment in this classifier. For details on this check, read the <a href="../../documentation/components.html#tcav">LIT TCAV documentation</a>.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
   <img class="tutorial-image" src="/lit/assets/images/tcav_results_2.png"/>
   <div class="tutorial-caption">Updated TCAV results including our “music” concept</div>

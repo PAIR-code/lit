@@ -10,6 +10,8 @@
 dist/
 lit_nlp/package-lock.json
 website/www/**
+docs/documentation/.buildinfo
+docs/documentation/.doctrees/**
 
 **/.DS_Store
 .dalle-venv/
