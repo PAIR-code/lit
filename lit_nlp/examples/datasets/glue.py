@@ -251,7 +251,7 @@ class STSBData(lit_dataset.Dataset):
     return {
         'sentence1': lit_types.TextSegment(),
         'sentence2': lit_types.TextSegment(),
-        'label': lit_types.RegressionScore(),
+        'label': lit_types.Scalar(min_val=0, max_val=5),
     }
 
 

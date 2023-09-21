@@ -533,7 +533,7 @@ class GlueModel(lit_model.BatchedModel):
           parent=self.config.text_b_name, required=False)
 
     if self.is_regression:
-      ret[self.config.label_name] = lit_types.RegressionScore(required=False)
+      ret[self.config.label_name] = lit_types.Scalar(required=False)
     else:
       ret[self.config.label_name] = lit_types.CategoryLabel(
           required=False, vocab=self.config.labels)
@@ -648,6 +648,11 @@ class STSBModel(GlueModel):
         text_b_name="sentence2",
         labels=None,
         **kw)
+
+  def input_spec(self):
+    ret = super().input_spec()
+    ret[self.config.label_name] = lit_types.Scalar(min_val=0, max_val=5)
+    return ret
 
 
 class ToxicityModel(GlueModel):
