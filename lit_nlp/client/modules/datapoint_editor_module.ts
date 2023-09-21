@@ -28,7 +28,7 @@ import {computed, observable, when} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
-import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
+import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, Scalar, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, isLitSubtype, makeModifiedInput} from '../lib/utils';
@@ -39,7 +39,7 @@ import {styles} from './datapoint_editor_module.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.
-type InputConverterFn = (s: string) => string|number|string[]|boolean;
+type InputConverterFn = (s: string) => string|number|string[]|boolean|undefined;
 
 /**
  * A LIT module that allows the user to view and edit a datapoint.
@@ -75,7 +75,24 @@ export class DatapointEditorModule extends LitModule {
   @computed
   get baseData(): IndexedInput {
     const input = this.selectionService.primarySelectedInputData;
-    return input ?? this.appState.makeEmptyDatapoint('manual');
+    if (input) return input;
+
+    const blankInput = this.appState.makeEmptyDatapoint('manual');
+    // Set all numeric fields with out of bounds defaults to an empty string
+    // to ensure placeholder value range will render.
+    const edits: {[key: string]: string} = {};
+    for (const key of this.appState.currentInputDataKeys) {
+      if (this.groupService.numericalFeatureNames.includes(key)) {
+        const value = blankInput.data[key];
+        const fieldSpec = this.appState.currentDatasetSpec[key] as Scalar;
+        const [minVal, maxVal] = [fieldSpec.min_val, fieldSpec.max_val];
+        if (value < minVal || value > maxVal) {
+          edits[key] = "";
+        }
+      }
+    }
+
+    return makeModifiedInput(blankInput, edits, 'manual');
   }
 
   @observable dataEdits: Input = {};
@@ -84,6 +101,28 @@ export class DatapointEditorModule extends LitModule {
   get missingFields(): string[] {
     return this.appState.currentModelRequiredInputSpecKeys.filter(
         key => !this.editedData.data[key]);
+  }
+
+  @computed
+  get invalidNumericFields(): string[] {
+    return Object.keys(this.numericFieldRanges).filter((key: string) => {
+      const value = this.editedData.data[key];
+      if (value === undefined) return true;
+      const [minVal, maxVal] = this.numericFieldRanges[key];
+      return value < minVal || value > maxVal;
+    });
+  }
+
+  @computed
+  get numericFieldRanges(): {[key: string]: number[]} {
+    const ranges: {[key: string]: number[]} = {};
+    for (const key of this.appState.currentInputDataKeys) {
+      if (this.groupService.numericalFeatureNames.includes(key)) {
+        const fieldSpec = this.appState.currentDatasetSpec[key] as Scalar;
+        ranges[key] = [fieldSpec.min_val, fieldSpec.max_val];
+      }
+    }
+    return ranges;
   }
 
   @computed
@@ -294,7 +333,9 @@ export class DatapointEditorModule extends LitModule {
 
   renderButtons() {
     const hasRequiredFields = this.missingFields.length === 0;
-    const makeEnabled = this.datapointEdited && hasRequiredFields;
+    const hasNoInvalidValues = this.invalidNumericFields.length === 0;
+    const makeEnabled =
+        this.datapointEdited && hasRequiredFields && hasNoInvalidValues;
     const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
     const clearEnabled = this.selectionService.primarySelectedInputData != null;
@@ -465,8 +506,11 @@ export class DatapointEditorModule extends LitModule {
         this.appState.currentModelRequiredInputSpecKeys.includes(key);
 
     const isMissingField = this.missingFields.includes(key);
+    const isInvalidNumber = this.invalidNumericFields.includes(key);
     const renderError =
-        isMissingField && this.datapointEdited && isRequiredModelInput;
+        (isMissingField && isRequiredModelInput || isInvalidNumber) &&
+        this.datapointEdited;
+
     const errorInputClasses = renderError ? 'error-input' : '';
     const errorIconClasses = renderError ? 'error-icon' : '';
 
@@ -486,11 +530,17 @@ export class DatapointEditorModule extends LitModule {
     // Render a single-line text input, and convert entered value to a number.
     const renderNumericInput = () => {
       const handleNumberInput = (e: Event) => {
-        handleInputChange(e, (value: string) => +(value));
+        handleInputChange(e, (value: string | undefined) => {
+          // Treat empty input as invalid, rather than coerce to zero.
+          if (value === "") return undefined;
+          return Number(value);
+        });
       };
+      const [minVal, maxVal] = this.numericFieldRanges[key];
       return html`
-      <input type="text" class="input-short ${errorInputClasses}" @input=${
-          handleNumberInput}
+      <input type="number" class="input-short ${errorInputClasses}"
+        @input=${handleNumberInput}
+        .placeholder="${minVal} — ${maxVal}"
         .value=${value} />`;
     };
 
@@ -601,8 +651,15 @@ export class DatapointEditorModule extends LitModule {
       }
     };
 
-    const toolTipContent =
-        renderError ? `Please enter a valid value for the ${key} field.` : ``;
+    let toolTipContent = '';
+
+    if (isInvalidNumber) {
+        const [minVal, maxVal] = this.numericFieldRanges[key];
+        toolTipContent = `Please choose a value between ${minVal} and
+          ${maxVal}.`;
+    } else if (renderError) {
+      toolTipContent = `Please enter a valid value for the ${key} field.`;
+    }
 
     let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
     if (fieldSpec instanceof URLLitType) {

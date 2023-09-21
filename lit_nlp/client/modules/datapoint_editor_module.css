@@ -268,4 +268,8 @@ mwc-icon.google-icon {
   padding-bottom: 1px;
 }
 
+input::placeholder {
+  opacity: 50%;
+}
+
 
