@@ -36,7 +36,7 @@ dependencies = [
   "scipy==1.10.1",
   "shap==0.37.0",
   "six==1.16.0",
-  "tensorflow==2.10.0",
+  "tensorflow==2.11.1",
   "tensorflow-text==2.10.0",
   "termcolor==2.3.0",
   "tqdm==4.64.0",
