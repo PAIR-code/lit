@@ -16,16 +16,16 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
 import '../elements/generated_text_vis';
+import '../elements/switch';
 
-import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {css, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
+import {LitSwitch} from '../elements/switch';
 import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
 import {GeneratedText, GeneratedTextCandidates, LitTypeWithParent, ReferenceScores, ReferenceTexts} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -42,6 +42,28 @@ interface OutputGroupKeys {
   reference?: string;            /* field of this.inputData */
   generated?: string;            /* field of this.generatedText */
   referenceModelScores?: string; /* field of this.referenceScores */
+}
+
+/**
+ * Custom styled version of <lit-switch> for handling diffs/matches toggle.
+ */
+@customElement('lit-diff-switch')
+class DiffSwitch extends LitSwitch {
+  static override get styles() {
+    return [
+      ...LitSwitch.styles, css`
+      :not(.selected):not(.disabled) .label-left {
+        color: #a93d00;
+        font-weight: bold;
+      }
+
+      .selected:not(.disabled) .label-right {
+        color: #129eaf;
+        font-weight: bold;
+      }
+    `
+    ];
+  }
 }
 
 /**
@@ -168,18 +190,11 @@ export class GeneratedTextModule extends LitModule {
             <label for='diff${val}'>${val}</label>
           `)}
         </div>
-        <div class=${classMap({'switch-container': true,
-                               'switch-container-disabled': !isDiffActive})}
-          @click=${isDiffActive ? toggleInvertDiffs : null}>
-          <div class=${isDiffActive && !this.invertDiffs ? 'highlighted-diff' : ''}>
-            Diffs
-          </div>
-          <mwc-switch ?selected=${this.invertDiffs} ?disabled=${!isDiffActive}>
-          </mwc-switch>
-          <div class=${isDiffActive && this.invertDiffs ? 'highlighted-match' : ''}>
-            Matches
-          </div>
-        </div>
+        <lit-diff-switch labelLeft="Diffs" labelRight="Matches"
+          ?selected=${this.invertDiffs}
+          ?disabled=${!isDiffActive}
+          @change=${isDiffActive ? toggleInvertDiffs : null}>
+        </lit-diff-switch>
       </div>
     `;
     // clang-format on
@@ -260,5 +275,6 @@ export class GeneratedTextModule extends LitModule {
 declare global {
   interface HTMLElementTagNameMap {
     'generated-text-module': GeneratedTextModule;
+    'lit-diff-switch': DiffSwitch;
   }
 }

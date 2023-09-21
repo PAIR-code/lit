@@ -16,20 +16,19 @@
  */
 
 // tslint:disable:no-new-decorators
-import '@material/mwc-switch';
 import '../elements/checkbox';
 import '../elements/popup_container';
 
 import {html} from 'lit';
-import {customElement, query} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, query} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
-import {ColumnHeader, DataTable, TableData} from '../elements/table';
-import {BooleanLitType, LitType, LitTypeWithVocab} from '../lib/lit_types';
+import {ColumnHeader, DataTable, SortableTemplateResult, TableData, TableEntry} from '../elements/table';
+import {BooleanLitType, LitType, LitTypeWithVocab, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {compareArrays} from '../lib/utils';
@@ -37,6 +36,45 @@ import {DataService, FocusService, SelectionService, SliceService} from '../serv
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 
 import {styles} from './data_table_module.css';
+
+type ColWidths = [minWidth?: number, maxWidth?: number];
+/** A map of LitType class names to their minimum and maximum widths, in px.  */
+const LIT_TYPE_MIN_MAX_WIDTHS: {[key: string]: ColWidths} = {
+  "TextSegment": [220, 600],
+  "CategoryLabel": [60, 100],
+  "BooleanLitType": [60, 100],
+  "MulticlassPreds": [60, 200],
+  "Scalar": [60, 100],
+  "RegressionScore": [60, 100],
+  "ImageBytes": [60, undefined],
+  "SearchQuery": [100, 300],
+  "Tokens": [220, 600],
+  "SequenceTags": [100, 600],
+  "SpanLabels": [150, 200],
+  "EdgeLabels": [150, 200],
+  "MultiSegmentAnnotations": [60, 200],
+  "GeneratedTextCandidates": [150, 400]
+};
+
+// TODO(b/275101197): consolidate this with other rendering code.
+// This is here for now as formatForDisplay() only returns a string.
+function formatForTable(
+    input: unknown, fieldSpec?: LitType, limitWords?: boolean): TableEntry {
+  if (fieldSpec instanceof URLLitType) {
+    // Prevent clicking the URL from selecting or de-selecting the table row.
+    const stopClickThrough = (e: Event) => {
+      e.stopPropagation();
+    };
+    // clang-format off
+    const template = html`
+      <a href=${input as string} target="_blank"
+       @click=${stopClickThrough}>${input as string}</a>`;
+    // clang-format on
+    return {template, value: (input as string)} as SortableTemplateResult;
+  }
+
+  return formatForDisplay(input, fieldSpec, limitWords);
+}
 
 /**
  * A LIT module showing a table containing the InputData examples. Allows the
@@ -66,11 +104,13 @@ export class DataTableModule extends LitModule {
       app.getService(SelectionService, 'pinned');
 
   @observable columnVisibility = new Map<string, boolean>();
-  @observable searchText = '';
+  @observable globalSearchText = '';
+  // If text box has been edited but not yet applied.
+  @observable globalSearchEdited = false;
 
   // Module options / configuration state
-  @observable private onlyShowGenerated: boolean = false;
-  @observable private onlyShowSelected: boolean = false;
+  @observable private onlyShowGenerated = false;
+  @observable private onlyShowSelected = false;
 
   // Child components
   @query('lit-data-table') private readonly table?: DataTable;
@@ -84,7 +124,17 @@ export class DataTableModule extends LitModule {
   @computed
   get keys(): ColumnHeader[] {
     function createColumnHeader(name: string, type: LitType) {
-      const header = {name, vocab: (type as LitTypeWithVocab).vocab};
+      const [minWidth, maxWidth] = type.name in LIT_TYPE_MIN_MAX_WIDTHS ?
+        LIT_TYPE_MIN_MAX_WIDTHS[type.name] : [];
+
+      const header = {
+        name,
+        maxWidth,
+        minWidth,
+        width: maxWidth,
+        vocab: (type as LitTypeWithVocab).vocab
+      };
+
       if (type instanceof BooleanLitType) {
         header.vocab = ['✔', ' '];
       }
@@ -118,7 +168,8 @@ export class DataTableModule extends LitModule {
   // All columns to be available by default in the data table.
   @computed
   get defaultColumns(): ColumnHeader[] {
-    return [{name: 'index'}, ...this.keys];
+    return [{name: 'index', minWidth: 75, maxWidth: 105, width: 75},
+      ...this.keys];
   }
 
   @computed
@@ -148,7 +199,7 @@ export class DataTableModule extends LitModule {
   }
 
   @computed
-  get dataEntries(): Array<Array<string|number>> {
+  get dataEntries(): TableEntry[][] {
     return this.sortedData.map((d) => {
       const index = this.appState.indicesById.get(d.id);
       if (index == null) return [];
@@ -156,8 +207,10 @@ export class DataTableModule extends LitModule {
       const dataEntries =
           this.keys.filter(k => this.columnVisibility.get(k.name))
               .map(
-                  k => formatForDisplay(
+                  k => formatForTable(
                       this.dataService.getVal(d.id, k.name),
+                      // TODO(b/283282667): Get field spec from Dataset or Model
+                      // as appropriate for this column.
                       this.dataSpec[k.name]));
       return dataEntries;
     });
@@ -310,6 +363,8 @@ export class DataTableModule extends LitModule {
 
           if (isPrimarySelection || isFocused || isReferenceSelection ||
               isStarred) {
+            // TODO(b/255799266): Add fast tooltips to icons.
+            // There's an issue with table resizing and mwc-icon interactions.
             return html`
               <mwc-icon style="${getActionStyle(isReferenceSelection)}"
                 class="${getActionClass(isReferenceSelection)}"
@@ -341,12 +396,11 @@ export class DataTableModule extends LitModule {
     });
   }
 
-  override firstUpdated() {
+  override connectedCallback() {
+    super.connectedCallback();
     const updateColsChange = () =>
-        [this.appState.currentModels, this.appState.currentDataset, this.keys];
-    this.reactImmediately(updateColsChange, () => {
-      this.updateColumns();
-    });
+      [this.appState.currentModels, this.appState.currentDataset, this.keys];
+    this.reactImmediately(updateColsChange, () => {this.updateColumns();});
   }
 
   private updateColumns() {
@@ -423,12 +477,10 @@ export class DataTableModule extends LitModule {
     return html`
       <popup-container class='column-dropdown-container'>
         <button class='hairline-button' slot='toggle-anchor-closed'>
-          <span class='material-icon-outlined'>view_column</span>
           &nbsp;Columns&nbsp;
           <span class='material-icon'>expand_more</span>
         </button>
         <button class='hairline-button' slot='toggle-anchor-open'>
-          <span class='material-icon-outlined'>view_column</span>
           &nbsp;Columns&nbsp;
           <span class='material-icon'>expand_less</span>
         </button>
@@ -441,26 +493,33 @@ export class DataTableModule extends LitModule {
   }
 
   renderControls() {
-    const onClickResetView = () => {this.table?.resetView();};
+    const onClickResetView = () => {
+      this.table?.resetView();
+      this.globalSearchText = '';
+    };
 
     const onClickSelectFiltered = () => {
       this.onSelect(this.table!.getVisibleDataIdxs());
+    };
+    const toggleSelectedCheckbox = () => {
+      this.onlyShowSelected = !this.onlyShowSelected;
+    };
+    const toggleGeneratedCheckbox = () => {
+      this.onlyShowGenerated = !this.onlyShowGenerated;
     };
 
     // clang-format off
     return html`
       ${this.renderColumnDropdown()}
-      <div class="toggles-row">
-        <div class='switch-container'
-            @click=${() => {this.onlyShowSelected = !this.onlyShowSelected;}}>
-          <div>Show selected</div>
-          <mwc-switch ?selected=${this.onlyShowSelected}></mwc-switch>
-        </div>
-        <div class='switch-container'
-            @click=${() => {this.onlyShowGenerated = !this.onlyShowGenerated;}}>
-          <div>Show generated</div>
-          <mwc-switch ?selected=${this.onlyShowGenerated}></mwc-switch>
-        </div>
+      <div class="checkbox-row">
+        <lit-checkbox label="Show selected"
+                  ?checked=${this.onlyShowSelected}
+                  @change=${toggleSelectedCheckbox}>
+        </lit-checkbox>
+        <lit-checkbox label="Show generated"
+              ?checked=${this.onlyShowGenerated}
+              @change=${toggleGeneratedCheckbox}>
+        </lit-checkbox>
       </div>
       <div id="toolbar-buttons">
         <button class='hairline-button' @click=${onClickResetView}
@@ -474,6 +533,42 @@ export class DataTableModule extends LitModule {
       </div>
     `;
     // clang-format on
+  }
+
+  renderSearch() {
+    const handleGlobalSearchInput = (e: KeyboardEvent) => {
+      // Check for update, for highlighting purposes
+      const searchQuery = (e.target as HTMLInputElement)?.value || '';
+      this.globalSearchEdited = (searchQuery !== this.globalSearchText);
+    };
+
+    const handleGlobalSearchEnter = (e: KeyboardEvent) => {
+      // Trigger an update on "enter" key.
+      if(e.key=== "Enter") {
+        const searchQuery = (e.target as HTMLInputElement)?.value || '';
+        this.globalSearchText = searchQuery;
+        this.globalSearchEdited = false;
+      }
+    };
+
+    const containerClasses = classMap({
+      'search-container': true,
+      'search-container-edited': this.globalSearchEdited,
+    });
+
+    const tooltipContent = `Search using text, regex, numerical ranges,
+      and column-name prefixes. Use AND and OR for joint queries. For example,
+      'query AND ^query2 OR columnName:1-10.'`;
+    return html`
+      <div class=${containerClasses}>
+        <mwc-icon class='icon material-icon-outlined'>search</mwc-icon>
+        <div class='search-input-container'>
+          <input type="search" id="search-input" .value=${this.globalSearchText}
+            @input=${handleGlobalSearchInput}
+            @keydown=${handleGlobalSearchEnter} placeholder="Search"/>
+        </div>
+        <lit-tooltip content=${tooltipContent}></lit-tooltip>
+      </div>`;
   }
 
   renderTable() {
@@ -495,6 +590,8 @@ export class DataTableModule extends LitModule {
         .referenceSelectedIndex=${this.referenceSelectedIndex}
         .starredIndices=${this.starredIndices}
         .focusedIndex=${this.focusedIndex}
+        .headerTextMaxWidth=${150}
+        .globalSearchText=${this.globalSearchText}
         .onSelect=${(idxs: number[]) => { this.onSelect(idxs); }}
         .onPrimarySelect=${(i: number) => { this.onPrimarySelect(i); }}
         .onHover=${(i: number|null)=> { this.onHover(i); }}
@@ -502,6 +599,7 @@ export class DataTableModule extends LitModule {
         selectionEnabled
         paginationEnabled
         exportEnabled
+        showMoreEnabled
         shiftSelectionStartIndex=${shiftSelectStartRowIndex}
         shiftSelectionEndIndex=${shiftSelectEndRowIndex}
       ></lit-data-table>
@@ -517,7 +615,9 @@ export class DataTableModule extends LitModule {
           <div class='module-toolbar'>
             ${this.renderControls()}
           </div>
-        ` : null}
+          <div class='module-toolbar'>
+            ${this.renderSearch()}
+          </div>` : null}
         <div class='module-results-area'>
           ${this.renderTable()}
         </div>

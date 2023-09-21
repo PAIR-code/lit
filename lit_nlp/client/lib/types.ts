@@ -27,22 +27,30 @@ import {chunkWords, isLitSubtype} from './utils';
 // tslint:disable-next-line:no-any
 export type D3Selection = d3.Selection<any, any, any, any>;
 
+export interface SerializedPyClass {
+  __class__: string;  // Named for Python keys
+  __name__: string;   // Named for Python keys
+}
+
 export interface Spec {
   [key: string]: LitType;
 }
 
-/** Serialized Spec data returned from the backend. */
-export interface SerializedSpec {
-  // All LitTypes have a `__name__` field; we deserialize and cast the
-  // LitType before accessing additional fields.
-  [key: string]: {__name__: string};
+export interface SpecMap {
+  [model: string]: Spec;
 }
 
+interface InitSpecMap {
+  [name: string]: Spec|null;  // using null here because None ==> null in Python
+}
+
+// LINT.IfChange
 export interface ComponentInfo {
   configSpec: Spec;
   metaSpec: Spec;
   description?: string;
 }
+// LINT.ThenChange(../../app.py)
 
 export interface DatasetInfo {
   size: number;
@@ -72,6 +80,7 @@ export interface ModelInfo {
   datasets: string[];
   generators: string[];
   interpreters: string[];
+  metrics: string[];
   spec: ModelSpec;
   description?: string;
 }
@@ -85,6 +94,7 @@ export interface LitMetadata {
   datasets: DatasetInfoMap;
   generators: ComponentInfoMap;
   interpreters: ComponentInfoMap;
+  metrics: ComponentInfoMap;
   layouts: LitComponentLayouts;
   demoMode: boolean;
   defaultLayout: string;
@@ -94,15 +104,11 @@ export interface LitMetadata {
   onboardStartDoc?: string;
   onboardEndDoc?: string;
   syncState: boolean;
+  initSpecs: {
+    datasets: InitSpecMap;
+    models: InitSpecMap;
+  };
 }
-
-/**
- * Serialized LitMetadata returned by the backend.
- */
-export type SerializedLitMetadata = {
-  // tslint:disable-next-line:no-any
-  [K in keyof LitMetadata]: any;
-};
 
 export interface Input {
   // tslint:disable-next-line:no-any
@@ -291,7 +297,7 @@ export type ServiceUser = object;
  * We can't define abstract static properties/methods in typescript, so we
  * define an interface to emulate the LitModuleType.
  */
-export interface LitModuleClass {
+export declare interface LitModuleClass {
   title: string;
   template:
       (modelName: string, selectionServiceIndex: number,
@@ -302,7 +308,7 @@ export interface LitModuleClass {
   duplicateAsRow: boolean;
   numCols: number;
   collapseByDefault: boolean;
-  referenceURL: string;
+  infoMarkdown: string;
 }
 
 /**
@@ -312,6 +318,10 @@ export function defaultValueByField(key: string, spec: Spec) {
   const fieldSpec: LitType = spec[key];
   // Explicitly check against undefined, as this value is often false-y if set.
   if (fieldSpec.default !== undefined) {
+    if (fieldSpec instanceof CategoryLabel &&
+        fieldSpec.vocab && !fieldSpec.vocab.includes(fieldSpec.default)) {
+      return fieldSpec.vocab[0];
+    }
     return fieldSpec.default;
   }
   // TODO(lit-dev): remove these and always use the spec default value.
@@ -338,10 +348,10 @@ export function defaultValueByField(key: string, spec: Spec) {
 }
 
 /**
- * Dictionary of lit layouts. See LitComponentLayout
+ * Dictionary of lit layouts. See LitCanonicalLayout
  */
 export declare interface LitComponentLayouts {
-  [key: string]: LitComponentLayout|LitCanonicalLayout;
+  [key: string]: LitCanonicalLayout;
 }
 
 // LINT.IfChange
@@ -379,23 +389,6 @@ export declare interface LitTabGroupLayout {
 }
 
 /**
- * A layout is defined by a set of modules arranged into tabs and groups.
- *
- * This is a legacy layout format, where components contains several keys
- * including 'Main', and values are lists of module classes.
- * - The 'Main' group will appear in the upper half of the UI
- * - The remaining groups will appear in the lower half of the UI,
- *   with a tab bar to select the active group.
- *
- * See layout.ts for examples.
- */
-export declare interface LitComponentLayout {
-  components: LitTabGroupLayout;
-  layoutSettings?: LayoutSettings;
-  description?: string;
-}
-
-/**
  * UI layout in canonical form.
  *
  * This has explicit tab groups for the upper and lower UI areas.
@@ -406,6 +399,7 @@ export declare interface LitComponentLayout {
 export declare interface LitCanonicalLayout {
   upper: LitTabGroupLayout;
   lower: LitTabGroupLayout;
+  left: LitTabGroupLayout;
   layoutSettings: LayoutSettings;
   description: string;
 }
@@ -416,40 +410,9 @@ export declare interface LitCanonicalLayout {
  */
 export declare interface LayoutSettings {
   hideToolbar?: boolean;
+  /** The default height of #upper-right, as a percentage of the parent. */
   mainHeight?: number;
   centerPage?: boolean;
-}
-
-/**
- * Convert a layout to canonical form.
- * TODO(lit-dev): deprecate this once we convert all client and demo layouts.
- * TODO(lit-dev): move this to Python.
- */
-export function canonicalizeLayout(layout: LitComponentLayout|
-                                   LitCanonicalLayout): LitCanonicalLayout {
-  if (!layout.hasOwnProperty('components')) {
-    return layout as LitCanonicalLayout;
-  }
-  // Legacy layout to convert.
-  layout = layout as LitComponentLayout;
-
-  const canonicalLayout: LitCanonicalLayout = {
-    upper: {},
-    lower: {},
-    layoutSettings: layout.layoutSettings ?? {},
-    description: layout.description ?? '',
-  };
-
-  // Handle upper layout.
-  canonicalLayout.upper['Main'] = layout.components['Main'];
-
-  // Handle lower layout.
-  for (const tabName of Object.keys(layout.components)) {
-    if (tabName === 'Main') continue;
-    canonicalLayout.lower[tabName] = layout.components[tabName];
-  }
-
-  return canonicalLayout;
 }
 
 // LINT.ThenChange(../../api/layout.py)
@@ -505,7 +468,7 @@ export function formatForDisplay(
     return Array.isArray(input) ? `<float>[${input.length}]` : '';
   }
   if (fieldSpec instanceof GeneratedTextCandidates) {
-    return formatScoredTextCandidatesList(input as ScoredTextCandidates[]);
+    return formatScoredTextCandidates(input as ScoredTextCandidates);
   }
 
   // Generic data, based on type of input.

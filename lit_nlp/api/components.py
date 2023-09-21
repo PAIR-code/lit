@@ -14,8 +14,9 @@
 # ==============================================================================
 """Base classes for LIT backend components."""
 import abc
+from collections.abc import Sequence
 import inspect
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import model as lit_model
@@ -41,6 +42,7 @@ class Interpreter(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
+  @abc.abstractmethod
   def run(self,
           inputs: list[JsonDict],
           model: lit_model.Model,
@@ -48,19 +50,7 @@ class Interpreter(metaclass=abc.ABCMeta):
           model_outputs: Optional[list[JsonDict]] = None,
           config: Optional[JsonDict] = None):
     """Run this component, given a model and input(s)."""
-    raise NotImplementedError(
-        'Subclass should implement this, or override run_with_metadata() directly.'
-    )
-
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
-    """Run this component, with access to data indices and metadata."""
-    inputs = [ex['data'] for ex in indexed_inputs]
-    return self.run(inputs, model, dataset, model_outputs, config)
+    pass
 
   def is_compatible(self, model: lit_model.Model,
                     dataset: lit_dataset.Dataset) -> bool:
@@ -92,55 +82,18 @@ class Interpreter(metaclass=abc.ABCMeta):
     return {}
 
 
-# TODO(b/254832560): Remove ComponentGroup class after promoting Metrics.
-class ComponentGroup(Interpreter):
-  """Convenience class to package a group of components together."""
-
-  def __init__(self, subcomponents: dict[str, Interpreter]):
-    self._subcomponents = subcomponents
-
-  def meta_spec(self) -> types.Spec:
-    spec: types.Spec = {}
-    for component_name, component in self._subcomponents.items():
-      for field_name, field_spec in component.meta_spec().items():
-        spec[f'{component_name}: {field_name}'] = field_spec
-    return spec
-
-  def run_with_metadata(
-      self,
-      indexed_inputs: Sequence[IndexedInput],
-      model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> dict[str, JsonDict]:
-    """Run this component, given a model and input(s)."""
-    if model_outputs is None:
-      raise ValueError('model_outputs cannot be None')
-
-    if len(model_outputs) != len(indexed_inputs):
-      raise ValueError('indexed_inputs and model_outputs must be the same size,'
-                       f' received {len(indexed_inputs)} indexed_inputs and '
-                       f'{len(model_outputs)} model_outputs')
-
-    ret = {}
-    for name, component in self._subcomponents.items():
-      ret[name] = component.run_with_metadata(indexed_inputs, model, dataset,
-                                              model_outputs, config)
-    return ret
-
-
 class Generator(Interpreter):
   """Base class for LIT generators."""
 
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None):
-    """Run this component, with access to data indices and metadata."""
-    #  IndexedInput[] -> Input[]
-    inputs = [ex['data'] for ex in indexed_inputs]
+  def run(
+      self,
+      inputs: list[JsonDict],
+      model: lit_model.Model,
+      dataset: lit_dataset.Dataset,
+      model_outputs: Optional[list[JsonDict]] = None,
+      config: Optional[JsonDict] = None,
+  ):
+    del model_outputs
     return self.generate_all(inputs, model, dataset, config)
 
   def generate_all(self,
@@ -170,11 +123,11 @@ class Generator(Interpreter):
                model: lit_model.Model,
                dataset: lit_dataset.Dataset,
                config: Optional[JsonDict] = None) -> list[JsonDict]:
-    """Return a list of generated examples."""
+    """Return a list of generated examples, for a single input."""
     pass
 
 
-class Metrics(Interpreter):
+class Metrics(Interpreter, metaclass=abc.ABCMeta):
   """Base class for LIT metrics components."""
 
   # Required methods implementations from Interpreter base class
@@ -193,26 +146,6 @@ class Metrics(Interpreter):
     """A dict of MetricResults defining the metrics computed by this class."""
     raise NotImplementedError('Subclass should define its own meta spec.')
 
-  def run(
-      self,
-      inputs: Sequence[JsonDict],
-      model: lit_model.Model,
-      dataset: lit_dataset.Dataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
-    raise NotImplementedError(
-        'Subclass should implement its own run using compute.')
-
-  def run_with_metadata(
-      self,
-      indexed_inputs: Sequence[IndexedInput],
-      model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
-      model_outputs: Optional[list[JsonDict]] = None,
-      config: Optional[JsonDict] = None) -> list[JsonDict]:
-    inputs = [inp['data'] for inp in indexed_inputs]
-    return self.run(inputs, model, dataset, model_outputs, config)
-
   # New methods introduced by this subclass
 
   def is_field_compatible(
@@ -229,23 +162,12 @@ class Metrics(Interpreter):
       preds: Sequence[Any],
       label_spec: types.LitType,
       pred_spec: types.LitType,
-      config: Optional[JsonDict] = None) -> MetricsDict:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> MetricsDict:
     """Compute metric(s) given labels and predictions."""
     raise NotImplementedError('Subclass should implement this, or override '
-                              'compute_with_metadata() directly.')
-
-  def compute_with_metadata(
-      self,
-      labels: Sequence[Any],
-      preds: Sequence[Any],
-      label_spec: types.LitType,
-      pred_spec: types.LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> MetricsDict:
-    """As compute(), but with access to indices and metadata."""
-    del indices, metas  # unused by Metrics base class
-    return self.compute(labels, preds, label_spec, pred_spec, config)
+                              'run() directly.')
 
 
 class Annotator(metaclass=abc.ABCMeta):
@@ -266,7 +188,7 @@ class Annotator(metaclass=abc.ABCMeta):
     self._annotator_model = annotator_model
 
   @abc.abstractmethod
-  def annotate(self, inputs: list[JsonDict],
+  def annotate(self, inputs: list[dict[str, Any]],
                dataset: lit_dataset.Dataset,
                dataset_spec_to_annotate: Optional[types.Spec] = None):
     """Annotate the provided inputs.

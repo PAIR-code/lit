@@ -14,7 +14,8 @@
 # ==============================================================================
 """Miscellaneous utility functions."""
 import json
-from typing import cast, Optional
+from types import MappingProxyType  # pylint: disable=g-importing-member
+from typing import Any, cast, Optional
 
 from lit_nlp.api import dtypes
 from lit_nlp.api import types
@@ -46,6 +47,8 @@ def _obj_to_json(o: object):
         '__class__': 'tuple',
         '__value__': list(o),
     }
+  elif isinstance(o, MappingProxyType):
+    return dict(o)
   else:
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
@@ -68,11 +71,13 @@ def _obj_to_json_simple(o: object):
     return o.value
   elif isinstance(o, tuple):
     return list(o)
+  elif isinstance(o, MappingProxyType):
+    return dict(o)
   else:
     raise TypeError(repr(o) + ' is not JSON serializable.')
 
 
-def _obj_from_json(d: types.JsonDict):
+def _obj_from_json(d: dict[str, Any]):
   """JSON deserialization helper.
 
   Args:
@@ -125,7 +130,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     return _obj_to_json(o)
 
 
-def from_json(json_string: str) -> Optional[types.JsonDict]:
+def from_json(json_string: str) -> Optional[dict[str, Any]]:
   """Reconstruct from a JSON string."""
   if json_string:
     return json.loads(json_string, object_hook=_obj_from_json)

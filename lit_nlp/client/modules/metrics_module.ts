@@ -18,8 +18,8 @@
 // tslint:disable:no-new-decorators
 
 import {html} from 'lit';
-import {customElement, query} from 'lit/decorators';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, query} from 'lit/decorators.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -29,27 +29,13 @@ import {ColumnHeader, DataTable, TableData} from '../elements/table';
 import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {MetricsResponse, MetricsValues} from '../services/api_service';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
-
-// Each entry from the server.
-interface MetricsResponse {
-  // Using case to achieve parity with the property names in Python code
-  // tslint:disable-next-line:enforce-name-casing
-  pred_key: string;
-  // tslint:disable-next-line:enforce-name-casing
-  label_key: string;
-  metrics: MetricsValues;
-}
 
 // A dict of metrics type to the MetricsValues for one metric generator.
 interface ModelHeadMetrics {
   [metricsType: string]: MetricsValues;
-}
-
-// A dict of metric names to values, from one metric generator.
-interface MetricsValues {
-  [metricName: string]: number;
 }
 
 // The source of datapoints for a row in the metrics table.
@@ -110,7 +96,7 @@ export class MetricsModule extends LitModule {
   @observable private selectedFacetBins: NumericFeatureBins = {};
 
   @observable private metricsMap: MetricsMap = {};
-  @observable private facetBySlice: boolean = false;
+  @observable private facetBySlice = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
   @query('#metrics-table') private readonly table?: DataTable;
@@ -129,60 +115,76 @@ export class MetricsModule extends LitModule {
         'facets-change', facetsChange as EventListener);
   }
 
-  override firstUpdated() {
-    this.react(() => this.appState.currentInputData, entireDataset => {
-      this.metricsMap = {};
-      this.addMetrics(this.appState.currentInputData, Source.DATASET);
-      this.updateAllFacetedMetrics();
-    });
-    this.reactImmediately(() => this.selectionService.selectedInputData, () => {
-      // When the selection changes, remove all existing selection-based rows
-      // from the metrics table.
-      Object.keys(this.metricsMap).forEach(key => {
-        if (this.metricsMap[key].source === Source.SELECTION) {
-          delete this.metricsMap[key];
-        }
-      });
-      if (this.selectionService.lastUser === this) {
-        // If selection made through this module, no need to show a separate
-        // "selection" row in the metrics table, as the selected row will
-        // be highlighted to indicate that it is selected.
-        return;
-      } else if (this.table != null) {
-        // If selection changed outside of this module, clear the highlight in
-        // the metrics table.
-        this.table.primarySelectedIndex = -1;
-        this.table.selectedIndices = [];
-      }
-      if (this.selectionService.selectedInputData.length > 0) {
-        // If a selection is made outside of this module,, then calculate a row
-        // in the metrics table for the selection.
-        this.addMetrics(
+  override connectedCallback() {
+    super.connectedCallback();
+
+    this.react(
+        () => this.appState.currentInputData,
+        () => {
+          this.metricsMap = {};
+          this.addMetrics(this.appState.currentInputData, Source.DATASET);
+          this.updateAllFacetedMetrics();
+        });
+    this.react(
+        () => this.classificationService.allMarginSettings,
+        () => {
+          this.addMetrics(this.appState.currentInputData, Source.DATASET);
+          this.addMetrics(
             this.selectionService.selectedInputData, Source.SELECTION);
-      }
-    });
-    this.react(() => this.classificationService.allMarginSettings, margins => {
-      this.addMetrics(this.appState.currentInputData, Source.DATASET);
-      this.updateAllFacetedMetrics();
-    });
-    this.react(() => this.sliceService.sliceNames, slices => {
-      this.facetBySlice = true;
-      this.updateSliceMetrics();
-    });
+          this.updateAllFacetedMetrics();
+        });
+    this.react(
+        () => this.sliceService.sliceNames,
+        () => {
+          this.facetBySlice = true;
+          this.updateSliceMetrics();
+        });
+
+    this.react(
+        () => this.selectionService.selectedInputData,
+        () => {
+          // When the selection changes, remove all existing selection-based
+          // rows from the metrics table.
+          Object.keys(this.metricsMap).forEach(key => {
+            if (this.metricsMap[key].source === Source.SELECTION) {
+              delete this.metricsMap[key];
+            }
+          });
+          if (this.selectionService.lastUser === this) {
+            // If selection made through this module, no need to show a separate
+            // "selection" row in the metrics table, as the selected row will
+            // be highlighted to indicate that it is selected.
+            return;
+          } else if (this.table != null) {
+            // If selection changed outside of this module, clear the highlight
+            // in the metrics table.
+            this.table.primarySelectedIndex = -1;
+            this.table.selectedIndices = [];
+          }
+          if (this.selectionService.selectedInputData.length > 0) {
+            // If a selection is made outside of this module,, then calculate a
+            // row in the metrics table for the selection.
+            this.addMetrics(
+                this.selectionService.selectedInputData, Source.SELECTION);
+          }
+        });
 
     // Do this once, manually, to avoid duplicate calls on load.
     this.addMetrics(this.appState.currentInputData, Source.DATASET);
+    this.addMetrics(
+      this.selectionService.selectedInputData, Source.SELECTION);
     this.updateAllFacetedMetrics();
   }
 
   /** Gets and adds metrics information for datapoints to the metricsMap. */
   async addMetrics(datapoints: IndexedInput[], source: Source,
                    facetMap?: FacetMap, displayName?: string) {
-    const models = this.appState.currentModels;
+    const {currentModels: models} = this.appState;
 
     // Get the metrics for all models for the provided datapoints.
-    const datasetMetrics = await Promise.all(models.map(
-        async (model: string) => this.getMetrics(datapoints, model)));
+    const datasetMetrics = await Promise.all(
+        models.map(async (model: string) => this.getMetrics(datapoints, model))
+    );
 
     let name = displayName != null ? displayName : source.toString();
     if (facetMap !=null) {
@@ -191,8 +193,7 @@ export class MetricsModule extends LitModule {
 
     // Add the returned metrics for each model and head to the metricsMap.
     datasetMetrics.forEach((returnedMetrics, i) => {
-      Object.keys(returnedMetrics).forEach(metricsType => {
-        const metricsRespones: MetricsResponse[] = returnedMetrics[metricsType];
+      Object.entries(returnedMetrics).forEach(([metricsType, metricsRespones]) => {
         metricsRespones.forEach(metricsResponse => {
           const rowKey = this.getRowKey(
               models[i], name, metricsResponse.pred_key, facetMap);
@@ -280,27 +281,56 @@ export class MetricsModule extends LitModule {
     }
   }
 
-  private async getMetrics(selectedInputs: IndexedInput[], model: string) {
+  private async getMetrics(
+      selectedInputs: IndexedInput[], model: string): Promise<MetricsResponse> {
+    const {currentDataset} = this.appState;
+    const {
+      metrics: compatMetrics,
+      datasets: compatDatasets
+    } = this.appState.metadata.models[model];
+
+    if (!compatDatasets.includes(currentDataset)) {
+      // There is a small window in which the this.appState.currentModels has
+      // updated for a render loop but the this.appState.currentDataset has not,
+      // after changing the relevant selections in the Global Settings. This
+      // guard prevents this module from requesting metrics computations for
+      // incompatible model/dataset pairs.
+      // TODO(b/297072974): Console logging the current model and dataset from
+      // this line, and checking this against requests in the Network tab of
+      // Chrome DevTools, is a good place to verify the possible timing bug.
+      return Promise.resolve({});
+    }
+
     this.pendingCalls += 1;
-    try {
-      const config =
-          this.classificationService.marginSettings[model] as CallConfig || {};
-      const metrics = await this.apiService.getInterpretations(
-          selectedInputs, model, this.appState.currentDataset, 'metrics', config);
-      this.pendingCalls -= 1;
-      return metrics;
+    // TODO(b/254832560): Allow the user to configure which metrics component
+    // are run via the UI and pass them in to this ApiService call.
+    const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
+    const config =
+        this.classificationService.marginSettings[model] as CallConfig || {};
+
+    let metrics: MetricsResponse;
+    if (selectedInputs.length) {
+      try {
+        metrics = await this.apiService.getMetrics(
+            selectedInputs, model, currentDataset, metricsToRun, config);
+      } catch {
+        metrics = {};
+      }
+    } else {
+      metrics = {};
     }
-    catch {
-      this.pendingCalls -= 1;
-      return {};
-    }
+
+    this.pendingCalls -= 1;
+    return metrics;
   }
 
   /** Convert the metricsMap information into table data for display. */
-  @computed
-  get tableData(): TableHeaderAndData {
-    const {metaSpec} = this.appState.metadata.interpreters['metrics'];
-    if (metaSpec == null) return {'header': [], 'data': []};
+  @computed get tableData(): TableHeaderAndData {
+    const {currentModels} = this.appState;
+    const metricsInfo = this.appState.metadata.metrics;
+    if (Object.keys(metricsInfo).length === 0) {
+      return {'header': [], 'data': []};
+    }
 
     const tableRows: TableData[] = [];
     const metricBests = new Map<string, number>();
@@ -308,17 +338,25 @@ export class MetricsModule extends LitModule {
 
     Object.values(this.metricsMap).forEach(row => {
       Object.entries(row.headMetrics).forEach(([metricsT, metricsV]) => {
+        const {metaSpec} = metricsInfo[metricsT];
         Object.entries(metricsV).forEach(([name, val]) => {
           const key = getMetricKey(metricsT, name);
           const max = metricBests.get(key)!;
-          const spec = metaSpec[key];
+          const spec = metaSpec[name];
           if (!(spec instanceof MetricResult)) return;
           const bestCase = spec.best_value;
 
-          if (bestCase != null && (!metricBests.has(key) ||
-              (bestCase === MetricBestValue.HIGHEST && max < val) ||
-              (bestCase === MetricBestValue.LOWEST && max > val) ||
-              (bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val)))) {
+          const bestsUndefined = !metricBests.has(key);
+          const bestIshighValIsHigher =
+              bestCase === MetricBestValue.HIGHEST && max < val;
+          const bestIsLowValIsLower =
+              bestCase === MetricBestValue.LOWEST && max > val;
+          const bestIsZeroValIsCloser =
+              bestCase === MetricBestValue.ZERO && Math.abs(max) > Math.abs(val);
+          const shouldUpdate = bestsUndefined || bestIshighValIsHigher ||
+                               bestIsLowValIsLower || bestIsZeroValIsCloser;
+
+          if (bestCase != null && shouldUpdate) {
             metricBests.set(key,
                             bestCase === MetricBestValue.NONE ? Infinity : val);
           }
@@ -328,7 +366,9 @@ export class MetricsModule extends LitModule {
 
     const metricNames = [...metricBests.keys()];
 
-    for (const row of Object.values(this.metricsMap)) {
+    const rowsForActiveModels = Object.values(this.metricsMap).filter(
+        (row) => currentModels.some((model) => model === row.model));
+    for (const row of rowsForActiveModels) {
       const rowMetrics = metricNames.map(metricKey => {
         const [metricsType, metricName] = metricKey.split(": ");
         if (row.headMetrics[metricsType] == null) {return '-';}
@@ -358,9 +398,19 @@ export class MetricsModule extends LitModule {
     }
 
     const metricHeaders: ColumnHeader[] = metricNames.map(name => {
-      const spec = metaSpec[name] as MetricResult;
-      return {name, rightAlign: true, html: html`
-        <div class="header-text" title=${spec.description}>${name}</div>`
+      const [metricsType, metricName] = name.split(": ");
+      const spec =
+          metricsInfo[metricsType].metaSpec[metricName] as MetricResult;
+      const [group, metric] = name.split(': ');
+      return {
+        name,
+        html: html`<div slot="tooltip-anchor" class="header-text">
+          ${group}<br>${metric}
+        </div>`,
+        rightAlign: true,
+        tooltip: spec.description,
+        tooltipWidth: 200,
+        width: 100
       };
     });
 
@@ -457,12 +507,8 @@ export class MetricsModule extends LitModule {
   }
 
   static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
-    for (const modelInfo of Object.values(modelSpecs)) {
-      if (modelInfo.interpreters.indexOf('metrics') !== -1) {
-        return true;
-      }
-    }
-    return false;
+    return Object.values(modelSpecs).some(
+        (modelInfo) => modelInfo.metrics.length);
   }
 }
 

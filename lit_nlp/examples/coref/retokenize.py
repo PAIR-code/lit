@@ -1,11 +1,13 @@
 """Helpers to apply a subword tokenizer while retaining original token boundaries."""
+
+from collections.abc import Callable, Sequence
 import itertools
-from typing import Sequence, Text, Callable
 
 import numpy as np
 
+
 # tokenizer: str -> list(str)
-TokenizerFn = Callable[[Text], Sequence[Text]]
+TokenizerFn = Callable[[str], Sequence[str]]
 
 
 def flatten(lists):
@@ -13,7 +15,7 @@ def flatten(lists):
   return list(itertools.chain.from_iterable(lists))
 
 
-def subtokenize(tokens: Sequence[Text], subtokenizer_fn: TokenizerFn):
+def subtokenize(tokens: Sequence[str], subtokenizer_fn: TokenizerFn):
   """Apply a sub-word tokenizer and return start indices for the original token boundaries.
 
   The offsets returned by this can be used directly to project token indices to

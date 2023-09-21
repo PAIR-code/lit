@@ -24,3 +24,13 @@
 #threshold-line {
   stroke-width: 2px;
 }
+
+.confusion-zone {
+  fill: url(#diagonalHatch);
+  fill-opacity: .30;
+}
+
+#diagonalHatch path{
+  stroke: var(--lit-neutral-700);
+  stroke-width: 1;
+}

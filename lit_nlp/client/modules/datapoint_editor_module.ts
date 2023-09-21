@@ -20,17 +20,18 @@ import '../elements/checkbox';
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for computing quantile, not visualization.
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable, when} from 'mobx';
+
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {AnnotationCluster, EdgeLabel, SpanLabel} from '../lib/dtypes';
-import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
+import {BooleanLitType, EdgeLabels, Embeddings, ImageBytes, ListLitType, LitTypeWithVocab, MultiSegmentAnnotations, Scalar, SearchQuery, SequenceTags, SpanLabels, SparseMultilabel, StringLitType, Tokens, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {defaultValueByField,  formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
-import {findSpecKeys, isLitSubtype} from '../lib/utils';
+import {formatAnnotationCluster, formatEdgeLabel, formatSpanLabel, IndexedInput, Input, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {findSpecKeys, isLitSubtype, makeModifiedInput} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService} from '../services/selection_service';
 
@@ -38,7 +39,7 @@ import {styles} from './datapoint_editor_module.css';
 
 // Converter function for text input. Use to support non-string types,
 // such as numeric fields.
-type InputConverterFn = (s: string) => string|number|string[]|boolean;
+type InputConverterFn = (s: string) => string|number|string[]|boolean|undefined;
 
 /**
  * A LIT module that allows the user to view and edit a datapoint.
@@ -62,33 +63,71 @@ export class DatapointEditorModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  private resizeObserver!: ResizeObserver;
+  private readonly resizeObserver = new ResizeObserver(() => {
+    this.resize();
+  });
+
   private isShiftPressed = false; /** Newline edits are shift + enter */
 
   protected addButtonText = 'Add';
   protected showAddAndCompare = true;
 
   @computed
-  get emptyDatapoint(): Input {
-    const data: Input = {};
-    const spec = this.appState.currentDatasetSpec;
-    for (const key of this.appState.currentInputDataKeys) {
-      data[key] = defaultValueByField(key, spec);
-    }
-    return data;
-  }
-
-  @computed
-  get baseData(): Input {
+  get baseData(): IndexedInput {
     const input = this.selectionService.primarySelectedInputData;
-    return input == null ? this.emptyDatapoint : input.data;
+    if (input) return input;
+
+    const blankInput = this.appState.makeEmptyDatapoint('manual');
+    // Set all numeric fields with out of bounds defaults to an empty string
+    // to ensure placeholder value range will render.
+    const edits: {[key: string]: string} = {};
+    for (const key of this.appState.currentInputDataKeys) {
+      if (this.groupService.numericalFeatureNames.includes(key)) {
+        const value = blankInput.data[key];
+        const fieldSpec = this.appState.currentDatasetSpec[key] as Scalar;
+        const [minVal, maxVal] = [fieldSpec.min_val, fieldSpec.max_val];
+        if (value < minVal || value > maxVal) {
+          edits[key] = "";
+        }
+      }
+    }
+
+    return makeModifiedInput(blankInput, edits, 'manual');
   }
 
   @observable dataEdits: Input = {};
 
   @computed
-  get editedData(): Input {
-    return Object.assign({}, this.baseData, this.dataEdits);
+  get missingFields(): string[] {
+    return this.appState.currentModelRequiredInputSpecKeys.filter(
+        key => !this.editedData.data[key]);
+  }
+
+  @computed
+  get invalidNumericFields(): string[] {
+    return Object.keys(this.numericFieldRanges).filter((key: string) => {
+      const value = this.editedData.data[key];
+      if (value === undefined) return true;
+      const [minVal, maxVal] = this.numericFieldRanges[key];
+      return value < minVal || value > maxVal;
+    });
+  }
+
+  @computed
+  get numericFieldRanges(): {[key: string]: number[]} {
+    const ranges: {[key: string]: number[]} = {};
+    for (const key of this.appState.currentInputDataKeys) {
+      if (this.groupService.numericalFeatureNames.includes(key)) {
+        const fieldSpec = this.appState.currentDatasetSpec[key] as Scalar;
+        ranges[key] = [fieldSpec.min_val, fieldSpec.max_val];
+      }
+    }
+    return ranges;
+  }
+
+  @computed
+  get editedData(): IndexedInput {
+    return makeModifiedInput(this.baseData, this.dataEdits, 'manual');
   }
 
   @computed
@@ -108,19 +147,22 @@ export class DatapointEditorModule extends LitModule {
    const dataTextKeys: string[] = [];
 
    for (const key of this.appState.currentInputDataKeys) {
-      // Skip numerical and categorical keys.
-      if (this.groupService.categoricalFeatureNames.includes(key)) continue;
-      if (this.groupService.numericalFeatureNames.includes(key)) continue;
+     // Skip numerical and categorical keys.
+     if (this.groupService.categoricalFeatureNames.includes(key)) continue;
+     if (this.groupService.numericalFeatureNames.includes(key)) continue;
 
-      // Skip fields with value type string[] or number[]
-      const fieldSpec = this.appState.currentDatasetSpec[key];
-      if (fieldSpec instanceof ListLitType) continue;
-      if (fieldSpec instanceof Embeddings) continue;
+     // Skip fields with value type string[] or number[]
+     const fieldSpec = this.appState.currentDatasetSpec[key];
+     if (fieldSpec instanceof ListLitType) continue;
+     if (fieldSpec instanceof Embeddings) continue;
 
-      // Skip image fields
-      if (fieldSpec instanceof ImageBytes) continue;
+     // Skip image fields
+     if (fieldSpec instanceof ImageBytes) continue;
 
-      dataTextKeys.push(key);
+     // Skip boolean fields
+     if (fieldSpec instanceof BooleanLitType) continue;
+
+     dataTextKeys.push(key);
     }
     return dataTextKeys;
   }
@@ -132,13 +174,13 @@ export class DatapointEditorModule extends LitModule {
   }
 
   private calculateQuantileLengthsForFields(
-      fieldKeys: string[],
-      percentile: number = .8) {
+      fieldKeys: string[], percentile = .8) {
     const defaultLengths: {[key: string]: number} = {};
 
     for (const key of fieldKeys) {
       const fieldSpec = this.appState.currentDatasetSpec[key];
-      let calculateStringLength : ((s: string) => number) | ((s: string[]) => number);
+      let calculateStringLength: ((s: string) => number)|
+          ((s: string[]) => number);
 
       if (fieldSpec instanceof StringLitType) {
         calculateStringLength = (s: string) => s.length;
@@ -151,7 +193,7 @@ export class DatapointEditorModule extends LitModule {
       else {
         throw new Error(`Attempted to convert field ${
             key} of unrecognized type to string.`);
-        }
+      }
 
       const lengths = this.appState.currentInputData.map(indexedInput => {
         return calculateStringLength(indexedInput.data[key]);
@@ -181,29 +223,32 @@ export class DatapointEditorModule extends LitModule {
       this.sparseMultilabelInputKeys);
   }
 
-  override firstUpdated() {
-    const container = this.shadowRoot!.querySelector('.module-container')!;
-    this.resizeObserver = new ResizeObserver(() => {
-      this.resize();
-    });
-    this.resizeObserver.observe(container);
-
-
-    const getCurrentDataset = () => this.appState.currentDataset;
-    this.reactImmediately(getCurrentDataset, () => {
-      when(() => this.appState.currentInputDataIsLoaded, () => {
-        this.resize();
-      });
-    });
-
+  override connectedCallback() {
+    super.connectedCallback();
     this.reactImmediately(
-        () => this.selectionService.primarySelectedInputData, unusedData => {
-          this.resetEditedData();
+        () => this.appState.currentDataset,
+        () => {
+          when(() => this.appState.currentInputDataIsLoaded,
+               () => {this.resize();});
         });
+
+    this.react(
+        () => this.selectionService.primarySelectedInputData,
+        () => {this.resetEditedData();});
   }
 
   override updated() {
     super.updated();
+
+    // Resize observer only if element is rendered.
+    // TODO(lit-dev): consider moving this logic to the LitModule base class,
+    // where the decision to render or not is made.
+    const container = this.shadowRoot!.querySelector('.module-container')!;
+    if (container != null) {
+      this.resizeObserver.observe(container);
+    } else {
+      this.resizeObserver.disconnect();
+    }
 
     // Hack to fix the fact that just updating the innerhtml of the dom doesn't
     // update the displayed value of textareas. See
@@ -222,10 +267,10 @@ export class DatapointEditorModule extends LitModule {
 
   private getHeightForInputBox(
       textLength: number, clientWidth: number,
-      convertToString: boolean = true) {
+      convertToString = true) {
     const characterWidth = 8.3;  // estimate for character width in pixels
     const numLines = Math.ceil(characterWidth * textLength / clientWidth);
-    const height = this.convertNumLinesToHeight(numLines);
+    const height = this.convertNumLinesToHeight(Math.max(1, numLines));
     return convertToString ? `${height}ex` : height;
   }
 
@@ -237,7 +282,8 @@ export class DatapointEditorModule extends LitModule {
     if (inputBoxElement == null) return;
 
     // Set heights for string-based input boxes.
-    for (const [key, defaultCharLength] of Object.entries(this.dataTextLengths)) {
+    for (const [key, defaultCharLength] of
+             Object.entries(this.dataTextLengths)) {
       if (defaultCharLength === -Infinity) {
         continue;
       }
@@ -248,7 +294,8 @@ export class DatapointEditorModule extends LitModule {
     }
 
     // Set heights for multi-label input boxes.
-    for (const [key, textLength] of Object.entries(this.sparseMultilabelInputLengths)) {
+    for (const [key, textLength] of
+             Object.entries(this.sparseMultilabelInputLengths)) {
 
       // Truncate input height to 4 lines maximum.
       const maxHeight = this.convertNumLinesToHeight(4);
@@ -262,6 +309,7 @@ export class DatapointEditorModule extends LitModule {
 
   private resetEditedData() {
     this.editingTokenIndex = -1;
+    this.editingTokenField = undefined;
     this.dataEdits = {};
   }
 
@@ -284,22 +332,17 @@ export class DatapointEditorModule extends LitModule {
   }
 
   renderButtons() {
-    const makeEnabled = this.datapointEdited;
+    const hasRequiredFields = this.missingFields.length === 0;
+    const hasNoInvalidValues = this.invalidNumericFields.length === 0;
+    const makeEnabled =
+        this.datapointEdited && hasRequiredFields && hasNoInvalidValues;
     const compareEnabled = makeEnabled && !this.appState.compareExamplesEnabled;
     const resetEnabled = this.datapointEdited;
     const clearEnabled = this.selectionService.primarySelectedInputData != null;
 
     const onClickNew = async () => {
-      const datum: IndexedInput = {
-        data: this.editedData,
-        id: '',  // will be overwritten
-        meta: {
-          source: 'manual',
-          added: true,
-          parentId: this.selectionService.primarySelectedId!
-        },
-      };
-      const data: IndexedInput[] = await this.appState.annotateNewData([datum]);
+      const data: IndexedInput[] =
+          await this.appState.annotateNewData([this.editedData]);
       this.appState.commitNewDatapoints(data);
       const newIds = data.map(d => d.id);
       this.selectionService.selectIds(newIds);
@@ -323,7 +366,8 @@ export class DatapointEditorModule extends LitModule {
 
     const analyzeButton = html`
       <button id="make" class='hairline-button'
-        @click=${onClickNew} ?disabled="${!makeEnabled}">
+        @click=${onClickNew}
+        ?disabled="${!makeEnabled}">
         ${this.addButtonText}
       </button>
     `;
@@ -362,7 +406,7 @@ export class DatapointEditorModule extends LitModule {
     return html`
       <div id="edit-table">
        ${keys.map(
-            key => this.renderEntry(key, this.editedData[key]))}
+            key => this.renderEntry(key, this.editedData.data[key]))}
       </div>
     `;
     // clang-format on
@@ -374,7 +418,7 @@ export class DatapointEditorModule extends LitModule {
         (e: Event, converterFn: InputConverterFn = (s => s)) => {
           // tslint:disable-next-line:no-any
           const value = converterFn((e as any).target.value as string);
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;
@@ -383,14 +427,10 @@ export class DatapointEditorModule extends LitModule {
 
     // For categorical fields, render a dropdown.
     const renderCategoricalInput = (catVals: string[]) => {
-      // Note that the first option is blank (so that the dropdown is blank when
-      // no point is selected), and disabled (so that datapoints can only have
-      // valid values).
       // clang-format off
       return html`
         <select class="dropdown"
           @change=${handleInputChange} .value=${value}>
-          <option value="" ?selected=${"" === value}></option>
           ${catVals.map(val => html`
             <option value="${val}" ?selected=${val === value}>${val}</option>
           `)}
@@ -422,7 +462,7 @@ export class DatapointEditorModule extends LitModule {
         const reader = new FileReader();
         reader.addEventListener('load', () => {
           const value = reader.result as string;
-          if (value === this.baseData[key]) {
+          if (value === this.baseData.data[key]) {
             delete this.dataEdits[key];
           } else {
             this.dataEdits[key] = value;
@@ -459,40 +499,60 @@ export class DatapointEditorModule extends LitModule {
       `;
     };
 
+    // TODO(lit-team): Have better indication of model inputs vs other fields.
+    // TODO(lit-team): Should we also display optional input fields that aren't
+    // in the dataset? b/157985221.
+    const isRequiredModelInput =
+        this.appState.currentModelRequiredInputSpecKeys.includes(key);
+
+    const isMissingField = this.missingFields.includes(key);
+    const isInvalidNumber = this.invalidNumericFields.includes(key);
+    const renderError =
+        (isMissingField && isRequiredModelInput || isInvalidNumber) &&
+        this.datapointEdited;
+
+    const errorInputClasses = renderError ? 'error-input' : '';
+    const errorIconClasses = renderError ? 'error-icon' : '';
+
     const inputStyle = {'height': this.inputHeights[key]};
     // Render a multi-line text input.
-    const renderFreeformInput = () => {
-      return html`
-      <textarea class="input-box" style="${styleMap(inputStyle)}" @input=${
-          handleInputChange}>${value}</textarea>`;
-    };
+    const renderFreeformInput = () => html`
+      <textarea
+        class="input-box ${errorInputClasses}"
+        style="${styleMap(inputStyle)}"
+        @input=${handleInputChange}>${value}</textarea>`;
 
     // Render a single-line text input.
-    const renderShortformInput = () => {
-      return html`
-      <input type="text" class="input-short" @input=${handleInputChange}
-        .value=${value}></input>`;
-    };
+    const renderShortformInput = () =>
+        html`<input type="text" class="input-short ${errorInputClasses}"
+          @input=${handleInputChange} .value=${value} />`;
 
     // Render a single-line text input, and convert entered value to a number.
     const renderNumericInput = () => {
       const handleNumberInput = (e: Event) => {
-        handleInputChange(e, (value: string) => +(value));
+        handleInputChange(e, (value: string | undefined) => {
+          // Treat empty input as invalid, rather than coerce to zero.
+          if (value === "") return undefined;
+          return Number(value);
+        });
       };
+      const [minVal, maxVal] = this.numericFieldRanges[key];
       return html`
-      <input type="text" class="input-short" @input=${handleNumberInput}
-        .value=${value}></input>`;
+      <input type="number" class="input-short ${errorInputClasses}"
+        @input=${handleNumberInput}
+        .placeholder="${minVal} — ${maxVal}"
+        .value=${value} />`;
     };
 
     const renderSpanLabel = (d: SpanLabel) =>
         html`<div class="monospace-label">${formatSpanLabel(d)}</div>`;
 
     // Non-editable render for span labels.
-    const renderSpanLabelsNonEditable = () => {
-      return html`<div>${
+    const renderSpanLabelsNonEditable =
+        () => html`<div>${
           value ? (value as SpanLabel[]).map(renderSpanLabel) : null}</div>`;
-    };
-    // Non-editable render for edge labels.
+
+          // Non-editable render for edge labels.
     const renderEdgeLabelsNonEditable = () => {
       const renderLabel = (d: EdgeLabel) => {
         return html`<div class="monospace-label">${formatEdgeLabel(d)}</div>`;
@@ -546,7 +606,7 @@ export class DatapointEditorModule extends LitModule {
     const entryContentClasses = {
       'entry-content': true,
       'entry-content-long': false,
-      'left-align': false
+      'left-align': false,
     };
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const {vocab} = fieldSpec as LitTypeWithVocab;
@@ -591,11 +651,15 @@ export class DatapointEditorModule extends LitModule {
       }
     };
 
-    // TODO(lit-team): Have better indication of model inputs vs other fields.
-    // TODO(lit-team): Should we also display optional input fields that aren't
-    // in the dataset? b/157985221.
-    const isRequiredModelInput =
-        this.appState.currentModelRequiredInputSpecKeys.includes(key);
+    let toolTipContent = '';
+
+    if (isInvalidNumber) {
+        const [minVal, maxVal] = this.numericFieldRanges[key];
+        toolTipContent = `Please choose a value between ${minVal} and
+          ${maxVal}.`;
+    } else if (renderError) {
+      toolTipContent = `Please enter a valid value for the ${key} field.`;
+    }
 
     let headerContent = html`${isRequiredModelInput ? '*' : ''}${key}`;
     if (fieldSpec instanceof URLLitType) {
@@ -629,6 +693,11 @@ export class DatapointEditorModule extends LitModule {
         <div class='field-header'>
           <div class='field-name'>${headerContent}</div>
           <div class='field-type'>${fieldSpec.name}</div>
+          <lit-tooltip content=${toolTipContent}>
+            <mwc-icon slot="tooltip-anchor" class="${errorIconClasses}">
+              ${renderError ? 'error' : null}
+            </mwc-icon>
+          </lit-tooltip>
         </div>
         <div class=${classMap(entryContentClasses)}>
           ${renderInput()}
@@ -650,7 +719,7 @@ export class DatapointEditorModule extends LitModule {
   renderTokensInput(
       key: string, value: string[],
       handleInputChange: (e: Event, converterFn: InputConverterFn) => void,
-      dynamicTokenLength: boolean = true) {
+      dynamicTokenLength = true) {
     const tokenValues = value == null ? [] : [...value];
     const tokenRenders = [];
     for (let i = 0; i < tokenValues.length; i++) {
@@ -695,7 +764,7 @@ export class DatapointEditorModule extends LitModule {
       const handleTokenFocusOut = (e: Event) => {
         // Reset our editingTokenIndex after a timeout so as to allow for
         // the delete token button to be pressed, as that also removes focus.
-        setTimeout(() => {
+        window.setTimeout(() => {
           if (this.editingTokenIndex === i) {
             this.editingTokenIndex = -1;
           }

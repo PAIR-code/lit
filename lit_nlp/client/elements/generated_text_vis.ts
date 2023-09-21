@@ -17,8 +17,8 @@
 
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
@@ -31,20 +31,19 @@ import {styles} from './generated_text_vis.css';
 /** Generated text display, with optional diffs. */
 @customElement('generated-text-vis')
 export class GeneratedTextVis extends ReactiveElement {
-  /* Data binding */
-  @observable @property({type: String}) fieldName?: string;
-  @observable
-  @property({type: Array})
-  candidates: ScoredTextCandidates = [];
-  @observable @property({type: String}) referenceFieldName?: string;
+  // Data bindings used in computed properties.
+  @observable @property({type: Array}) candidates: ScoredTextCandidates = [];
   @observable @property({type: Array}) referenceTexts: ScoredTextCandidates = [];
   // Optional model scores for the target texts.
   @observable @property({type: Array}) referenceModelScores: number[] = [];
-
   @observable @property({type: String}) diffMode: DiffMode = DiffMode.NONE;
-  @observable @property({type: Boolean}) highlightMatch: boolean = false;
   @observable @property({type: Number}) selectedIdx = 0;
   @observable @property({type: Number}) selectedRefIdx = 0;
+
+  // Data bindings only used in the render loop.
+  @property({type: String}) fieldName?: string;
+  @property({type: String}) referenceFieldName?: string;
+  @property({type: Boolean}) highlightMatch = false;
 
   static override get styles() {
     return [sharedStyles, styles];

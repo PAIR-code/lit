@@ -21,7 +21,7 @@ import {toJS} from 'mobx';
 
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
-import {LitCanonicalLayout} from '../lib/types';
+import {IndexedInput, LitCanonicalLayout} from '../lib/types';
 import {AttentionModule} from '../modules/attention_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
 
@@ -41,25 +41,25 @@ const MOCK_LAYOUT: LitCanonicalLayout = {
       'attention-module',
     ],
   },
+  left: {},
   layoutSettings: {hideToolbar: true, mainHeight: 90, centerPage: true},
   description: 'Mock layout for testing.'
 };
 
 describe('modules service test', () => {
-  let appState: AppState, modulesService: ModulesService;
+  let appState: AppState;
+  let modulesService: ModulesService;
+
   beforeEach(async () => {
     // Set up.
     const app = new LitApp();
     // tslint:disable-next-line:no-any (to spyOn a private method)
     spyOn<any>(app.getService(ApiService), 'queryServer').and.returnValue(null);
     appState = app.getService(AppState);
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness.)
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
 
     appState.metadata = mockMetadata;
     await appState.setCurrentModels(['sst_0_micro']);
-    appState.setCurrentDataset('sst_dev');
+    appState.setDatasetForTest('sst_dev', new Map<string, IndexedInput>());
     // Stop all calls to the backend (causes test flakiness.)
     modulesService = app.getService(ModulesService);
   });
@@ -73,7 +73,7 @@ describe('modules service test', () => {
 
   it('tests initializeLayout', () => {
     modulesService.initializeLayout(
-        MOCK_LAYOUT, appState.currentModelSpecs, appState.currentDatasetSpec,
+        MOCK_LAYOUT, appState.currentModelInfos, appState.currentDatasetSpec,
         false);
     expect(modulesService.declaredLayout).toEqual(MOCK_LAYOUT);
   });
@@ -82,7 +82,7 @@ describe('modules service test', () => {
     modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = false;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the component groups are the same.
@@ -104,7 +104,7 @@ describe('modules service test', () => {
     modulesService.declaredLayout = MOCK_LAYOUT;
     const compareExamples = true;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
@@ -118,7 +118,7 @@ describe('modules service test', () => {
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = false;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules
@@ -132,7 +132,7 @@ describe('modules service test', () => {
     await appState.setCurrentModels(['sst_0_micro', 'sst_1_micro']);
     const compareExamples = true;
     modulesService.updateRenderLayout(
-        appState.currentModelSpecs, appState.currentDatasetSpec,
+        appState.currentModelInfos, appState.currentDatasetSpec,
         compareExamples);
 
     // Check that the render configs duplicated correctly for the modules

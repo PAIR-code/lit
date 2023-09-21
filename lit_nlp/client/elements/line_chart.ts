@@ -19,21 +19,20 @@
 import '../elements/spinner';
 
 import * as d3 from 'd3';
-import {property} from 'lit/decorators';
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {observable} from 'mobx';
+import {html} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
+
 import {ReactiveElement} from '../lib/elements';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 import {styles} from './line_chart.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * Line chart visualization component.
  */
 @customElement('line-chart')
 export class LineChart extends ReactiveElement {
-  @observable @property({type: Object}) scores = new Map<number, number>();
+  @property({type: Object}) scores = new Map<number, number>();
   @property({type: Number}) margin = 30;  // Default margin size.
   @property({type: Number}) width = 0;
   @property({type: Number}) height = 0;

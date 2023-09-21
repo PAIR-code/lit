@@ -24,8 +24,10 @@ and is tested for compatibility. This version supports applying LIME to text
 input, also in case of regression and binary-classification where the
 prediction function only outputs a scalar for each input sentence.
 """
+
+from collections.abc import Callable, Iterable, Sequence
 import functools
-from typing import Any, Callable, Iterable, Optional, Sequence
+from typing import Any, Optional
 from lit_nlp.components.citrus import helpers
 from lit_nlp.components.citrus import utils
 import numpy as np
@@ -143,7 +145,7 @@ def explain(
 
   masks = sample_masks(num_samples + 1, len(tokens), seed=seed)
   assert masks.shape[0] == num_samples + 1, 'Expected num_samples + 1 masks.'
-  all_true_mask = np.ones_like(masks[0], dtype=np.bool)
+  all_true_mask = np.ones_like(masks[0], dtype=bool)
   masks[0] = all_true_mask  # First mask is the full sentence.
 
   perturbations = list(get_perturbations(tokens, masks, mask_token))

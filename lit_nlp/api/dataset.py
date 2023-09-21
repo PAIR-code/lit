@@ -13,26 +13,57 @@
 # limitations under the License.
 # ==============================================================================
 """Base classes for LIT models."""
+from collections.abc import Callable, Mapping, Sequence
+import hashlib
 import glob
 import inspect
 import os
 import random
-from types import MappingProxyType  # pylint: disable=g-importing-member
-from typing import cast, Optional, Callable, Mapping, Sequence
+import types
+from typing import Optional, Union, cast
 
 from absl import logging
-
-from lit_nlp.api import types
+from lit_nlp.api import types as lit_types
 from lit_nlp.lib import serialize
 from lit_nlp.lib import utils
 
-JsonDict = types.JsonDict
-IndexedInput = types.IndexedInput
-ExampleId = types.ExampleId
-Spec = types.Spec
+ExampleId = lit_types.ExampleId
+IdFnType = Callable[[lit_types.JsonDict], lit_types.ExampleId]
+IndexedInput = lit_types.IndexedInput
+JsonDict = lit_types.JsonDict
+Spec = lit_types.Spec
 
 LIT_FILE_EXTENSION = '.lit.jsonl'
 LIT_SPEC_EXTENSION = '.spec'
+
+INPUT_ID_FIELD = '_id'
+INPUT_META_FIELD = '_meta'
+INPUT_INTERNAL_FIELDS = (INPUT_ID_FIELD, INPUT_META_FIELD)
+
+
+# This is used here and in caching.py, but we define here to avoid a circular
+# dependency of dataset -> caching -> model -> dataset
+def input_hash(example: lit_types.JsonDict) -> lit_types.ExampleId:
+  """Create stable hash of an input example."""
+  raw_example = {
+      k: v for k, v in example.items()
+      if k not in INPUT_INTERNAL_FIELDS
+  }
+  json_str = serialize.to_json(raw_example, simple=True, sort_keys=True)
+  return lit_types.ExampleId(hashlib.md5(json_str.encode('utf-8')).hexdigest())
+
+
+def write_examples(examples: Sequence[JsonDict], path: str):
+  """Write examples to disk as LIT JSONL format."""
+  with open(path, 'w') as fd:
+    for ex in examples:
+      fd.write(serialize.to_json(ex) + '\n')
+
+
+def write_spec(spec: Spec, path: str):
+  """Write spec to disk as LIT JSON format."""
+  with open(path, 'w') as fd:
+    fd.write(serialize.to_json(spec, indent=2))
 
 
 class SliceWrapper(object):
@@ -98,6 +129,33 @@ class Dataset(object):
     """
     return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
 
+  @classmethod
+  def init_spec(cls) -> Optional[lit_types.Spec]:
+    """Attempts to infer a Spec describing a Dataset's constructor parameters.
+
+    The Dataset base class attempts to infer a Spec for the constructor using
+    `lit_nlp.api.types.infer_spec_for_func()`.
+
+    If successful, this function will return a `dict[str, LitType]`. If
+    unsucessful (i.e., the inferencer raises a `TypeError` because it encounters
+    a parameter that it not supported by `infer_spec_for_func()`), this function
+    will return None, log a warning describing where and how the inferencing
+    failed, and LIT users **will not** be able to load new instances of this
+    Dataset from the UI.
+
+    Returns:
+      A Spec representation of the Dataset's constructor, or None if a Spec
+      could not be inferred.
+    """
+    try:
+      spec = lit_types.infer_spec_for_func(cls.__init__)
+    except TypeError as e:
+      spec = None
+      logging.warning(
+          "Unable to infer init spec for dataset '%s'. %s", cls.__name__, str(e)
+      )
+    return spec
+
   def load(self, path: str):
     """Load and return additional previously-saved datapoints for this dataset.
 
@@ -157,8 +215,11 @@ class Dataset(object):
       examples = rng.sample(self.examples, n)
     else:
       logging.warning(
-          'Requested sample %d is larger than dataset size %d; returning full dataset.',
-          n, len(self.examples))
+          'Requested sample %d is larger than dataset size %d; returning full'
+          ' dataset.',
+          n,
+          len(self.examples),
+      )
       examples = list(self.examples)
     return Dataset(examples=examples, base=self)
 
@@ -171,7 +232,7 @@ class Dataset(object):
     # random.shuffle will shuffle in-place; use sample to make a new list.
     return self.sample(n=len(self), seed=seed)
 
-  def remap(self, field_map: dict[str, str]):
+  def remap(self, field_map: Mapping[str, str]):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
@@ -188,39 +249,63 @@ class Dataset(object):
     return serialize.to_json(lit_example).encode('utf-8')
 
 
-IdFnType = Callable[[types.Input], ExampleId]
-
-
 class IndexedDataset(Dataset):
   """Dataset with additional indexing information."""
 
   _index: dict[ExampleId, IndexedInput] = {}
 
-  def index_inputs(self, examples: list[types.Input]) -> list[IndexedInput]:
-    """Create indexed versions of inputs."""
-    # pylint: disable=g-complex-comprehension not complex, just a line-too-long
-    return [
-        IndexedInput(
-            data=example,
-            id=self.id_fn(example),
-            meta=types.InputMetadata(added=None, parentId=None, source=None))
-        for example in examples
-    ]
-    # pylint: enable=g-complex-comprehension
+  def _normalize_example(
+      self, data: JsonDict, ex_id: ExampleId, meta: lit_types.InputMetadata
+  ):
+    return types.MappingProxyType(dict(data, _id=ex_id, _meta=meta))
 
-  def __init__(self,
-               *args,
-               id_fn: Optional[IdFnType] = None,
-               indexed_examples: Optional[list[IndexedInput]] = None,
-               **kw):
+  def index_inputs(
+      self, examples: list[lit_types.JsonDict]
+  ) -> list[IndexedInput]:
+    """Create indexed versions of inputs."""
+    indexed = []
+    for example in examples:
+      ex_id = example.get(INPUT_ID_FIELD, self.id_fn(example))
+      ex_meta = example.get(
+          INPUT_META_FIELD,
+          lit_types.InputMetadata(added=None, parentId=None, source=None),
+      )
+      indexed.append(
+          IndexedInput(
+              data=types.MappingProxyType(
+                  example | {INPUT_ID_FIELD: ex_id, INPUT_META_FIELD: ex_meta}
+              ),
+              id=ex_id,
+              meta=ex_meta,
+          )
+      )
+    return indexed
+
+  def __init__(
+      self,
+      *args,
+      id_fn: Optional[IdFnType] = None,
+      indexed_examples: Optional[list[IndexedInput]] = None,
+      **kw,
+  ):
+    # The base Dataset class will initialize self._examples in this call to
+    # super().__init__(), which may or may not include the _id and _meta fields.
     super().__init__(*args, **kw)
-    assert id_fn is not None, 'id_fn must be specified.'
-    self.id_fn = id_fn
+    self.id_fn = id_fn if id_fn is not None else input_hash
+
     if indexed_examples:
       self._indexed_examples = indexed_examples
-      self._examples = [ex['data'] for ex in indexed_examples]
+      # Ensure that all indexed exampls provide a readonly view of their data.
+      for ie in self._indexed_examples:
+        if not isinstance((ie_data := ie['data']), types.MappingProxyType):
+          ie['data'] = self._normalize_example(ie_data, ie['id'], ie['meta'])
     else:
       self._indexed_examples = self.index_inputs(self._examples)
+
+    self._examples = [
+        self._normalize_example(ex['data'], ex['id'], ex.get('meta', {}))
+        for ex in self._indexed_examples
+    ]
     self._index = {ex['id']: ex for ex in self._indexed_examples}
 
   @property
@@ -231,7 +316,8 @@ class IndexedDataset(Dataset):
       return IndexedDataset(
           indexed_examples=self.indexed_examples[slice_obj],
           id_fn=self.id_fn,
-          base=self)
+          base=self
+      )
 
     return SliceWrapper(_slicer)
 
@@ -247,7 +333,7 @@ class IndexedDataset(Dataset):
   @property
   def index(self) -> Mapping[ExampleId, IndexedInput]:
     """Return a read-only view of the index."""
-    return MappingProxyType(self._index)
+    return types.MappingProxyType(self._index)
 
   def save(self, examples: list[IndexedInput], path: str):
     """Save newly-created datapoints to disk.
@@ -263,16 +349,12 @@ class IndexedDataset(Dataset):
     # datasets can override. Then also save in the lit json format and save
     # the spec as well.
     if not path.endswith(LIT_FILE_EXTENSION):
-      self._base.save(examples, path)
+      if (base_dataset := self._base) is not None:
+        base_dataset.save(examples, path)
       path += LIT_FILE_EXTENSION
 
-    with open(path, 'w') as fd:
-      for ex in examples:
-        fd.write(serialize.to_json(ex) + '\n')
-
-    spec_path = path + LIT_SPEC_EXTENSION
-    with open(spec_path, 'w') as fd:
-      fd.write(serialize.to_json(self.spec()))
+    write_examples(examples, path)
+    write_spec(self.spec(), path + LIT_SPEC_EXTENSION)
 
     return path
 
@@ -290,7 +372,9 @@ class IndexedDataset(Dataset):
       # Try to load data using the base load method. If any data is
       # returned, then use that. Otherwise try loading the lit json extension
       # data format.
-      new_dataset = self._base.load(path)
+      base_dataset = self._base
+      new_dataset = base_dataset.load(path) if base_dataset else None
+
       if new_dataset is not None:
         description = (f'{len(new_dataset)} examples from '
                        f'{path}\n{self._base.description()}')
@@ -310,9 +394,13 @@ class IndexedDataset(Dataset):
     if os.path.exists(spec_path):
       with open(spec_path, 'r') as fd:
         spec = serialize.from_json(fd.read())
+    else:
+      spec = None
 
-    description = (f'{len(examples)} examples from '
-                   f'{path}\n{self._base.description()}')
+    description = f'{len(examples)} examples from {path}'
+    if self._base is not None:
+      description += '\n' + self._base.description()
+
     return IndexedDataset(
         base=self._base,
         indexed_examples=examples,
@@ -329,6 +417,32 @@ class IndexedDataset(Dataset):
     return self_ids == other_ids
 
 
+def load_lit_format(
+    path: str, *args, id_fn=input_hash, **kw
+) -> Union[Dataset, IndexedDataset]:
+  """Load data from LIT jsonl format."""
+  with open(path + LIT_SPEC_EXTENSION, 'r') as fd:
+    spec = serialize.from_json(fd.read())
+
+  with open(path, 'r') as fd:
+    examples = [serialize.from_json(line) for line in fd.readlines()]
+
+  first_example_keys = set(ex.keys() if (ex := examples[0]) else [])
+  # TODO(b/294233896): remove this once input representations are consolidated.
+  if first_example_keys.issuperset({'id', 'data'}):
+    return IndexedDataset(
+        spec=spec,
+        indexed_examples=cast(list[lit_types.IndexedInput], examples),
+        id_fn=id_fn,
+        *args,
+        **kw,
+    )
+  else:
+    return Dataset(spec=spec, examples=examples, *args, **kw)
+
+
+# TODO(b/202210900): Remove "NoneDataset" once the LIT front-end constructs its
+# own "NoneDataset" equivalent.
 class NoneDataset(Dataset):
   """Empty dataset, with fields as the union of model specs."""
 
@@ -339,15 +453,7 @@ class NoneDataset(Dataset):
   def spec(self):
     combined_spec = {}
     for _, model in self._models.items():
-      req_inputs = {k: v for (k, v) in model.spec().input.items() if v.required}
-      # Ensure that there are no conflicting spec keys.
-      assert not self.has_conflicting_keys(combined_spec, req_inputs)
-      combined_spec.update(req_inputs)
+      req_inputs = {k: v for (k, v) in model.input_spec().items() if v.required}
+      combined_spec = utils.combine_specs(combined_spec, req_inputs)
 
     return combined_spec
-
-  def has_conflicting_keys(self, spec0: Spec, spec1: Spec):
-    for k, v in spec0.items():
-      if k in spec1 and spec1[k] != v:
-        return True
-    return False

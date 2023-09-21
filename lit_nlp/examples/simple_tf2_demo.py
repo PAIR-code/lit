@@ -24,8 +24,10 @@ To run locally:
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
@@ -37,6 +39,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 # Use the regular GLUE data loaders, because these are very simple already.
 from lit_nlp.examples.datasets import glue
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 
 import tensorflow as tf
@@ -52,9 +55,12 @@ _MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
     "Path to trained model, in standard transformers format, e.g. as "
-    "saved by model.save_pretrained() and tokenizer.save_pretrained()")
+    "saved by model.save_pretrained() and tokenizer.save_pretrained()"
+)
 
-TFSequenceClassifierOutput = transformers.modeling_tf_outputs.TFSequenceClassifierOutput
+TFSequenceClassifierOutput = (
+    transformers.modeling_tf_outputs.TFSequenceClassifierOutput
+)
 
 
 def _from_pretrained(cls, *args, **kw):
@@ -68,7 +74,7 @@ def _from_pretrained(cls, *args, **kw):
     return cls.from_pretrained(*args, from_pt=True, **kw)
 
 
-class SimpleSentimentModel(lit_model.Model):
+class SimpleSentimentModel(lit_model.BatchedModel):
   """Simple sentiment analysis model."""
 
   LABELS = ["0", "1"]  # negative, positive
@@ -91,7 +97,7 @@ class SimpleSentimentModel(lit_model.Model):
   ##
   # LIT API implementation
   def max_minibatch_size(self):
-    # This tells lit_model.Model.predict() how to batch inputs to
+    # This tells lit_model.BatchedModel.predict() how to batch inputs to
     # predict_minibatch().
     # Alternately, you can just override predict() and handle batching yourself.
     return 32
@@ -161,7 +167,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # extract to the transformers cache.
   model_path = _MODEL_PATH.value
   if model_path.endswith(".tar.gz"):
-    model_path = transformers.file_utils.cached_path(
+    model_path = file_cache.cached_path(
         model_path, extract_compressed_file=True)
 
   # Load the model we defined above.

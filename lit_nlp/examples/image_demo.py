@@ -6,8 +6,10 @@ To run:
 Then navigate to localhost:5432 to access the demo UI.
 """
 
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
+
 from absl import app
 from absl import flags
 from absl import logging
@@ -16,7 +18,6 @@ from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.components import classification_results
 from lit_nlp.components import image_gradient_maps
-
 from lit_nlp.examples.datasets import imagenette
 from lit_nlp.examples.models import mobilenet
 
@@ -26,6 +27,15 @@ FLAGS = flags.FLAGS
 FLAGS.set_default('development_demo', True)
 FLAGS.set_default('warm_start', 1)
 FLAGS.set_default('page_title', 'LIT Image Demo')
+
+_MAX_EXAMPLES = flags.DEFINE_integer(
+    'max_examples',
+    None,
+    (
+        'Maximum number of examples to load into LIT. '
+        'Set --max_examples=200 for a quick start.'
+    ),
+)
 
 
 def get_wsgi_app():
@@ -42,15 +52,15 @@ def get_wsgi_app():
 
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
-DEMO_LAYOUT = layout.LitComponentLayout(
-    components={
-        'Main': [
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-        ],
+DEMO_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        'Main': [modules.DataTableModule, modules.DatapointEditorModule],
+    },
+    lower={
         'Predictions': [modules.ClassificationModule, modules.ScalarModule],
         'Explanations': [
-            modules.ClassificationModule, modules.SalienceMapModule
+            modules.ClassificationModule,
+            modules.SalienceMapModule,
         ],
     },
     description='Basic layout for image demo',
@@ -62,16 +72,17 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     raise app.UsageError('Too many command-line arguments.')
 
   datasets = {'imagenette': imagenette.ImagenetteDataset()}
+  # Truncate datasets if --max_examples is set.
+  if _MAX_EXAMPLES.value is not None:
+    for name in datasets:
+      logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
+      datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
+      logging.info('  truncated to %d examples', len(datasets[name]))
+
   models = {'mobilenet': mobilenet.MobileNet()}
   interpreters = {
       'classification': classification_results.ClassificationInterpreter(),
-      'Grad': image_gradient_maps.VanillaGradients(),
-      'Integrated Gradients': image_gradient_maps.IntegratedGradients(),
-      'Blur IG': image_gradient_maps.BlurIG(),
-      'Guided IG': image_gradient_maps.GuidedIG(),
-      'XRAI': image_gradient_maps.XRAI(),
-      'XRAI GIG': image_gradient_maps.XRAIGIG(),
-  }
+  } | image_gradient_maps.all_interpreters()
 
   lit_demo = dev_server.Server(
       models,

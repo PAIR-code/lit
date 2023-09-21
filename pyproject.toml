@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lit-nlp"
+version = "1.0.0"
+authors = [
+  { name="Google, LLC", email="lit-dev@google.com" }
+]
+description = "🔥LIT: The Learning Interpretability Tool"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+# LINT.IfChange
+dependencies = [
+  "absl-py==1.4.0",
+  "annoy==1.17.3",
+  "attrs==22.1.0",
+  "etils[epath]==1.3.0",
+  "filelock==3.12.2",
+  "google-cloud-translate==3.11.1",
+  "ipython==8.14.0",
+  "Levenshtein==0.21.1",
+  "matplotlib==3.6.1",
+  "ml-collections==0.1.1",
+  "numpy==1.24.1",
+  "pandas==1.5.3",
+  "Pillow==10.0.0",
+  "portpicker==1.5.2",
+  "requests==2.31.0",
+  "rouge-score==0.1.2",
+  "sacrebleu==2.3.1",
+  "saliency==0.1.3",
+  "scikit-learn==1.0.2",
+  "scipy==1.10.1",
+  "shap==0.37.0",
+  "six==1.16.0",
+  "tensorflow==2.10.0",
+  "tensorflow-text==2.10.0",
+  "termcolor==2.3.0",
+  "tqdm==4.64.0",
+  "umap-learn==0.5.1",
+  "werkzeug==2.3.6",
+]
+# LINT.ThenChange(./requirements_core.txt)
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: Jupyter",
+  "Framework :: Pytest",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: JavaScript",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Topic :: Scientific/Engineering :: Visualization",
+  "Typing :: Typed",
+]
+keywords = [
+  "interpretability",
+  "interpretable artifical intelligence",
+  "explainable",
+  "explainable artifical intelligence",
+  "XAI",
+  "computer vision",
+  "natural language processing",
+  "artifical intelligence",
+  "machine learning",
+  "deep learning",
+  "visualization",
+  "visual analytics",
+  "tensorflow",
+  "tf",
+  "torch",
+]
+
+[project.optional-dependencies]
+# LINT.IfChange
+examples = [
+  "gunicorn==20.1.0",
+  "tensorflow-datasets==4.8.0",
+  "torch==2.0.1",
+  "transformers==4.27.1",
+]
+# LINT.ThenChange(./requirements_examples.txt)
+# LINT.IfChange
+test = [
+  "lime==0.2.0.1",
+  "pytest==7.4.0",
+]
+# LINT.ThenChange(./requirements_test.txt)
+
+[project.urls]
+"Homepage" = "https://github.com/pair-code/lit"
+"Repository" = "https://github.com/PAIR-code/lit"
+"Bug Tracker" = "https://github.com/PAIR-code/lit/issues"
+
+[tool.setuptools.packages.find]
+include = ["lit_nlp*"]
+exclude = ["*_test"]

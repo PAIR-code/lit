@@ -8,7 +8,7 @@ layout: layouts/main.liquid
 {% include partials/display1 text:"The Learning Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
 
 {% include partials/home-cta-button text:"Take a tour", link:"/tutorials/tour" %}
-{% include partials/home-cta-button text:"Setup LIT", link:"/setup" %}
+{% include partials/home-cta-button text:"Setup LIT", link:"/documentation/getting_started.html" %}
 
 {% include partials/spacer height:60 %}
 
@@ -104,12 +104,12 @@ And more...
 
 <div class="mdl-grid no-padding">
   {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES',
-  title: 'Version 0.5', desc: 'Tabular feature attribution, Dive, and many more new features, updates, and improvements to LIT.',
+  title: 'Version 1.0', desc: 'New three-panel layout, dynamic model & data loading, improved APIs, and more.',
   cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'DOCS',
   title: 'Documentation', desc: 'LIT is open-source and easily extensible to new models, tasks, and more.',
-  cta-text:"View documentation", link: 'https://github.com/PAIR-code/lit/wiki', external:"true" %}
+  cta-text:"View documentation", link: '/documentation/', external:"true" %}
 
   {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH',
   title: 'Demo Paper at EMNLP ‘20', desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.',

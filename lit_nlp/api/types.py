@@ -25,16 +25,20 @@ segments or class labels, while the output spec describes how the model output
 should be rendered.
 """
 import abc
+from collections.abc import Callable, Mapping, Sequence
 import enum
+import inspect
 import math
 import numbers
-from typing import Any, NewType, Optional, Sequence, Type, TypedDict, Union
+import os
+from typing import Any, get_args, get_origin, NewType, Optional, TypedDict, Union
 
 import attr
+from etils import epath
 from lit_nlp.api import dtypes
 import numpy as np
 
-JsonDict = dict[str, Any]
+JsonDict = Mapping[str, Any]
 Input = NewType("Input", JsonDict)
 ExampleId = NewType("ExampleId", str)
 ScoredTextCandidates = Sequence[tuple[str, Optional[float]]]
@@ -51,7 +55,7 @@ class InputMetadata(TypedDict):
 
 
 class IndexedInput(TypedDict):
-  data: Input
+  data: JsonDict
   id: ExampleId
   meta: InputMetadata
 
@@ -121,6 +125,7 @@ class LitType(metaclass=abc.ABCMeta):
   def to_json(self) -> JsonDict:
     """Used by serialize.py."""
     d = attr.asdict(self)
+    d["__class__"] = "LitType"
     d["__name__"] = self.__class__.__name__
     return d
 
@@ -140,7 +145,7 @@ class LitType(metaclass=abc.ABCMeta):
       TypeError: If `d["__name__"]` is not a string.
     """
     try:
-      type_name = d.pop("__name__")
+      type_name = d["__name__"]
     except KeyError as e:
       raise KeyError("A __name__ property is required to parse a LitType from "
                      "JSON.") from e
@@ -153,7 +158,7 @@ class LitType(metaclass=abc.ABCMeta):
     if cls is None or not issubclass(cls, base_cls):
       raise NameError(f"{type_name} is not a valid LitType.")
 
-    return cls(**d)
+    return cls(**{k: d[k] for k in d if k != "__name__"})
 
 Spec = dict[str, LitType]
 
@@ -309,6 +314,12 @@ class TopTokens(_StringCandidateList):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class ImageBytesList(ListLitType):
+  """A list of ImageBytes."""
+  default: Sequence[Any] = []
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class URLLitType(TextSegment):
   """TextSegment that should be interpreted as a URL."""
   pass
@@ -425,6 +436,29 @@ class RegressionScore(Scalar):
     if self.parent and not isinstance(dataset_spec[self.parent], Scalar):
       raise ValueError(f"parent field {self.parent} is of type "
                        f"{type(self.parent)}, expected Scalar")
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class _FloatList(ListLitType):
+  """A variable-length list of floats. Not the same as a 1D tensor."""
+
+  default: Sequence[float] = []
+
+  def validate_input(self, value, spec: Spec, example: Input):
+    if not isinstance(value, list) or not all(
+        [isinstance(v, float) for v in value]
+    ):
+      raise ValueError(f"{value} is not a list of floats")
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class TokenScores(_FloatList):
+  """Scores, aligned to tokens.
+
+  The data should be a list of floats, one for each token.
+  """
+
+  align: str  # name of Tokens field
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
@@ -671,20 +705,6 @@ class Gradients(_GradientsBase):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
-class _InfluenceEncodings(_Tensor):
-  """A single vector of <float>[enc_dim]."""
-  grad_target: Optional[str] = None  # class for computing gradients (string)
-
-  def validate_output(self, value, output_spec: Spec, output_dict: JsonDict,
-                      input_spec: Spec, dataset_spec: Spec,
-                      input_example: Input):
-    super().validate_output(
-        value, output_spec, output_dict, input_spec, dataset_spec,
-        input_example)
-    self.validate_ndim(value, 1)
-
-
-@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class TokenEmbeddings(_Tensor):
   """Per-token embeddings, as <float>[num_tokens, emb_dim]."""
   align: Optional[str] = None  # name of a Tokens field
@@ -894,6 +914,20 @@ class MetricResult(LitType):
   best_value: MetricBestValue = MetricBestValue.NONE
 
 
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class Integer(Scalar):
+  step: int = 1
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class SalienceTargetInfo(LitType):
+  """Target information for salience interpreters, used in config_spec().
+
+  Value is a dict with keys 'field' (str) and 'index' (Optional[int]).
+  """
+  default: Optional[Mapping[str, Any]] = None
+
+
 # LINT.ThenChange(../client/lib/lit_types.ts)
 
 # Type aliases for backend use.
@@ -904,7 +938,127 @@ String = StringLitType
 URL = URLLitType
 
 
-def get_type_by_name(typename: str) -> Type[LitType]:
+def get_type_by_name(typename: str) -> type[LitType]:
   cls = globals()[typename]
   assert issubclass(cls, LitType)
   return cls
+
+
+# A map from Python's native type annotations to their LitType corollary for use
+# by infer_spec_for_func().
+_INFERENCE_TYPES_TO_LIT_TYPES: dict[type[Any], Callable[..., LitType]] = {
+    bool: Boolean,
+    Optional[bool]: Boolean,
+    float: Scalar,
+    Optional[float]: Scalar,
+    Union[float, int]: Scalar,
+    Optional[Union[float, int]]: Scalar,
+    int: Integer,
+    Optional[int]: Integer,
+    str: String,
+    Optional[str]: String,
+    epath.PathLike: String,
+    Optional[epath.PathLike]: String,
+    os.PathLike[str]: String,
+    Optional[os.PathLike[str]]: String,
+}
+
+
+def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
+  """Infers a Spec from the arguments of a Callable's signature.
+
+  LIT uses
+  [Specs](https://pair-code.github.io/lit/documentation/api.md#type-system)
+  as a mechanism to communicate how the web app should construct user interface
+  elements to enable user input for certain tasks, such as parameterizing an
+  Interpreter or loading a Model or Dataset at runtime. This includes
+  information about the type, default value (if any), required status, etc. of
+  the arguments to enable robust construction of HTML input elements.
+
+  As many LIT components are essentially Python functions that can be
+  parameterized and run via the LIT web app, this function exists to automate
+  the creation of Specs for some use cases, e.g., the `init_spec()` API of
+  `lit_nlp.api.dataset.Dataset` and `lit_nlp.api.model.Model` classes. It
+  attempts to infer a Spec for the Callable passed in as the value of `func` by:
+
+  1.  Using `inspect.signature()` to retreive the Callable's signature info;
+  2.  Processing `signature.parameters` to transform them into a corollary
+      `LitType` object that is consumable by the web app, either using
+      `Parameter.annotation` or by inferring a type from `Parameter.default`;
+  3.  Adding an entry to a `Spec` dictionary where the key is `Paramater.name`
+      and the value is the `LitType`; and then
+  4.  Returning the `Spec` dictionary after all arguments are processed.
+
+  Due to limitations of LIT's typing system and front-end support for these
+  types, this function is only able to infer Specs for Callables with arguments
+  of the following types (or `Optional` variants thereof) at this time. Support
+  for additional types may be added in the future. A `TypeError` will be raised
+  if this function encounters a type aside from those listed below.
+
+  * `bool` ==> `Boolean()`
+  * `float` ==> `Scalar()`
+  * `int` ==> `Integer()`
+  * `Union[float, int]` ==> `Scalar()`
+  * `str` ==> `String()`
+
+  Specs inferred by this function will not include entries for the `self`
+  parameter of instance methods of classes as this is unnecessary/implied, or
+  for `*args`- or `**kwargs`-like parameters of any funciton as we cannot safely
+  infer how variable arguments will be mutated, passed, or used.
+
+  Args:
+    func: The Callable for which a spec will be inferred.
+
+  Returns:
+    A Spec object where the keys are the parameter names and the values are the
+    `LitType` representation of that parameter (its type, default value, and
+    whether or not it is required).
+
+  Raises:
+    TypeError: If unable to infer a type, the type is not supported, or `func`
+      is not a `Callable`.
+  """
+  if not callable(func):
+    raise TypeError("Attempted to infer a spec for a non-'Callable', "
+                    f"'{type(func)}'.")
+
+  signature = inspect.signature(func)
+  spec: Spec = {}
+
+  def is_param_optional(parameter: inspect.Parameter) -> bool:
+    is_union = get_origin(parameter.annotation) is Union
+    can_be_none = type(None) in get_args(parameter.annotation)
+    return is_union and can_be_none
+
+  for param in signature.parameters.values():
+    if (param.name == "self" or
+        param.kind is param.VAR_KEYWORD or
+        param.kind is param.VAR_POSITIONAL):
+      continue  # self, *args, and **kwargs are not returned in inferred Specs.
+
+    # Otherwise, attempt to infer a type from the Paramater object.
+    if param.annotation is param.empty and param.default is param.empty:
+      raise TypeError(f"Unable to infer a type for parameter '{param.name}' "
+                      f"of '{func.__name__}'. Please add a type hint or "
+                      "default value, or implement a Spec literal.")
+
+    if param.annotation is param.empty:
+      param_type = type(param.default)
+    else:
+      param_type = param.annotation
+
+    if param_type in _INFERENCE_TYPES_TO_LIT_TYPES:
+      lit_type_cstr = _INFERENCE_TYPES_TO_LIT_TYPES[param_type]
+      is_default_empty = param.default is param.empty
+      is_optional = is_param_optional(param) or not is_default_empty
+      lit_type_params = {"required": not is_optional}
+      if not is_default_empty:
+        lit_type_params["default"] = param.default
+      spec[param.name] = lit_type_cstr(**lit_type_params)
+    else:
+      raise TypeError(f"Unsupported type '{param_type}' for parameter "
+                      f"'{param.name}' of '{func.__name__}'. If possible "
+                      "(e.g., this parameter is Optional), please implement a "
+                      "spec literal instead of using inferencing.")
+
+  return spec

@@ -58,8 +58,9 @@ class TestClassificationModel(lit_model.Model):
   def get_embedding_table(self):
     return ([], np.ndarray([]))
 
-  def predict_minibatch(
-      self, inputs: list[lit_model.JsonDict]) -> list[lit_model.JsonDict]:
+  def predict(
+      self, inputs: list[lit_model.JsonDict]
+  ) -> list[lit_model.JsonDict]:
     pass
 
 
@@ -108,8 +109,9 @@ class TestRegressionModel(lit_model.Model):
   def get_embedding_table(self):
     return ([], np.ndarray([]))
 
-  def predict_minibatch(
-      self, inputs: list[lit_model.JsonDict]) -> list[lit_model.JsonDict]:
+  def predict(
+      self, inputs: list[lit_model.JsonDict]
+  ) -> list[lit_model.JsonDict]:
     pass
 
 

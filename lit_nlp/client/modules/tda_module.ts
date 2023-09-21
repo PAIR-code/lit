@@ -16,22 +16,23 @@
  */
 
 import '../elements/interpreter_controls';
+import '../elements/interstitial';
 import '@material/mwc-icon';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement, property} from 'lit/decorators';
+import {customElement, property} from 'lit/decorators.js';
 import {computed, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
+import {FieldMatcher, InfluentialExamples, LitTypeWithParent} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {FieldMatcher, LitTypeWithParent, InfluentialExamples} from '../lib/lit_types';
 import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
-import {cloneSpec, filterToKeys, findSpecKeys} from '../lib/utils';
+import {cloneSpec, filterToKeys, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 
 import {styles} from './tda_module.css';
@@ -141,13 +142,13 @@ export class TrainingDataAttributionModule extends LitModule {
    */
   @computed
   get targetLabelInputKeys(): string[] {
-    const spec = this.appState.getModelSpec(this.model);
-    const referencedKeys =
-        new Set(Object.values(spec.output)
-                    // tslint:disable-next-line:no-any
-                    .filter(v => (v as any).parent != null)
-                    .map(v => (v as LitTypeWithParent).parent));
-    return [...referencedKeys].filter(k => spec.input[k] !== undefined);
+    const {input, output} = this.appState.getModelSpec(this.model);
+    const referencedKeys = new Set<string>();
+    for (const fieldType of Object.values(output)) {
+      const {parent} = fieldType as LitTypeWithParent;
+      if (parent != null) referencedKeys.add(parent);
+    }
+    return [...referencedKeys].filter(k => input[k] !== undefined);
   }
 
   /**
@@ -188,13 +189,7 @@ export class TrainingDataAttributionModule extends LitModule {
     if (this.currentData == null) return undefined;
     if (!Object.keys(this.customLabels).length) return this.currentData;
 
-    const modifiedInputData =
-        Object.assign({}, this.currentData.data, this.customLabels);
-    return {
-      data: modifiedInputData,
-      id: '',
-      meta: {added: true, source: 'tda_custom', parentId: this.currentData.id}
-    };
+    return makeModifiedInput(this.currentData, this.customLabels, 'tda_custom');
   }
 
   static compatibleGenerators(generatorInfo: ComponentInfoMap): string[] {
@@ -443,22 +438,18 @@ export class TrainingDataAttributionModule extends LitModule {
   renderInterstitial() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <img src="static/interstitial-select.png" />
-        <p>
-          <strong>Training Data Attribution</strong>
-          Find training examples that are influential for a given prediction.
-        </p>
-      </div>`;
+      <lit-interstitial headline="Training Data Attribution">
+        Find training examples that are influential for a given prediction.
+      </lit-interstitial>`;
     // clang-format on
   }
 
   renderEmptyNotice() {
     // clang-format off
     return html`
-      <div class="interstitial">
-        <p>No examples generated.</p>
-      </div>`;
+      <lit-interstitial>
+        No examples generated.
+      </lit-interstitial>`;
     // clang-format on
   }
 

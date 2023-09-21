@@ -6,7 +6,9 @@ import {LitElement} from 'lit';
 import {LitApp} from '../core/app';
 import {LitCheckbox} from '../elements/checkbox';
 import {PopupContainer} from '../elements/popup_container';
+import {LitTooltip} from '../elements/tooltip';
 import {mockMetadata} from '../lib/testing_utils';
+import {IndexedInput} from '../lib/types';
 import {AppState, DataService, GroupService} from '../services/services';
 
 import {FacetingControl, FacetsChange} from './faceting_control';
@@ -23,11 +25,8 @@ describe('faceting control test', () => {
     const app = new LitApp();
     const appState = app.getService(AppState);
     const dataService = app.getService(DataService);
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness).
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
     appState.metadata = mockMetadata;
-    appState.setCurrentDataset('sst_dev');
+    appState.setDatasetForTest('sst_dev', new Map<string, IndexedInput>());
 
     const groupService = new GroupService(appState, dataService);
     facetCtrl = new FacetingControl(groupService);
@@ -58,7 +57,7 @@ describe('faceting control test', () => {
     expect(facetingInfo instanceof HTMLDivElement).toBeTrue();
     expect((facetingInfo as HTMLDivElement).className).toEqual('faceting-info');
     const [facetButton, facetList] = facetingInfo.children;
-    expect(facetButton instanceof HTMLButtonElement).toBeTrue();
+    expect(facetButton instanceof LitTooltip).toBeTrue();
     expect(facetList instanceof HTMLDivElement).toBeTrue();
     expect((facetList as HTMLDivElement).className).toEqual(' active-facets ');
     expect(configPanel instanceof HTMLDivElement).toBeTrue();

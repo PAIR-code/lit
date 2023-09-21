@@ -28,6 +28,7 @@ import sacrebleu
 from scipy import stats as scipy_stats
 from scipy.spatial import distance as scipy_distance
 from sklearn import metrics as sklearn_metrics
+from sklearn import preprocessing as sklearn_preprocessing
 
 from rouge_score import rouge_scorer
 
@@ -36,6 +37,8 @@ IndexedInput = types.IndexedInput
 LitType = types.LitType
 Spec = types.Spec
 
+_MultiLabelBinarizer = sklearn_preprocessing.MultiLabelBinarizer
+
 
 def map_pred_keys(
     data_spec: Spec, model_output_spec: Spec,
@@ -43,12 +46,25 @@ def map_pred_keys(
   """Returns a map of compatible output fields and their parent input fields."""
   ret = {}
   for pred_key, pred_spec in model_output_spec.items():
+    if not hasattr(pred_spec, 'parent'):
+      # Skip fields like AttentionHeads that don't define parent= at all.
+      # Don't log for these as this can be very spammy.
+      continue
+
     parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
     if parent_key is None:
       logging.info("Skipping '%s': No parent provided.", pred_key)
       continue
 
-    parent_spec: Optional[LitType] = data_spec.get(parent_key)
+    if parent_key not in data_spec:
+      logging.info(
+          "Skipping '%s': parent field '%s' not found in dataset.",
+          pred_key,
+          parent_key,
+      )
+      continue
+
+    parent_spec: LitType = data_spec[parent_key]
     if predicate(pred_spec, parent_spec):
       ret[pred_key] = parent_key
     else:
@@ -77,60 +93,27 @@ class SimpleMetrics(lit_components.Metrics):
     if model_outputs is None:
       model_outputs = list(model.predict(inputs))
 
-    spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output,
-                              self.is_field_compatible)
+    output_spec = model.output_spec()
+    field_map = map_pred_keys(
+        dataset.spec(), output_spec, self.is_field_compatible
+    )
     ret = []
     for pred_key, label_key in field_map.items():
       # Extract fields
       labels = [ex[label_key] for ex in inputs]
       preds = [mo[pred_key] for mo in model_outputs]
+      indices = [ex.get('_id') for ex in inputs]
+      metas = [ex.get('_meta', {}) for ex in inputs]
       # Compute metrics, as dict(str -> float)
       metrics = self.compute(
           labels,
           preds,
           label_spec=dataset.spec()[label_key],
-          pred_spec=spec.output[pred_key],
-          config=config.get(pred_key) if config else None)
-      # Format for frontend.
-      ret.append({
-          'pred_key': pred_key,
-          'label_key': label_key,
-          'metrics': nan_to_none(metrics)
-      })
-    return ret
-
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None) -> list[JsonDict]:
-    if model_outputs is None:
-      model_outputs = list(model.predict_with_metadata(indexed_inputs))
-
-    # TODO(lit-team): pre-compute this mapping in constructor?
-    # This would require passing a model name to this function so we can
-    # reference a pre-computed list.
-    spec = model.spec()
-    field_map = map_pred_keys(dataset.spec(), spec.output,
-                              self.is_field_compatible)
-    ret = []
-    for pred_key, label_key in field_map.items():
-      # Extract fields
-      labels = [ex['data'][label_key] for ex in indexed_inputs]
-      preds = [mo[pred_key] for mo in model_outputs]
-      indices = [ex['id'] for ex in indexed_inputs]
-      metas = [ex.get('meta', {}) for ex in indexed_inputs]
-      # Compute metrics, as dict(str -> float)
-      metrics = self.compute_with_metadata(
-          labels,
-          preds,
-          label_spec=dataset.spec()[label_key],
-          pred_spec=spec.output[pred_key],
+          pred_spec=output_spec[pred_key],
           indices=indices,
           metas=metas,
-          config=config.get(pred_key) if config else None)
+          config=config.get(pred_key) if config else None,
+      )
       # Format for frontend.
       ret.append({
           'pred_key': pred_key,
@@ -140,6 +123,8 @@ class SimpleMetrics(lit_components.Metrics):
     return ret
 
 
+# TODO(b/254833485): Convert to inherit from lit_components.Metrics so that
+# promotion of Metrics to a top-level class more direct.
 class ClassificationMetricsWrapper(lit_components.Interpreter):
   """Wrapper for classification metrics interpreters.
 
@@ -173,8 +158,9 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
           config: Optional[JsonDict] = None):
     # Get margin for each input for each pred key and add them to a config dict
     # to pass to the wrapped metrics.
-    field_map = map_pred_keys(dataset.spec(),
-                              model.spec().output, self.is_field_compatible)
+    field_map = map_pred_keys(
+        dataset.spec(), model.output_spec(), self.is_field_compatible
+    )
     margin_config = {}
     for pred_key in field_map:
       field_config = config.get(pred_key) if config else None
@@ -185,28 +171,6 @@ class ClassificationMetricsWrapper(lit_components.Interpreter):
       margin_config[pred_key] = margins
     return self._metrics.run(inputs, model, dataset, model_outputs,
                              margin_config)
-
-  def run_with_metadata(self,
-                        indexed_inputs: Sequence[IndexedInput],
-                        model: lit_model.Model,
-                        dataset: lit_dataset.IndexedDataset,
-                        model_outputs: Optional[list[JsonDict]] = None,
-                        config: Optional[JsonDict] = None) -> list[JsonDict]:
-    # Get margin for each input for each pred key and add them to a config dict
-    # to pass to the wrapped metrics.
-    field_map = map_pred_keys(dataset.spec(),
-                              model.spec().output, self.is_field_compatible)
-    margin_config = {}
-    for pred_key in field_map:
-      inputs = [ex['data'] for ex in indexed_inputs]
-      field_config = config.get(pred_key) if config else None
-      margins = [
-          classification_results.get_margin_for_input(field_config, inp)
-          for inp in inputs
-      ]
-      margin_config[pred_key] = margins
-    return self._metrics.run_with_metadata(indexed_inputs, model, dataset,
-                                           model_outputs, margin_config)
 
 
 class RegressionMetrics(SimpleMetrics):
@@ -243,7 +207,9 @@ class RegressionMetrics(SimpleMetrics):
               preds: Sequence[float],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute the MSE and Pearson's & Spearman's R for regression predictions.
 
     Args:
@@ -252,6 +218,8 @@ class RegressionMetrics(SimpleMetrics):
       label_spec: A Scalar spec for the model's label field.
       pred_spec: A RegressionScore spec for the model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the mean squared error (key=`mse`), Pearson's R
@@ -264,7 +232,7 @@ class RegressionMetrics(SimpleMetrics):
         signature will produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del config
+    del config, indices, metas
 
     if not labels or not preds:
       return {}
@@ -387,7 +355,9 @@ class MulticlassMetricsImpl(SimpleMetrics):
               preds: Sequence[np.ndarray],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute standard metrics for multiclass predictions.
 
     Args:
@@ -396,6 +366,8 @@ class MulticlassMetricsImpl(SimpleMetrics):
       label_spec: Unused field spec from super class
       pred_spec: A MulticlassPreds spec for the model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the `accuracy`, `precission`, `recall`, `f1`, `auc`,
@@ -410,7 +382,7 @@ class MulticlassMetricsImpl(SimpleMetrics):
     """
     # TODO(lit-dev): compare on strings instead of converting to indices?
     # This should be more robust to skew in label sets.
-    del label_spec  # Unused; get vocab from pred_spec.
+    del label_spec, indices, metas
 
     if not labels or not preds:
       return {}
@@ -482,15 +454,15 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       pairs.append((id_to_position[parent_id], id_to_position[this_id]))
     return pairs
 
-  def compute_with_metadata(
+  def compute(
       self,
       labels: Sequence[Any],
       preds: Sequence[Any],
       label_spec: LitType,
       pred_spec: LitType,
-      indices: Sequence[types.ExampleId],
-      metas: Sequence[JsonDict],
-      config: Optional[JsonDict] = None) -> dict[str, float]:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute standard paired metrics for multiclass predictions.
 
     Args:
@@ -498,9 +470,9 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
       preds: The models predicted class label, aligned with `labels`.
       label_spec: Unused field spec from the super class.
       pred_spec: A MulticlassPreds spec for the model's prediction field.
+      config: Optional margins for computing classification results.
       indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
       metas: The metadata for each Input, aligned with `preds` and `labels`.
-      config: Optional margins for computing classification results.
 
     Returns:
       A dict containing the `num_pairs`, `swap_rate`, and `mean_jsd` values for
@@ -548,6 +520,160 @@ class MulticlassPairedMetrics(ClassificationMetricsWrapper):
     ClassificationMetricsWrapper.__init__(self, MulticlassPairedMetricsImpl())
 
 
+class MultilabelMetrics(SimpleMetrics):
+  """Metrics for assessing the performance of multi-label learning models."""
+
+  def is_field_compatible(
+      self, pred_spec: types.LitType, parent_spec: Optional[types.LitType]
+  ) -> bool:
+    """Determines the compatibility of a field with these metrics.
+
+    Args:
+      pred_spec: The field in the model's output spec containing the predicted
+        labels, must be a `SparseMultilabelPreds` type.
+      parent_spec: The field in the dataset containing the ground truth, must be
+        a `SparseMultilabel` field.
+
+    Returns:
+      True if the pred_spec and parent_spec pair are compatible.
+    """
+    pred_suppported = isinstance(pred_spec, types.SparseMultilabelPreds)
+    parent_supported = isinstance(parent_spec, types.SparseMultilabel)
+    return pred_suppported and parent_supported
+
+  def meta_spec(self) -> types.Spec:
+    """Returns the Spec describing the computed metrics."""
+    return {
+        'exactmatch': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description=(
+                'Multi-label accuracy is the exact match ratio; the proportion '
+                'of exact matches between the predicted labels and the true '
+                'labels across all examples. Closer to 1 is better.'
+            ),
+        ),
+        'precision': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description=(
+                'The mean proportion of correctly predicted labels out of all '
+                'predicted labels across examples. Closer to 1 is better.'
+            ),
+        ),
+        'recall': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description=(
+                'The mean proportion of correctly predicted labels relative to '
+                'the true labels across examples. Closer to 1 is better.'
+            ),
+        ),
+        'f1': types.MetricResult(
+            best_value=types.MetricBestValue.HIGHEST,
+            description=(
+                'The mean performance of the model (i.e., the harmonic mean of '
+                'precision and recall) across examples. Closer to 1 is better.'
+            ),
+        ),
+    }
+
+  def compute(
+      self,
+      labels: Sequence[Sequence[str]],
+      preds: Sequence[types.ScoredTextCandidates],
+      label_spec: types.LitType,
+      pred_spec: types.LitType,
+      config: Optional[types.JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None
+  ) -> lit_components.MetricsDict:
+    """Computes standard metrics for multi-label classification models.
+
+    Args:
+      labels: Ground truth against which predictions are compared.
+      preds: The predictions made by the model.
+      label_spec: A `SparseMultilabel` instance describing the types of elements
+        in `labels`.
+      pred_spec: A `SparseMultilabelPreds` instance describing the types of
+        elements in `preds`.
+      config: unused parameter from base class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
+
+    Returns:
+      A dict containing the accuracy (exact match ratio), precision, recall, and
+      F1 score for the provided predictions given true labels.
+
+    Raises:
+      TypeError: If `label_spec` is not a `SparseMultilabel` instance or
+        `pred_spec` is not a `SparseMultilabelPreds` instance.
+      ValueError: If `labels` is not the same length as `preds`.
+    """
+    # TODO(b/271864674): Use this config dict to get user-defined thresholds
+    del config, indices, metas  # unused in multi-label metrics, for now.
+
+    if not labels or not preds:
+      return {}
+
+    num_labels = len(labels)
+    num_preds = len(preds)
+    if num_labels != num_preds:
+      raise ValueError(
+          'Must have exactly as many labels as predictions. Received '
+          f'{num_labels} labels and {num_preds} preds.'
+      )
+
+    if not isinstance(label_spec, types.SparseMultilabel):
+      raise TypeError(
+          'label_spec must be a SparseMultilabel, received '
+          f'{type(label_spec).__name__}'
+      )
+
+    if not isinstance(pred_spec, types.SparseMultilabelPreds):
+      raise TypeError(
+          'pred_spec must be a SparseMultilabelPreds, received '
+          f'{type(pred_spec).__name__}'
+      )
+
+    # Learn the complete vocabulary of the possible labels
+    if pred_spec.vocab:     # Try to get the labels from the model's output spec
+      all_labels: list[Sequence[str]] = [pred_spec.vocab]
+    elif label_spec.vocab:  # Or, try to get them from the dataset spec
+      all_labels: list[Sequence[str]] = [label_spec.vocab]
+    else:                   # Otherwise, derive them from the observed labels
+      # WARNING: this is only correct for metrics like precision, recall, and
+      # exact-match accuracy which do not depend on knowing the full label set.
+      # For per-label accuracy this will give incorrect results if not all
+      # labels are observed in a given sample.
+      all_labels: list[Sequence[str]] = []
+      all_labels.extend(labels)
+      all_labels.extend([{l for l, _ in p} for p in preds])
+
+    binarizer = _MultiLabelBinarizer()
+    binarizer.fit(all_labels)
+
+    # Next, extract the labels from the ScoredTextCandidates for binarization.
+    pred_labels = [
+        # TODO(b/271864674): Update this set comprehension to respect
+        # user-defined margins from the config dict or pred_spec.threshold.
+        {l for l, s in p if s is not None and s > 0.5} for p in preds
+    ]
+
+    # Transform the true and predicted labels into the binarized vector space.
+    v_true = binarizer.transform(labels)
+    v_pred = binarizer.transform(pred_labels)
+
+    # Compute and return the metrics
+    return {
+        'exactmatch': sklearn_metrics.accuracy_score(v_true, v_pred),
+        'precision': sklearn_metrics.precision_score(
+            v_true, v_pred, average='samples'
+        ),
+        'recall': sklearn_metrics.recall_score(
+            v_true, v_pred, average='samples'
+        ),
+        'f1': sklearn_metrics.f1_score(v_true, v_pred, average='samples'),
+    }
+
+
 class CorpusBLEU(SimpleMetrics):
   """Corpus BLEU score using SacreBLEU."""
 
@@ -579,7 +705,9 @@ class CorpusBLEU(SimpleMetrics):
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute CorpusBLEU score using the SacreBLEU library.
 
     Args:
@@ -589,6 +717,8 @@ class CorpusBLEU(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
         model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the CorpusBLEU score for each prediction, stored in the
@@ -602,8 +732,7 @@ class CorpusBLEU(SimpleMetrics):
         produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec
-    del config
+    del label_spec, config, indices, metas
 
     if not labels or not preds:
       return {}
@@ -661,7 +790,9 @@ class RougeL(SimpleMetrics):
               preds: Sequence[Union[str, types.ScoredTextCandidates]],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute the RougeL score using the RougeScorer library.
 
     Args:
@@ -671,6 +802,8 @@ class RougeL(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec for the
         model's prediction field.
       config: Unused configuration dict inherited from super class.
+      indices: The ID for each IndexedInput, aligned with `preds` and `labels`.
+      metas: The metadata for each Input, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the RougeL score for each prediction, stored in the
@@ -684,8 +817,7 @@ class RougeL(SimpleMetrics):
         produce a signature mismatch error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec
-    del config
+    del label_spec, config, indices
 
     if not labels or not preds:
       return {}
@@ -763,7 +895,9 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
               preds: Sequence[np.ndarray],
               label_spec: LitType,
               pred_spec: LitType,
-              config: Optional[JsonDict] = None) -> dict[str, float]:
+              config: Optional[JsonDict] = None,
+              indices: Optional[Sequence[types.ExampleId]] = None,
+              metas: Optional[Sequence[JsonDict]] = None) -> dict[str, float]:
     """Compute binary classification metrics using Scikit-Learn.
 
     Args:
@@ -772,6 +906,8 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
       label_spec: Unused field spec from the super class.
       pred_spec: A `MulticlassPreds` spec for the model's prediction field.
       config: Optional margins for computing classification results.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the true negative (`TN`), false positive (`FP`), false
@@ -784,7 +920,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
         error in PyType, see
         https://google.github.io/pytype/errors.html#signature-mismatch
     """
-    del label_spec  # Unused; get vocab from pred_spec.
+    del label_spec, indices, metas  # Unused; get vocab from pred_spec.
 
     if not labels or not preds:
       return {}
@@ -859,7 +995,9 @@ class ExactMatchMetrics(SimpleMetrics):
       preds: Sequence[Any],
       label_spec: types.LitType,
       pred_spec: types.LitType,
-      config: Optional[JsonDict] = None) -> lit_components.MetricsDict:
+      config: Optional[JsonDict] = None,
+      indices: Optional[Sequence[types.ExampleId]] = None,
+      metas: Optional[Sequence[JsonDict]] = None) -> lit_components.MetricsDict:
     """Compute exact matches between labels and predictions.
 
     Args:
@@ -870,13 +1008,15 @@ class ExactMatchMetrics(SimpleMetrics):
       pred_spec: A `GeneratedText` or `GeneratedTextCandidates` spec describing
           the types of elements in `preds`.
       config: unused parameter from base class.
+      indices: Unused list of IDs, aligned with `preds` and `labels`.
+      metas: Unused list of LitMetadatas, aligned with `preds` and `labels`.
 
     Returns:
       A dict containing the proportion of exact matches in the predictions,
       stored in the `exactmatch` key if `pred_spec` is `GeneratedText` or the
       `exactmatch@1` key if `pred_spec` is `GeneratedTextCandidates`.
     """
-    del config
+    del config, indices, metas
 
     if not labels or not preds:
       return {}

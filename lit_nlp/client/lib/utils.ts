@@ -23,12 +23,20 @@
 // tslint:disable: enforce-name-casing
 
 import * as d3 from 'd3';  // Used for array helpers.
-
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
 import {marked} from 'marked';
-import {LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, LIT_TYPES_REGISTRY} from './lit_types';
-import {FacetMap, LitMetadata, ModelInfoMap, SerializedLitMetadata, SerializedSpec, Spec} from './types';
+import {LIT_TYPES_REGISTRY, LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds} from './lit_types';
+import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from './types';
+
+/** Argmax of an array */
+export function argmax(arr: readonly number[]): number {
+  let a = 0;
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] > arr[a]) a = i;
+  }
+  return a;
+}
 
 /** Calculates the mean for a list of numbers */
 export function mean(values: number[]): number {
@@ -135,27 +143,14 @@ export function createLitType<T>(
   for (const key in constructorParams) {
     if (key in genericLitType) {
       genericLitType[key] = constructorParams[key];
-    } else if (key !== '__name__') {  // Ignore __name__ property.
+    } else if (['__class__', '__name__'].indexOf(key) === -1) {
+      // Ignore the __class__ and __name__ props. Throw errors for the rest.
       throw new Error(`Attempted to set unrecognized property ${key} on ${
           genericLitType.name}.`);
     }
   }
 
   return genericLitType as T;
-}
-
-/**
- * Converts serialized LitTypes within a Spec into LitType instances.
- */
-export function deserializeLitTypesInSpec(serializedSpec: SerializedSpec):
-    Spec {
-  const typedSpec: Spec = {};
-  for (const key of Object.keys(serializedSpec)) {
-    typedSpec[key] = createLitType(
-        LIT_TYPES_REGISTRY[serializedSpec[key].__name__],
-        serializedSpec[key] as {});
-  }
-  return typedSpec;
 }
 
 /**
@@ -168,40 +163,6 @@ export function cloneSpec(spec: Spec): Spec {
         createLitType(LIT_TYPES_REGISTRY[fieldSpec.name], fieldSpec as {});
   }
   return newSpec;
-}
-
-/**
- * Converts serialized LitTypes within the LitMetadata into LitType instances.
- */
-export function deserializeLitTypesInLitMetadata(
-    metadata: SerializedLitMetadata): LitMetadata {
-  for (const model of Object.keys(metadata.models)) {
-    metadata.models[model].spec.input =
-        deserializeLitTypesInSpec(metadata.models[model].spec.input);
-    metadata.models[model].spec.output =
-        deserializeLitTypesInSpec(metadata.models[model].spec.output);
-  }
-
-  for (const dataset of Object.keys(metadata.datasets)) {
-    metadata.datasets[dataset].spec =
-        deserializeLitTypesInSpec(metadata.datasets[dataset].spec);
-  }
-
-  for (const generator of Object.keys(metadata.generators)) {
-    metadata.generators[generator].configSpec =
-        deserializeLitTypesInSpec(metadata.generators[generator].configSpec);
-    metadata.generators[generator].metaSpec =
-        deserializeLitTypesInSpec(metadata.generators[generator].metaSpec);
-  }
-
-  for (const interpreter of Object.keys(metadata.interpreters)) {
-    metadata.interpreters[interpreter].configSpec = deserializeLitTypesInSpec(
-        metadata.interpreters[interpreter].configSpec);
-    metadata.interpreters[interpreter].metaSpec =
-        deserializeLitTypesInSpec(metadata.interpreters[interpreter].metaSpec);
-  }
-
-  return metadata;
 }
 
 type CandidateLitTypeTypesList = (typeof LitType)|LitTypeTypesList;
@@ -421,9 +382,10 @@ export function isBinaryClassification(litType: LitType) {
   return false;
 }
 
-/** Returns if a LitType has a parent field. */
-export function hasParent(litType: LitType) {
-    return (litType as LitTypeWithParent).parent != null;
+/** Returns if a LitType has a parent field which is found in the (data) spec */
+export function hasValidParent(litType: LitType, spec: Spec) {
+  const parent = (litType as LitTypeWithParent).parent;
+  return parent != null && spec[parent] != null;
 }
 
 /**
@@ -555,6 +517,25 @@ export function getTemplateStringFromMarkdown(markdown: string) {
   return unsafeHTML(htmlStr);
 }
 
+// Matches single numbers, including decimals with and without leading zeros,
+// and negative numbers. Also matches ranges of numbers separated by a hyphen.
+const NUMBER_RANGE_REGEX_STR = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
+
+/**
+ * Returns whether a string can be interpreted as a single number range.
+ *
+ * Some valid examples: '4', '-10', '10-20', '-10--5', '0.5-1.0'.
+ * Unlike `numberRangeFnFromString`, comma-separated ranges are not supported
+ * here.
+ */
+export function canParseNumberRangeFnFromString(str: string): boolean {
+  const supportedRegex = /^[0-9\s,-]+$/;
+  if (!supportedRegex.test(str)) return false;
+
+  const matches = str.match(NUMBER_RANGE_REGEX_STR);
+  return matches !== null && matches.filter(i => i).length > 0;
+}
+
 /**
  * Convert a number range from strings to a function to check inclusion.
  *
@@ -564,13 +545,9 @@ export function getTemplateStringFromMarkdown(markdown: string) {
  * e.x. "-.5-1.5 10" will match numbers between -.5 and 1.5 and also 10.
  */
 export function numberRangeFnFromString(str: string): (num: number) => boolean {
-  // Matches single numbers, including decimals with and without leading zeros,
-  // and negative numbers. Also matches ranges of numbers separated by a hyphen.
-  const regexStr = /(-?\d*(?:\.\d+)?)(?:-(-?\d*(?:\.\d+)?))?/g;
-
   // Convert the string into a list of ranges of numbers to match.
   const ranges: Array<[number, number]> = [];
-  for (const [, beginStr, endStr] of str.matchAll(regexStr)) {
+  for (const [, beginStr, endStr] of str.matchAll(NUMBER_RANGE_REGEX_STR)) {
     if (beginStr.length === 0) {
       continue;
     }
@@ -604,4 +581,54 @@ export function linearSpace(
     values.push(minValue + i * step);
   }
   return values;
+}
+
+const MEASUREMENT_CANVAS = document.createElement('canvas');
+const MEASUREMENT_CTX = MEASUREMENT_CANVAS.getContext('2d')!;
+/**
+ * Measures the length of a string using CanvasRenderingContext2D.measureText().
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/measureText
+ *
+ * @param text The string to measure.
+ * @param font A CSS font string describing font properties the context should
+ *    use when rendering. Defaults to LIT's normal font, 13px Roboto.
+ */
+export function measureTextLength(text: string, font = '13px Roboto'): number {
+  MEASUREMENT_CTX.font = font;
+  const measures = MEASUREMENT_CTX.measureText(text);
+  return measures.width;
+}
+
+/**
+ * Checks a CallConfig to ensure that all fields required by the Spec are
+ * present. Returns any required fields missing from the config as an array.
+ */
+export function validateCallConfig(
+    config: CallConfig, spec: Spec|null): string[] {
+  if (spec == null) return [];
+  return Object.entries(spec)
+      .filter(([key, litType]) =>
+          litType.required ? config[key] == null : false)
+      .map(([key, unused]) => key);
+}
+
+/**
+ * Make a modified input if any of the overrides would change the data.
+ */
+export function makeModifiedInput(
+    input: IndexedInput, overrides: {[key: string]: unknown},
+    source?: string): IndexedInput {
+  for (const key of Object.keys(overrides)) {
+    if (input.data[key] !== overrides[key]) {
+      const newMeta = {added: true, source, parentId: input.id};
+      return {
+        data: Object.assign(
+            {}, input.data, overrides, {'_id': '', '_meta': newMeta}),
+        id: '',
+        meta: newMeta
+      };
+    }
+  }
+  return input;
 }

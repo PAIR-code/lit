@@ -13,13 +13,12 @@
 # limitations under the License.
 # ==============================================================================
 """Module names and type definitions for frontend UI layouts."""
+from collections.abc import Mapping, Sequence
 import enum
-from typing import Any, Dict, List, Mapping, Optional, Text, Union
+from typing import Optional, Union
 
 import attr
 from lit_nlp.api import dtypes
-
-JsonDict = Dict[Text, Any]
 
 
 # LINT.IfChange
@@ -36,7 +35,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
-  CounterfactualExplainerModule = 'counterfactual-explainer-module'
   CurvesModule = 'curves-module'
   DataTableModule = 'data-table-module'
   SimpleDataTableModule = 'simple-data-table-module'
@@ -83,7 +81,10 @@ class ModuleConfig(dtypes.DataTuple):
 # so that users can reference custom modules which are defined in TypeScript
 # but not included in the LitModuleName enum above.
 # If a string is used, it should be the HTML element name, like foo-bar-module.
-LitModuleList = List[Union[str, LitModuleName, ModuleConfig]]
+LitModuleList = Sequence[Union[str, LitModuleName, ModuleConfig]]
+# Keys are names of tabs, and values are names of LitModule HTML elements, e.g.,
+# data-table-module for the DataTableModule class.
+LitTabGroupLayout = Mapping[str, LitModuleList]
 
 
 @attr.s(auto_attribs=True)
@@ -94,39 +95,21 @@ class LayoutSettings(dtypes.DataTuple):
 
 
 @attr.s(auto_attribs=True)
-class LitComponentLayout(dtypes.DataTuple):
-  """Frontend UI layout (legacy); should match client/lib/types.ts."""
-  # Keys are names of tabs; one must be called "Main".
-  # Values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  components: Dict[str, LitModuleList]
-  layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
-  description: Optional[str] = None
-
-  def to_json(self) -> JsonDict:
-    """Override serialization to properly convert nested objects."""
-    # Not invertible, but these only go from server -> frontend anyway.
-    return attr.asdict(self, recurse=True)
-
-
-@attr.s(auto_attribs=True)
 class LitCanonicalLayout(dtypes.DataTuple):
   """Frontend UI layout; should match client/lib/types.ts."""
-  # Keys are names of tabs, and values are names of LitModule HTML elements,
-  # e.g. data-table-module for the DataTableModule class.
-  upper: Dict[str, LitModuleList]
-  lower: Dict[str, LitModuleList] = attr.ib(factory=dict)
+  upper: LitTabGroupLayout
+  lower: LitTabGroupLayout = attr.ib(factory=dict)
+  left: LitTabGroupLayout = attr.ib(factory=dict)
   layoutSettings: LayoutSettings = attr.ib(factory=LayoutSettings)
   description: Optional[str] = None
 
-  def to_json(self) -> JsonDict:
+  def to_json(self) -> dtypes.JsonDict:
     """Override serialization to properly convert nested objects."""
     # Not invertible, but these only go from server -> frontend anyway.
     return attr.asdict(self, recurse=True)
 
 
-LitComponentLayouts = Mapping[str, Union[LitComponentLayout,
-                                         LitCanonicalLayout]]
+LitComponentLayouts = Mapping[str, LitCanonicalLayout]
 
 # pylint: enable=invalid-name
 # LINT.ThenChange(../client/lib/types.ts)
@@ -188,6 +171,47 @@ SIMPLE_LAYOUT = LitCanonicalLayout(
         'on the page rather than being full width.'),
 )
 
+THREE_PANEL_LAYOUT = LitCanonicalLayout(
+    left={
+        'Tabular Exploration': [modules.DataTableModule],
+        'Current Example': [modules.DatapointEditorModule],
+        'Visual Exploration': [modules.DiveModule],
+        'Embeddings': [modules.EmbeddingsModule],
+        'Documentation': [modules.DocumentationModule],
+    },
+    upper={
+        'Predictions': MODEL_PREDS_MODULES,
+        'Current Example': [modules.DatapointEditorModule],
+        'Counterfactuals': [modules.GeneratorModule],
+    },
+    lower={
+        'Metrics': [
+            modules.MetricsModule,
+            modules.ConfusionMatrixModule,
+            modules.ThresholderModule,
+        ],
+        'Charts': [
+            modules.ScalarModule,
+            modules.PdpModule,
+            modules.CurvesModule,
+        ],
+        'Explanations': [
+            modules.SalienceMapModule,
+            modules.SequenceSalienceModule,
+            modules.AttentionModule,
+            modules.FeatureAttributionModule,
+        ],
+        'Clustering': [modules.SalienceClusteringModule],
+        'Influence': [modules.TrainingDataAttributionModule],
+        'TCAV': [modules.TCAVModule],
+    },
+    description=(
+        'A three-panel layout with tools for exploring data in the aggregate or'
+        ' per-example (on the left) or reviewing prediction results (upper'
+        ' right) and performance characteristics, etc. (lower left).'
+    ),
+)
+
 ##
 # A "kitchen sink" layout with maximum functionality.
 STANDARD_LAYOUT = LitCanonicalLayout(
@@ -221,17 +245,18 @@ STANDARD_LAYOUT = LitCanonicalLayout(
         'Influence': [modules.TrainingDataAttributionModule],
         'Counterfactuals': [
             modules.GeneratorModule,
-            modules.CounterfactualExplainerModule,
         ],
         'TCAV': [modules.TCAVModule],
     },
     description=(
         'The default LIT layout, which includes the data table and data point '
         'editor, the performance and metrics, predictions, explanations, and '
-        'counterfactuals.'),
+        'counterfactuals.'
+    ),
 )
 
 DEFAULT_LAYOUTS = {
     'simple': SIMPLE_LAYOUT,
     'default': STANDARD_LAYOUT,
+    'three_panel': THREE_PANEL_LAYOUT,
 }

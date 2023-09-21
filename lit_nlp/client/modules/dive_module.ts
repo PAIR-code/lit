@@ -21,7 +21,7 @@
 // tslint:disable:no-new-decorators
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import {css, html} from 'lit';
-import {customElement, query} from 'lit/decorators';
+import {customElement, query} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView, TextSelection} from 'megaplot';
 import {observable} from 'mobx';
 
@@ -29,8 +29,10 @@ import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {colorToRGB, getBrandColor} from '../lib/colors';
+import {BooleanLitType, CategoryLabel, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {GroupedExamples, IndexedInput} from '../lib/types';
+import {GroupedExamples, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {findSpecKeys} from '../lib/utils';
 import {FacetingConfig, FacetingMethod} from '../services/group_service';
 import {ColorService, DataService, FocusService, GroupService, SelectionService} from '../services/services';
 
@@ -125,9 +127,26 @@ function spriteExitHandler (sprite: SpriteView) {
  */
 @customElement('dive-module')
 export class DiveModule extends LitModule {
+  // Compatible types are those for which the GroupService can create bins.
+  static compatibleTypes = [BooleanLitType, CategoryLabel, Scalar];
   static override title = 'Dive';
   static override numCols = 3;
-  static override shouldDisplayModule = () => true;
+  static override shouldDisplayModule =
+      (modelSpecs: ModelInfoMap, datasetSpec: Spec) => {
+        // Dive is a two-dimensional matrix of histograms, so we should have at
+        // least two binnable fields in order to be anlaytically useful.
+        const compatiblefields: string[] = [];
+        compatiblefields.push(
+            ...findSpecKeys(datasetSpec, DiveModule.compatibleTypes));
+        for (const {spec} of Object.values(modelSpecs)) {
+          const {input, output} = spec;
+          compatiblefields.push(
+              ...findSpecKeys(input, DiveModule.compatibleTypes));
+          compatiblefields.push(
+              ...findSpecKeys(output, DiveModule.compatibleTypes));
+        }
+        return new Set(compatiblefields).size > 1;
+      };
 
   static override get styles() {
     const styles = css`
@@ -208,6 +227,7 @@ export class DiveModule extends LitModule {
   /** The Megaplot Scene into which the visualization is rendered. */
   private scene?: Scene;
   private mouseDown?: Position2D;
+  private mouseMoved?: Position2D;
 
   /** The Megaplot Selections that get rendered into the visualziation. */
   private readonly selections: DiveSelections = Object.seal({
@@ -536,7 +556,7 @@ export class DiveModule extends LitModule {
         <div class="dropdown-holder">
           <label class="dropdown-label">${label}</label>
           <select class="dropdown limit-width" @change=${onChange}
-                  title=${this.groupService.denseFeatureNames[index]}>
+                  aria-label=${this.groupService.denseFeatureNames[index]}>
             ${this.groupService.denseFeatureNames.map((feature, i) => html`
               <option value=${i} ?selected=${index === i}>
                 ${feature}
@@ -545,18 +565,24 @@ export class DiveModule extends LitModule {
         </div>`)}
       </div>
       <div class="view-controls">
-        <span class="material-icon-outlined icon-button" title="Zoom in"
-              @click=${() =>{zoomChange(ZOOM_IN_FACTOR);}}>
-          zoom_in
-        </span>
-        <span class="material-icon-outlined icon-button" title="Zoom out"
-              @click=${() =>{zoomChange(ZOOM_OUT_FACTOR);}}>
-          zoom_out
-        </span>
-        <span class="material-icon-outlined icon-button" title="Reset view"
-              @click=${() =>{this.resetScale();}}>
-          view_in_ar
-        </span>
+        <lit-tooltip content="Zoom in" tooltipPosition="left">
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
+                @click=${() =>{zoomChange(ZOOM_IN_FACTOR);}}>
+            zoom_in
+          </span>
+        </lit-tooltip>
+        <lit-tooltip content="Zoom out" tooltipPosition="left">
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
+                @click=${() =>{zoomChange(ZOOM_OUT_FACTOR);}}>
+            zoom_out
+          </span>
+        </lit-tooltip>
+        <lit-tooltip content="Reset view" tooltipPosition="left">
+          <span class="material-icon-outlined icon-button" slot="tooltip-anchor"
+                @click=${() =>{this.resetScale();}}>
+            view_in_ar
+          </span>
+        </lit-tooltip>
       </div>
     </div>`;
     // clang-format on
@@ -569,7 +595,7 @@ export class DiveModule extends LitModule {
 
     // clang-format off
     return html`<color-legend legendType=${legendType}
-      selectedColorName=${this.colorService.selectedColorOption.name}
+      label=${this.colorService.selectedColorOption.name}
       .scale=${this.colorService.selectedColorOption.scale}>
     </color-legend>`;
     // clang-format on
@@ -580,44 +606,57 @@ export class DiveModule extends LitModule {
   // and the true rendering happens in reactions.
   override render() {
     const select = (event: MouseEvent) => {
-      const {offsetX: x, offsetY: y} = event;
-      const selected = this.selections.points?.hitTest({x, y});
-      if (selected?.length) {
-        const primary = selected[0].id;
-        const ids = selected.map(d => d.id);
+      const {mouseDown, mouseMoved} = this;
 
-        // Hold down Alt/Option key to pin a datapoint.
-        if (event.altKey) {
-          this.pinnedSelectionService.selectIds([]);
-          this.pinnedSelectionService.setPrimarySelection(primary);
-          return;
+      // If the mouse has not moved while down, then this is a
+      // selection-altering click.
+      if (mouseDown === mouseMoved) {
+        const {offsetX: x, offsetY: y} = event;
+        const selected = this.selections.points?.hitTest({x, y});
+        if (selected?.length) {
+          const primary = selected[0].id;
+          const ids = selected.map(d => d.id);
+
+          // Hold down Alt/Option key to pin a datapoint.
+          if (event.altKey) {
+            this.pinnedSelectionService.selectIds([]);
+            this.pinnedSelectionService.setPrimarySelection(primary);
+            return;
+          }
+
+          // Hold down Ctrl or Cmd to preserve current selection.
+          if (event.metaKey || event.ctrlKey) {
+            ids.unshift(...this.selectionService.selectedIds);
+          }
+
+          this.selectionService.selectIds(ids);
+          this.selectionService.setPrimarySelection(primary);
+        } else {
+          this.selectionService.selectIds([]);
         }
-
-        // Hold down Ctrl or Cmd to preserve current selection.
-        if (event.metaKey || event.ctrlKey) {
-          ids.unshift(...this.selectionService.selectedIds);
-        }
-
-        this.selectionService.selectIds(ids);
-        this.selectionService.setPrimarySelection(primary);
-      } else {
-        this.selectionService.selectIds([]);
       }
+
+      this.mouseDown = undefined;
+      this.mouseMoved = undefined;
     };
 
     const mousedown = (event: MouseEvent) => {
       this.mouseDown = {x: event.offsetX, y: event.offsetY};
+      this.mouseMoved = this.mouseDown;
     };
 
     const mousemove = (event: MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+
       const {offsetX: x, offsetY: y} = event;
 
-      if (this.mouseDown != null) {   // This is a pan interaction
+      if (this.mouseMoved != null) {   // This is a pan interaction
         if (this.scene == null) return;
         this.focusService.clearFocus();
-        this.scene.offset.x -= this.mouseDown.x - x;
-        this.scene.offset.y -= this.mouseDown.y - y;
-        this.mouseDown = {x, y};
+        this.scene.offset.x -= this.mouseMoved.x - x;
+        this.scene.offset.y -= this.mouseMoved.y - y;
+        this.mouseMoved = {x, y};
       } else {  // This is a hover interaction
         const hovered = this.selections.points?.hitTest({x, y});
         if (hovered?.length) {
@@ -628,8 +667,9 @@ export class DiveModule extends LitModule {
       }
     };
 
-    const mouseup = (event: MouseEvent) => {
+    const mouseout = () => {
       this.mouseDown = undefined;
+      this.mouseMoved = undefined;
     };
 
     const wheelZoom = (event: WheelEvent) => {
@@ -648,7 +688,7 @@ export class DiveModule extends LitModule {
       <div class='module-toolbar'>${this.renderControls()}</div>
       <div class="module-results-area">
         <div class="scene" @click=${select} @mousedown=${mousedown}
-             @mousemove=${mousemove} @mouseout=${mouseup} @mouseup=${mouseup}
+             @mousemove=${mousemove} @mouseout=${mouseout}
              @wheel=${wheelZoom}></div>
       </div>
       <div class="module-footer">${this.renderFooter()}</div>

@@ -13,14 +13,15 @@ to load):
 
 Then navigate to localhost:5432 to access the demo UI.
 """
-import os
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import dataset as lit_dataset
@@ -52,7 +53,13 @@ _MAX_INDEX_EXAMPLES = flags.DEFINE_integer(
     "max_index_examples", 2000,
     "Maximum number of examples to index from the train set.")
 
-_MODELS = flags.DEFINE_list("models", ["t5-small"], "Which model(s) to load.")
+_MODELS = flags.DEFINE_list(
+    "models",
+    [
+        "t5-small:https://storage.googleapis.com/what-if-tool-resources/lit-models/t5-small.tar.gz",
+    ],
+    "Which model(s) to load, as <name>:<path>.",
+)
 _TASKS = flags.DEFINE_list("tasks", ["summarization", "mt"],
                            "Which task(s) to load.")
 
@@ -61,13 +68,17 @@ _TOKEN_TOP_K = flags.DEFINE_integer(
 _NUM_TO_GEN = flags.DEFINE_integer(
     "num_to_generate", 4, "Number of generations to produce for each input.")
 
-_HOSTED_DATASETS = flags.DEFINE_list("hosted_datasets", [],
-                                     "Datasets hosted by the LIT team to use.")
+_HOSTED_DATASETS = flags.DEFINE_list(
+    "hosted_datasets",
+    [_WMT14_DE_EN_HOSTED, _WMT14_FR_EN_HOSTED],
+    "Datasets to use the mirror on storage.googleapis.com.",
+)
 
 ##
 # Options for nearest-neighbor indexer.
 _USE_INDEXER = flags.DEFINE_boolean(
-    "use_indexer", True, "If true, will use the nearest neighbor index.")
+    "use_indexer", False, "If true, will use the nearest neighbor index."
+)
 _INITIALIZE_INDEX = flags.DEFINE_boolean(
     "initialize_index", True,
     "If the flag is set, it builds the nearest neighbor index before starting "
@@ -133,22 +144,28 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # models side-by-side, and can also include models of different types that use
   # different datasets.
   base_models = {}
-  for model_name_or_path in _MODELS.value:
-    # Ignore path prefix, if using /path/to/<model_name> to load from a
-    # specific directory rather than the default shortcut.
-    model_name = os.path.basename(model_name_or_path)
-    if model_name_or_path.startswith("SavedModel"):
-      saved_model_path = model_name_or_path.split(":", 1)[1]
+  for model_string in _MODELS.value:
+    # Only split on the first ':', because path may be a URL
+    # containing 'https://'
+    model_name, path = model_string.split(":", 1)
+    if path.startswith("SavedModel"):
+      saved_model_path = path.split(":", 1)[1]
       base_models[model_name] = t5.T5SavedModel(saved_model_path)
     else:
       # TODO(lit-dev): attention is temporarily disabled, because O(n^2) between
       # tokens in a long document can get very, very large. Re-enable once we
       # can send this to the frontend more efficiently.
       base_models[model_name] = t5.T5HFModel(
-          model_name=model_name_or_path,
+          model_name_or_path=path,
           num_to_generate=_NUM_TO_GEN.value,
           token_top_k=_TOKEN_TOP_K.value,
-          output_attention=False)
+          output_attention=False,
+      )
+
+  model_loaders: lit_app.ModelLoadersMap = {
+      "T5 summarization": (t5.T5Summarization, t5.T5Summarization.init_spec()),
+      "T5 translation": (t5.T5Translation, t5.T5Translation.init_spec()),
+  }
 
   ##
   # Load eval sets and model wrappers for each task.
@@ -156,7 +173,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # and post-processing code.
   models = {}
   datasets = {}
-
+  dataset_loaders: lit_app.DatasetLoadersMap = {}
   if "summarization" in _TASKS.value:
     for k, m in base_models.items():
       models[k + "_summarization"] = t5.SummarizationWrapper(m)
@@ -166,6 +183,11 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     else:
       datasets["CNNDM"] = summarization.CNNDMData(
           split="validation", max_examples=_MAX_EXAMPLES.value)
+
+    dataset_loaders["CNN DailyMail"] = (
+        summarization.CNNDMData,
+        summarization.CNNDMData.init_spec(),
+    )
 
   if "mt" in _TASKS.value:
     for k, m in base_models.items():
@@ -182,6 +204,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           version="fr-en", reverse=True, filepath=_WMT14_FR_EN_HOSTED_URL)
     else:
       datasets["wmt14_enfr"] = mt.WMT14Data(version="fr-en", reverse=True)
+
+    dataset_loaders["WMT 14"] = (mt.WMT14Data, mt.WMT14Data.init_spec())
 
   # Truncate datasets if --max_examples is set.
   for name in datasets:
@@ -207,7 +231,13 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Actually start the LIT server, using the models, datasets, and other
   # components constructed above.
   lit_demo = dev_server.Server(
-      models, datasets, generators=generators, **server_flags.get_flags())
+      models,
+      datasets,
+      generators=generators,
+      model_loaders=model_loaders,
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 

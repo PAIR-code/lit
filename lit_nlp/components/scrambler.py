@@ -14,7 +14,6 @@
 # ==============================================================================
 """Simple scrambling test generator."""
 
-import copy
 import random
 from typing import Optional
 
@@ -91,7 +90,9 @@ class Scrambler(lit_components.Generator):
     if not text_keys:
       return []
 
-    new_example = copy.deepcopy(example)
-    for text_key in text_keys:
-      new_example[text_key] = _scramble(example[text_key])
+    updates = {
+        text_key: _scramble(example[text_key])
+        for text_key in text_keys
+    }
+    new_example = utils.make_modified_input(example, updates, 'Scrambler')
     return [new_example]

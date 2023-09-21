@@ -21,7 +21,7 @@ import '../elements/expansion_panel';
 // taze: ResizeObserver from //third_party/javascript/typings/resize_observer_browser
 import * as d3 from 'd3';
 import {html, TemplateResult} from 'lit';
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView} from 'megaplot';
 import {computed, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
@@ -34,7 +34,7 @@ import {ThresholdChange} from '../elements/threshold_slider';
 import {colorToRGB, getBrandColor} from '../lib/colors';
 import {MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatForDisplay, IndexedInput, ModelInfoMap} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getThresholdFromMargin} from '../lib/utils';
 import {CalculatedColumnType, REGRESSION_SOURCE_PREFIX} from '../services/data_service';
 import {ClassificationService, ColorService, DataService, FocusService, SelectionService} from '../services/services';
@@ -57,6 +57,7 @@ const SPRITE_SIZE_MD = 10 + DEFAULT_BORDER_WIDTH;
 const SPRITE_SIZE_SM = 8 + DEFAULT_BORDER_WIDTH;
 const X_LABELS_PADDING = 12;
 const Y_LABELS_PADDING = 40;
+const HATCHING_STROKE_WIDTH = 2;
 
 
 /** Indexed scalars for an id, inclusive of model input and output scalars. */
@@ -89,8 +90,11 @@ interface PlotInfo {
 export class ScalarModule extends LitModule {
   static override duplicateForModelComparison = false;
   static override title = 'Scalars';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#scalar-plots';
+  static override infoMarkdown =
+      `Visualize the distribution of scalar (\`Scalar\`, \`RegressionScore\`,
+      or \`MulticlassPreds\`) features over their range - for example, to find
+      examples near the decision boundary.<br>
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#scalar-plots)`;
   static override numCols = 4;
   static override template =
       (model: string, selectionServiceIndex: number, shouldReact: number) =>
@@ -101,8 +105,12 @@ export class ScalarModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
-    return doesOutputSpecContain(modelSpecs, [Scalar, MulticlassPreds]);
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec): boolean {
+    const scalarTypes = [Scalar, MulticlassPreds];
+    const datasetHasScalars = findSpecKeys(datasetSpec, scalarTypes).length > 0;
+    const modelsHaveScalars = doesOutputSpecContain(modelSpecs, scalarTypes);
+    return datasetHasScalars || modelsHaveScalars;
   }
 
   private readonly colorService = app.getService(ColorService);
@@ -117,7 +125,7 @@ export class ScalarModule extends LitModule {
   private readonly resizeObserver =
       new ResizeObserver(() => {this.resizePlots();});
 
-  private numPlotsRendered: number = 0;
+  private numPlotsRendered = 0;
   @observable private preds: IndexedScalars[] = [];
 
   @computed get datasetScalarKeys(): string[] {
@@ -132,26 +140,9 @@ export class ScalarModule extends LitModule {
     return `div.scatterplot[data-id="${id}"]`;
   }
 
-  override firstUpdated() {
-    this.reactImmediately(
-        () => this.classificationService.allMarginSettings,
-        () => {
-          for (const [id, {model, key, xScale}] of this.plots.entries()) {
-            if (model == null) continue;
-            const {output} = this.appState.getModelSpec(model);
-            const fieldSpec = output[key];
-            if (!(fieldSpec instanceof MulticlassPreds)) continue;
-            const container = this.renderRoot.querySelector<HTMLDivElement>(
-                this.containerSelector(id))!;
-            const thresholdLine = d3.select(container)
-                                    .select<SVGLineElement>('#threshold-line');
-            if (!thresholdLine.empty() && xScale != null) {
-              const margin = this.classificationService.getMargin(model, key);
-              const threshold = xScale(getThresholdFromMargin(margin));
-              thresholdLine.attr('x1', threshold).attr('x2', threshold);
-            }
-          }
-        });
+
+  override connectedCallback() {
+    super.connectedCallback();
 
     const getDataChanges = () => [
       this.appState.currentInputData,
@@ -179,6 +170,41 @@ export class ScalarModule extends LitModule {
       this.focusService.focusData?.datapointId
     ];
     this.react(rebindChanges, () => {this.updatePlots();});
+  }
+
+  override firstUpdated() {
+    // The following reactions involve DOM updates that cross the Lit.dev, MobX,
+    // and Megaplot lifecycles, thus they must be initialized after the first
+    // render loop is completed to ensure correct control flow across these
+    // three lifecycles.
+    this.reactImmediately(
+        () => this.classificationService.allMarginSettings,
+        () => {
+          // To avoid triggering an update loop, future changes must ensure this
+          // function only manipulates the DOM and does not set the value of any
+          // Lit.dev reactive properties or MobX observables, or perform other
+          // actions that would schedule another Lit.dev update when this
+          // function fires immediately during the first update lifecycle.
+          for (const [id, {model, key, xScale}] of this.plots.entries()) {
+            if (model == null || xScale == null) continue;
+
+            const fieldSpec = this.appState.getModelSpec(model).output[key];
+            if (!(fieldSpec instanceof MulticlassPreds)) continue;
+
+            const divSelector = this.containerSelector(id);
+            const container =
+                this.renderRoot.querySelector<HTMLDivElement>(divSelector);
+            if (container == null) continue;
+
+            const thresholdLine =
+                d3.select(container).select<SVGLineElement>('#threshold-line');
+            if (thresholdLine.empty()) continue;
+
+            const margin = this.classificationService.getMargin(model, key);
+            const threshold = xScale(getThresholdFromMargin(margin));
+            thresholdLine.attr('x1', threshold).attr('x2', threshold);
+          }
+        });
 
     const container = this.shadowRoot!.getElementById('container')!;
     this.resizeObserver.observe(container);
@@ -243,13 +269,16 @@ export class ScalarModule extends LitModule {
 
   private getValue(id: string, key: string, model?:string,
                    label?: string): number | undefined {
-    // If the field is in the dataset, return that value from the DataService
-    if (key in this.appState.currentDatasetSpec) {
-      return this.dataService.getVal(id, key);
+    if (model == null) {
+      // If the field is in the dataset, return that value from the DataService.
+      // Otherwise, return undefined; this should never happen in practice, but
+      // it will produce an empty plot that stands out if it does.
+      if (key in this.appState.currentDatasetSpec) {
+        return this.dataService.getVal(id, key);
+      } else {
+        return undefined;
+      }
     }
-
-    // If model is falsy return undefined
-    if (model == null) {return undefined;}
 
     // Otherwise it's from a model.
     const spec = this.appState.getModelSpec(model);
@@ -311,6 +340,26 @@ export class ScalarModule extends LitModule {
                       .style('width', width + Y_LABELS_PADDING)
                       .style('height', height + X_LABELS_PADDING);
 
+    axesSVG.append('defs')
+           .append('pattern')
+           .attr('id', 'diagonalHatch')
+           .attr('patternUnits',  'userSpaceOnUse')
+           .attr('width', 4 * HATCHING_STROKE_WIDTH)
+           .attr('height', 4 * HATCHING_STROKE_WIDTH)
+           .append('path')
+             .style('stroke-width', HATCHING_STROKE_WIDTH)
+             .attr('d',
+                   `M-${HATCHING_STROKE_WIDTH},${HATCHING_STROKE_WIDTH} ` +
+                   `l${2*HATCHING_STROKE_WIDTH},${-2*HATCHING_STROKE_WIDTH} ` +
+                   `M0,${4 * HATCHING_STROKE_WIDTH} ` +
+                   `l${4*HATCHING_STROKE_WIDTH},${-4*HATCHING_STROKE_WIDTH} ` +
+                   `M${3*HATCHING_STROKE_WIDTH},${5*HATCHING_STROKE_WIDTH} ` +
+                   `l${2*HATCHING_STROKE_WIDTH},${-2*HATCHING_STROKE_WIDTH}`);
+
+    const lines = axesSVG.append('g')
+                         .attr('id', 'lines')
+                         .attr('transform', `translate(40, 0)`);
+
     axesSVG.append('g')
            .attr('id', 'xAxis')
            .attr('transform', `translate(40, ${height - CANVAS_PADDING})`)
@@ -320,10 +369,6 @@ export class ScalarModule extends LitModule {
            .attr('id', 'yAxis')
            .attr('transform', `translate(40, 0)`)
            .call(d3.axisLeft(info.yScale).ticks(isRegression ? 5 : 0 ));
-
-    const lines = axesSVG.append('g')
-                         .attr('id', 'lines')
-                         .attr('transform', `translate(40, 0)`);
 
     const [xMin, xMax] = info.xScale.range();
     const [yMin, yMax] = info.yScale.range();
@@ -373,16 +418,41 @@ export class ScalarModule extends LitModule {
       }
 
       const fieldSpec = this.appState.getModelSpec(model).output[key];
-      if (fieldSpec instanceof MulticlassPreds && fieldSpec.null_idx != null) {
-        const margin = this.classificationService.getMargin(model, key);
-        const threshold = info.xScale(getThresholdFromMargin(margin));
-        lines.append('line')
+      if (fieldSpec instanceof MulticlassPreds) {
+        if (fieldSpec.null_idx != null) {
+          const margin = this.classificationService.getMargin(model, key);
+          const threshold = info.xScale(getThresholdFromMargin(margin));
+          lines.append('line')
               .attr('id', 'threshold-line')
               .attr('x1', threshold)
               .attr('y1', yMin)
               .attr('x2', threshold)
               .attr('y2', yMax)
               .style('stroke', DEFAULT_LINE_COLOR);
+        } else if (fieldSpec.vocab.length > 2) {
+            const lowerBound = info.xScale(1 / fieldSpec.vocab.length);
+            const upperBound = info.xScale(0.5);
+            lines.append('line')
+                .attr('id', 'lowerbound-line')
+                .attr('x1', lowerBound)
+                .attr('y1', yMin)
+                .attr('x2', lowerBound)
+                .attr('y2', yMin + (height - CANVAS_PADDING))
+                .style('stroke', DEFAULT_LINE_COLOR);
+            lines.append('line')
+                .attr('id', 'upperbound-line')
+                .attr('x1', upperBound)
+                .attr('y1', yMin)
+                .attr('x2', upperBound)
+                .attr('y2', yMin + (height - CANVAS_PADDING))
+                .style('stroke', DEFAULT_LINE_COLOR);
+            lines.append('rect')
+                 .attr('x',lowerBound)
+                 .attr('y',yMin)
+                 .attr('width', upperBound - lowerBound)
+                 .attr('height', height - CANVAS_PADDING)
+                 .classed('confusion-zone', true);
+        }
       }
     }
 
@@ -468,9 +538,9 @@ export class ScalarModule extends LitModule {
           this.containerSelector(id));
       if (container == null || info.hidden) continue;
 
-      const {brush, scene, model, key, points, xScale, yScale} = info;
+      const {brush, scene, key, points, xScale, yScale} = info;
       if (brush == null || scene == null || key == null || points == null ||
-          model == null || xScale == null || yScale == null) continue;
+          xScale == null || yScale == null) continue;
 
       // Update the xScale range  width of div.axes
       const sceneDiv = container.querySelector<HTMLDivElement>('.scene')!;
@@ -558,7 +628,7 @@ export class ScalarModule extends LitModule {
       </div>
       <div class="module-footer">
         <color-legend legendType=${legendType} .scale=${colorOption.scale}
-          selectedColorName=${colorOption.name}>
+          label=${colorOption.name}>
         </color-legend>
       </div>
     </div>`;

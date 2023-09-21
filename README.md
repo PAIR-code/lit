@@ -1,6 +1,6 @@
 # 🔥 Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-11-15' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-06-27' } *-->
 
 The Learning Interpretability Tool (🔥LIT, formerly known as the Language
 Interpretability Tool) is a visual, interactive ML model-understanding tool that
@@ -16,7 +16,7 @@ LIT is built to answer questions such as:
 *   **Does my model behave consistently** if I change things like textual style,
     verb tense, or pronoun gender?
 
-![Example of LIT UI](documentation/images/figure-1.png)
+![Example of LIT UI](https://pair-code.github.io/lit/documentation/images/figure-1.png)
 
 LIT supports a variety of debugging workflows through a browser-based UI.
 Features include:
@@ -41,40 +41,31 @@ Stay up to date on LIT by joining the
 [lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md).
+[user guide](https://pair-code.github.io/lit/documentation/ui_guide.md).
 
 ## Documentation
 
-*   [Documentation index](https://github.com/PAIR-code/lit/wiki)
-*   [FAQ](https://github.com/PAIR-code/lit/wiki/faq.md)
+*   [Documentation index](https://pair-code.github.io/lit/documentation/)
+*   [FAQ](https://pair-code.github.io/lit/documentation/faq.md)
 *   [Release notes](./RELEASE.md)
 
 ## Download and Installation
 
-LIT can be installed via `pip` or built from source. Building from source is
-necessary if you update any of the front-end or core back-end code.
+LIT can be run via container image, installed via `pip` or built from source.
+Building from source is necessary if you update any of the front-end or core
+back-end code.
 
-### Install from source
+### Build container image
 
-Clone the repo and set up a Python environment:
-
+Build the image using `docker` or `podman`:
 ```sh
-git clone https://github.com/PAIR-code/lit.git ~/lit
-
-# Set up Python environment
-cd ~/lit
-conda env create -f environment.yml
-conda activate lit-nlp
-conda install cudnn cupti  # optional, for GPU support
-conda install -c pytorch pytorch  # optional, for PyTorch
-
-# Build the frontend
-(cd lit_nlp; yarn && yarn build)
+git clone https://github.com/PAIR-code/lit.git && cd lit
+docker build --file Dockerfile --tag lit-nlp .
 ```
 
-Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
-running `yarn` on Ubuntu/Debian, be sure you have the
-[correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
+See the [advanced guide](https://pair-code.github.io/lit/documentation/docker.md) for detailed instructions on using the
+default LIT Docker image, running LIT as a containerized web app in different
+scenarios, and how to creating your own LIT images.
 
 ### pip installation
 
@@ -86,13 +77,64 @@ The `pip` installation will install all necessary prerequisite packages for use
 of the core LIT package.
 
 It **does not** install the prerequisites for the provided demos, so you need to
-install those yourself. See [environment.yml](./environment.yml) for the list of
+install those yourself. See
+[requirements_examples.txt](./requirements_examples.txt) for the list of
 packages required to run the demos.
+
+### Install from source
+
+Clone the repo:
+
+```sh
+git clone https://github.com/PAIR-code/lit.git && cd lit
+```
+
+
+Note: be sure you are running Python 3.10. If you have a different version on  
+your system, use the `conda` instructions below to set up a Python 3.10 
+environment.
+
+Set up a Python environment with `venv`:
+
+```sh
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Or set up a Python environment using `conda`:
+
+```sh
+conda create --name lit-nlp
+conda activate lit-nlp
+conda install python=3.10
+conda install pip
+```
+
+Once you have the environment, install LIT's dependencies:
+```sh
+python -m pip install -r requirements.txt
+python -m pip install cudnn cupti  # optional, for GPU support
+python -m pip install torch  # optional, for PyTorch
+
+# Build the frontend
+(cd lit_nlp; yarn && yarn build)
+```
+
+Note: Use the `-r requirements.txt` option to install every dependency required
+for the LIT library, its test suite, and the built-in examples. You can also
+install subsets of these using the `-r requirements_core.txt` (core library),
+`-r requirements_test.txt` (test suite), `-r requirements_examples.txt`
+(examples), and/or any combination thereof.
+
+Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
+running `yarn` on Ubuntu/Debian, be sure you have the
+[correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
+
 
 ## Running LIT
 
 Explore a collection of hosted demos on the
-[LIT website demos page](https://pair-code.github.io/lit/demos).
+[demos page](https://pair-code.github.io/lit/demos).
 
 ### Quick-start: classification and regression
 
@@ -101,6 +143,12 @@ To explore classification and regression models tasks from the popular
 
 ```sh
 python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
+```
+
+Or, using `docker`:
+
+```sh
+docker run --rm -e DEMO_NAME=glue_demo -p 5432:5432 -t lit-nlp --quickstart
 ```
 
 Navigate to http://localhost:5432 to access the LIT UI.
@@ -121,44 +169,27 @@ To explore predictions from a pre-trained language model (BERT or GPT-2), run:
 python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
 ```
 
+Or, using `docker`:
+
+```sh
+docker run --rm -e DEMO_NAME=lm_demo -p 5432:5432 -t lit-nlp --models=bert-base-uncased
+```
+
 And navigate to http://localhost:5432 for the UI.
 
 ### Notebook usage
 
 Colab notebooks showing the use of LIT inside of notebooks can be found at
-google3/third_party/py/lit_nlp/examples/notebooks.
+[lit_nlp/examples/notebooks](./lit_nlp/examples/notebooks).
 
 We provide a simple
 [Colab demo](https://colab.research.google.com/github/PAIR-code/lit/blob/main/lit_nlp/examples/notebooks/LIT_sentiment_classifier.ipynb).
 Run all the cells to see LIT on an example classification model in the notebook.
 
-### Run LIT in a Docker container
-
-LIT can be run as a containerized app using [Docker](https://www.docker.com/) or
-your preferred engine. Use the following shell commands to build the default
-Docker image for LIT from the provided `Dockerfile`, and then run a container
-from that image. Comments are provided in-line to help explain each step.
-
-```shell
-# Build the docker image using the -t argument to name the image. Remember to
-# include the trailing . so Docker knows where to look for the Dockerfile
-docker build -t lit_app .
-
-# Now you can run LIT as a containerized app using the following command. Note
-# that the last parameter to the run command is the value you passed to the -t
-# argument in the build command above.
-docker run --rm -p 5432:5432 lit-app
-```
-
-The image above defaults to launching the GLUE demo on port 5432, but you can
-override this using environment variables. See our
-[advanced guide](https://github.com/PAIR-code/lit/wiki/docker.md) for detailed instructions on using the default
-LIT Docker image, running LIT as a containerized web app in different scenarios,
-and how to creating your own LIT images.
-
 ### More Examples
 
-See [lit_nlp/examples](./lit_nlp/examples). Run similarly to the above:
+See [lit_nlp/examples](./lit_nlp/examples). Most are run similarly to the
+quickstart example above:
 
 ```sh
 python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
@@ -166,7 +197,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](https://github.com/PAIR-code/lit/wiki/ui_guide.md), or
+To learn about LIT's features, check out the [user guide](https://pair-code.github.io/lit/documentation/ui_guide.md), or
 watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
@@ -175,18 +206,18 @@ You can easily run LIT with your own model by creating a custom `demo.py`
 launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The
 basic steps are:
 
-*   Write a data loader which follows the [`Dataset` API](https://github.com/PAIR-code/lit/wiki/api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](https://github.com/PAIR-code/lit/wiki/api.md#models)
+*   Write a data loader which follows the [`Dataset` API](https://pair-code.github.io/lit/documentation/api.md#datasets)
+*   Write a model wrapper which follows the [`Model` API](https://pair-code.github.io/lit/documentation/api.md#models)
 *   Pass models, datasets, and any additional
-    [components](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components) to the LIT server class
+    [components](https://pair-code.github.io/lit/documentation/api.md#interpretation-components) to the LIT server class
 
 For a full walkthrough, see
-[adding models and data](https://github.com/PAIR-code/lit/wiki/api.md#adding-models-and-data).
+[adding models and data](https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data).
 
 ## Extending LIT with new components
 
 LIT is easy to extend with new interpretability components, generators, and
-more, both on the frontend or the backend. See our [documentation](https://github.com/PAIR-code/lit/wiki) to get
+more, both on the frontend or the backend. See our [documentation](https://pair-code.github.io/lit/documentation/) to get
 started.
 
 ## Pull Request Process

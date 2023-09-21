@@ -19,6 +19,7 @@ import 'jasmine';
 
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
+import {IndexedInput} from '../lib/types';
 
 import {SettingsService} from './settings_service';
 import {AppState} from './state_service';
@@ -52,9 +53,10 @@ describe('updateSettings test', () => {
     const appState = app.getService(AppState);
     // Use mock data.
     appState.metadata = mockMetadata;
-    // Stop appState from trying to make the call to the back end
-    // to load the data (causes test flakiness.)
-    spyOn(appState, 'loadData').and.returnValue(Promise.resolve());
+    appState.addLayouts(appState.metadata.layouts);
+    appState.layoutName = appState.metadata.defaultLayout;
+    appState.setDatasetForTest('sst_dev', new Map<string, IndexedInput>());
+    appState.setDatasetForTest('dummy', new Map<string, IndexedInput>());
     const settingsService = app.getService(SettingsService);
 
     // Update the data

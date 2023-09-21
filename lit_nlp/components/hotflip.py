@@ -33,9 +33,9 @@ This generator extends ideas from the following papers.
     https://arxiv.org/abs/2103.14651
 """
 
-import copy
+from collections.abc import Iterator, Mapping
 import itertools
-from typing import cast, Iterator, Optional, Type
+from typing import Any, cast, Optional
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -124,7 +124,7 @@ class HotFlip(lit_components.Generator):
 
   def find_fields(self,
                   spec: Spec,
-                  typ: Type[types.LitType],
+                  typ: type[types.LitType],
                   align_field: Optional[str] = None) -> list[str]:
     # Find fields of provided 'typ'.
     fields = utils.find_spec_keys(spec, typ)
@@ -137,8 +137,8 @@ class HotFlip(lit_components.Generator):
     return [f for f in fields
             if getattr(spec[f], "align", None) == align_field]
 
-  def _get_tokens_and_gradients(self, input_spec: JsonDict,
-                                output_spec: JsonDict, output: JsonDict,
+  def _get_tokens_and_gradients(self, input_spec: Spec,
+                                output_spec: Spec, output: JsonDict,
                                 selected_fields: list[str]):
     """Returns a dictionary mapping token fields to tokens and gradients."""
     # Find selected token fields.
@@ -203,7 +203,6 @@ class HotFlip(lit_components.Generator):
     # consider combinations by ordering tokens by gradient L2 in order to
     # prioritize flipping tokens that may have the largest impact on the
     # prediction.
-    token_idxs = np.arange(len(tokens))
     token_grads_l2 = np.sum(token_grads * token_grads, axis=-1)
     # TODO(ataly, bastings): Consider sorting by attributions (either
     # Integrated Gradients or Shapley values).
@@ -227,23 +226,25 @@ class HotFlip(lit_components.Generator):
 
   def _create_cf(self, example: JsonDict, token_field: str, text_field: str,
                  tokens: list[str], token_idxs: tuple[int, ...],
-                 replacement_tokens: list[str]) -> JsonDict:
-    cf = copy.deepcopy(example)
+                 replacement_tokens: list[str]) -> Mapping[str, Any]:
+    cf = dict(example)
     modified_tokens = self._flip_tokens(
         tokens, token_idxs, replacement_tokens)
     # TODO(iftenney, bastings): call a model-provided detokenizer here?
     # Though in general tokenization isn't invertible and it's possible for
     # HotFlip to produce wordpiece sequences that don't correspond to any
     # input string.
-    cf[token_field] = modified_tokens
-    cf[text_field] = " ".join(modified_tokens)
+    cf = utils.make_modified_input(
+        cf,
+        {token_field: modified_tokens, text_field: " ".join(modified_tokens)},
+        "HOTFLIP"
+    )
     return cf
 
   def _get_replacement_tokens(self,
                               embedding_matrix: np.ndarray,
                               inv_vocab: list[str],
                               token_grads: np.ndarray,
-                              orig_output: JsonDict,
                               direction: int = -1) -> list[str]:
     """Identifies replacement tokens for each token position."""
     token_grads = token_grads * direction
@@ -306,7 +307,7 @@ class HotFlip(lit_components.Generator):
         "No token fields found. Cannot use HotFlip. :-(")
 
     # Copy tokens into input example.
-    example = copy.deepcopy(example)
+    example = dict(example)
     for token_field, v in tokens_and_gradients.items():
       tokens, _ = v
       example[token_field] = tokens

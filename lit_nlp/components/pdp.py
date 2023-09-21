@@ -21,7 +21,6 @@ different feature values, for each classification and regression head.
 The front-end can display these as charts.
 """
 
-import copy
 import functools
 from typing import cast, Optional
 
@@ -111,11 +110,10 @@ class PdpInterpreter(lit_components.Interpreter):
     # For each alternate value for a given feature.
     for new_val in vals_to_test:
       # Create copies of all provided inputs with the value replaced.
-      edited_inputs = []
-      for inp in inputs_to_use:
-        edited_input = copy.deepcopy(inp)
-        edited_input[feature] = new_val
-        edited_inputs.append(edited_input)
+      edited_inputs = [
+          utils.make_modified_input(inp, {feature: new_val}, 'PDP')
+          for inp in inputs_to_use
+      ]
 
       # Run prediction on the altered inputs.
       outputs = list(model.predict(edited_inputs))

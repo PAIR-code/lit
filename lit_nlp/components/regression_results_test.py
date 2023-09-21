@@ -30,8 +30,8 @@ class RegressionResultsTest(parameterized.TestCase):
     self.interpreter = regression_results.RegressionInterpreter()
 
   @parameterized.named_parameters(
-      ('classification', testing_utils.TestModelClassification(), False),
-      ('regression', testing_utils.TestRegressionModel({}), True),
+      ('classification', testing_utils.ClassificationModelForTesting(), False),
+      ('regression', testing_utils.RegressionModelForTesting({}), True),
   )
   def test_is_compatible(self, model: lit_model.Model, epxected: bool):
     compat = self.interpreter.is_compatible(
@@ -44,7 +44,8 @@ class RegressionResultsTest(parameterized.TestCase):
         {'label': 2}, {'label': -1}, {'label': 0}
     ]
     results = self.interpreter.run(
-        inputs, testing_utils.TestRegressionModel({}), dataset)
+        inputs, testing_utils.RegressionModelForTesting({}), dataset
+    )
     expected = [
         {'scores': dtypes.RegressionResult(0, -2, 4)},
         {'scores': dtypes.RegressionResult(0, 1, 1)},
@@ -58,7 +59,8 @@ class RegressionResultsTest(parameterized.TestCase):
         {}, {}, {}
     ]
     results = self.interpreter.run(
-        inputs, testing_utils.TestRegressionModel({}), dataset)
+        inputs, testing_utils.RegressionModelForTesting({}), dataset
+    )
     expected = [
         {'scores': dtypes.RegressionResult(0, None, None)},
         {'scores': dtypes.RegressionResult(0, None, None)},

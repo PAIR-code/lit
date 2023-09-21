@@ -69,7 +69,7 @@ class DummySequenceSalience(components.Interpreter):
     assert len(model_outputs) == len(inputs)
 
     return [
-        self._run_single(ex, mo, field_map)
+        self._run_single(ex, mo, field_map)  # pytype: disable=wrong-arg-types
         for ex, mo in zip(inputs, model_outputs)
     ]
 

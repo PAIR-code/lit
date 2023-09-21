@@ -7,8 +7,9 @@ Once you see the ASCII-art LIT logo, navigate to localhost:5432 to access the
 demo UI.
 """
 
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
@@ -19,19 +20,17 @@ from lit_nlp import server_flags
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.models import glue_models
 
-TOXICITY_MODEL_PATH = "https://storage.googleapis.com/what-if-tool-resources/lit-models/toxicity.tar.gz"  # pylint: disable=line-too-long
-import transformers
-TOXICITY_MODEL_PATH = transformers.file_utils.cached_path(TOXICITY_MODEL_PATH,
-extract_compressed_file=True)
-
 # NOTE: additional flags defined in server_flags.py
 
 FLAGS = flags.FLAGS
 
 FLAGS.set_default("development_demo", True)
 
-_MODEL_PATH = flags.DEFINE_string("model_path", TOXICITY_MODEL_PATH,
-                                  "Path to save trained model.")
+_MODEL_PATH = flags.DEFINE_string(
+    "model_path",
+    "https://storage.googleapis.com/what-if-tool-resources/lit-models/toxicity.tar.gz",
+    "Path to saved model (from transformers library).",
+)
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples", 1000, "Maximum number of examples to load into LIT. ")
 
@@ -44,8 +43,9 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
   if unused:
-    logging.info("toxcicity_demo:get_wsgi_app() called with unused args: %s",
-                 unused)
+    logging.info(
+        "toxicity_demo:get_wsgi_app() called with unused args: %s", unused
+    )
   return main([])
 
 

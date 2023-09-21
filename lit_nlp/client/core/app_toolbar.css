@@ -24,7 +24,7 @@
   align-items: center;
 }
 
-.headline-section > * {
+.headline-section > div:not(.vertical-separator), button, mwc-icon {
   padding: 4px;
   display: flex;
   justify-content: center;
@@ -37,7 +37,7 @@
 }
 
 icon-margin {
-  margin: 0pt 2pt;
+  margin: 0px 3px;
 }
 
 .status-emoji {

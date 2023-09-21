@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, reaction} from 'mobx';
+import {action, computed, reaction, runInAction} from 'mobx';
 
 import {arrayContainsSame} from '../lib/utils';
 
@@ -45,7 +45,7 @@ export class SettingsService extends LitService {
     // If compare examples changes, update layout using the 'quick' path.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
       this.modulesService.quickUpdateLayout(
-          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          this.appState.currentModelInfos, this.appState.currentDatasetSpec,
           compareExamplesEnabled);
     });
   }
@@ -73,48 +73,62 @@ export class SettingsService extends LitService {
    */
   @action
   async updateSettings(updateParams: UpdateSettingsParams) {
-    // Clear all modules.
-    this.modulesService.clearLayout();
-
-    // After one animation frame, the modules have been cleared. Now make
-    // settings changes and recompute the layout.
-    await this.raf();
     const nextModels = updateParams.models ?? this.appState.currentModels;
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;
 
-    // Compare the updated models
+    // Make sure the new dataset is loaded. This just loads in the background,
+    // and doesn't change the settings yet.
+    await this.appState.loadDataset(nextDataset);
+
+    // Clear all modules.
+    if (nextLayout !== this.appState.layoutName) {
+      this.modulesService.clearLayout();
+      // After one animation frame, the modules have been cleared. Now make
+      // settings changes and recompute the layout.
+      await this.raf();
+    }
+
     const haveModelsChanged =
         !arrayContainsSame(this.appState.currentModels, nextModels);
 
     const hasDatasetChanged =
         nextDataset !== this.appState.currentDataset && nextDataset;
 
-    if (haveModelsChanged) {
-      await this.appState.setCurrentModels(nextModels);
-    }
+    // The regular @action does not work properly for an async function,
+    // so we wrap the parts that directly update selection, dataset, and model
+    // to make sure these run in a single transaction and do not trigger any
+    // reactions on incompatible or inconsistent state.
+    runInAction(() => {
+      if (hasDatasetChanged) {
+        // Unselect all selected points if the dataset is changing.
+        this.selectionService.selectIds([]);
 
-    // Compare the updated dataset
-    if (hasDatasetChanged) {
-      // Unselect all selected points if the dataset is changing.
-      this.selectionService.selectIds([]);
+        // Atomic switch to the new dataset.
+        this.appState.setCurrentDataset(nextDataset);
+      }
 
-      this.appState.setCurrentDataset(
-          nextDataset, /** load data */
-          true);
-    }
+      if (haveModelsChanged) {
+        this.appState.setCurrentModels(nextModels);
+      }
+    });
 
-    // If the entire layout has changed, reinitialize the layout.
-    if (this.appState.layoutName !== nextLayout) {
+    // TOOD(b/265218467): update both `initializeLayout()` and
+    // `quickUpdateLayout()` when implementing three-panel layouts.
+    // Reinitialize the layout if the entire layout has changed or if either the
+    // upper or lower part of the layout is empty.
+    if (this.appState.layoutName !== nextLayout ||
+        Object.keys(this.modulesService.declaredLayout.upper).length === 0 ||
+        Object.keys(this.modulesService.declaredLayout.lower).length === 0) {
       this.appState.layoutName = nextLayout;
       this.modulesService.initializeLayout(
-        this.appState.layout, this.appState.currentModelSpecs,
+        this.appState.layout, this.appState.currentModelInfos,
         this.appState.currentDatasetSpec, this.appState.compareExamplesEnabled);
       this.modulesService.renderModules();
     } else {
       // Recompute layout using the 'quick' path.
       this.modulesService.quickUpdateLayout(
-          this.appState.currentModelSpecs, this.appState.currentDatasetSpec,
+          this.appState.currentModelInfos, this.appState.currentDatasetSpec,
           this.appState.compareExamplesEnabled);
     }
   }

@@ -9,9 +9,10 @@ class T5IntTest(absltest.TestCase):
 
   def test_t5_predict(self):
     # Run prediction to ensure no failure.
-    model_path = "t5-small"
-    model = t5.T5HFModel(model_path, num_to_generate=1, token_top_k=1,
-                         output_attention=False)
+    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/t5-small.tar.gz"
+    model = t5.T5HFModel(
+        model_path, num_to_generate=1, token_top_k=1, output_attention=False
+    )
     model_in = [{"input_text": "test text"}]
     model_out = list(model.predict(model_in))
 

@@ -14,8 +14,9 @@
 # ==============================================================================
 """An interpreter for analyzing classification results."""
 
+from collections.abc import Sequence
 import numbers
-from typing import cast, Optional, Sequence
+from typing import cast, Optional
 
 from lit_nlp.api import components as lit_components
 from lit_nlp.api import dataset as lit_dataset

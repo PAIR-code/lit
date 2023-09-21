@@ -1,0 +1,68 @@
+:host {
+  --tooltip-max-width: 232px;
+  --tooltip-width: auto;
+  /**
+   * Set this to inline if the wrapped content should also be rendered as
+   * inline, such as when applying a tooltip to a sentence span as part of
+   * a larger paragraph.
+   *
+   * TODO(lit-dev): see if we can use inline for this always? May cause issues
+   * with tooltip positioning.
+   */
+  --anchor-display-mode: inline-block;
+}
+
+/* Tooltip */
+.lit-tooltip {
+  display: var(--anchor-display-mode);
+}
+
+/* Tooltip text */
+.lit-tooltip .tooltip-text {
+  max-width: var(--tooltip-max-width);
+  width: var(--tooltip-width);
+
+  background-color: #202124;
+  opacity: 0.9;
+  border-radius: 4px;
+  color: #fff;
+  padding: 0px 8px;
+
+  position: absolute;
+  z-index: 9999;
+  white-space: normal;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 16px;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.above {
+  bottom: 28px;
+}
+
+.left {
+  right: 12px;
+}
+
+.lit-tooltip .tooltip-text a {
+  color: #7bcccc;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.lit-tooltip:hover .tooltip-text:not(.disabled) {
+  visibility: visible;
+}
+
+.lit-tooltip .tooltip-text:not(.force-show) {
+  visibility: hidden;
+}
+
+/* Show the tooltip when forceShow is set. */
+.lit-tooltip .tooltip-text.force-show {
+  visibility: visible;
+}

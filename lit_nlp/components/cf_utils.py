@@ -15,16 +15,18 @@
 """Utility functions for generating counterfactuals."""
 
 import re
-from typing import List, Optional, Text, Tuple, cast
+from typing import Any, Optional, cast
 
 from lit_nlp.api import types
 import numpy as np
 
 
-def update_prediction(example: types.JsonDict,
-                      example_output: types.JsonDict,
-                      output_spec: types.JsonDict,
-                      pred_key: Text):
+def update_prediction(
+    example: dict[str, Any],
+    example_output: types.JsonDict,
+    output_spec: types.JsonDict,
+    pred_key: str,
+):
   """Updates prediction score and label (if classification model) in the provided example."""
   prediction = example_output[pred_key]
   example[pred_key] = prediction
@@ -41,11 +43,13 @@ def update_prediction(example: types.JsonDict,
     example[label_key] = example_label
 
 
-def is_prediction_flip(cf_output: types.JsonDict,
-                       orig_output: types.JsonDict,
-                       output_spec: types.JsonDict,
-                       pred_key: Text,
-                       regression_thresh: Optional[float] = None) -> bool:
+def is_prediction_flip(
+    cf_output: types.JsonDict,
+    orig_output: types.JsonDict,
+    output_spec: types.JsonDict,
+    pred_key: str,
+    regression_thresh: Optional[float] = None,
+) -> bool:
   """Check if cf_output and  orig_output specify different prediciton classes."""
   if isinstance(output_spec[pred_key], types.RegressionScore):
     # regression model. We use the provided threshold to binarize the output.
@@ -57,10 +61,12 @@ def is_prediction_flip(cf_output: types.JsonDict,
   return cf_pred_class != orig_pred_class
 
 
-def prediction_difference(cf_output: types.JsonDict,
-                          orig_output: types.JsonDict,
-                          output_spec: types.JsonDict,
-                          pred_key: Text) -> float:
+def prediction_difference(
+    cf_output: types.JsonDict,
+    orig_output: types.JsonDict,
+    output_spec: types.JsonDict,
+    pred_key: str,
+) -> float:
   """Returns the difference in prediction between cf_output and orig_output."""
   if isinstance(output_spec[pred_key], types.RegressionScore):
     # regression model. We use the provided threshold to binarize the output.
@@ -73,7 +79,7 @@ def prediction_difference(cf_output: types.JsonDict,
   return cf_pred - orig_pred
 
 
-def _tokenize_url(url: str) -> List[Tuple[str, int, int]]:
+def _tokenize_url(url: str) -> list[tuple[str, int, int]]:
   """Tokenizes a URL and returns list of triples specifying the token string and its start and end position."""
   if not url:
     return []
@@ -97,14 +103,13 @@ def _tokenize_url(url: str) -> List[Tuple[str, int, int]]:
   return tokens
 
 
-def tokenize_url(url: str) -> List[str]:
+def tokenize_url(url: str) -> list[str]:
   """Tokenizes the provided URL and returns a list of token strings."""
   url_tokens = _tokenize_url(url)
   return [t for t, _, _ in url_tokens]
 
 
-def ablate_url_tokens(url: str,
-                      token_idxs_to_ablate: Tuple[int, ...]) -> str:
+def ablate_url_tokens(url: str, token_idxs_to_ablate: tuple[int, ...]) -> str:
   """Ablates the tokens at the provided indices and returns the resulting URL."""
   url_tokens = _tokenize_url(url)
   start = 0

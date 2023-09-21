@@ -180,7 +180,7 @@ button {
   margin: 5px;
   text-align: center;
   padding: 5px 10px;
-  font-size: 10pt;
+  font-size: 13px;
   border-radius: 3px;
   justify-content: center;
   align-items: center;
@@ -227,7 +227,6 @@ button:disabled {
   -webkit-appearance: none;
   padding: 4px 18px 3px 4px;
   margin:  2px  8px 2px 0;
-  max-width: 80%;
   color: var(--lit-neutral-800);
   background-color: transparent;
   /* SVG background-image sets fill: var(--lit-neutral-800) as HEX value */
@@ -262,7 +261,7 @@ button:disabled {
 .dropdown.hairline { /* Not currently in use but likely will be in AppToolbar */
   border: 1px solid var(--lit-neutral-400);
   border-radius: 4px;
-  padding: 3pt 12pt 3pt 4pt;
+  padding: 4px 16px 4px 5px;
 }
 
 .dropdown.hairline:disabled {
@@ -287,12 +286,6 @@ button:disabled {
 
 mwc-textfield {
   --mdc-theme-primary: #2f8c9b;
-}
-
-.lit-img{
-  height: 15pt;
-  width: 15pt;
-  padding: 2pt;
 }
 
 /* For in-line icons in a <span> */
@@ -484,8 +477,9 @@ mwc-textfield {
 
 .icon-button:disabled,
 mwc-icon.disabled{
+  pointer-events: none;
   cursor: default;
-  color: var(--lit-neutral-300);
+  color: var(--lit-neutral-200);
 }
 
 .icon-button:active {
@@ -526,10 +520,10 @@ mwc-icon.mdi-outlined {
 
 .large-help-icon{
   position: relative;
-  height: 16px;
-  width: 16px;
-  min-width: 16px;
-  --mdc-icon-size: 16px;
+  height: 14px;
+  width: 14px;
+  min-width: 14px;
+  --mdc-icon-size: 14px;
   margin: auto;
 }
 
@@ -588,7 +582,7 @@ mwc-icon.mdi-outlined {
   flex-shrink: 0;
   justify-content: space-between;
   height: 36px;
-  padding: 0 4px;
+  padding: 0 8px;
 }
 
 /** Status text in a module footer. **/
@@ -608,40 +602,6 @@ mwc-icon.mdi-outlined {
 .offset-for-module-header {
   height: 0;
   margin-top: 24px; /* match .header height from widget.css */
-}
-
-
-/* Disable Material ripple */
-.switch-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: 32px; /* make the actual switch visible */
-  overflow-y: clip; /* keep mwc-switch overdraw from messing up layout */
-}
-
-.switch-container > mwc-switch {
-  margin-left: 4px;
-  margin-right: 4px;
-}
-
-mwc-switch {
-  /* Revert to old teal color, the new purple is ugly. */
-  --mdc-switch-selected-hover-handle-color: teal;
-  --mdc-switch-selected-hover-track-color: lightseagreen;
-  --mdc-switch-selected-focus-handle-color: teal;
-  --mdc-switch-selected-focus-track-color: lightseagreen;
-  --mdc-switch-selected-pressed-handle-color: teal;
-  --mdc-switch-selected-pressed-track-color: lightseagreen;
-  --mdc-switch-selected-handle-color: teal;
-  --mdc-switch-selected-track-color: lightseagreen;
-  /* Hide the ripple effect. */
-  --mdc-switch-selected-focus-state-layer-opacity: 0;
-  --mdc-switch-selected-hover-state-layer-opacity: 0;
-  --mdc-switch-selected-pressed-state-layer-opacity: 0;
-  --mdc-switch-unselected-focus-state-layer-opacity: 0;
-  --mdc-switch-unselected-hover-state-layer-opacity: 0;
-  --mdc-switch-unselected-pressed-state-layer-opacity: 0;
 }
 
 mwc-icon.outlined {

@@ -19,8 +19,8 @@
 import {action, computed, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
-import {canonicalizeLayout, IndexedInput, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, Spec} from '../lib/types';
-import {getTypes, findSpecKeys} from '../lib/utils';
+import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitComponentLayouts, LitMetadata, ModelInfo, ModelInfoMap, ModelSpec, NONE_DS_DICT_KEY, Spec} from '../lib/types';
+import {findSpecKeys, getTypes} from '../lib/utils';
 
 import {ApiService} from './api_service';
 import {LitService} from './lit_service';
@@ -59,9 +59,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
   @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
-  @observable compareExamplesEnabled: boolean = false;
+  @observable compareExamplesEnabled = false;
   @observable layoutName!: string;
-  @observable layouts: {[name: string]: LitCanonicalLayout} = {};
+  @observable layouts: LitComponentLayouts = {};
   private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
 
   @computed
@@ -73,24 +73,33 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Enforce setting currentDataset through the setCurrentDataset method by
    * making the currentDatasetInternal private...
    */
-  @observable private currentDatasetInternal: string = '';
+  @observable private currentDatasetInternal = '';
   @computed
   get currentDataset(): string {
     return this.currentDatasetInternal;
   }
 
   /**
-   * When we set the current dataset, we need to load new data
-   * from the server if the data is not already loaded...
+   * Set current dataset.
    */
   @action
-  setCurrentDataset(dataset: string, shouldLoadDataset = false) {
-    this.currentDatasetInternal = dataset;
-    if (!this.currentInputDataIsLoaded && shouldLoadDataset) {
-      // TODO (b/154508392): We need to do this in an async/race condition safe
-      // way and guarantee that we won't fetch multiple datasets simultaneously
-      this.loadData();
+  setCurrentDataset(dataset: string) {
+    if (!this.inputData.has(dataset)) {
+      throw new Error(
+          `Dataset '${dataset}' is not loaded. Call loadDataset() first.`);
     }
+    this.currentDatasetInternal = dataset;
+  }
+
+  /**
+   * Set dataset with given examples. Only use this in tests.
+   * TODO(b/297232000): get rid of test-only methods, have some mock init
+   * instead.
+   */
+  @action
+  setDatasetForTest(dataset: string, dataMap: Map<string, IndexedInput>) {
+    this.inputData.set(dataset, dataMap);  // simulates a call to loadDataset()
+    this.setCurrentDataset(dataset);
   }
 
   @computed
@@ -132,9 +141,9 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get currentModelRequiredInputSpecKeys(): string[] {
     // Add all required keys from current model input specs.
     const keys = new Set<string>();
-    Object.values(this.currentModelSpecs).forEach((modelSpec: ModelInfo) => {
-      Object.keys(modelSpec.spec.input).forEach(key => {
-        if (modelSpec.spec.input[key].required === true) {
+    Object.values(this.currentModelInfos).forEach((modelInfo: ModelInfo) => {
+      Object.keys(modelInfo.spec.input).forEach(key => {
+        if (modelInfo.spec.input[key].required === true) {
           keys.add(key);
         }
       });
@@ -193,7 +202,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     const ret: string[] = [];
     while (id) {
       ret.push(id);
-      id = this.getCurrentInputDataById(id)?.meta['parentId'];
+      id = this.getCurrentInputDataById(id)?.meta.parentId;
     }
     return ret;
   }
@@ -202,7 +211,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Select models.
    */
   @action
-  async setCurrentModels(currentModels: string[]) {
+  setCurrentModels(currentModels: string[]) {
     this.currentModels = currentModels;
   }
 
@@ -210,24 +219,27 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get the configs of only the current models.
    */
   @computed
-  get currentModelSpecs() {
-    const allModelSpecs = this.metadata.models;
-
-    // Get the specs of only the selected models.
-    const currentModelSpecs: ModelInfoMap = {};
-    Object.keys(allModelSpecs).forEach(modelName => {
-      if (this.currentModels.includes(modelName)) {
-        currentModelSpecs[modelName] = allModelSpecs[modelName];
-      }
-    });
-    return currentModelSpecs;
+  get currentModelInfos(): ModelInfoMap {
+    const {currentModels} = this;
+    return Object.entries(this.metadata.models).reduce(
+        (currentModelInfos: ModelInfoMap, [modelName, modelInfo]) => {
+          if (currentModels.includes(modelName)) {
+            currentModelInfos[modelName] = modelInfo;
+          }
+          return currentModelInfos;
+        }, {});
   }
 
   /**
    * Get the input and output spec for a particular model.
    */
   getModelSpec(modelName: string): ModelSpec {
-    return this.metadata.models[modelName].spec;
+    const modelInfo = this.metadata.models[modelName];
+    if (modelInfo != null) {
+      return modelInfo.spec;
+    } else {
+      throw new Error(`Model ${modelName} not found in LitMetadata.`);
+    }
   }
 
   /**
@@ -236,14 +248,26 @@ export class AppState extends LitService implements StateObservedByUrlService {
   getSpecKeysFromFieldMatcher(matcher: FieldMatcher, modelName: string) {
     let spec = this.currentDatasetSpec;
     if (matcher.spec === 'output') {
-      spec = this.currentModelSpecs[modelName].spec.output;
+      spec = this.getModelSpec(modelName).output;
     } else if (matcher.spec === 'input') {
-      spec = this.currentModelSpecs[modelName].spec.input;
+      spec = this.getModelSpec(modelName).input;
     }
     return findSpecKeys(spec, getTypes(matcher.types));
   }
 
   //=================================== Generation logic
+  /**
+   * Create an empty datapoint with appropriate default values for each field.
+   */
+  makeEmptyDatapoint(source?: string) {
+    const data: Input = {'_id': '', '_meta': {source, added: true}};
+    const spec = this.currentDatasetSpec;
+    for (const key of this.currentInputDataKeys) {
+      data[key] = defaultValueByField(key, spec);
+    }
+    return {data, id: '', meta: data['_meta']};
+  }
+
   /**
    * Annotate one or more bare datapoints.
    * @param data input examples; ids will be overwritten.
@@ -288,9 +312,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
 
   //=================================== Initialization logic
   addLayouts(layouts: LitComponentLayouts) {
-    for (const name of Object.keys(layouts)) {
-      this.layouts[name] = canonicalizeLayout(layouts[name]);
-    }
+    Object.assign(this.layouts, layouts);
   }
 
   @action
@@ -306,24 +328,21 @@ export class AppState extends LitService implements StateObservedByUrlService {
     // TODO(b/160480922) Move away from AppState being the source of truth for
     // URL configuration data.
     this.currentModels = this.determineCurrentModelsFromUrl(urlConfiguration);
-    this.setCurrentDataset(
-        await this.determineCurrentDatasetFromUrl(urlConfiguration),
-        /** should Load Data */ false);
+    // This is async because it may trigger the backend to load data from disk.
+    const dataset = await this.determineCurrentDatasetFromUrl(urlConfiguration);
+    await this.loadDataset(dataset);
+    this.setCurrentDataset(dataset);
 
-    await this.loadData();
     this.initialized = true;
   }
 
-  async loadData() {
-    if (!this.currentDataset) return;
+  async loadDataset(dataset: string) {
+    if (!dataset) return;
+    if (this.inputData.has(dataset)) return;
 
-    const inputResponse = await this.apiService.getDataset(this.currentDataset);
-    this.updateInputData(this.currentDataset, inputResponse);
-  }
-
-  private updateInputData(dataset: string, data: IndexedInput[]) {
+    const response = await this.apiService.getDataset(dataset);
     const map = new Map<Id, IndexedInput>();
-    data.forEach(entry => {
+    response.forEach(entry => {
       map.set(entry.id, entry);
     });
     this.inputData.set(dataset, map);
@@ -370,12 +389,13 @@ export class AppState extends LitService implements StateObservedByUrlService {
       return urlSelectedDataset;
     }
 
-    // If the dataset is not compatable with the selected models, return the
-    // first compatable dataset.
+    // If the dataset is not compatible with the selected models, return the
+    // first compatible dataset.
     else {
       if (availableDatasets.size === 0) {
-        this.statusService.addError('No dataset available for loaded models.');
-        return '';
+        console.log(
+            'No dataset available for loaded models, using the empty dataset.');
+        return NONE_DS_DICT_KEY;
       }
       return [...availableDatasets][0];
     }
@@ -392,7 +412,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
     urlNewDatasetPath: string){
     try {
       const newInfo = await this.apiService.createDataset(
-        urlSelectedDataset, urlNewDatasetPath);
+        urlSelectedDataset, {});
       this.metadata = newInfo[0];
       return newInfo[1];
     } catch {
@@ -413,7 +433,7 @@ export class AppState extends LitService implements StateObservedByUrlService {
    * Get best URL for this server.
    */
   getBestURL() {
-    const urlBase = (this.metadata.canonicalURL || window.location.origin);
+    let urlBase = (this.metadata.canonicalURL || window.location.origin);
     return new URL(`${urlBase}${window.location.search}`).href;
   }
 }

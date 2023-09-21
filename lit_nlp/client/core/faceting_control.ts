@@ -18,12 +18,11 @@
  */
 
 import '../elements/popup_container';
-import '../elements/slider';
 
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -64,10 +63,10 @@ export class FacetingControl extends ReactiveElement {
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
 
-  @observable @property({type: Boolean}) disabled = false;
-  @observable @property({type: String}) contextName?: string;
-  @observable @property({type: Number}) binLimit = DEFAULT_BIN_LIMIT;
-  @observable @property({type: Number}) choiceLimit?: number;
+  @property({type: Boolean, reflect: true}) disabled = false;
+  @property({type: String}) contextName?: string;
+  @property({type: Number}) binLimit = DEFAULT_BIN_LIMIT;
+  @property({type: Number}) choiceLimit?: number;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -143,9 +142,10 @@ export class FacetingControl extends ReactiveElement {
     }
   }
 
-  override firstUpdated() {
-    const numericFeatures = () => this.groupService.denseFeatureNames;
-    this.reactImmediately(numericFeatures, () => {this.reset();});
+  override connectedCallback() {
+    super.connectedCallback();
+    this.reactImmediately(
+        () => this.groupService.denseFeatureNames, () => {this.reset();});
   }
 
   /**
@@ -330,15 +330,18 @@ export class FacetingControl extends ReactiveElement {
       'disabled': this.disabled
     });
 
+    // TODO(b/265957070): Consider custom vertical padding for tooltips.
     // clang-format off
     return html`
       <popup-container>
         <div class="faceting-info" slot='toggle-anchor'>
-          <button class="hairline-button" title=${title}
-                  ?disabled=${this.disabled}>
-            <span class="material-icon">dashboard</span>
-            Facets
-          </button>
+          <lit-tooltip content=${title}>
+            <button class="hairline-button" slot="tooltip-anchor"
+                    ?disabled=${this.disabled}>
+              <span class="material-icon">dashboard</span>
+              Facets
+            </button>
+          </lit-tooltip>
           <div class=${activeFacetsClass}
            @click=${(e: Event) => { e.stopPropagation(); }}>
             : ${facetsList}

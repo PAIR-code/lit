@@ -14,8 +14,9 @@
 # ==============================================================================
 """Threshold setter for binary classifiers."""
 
+from collections.abc import Mapping, Sequence
 import math
-from typing import Optional, Sequence, cast
+from typing import Optional
 
 import attr
 from lit_nlp.api import components as lit_components
@@ -38,7 +39,7 @@ class ThresholderConfig(object):
   # Ratio of cost of a false negative to a false positive.
   cost_ratio: Optional[float] = 1
   # Facets of datapoints to calculate individual thresholds for.
-  facets: Optional[JsonDict] = {'': {}}
+  facets: Optional[Mapping[str, JsonDict]] = {'': {}}
 
 
 class Thresholder(lit_components.Interpreter):
@@ -97,13 +98,16 @@ class Thresholder(lit_components.Interpreter):
              for metrics_for_threshold in metrics_list]
     single_threshold = np.argmin(costs) / 100
 
+    if not (facets := config.facets):
+      return {'pred_key': pred_key, 'thresholds': {}}
+
     faceted_thresholds = {}
     faceted_costs = {}
     faceted_measures = {}
 
     # If there is only a single facet, return the single best threshold for
     # this prediction key.
-    facets_keys = list(config.facets.keys())
+    facets_keys = list(facets.keys())
     if len(facets_keys) == 1:
       faceted_thresholds[facets_keys[0]] = {
           'Single': single_threshold,
@@ -170,17 +174,17 @@ class Thresholder(lit_components.Interpreter):
 
     return {'pred_key': pred_key, 'thresholds': faceted_thresholds}
 
-  def run_with_metadata(
+  def run(
       self,
-      indexed_inputs: Sequence[IndexedInput],
+      inputs: Sequence[JsonDict],
       model: lit_model.Model,
-      dataset: lit_dataset.IndexedDataset,
+      dataset: lit_dataset.Dataset,
       model_outputs: Optional[list[JsonDict]] = None,
       config: Optional[JsonDict] = None) -> Optional[list[JsonDict]]:
     """Calculates optimal thresholds on the provided data.
 
     Args:
-      indexed_inputs: all examples in the dataset, in the indexed input format.
+      inputs: all examples in the dataset, in the indexed input format.
       model: the model being explained.
       dataset: the dataset which the current examples belong to.
       model_outputs: optional model outputs from calling model.predict(inputs).
@@ -189,6 +193,13 @@ class Thresholder(lit_components.Interpreter):
     Returns:
       A JsonDict containing the calcuated thresholds
     """
+    # Convert any facets from using IndexedInputs to using JsonDicts prior to
+    # passing to self.run().
+    if config and (facets := config.get('facets')):
+      for facet_dict in facets.values():
+        if (facet_data := facet_dict.get('data')):
+          facet_dict['data'] = [ex.get('data', ex) for ex in facet_data]
+
     config = ThresholderConfig(**(config or {}))
 
     pred_keys = []
@@ -196,8 +207,7 @@ class Thresholder(lit_components.Interpreter):
       if not isinstance(pred_spec, types.MulticlassPreds):
         continue
 
-      parent_key = cast(types.MulticlassPreds, pred_spec).parent
-      if not parent_key:
+      if not (parent_key := pred_spec.parent):
         continue
 
       parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)
@@ -205,7 +215,7 @@ class Thresholder(lit_components.Interpreter):
         pred_keys.append(pred_key)
 
     indexed_outputs = {
-        ex['id']: output for (ex, output) in zip(indexed_inputs, model_outputs)
+        ex['_id']: output for (ex, output) in zip(inputs, model_outputs)
     }
 
     # Try all margins for thresholds from 0 to 1, by hundreths.
@@ -224,21 +234,25 @@ class Thresholder(lit_components.Interpreter):
         metrics_config[pred_key] = {'': {'margin': margin}}
 
       # Get and store the metrics for the entire dataset for this margin.
-      dataset_results.append(self.metrics_gen.run_with_metadata(
-          indexed_inputs, model, dataset, model_outputs, metrics_config))
+      dataset_results.append(self.metrics_gen.run(
+          list(inputs), model, dataset, model_outputs, metrics_config))
 
       # Get and store the metrics for each facet of the dataset for this margin.
-      for facet_key in config.facets:
-        if 'data' not in config.facets[facet_key]:
+      if not (facets := config.facets):
+        continue
+
+      for facet_key, facet_dict in facets.items():
+        if not (facet_data := facet_dict.get('data')):
           continue
+
         if facet_key not in faceted_results:
           faceted_results[facet_key] = []
-        faceted_model_outputs = [
-            indexed_outputs[ex['id']]
-            for ex in config.facets[facet_key]['data']]
-        faceted_results[facet_key].append(self.metrics_gen.run_with_metadata(
-            config.facets[facet_key]['data'], model, dataset,
-            faceted_model_outputs, metrics_config))
+        faceted_outputs = [indexed_outputs[ex['_id']] for ex in facet_data]
+        faceted_results[facet_key].append(
+            self.metrics_gen.run(
+                facet_data, model, dataset, faceted_outputs, metrics_config
+            )
+        )
 
     pred_keys = [result['pred_key'] for result in dataset_results[0]]
     ret = []

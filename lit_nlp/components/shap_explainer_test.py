@@ -33,12 +33,14 @@ _BAD_DATASET = lit_dataset.Dataset(
     examples=[])
 
 _GOOD_DATASET = lit_dataset.Dataset(
-    spec={'val': lit_types.Scalar()}, examples=[{
+    spec={'val': lit_types.Scalar()},
+    examples=[{
         'val': 0.8675309
-    }] * 10)
+    }] * 10
+)
 
 
-class EmptyModel(lit_model.Model):
+class _EmptyTestModel(lit_model.Model):
 
   def input_spec(self) -> lit_types.Spec:
     return {}
@@ -46,11 +48,11 @@ class EmptyModel(lit_model.Model):
   def output_spec(self) -> lit_types.Spec:
     return {}
 
-  def predict_minibatch(self, inputs, **kw):
+  def predict(self, inputs, **kw):
     return None
 
 
-class SparseMultilabelModel(testing_utils.TestModelClassification):
+class _SparseMultilabelTestModel(testing_utils.ClassificationModelForTesting):
 
   def output_spec(self) -> lit_types.Spec:
     return {'preds': lit_types.SparseMultilabelPreds()}
@@ -59,7 +61,7 @@ class SparseMultilabelModel(testing_utils.TestModelClassification):
     self.predict(inputs, **kw)
 
   def predict(self, inputs, **kw):
-    return [{'preds': [('label', 0.8675309)]} for i in inputs]
+    return [{'preds': [('label', 0.8675309)]} for _ in inputs]
 
 
 class TabularShapExplainerTest(parameterized.TestCase):
@@ -67,30 +69,54 @@ class TabularShapExplainerTest(parameterized.TestCase):
   def setUp(self):
     super(TabularShapExplainerTest, self).setUp()
     self.dataset = _GOOD_DATASET
-    self.regression_model = testing_utils.TestIdentityRegressionModel()
+    self.regression_model = testing_utils.IdentityRegressionModelForTesting()
     self.shap = shap_explainer.TabularShapExplainer()
-    self.sparse_model = SparseMultilabelModel()
+    self.sparse_model = _SparseMultilabelTestModel()
 
   @parameterized.named_parameters(
       # Empty model always fails
-      ('empty_model_bad_dataset', EmptyModel(), _BAD_DATASET, False),
-      ('empty_model_good_dataset', EmptyModel(), _GOOD_DATASET, False),
+      ('empty_model_bad_dataset', _EmptyTestModel(), _BAD_DATASET, False),
+      ('empty_model_good_dataset', _EmptyTestModel(), _GOOD_DATASET, False),
       # Classification model never matches dataset
-      ('cls_model_bad_dataset', testing_utils.TestModelClassification(),
-       _BAD_DATASET, False),
-      ('cls_model_good_dataset', testing_utils.TestModelClassification(),
-       _GOOD_DATASET, False),
-      # Incompatible dataset and model inut specs
-      ('reg_model_bad_dataset', testing_utils.TestIdentityRegressionModel(),
-       _BAD_DATASET, False),
-      # Compatible dataset and model
-      ('reg_model_good_dataset', testing_utils.TestIdentityRegressionModel(),
-       _GOOD_DATASET, True),
-      # Sparse model never matches dataset
-      ('sparse_model_bad_dataset', SparseMultilabelModel(), _BAD_DATASET, False
+      (
+          'cls_model_bad_dataset',
+          testing_utils.ClassificationModelForTesting(),
+          _BAD_DATASET,
+          False,
       ),
-      ('sparse_model_good_dataset', SparseMultilabelModel(), _GOOD_DATASET,
-       False),
+      (
+          'cls_model_good_dataset',
+          testing_utils.ClassificationModelForTesting(),
+          _GOOD_DATASET,
+          False,
+      ),
+      # Incompatible dataset and model inut specs
+      (
+          'reg_model_bad_dataset',
+          testing_utils.IdentityRegressionModelForTesting(),
+          _BAD_DATASET,
+          False,
+      ),
+      # Compatible dataset and model
+      (
+          'reg_model_good_dataset',
+          testing_utils.IdentityRegressionModelForTesting(),
+          _GOOD_DATASET,
+          True,
+      ),
+      # Sparse model never matches dataset
+      (
+          'sparse_model_bad_dataset',
+          _SparseMultilabelTestModel(),
+          _BAD_DATASET,
+          False,
+      ),
+      (
+          'sparse_model_good_dataset',
+          _SparseMultilabelTestModel(),
+          _GOOD_DATASET,
+          False,
+      ),
   )
   def test_compatibility(self, model: lit_model.Model,
                          dataset: lit_dataset.Dataset, expected: bool):

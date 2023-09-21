@@ -1,6 +1,5 @@
 """Encoder implementation for frozen-encoder coref."""
 import os
-from typing import Dict
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -12,7 +11,7 @@ import tensorflow as tf
 import transformers
 
 
-class BertEncoderWithOffsets(lit_model.Model):
+class BertEncoderWithOffsets(lit_model.BatchedModel):
   """BERT encoder for pre-tokenized text."""
 
   @property
@@ -28,7 +27,7 @@ class BertEncoderWithOffsets(lit_model.Model):
         output_hidden_states=True,
         output_attentions=False)
 
-  def _postprocess(self, output: Dict[str, np.ndarray]):
+  def _postprocess(self, output: dict[str, np.ndarray]):
     """Postprocess, modifying output dict in-place."""
     # Slice to remove padding, omitting initial [CLS] and final [SEP]
     slicer = slice(1, output.pop('ntok') - 1)

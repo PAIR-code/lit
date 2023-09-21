@@ -14,8 +14,9 @@
 # ==============================================================================
 """Helper classes and functions for explaining text classifiers."""
 
+from collections.abc import Sequence
 import math
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 import attr
 import numpy as np
 

@@ -16,12 +16,12 @@
  */
 
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {GeneratedURL, ImageBytes} from '../lib/lit_types';
+import {GeneratedURL, ImageBytes, ImageBytesList} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, isLitSubtype} from '../lib/utils';
@@ -40,7 +40,7 @@ export class GeneratedImageModule extends LitModule {
     selectionServiceIndex=${selectionServiceIndex}>
   </generated-image-module>`;
 
-  static supportedTypes = [ImageBytes];
+static supportedTypes = [ImageBytes, ImageBytesList];
 
   static override get styles() {
     const styles = css`
@@ -84,12 +84,14 @@ export class GeneratedImageModule extends LitModule {
     this.generatedImages = results[0];
   }
 
-  renderImage(name: string, src: string) {
+  renderImage(name: string, src: string|string[]) {
     // clang-format off
     return html`
       <div class='field-group'>
         <div class="field-title">${name}</div>
-        <img src=${src}>
+        ${Array.isArray(src) ?
+            src.map(s => html`<img src=${s}>`) :
+            html`<img src=${src}>`}
       </div>
     `;
     // clang-format on

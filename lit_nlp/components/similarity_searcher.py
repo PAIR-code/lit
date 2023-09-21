@@ -34,12 +34,9 @@ class SimilaritySearcher(lit_components.Generator):
     self.index = indexer
 
   def _get_embedding(self, example: types.Input, model: lit_model.Model,
-                     dataset: lit_dataset.IndexedDataset, embedding_name: str,
-                     dataset_name: str):
+                     embedding_name: str):
     """Calls the model on the example to get the embedding."""
-    model_input = dataset.index_inputs([example])
-    model_output = model.predict_with_metadata(
-        model_input, dataset_name=dataset_name)
+    model_output = model.predict([example])
     embedding = list(model_output)[0][embedding_name]
     return embedding
 
@@ -66,8 +63,7 @@ class SimilaritySearcher(lit_components.Generator):
     model_name = config['model_name']
     dataset_name = config['dataset_name']
     embedding_name = config['Embedding Field']
-    embedding = self._get_embedding(example, model, dataset, embedding_name,
-                                    dataset_name)
+    embedding = self._get_embedding(example, model, embedding_name)
     neighbors = self._find_nn(model_name, dataset_name, embedding_name,
                               embedding)
     return neighbors

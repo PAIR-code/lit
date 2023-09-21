@@ -26,8 +26,8 @@ import '../elements/spinner';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -55,6 +55,10 @@ export class StatusbarComponent extends MobxLitElement {
       'no-progress-line': !this.statusService.isLoading
     });
 
+    const bugLink = 'https://github.com/PAIR-code/lit/issues';
+    const docLink = 'https://pair-code.github.io/lit/documentation/';
+    const helpLink = 'mailto:lit-dev@google.com';
+
     // clang-format off
     return html`
       <div id="at-bottom">
@@ -65,13 +69,27 @@ export class StatusbarComponent extends MobxLitElement {
             </div>
             <div class="signature">
               <div>Made with <img src="static/favicon.png" class="emoji"> by the LIT team</div>
-              <div title="Send feedback" id="feedback">
-                <a href="mailto:lit-dev@google.com" target="_blank">
-                  <mwc-icon class="icon-button cyea-icon">
-                    feedback
-                  </mwc-icon>
+
+              <lit-tooltip content="File a bug" tooltipPosition="above left">
+                <a slot="tooltip-anchor" class="link-icon" href=${bugLink}
+                  target="_blank">
+                  <mwc-icon class="icon-button cyea-icon">bug_report</mwc-icon>
                 </a>
-              </div>
+              </lit-tooltip>
+
+              <lit-tooltip content="View docs" tooltipPosition="above left">
+                <a slot="tooltip-anchor" class="link-icon" href=${docLink}
+                  target="_blank">
+                  <mwc-icon class="icon-button cyea-icon">plagiarism</mwc-icon>
+                </a>
+              </lit-tooltip>
+
+              <lit-tooltip content="Get help" tooltipPosition="above left">
+                <a class="link-icon" href=${helpLink} target="_blank"
+                  slot="tooltip-anchor">
+                  <mwc-icon class="icon-button cyea-icon">feedback</mwc-icon>
+                </a>
+              </lit-tooltip>
             </div>
           </div>
           <div class=${progressClass}></div>

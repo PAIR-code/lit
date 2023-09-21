@@ -19,6 +19,7 @@ import {autorun} from 'mobx';
 
 import {ListLitType} from '../lib/lit_types';
 import {defaultValueByField, IndexedInput, Input, LitCanonicalLayout, LitMetadata, ServiceUser, Spec} from '../lib/types';
+import {makeModifiedInput} from '../lib/utils';
 
 import {LitService} from './lit_service';
 import {ApiService} from './services';
@@ -29,6 +30,7 @@ import {ApiService} from './services';
 export class UrlConfiguration {
   selectedTabUpper?: string;
   selectedTabLower?: string;
+  selectedTabLeft?: string;
   selectedModels: string[] = [];
   selectedData: string[] = [];
   pinnedSelectedData?: string;
@@ -42,6 +44,7 @@ export class UrlConfiguration {
   dataFields: {[key: number]: Input} = {};
   selectedDataset?: string;
   hiddenModules: string[] = [];
+  expandedModule?: string;
   compareExamplesEnabled?: boolean;
   layoutName?: string;
   /** Path to load a new dataset from, on pageload. */
@@ -63,6 +66,7 @@ export interface StateObservedByUrlService {
   compareExamplesEnabled: boolean;
   layoutName: string;
   getCurrentInputDataById: (id: string) => IndexedInput | null;
+  makeEmptyDatapoint: (source?: string) => IndexedInput;
   annotateNewData: (data: IndexedInput[]) => Promise<IndexedInput[]>;
   commitNewDatapoints: (datapoints: IndexedInput[]) => void;
   documentationOpen: boolean;
@@ -75,9 +79,9 @@ export interface StateObservedByUrlService {
  */
 export interface ModulesObservedByUrlService {
   hiddenModuleKeys: Set<string>;
+  expandedModuleKey: string;
   setUrlConfiguration: (urlConfiguration: UrlConfiguration) => void;
-  selectedTabUpper: string;
-  selectedTabLower: string;
+  selectedTabs: {upper: string, lower: string, left: string};
 }
 
 /**
@@ -100,13 +104,15 @@ export interface SelectionObservedByUrlService {
  }
 
 const SELECTED_TAB_UPPER_KEY = 'upper_tab';
-const SELECTED_TAB_LOWER_KEY = 'tab';
+const SELECTED_TAB_LOWER_KEY = 'lower_tab';
+const SELECTED_TAB_LEFT_KEY = 'left_tab';
 const SELECTED_DATA_KEY = 'selection';
 const PRIMARY_SELECTED_DATA_KEY = 'primary';
 const PINNED_SELECTED_DATA_KEY = 'pinned';
 const SELECTED_DATASET_KEY = 'dataset';
 const SELECTED_MODELS_KEY = 'models';
 const HIDDEN_MODULES_KEY = 'hidden_modules';
+const EXPANDED_MODULE_KEY = 'expanded_module';
 const DOC_OPEN_KEY = 'doc_open';
 const LAYOUT_KEY = 'layout';
 const DATA_FIELDS_KEY_SUBSTRING = 'data';
@@ -117,14 +123,17 @@ const SAVED_DATAPOINTS_ID = 'saved_datapoints_id';
 
 const MAX_IDS_IN_URL_SELECTION = 100;
 
-const makeDataFieldKey = (key: string) => `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
-const parseDataFieldKey = (key: string) => {
+function makeDataFieldKey(key: string) {
+  return `${DATA_FIELDS_KEY_SUBSTRING}_${key}`;
+}
+
+function parseDataFieldKey(key: string) {
   // Split string into two from the first underscore,
   // data{index}_{feature}={val} -> [data{index}, {feature}={val}]
   const pieces = key.split(/_([^]*)/, 2);
   const indexStr = pieces[0].replace(DATA_FIELDS_KEY_SUBSTRING, '');
   return {fieldKey: pieces[1], dataIndex: +(indexStr || '0')};
-};
+}
 
 /**
  * Singleton service responsible for deserializing / serializing state to / from
@@ -183,12 +192,16 @@ export class UrlService extends LitService {
         urlConfiguration.selectedDataset = this.urlParseString(value);
       } else if (key === HIDDEN_MODULES_KEY) {
         urlConfiguration.hiddenModules = this.urlParseArray(value);
+      } else if (key === EXPANDED_MODULE_KEY) {
+        urlConfiguration.expandedModule = this.urlParseString(value);
       } else if (key === DOC_OPEN_KEY) {
         urlConfiguration.documentationOpen = this.urlParseBoolean(value);
       } else if (key === SELECTED_TAB_UPPER_KEY) {
         urlConfiguration.selectedTabUpper = this.urlParseString(value);
       } else if (key === SELECTED_TAB_LOWER_KEY) {
         urlConfiguration.selectedTabLower = this.urlParseString(value);
+      } else if (key === SELECTED_TAB_LEFT_KEY) {
+        urlConfiguration.selectedTabLeft = this.urlParseString(value);
       } else if (key === LAYOUT_KEY) {
         urlConfiguration.layoutName = this.urlParseString(value);
       } else if (key === NEW_DATASET_PATH) {
@@ -236,7 +249,7 @@ export class UrlService extends LitService {
       params: URLSearchParams, id: string,
       appState: StateObservedByUrlService) {
     const data = appState.getCurrentInputDataById(id);
-    if (data !== null && data.meta['added']) {
+    if (data !== null && data.meta.added) {
       Object.keys(data.data).forEach((key: string) => {
         this.setUrlParam(params, makeDataFieldKey(key), data.data[key]);
       });
@@ -307,12 +320,16 @@ export class UrlService extends LitService {
       // Syncing hidden modules
       this.setUrlParam(
           urlParams, HIDDEN_MODULES_KEY, [...modulesService.hiddenModuleKeys]);
+      this.setUrlParam(
+          urlParams, EXPANDED_MODULE_KEY, modulesService.expandedModuleKey);
 
       this.setUrlParam(urlParams, LAYOUT_KEY, appState.layoutName);
       this.setUrlParam(
-          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabUpper);
+          urlParams, SELECTED_TAB_UPPER_KEY, modulesService.selectedTabs.upper);
       this.setUrlParam(
-          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabLower);
+          urlParams, SELECTED_TAB_LOWER_KEY, modulesService.selectedTabs.lower);
+      this.setUrlParam(
+          urlParams, SELECTED_TAB_LEFT_KEY, modulesService.selectedTabs.left);
 
       this.setUrlParam(urlParams, COLOR_BY_KEY,
           colorService.selectedColorOptionName);
@@ -347,11 +364,9 @@ export class UrlService extends LitService {
       Object.keys(spec).forEach(key => {
         outputFields[key] = this.parseDataFieldValue(key, fields[key], spec);
       });
-      const datum: IndexedInput = {
-        data: outputFields,
-        id: '',  // will be overwritten
-        meta: {source: 'url', added: true},
-      };
+
+      const datum = makeModifiedInput(
+          appState.makeEmptyDatapoint(), outputFields, /* source */ 'url');
       return datum;
     });
 

@@ -16,7 +16,7 @@ takeaways: "Learn how to use salience maps for text data in LIT."
 
 ## Tutorial : Salience Maps for Text
 
-{%  include partials/link-out
+{%  include partials/link-out,
     link: "../../demos/glue.html",
     text: "Explore this demo yourself." %}
 
@@ -53,7 +53,7 @@ be used and when. To offer some guidance, we have come up with the following
 decision aid that provides some ideas about which salience method(s) might be
 appropriate.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-1.png',
     caption: 'This flow chart can help you decide which salience interpreter to
         apply given the information provided by your model.'%}
@@ -93,7 +93,8 @@ purple scale where darker colors indicate greater salience, whereas the other
 methods use a red-to-green scale, with red denoting negative scores and green
 denoting positive.
 
-{%  include partials/info-box title: 'Interpreting salience polarity',
+{%  include partials/info-box,
+    title: 'Interpreting salience polarity',
     text: "Salience is always relative to the model’s prediction of one class.
         Intuitively, a positive influence score (attribution) for a token (or
         word, depending on your method) in an example means that if this token
@@ -101,7 +102,7 @@ denoting positive.
         the class. Similarly, removing a negative token would correspond to an
         increase in the model's confidence in the prediction of this class."%}
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-2.png',
     caption: 'The tokens from same example in the SST-2 dataset can have
         dramatically different scores depending on the interpreter, as seen in
@@ -139,7 +140,7 @@ effective (configurable in LIT’s interface), with the number of steps
 correlating directly with runtime. It also requires more information,
 which the model may or may not be able to provide.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-3.png',
     caption: 'Integrated gradients can be configured to explain a specific
         class, to normalize the data during analysis, and to interpolate a
@@ -163,7 +164,7 @@ We can increase **_the number of samples to be used for LIME_** within LIT to
 counter the potential noisiness, however this is at the cost of computation
 time.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-4.png',
     caption: 'LIME can be configured to explain a specific output field and/or
         class, to use a specific masking token, and to use a specific seed for
@@ -178,7 +179,7 @@ the text into words at whitespaces. Thus, LIME’s word-level results are often
 incomparable with the token-level results from other methods, as you can see in
 the salience maps below.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-2.png',
     caption: "LIME splits the input sentence based on whitespace and punctuation
         characters, whereas the other methods use the model's tokenizer to
@@ -200,7 +201,7 @@ Input performs poorly compared to the other methods. There are quite a few in
 the dataset, for example the sentence below where Grad · Input predicts
 completely opposite salience scores to its counterparts.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-10.png',
     caption: 'An example of how Grad · Input can perform poorly&mdash;all pink
         values, the opposite of what. other methods found&mdash;on certain input
@@ -240,7 +241,7 @@ If our model is predicting a negative sentiment due to sexist influences towards
 “actress” or “her”, then the hypothesis is that it should show opposite
 sentiments if we flip those key tokens.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-11.png',
     caption: 'Manually generating a counterfactual example in the Datapoint
         Editor, in this case changing "actress" to "actor" and "her" to "his",
@@ -270,7 +271,7 @@ when "tedious" appears and 1 when "exciting" appears in the sentence. An
 alternative to this approach is to use the Word replacer under the
 Counterfactuals tab in the bottom half of the LIT app to achieve the same task.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-12.png',
     caption: 'The Data Table and Datapoint Editor modules showing the three
         manually generated counterfactuals that will be used to explore pairwise
@@ -281,7 +282,7 @@ three available pairs by selecting each of the new sentences as our primary
 selection. This will give us a comparison-type output in the Salience Maps
 module between the pinned and the selected examples.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-13.png',
     caption: 'A table of the salience scores for each token in the inputs.'%}
 
@@ -291,7 +292,7 @@ equal magnitude (reversing polarity) from LIME which makes sense, because
 model prediction doesn’t change either, and this new review is still classified
 as having a negative sentiment.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-14.png',
     caption: 'Replacing "sometimes" with "often" had a minimal impact on the
         gradient-based salience interpreters, but it did flip the polarity of
@@ -306,7 +307,7 @@ datapoint was “tedious” and by replacing this with a positive word “exciti
 the model’s classification of this new sentence also changes and the new
 sentence is classified as positive with a very high confidence score.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-15.png',
     caption: 'Replacing "tedious" with "exciting" had a substantial impact on
         the salience interpreters that output signed results, but only a minimal
@@ -320,7 +321,7 @@ slightly higher than the previous sentence where instead of “often” we had u
 “sometimes”. This makes sense as well because “often” enhances the positive
 sentiment slightly more than using “sometimes” in a positive review.
 
-{%  include partials/inset-image
+{%  include partials/inset-image,
     image: '/assets/images/text-salience-image-16.png',
     caption: 'Replacing both "sometimes" and "tedious" has a substantial impact
         on all salience interpreters, attenuating some results, accentuating
@@ -356,5 +357,5 @@ sense of their language model’s predictions. This diverse array of built-in
 techniques can be used in combination with other LIT modules like
 counterfactuals to support robust exploration of a model's behavior, as
 illustrated in this tutorial. And as always, LIT strives to enable users to
-[add their own salience interpreters](https://github.com/PAIR-code/lit/wiki/api.md#interpretation-components)
+[add their own salience interpreters](../../documentation/api.md#interpretation-components)
 to allow for a wider variety of use cases beyond these default capabilities!

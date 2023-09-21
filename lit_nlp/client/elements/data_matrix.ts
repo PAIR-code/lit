@@ -20,9 +20,9 @@ import '@material/mwc-icon';
 import * as d3 from 'd3';
 import {html, LitElement} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement, property} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement, property} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
@@ -220,7 +220,7 @@ export class DataMatrix extends LitElement {
   private renderColTotalCell(colIndex: number) {
     let totalColIds = 0;
     for (const row of this.matrixCells) {
-      totalColIds += row[colIndex].size;
+      totalColIds += row[colIndex]?.size || 0;
     }
     return this.renderTotalCell(totalColIds);
   }
@@ -251,11 +251,12 @@ export class DataMatrix extends LitElement {
 
     // clang-format off
     return html`
-      <mwc-icon class="icon-button"
-        title="Rotate column labels"
-        @click="${toggleVerticalColumnLabels}">
-        ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
-      </mwc-icon>
+      <lit-tooltip content="Rotate column labels">
+        <mwc-icon class="icon-button" slot="tooltip-anchor"
+          @click="${toggleVerticalColumnLabels}">
+          ${this.verticalColumnLabels ? 'text_rotate_up' : 'text_rotation_none'}
+        </mwc-icon>
+      </lit-tooltip>
     `;
     // clang-format on
   }

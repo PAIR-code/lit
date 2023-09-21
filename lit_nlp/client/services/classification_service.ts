@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {MulticlassPreds} from '../lib/lit_types';
-import {FacetedData, GroupedExamples, Spec} from '../lib/types';
+import {FacetedData, GroupedExamples, SpecMap} from '../lib/types';
 import {getMarginFromThreshold} from '../lib/utils';
 
 import {LitService} from './lit_service';
@@ -71,15 +71,18 @@ export class ClassificationService extends LitService {
     super();
 
     // Reset classification margins when the models change.
-    reaction(() => this.appState.currentModels, (models) => {
-      if (models.length === 0) {return;}
-      const modelOutputSpecMap: {[model: string]: Spec} = {};
-      for (const model of models) {
-        modelOutputSpecMap[model] =
-            this.appState.currentModelSpecs[model].spec.output;
-      }
-      this.resetMargins(modelOutputSpecMap);
-    }, {fireImmediately: true});
+    reaction(
+        () => this.appState.currentModels,
+        (models) => {
+          if (models.length === 0) {return;}
+          const modelOutputSpecMap: SpecMap = models.reduce(
+              (specMap: SpecMap, model: string) => {
+                specMap[model] = this.appState.getModelSpec(model).output;
+                return specMap;
+              }, {});
+          this.resetMargins(modelOutputSpecMap);
+        },
+        {fireImmediately: true});
   }
 
   /**
@@ -105,15 +108,15 @@ export class ClassificationService extends LitService {
    * facets from the groupedExamples.
    */
   @action
-  setMarginGroups(model: string, fieldName: string,
-                  groupedExamples: GroupedExamples) {
+  setMarginGroups(
+      model: string, fieldName: string, groupedExamples: GroupedExamples) {
     if (this.marginSettings[model] == null) {
       this.marginSettings[model] = {};
     }
     if (this.marginSettings[model][fieldName] == null) {
       this.marginSettings[model][fieldName] = {};
     }
-    const {output} = this.appState.currentModelSpecs[model].spec;
+    const {output} = this.appState.getModelSpec(model);
     const fieldSpec = output[fieldName];
     if (!(fieldSpec instanceof MulticlassPreds)) return;
     const margin = fieldSpec.threshold != null ?
@@ -125,7 +128,7 @@ export class ClassificationService extends LitService {
   }
 
   @action
-  resetMargins(modelOutputSpecMap: {[model: string]: Spec}) {
+  resetMargins(modelOutputSpecMap: SpecMap) {
     const marginSettings: MarginSettings = {};
 
     for (const [model, output] of Object.entries(modelOutputSpecMap)) {

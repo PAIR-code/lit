@@ -7,15 +7,15 @@ instance. Set render=False to disable this, and manually render the UI in a cell
 through the render() method. Use the stop() method to stop the server when done.
 """
 
+from collections.abc import Sequence
 import html
 import json
 import os
 import pathlib
 import random
-from typing import cast, List, Optional
+from typing import cast, Optional
 import urllib.parse
 import attr
-# pytype: disable=import-error
 from IPython import display
 from lit_nlp import dev_server
 from lit_nlp import server_config
@@ -27,12 +27,12 @@ try:
   is_colab = True
   # Can disable import error as this package is always
   # included in colab kernels.
-  from colabtools import interactive_widgets  # pytype: disable=import-error # pylint: disable=g-import-not-at-top
+  from colabtools import interactive_widgets  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
   progress_indicator = interactive_widgets.ProgressIter
-except ImportError:
+except (ImportError, ModuleNotFoundError):
   is_colab = False
-  from tqdm.notebook import tqdm  # pylint: disable=g-import-not-at-top
-  progress_indicator = tqdm
+  from tqdm import notebook  # pylint: disable=g-import-not-at-top
+  progress_indicator = notebook.tqdm
 
 modules = layout.LitModuleName
 
@@ -64,7 +64,7 @@ class RenderConfig(object):
   upper_tab: Optional[str] = None
   layout: Optional[str] = None
   dataset: Optional[str] = None
-  models: Optional[List[str]] = None
+  models: Optional[Sequence[str]] = None
 
   def get_query_str(self):
     """Convert config object to query string for LIT URL."""
@@ -74,7 +74,8 @@ class RenderConfig(object):
       return v
 
     string_params = {
-        k: _encode(v) for k, v in attr.asdict(self).items() if v is not None}
+        k: _encode(v) for k, v in attr.asdict(self).items() if v is not None
+    }
     return '?' + urllib.parse.urlencode(string_params)
 
 
@@ -208,8 +209,9 @@ def _display_colab(port, height, open_in_new_tab, ui_params: RenderConfig):
   display.display(script)
 
 
-def _display_jupyter(port, height, proxy_url, open_in_new_tab,
-                     ui_params: RenderConfig):
+def _display_jupyter(
+    port, height, proxy_url, open_in_new_tab, ui_params: RenderConfig
+):
   """Display the LIT UI in jupyter.
 
   Args:

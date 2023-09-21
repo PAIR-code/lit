@@ -15,24 +15,26 @@
  * limitations under the License.
  */
 
+import '../elements/export_controls';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
+import {customElement} from 'lit/decorators.js';
 import {html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
-import {ModelInfoMap, Spec} from '../lib/types';
+import {SortableTableEntry} from '../elements/table';
+import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {handleEnterKey} from '../lib/utils';
 import {GroupService, NumericFeatureBins} from '../services/group_service';
 import {SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';
 import {FacetsChange} from '../core/faceting_control';
 
-
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './slice_module.css';
+
 
 /**
  * The slice controls module
@@ -44,8 +46,6 @@ export class SliceModule extends LitModule {
   }
 
   static override title = 'Slice Editor';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/ui_guide.md#slices';
   static override numCols = 2;
   static override collapseByDefault = true;
   static override duplicateForModelComparison = false;
@@ -59,6 +59,12 @@ export class SliceModule extends LitModule {
 
   private readonly sliceService = app.getService(SliceService);
   private readonly groupService = app.getService(GroupService);
+  // TODO(b/204677206): Using document.createElement() here may be inducing this
+  // module to schedule an update while another update is already in progress.
+  // Note that this was introduced in cl/463915592 in order to preserve the
+  // facet control instance when the SliceModule is not rendered. Now that this
+  // module has been moved to the app toolbar, it's possible that we no longer
+  // need to preserve this mechanically and can instead rely on HTML templates.
   private readonly facetingControl = document.createElement('faceting-control');
   private sliceByBins: NumericFeatureBins = {};
 
@@ -87,8 +93,7 @@ export class SliceModule extends LitModule {
         // Making a slice from filters (name generated based on filters).
         sliceFromFilters ||
         // Making a slice from selected points (must give a name)
-        (this.sliceName !== null) && (this.sliceName !== '') &&
-            (this.selectionService.selectedIds.length > 0));
+        this.sliceName && this.selectionService.selectedIds.length > 0);
   }
 
   @computed
@@ -143,9 +148,9 @@ export class SliceModule extends LitModule {
     const onClickCreate = () => {
       this.handleClickCreate();
     };
+
     const onInputChange = (e: Event) => {
-      // tslint:disable-next-line:no-any
-      this.sliceName = (e as any).target.value;
+      this.sliceName = (e.target as HTMLInputElement).value;
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -166,6 +171,20 @@ export class SliceModule extends LitModule {
     `;
     // clang-format on
   }
+
+  /** Returns data within this slice for exporting. */
+  getArrayData(sliceName: string): SortableTableEntry[][] {
+    const columnStrings = this.appState.currentInputDataKeys;
+    const rowData = (row : IndexedInput) => {
+      // Add data index.
+      return [this.appState.getIndexById(row.id)].concat(
+          columnStrings.map(c => row.data[c]));
+    };
+
+    const sliceData = this.sliceService.getSliceDataByName(sliceName);
+    return sliceData.map(d => rowData(d));
+  }
+
 
   renderSliceRow(sliceName: string) {
     const selectedSliceName = this.sliceService.selectedSliceName;
@@ -197,10 +216,11 @@ export class SliceModule extends LitModule {
       this.sliceService.deleteNamedSlice(sliceName);
     };
 
+    const shouldDisableIcons = numDatapoints <= 0;
     const clearIconClass = classMap({
       'icon-button': true,
       'mdi-outlined': true,
-      'disabled': numDatapoints <= 0
+      'disabled': shouldDisableIcons
     });
     const clearClicked = (e: Event) => {
       e.stopPropagation(); /* don't select row */
@@ -208,25 +228,43 @@ export class SliceModule extends LitModule {
       this.sliceService.removeIdsFromSlice(sliceName, ids);
     };
 
+    // TODO(b/265952155): Consider whether we want tooltips on disabled icons.
     // clang-format off
     return html`
-      <div class=${itemClass} @click=${itemClicked}>
-        <span class='slice-name'>${sliceName}</span>
-        <span class="number-label">
-          ${numDatapoints} ${numDatapoints === 1 ? 'datapoint' : 'datapoints'}
-          <mwc-icon class=${appendIconClass} @click=${appendClicked}
-           title="Add selected to this slice">
-           add_circle_outline
-          </mwc-icon>
+      <div class=${itemClass}>
+        <span class='slice-name' @click=${itemClicked}>${sliceName}</span>
+        <span class="right-action-menu">
+          <span class="number-label" @click=${itemClicked}>
+            ${numDatapoints} ${numDatapoints === 1 ? 'datapoint' : 'datapoints'}
+          </span>
+
+          <lit-tooltip content="Add selected to slice" tooltipPosition="left">
+            <mwc-icon class=${appendIconClass} @click=${appendClicked}
+             slot="tooltip-anchor">
+             add_circle_outline
+            </mwc-icon>
+          </lit-tooltip>
+
           ${sliceName === STARRED_SLICE_NAME ?
-            html`<mwc-icon class=${clearIconClass} @click=${clearClicked}
-                  title="Reset this slice">
-                   clear
-                 </mwc-icon>` :
-            html`<mwc-icon class='icon-button' @click=${deleteClicked}
-                  title="Delete this slice">
-                   delete_outline
-                 </mwc-icon>`}
+            html`<lit-tooltip content="Reset this slice" tooltipPosition="left">
+              <mwc-icon class=${clearIconClass} @click=${clearClicked}
+                slot="tooltip-anchor">
+                clear
+              </mwc-icon>
+            </lit-tooltip>` :
+            html`<lit-tooltip content="Delete this slice"
+              tooltipPosition="left">
+              <mwc-icon class='icon-button selector-item-icon-button'
+                @click=${deleteClicked} slot="tooltip-anchor">
+                delete_outline
+              </mwc-icon>
+            </lit-tooltip>`}
+          <export-controls ?disabled=${shouldDisableIcons}
+              .data=${this.getArrayData(sliceName)}
+              .downloadFilename="${
+                this.appState.currentDataset}-${sliceName}.csv"
+              .columnNames=${this.appState.currentInputDataKeys}>
+          </export-controls>
         </span>
       </div>`;
     // clang-format on

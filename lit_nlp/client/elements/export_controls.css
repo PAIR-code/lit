@@ -1,0 +1,28 @@
+#export-controls {
+  display: inline-block;
+}
+
+.above {
+  --popup-bottom: 28px;
+}
+
+.icon-button {
+  font-size: 18px;
+  vertical-align: middle;
+  margin-left: 3px;
+  margin-bottom: 5px;
+}
+
+.download-button {
+  margin: 4px 0 0 0;
+  width: 100%;
+}
+
+popup-container.download-popup {
+  display: inline-block;
+  --popup-right: 0;
+}
+
+.download-popup-controls {
+  align-items: center;
+}

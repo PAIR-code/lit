@@ -1,6 +1,7 @@
 """LIT model implementation for single-edge classifier."""
 import os
-from typing import List, Tuple, Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 
 from absl import logging
 from lit_nlp.api import dataset as lit_dataset
@@ -16,8 +17,9 @@ JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
 
 
-def _extract_span(span: Tuple[int, int], embs: np.ndarray,
-                  offsets: np.ndarray) -> np.ndarray:
+def _extract_span(
+    span: tuple[int, int], embs: np.ndarray, offsets: np.ndarray
+) -> np.ndarray:
   start = offsets[span[0]]
   end = offsets[span[1]]
   # <float>[span_length, emb_dim]
@@ -27,8 +29,9 @@ def _extract_span(span: Tuple[int, int], embs: np.ndarray,
   return pooled_embs
 
 
-def _make_probe_inputs(edges: List[EdgeLabel], embs: np.ndarray,
-                       offsets: np.ndarray, src_idx: int):
+def _make_probe_inputs(
+    edges: list[EdgeLabel], embs: np.ndarray, offsets: np.ndarray, src_idx: int
+):
   for j, edge in enumerate(edges):
     span1_embs = _extract_span(edge.span1, embs, offsets)
     span2_embs = _extract_span(edge.span2, embs, offsets)
@@ -41,8 +44,9 @@ def _make_probe_inputs(edges: List[EdgeLabel], embs: np.ndarray,
     }
 
 
-def _estimate_memory_needs(inputs: List[JsonDict], edge_field: str,
-                           output_example: JsonDict):
+def _estimate_memory_needs(
+    inputs: list[JsonDict], edge_field: str, output_example: JsonDict
+):
   """Estimate how much memory is needed to store all activations.
 
   We store all activations in memory to simplify the implementation, but this
@@ -65,16 +69,21 @@ def _estimate_memory_needs(inputs: List[JsonDict], edge_field: str,
   span2_dim = output_example['span2_embs'].size
   # pylint: disable=logging-format-interpolation
   logging.warning(
-      f'Found {total_edges:d} total edges with embedding dimensions '
-      f'{span1_dim:d} + {span2_dim:d} = {(span1_dim+span2_dim):d}.')
+      'Found %d total edges with embedding dimensions %d + %d = %d.',
+      total_edges,
+      span1_dim,
+      span2_dim,
+      (span1_dim + span2_dim),
+  )
   bytes_per_edge = (
       output_example['span1_embs'].nbytes + output_example['span2_embs'].nbytes)
   total_mbytes = total_edges * bytes_per_edge / 1e6
   if total_mbytes < 1e3:
-    logging.warning(f'Estimated memory requirement: {total_mbytes:.3G} MB')
+    logging.warning('Estimated memory requirement: %.3G MB', total_mbytes)
   else:
     logging.warning(
-        f'Estimated memory requirement: {total_mbytes / 1e3:.3G} GB')
+        'Estimated memory requirement: %.3G GB', (total_mbytes / 1e3)
+    )
   # pylint: enable=logging-format-interpolation
   # TODO(lit-dev): add factor to account for pointers/overhead and text fields.
   # TODO(lit-dev): check system memory and confirm before proceeding
@@ -87,14 +96,16 @@ class EdgeFeaturesDataset(lit_dataset.Dataset):
     self._examples = examples
 
   @classmethod
-  def build(cls,
-            inputs: List[JsonDict],
-            encoder: lit_model.Model,
-            edge_field: str,
-            embs_field: str,
-            offset_field: str,
-            progress=lambda x: x,
-            verbose=False):
+  def build(
+      cls,
+      inputs: list[JsonDict],
+      encoder: lit_model.BatchedModel,
+      edge_field: str,
+      embs_field: str,
+      offset_field: str,
+      progress=lambda x: x,
+      verbose=False,
+  ):
     """Run encoder and extract span representations for coreference.
 
     'encoder' should be a model returning one TokenEmbeddings field,
@@ -140,7 +151,7 @@ class EdgeFeaturesDataset(lit_dataset.Dataset):
     }
 
 
-class SingleEdgePredictor(lit_model.Model):
+class SingleEdgePredictor(lit_model.BatchedModel):
   """Coref model for a single edge. Compatible with EdgeFeaturesDataset."""
 
   def build_model(self, input_dim: int, hidden_dim: int = 256):
@@ -183,13 +194,15 @@ class SingleEdgePredictor(lit_model.Model):
     labels = tf.constant([ex['label'] for ex in inputs], dtype=tf.float32)
     return tf.data.Dataset.from_tensor_slices((features, labels))
 
-  def train(self,
-            train_inputs: List[JsonDict],
-            validation_inputs: List[JsonDict],
-            learning_rate=2e-5,
-            batch_size=32,
-            num_epochs=50,
-            keras_callbacks=None):
+  def train(
+      self,
+      train_inputs: list[JsonDict],
+      validation_inputs: list[JsonDict],
+      learning_rate=2e-5,
+      batch_size=32,
+      num_epochs=50,
+      keras_callbacks=None,
+  ):
     """Train an edge classifier."""
     train_dataset = self._make_dataset(train_inputs).shuffle(
         len(train_inputs)).batch(batch_size).repeat(-1)

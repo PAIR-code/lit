@@ -25,9 +25,9 @@ import '@material/mwc-icon';
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {html} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
-import {styleMap} from 'lit/directives/style-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
@@ -460,7 +460,7 @@ export class LitMainToolbar extends MobxLitElement {
       <div id='left-container'>
         <lit-main-menu></lit-main-menu>
         ${this.renderSlices()}
-        <button class="${buttonClasses}" title=${title}
+        <button class="${buttonClasses}"
                 ?disabled=${pinDisabled} @click=${updatePinnedDatapoint}>
           <div class="pin-button-content">
             <span class="${pinClasses}">push_pin</span>

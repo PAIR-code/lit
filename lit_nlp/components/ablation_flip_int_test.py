@@ -14,7 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.components.ablation_flip."""
 
-from typing import Iterable, Iterator
+from collections.abc import Iterable, Iterator
 
 from absl.testing import absltest
 from lit_nlp.api import types
@@ -22,16 +22,16 @@ from lit_nlp.components import ablation_flip
 from lit_nlp.examples.models import glue_models
 import numpy as np
 
-# TODO(lit-dev): Move glue_models out of lit_nlp/examples
 
-
-BERT_TINY_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz'  # pylint: disable=line-too-long
-STSB_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz'  # pylint: disable=line-too-long
-import transformers
-BERT_TINY_PATH = transformers.file_utils.cached_path(BERT_TINY_PATH,
-  extract_compressed_file=True)
-STSB_PATH = transformers.file_utils.cached_path(STSB_PATH,
-  extract_compressed_file=True)
+from lit_nlp.lib import file_cache
+BERT_TINY_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz',  # pylint: disable=line-too-long
+    extract_compressed_file=True,
+)
+STSB_PATH = file_cache.cached_path(
+    'https://storage.googleapis.com/what-if-tool-resources/lit-models/stsb_tiny.tar.gz',  # pylint: disable=line-too-long
+    extract_compressed_file=True,
+)
 
 
 class SST2ModelNonRequiredField(glue_models.SST2Model):
@@ -50,9 +50,8 @@ class SST2ModelWithPredictCounter(glue_models.SST2Model):
 
   def predict(self,
               inputs: Iterable[types.JsonDict],
-              scrub_arrays=True,
               **kw) -> Iterator[types.JsonDict]:
-    results = super().predict(inputs, scrub_arrays, **kw)
+    results = super().predict(inputs, **kw)
     self.predict_counter += 1
     return results
 

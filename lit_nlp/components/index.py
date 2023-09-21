@@ -15,14 +15,14 @@
 """Indexer class for fast nearest neighbor lookups."""
 
 import collections
+from collections.abc import Mapping
 import os
 # TODO(b/151080311): don't use pickle for this.
 import pickle
-from typing import Optional, Text, List, Mapping
+from typing import Optional
 
 from absl import logging
 import annoy
-
 from lit_nlp.api import dataset as lit_data
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
@@ -52,9 +52,9 @@ class Indexer(object):
 
   def __init__(
       self,
-      models: Mapping[Text, lit_model.Model],
-      datasets: Mapping[Text, lit_data.IndexedDataset],
-      data_dir: Optional[Text],
+      models: Mapping[str, lit_model.Model],
+      datasets: Mapping[str, lit_data.IndexedDataset],
+      data_dir: Optional[str],
       initialize_new_indices: Optional[bool] = False,
   ):
     self.datasets = datasets
@@ -69,10 +69,10 @@ class Indexer(object):
     self._models = models
 
     # Create/Load indices.
-    for model_name, model_info in self._models.items():
+    for model_name, model in self._models.items():
       compatible_datasets = [
-          dname for dname, ds in self.datasets.items()
-          if model_info.spec().is_compatible_with_dataset(ds.spec())
+          dataset_name for dataset_name, dataset in self.datasets.items()
+          if model.is_compatible_with_dataset(dataset)
       ]
       for dataset in compatible_datasets:
         self._create_empty_indices(model_name, dataset)
@@ -130,7 +130,7 @@ class Indexer(object):
     """Create all indices for a single model."""
     model = self._models.get(model_name)
     assert model is not None, "Invalid model name."
-    examples = self.datasets[dataset_name].indexed_examples
+    examples = self.datasets[dataset_name].examples
     model_embeddings_names = utils.find_spec_keys(model.output_spec(),
                                                   lit_types.Embeddings)
     lookup_key = self._get_lookup_key(model_name, dataset_name)
@@ -158,7 +158,7 @@ class Indexer(object):
     # Cold start: Get embeddings for non-initialized settings.
     if self._initialize_new_indices:
       for res_ix, (result, example) in enumerate(
-          zip(model.predict_with_metadata(examples), examples)):
+          zip(model.predict(examples), examples)):
         for emb_name in embeddings_to_index:
           index_key = self._get_index_key(model_name, dataset_name, emb_name)
           # Initialize saving in the first iteration.
@@ -170,7 +170,7 @@ class Indexer(object):
           # Each item has an incrementing ID res_ix.
           self._indices[index_key].add_item(res_ix, result[emb_name])
         # Add item to lookup table.
-        self._example_lookup[lookup_key][res_ix] = example["data"]
+        self._example_lookup[lookup_key][res_ix] = example
 
       # Create the trees from the indices - using 10 as recommended by doc.
       for emb_name in embeddings_to_index:
@@ -203,12 +203,14 @@ class Indexer(object):
       with open(file_path, "wb") as f:
         pickle.dump(lookup_table, f, pickle.HIGHEST_PROTOCOL)
 
-  def find_nn(self,
-              model_name: Text,
-              dataset_name: Text,
-              embedding_name: Text,
-              embedding: List[float],
-              num_neighbors: Optional[int] = 25):
+  def find_nn(
+      self,
+      model_name: str,
+      dataset_name: str,
+      embedding_name: str,
+      embedding: list[float],
+      num_neighbors: Optional[int] = 25,
+  ):
     """Find the nearest neighbor in index for an embedding.
 
     This function implements the search API for this class.

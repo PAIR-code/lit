@@ -17,19 +17,19 @@
 
 import '../elements/checkbox';
 
+import {html} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators';
-import { html} from 'lit';
-import {classMap} from 'lit/directives/class-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {TextSegment, Tokens, TokenTopKPreds} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
-import {findMatchingIndices, findSpecKeys, replaceNth} from '../lib/utils';
+import {findMatchingIndices, findSpecKeys, makeModifiedInput, replaceNth} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /**
  * A LIT module that renders masked predictions for a masked LM.
@@ -159,17 +159,7 @@ export class LanguageModelPredictionModule extends LitModule {
   }
 
   private createChildDatapoint(orig: IndexedInput, tokens: string[]) {
-    const inputData = Object.assign(
-        {}, orig.data, {[this.inputTokensKey!]: tokens});
-    return {
-      data: inputData,
-      id: '',
-      meta: {
-        added: true,
-        source: 'masked',
-        parentId: orig.id
-      }
-    };
+    return makeModifiedInput(orig, {[this.inputTokensKey!]: tokens}, 'masked');
   }
 
   private async updateMLMResults() {

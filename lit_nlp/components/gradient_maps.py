@@ -83,10 +83,9 @@ class GradientNorm(lit_components.Interpreter):
       model_outputs = list(model.predict(inputs))
     assert len(model_outputs) == len(inputs)
 
-    all_results = []
+    all_results: list[JsonDict] = []
     for o in model_outputs:
-      # Dict[field name -> interpretations]
-      result = {}
+      result: dict[str, dtypes.TokenSalience] = {}
       for grad_field in grad_fields:
         token_field = cast(types.TokenGradients, output_spec[grad_field]).align
         tokens = o[token_field]
@@ -162,10 +161,9 @@ class GradientDotInput(lit_components.Interpreter):
       model_outputs = list(model.predict(inputs))
     assert len(model_outputs) == len(inputs)
 
-    all_results = []
+    all_results: list[JsonDict] = []
     for o in model_outputs:
-      # Dict[field name -> interpretations]
-      result = {}
+      result: dict[str, dtypes.TokenSalience] = {}
       for grad_field in grad_fields:
         embeddings_field = cast(types.TokenGradients,
                                 output_spec[grad_field]).grad_for
@@ -255,7 +253,7 @@ class IntegratedGradients(lit_components.Interpreter):
                      str(tokens_field))
         continue
 
-      is_grad_cls_valid = grad_key in input_spec and grad_key in output_spec
+      is_grad_cls_valid = grad_key in input_spec
       if not is_grad_cls_valid:
         logging.info('Skipping %s. Invalid gradient class field, %s.', str(f),
                      str(tokens_field))
@@ -323,7 +321,12 @@ class IntegratedGradients(lit_components.Interpreter):
     grad_class_key = cast(types.TokenGradients,
                           output_spec[grad_fields[0]]).grad_target_field_key
     if class_to_explain == '':  # pylint: disable=g-explicit-bool-comparison
-      grad_class = model_output[grad_class_key]
+      if grad_class_key in model_output:
+        grad_class = model_output[grad_class_key]
+      else:
+        # If this is not present, should error because we can't infer
+        # what class to use.
+        grad_class = model_input[grad_class_key]
     else:
       grad_class = class_to_explain
 
@@ -347,14 +350,13 @@ class IntegratedGradients(lit_components.Interpreter):
     # Create model inputs and populate embedding field(s).
     inputs_with_embeds = []
     for i in range(interpolation_steps):
-      input_copy = model_input.copy()
       # Interpolates embeddings for all inputs simultaneously.
-      for embed_field in embeddings_fields:
-        # <float32>[num_tokens, emb_size]
-        input_copy[embed_field] = interpolated_inputs[embed_field][i]
-        input_copy[grad_class_key] = grad_class
-
+      # Each entry is <float32>[num_tokens, emb_size]
+      updates = {k: interpolated_inputs[k][i] for k in embeddings_fields}
+      updates[grad_class_key] = grad_class
+      input_copy = utils.make_modified_input(model_input, updates, 'IG')
       inputs_with_embeds.append(input_copy)
+
     embed_outputs = model.predict(inputs_with_embeds)
 
     # Create list with concatenated gradients for each interpolate input.

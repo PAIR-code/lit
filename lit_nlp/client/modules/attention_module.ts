@@ -21,8 +21,8 @@
 
 // tslint:disable:no-new-decorators
 import {css, html, svg} from 'lit';
-import {customElement} from 'lit/decorators';
-import {classMap} from 'lit/directives/class-map';
+import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {observable} from 'mobx';
 
 import {app} from '../core/app';
@@ -44,8 +44,9 @@ type AttentionHeads = number[][][];
 @customElement('attention-module')
 export class AttentionModule extends LitModule {
   static override title = 'Attention';
-  static override referenceURL =
-      'https://github.com/PAIR-code/lit/wiki/components.md#attention';
+  static override infoMarkdown =
+      `Visualize \`AttentionHeads\`-type fields from your model.<br>
+      [Learn more.](https://pair-code.github.io/lit/documentation/components.md#attention)`;
   static override numCols = 3;
   static override collapseByDefault = true;
   static override duplicateForExampleComparison = true;
@@ -86,7 +87,7 @@ export class AttentionModule extends LitModule {
   private clearFocusTimer: number|undefined;
 
   @observable private selectedLayer?: string;
-  @observable private selectedHeadIndex: number = 0;
+  @observable private selectedHeadIndex = 0;
   @observable private preds?: {[key: string]: Tokens|AttentionHeads};
 
   override firstUpdated() {
@@ -140,7 +141,7 @@ export class AttentionModule extends LitModule {
   }
 
   private renderAttnHead() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    const {output: outputSpec} = this.appState.getModelSpec(this.model);
     const fieldSpec =
         outputSpec[this.selectedLayer!] as AttentionHeadsLitType;
 
@@ -190,7 +191,7 @@ export class AttentionModule extends LitModule {
       if (this.clearFocusTimer != null) {
         clearTimeout(this.clearFocusTimer);
       }
-      this.clearFocusTimer = setTimeout(() => {
+      this.clearFocusTimer = window.setTimeout(() => {
         this.focusService.clearFocus();
       }, 500) as unknown as number;
     };
@@ -285,7 +286,7 @@ export class AttentionModule extends LitModule {
    * Render the dropdown with the layer names.
    */
   private renderLayerSelector() {
-    const outputSpec = this.appState.currentModelSpecs[this.model].spec.output;
+    const {output: outputSpec} = this.appState.getModelSpec(this.model);
     const attnKeys = findSpecKeys(outputSpec, AttentionHeadsLitType);
     if (this.selectedLayer === undefined) {
       this.selectedLayer = attnKeys[0];

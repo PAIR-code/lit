@@ -6,18 +6,20 @@ Currently supports the following model types:
 
 To run locally:
   python -m lit_nlp.examples.lm_demo \
-      --models=bert-base-uncased --top_k 10 --port=5432
+      --models=bert-base-uncased --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
-import os
+
+from collections.abc import Sequence
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
 from absl import logging
 
+from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
@@ -34,20 +36,35 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 
 _MODELS = flags.DEFINE_list(
-    "models", ["bert-base-uncased", "gpt2"],
-    "Models to load. Currently supports variants of BERT and GPT-2.")
+    "models",
+    [
+        "bert-base-uncased:https://storage.googleapis.com/what-if-tool-resources/lit-models/bert-base-uncased.tar.gz",
+        "gpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
+    ],
+    "Models to load, as <name>:<path>. Currently supports variants of BERT and"
+    " GPT-2.",
+)
 
 _TOP_K = flags.DEFINE_integer(
     "top_k", 10, "Rank to which the output distribution is pruned.")
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", 1000,
-    "Maximum number of examples to load from each evaluation set. Set to None to load the full set."
+    "max_examples",
+    1000,
+    (
+        "Maximum number of examples to load from each evaluation set. Set to"
+        " None to load the full set."
+    ),
 )
 
 _LOAD_BWB = flags.DEFINE_bool(
-    "load_bwb", False,
-    "If true, will load examples from the Billion Word Benchmark dataset. This may download a lot of data the first time you run it, so disable by default for the quick-start example."
+    "load_bwb",
+    False,
+    (
+        "If true, will load examples from the Billion Word Benchmark dataset."
+        " This may download a lot of data the first time you run it, so disable"
+        " by default for the quick-start example."
+    ),
 )
 
 # Custom frontend layout; see api/layout.py
@@ -94,19 +111,20 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   ##
   # Load models, according to the --models flag.
   models = {}
-  for model_name_or_path in _MODELS.value:
-    # Ignore path prefix, if using /path/to/<model_name> to load from a
-    # specific directory rather than the default shortcut.
-    model_name = os.path.basename(model_name_or_path)
+  for model_string in _MODELS.value:
+    # Only split on the first ':', because path may be a URL
+    # containing 'https://'
+    model_name, path = model_string.split(":", 1)
+    logging.info("Loading model '%s' from '%s'", model_name, path)
     if model_name.startswith("bert-"):
-      models[model_name] = pretrained_lms.BertMLM(
-          model_name_or_path, top_k=_TOP_K.value)
+      models[model_name] = pretrained_lms.BertMLM(path, top_k=_TOP_K.value)
     elif model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
       models[model_name] = pretrained_lms.GPT2LanguageModel(
-          model_name_or_path, top_k=_TOP_K.value)
+          path, top_k=_TOP_K.value
+      )
     else:
       raise ValueError(
-          f"Unsupported model name '{model_name}' from path '{model_name_or_path}'"
+          f"Unsupported model name '{model_name}' from path '{path}'"
       )
 
   datasets = {
@@ -117,12 +135,29 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       # Empty dataset, if you just want to type sentences into the UI.
       "blank": lm.PlaintextSents(""),
   }
+
+  dataset_loaders: lit_app.DatasetLoadersMap = {
+      "sst_dev": (glue.SST2DataForLM, glue.SST2DataForLM.init_spec()),
+      "imdb_train": (
+          classification.IMDBData,
+          classification.IMDBData.init_spec(),
+      ),
+      "plain_text_sentences": (
+          lm.PlaintextSents,
+          lm.PlaintextSents.init_spec(),
+      ),
+  }
+
   # Guard this with a flag, because TFDS will download and process 1.67 GB
   # of data if you haven't loaded `lm1b` before.
   if _LOAD_BWB.value:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
     datasets["bwb"] = lm.BillionWordBenchmark(
         "train", max_examples=_MAX_EXAMPLES.value)
+    dataset_loaders["bwb"] = (
+        lm.BillionWordBenchmark,
+        lm.BillionWordBenchmark.init_spec(),
+    )
 
   for name in datasets:
     datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
@@ -135,7 +170,9 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       datasets,
       generators=generators,
       layouts=CUSTOM_LAYOUTS,
-      **server_flags.get_flags())
+      dataset_loaders=dataset_loaders,
+      **server_flags.get_flags(),
+  )
   return lit_demo.serve()
 
 

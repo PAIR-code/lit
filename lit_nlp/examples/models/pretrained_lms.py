@@ -7,19 +7,18 @@ functions to predict a batch of examples and extract information such as
 hidden states and attention.
 """
 import re
-from typing import Dict, List, Tuple
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.models import model_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
-
 import numpy as np
 import tensorflow as tf
 import transformers
 
 
-class BertMLM(lit_model.Model):
+class BertMLM(lit_model.BatchedModel):
   """BERT masked LM using Huggingface Transformers and TensorFlow 2."""
 
   MASK_TOKEN = "[MASK]"
@@ -28,23 +27,41 @@ class BertMLM(lit_model.Model):
   def max_seq_length(self):
     return self.model.config.max_position_embeddings
 
-  def __init__(self, model_name="bert-base-uncased", top_k=10):
+  @classmethod
+  def init_spec(cls) -> lit_model.Spec:
+    return {
+        "model_name_or_path": lit_types.String(default="bert-base-uncased"),
+        "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
+    }
+
+  def __init__(self, model_name_or_path="bert-base-uncased", top_k=10):
     super().__init__()
+
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, use_fast=False)
+        model_name_or_path, use_fast=False
+    )
     # TODO(lit-dev): switch to TFBertForPreTraining to get the next-sentence
     # prediction head as well.
     self.model = model_utils.load_pretrained(
         transformers.TFBertForMaskedLM,
-        model_name,
+        model_name_or_path,
         output_hidden_states=True,
-        output_attentions=True)
+        output_attentions=True,
+    )
     self.top_k = top_k
 
   # TODO(lit-dev): break this out as a helper function, write some tests,
   # and de-duplicate code with the other text generation functions.
-  def _get_topk_tokens(self,
-                       scores: np.ndarray) -> List[List[Tuple[str, float]]]:
+  def _get_topk_tokens(
+      self, scores: np.ndarray
+  ) -> list[list[tuple[str, float]]]:
     """Convert raw scores to top-k token predictions."""
     # scores is [num_tokens, vocab_size]
     # Find the vocab indices of top k predictions, at each token.
@@ -65,7 +82,7 @@ class BertMLM(lit_model.Model):
     # TODO(lit-dev): consider returning indices and a vocab, since repeating
     # strings is slow and redundant.
 
-  def _postprocess(self, output: Dict[str, np.ndarray]):
+  def _postprocess(self, output: dict[str, np.ndarray]):
     """Postprocess, modifying output dict in-place."""
     # Slice to remove padding, omitting initial [CLS] and final [SEP]
     slicer = slice(1, output.pop("ntok") - 1)
@@ -130,7 +147,7 @@ class BertMLM(lit_model.Model):
     }
 
 
-class GPT2LanguageModel(lit_model.Model):
+class GPT2LanguageModel(lit_model.BatchedModel):
   """Wrapper for a Huggingface Transformers GPT-2 model.
 
   This class loads a tokenizer and model using the Huggingface library and
@@ -142,19 +159,41 @@ class GPT2LanguageModel(lit_model.Model):
   def num_layers(self):
     return self.model.config.n_layer
 
-  def __init__(self, model_name="gpt2", top_k=10):
+  @classmethod
+  def init_spec(cls) -> lit_model.Spec:
+    return {
+        "model_name_or_path": lit_types.String(default="gpt2"),
+        "top_k": lit_types.Integer(default=10, min_val=1, max_val=25),
+    }
+
+  def __init__(self, model_name_or_path="gpt2", top_k=10):
     """Constructor for GPT2LanguageModel.
 
     Args:
-      model_name: gpt2, gpt2-medium, gpt2-large, gpt2-xl, distilgpt2, etc.
+      model_name_or_path: gpt2, gpt2-medium, gpt2-large, gpt2-xl, distilgpt2,
+        etc.
       top_k: How many predictions to prune.
     """
     super().__init__()
-    # GPT2 is trained without pad_token, so pick arbitrary one and mask out.
+
+    # Normally path is a directory; if it's an archive file, download and
+    # extract to the transformers cache.
+    if model_name_or_path.endswith(".tar.gz"):
+      model_name_or_path = file_cache.cached_path(
+          model_name_or_path, extract_compressed_file=True
+      )
+
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name, pad_token="<|endoftext|>", use_fast=False)
+        model_name_or_path, use_fast=False
+    )
+    # Set this after init, as if pad_token= is passed to
+    # AutoTokenizer.from_pretrained() above it will create a new token with
+    # with id = max_vocab_length and cause out-of-bounds errors in
+    # the embedding lookup.
+    self.tokenizer.pad_token = self.tokenizer.eos_token
     self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True)
+        model_name_or_path, output_hidden_states=True, output_attentions=True
+    )
     self.top_k = top_k
 
   @staticmethod
@@ -177,7 +216,7 @@ class GPT2LanguageModel(lit_model.Model):
 
     Each prediction has the following returns:
     logits: tf.Tensor (batch_size, sequence_length, config.vocab_size).
-    past: List[tf.Tensor] of length config.n_layers with each tensor shape
+    past: list[tf.Tensor] of length config.n_layers with each tensor shape
              (2, batch_size, num_heads, sequence_length, embed_size_per_head)).
     states: Tuple of tf.Tensor (one for embeddings + one for each layer),
             with shape (batch_size, sequence_length, hidden_size).
@@ -219,7 +258,7 @@ class GPT2LanguageModel(lit_model.Model):
     preds["tokens"] = self._detokenize(ids)
 
     # Decode predicted top-k tokens.
-    # token_topk_preds will be a List[List[(word, prob)]]
+    # token_topk_preds will be a list[list[(word, prob)]]
     # Initialize prediction for 0th token as N/A.
     token_topk_preds = [[("N/A", 1.)]]
     pred_ids = preds.pop("top_k_indices")[:ntok]  # <int>[num_tokens, k]
@@ -246,7 +285,7 @@ class GPT2LanguageModel(lit_model.Model):
   ##
   # LIT API implementations
   def max_minibatch_size(self) -> int:
-    # The lit.Model base class handles batching automatically in the
+    # The BatchedModel base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return 6
 

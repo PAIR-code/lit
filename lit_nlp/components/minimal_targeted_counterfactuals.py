@@ -172,7 +172,7 @@ class TabularMTC(lit_components.Generator):
     # statistics include such information as 'standard deviation' for scalar
     # features and probabilities for categorical features.
     if dataset_name not in self._datasets_stats:
-      self._calculate_stats(dataset, dataset_name)
+      self._datasets_stats[dataset_name] = self._calculate_stats(dataset)
 
     # Find predicted class of the original example.
     original_pred = list(model.predict([example]))[0]
@@ -180,7 +180,6 @@ class TabularMTC(lit_components.Generator):
     # Find dataset examples that are flips.
     filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
         dataset=dataset,
-        dataset_name=dataset_name,
         model=model,
         reference_output=original_pred,
         pred_key=pred_key,
@@ -275,7 +274,6 @@ class TabularMTC(lit_components.Generator):
   def _filter_ds_examples(
       self,
       dataset: lit_dataset.IndexedDataset,
-      dataset_name: str,
       model: lit_model.Model,
       reference_output: JsonDict,
       pred_key: str,
@@ -286,13 +284,12 @@ class TabularMTC(lit_components.Generator):
           'Only indexed datasets are currently supported by the TabularMTC'
           'generator.')
 
-    indexed_examples = list(dataset.indexed_examples)
+    examples = list(dataset.examples)
     filtered_examples = []
-    preds = model.predict_with_metadata(
-        indexed_examples, dataset_name=dataset_name)
+    preds = model.predict(examples)
 
     # Find all DS examples that are flips with respect to the reference example.
-    for indexed_example, pred in zip(indexed_examples, preds):
+    for example, pred in zip(examples, preds):
       flip = cf_utils.is_prediction_flip(
           cf_output=pred,
           orig_output=reference_output,
@@ -300,7 +297,7 @@ class TabularMTC(lit_components.Generator):
           pred_key=pred_key,
           regression_thresh=regression_thresh)
       if flip:
-        candidate_example = indexed_example['data'].copy()
+        candidate_example = dict(example)
         self._find_dataset_parent_and_set(
             model_output_spec=model.output_spec(),
             pred_key=pred_key,
@@ -360,7 +357,7 @@ class TabularMTC(lit_components.Generator):
     """
     # All features other than `features_to_consider` should be assigned the
     # value of the target example.
-    candidate_example = ds_example.copy()
+    candidate_example = dict(ds_example)
     for field_name in ref_example:
       if (field_name not in features_to_consider and
           field_name in model.input_spec()):
@@ -433,7 +430,7 @@ class TabularMTC(lit_components.Generator):
     for _ in range(max_attempts):
       # Interpolate the scalar values using binary search.
       current_alpha = (min_alpha + max_alpha) / 2
-      candidate = known_flip.copy()
+      candidate = dict(known_flip)
       for field in ref_example:
         if (field in candidate and field in input_spec and
             isinstance(input_spec[field], lit_types.Scalar) and
@@ -491,8 +488,7 @@ class TabularMTC(lit_components.Generator):
       supported = [f for f in supported if example[f] is not None]
     return supported
 
-  def _calculate_stats(self, dataset: lit_dataset.Dataset,
-                       dataset_name: str) -> None:
+  def _calculate_stats(self, dataset: lit_dataset.Dataset) -> dict[str, float]:
     # Iterate through all examples in the dataset and store column values
     # in individual lists to facilitate future computation.
     field_values = {}
@@ -517,7 +513,7 @@ class TabularMTC(lit_components.Generator):
       else:
         assert False, 'Should never be reached.'
     # Cache the stats for the given dataset.
-    self._datasets_stats[dataset_name] = field_stats
+    return field_stats
 
   def _calculate_std_dev(self, values: list[float]) -> float:
     return np.std(values)
@@ -619,7 +615,7 @@ class TabularMTC(lit_components.Generator):
 
   def _find_dataset_parent_and_set(self, model_output_spec: lit_types.Spec,
                                    pred_key: str, dataset_spec: lit_types.Spec,
-                                   example: JsonDict,
+                                   example: dict[str, Any],
                                    predicted_value: Any) -> None:
     """Finds example parent field and assigns prediction value to it."""
     parent = self._find_dataset_parent(model_output_spec, pred_key,

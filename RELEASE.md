@@ -1,5 +1,156 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.0
+
+This is a major release, covering many new features and API changes from the
+`dev` branch since the v0.5 release over 8 months ago. This release includes
+a variety of breaking changes meant to simplify various aspects of the LIT API
+and visual changes to improve usability. This release includes over 250 commits.
+Major changes include:
+
+* Refactored python code to remove `_with_metadata` methods from all component
+  and model classes.
+* Refactored Model and BatchedModel python classes to remove `predict_minibatch`
+  method.
+* Reworked UI and backend logic for dynamic loading of new datasets and models
+  from the UI. This makes use of the new `init_spec` methods for datasets and
+  model classes.
+  * Added a blank demo with no models or datasets preloaded which allows for
+    dynamic loading of models and datasets through the UI.
+* Refactored to upgrade metrics calculation from a type of interpreter to its
+  own top-level concept.
+* Updated front-end layout code to default to a new layout that includes a
+  full height side-panel on the left side to complement the existing top and
+  bottom panels, providing for more customization of module layouts.
+* Added automatic metrics calculations for multilabel models.
+* Added target selector dropdown for saliency methods.
+* A visual redesign of the Salience Clustering module.
+* Improved searching capabilities in the Data Table module.
+* Improved the Data Table module's display of long strings through a "Show more"
+  capability.
+* Updated to Python 3.10.
+* Updated to Node 18 and Typescript 5.0.
+* Improved documentation pages, now at https://pair-code.github.io/lit/documentation/
+
+
+This release would not have been possible without the work of our new
+contributors in 2023. Many thanks to
+[Minsuk Kahng](https://github.com/minsukkahng),
+[Nada Hussein](https://github.com/nadah09),
+[Oscar Wahltinez](https://github.com/owahltinez),
+[Bin Du](https://github.com/bdu91), and
+[Cibi Arjun](https://github.com/cpka145)
+for your support and contributions to this project!
+A full list of contributors to this repo can be found at https://github.com/PAIR-code/lit/graphs/contributors.
+
+### Breaking Changes
+* Adds init_spec() capability to models and datasets for dynamic loading -
+  [d28eec3](https://github.com/PAIR-code/lit/commit/d28eec3b00737282e353230c99a25cd656897958),
+  [d624562](https://github.com/PAIR-code/lit/commit/d624562931b001902cbeda474b21ece9208fad66),
+  [7bb60b2](https://github.com/PAIR-code/lit/commit/7bb60b24aa0ec7755d9e763f8689a3558409e5bc),
+  [f74798a](https://github.com/PAIR-code/lit/commit/f74798aedf2d10c9fcda5309e302ff3581b73a95),
+  [db51d9d](https://github.com/PAIR-code/lit/commit/db51d9d8e20705978337d13ef288e38e28f44b62),
+  [f3b0d6e](https://github.com/PAIR-code/lit/commit/f3b0d6eb9746397a8b535379adedb8bfd728dead),
+  [0f133cf](https://github.com/PAIR-code/lit/commit/0f133cfdf92a86c81761d82369d560b464b69790),
+  [9eebe57](https://github.com/PAIR-code/lit/commit/9eebe5748d8973a778b7c93c80d7d522c2945185),
+  [bcc6c09](https://github.com/PAIR-code/lit/commit/bcc6c090a29f832288b336a832ac0912ed9116e8),
+  [99e78ff](https://github.com/PAIR-code/lit/commit/99e78ffd87758600652c6819f5a9416c642ea9fd)
+* Simplify Model spec code -
+  [16b72f7](https://github.com/PAIR-code/lit/commit/16b72f7b9923c09b195e0a5f62132b1baeb9cce1)
+* Promote Metrics to top-level property of LitMetadata -
+  [f019279](https://github.com/PAIR-code/lit/commit/f0192796ffc6630336aa5e4dfef99aeacfaa90c7),
+  [6ba1db8](https://github.com/PAIR-code/lit/commit/6ba1db8e4c7fcfe59e7a42c6b9e02887d21bf658),
+  [c1777ea](https://github.com/PAIR-code/lit/commit/c1777eadf34ac615c9f00c4cdd6ca13e8f91794b)
+* Remove _with_metadata and batched methods from models and components -
+  [cb4f6b0](https://github.com/PAIR-code/lit/commit/cb4f6b01717768e1050a2a8b8a7356265ad3e9fe),
+  [e020faa](https://github.com/PAIR-code/lit/commit/e020faa9ec9a5c8755814e9a7fc707b640e73492),
+  [e9ce692](https://github.com/PAIR-code/lit/commit/e9ce692980fc048b351a3fb31f59c9d3c3e3c5bf),
+  [5f1a971](https://github.com/PAIR-code/lit/commit/5f1a97149a03e8fdea5f0082ad7446c99c40f756),
+  [061973a](https://github.com/PAIR-code/lit/commit/061973aa2c197d7b13d787da33b2d0d33ed9dcda),
+  [ad65fd9](https://github.com/PAIR-code/lit/commit/ad65fd9584735f51ec9bbfa6e32dcf69024d43b0),
+  [bc6f82b](https://github.com/PAIR-code/lit/commit/bc6f82b2d8477140e8ede54be233fd012c6d53f0),
+  [7888c66](https://github.com/PAIR-code/lit/commit/7888c6677081049111f1c3d51943dea2c9351c59),
+  [9767670](https://github.com/PAIR-code/lit/commit/976767089fbbb56ab14056c298bd0e5480b20486),
+  [0ec1527](https://github.com/PAIR-code/lit/commit/0ec152786c5858822222901c2bea09ce3e5af036),
+  [e30e59a](https://github.com/PAIR-code/lit/commit/e30e59a6d560bd5102b61a6b90e8251b33931228),
+  [b29d1f3](https://github.com/PAIR-code/lit/commit/b29d1f393b165a1f9b39bcbfe1e13caa36c075cd),
+  [5ed93bd](https://github.com/PAIR-code/lit/commit/5ed93bd59e9b540d173a6f3048a2c4f6f993f642),
+  [5047bdd](https://github.com/PAIR-code/lit/commit/5047bddd617bff6314986133590f6bd5b6845faf),
+  [a15cc88](https://github.com/PAIR-code/lit/commit/a15cc88222325cd539c204c1df7be395d7a07814),
+  [0146d5f](https://github.com/PAIR-code/lit/commit/0146d5f101391cf31df0756bca1494107f0e50f6),
+  [50fc3a4](https://github.com/PAIR-code/lit/commit/50fc3a4397d7f3ba2f004886990c77b7f5523747),
+  [6fdcbfe](https://github.com/PAIR-code/lit/commit/6fdcbfe09e521439991d6e487c6b7ef61c69a170),
+  [ce38565](https://github.com/PAIR-code/lit/commit/ce38565ecd0370361c78f332c3ac8813cd416b63)
+* Simplifications and refactors in layout system -
+  [4a5c0cb](https://github.com/PAIR-code/lit/commit/4a5c0cb8836bce4f483df82e0d09b75868c487be),
+  [5f6a46a](https://github.com/PAIR-code/lit/commit/5f6a46a8a15fe557b8ec16b5e2898817100b3bc4),
+  [2551c2c](https://github.com/PAIR-code/lit/commit/2551c2ced40a58e17b7b2bc2fd4bc06530090cb8),
+  [cc7bfd5](https://github.com/PAIR-code/lit/commit/cc7bfd54456c4a3ef4a3d9c832e2bf06b3c63947),
+  [fb2467d](https://github.com/PAIR-code/lit/commit/fb2467d9152cc2a9e5ee113ff0f6796db9a71808)
+* Update LIT to Node 18 and TypeScript 5.0 -
+  [7b96a6d](https://github.com/PAIR-code/lit/commit/7b96a6d7b42785a184752381f4d684f8923bff9d)
+* Update LIT to Python 3.10 -
+  [8bce86a](https://github.com/PAIR-code/lit/commit/8bce86a27dfc27dad37d8d2ebcab96cb8cdfde5e)
+
+
+
+### New Stuff
+* Add three-panel layout configuration option -
+  [a95ed67](https://github.com/PAIR-code/lit/commit/a95ed67100f24163624edb4bb659ccfa871dc9bf)
+* Add output embeddings and attention options to GlueConfig -
+  [6e0df41](https://github.com/PAIR-code/lit/commit/6e0df41636405b4ee5556cbf797fcce5887c6070)
+* Allow downloading/copying data from the slice editor - 
+  [57fac3a](https://github.com/PAIR-code/lit/commit/57fac3aeb98fa49c508b20837eded3f4ec80e8f9)
+* Use new custom tooltip elemement in various places -
+  [d409900](https://github.com/PAIR-code/lit/commit/d409900984336d4f8ac73735b1fff57c92623ca4),
+  [bd0f7fc](https://github.com/PAIR-code/lit/commit/bd0f7fc47682b16dd4c8e530e17b1a295def1433),
+  [6c25619](https://github.com/PAIR-code/lit/commit/6c2561994db506586b63de46a5900dd5dc6c0078),
+  [7d30408](https://github.com/PAIR-code/lit/commit/7d3040819cfda82fe5ac2ce5b9fc46556918da20),
+  [6779a4b](https://github.com/PAIR-code/lit/commit/6779a4b1fcba64bc0d8174ea46e58e6a7684af53),
+  [9179c73](https://github.com/PAIR-code/lit/commit/9179c730b73a7defc746fdd775c5a0ce78d40e84)
+* Add multi-label metrics to LIT -
+  [c0e3663](https://github.com/PAIR-code/lit/commit/c0e3663156991ae3639e1ee707d613705f60f6f8)
+* Improved UI for dynamic loading of models and datasets -
+  [abc8d1a](https://github.com/PAIR-code/lit/commit/abc8d1a37ae14626211467f72a129f35415a1887),
+  [b7ce560](https://github.com/PAIR-code/lit/commit/b7ce56037c27880b6d1c2ed27dce449c6a8d26ad)
+* Replace conda installation instructions with pip
+  [de23ceb](https://github.com/PAIR-code/lit/commit/de23ceb7c6801c71c63c253da669aab694c6c2c3)
+* Add a new Blank demo for dynamic loading of models and datasets -
+  [22b0dea](https://github.com/PAIR-code/lit/commit/22b0dea22a8167db7965ef8aec0b5c7e8b7509da)
+* Add target-selector dropdowns to salience map module -
+  [4c9a7ec](https://github.com/PAIR-code/lit/commit/4c9a7ecfc1a3d7a9fd3247b125d2e9c0d30a11f0),
+  [10926ea](https://github.com/PAIR-code/lit/commit/10926ea2759db7881264b0b21924899cfb39de23),
+  [f635ea7](https://github.com/PAIR-code/lit/commit/f635ea7a8548c8934db583a8a8f45bd63d38bd0a),
+  [fe121ca](https://github.com/PAIR-code/lit/commit/fe121cabd240aff0bd08a9ba4a030dbd7ce12193),
+  [8cb965a](https://github.com/PAIR-code/lit/commit/8cb965a78616f9ec7de133871ecf01d92a71293e)
+
+
+### Non-breaking Changes, Bug Fixes, and Enhancements
+* Fixes Scalars Module resize bug affecting datasets with scalar fields -
+  [453461a](https://github.com/PAIR-code/lit/commit/453461a06b73b982b2db778ce05db8199d89193a)
+* Moves Model-Dataset compatibility checks to Model class instead of ModelSpec -
+  [c268ce4](https://github.com/PAIR-code/lit/commit/c268ce4890a627bc7c85d9fc277785b2d9d8ed85)
+* Updates to the Salience Clustering module -
+  [3a3aad3](https://github.com/PAIR-code/lit/commit/3a3aad302fcb97a89f43645bc81e2dd8fdeb3bfd),
+  [7d3f235](https://github.com/PAIR-code/lit/commit/7d3f235fc9aad221f4c24b34545511f81eab9223),
+  [ff759ad](https://github.com/PAIR-code/lit/commit/ff759ad313852844479d3f395a6c291ed18d3dce),
+  [20ec052](https://github.com/PAIR-code/lit/commit/20ec052af16cc46f9a6159e2ada3ce6d03eda6f0)
+* Data Table module improvements -
+  [c7fa619](https://github.com/PAIR-code/lit/commit/c7fa619d921af92e34195d17b969596101dd24e0),
+  [7301b28](https://github.com/PAIR-code/lit/commit/7301b28bd4456e0b9a981c7fd1e0dbc405d2b318),
+  [dd23083](https://github.com/PAIR-code/lit/commit/dd23083f945cb660af9214d304be3b5045c5231d),
+  [42d189a](https://github.com/PAIR-code/lit/commit/42d189a49f9e1c7afc3a92eda4e365994ff454fc),
+  [1cc6964](https://github.com/PAIR-code/lit/commit/1cc696465a24fb5aaeb8f35e25b62fd673488555),
+  [ab7da61](https://github.com/PAIR-code/lit/commit/ab7da61ef7f74441dad2b62b6065d5b1ff6f4d4c),
+  [ee54333](https://github.com/PAIR-code/lit/commit/ee543339ca89aeb88648f68dfb2b09c87ecea145),
+  [d74f2d6](https://github.com/PAIR-code/lit/commit/d74f2d626c62d0b1f8a76416bf6e3cb65cdb9429),
+  [35487fa](https://github.com/PAIR-code/lit/commit/35487fa93d1987fc9a7eb98e2d20e3372e24f469),
+  [ea25e75](https://github.com/PAIR-code/lit/commit/ea25e75a65f143b5a8c0ca9e4e71003d9a88b46e),
+  [8c4bf1f](https://github.com/PAIR-code/lit/commit/8c4bf1ff998867540ae14f551bff2b5df64effd7),
+  [ddf8e52](https://github.com/PAIR-code/lit/commit/ddf8e522a55e1ee60042ff2c54bb234f5a87106f)
+* Various styling fixes, bug fixes, and code cleanup efforts
+* Docs, FAQ, and README updates
+
 ## Release 0.5
 
 This is a major release, covering many new features from the `dev` branch since

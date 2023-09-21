@@ -9,12 +9,12 @@ Usage:
 
   On the commandline: --lit.port=5432 (instead of --port=5432)
 
-A fork of google3/third_party/py/lit_nlp/server_flags.py, which it will
-eventually replace: since absl.FLAGS is global, so importing server_flags.py
-directly causes conflicts when LIT is run in the same binary as something else
-that has the same flag keys.
+A fork of server_flags.py, which it will eventually replace.
+This is because absl.FLAGS is global, so importing server_flags.py
+may cause conflicts when LIT is run in a binary that uses the same flag names
+through another library.
 
-TODO: migrate demos over to use this instead of server_flags.py.
+TODO(b/301004293): migrate demos over to use this instead of server_flags.py.
 """
 
 import ml_collections
@@ -72,7 +72,12 @@ config.development_demo = False
 
 # Whether dataset and model validation will happen at startup.
 config.validate = None
+config.enforce_dataset_fields_required = False
 config.report_all = False
+
+# Whether to re-compute example hashes before checking the cache.
+# See b/293984290.
+config.strict_cache_id_validation = False
 
 import os
 import pathlib

@@ -2,17 +2,46 @@
   justify-content: space-between;
 }
 
-#toolbar-buttons{
+#toolbar-buttons {
   display: flex;
   flex-direction: row;
   margin-left: 0;
   margin-right: 0;
 }
 
-.toggles-row {
+.search-container {
   display: flex;
   flex-direction: row;
-  column-gap: 16px;
+  flex-grow: 1;
+  align-items: center;
+  min-height: 32px;
+  max-width: 60%;
+  margin-left: 0;
+  margin-right: 0;
+  overflow-y: clip;
+}
+
+.search-input-container {
+  width: calc(100% - 24px);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.search-input-container input {
+  width: 100%;
+  background-color: unset; /* transparent */
+  border-width: 1px;
+  border-radius: 3px;
+}
+
+.search-container-edited .search-input-container {
+  background: var(--lit-bric-50);
+}
+
+.checkbox-row {
+  display: flex;
+  flex-direction: row;
+  column-gap: 4px;
 }
 
 popup-container.column-dropdown-container {

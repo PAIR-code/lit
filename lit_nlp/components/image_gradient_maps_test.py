@@ -26,7 +26,7 @@ from PIL import Image as PILImage
 JsonDict = lit_types.JsonDict
 
 
-class ClassificationTestModel(lit_model.Model):
+class ClassificationTestModel(lit_model.BatchedModel):
 
   LABELS = ['Dummy', 'Cat', 'Dog']
   GRADIENT_SHAPE = (60, 40, 3)
@@ -62,7 +62,7 @@ class ClassificationTestModel(lit_model.Model):
     }
 
 
-class RegressionTestModel(lit_model.Model):
+class RegressionTestModel(lit_model.BatchedModel):
   """A test model for testing the regression case."""
 
   GRADIENT_SHAPE = (40, 20, 3)

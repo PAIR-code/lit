@@ -14,8 +14,7 @@
 # ==============================================================================
 """Tests for lit_nlp.components.minimal_targeted_counterfactuals."""
 
-from typing import List
-import unittest.mock as mock
+from unittest import mock
 
 from absl.testing import absltest
 from lit_nlp.api import dataset as lit_dataset
@@ -42,7 +41,7 @@ class ClassificationTestDataset(lit_dataset.Dataset):
     }
 
   @property
-  def examples(self) -> List[lit_types.JsonDict]:
+  def examples(self) -> list[lit_types.JsonDict]:
     return [
         {
             'size': 'small',
@@ -75,7 +74,7 @@ class ClassificationTestDataset(lit_dataset.Dataset):
     ]
 
 
-class ClassificationTestModel(lit_model.Model):
+class ClassificationTestModel(lit_model.BatchedModel):
   """A test model for testing tabular hot-flips on classification tasks."""
 
   def __init__(self, dataset: lit_dataset.Dataset) -> None:
@@ -100,8 +99,9 @@ class ClassificationTestModel(lit_model.Model):
                 parent='animal', vocab=ANIMALS, null_idx=0)
     }
 
-  def predict_minibatch(self, inputs: List[lit_types.JsonDict],
-                        **unused) -> List[lit_types.JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[lit_types.JsonDict], **unused
+  ) -> list[lit_types.JsonDict]:
     output = []
 
     def predict_example(ex: lit_types.JsonDict) -> lit_types.JsonDict:
@@ -153,7 +153,7 @@ class RegressionTestDataset(lit_dataset.Dataset):
     }
 
   @property
-  def examples(self) -> List[lit_types.JsonDict]:
+  def examples(self) -> list[lit_types.JsonDict]:
     return [
         {
             'x_1': 0.0,
@@ -168,7 +168,7 @@ class RegressionTestDataset(lit_dataset.Dataset):
     ]
 
 
-class RegressionTestModel(lit_model.Model):
+class RegressionTestModel(lit_model.BatchedModel):
   """A test model for testing tabular hot-flips on regression tasks."""
 
   def max_minibatch_size(self, **unused) -> int:
@@ -183,8 +183,9 @@ class RegressionTestModel(lit_model.Model):
   def output_spec(self) -> lit_types.Spec:
     return {'score': lit_types.RegressionScore(parent='y')}
 
-  def predict_minibatch(self, inputs: List[lit_types.JsonDict],
-                        **unused) -> List[lit_types.JsonDict]:
+  def predict_minibatch(
+      self, inputs: list[lit_types.JsonDict], **unused
+  ) -> list[lit_types.JsonDict]:
     output = []
 
     def predict_example(ex: lit_types.JsonDict) -> lit_types.JsonDict:

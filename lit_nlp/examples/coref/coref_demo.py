@@ -42,10 +42,11 @@ get around 85% F1 on the OntoNotes development set. Exact numbers on Winogender
 will vary, but the qualitative behavior on slices by gender and answer should
 match Figure 3 of the paper.
 """
-import copy
+
+from collections.abc import Sequence
 import os
 import sys
-from typing import Optional, Sequence
+from typing import Optional
 
 from absl import app
 from absl import flags
@@ -62,9 +63,8 @@ from lit_nlp.examples.coref import encoders
 from lit_nlp.examples.coref import model
 from lit_nlp.examples.coref.datasets import ontonotes
 from lit_nlp.examples.coref.datasets import winogender
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
-
-import transformers  # for path caching
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -73,22 +73,29 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 
 _DO_TRAIN = flags.DEFINE_bool(
-    "do_train", False,
-    "If true, train a new model and save to FLAGS.model_path.")
+    "do_train",
+    False,
+    "If true, train a new model and save to FLAGS.model_path."
+)
 _DO_SERVE = flags.DEFINE_bool(
-    "do_serve", True,
-    "If true, start a LIT server with the model at FLAGS.model_path.")
+    "do_serve",
+    True,
+    "If true, start a LIT server with the model at FLAGS.model_path."
+)
 
 _MODEL_PATH = flags.DEFINE_string(
     "model_path",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/coref_base.tar.gz",
-    "Path to save or load trained model.")
+    "Path to save or load trained model."
+)
 
 ##
 # Training-only flags; these are ignored if only serving a pre-trained model.
 _ENCODER_NAME = flags.DEFINE_string(
-    "encoder_name", "bert-base-uncased",
-    "Name of BERT variant to use for fine-tuning. See https://huggingface.co/models."
+    "encoder_name",
+    "bert-base-uncased",
+    "Name of BERT variant to use for fine-tuning. See "
+    "https://huggingface.co/models."
 )
 
 _ONTONOTES_EDGEPROBE_PATH = flags.DEFINE_string(
@@ -98,12 +105,11 @@ _ONTONOTES_EDGEPROBE_PATH = flags.DEFINE_string(
 
 # Custom frontend layout; see client/lib/types.ts
 modules = layout.LitModuleName
-WINOGENDER_LAYOUT = layout.LitComponentLayout(
-    components={
-        "Main": [
-            modules.DataTableModule,
-            modules.DatapointEditorModule,
-        ],
+WINOGENDER_LAYOUT = layout.LitCanonicalLayout(
+    upper={
+        "Main": [modules.DataTableModule, modules.DatapointEditorModule],
+    },
+    lower={
         "Predictions": [
             modules.SpanGraphGoldModule,
             modules.SpanGraphModule,
@@ -145,9 +151,9 @@ def symmetrize_edges(dataset: lit_dataset.Dataset) -> lit_dataset.Dataset:
   edge_fields = utils.find_spec_keys(dataset.spec(), lit_types.EdgeLabels)
   examples = []
   for ex in dataset.examples:
-    new_ex = copy.copy(ex)
+    new_ex = dict(ex)
     for field in edge_fields:
-      new_ex[field] += [_swap(edge) for edge in ex[field]]
+      new_ex[field] = ex[field] + [_swap(edge) for edge in ex[field]]
     examples.append(new_ex)
   return lit_dataset.Dataset(dataset.spec(), examples)
 
@@ -183,7 +189,7 @@ def run_server(load_path: str):
   # Normally path is a directory; if it's an archive file, download and
   # extract to the transformers cache.
   if load_path.endswith(".tar.gz"):
-    load_path = transformers.file_utils.cached_path(
+    load_path = file_cache.cached_path(
         load_path, extract_compressed_file=True)
   # Load model from disk.
   full_model = model.FrozenEncoderCoref.from_saved(

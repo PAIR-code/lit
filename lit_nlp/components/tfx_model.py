@@ -1,5 +1,5 @@
 """Wrapper for using TFX-generated models within LIT."""
-from typing import Iterator, List, Text
+from collections.abc import Iterator
 
 import attr
 from lit_nlp.api import model as lit_model
@@ -13,10 +13,10 @@ _SERVING_DEFAULT_SIGNATURE = 'serving_default'
 @attr.s(auto_attribs=True)
 class TFXModelConfig(object):
   """Configuration object for TFX Models."""
-  path: Text
+  path: str
   input_spec: lit_types.Spec
   output_spec: lit_types.Spec
-  signature: Text = _SERVING_DEFAULT_SIGNATURE
+  signature: str = _SERVING_DEFAULT_SIGNATURE
 
 
 # TODO(b/188036366): Revisit the assumed mapping between input values and
@@ -38,7 +38,7 @@ def _inputs_to_serialized_example(input_dict: lit_types.JsonDict):
   return result.SerializeToString()
 
 
-class TFXModel(lit_model.Model):
+class TFXModel(lit_model.BatchedModel):
   """Wrapper for querying a TFX-generated SavedModel."""
 
   def __init__(self, config: TFXModelConfig):
@@ -47,8 +47,9 @@ class TFXModel(lit_model.Model):
     self._input_spec = config.input_spec
     self._output_spec = config.output_spec
 
-  def predict_minibatch(
-      self, inputs: List[lit_types.JsonDict]) -> Iterator[lit_types.JsonDict]:
+  def predict_minibatch(  # pytype: disable=signature-mismatch  # overriding-return-type-checks
+      self, inputs: list[lit_types.JsonDict]
+  ) -> Iterator[lit_types.JsonDict]:
     for i in inputs:
       filtered_inputs = {k: v for k, v in i.items() if k in self._input_spec}
       result = self._model.signatures[self._signature](
