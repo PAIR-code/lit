@@ -1,6 +1,6 @@
 # 🔥 Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-06-27' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-22' } *-->
 
 The Learning Interpretability Tool (🔥LIT, formerly known as the Language
 Interpretability Tool) is a visual, interactive ML model-understanding tool that
@@ -16,7 +16,7 @@ LIT is built to answer questions such as:
 *   **Does my model behave consistently** if I change things like textual style,
     verb tense, or pronoun gender?
 
-![Example of LIT UI](https://pair-code.github.io/lit/documentation/images/figure-1.png)
+![Example of LIT UI](https://pair-code.github.io/lit/assets/images/readme-fig-1.png)
 
 LIT supports a variety of debugging workflows through a browser-based UI.
 Features include:
@@ -41,12 +41,12 @@ Stay up to date on LIT by joining the
 [lit-announcements mailing list](https://groups.google.com/g/lit-annoucements).
 
 For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) and the
-[user guide](https://pair-code.github.io/lit/documentation/ui_guide.md).
+[user guide](https://pair-code.github.io/lit/documentation/ui_guide).
 
 ## Documentation
 
 *   [Documentation index](https://pair-code.github.io/lit/documentation/)
-*   [FAQ](https://pair-code.github.io/lit/documentation/faq.md)
+*   [FAQ](https://pair-code.github.io/lit/documentation/faq)
 *   [Release notes](./RELEASE.md)
 
 ## Download and Installation
@@ -63,7 +63,7 @@ git clone https://github.com/PAIR-code/lit.git && cd lit
 docker build --file Dockerfile --tag lit-nlp .
 ```
 
-See the [advanced guide](https://pair-code.github.io/lit/documentation/docker.md) for detailed instructions on using the
+See the [advanced guide](https://pair-code.github.io/lit/documentation/docker) for detailed instructions on using the
 default LIT Docker image, running LIT as a containerized web app in different
 scenarios, and how to creating your own LIT images.
 
@@ -197,7 +197,7 @@ python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
 
 ## User Guide
 
-To learn about LIT's features, check out the [user guide](https://pair-code.github.io/lit/documentation/ui_guide.md), or
+To learn about LIT's features, check out the [user guide](https://pair-code.github.io/lit/documentation/ui_guide), or
 watch this [video](https://www.youtube.com/watch?v=CuRI_VK83dU).
 
 ## Adding your own models or data
@@ -206,13 +206,13 @@ You can easily run LIT with your own model by creating a custom `demo.py`
 launcher, similar to those in [lit_nlp/examples](./lit_nlp/examples). The
 basic steps are:
 
-*   Write a data loader which follows the [`Dataset` API](https://pair-code.github.io/lit/documentation/api.md#datasets)
-*   Write a model wrapper which follows the [`Model` API](https://pair-code.github.io/lit/documentation/api.md#models)
+*   Write a data loader which follows the [`Dataset` API](https://pair-code.github.io/lit/documentation/api#datasets)
+*   Write a model wrapper which follows the [`Model` API](https://pair-code.github.io/lit/documentation/api#models)
 *   Pass models, datasets, and any additional
-    [components](https://pair-code.github.io/lit/documentation/api.md#interpretation-components) to the LIT server class
+    [components](https://pair-code.github.io/lit/documentation/api#interpretation-components) to the LIT server class
 
 For a full walkthrough, see
-[adding models and data](https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data).
+[adding models and data](https://pair-code.github.io/lit/documentation/api#adding-models-and-data).
 
 ## Extending LIT with new components
 
