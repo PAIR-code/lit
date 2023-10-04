@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
-import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
+import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar, SparseMultilabelPreds} from '../lib/lit_types';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';
 
@@ -68,6 +68,8 @@ export const GEN_TEXT_CANDS_SOURCE_PREFIX = 'GeneratedTextCandidates';
 export const REGRESSION_SOURCE_PREFIX = 'Regression';
 /** Column source prefix for columns from scalar model outputs. */
 export const SCALAR_SOURCE_PREFIX = 'Scalar';
+/** Column source prefix for columns from multilabel model outputs. */
+export const MULTILABEL_SOURCE_PREFIX = 'Multilabel';
 
 /**
  * Data service singleton, responsible for maintaining columns of computed data
@@ -109,7 +111,7 @@ export class DataService extends LitService {
       }
     }, {fireImmediately: true});
 
-    // Run other preiction interpreters when necessary.
+    // Run other prediction interpreters when necessary.
     const getPredictionInputs =
         () => [this.appState.currentInputData, this.appState.currentModels];
     reaction(getPredictionInputs, () => {
@@ -124,6 +126,7 @@ export class DataService extends LitService {
         this.runGeneratedTextPreds(model, this.appState.currentInputData);
         this.runRegression(model, this.appState.currentInputData);
         this.runScalarPreds(model, this.appState.currentInputData);
+        this.runMultiLabelPreds(model, this.appState.currentInputData);
       }
     }, {fireImmediately: true});
 
@@ -296,6 +299,36 @@ export class DataService extends LitService {
       const scores = preds.map(pred => pred[key]);
       const dataType = createLitType(Scalar);
       const source = `${SCALAR_SOURCE_PREFIX}:${model}`;
+      this.addColumnFromList(
+          scores, data, key, scoreFeatName, dataType, source);
+    }
+  }
+
+  /**
+   * Run multi label predictions and store results in data service.
+   */
+  private async runMultiLabelPreds(model: string, data: IndexedInput[]) {
+    const {output} = this.appState.getModelSpec(model);
+    if (findSpecKeys(output, SparseMultilabelPreds).length === 0) {
+      return;
+    }
+
+    const multiLabelPredsPromise = this.apiService.getPreds(
+        data, model, this.appState.currentDataset, [SparseMultilabelPreds]);
+    const preds = await multiLabelPredsPromise;
+
+    // Add multi label prediction results as new column to the data service.
+    if (preds == null || preds.length === 0) {
+      return;
+    }
+    const multiLabelPredKeys = Object.keys(preds[0]);
+    for (const key of multiLabelPredKeys) {
+      const scoreFeatName = this.getColumnName(model, key);
+      const scores = preds.map(pred => pred[key]);
+      // TODO(b/303457849): maybe possible to directly use the data type from
+      // the output spec rather than creating a new one.
+      const dataType = createLitType(SparseMultilabelPreds);
+      const source = `${MULTILABEL_SOURCE_PREFIX}:${model}`;
       this.addColumnFromList(
           scores, data, key, scoreFeatName, dataType, source);
     }
