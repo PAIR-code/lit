@@ -860,6 +860,13 @@ class ImageSalience(Salience):
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
+class FrameSalience(Salience):
+  """Metadata about a returned frame salience map."""
+
+  default: dtypes.FrameSalience = None
+
+
+@attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class SequenceSalience(Salience):
   """Metadata about a returned sequence salience map."""
   default: dtypes.SequenceSalienceMap = None
