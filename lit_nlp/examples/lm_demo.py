@@ -86,7 +86,8 @@ LM_LAYOUT = layout.LitCanonicalLayout(
     },
     description="Custom layout for language models.",
 )
-CUSTOM_LAYOUTS = {"lm": LM_LAYOUT}
+
+CUSTOM_LAYOUTS = dict(layout.DEFAULT_LAYOUTS, **{"lm": LM_LAYOUT})
 
 # You can also change this via URL param e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "lm")

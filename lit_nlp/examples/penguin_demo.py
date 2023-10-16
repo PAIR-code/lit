@@ -49,7 +49,7 @@ PENGUIN_LAYOUT = layout.LitCanonicalLayout(
     lower=layout.STANDARD_LAYOUT.lower,
     description='Custom layout for the Palmer Penguins demo.',
 )
-CUSTOM_LAYOUTS = {'penguins': PENGUIN_LAYOUT}
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {'penguins': PENGUIN_LAYOUT}
 
 
 # Function for running demo through gunicorn instead of the local dev server.
