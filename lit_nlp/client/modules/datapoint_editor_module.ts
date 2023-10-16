@@ -99,8 +99,18 @@ export class DatapointEditorModule extends LitModule {
 
   @computed
   get missingFields(): string[] {
+    // Check only for initial values that are null or undefined for numeric
+    // values to allow for defaults that evaluate to false.
     return this.appState.currentModelRequiredInputSpecKeys.filter(
-        key => !this.editedData.data[key]);
+        (key: string) => {
+          if (this.groupService.numericalFeatureNames.includes(key)) {
+            return this.editedData.data[key] === undefined ||
+                this.editedData.data[key] === null;
+          }
+          else {
+            return !this.editedData.data[key];
+          }
+        });
   }
 
   @computed
