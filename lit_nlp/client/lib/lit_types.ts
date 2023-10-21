@@ -232,6 +232,8 @@ export class Scalar extends LitType {
  */
 @registered
 export class Integer extends Scalar {
+  override min_val = -32768;
+  override max_val = 32767;
   override step = 1;
 }
 

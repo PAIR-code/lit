@@ -917,6 +917,8 @@ class MetricResult(LitType):
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
 class Integer(Scalar):
   step: int = 1
+  min_val: int = -32768
+  max_val: int = 32767
 
 
 @attr.s(auto_attribs=True, frozen=True, kw_only=True)
