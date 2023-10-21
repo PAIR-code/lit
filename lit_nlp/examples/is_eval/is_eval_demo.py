@@ -91,7 +91,7 @@ IS_EVAL_LAYOUT = layout.LitCanonicalLayout(
         ],
     },
     description="Custom layout for evaluating input salience methods.")
-CUSTOM_LAYOUTS = {"is_eval": IS_EVAL_LAYOUT}
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {"is_eval": IS_EVAL_LAYOUT}
 # You can change this back via URL param, e.g. localhost:5432/?layout=default
 FLAGS.set_default("default_layout", "is_eval")
 

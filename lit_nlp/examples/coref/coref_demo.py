@@ -123,7 +123,8 @@ WINOGENDER_LAYOUT = layout.LitCanonicalLayout(
     },
     description="Custom layout for the Winogender coreference demo.",
 )
-CUSTOM_LAYOUTS = {"winogender": WINOGENDER_LAYOUT}
+
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {"winogender": WINOGENDER_LAYOUT}
 
 FLAGS.set_default("default_layout", "winogender")
 
