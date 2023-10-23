@@ -899,11 +899,7 @@ class LitApp(object):
         id_hash_fn=caching.input_hash,
     )
 
-    # TODO(lit-dev): override layouts instead of merging, to allow clients
-    # to opt-out of the default bundled layouts. This will require updating
-    # client code to manually merge when this is the desired behavior.
-    self._layouts = dict(layout.DEFAULT_LAYOUTS, **(layouts or {}))
-
+    self._layouts = layouts if layouts else layout.DEFAULT_LAYOUTS
     self._model_loaders: ModelLoadersMap = model_loaders or {}
     self._models: dict[str, caching.CachingModelWrapper] = {}
     for name, model in models.items():

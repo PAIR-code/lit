@@ -57,6 +57,8 @@ POTATO_LAYOUT = layout.LitCanonicalLayout(
     description="Custom layout with our spud-tastic potato module.",
 )
 
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {"potato": POTATO_LAYOUT}
+
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Returns a LitApp instance for consumption by gunicorn."""
@@ -86,10 +88,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(
-      models,
-      datasets,
-      layouts={"potato": POTATO_LAYOUT},
-      **server_flags.get_flags())
+      models, datasets, layouts=CUSTOM_LAYOUTS, **server_flags.get_flags()
+  )
   return lit_demo.serve()
 
 
