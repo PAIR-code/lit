@@ -205,7 +205,7 @@ export class GeneratorModule extends LitModule {
   }
 
   private async createNewDatapoints(data: IndexedInput[][]) {
-    const newExamples = flatten(data);
+    const newExamples = await this.appState.annotateNewData(flatten(data));
     this.appState.commitNewDatapoints(newExamples);
     const newIds = newExamples.map(d => d.id);
     if (newIds.length === 0) return;
