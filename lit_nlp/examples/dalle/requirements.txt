@@ -15,9 +15,9 @@
 
 -r ../../../requirements_core.txt
 
-jax==0.3.25
-jaxlib==0.3.25
-flax==0.6.3
+jax==0.4.13
+jaxlib==0.4.13
+flax==0.6.11
 dalle-mini==0.1.5
 ipywidgets==7.5.0
 orbax==0.0.23
