@@ -22,15 +22,16 @@ from lit_nlp import server_config
 from lit_nlp.api import layout
 from lit_nlp.lib import wsgi_serving
 
+is_colab = False
 try:
   import google.colab  # pylint: disable=g-import-not-at-top,unused-import
+  from google.colab import output  # pylint: disable=g-import-not-at-top,unused-import # pytype: disable=import-error
   is_colab = True
   # Can disable import error as this package is always
   # included in colab kernels.
   from colabtools import interactive_widgets  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
   progress_indicator = interactive_widgets.ProgressIter
 except (ImportError, ModuleNotFoundError):
-  is_colab = False
   from tqdm import notebook  # pylint: disable=g-import-not-at-top
   progress_indicator = notebook.tqdm
 
@@ -167,46 +168,12 @@ def _display_colab(port, height, open_in_new_tab, ui_params: RenderConfig):
   """
 
   params = ui_params.get_query_str()
+  path = f'/{params}'
 
   if open_in_new_tab:
-    shell = """
-      (async () => {
-          const proxyPort = await google.colab.kernel.proxyPort(
-            %PORT%, {'cache': true})
-          const url = new URL(proxyPort + '%PARAMS%')
-          const a = document.createElement('a');
-          a.href = "javascript:void(0);"
-          a.onclick = (e) => window.open(url, "_blank");
-          a.innerHTML = url;
-          document.body.appendChild(a);
-          window.open(url, "_blank");
-      })();
-    """
+    output.serve_kernel_port_as_window(port, path=path)
   else:
-    shell = """
-      (async () => {
-          const proxyPort = await google.colab.kernel.proxyPort(
-            %PORT%, {'cache': true})
-          const url = new URL(proxyPort + '%PARAMS%')
-          const iframe = document.createElement('iframe');
-          iframe.src = url;
-          iframe.setAttribute('width', '100%');
-          iframe.setAttribute('height', '%HEIGHT%px');
-          iframe.setAttribute('frameborder', 0);
-          document.body.appendChild(iframe);
-      })();
-    """
-
-  replacements = [
-      ('%PORT%', '%d' % port),
-      ('%HEIGHT%', '%d' % height),
-      ('%PARAMS%', '%s' % params),
-  ]
-  for (k, v) in replacements:
-    shell = shell.replace(k, v)
-
-  script = display.Javascript(shell)
-  display.display(script)
+    output.serve_kernel_port_as_iframe(port, height=f'{height}', path=path)
 
 
 def _display_jupyter(
