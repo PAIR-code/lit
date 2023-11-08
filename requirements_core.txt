@@ -40,5 +40,5 @@ tensorflow-text==2.10.0
 termcolor==2.3.0
 tqdm==4.64.0
 umap-learn==0.5.1
-werkzeug==2.3.6
+werkzeug==3.0.1
 # LINT.ThenChange(./pyproject.toml)
