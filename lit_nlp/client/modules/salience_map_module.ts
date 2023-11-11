@@ -35,7 +35,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {TokenWithWeight} from '../elements/token_chips';
-import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience} from '../lib/lit_types';
+import {FeatureSalience, FieldMatcher, ImageGradients, FrameSalience, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, IndexedInput, ModelInfoMap, Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {argmax, cloneSpec, findSpecKeys, makeModifiedInput} from '../lib/utils';
@@ -69,7 +69,7 @@ type SalienceResult = TokenSalienceResult | ImageSalienceResult |
 
 // Notably, not SequenceSalience as that is handled by a different module.
 const SUPPORTED_SALIENCE_TYPES =
-    [TokenSalience, FeatureSalience, ImageSalience];
+    [TokenSalience, FeatureSalience, ImageSalience, FrameSalience];
 
 const TARGET_SELECTOR_SUPPORTED_TYPES: LitTypeTypesList =
     [MulticlassPreds, RegressionScore];
