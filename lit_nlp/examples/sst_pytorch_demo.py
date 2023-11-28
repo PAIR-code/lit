@@ -70,7 +70,7 @@ def _from_pretrained(cls, *args, **kw):
     return cls.from_pretrained(*args, from_tf=True, **kw)
 
 
-class SimpleSentimentModel(lit_model.Model):
+class SimpleSentimentModel(lit_model.BatchedModel):
   """Simple sentiment analysis model."""
 
   LABELS = ["0", "1"]  # negative, positive
@@ -95,7 +95,7 @@ class SimpleSentimentModel(lit_model.Model):
   ##
   # LIT API implementation
   def max_minibatch_size(self):
-    # This tells lit_model.Model.predict() how to batch inputs to
+    # This tells lit_model.BatchedModel.predict() how to batch inputs to
     # predict_minibatch().
     # Alternately, you can just override predict() and handle batching yourself.
     return 32
