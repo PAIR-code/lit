@@ -1,8 +1,7 @@
 r"""Example demo loading a TyDiModel.
 
 To run locally with a small number of examples:
-  python -m lit_nlp.examples.tydi_demo \
-      --alsologtostderr --port=5432 --max_examples=10
+  python -m lit_nlp.examples.tydi.demo
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -18,7 +17,7 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import question_answering
-from lit_nlp.examples.models import tydi
+from lit_nlp.examples.tydi import model
 
 # NOTE: additional flags defined in server_flags.py
 _FLAGS = flags.FLAGS
@@ -56,7 +55,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # Ignore path prefix, if using /path/to/<model_name> to load from a
     # specific directory rather than the default shortcut.
     model_name = os.path.basename(model_name_or_path)
-    models[model_name] = tydi.TyDiModel(model_name=model_name_or_path)
+    models[model_name] = model.TyDiModel(model_name=model_name_or_path)
 
   max_examples: int = _MAX_EXAMPLES.value
   dataset_defs: tuple[tuple[str, str]] = (

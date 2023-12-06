@@ -1,8 +1,7 @@
 r"""Example for dalle demo model.
 
 To run locally with a small number of examples:
-  python -m lit_nlp.examples.dalle_demo \
-      --alsologtostderr --port=5432
+  python -m lit_nlp.examples.dalle.demo
 
 Then navigate to localhost:5432 to access the demo UI.
 """
