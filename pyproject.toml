@@ -84,7 +84,7 @@ examples = [
   "gunicorn==20.1.0",
   "tensorflow-datasets==4.8.0",
   "torch==2.0.1",
-  "transformers==4.27.1",
+  "transformers==4.36.0",
 ]
 # LINT.ThenChange(./requirements_examples.txt)
 # LINT.IfChange
