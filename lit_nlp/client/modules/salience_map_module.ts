@@ -60,7 +60,10 @@ interface FeatureSalienceMap {
   [feature: string]: number;
 }
 
-interface FeatureSalienceResult {
+/**
+ * Results for calls to fetch salience for features.
+ */
+export interface FeatureSalienceResult {
   [key: string]: {salience: FeatureSalienceMap};
 }
 
@@ -665,7 +668,7 @@ export class SalienceMapModule extends LitModule {
     // the label and the expander toggle.
     // clang-format off
     return html`
-      <div class='method-row'>
+      <div class='method-row' id='${name.toLowerCase()}'>
         <expansion-panel .label=${name} ?expanded=${this.state[name].autorun}
                          .description=${description}
                           @expansion-toggle=${toggleAutorun}>
@@ -675,6 +678,8 @@ export class SalienceMapModule extends LitModule {
           <div class='method-row-contents'>
             <div class='method-results'>
               ${this.selectionService.primarySelectedInputData != null ?
+                // TODO(b/319297222) Modify element such that we render each
+                // feature in the feature salience module in a separate line.
                 salienceContent : html`
                 <span class='salience-placeholder'>
                   Select a datapoint to see ${name} attributions.
