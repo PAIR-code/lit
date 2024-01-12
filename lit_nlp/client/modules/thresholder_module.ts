@@ -20,7 +20,7 @@ import '../elements/threshold_slider';
 import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 import {FacetsChange} from '../core/faceting_control';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -100,6 +100,7 @@ export class ThresholderModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
       this.selectedFacets.length = 0;

@@ -23,14 +23,14 @@
 import {css, html, svg} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {getBrandColor} from '../lib/colors';
 import {AttentionHeads as AttentionHeadsLitType, Tokens as TokensLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys, getTextWidth, getTokOffsets, sumArray} from '../lib/utils';
 import {FocusService} from '../services/services';
 
@@ -86,14 +86,19 @@ export class AttentionModule extends LitModule {
   private readonly focusService = app.getService(FocusService);
   private clearFocusTimer: number|undefined;
 
-  @observable private selectedLayer?: string;
+  @observable private selectedLayer?: string = undefined;
   @observable private selectedHeadIndex = 0;
-  @observable private preds?: {[key: string]: Tokens|AttentionHeads};
+  @observable private preds?: {[key: string]: Tokens|AttentionHeads} = undefined;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     const getAttnInputs = () =>
         [this.selectionService.primarySelectedInputData, this.selectedLayer];
-    this.reactImmediately(getAttnInputs, (selectedInput, selectedLayer) => {
+    this.reactImmediately(getAttnInputs, () => {
       this.updateSelection(
           this.selectionService.primarySelectedInputData, this.selectedLayer!);
     });
@@ -146,8 +151,8 @@ export class AttentionModule extends LitModule {
         outputSpec[this.selectedLayer!] as AttentionHeadsLitType;
 
     // Tokens involved in the attention.
-    const inToks = (this.preds!)[fieldSpec.align_in!] as Tokens;
-    const outToks = (this.preds!)[fieldSpec.align_out!] as Tokens;
+    const inToks = (this.preds!)[fieldSpec.align_in] as Tokens;
+    const outToks = (this.preds!)[fieldSpec.align_out] as Tokens;
 
     const fontFamily = '\'Share Tech Mono\', monospace';
     const fontSize = 12;
@@ -173,34 +178,38 @@ export class AttentionModule extends LitModule {
 
     // If focus is one any of the tokens in the attention viz, then only show
     // attention info for those tokens.
-    const focusData = this.focusService.focusData;
+    const {focusData} = this.focusService;
     let inTokenIdxFocus = null;
     let outTokenIdxFocus =  null;
-    const primaryDatapointFocused = focusData != null &&
-        focusData.datapointId ===
-          this.selectionService.primarySelectedInputData!.id;
-    if (primaryDatapointFocused &&
-        (focusData!.fieldName === fieldSpec.align_out ||
-         focusData!.fieldName === fieldSpec.align_in)) {
-      inTokenIdxFocus = focusData!.fieldName === fieldSpec.align_in
-          ? focusData!.subField: -1;
-      outTokenIdxFocus = focusData!.fieldName === fieldSpec.align_out
-          ? focusData!.subField: -1;
+    const primaryDatapointFocused =
+        focusData != null &&
+        focusData.datapointId === this.selectionService.primarySelectedInputData!.id;
+    if (
+        primaryDatapointFocused &&
+        (
+            focusData.fieldName === fieldSpec.align_out ||
+            focusData.fieldName === fieldSpec.align_in
+        )
+    ) {
+      inTokenIdxFocus =
+          focusData.fieldName === fieldSpec.align_in ? focusData.subField : -1;
+      outTokenIdxFocus =
+          focusData.fieldName === fieldSpec.align_out ? focusData.subField : -1;
     }
     const clearFocus = () => {
       if (this.clearFocusTimer != null) {
-        clearTimeout(this.clearFocusTimer);
+        window.clearTimeout(this.clearFocusTimer);
       }
       this.clearFocusTimer = window.setTimeout(() => {
         this.focusService.clearFocus();
-      }, 500) as unknown as number;
+      }, 500);
     };
 
     const toksRender = (tok: string, i: number, isInputToken: boolean) => {
       const alignVal =
-          isInputToken ? fieldSpec.align_in! : fieldSpec.align_out!;
+          isInputToken ? fieldSpec.align_in : fieldSpec.align_out;
       const mouseOver = () => {
-        clearTimeout(this.clearFocusTimer);
+        window.clearTimeout(this.clearFocusTimer);
         this.focusService.setFocusedField(
             this.selectionService.primarySelectedInputData!.id,
             'input',
@@ -214,8 +223,8 @@ export class AttentionModule extends LitModule {
       const text = svg`${tok}`;
       let opacity = 1;
       if (primaryDatapointFocused &&
-          focusData!.fieldName === alignVal &&
-          focusData!.subField !== i) {
+          focusData?.fieldName === alignVal &&
+          focusData?.subField !== i) {
         opacity = 0.2;
       }
 
@@ -327,9 +336,9 @@ export class AttentionModule extends LitModule {
     if (this.preds == null || this.preds[this.selectedLayer!] == null) {
       return;
     }
-    const numHeadsPerLayer = this.preds![this.selectedLayer!].length;
+    const numHeadsPerLayer = this.preds[this.selectedLayer!].length;
     const numHeadsPerLayerRange =
-        Array.from({length: numHeadsPerLayer}, (x: string, i: number) => i);
+        Array.from({length: numHeadsPerLayer}, (x: unknown, i: number) => i);
     // clang-format off
     return html`
         <label class="head-selector-label">Head:</label>
@@ -338,7 +347,7 @@ export class AttentionModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
     return doesOutputSpecContain(modelSpecs, AttentionHeadsLitType);
   }
 }

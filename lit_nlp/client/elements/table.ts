@@ -32,7 +32,7 @@ import {customElement, property, queryAll} from 'lit/decorators.js';
 import {isTemplateResult} from 'lit/directive-helpers.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {action, computed, observable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
@@ -167,6 +167,11 @@ export class DataTable extends ReactiveElement {
   // Timeout to not spam hover events as a mouse moves over the table.
   private readonly HOVER_TIMEOUT_MS = 3;
   private hoverTimeoutId: number|null = null;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override connectedCallback() {
     super.connectedCallback();

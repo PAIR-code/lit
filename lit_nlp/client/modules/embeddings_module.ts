@@ -24,7 +24,7 @@ import * as d3 from 'd3';
 import {Dataset, Point3D, ScatterGL} from 'scatter-gl';
 import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -103,20 +103,18 @@ export class EmbeddingsModule extends LitModule {
 
   static override numCols = 3;
 
-  @observable
-  private isLoading = false;
+  @observable private isLoading = false;
 
   // Selection of one of the above configs.
-  @observable private projectorName: string;
-  @computed
-  get projector(): ProjectorOptions {
+  @observable private projectorName = '';
+  @computed get projector(): ProjectorOptions {
     return this.projectorChoices[this.projectorName];
   }
 
   // Actual projected points.
-  @observable private projectedPoints: Point3D[] = [];
+  @observable.ref private projectedPoints: Point3D[] = [];
 
-  @observable private spriteImage?: HTMLImageElement|string;
+  @observable private spriteImage?: HTMLImageElement|string = undefined;
 
   private readonly colorService = app.getService(ColorService);
   private readonly focusService = app.getService(FocusService);
@@ -287,6 +285,7 @@ export class EmbeddingsModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
 
     // Filter to only available projectors.
     // TODO(b/272281218): configure this from metadata instead of using a

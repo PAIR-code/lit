@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable, reaction} from 'mobx';
+import {action, computed, makeObservable, observable, reaction} from 'mobx';
 
 import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
 import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar, SparseMultilabelPreds} from '../lib/lit_types';
@@ -88,45 +88,55 @@ export class DataService extends LitService {
       private readonly appState: AppState,
       private readonly classificationService: ClassificationService,
       private readonly apiService: ApiService,
-      private readonly settingsService: SettingsService) {
+      private readonly settingsService: SettingsService
+  ) {
     super();
+    makeObservable(this);
+
     reaction(() => appState.currentDataset, () => {
       this.columnHeaders.clear();
       this.columnData.clear();
     });
 
     // Run classification interpreter when the inputs or margins change.
-    const getClassificationInputs = () =>
-        [this.appState.currentInputData, this.appState.currentModels,
-         this.classificationService.allMarginSettings];
-    reaction(getClassificationInputs, () => {
-      if (this.appState.currentInputData == null ||
-          this.appState.currentInputData.length === 0 ||
-          this.appState.currentModels.length === 0 ||
-          !this.settingsService.isValidCurrentDataAndModels) {
+    const getClassificationInputs = () => [
+      this.appState.currentInputData,
+      this.appState.currentModels,
+      this.classificationService.allMarginSettings
+    ] as const;
+    reaction(getClassificationInputs, ([inputData, models, unusedMargins]) => {
+      if (
+          inputData == null ||
+          inputData.length === 0 ||
+          models.length === 0 ||
+          !this.settingsService.isValidCurrentDataAndModels
+      ) {
         return;
       }
-      for (const model of this.appState.currentModels) {
-        this.runClassification(model, this.appState.currentInputData);
+      for (const model of models) {
+        this.runClassification(model, inputData);
       }
     }, {fireImmediately: true});
 
     // Run other prediction interpreters when necessary.
-    const getPredictionInputs =
-        () => [this.appState.currentInputData, this.appState.currentModels];
-    reaction(getPredictionInputs, () => {
-      if (this.appState.currentInputData == null ||
-          this.appState.currentInputData.length === 0 ||
-          this.appState.currentModels.length === 0 ||
+    const getPredictionInputs = () => [
+      this.appState.currentInputData, this.appState.currentModels
+    ] as const;
+    reaction(getPredictionInputs, ([inputData, models]) => {
+      if (
+          inputData == null ||
+          inputData.length === 0 ||
+          models.length === 0 ||
           !this.settingsService.isDatasetValidForModels(
-              this.appState.currentDataset, this.appState.currentModels)) {
+              this.appState.currentDataset, models)
+      ) {
         return;
       }
-      for (const model of this.appState.currentModels) {
-        this.runGeneratedTextPreds(model, this.appState.currentInputData);
-        this.runRegression(model, this.appState.currentInputData);
-        this.runScalarPreds(model, this.appState.currentInputData);
-        this.runMultiLabelPreds(model, this.appState.currentInputData);
+      for (const model of models) {
+        this.runGeneratedTextPreds(model, inputData);
+        this.runRegression(model, inputData);
+        this.runScalarPreds(model, inputData);
+        this.runMultiLabelPreds(model, inputData);
       }
     }, {fireImmediately: true});
 
@@ -155,7 +165,7 @@ export class DataService extends LitService {
 
     const interpreterPromise = this.apiService.getInterpretations(
         data, model, this.appState.currentDataset, 'classification',
-        this.classificationService.marginSettings[model],
+        this.classificationService.getMargins(model),
         `Computing classification results`);
     const classificationResults = await interpreterPromise;
 
@@ -199,8 +209,7 @@ export class DataService extends LitService {
     }
   }
 
-  @action
-  updatePredictedClassFeatureName(predClassFeatName: string) {
+  @action updatePredictedClassFeatureName(predClassFeatName: string) {
     this.predictedClassFeatureName = predClassFeatName;
   }
 
@@ -334,8 +343,7 @@ export class DataService extends LitService {
     }
   }
 
-  @action
-  async setValuesForNewDatapoints(datapoints: IndexedInput[]) {
+  @action async setValuesForNewDatapoints(datapoints: IndexedInput[]) {
     // When new datapoints are created, set their data values for each
     // column stored in the data service.
     for (const input of datapoints) {
@@ -347,8 +355,7 @@ export class DataService extends LitService {
     }
   }
 
-  @computed
-  get cols(): DataColumnHeader[] {
+  @computed get cols(): DataColumnHeader[] {
     return Array.from(this.columnHeaders.values());
   }
 
@@ -364,8 +371,7 @@ export class DataService extends LitService {
   /** Flattened list of values in data columns for reacting to data changes. **/
   // TODO(b/156100081): Can we get observers to react to changes to columnData
   // without needing this computed list?
-  @computed
-  get dataVals() {
+  @computed get dataVals() {
     const vals: ValueType[] = [];
     for (const colVals of this.columnData.values()) {
       vals.push(...colVals.values());
@@ -401,11 +407,15 @@ export class DataService extends LitService {
    * @param {ColorRange=} colorRange a color range to associate with values from
    *     this column.
    */
-  @action
-  addColumn(
-      columnVals: ColumnData, key: string, name: string, dataType: LitType,
-      source: Source, getValueFn: ValueFn = () => null,
-      colorRange?: ColorRange) {
+  @action addColumn(
+      columnVals: ColumnData,
+      key: string,
+      name: string,
+      dataType: LitType,
+      source: Source,
+      getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange
+  ) {
     if (!this.columnHeaders.has(name)) {
       this.columnHeaders.set(
           name, {dataType, source, name, key, getValueFn, colorRange});
@@ -424,11 +434,16 @@ export class DataService extends LitService {
    * If column has been previously added, replaces the existing data with new
    * data, if they are different.
    */
-  @action
-  addColumnFromList(
-      values: ValueType[], data: IndexedInput[], key: string, name: string,
-      dataType: LitType, source: Source, getValueFn: ValueFn = () => null,
-      colorRange?: ColorRange) {
+  @action addColumnFromList(
+      values: ValueType[],
+      data: IndexedInput[],
+      key: string,
+      name: string,
+      dataType: LitType,
+      source: Source,
+      getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange
+  ) {
     if (values.length !== data.length) {
       throw new Error(`Attempted to add data column ${
           name} with incorrect number of values.`);

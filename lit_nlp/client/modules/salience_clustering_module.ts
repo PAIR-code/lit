@@ -18,7 +18,7 @@
 import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -43,6 +43,7 @@ const TOP_K_TOKENS_KEY =
 const N_TOKENS_TO_DISPLAY_KEY = 'Number of tokens to display per cluster';
 const SALIENCE_CLUSTERING_INTERPRETER_NAME = 'Salience Clustering';
 const REUSE_CLUSTERING = 'reuse_clustering';
+const REUSE_CLUSTERING_CONFIG: CallConfig = {[REUSE_CLUSTERING]: true};
 
 interface ModuleState {
   dataColumns: string[];
@@ -109,6 +110,11 @@ export class SalienceClusteringModule extends LitModule {
     },
   };
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   override firstUpdated() {
     const state: ModuleState = {
       dataColumns: [],
@@ -151,10 +157,10 @@ export class SalienceClusteringModule extends LitModule {
     // Function to get value for this new data column when new datapoints are
     // added.
     const getValueFn = async (gradKey: string, input: IndexedInput) => {
-      const config = {
+      const config: CallConfig = {
           ...this.state.clusteringConfig,
           ...this.state.salienceConfigs[salienceMapper],
-          [REUSE_CLUSTERING]: true,
+          ...REUSE_CLUSTERING_CONFIG
       };
       const clusteringResult = await this.apiService.getInterpretations(
           [input],
@@ -235,24 +241,34 @@ export class SalienceClusteringModule extends LitModule {
 
   // Render a table that lists clusters with their top tokens.
   private renderSingleGradKeyTopTokenInfos(
-      gradKey: string, clusterInfosByFields: ClusterInfos,
-      colorMap: SalienceCmap) {
+      gradKey: string,
+      clusterInfosByFields: ClusterInfos,
+      colorMap: SalienceCmap
+  ) {
     // TODO(b/268221058): Compute number of data points per cluster from backend
     // clang-format off
     const rowsByClusters: TableData[] =
-      Object.entries(clusterInfosByFields).map(([clusterId, clusterInfo])  => {
-        return [
-          Number(clusterId),
-          clusterInfo.exampleIds.length,
-          html`
-          <lit-token-chips
-            .tokensWithWeights=${clusterInfo.topTokens}
-            .cmap=${colorMap}>
-          </lit-token-chips>`
-        ];
-      });
+        // This lint rule doesn't treat numbers as the same as uqoted properties
+        // in interface definitions, even though they functionally are, so
+        // disabling until that's fixed.
+        // tslint:disable-next-line:ban-unsafe-reflection
+        Object.entries(clusterInfosByFields).map(([id, info])  => {
+          return [
+            Number(id),
+            info.exampleIds.length,
+            html`
+            <lit-token-chips
+              .tokensWithWeights=${info.topTokens}
+              .cmap=${colorMap}>
+            </lit-token-chips>`
+          ];
+        });
     // clang-format on
     const onSelectClusters = (clusterIdxs: number[]) => {
+      // This lint rule doesn't treat numbers as the same as uqoted properties
+      // in interface definitions, even though they functionally are, so
+      // disabling until that's fixed.
+      // tslint:disable-next-line:ban-unsafe-reflection
       const dataPointIds = Object.entries(clusterInfosByFields)
         .flatMap(([k, v]) =>
           clusterIdxs.includes(Number(k)) ? v.exampleIds : []);

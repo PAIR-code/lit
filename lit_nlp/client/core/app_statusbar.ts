@@ -28,7 +28,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {AppState, StatusService} from '../services/services';
@@ -48,6 +48,11 @@ export class StatusbarComponent extends MobxLitElement {
   private readonly appState = app.getService(AppState);
   private readonly statusService = app.getService(StatusService);
   @observable private renderFullMessages = false;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override render() {
     const progressClass = classMap({

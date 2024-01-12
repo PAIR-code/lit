@@ -21,7 +21,7 @@ import '../elements/bar_chart';
 import {customElement} from 'lit/decorators.js';
 import {html} from 'lit';
 import {until} from 'lit/directives/until.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {ExpansionToggle} from '../elements/expansion_panel';
 import {CategoryLabel, LitTypeWithVocab, MulticlassPreds, RegressionScore, Scalar} from '../lib/lit_types';
@@ -68,6 +68,11 @@ export class PdpModule extends LitModule {
   // Tracks the selected examples for current plots to ensure returned plot info
   // is for the current selection before displaying it.
   private selectionSet = new Set<string>();
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     const getInputSpec = () => this.appState.getModelSpec(this.model).input;

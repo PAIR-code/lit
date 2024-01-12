@@ -26,7 +26,7 @@ import '../elements/span_graph_vis_vertical';
 
 import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {AnnotationLayer, SpanGraph} from '../elements/span_graph_vis_vertical';
@@ -199,6 +199,11 @@ export class SpanGraphGoldModule extends LitModule {
     return [sharedStyles, moduleStyles];
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   // tslint:disable:no-any
   override renderImpl() {
     // If more than one model is selected, SpanGraphModule will be offset
@@ -249,7 +254,12 @@ export class SpanGraphModule extends LitModule {
   }
 
   // This is updated with an API call, via a reaction.
-  @observable predDisplayData: Annotations = {};
+  @observable.ref predDisplayData: Annotations = {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   private async updatePredDisplayData(input: IndexedInput|null) {
     if (input === null) {

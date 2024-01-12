@@ -23,7 +23,7 @@ import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable, when} from 'mobx';
+import {computed, makeObservable, observable, when} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -148,7 +148,7 @@ export class DatapointEditorModule extends LitModule {
   @observable inputHeights: {[name: string]: string} = {};
   @observable maximizedImageFields = new Set<string>();
   @observable editingTokenIndex = -1;
-  @observable editingTokenField?: string;
+  @observable editingTokenField?: string = undefined;
   @observable editingTokenWidth = 0;
 
   @computed
@@ -231,6 +231,11 @@ export class DatapointEditorModule extends LitModule {
   get sparseMultilabelInputLengths(): {[key: string]: number} {
     return this.calculateQuantileLengthsForFields(
       this.sparseMultilabelInputKeys);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override connectedCallback() {

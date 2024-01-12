@@ -26,7 +26,7 @@ import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';
 import {EdgeLabel} from '../lib/dtypes';
@@ -69,21 +69,26 @@ function formatEdgeLabel(label: string|number): string {
 @customElement('span-graph-vis-vertical')
 export class SpanGraphVis extends ReactiveElement {
   /* Data binding */
-  @property({ type: Object }) data: SpanGraph = { tokens: [], layers: [] };
-  @property({ type: Boolean }) showLayerLabel: boolean = true;
+  @property({ type: Object }) data: SpanGraph = {tokens: [], layers: []};
+  @property({ type: Boolean }) showLayerLabel = true;
 
-  @observable private selectedTokIdx?: number;
-  @observable private readonly columnVisibility: { [key: string]: boolean } = {};
+  @observable private selectedTokIdx?: number = undefined;
+  @observable private readonly columnVisibility: {[key: string]: boolean} = {};
 
   /* Rendering parameters */
-  @property({ type: Number }) lineHeight: number = 18;
+  @property({ type: Number }) lineHeight = 18;
   @property({ type: Number }) approxFontSize = this.lineHeight / 3;
 
   // Padding for SVG viewport, to avoid clipping some elements (like polyline).
-  @property({ type: Number }) viewPad: number = 5;
+  @property({ type: Number }) viewPad = 5;
 
   static override get styles() {
     return styles;
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override render() {
@@ -95,9 +100,9 @@ export class SpanGraphVis extends ReactiveElement {
     const tokens = this.data.tokens;
 
     const tokenClasses = (i: number) => classMap({
-      line: true,
-      token: true,
-      selected: i === this.selectedTokIdx
+      'line': true,
+      'token': true,
+      'selected': i === this.selectedTokIdx
     });
 
     // clang-format off
@@ -141,14 +146,17 @@ export class SpanGraphVis extends ReactiveElement {
             this.approxFontSize +
         this.viewPad * 2;
 
-    const colStyles = styleMap({ width: `${colWidth}pt` });
+    const colStyles = styleMap({ 'width': `${colWidth}pt` });
     const hidden = this.columnVisibility[layer.name];
     const columnClasses = classMap({
       'column': true,
       'hidden': hidden
     });
 
-    const headerClasses = classMap({ 'layer-label-vert': true, hidden });
+    const headerClasses = classMap({
+      'layer-label-vert': true,
+      'hidden': hidden
+    });
     const onClick = () =>
       this.columnVisibility[layer.name] = !this.columnVisibility[layer.name];
 
@@ -172,7 +180,7 @@ export class SpanGraphVis extends ReactiveElement {
    * above for more details.
    */
   private renderEdge(edge: EdgeLabel, layer: AnnotationLayer, colWidth: number) {
-    const isArc = 'span2' in edge;
+    const isArc = edge.span2 != null;
     const span0 = edge.span1[0];
     const span1 = edge.span2 ? edge.span2[0] : edge.span1[1];
     const topSpan = Math.min(span0, span1);
@@ -195,14 +203,16 @@ export class SpanGraphVis extends ReactiveElement {
     // Styling for the label text.
     const labelWidthInPx = formattedLabel.length * this.approxFontSize;
     const labelStyle = styleMap({
-      top: `${span0 * this.lineHeight}pt`,
-      left: isArc ? `${colWidth - labelWidthInPx - this.viewPad}pt` : '',
+      'top': `${span0 * this.lineHeight}pt`,
+      'left': isArc ? `${colWidth - labelWidthInPx - this.viewPad}pt` : '',
     });
     const labelClasses = classMap({
-      child, parent, selected,
-      gray: grayLabel,
-      line: true,
-      edge: true
+      'child': child,
+      'parent': parent,
+      'selected': selected,
+      'gray': grayLabel,
+      'line': true,
+      'edge': true
     });
 
     // Styling for the arc (a line and sometimes an arrowhead)
@@ -220,12 +230,12 @@ export class SpanGraphVis extends ReactiveElement {
 
     const rad = isArc ? arcHeight / 2 : 3;
     const lineStyle = styleMap({
-      top: `${top}pt`,
-      height: `${arcHeight}pt`,
-      width,
+      'top': `${top}pt`,
+      'height': `${arcHeight}pt`,
+      'width': width,
       'border-radius': `0pt ${rad}pt ${rad}pt 0pt`,
-      left: isArc ? `${colWidth + 10}pt` : '',
-      visibility: layer.hideBracket ? 'hidden' : 'visble',
+      'left': isArc ? `${colWidth + 10}pt` : '',
+      'visibility': layer.hideBracket ? 'hidden' : 'visble',
     });
 
     const arrowHeadClasses = classMap({
@@ -234,10 +244,10 @@ export class SpanGraphVis extends ReactiveElement {
     });
 
     const arrowClasses = classMap({
-      child,
-      parent: selected,
-      gray: grayLine,
-      edge: true,
+      'child': child,
+      'parent': selected,
+      'gray': grayLine,
+      'edge': true,
       'edge-line': true
     });
 

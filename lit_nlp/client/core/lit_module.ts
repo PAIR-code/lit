@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {html, TemplateResult} from 'lit';
 import {property} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {LitModuleClass, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
@@ -57,7 +57,7 @@ export abstract class LitModule extends ReactiveElement {
   @property({type: Object}) onSyncScroll: OnScrollFn|null = null;
 
   // Name of this module, to show in the UI.
-  static title: string = '';
+  static title = '';
 
   /**
    * Information about this module that displays on hover.
@@ -65,19 +65,19 @@ export abstract class LitModule extends ReactiveElement {
   static infoMarkdown = '';
 
   // Number of columns of the 12 column horizontal layout.
-  static numCols: number = 4;
+  static numCols = 4;
 
   // Whether to collapse this module by default.
-  static collapseByDefault: boolean = false;
+  static collapseByDefault = false;
 
   // If true, duplicate this module in example comparison mode.
-  static duplicateForExampleComparison: boolean = false;
+  static duplicateForExampleComparison = false;
 
   // If true, duplicate this module when running with more than one model.
-  static duplicateForModelComparison: boolean = true;
+  static duplicateForModelComparison = true;
 
   // If true, duplicate this module as rows, instead of columns.
-  static duplicateAsRow: boolean = false;
+  static duplicateAsRow = false;
 
   // Template function. Should return HTML to create this element in the DOM.
   static template:
@@ -96,6 +96,11 @@ export abstract class LitModule extends ReactiveElement {
   @computed
   protected get selectionService() {
     return app.getServiceArray(SelectionService)[this.selectionServiceIndex];
+  }
+
+  constructor () {
+    super();
+    makeObservable(this);
   }
 
   override updated() {

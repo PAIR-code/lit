@@ -22,7 +22,7 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';  // Used for creating bins, not visualization.
-import {computed, reaction} from 'mobx';
+import {computed, makeObservable, reaction} from 'mobx';
 
 import {BooleanLitType, CategoryLabel, LitTypeWithVocab, Scalar} from '../lib/lit_types';
 import {FacetMap, GroupedExamples, IndexedInput} from '../lib/types';
@@ -125,6 +125,7 @@ export class GroupService extends LitService {
   constructor(private readonly appState: AppState,
               private readonly dataService: DataService) {
     super();
+    makeObservable(this);
 
     // Reset stored numeric feature bins on dataset change.
     reaction(() => this.appState.currentInputData, () => {

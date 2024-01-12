@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, reaction, runInAction} from 'mobx';
+import {action, computed, makeObservable, reaction, runInAction} from 'mobx';
 
 import {arrayContainsSame} from '../lib/utils';
 
@@ -42,6 +42,7 @@ export class SettingsService extends LitService {
       private readonly modulesService: ModulesService,
       private readonly selectionService: SelectionService) {
     super();
+    makeObservable(this);
     // If compare examples changes, update layout using the 'quick' path.
     reaction(() => appState.compareExamplesEnabled, compareExamplesEnabled => {
       this.modulesService.quickUpdateLayout(
@@ -60,8 +61,7 @@ export class SettingsService extends LitService {
     return availableDatasets.includes(dataset);
   }
 
-  @computed
-  get isValidCurrentDataAndModels() {
+  @computed get isValidCurrentDataAndModels() {
     return this.isDatasetValidForModels(
         this.appState.currentDataset, this.appState.currentModels);
   }
@@ -71,8 +71,7 @@ export class SettingsService extends LitService {
    * Use this if changing models or datasets to ensure that modules don't make
    * API calls with inconsistent state while the update is in progress.
    */
-  @action
-  async updateSettings(updateParams: UpdateSettingsParams) {
+  @action async updateSettings(updateParams: UpdateSettingsParams) {
     const nextModels = updateParams.models ?? this.appState.currentModels;
     const nextDataset = updateParams.dataset ?? this.appState.currentDataset;
     const nextLayout = updateParams.layoutName ?? this.appState.layoutName;

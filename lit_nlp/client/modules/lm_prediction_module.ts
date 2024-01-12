@@ -21,7 +21,7 @@ import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {TextSegment, Tokens, TokenTopKPreds} from '../lib/lit_types';
@@ -51,16 +51,16 @@ export class LanguageModelPredictionModule extends LitModule {
   }
 
   // Module options / configuration state
-  @observable private clickToMask: boolean = false;
+  @observable private clickToMask = false;
 
   // Fixed output state (based on unmodified input)
-  @observable private selectedInput: IndexedInput|null = null;
-  @observable private tokens: string[] = [];
-  @observable private maskedInput: IndexedInput|null = null;
-  @observable private originalResults: TopKResult[][] = [];
+  @observable.ref private selectedInput: IndexedInput|null = null;
+  @observable.ref private tokens: string[] = [];
+  @observable.ref private maskedInput: IndexedInput|null = null;
+  @observable.ref private originalResults: TopKResult[][] = [];
   // Ephemeral output state (may depend on selectedTokenIndex)
   @observable private selectedTokenIndex: number|null = null;
-  @observable private mlmResults: TopKResult[][] = [];
+  @observable.ref private mlmResults: TopKResult[][] = [];
 
   @computed
   private get modelSpec() {
@@ -103,6 +103,11 @@ export class LanguageModelPredictionModule extends LitModule {
     return this.inputTokensKey ?
         (this.modelSpec.input[this.inputTokensKey] as Tokens).mask_token :
         undefined;
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {
@@ -205,8 +210,8 @@ export class LanguageModelPredictionModule extends LitModule {
     // in the text segment, that the correct instance of the token is replaced.
     const textField = findSpecKeys(this.modelSpec.input, TextSegment)[0];
     let oldToken = this.tokens[tokenIndex];
-    const tokensIndicesMatchingToken = findMatchingIndices(
-        this.tokens, oldToken);
+    const tokensIndicesMatchingToken =
+        findMatchingIndices(this.tokens, oldToken);
     const replacementIndex = tokensIndicesMatchingToken.indexOf(tokenIndex);
     if (this.outputTokensPrefix != null &&
         oldToken.startsWith(this.outputTokensPrefix)) {

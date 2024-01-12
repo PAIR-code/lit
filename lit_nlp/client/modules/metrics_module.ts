@@ -20,7 +20,7 @@
 import {html} from 'lit';
 import {customElement, query} from 'lit/decorators.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
@@ -93,16 +93,17 @@ export class MetricsModule extends LitModule {
       app.getService(ClassificationService);
   private readonly facetingControl = document.createElement('faceting-control');
 
-  @observable private selectedFacetBins: NumericFeatureBins = {};
-
+  @observable.ref private selectedFacetBins: NumericFeatureBins = {};
   @observable private metricsMap: MetricsMap = {};
   @observable private facetBySlice = false;
   @observable private selectedFacets: string[] = [];
   @observable private pendingCalls = 0;
+
   @query('#metrics-table') private readonly table?: DataTable;
 
   constructor() {
     super();
+    makeObservable(this);
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
       this.selectedFacets = event.detail.features;
@@ -305,8 +306,7 @@ export class MetricsModule extends LitModule {
     // TODO(b/254832560): Allow the user to configure which metrics component
     // are run via the UI and pass them in to this ApiService call.
     const metricsToRun = compatMetrics.length ? compatMetrics.join(',') : '';
-    const config =
-        this.classificationService.marginSettings[model] as CallConfig || {};
+    const config = this.classificationService.getMargins(model) as CallConfig;
 
     let metrics: MetricsResponse;
     if (selectedInputs.length) {

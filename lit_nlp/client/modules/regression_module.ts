@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -51,7 +51,12 @@ export class RegressionModule extends LitModule {
   }
 
   private readonly dataService = app.getService(DataService);
-  @observable private result: RegressionResults|null = null;
+  @observable.ref private result: RegressionResults|null = null;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     const getSelectionChanges = () =>
@@ -84,19 +89,16 @@ export class RegressionModule extends LitModule {
   }
 
   override renderImpl() {
-    if (this.result == null) {
-      return null;
-    }
-    const result = this.result;
-    const input = this.selectionService.primarySelectedInputData!;
+    const {result} = this;
+    if (result == null) {return null;}
 
+    const input = this.selectionService.primarySelectedInputData!;
     // Use the spec to find which fields we should display.
     const spec = this.appState.getModelSpec(this.model);
-    const scoreFields: string[] = findSpecKeys(spec.output, RegressionScore);
-
-
+    const scoreFields = findSpecKeys(spec.output, RegressionScore);
     const rows: TableData[] = [];
     let hasParent = false;
+
     // Per output, display score, and parent field and error if available.
     for (const scoreField of scoreFields) {
       // Add new row for each output from the model.

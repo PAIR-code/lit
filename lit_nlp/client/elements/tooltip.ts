@@ -71,14 +71,16 @@ export class LitTooltip extends ReactiveElement {
       'disabled': this.disabled,
     });
 
+    console.log('lit-tooltip.render', {content: this.content});
+
     return html`<div class='lit-tooltip'>
         <slot name="tooltip-anchor">
-          ${this.content === '' ? '' : html`
+          ${!this.content ? '' : html`
             <span class="help-icon material-icon-outlined icon-button">
               help_outline
             </span>`}
         </slot>
-        ${this.content === '' ? '' : html`
+        ${!this.content ? '' : html`
           <span class=${tooltipClass} ${this.renderAriaLabel()}>
               ${getTemplateStringFromMarkdown(this.content)}
           </span>`}

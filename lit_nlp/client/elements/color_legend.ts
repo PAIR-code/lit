@@ -23,7 +23,7 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {DEFAULT} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
@@ -87,6 +87,11 @@ export class ColorLegend extends ReactiveElement {
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {

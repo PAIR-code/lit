@@ -23,7 +23,7 @@ import {html} from 'lit';
 import {customElement, query} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -394,6 +394,11 @@ export class DataTableModule extends LitModule {
       const indexEntry = {template: templateFn, value: index};
       return [indexEntry, ...dataEntry];
     });
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override connectedCallback() {

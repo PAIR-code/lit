@@ -21,7 +21,7 @@
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
@@ -120,7 +120,7 @@ export class FeatureAttributionModule extends LitModule {
   private readonly colorMap = new SignedSalienceCmap();
   private readonly facetingControl = document.createElement('faceting-control');
 
-  @observable private startsOpen?: string;
+  @observable private startsOpen?: string = undefined;
   @observable private isColored = false;
   @observable private features: string[] = [];
   @observable private bins: NumericFeatureBins = {};
@@ -134,6 +134,7 @@ export class FeatureAttributionModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
       this.features = event.detail.features;
@@ -464,7 +465,6 @@ export class FeatureAttributionModule extends LitModule {
                           selections is not supported.
                         </div>`: null}
               ${Object.entries(this.summaries)
-                .sort()
                 .map(([facet, summary]) => html`
                   <div class="attribution-container">
                     <expansion-panel .label=${facet}
