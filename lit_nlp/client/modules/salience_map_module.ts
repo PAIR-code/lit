@@ -37,7 +37,7 @@ import {InterpreterClick} from '../elements/interpreter_controls';
 import {TokenWithWeight} from '../elements/token_chips';
 import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience, FrameSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, ModelInfoMap, Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {CallConfig, type IndexedInput, ModelInfoMap, type Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {argmax, cloneSpec, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusService} from '../services/focus_service';

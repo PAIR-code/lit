@@ -26,7 +26,7 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {TextSegment, Tokens, TokenTopKPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
+import {type IndexedInput, ModelInfoMap, Spec, TopKResult} from '../lib/types';
 import {findMatchingIndices, findSpecKeys, makeModifiedInput, replaceNth} from '../lib/utils';
 
 import {styles} from './lm_prediction_module.css';

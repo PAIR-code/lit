@@ -30,7 +30,7 @@ import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
 import {EdgeLabels, FieldMatcher, LitTypeTypesList, SpanLabels} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, formatForDisplay, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, formatForDisplay, IndexedInput, type Input, ModelInfoMap, Spec} from '../lib/types';
 import {cloneSpec, flatten, isLitSubtype} from '../lib/utils';
 import {GroupService} from '../services/group_service';
 import {SelectionService, SliceService} from '../services/services';

@@ -28,7 +28,7 @@ import {FacetsChange} from '../core/faceting_control';
 import {LitModule} from '../core/lit_module';
 import {MulticlassPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {type GroupedExamples, IndexedInput, ModelInfoMap, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {findSpecKeys, hasValidParent} from '../lib/utils';
 import {NumericFeatureBins} from '../services/group_service';
 import {GroupService} from '../services/services';

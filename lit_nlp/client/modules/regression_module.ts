@@ -25,7 +25,7 @@ import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {RegressionScore} from '../lib/lit_types';
-import {IndexedInput, ModelInfoMap, RegressionResults, Spec} from '../lib/types';
+import {IndexedInput, ModelInfoMap, type RegressionResults, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {CalculatedColumnType} from '../services/data_service';
 import {DataService} from '../services/services';

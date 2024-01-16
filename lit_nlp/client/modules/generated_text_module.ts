@@ -26,10 +26,10 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
 import {LitSwitch} from '../elements/switch';
-import {DiffMode, GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
+import {DiffMode, type GeneratedTextResult, GENERATION_TYPES} from '../lib/generated_text_utils';
 import {GeneratedText, GeneratedTextCandidates, LitTypeWithParent, ReferenceScores, ReferenceTexts} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
+import {IndexedInput, type Input, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 
 import {styles} from './generated_text_module.css';

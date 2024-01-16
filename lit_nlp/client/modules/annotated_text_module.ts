@@ -19,9 +19,9 @@ import { html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
+import {type AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
 import {MultiSegmentAnnotations, TextSegment} from '../lib/lit_types';
-import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {type IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';

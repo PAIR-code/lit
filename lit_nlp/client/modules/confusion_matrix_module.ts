@@ -29,7 +29,7 @@ import {MulticlassPreds} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {GroupedExamples, IndexedInput, ModelInfoMap} from '../lib/types';
 import {arrayContainsSame, doesOutputSpecContain, facetMapToDictKey} from '../lib/utils';
-import {FacetingMethod, GetFeatureFunc, GroupService, NumericFeatureBins} from '../services/group_service';
+import {FacetingMethod, GetFeatureFunc, GroupService, type NumericFeatureBins} from '../services/group_service';
 import {DataService, SelectionService} from '../services/services';
 
 import {styles} from './confusion_matrix_module.css';
