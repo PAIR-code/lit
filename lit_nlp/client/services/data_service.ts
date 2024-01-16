@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, reaction} from 'mobx';
 
-import {BINARY_NEG_POS, ColorRange} from '../lib/colors';
+import {BINARY_NEG_POS, type ColorRange} from '../lib/colors';
 import {BooleanLitType, CategoryLabel, GeneratedText, GeneratedTextCandidates, LitType, MulticlassPreds, RegressionScore, Scalar, SparseMultilabelPreds} from '../lib/lit_types';
 import {ClassificationResults, IndexedInput, RegressionResults} from '../lib/types';
 import {createLitType, findSpecKeys, isLitSubtype, mapsContainSame} from '../lib/utils';

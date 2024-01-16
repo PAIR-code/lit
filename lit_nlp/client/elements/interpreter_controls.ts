@@ -26,7 +26,7 @@ import {computed, observable} from 'mobx';
 import {ReactiveElement} from '../lib/elements';
 import {BooleanLitType, CategoryLabel, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SingleFieldMatcher, SparseMultilabel, Tokens} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {Spec} from '../lib/types';
+import {type Spec} from '../lib/types';
 import {getTemplateStringFromMarkdown} from '../lib/utils';
 
 import {styles} from './interpreter_controls.css';

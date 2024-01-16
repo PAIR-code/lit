@@ -22,9 +22,9 @@ import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
-import {DiffMode, getTextDiff, TextDiff} from '../lib/generated_text_utils';
+import {DiffMode, getTextDiff, type TextDiff} from '../lib/generated_text_utils';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {ScoredTextCandidates} from '../lib/dtypes';
+import {type ScoredTextCandidates} from '../lib/dtypes';
 
 import {styles} from './generated_text_vis.css';
 

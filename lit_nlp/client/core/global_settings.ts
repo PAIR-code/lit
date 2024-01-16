@@ -36,7 +36,7 @@ import {action, computed, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StringLitType} from '../lib/lit_types';
-import {CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
+import {type CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
 import {getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
 import {LitInputField} from '../elements/lit_input_field';
 import {resolveModuleConfig} from '../services/modules_service';

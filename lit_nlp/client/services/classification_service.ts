@@ -19,7 +19,7 @@
 import {action, computed, observable, reaction} from 'mobx';
 
 import {MulticlassPreds} from '../lib/lit_types';
-import {FacetedData, GroupedExamples, SpecMap} from '../lib/types';
+import {type FacetedData, type GroupedExamples, type SpecMap} from '../lib/types';
 import {getMarginFromThreshold} from '../lib/utils';
 
 import {LitService} from './lit_service';

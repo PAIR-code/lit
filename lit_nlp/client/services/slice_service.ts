@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, computed, observable, reaction} from 'mobx';
 
-import {IndexedInput, ServiceUser} from '../lib/types';
+import {IndexedInput, type ServiceUser} from '../lib/types';
 import {arrayContainsSame} from '../lib/utils';
 
 import {LitService} from './lit_service';
