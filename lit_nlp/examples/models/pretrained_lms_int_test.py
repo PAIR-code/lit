@@ -31,5 +31,22 @@ class PretrainedLmsIntTest(absltest.TestCase):
     for key in model.output_spec().keys():
       self.assertIn(key, model_out[0].keys())
 
+  def test_gpt2_generation(self):
+    # Run prediction to ensure no failure.
+    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
+    model = pretrained_lms.GPT2GenerativeModel(model_name_or_path=model_path)
+    model_in = [{"prompt": "Today is"}, {"prompt": "What is the color of"}]
+    model_out = list(model.predict(model_in))
+
+    # Sanity-check output vs output spec.
+    self.assertLen(model_out, 2)
+    for key in model.output_spec().keys():
+      self.assertIn(key, model_out[0].keys())
+
+    # Check that the embedding dimension is the same for prompt and response.
+    self.assertEqual(model_out[0]["prompt_embeddings"].shape[1],
+                     model_out[0]["response_embeddings"].shape[1])
+
+
 if __name__ == "__main__":
   absltest.main()
