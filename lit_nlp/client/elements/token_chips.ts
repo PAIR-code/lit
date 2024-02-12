@@ -35,9 +35,9 @@ export interface TokenWithWeight {
   weight: number;
   selected?: boolean;
   pinned?: boolean;
-  onClick?: (e: Event) => void;
-  onMouseover?: (e: Event) => void;
-  onMouseout?: (e: Event) => void;
+  onClick?: (e: MouseEvent) => void;
+  onMouseover?: (e: MouseEvent) => void;
+  onMouseout?: (e: MouseEvent) => void;
   disableHover?: boolean;
   forceShowTooltip?: boolean;
 }
@@ -50,9 +50,33 @@ export class TokenChips extends LitElement {
   // List of tokens to display
   @property({type: Array}) tokensWithWeights: TokenWithWeight[] = [];
   @property({type: Object}) cmap: SalienceCmap = new UnsignedSalienceCmap();
-  @property({type: String})
-  tokenGroupTitle?: string;  // can be used for gradKey
+  // Group title, such as the name of the active salience method.
+  @property({type: String}) tokenGroupTitle?: string;
+  /**
+   * Dense mode, for less padding and smaller margins around each chip.
+   */
   @property({type: Boolean}) dense = false;
+  /**
+   * Block mode uses display: block and inline elements for chips, instead of
+   * a flex-row layout. This allows chips to flow across line breaks, behaving
+   * more like <span> elements and giving a much better experience for larger
+   * segments like sentences. However, this comes at the cost of more spacing
+   * artifacts and occasional issues with tooltip positioning.
+   */
+  @property({type: Boolean}) displayBlock = false;
+  /**
+   * breakNewlines removes \n at the beginning or end of a segment and inserts
+   * explicit row break elements instead. Improves readability in many settings,
+   * at the cost of "faithfulness" to the original token text.
+   */
+  @property({type: Boolean}) breakNewlines = false;
+  /**
+   * preSpace removes a leading space from a token and inserts an explicit
+   * spacer element instead. Improves readability in many settings by giving
+   * natural space between the highlight area for adjacent words, albeit at the
+   * cost of hiding where the actual spaces are in the tokenization.
+   */
+  @property({type: Boolean}) preSpace = false;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -71,17 +95,56 @@ export class TokenChips extends LitElement {
       'color': this.cmap.textCmap(tokenInfo.weight),
     });
 
-    // clang-format off
+    let tokenText = tokenInfo.token;
+
+    let preSpace = false;
+    if (this.preSpace && tokenText.startsWith(' ')) {
+      preSpace = true;
+      tokenText = tokenText.slice(1);
+    }
+
+    // TODO(b/324955623): render a gray '⏎' for newlines?
+    // Maybe make this a toggleable option, as it can be distracting.
+    // TODO(b/324955623): better rendering for multiple newlines, like \n\n\n ?
+    // Consider adding an extra ' ' on each line.
+
+    let preBreak = false;
+    let postBreak = false;
+    if (this.breakNewlines) {
+      // Logic:
+      // - \n : post-break, so blank space goes on previous line
+      // - foo\n : post-break
+      // - \nfoo : pre-break
+      // - \n\n  : pre- and post-break, shows a space on its own line
+      // - \n\n\n : pre- and post-break, two lines with only spaces
+      if (tokenText.endsWith('\n')) {
+        // Prefer post-break because this puts the blank space on the end of the
+        // previous line, rather than creating an awkward indent on the next
+        // one.
+        tokenText = tokenText.slice(0, -1) + ' ';
+        postBreak = true;
+      }
+      if (tokenText.startsWith('\n')) {
+        // Pre-break only if \n precedes some other text.
+        preBreak = true;
+        tokenText = ' ' + tokenText.slice(1);
+      }
+    }
+
+    // prettier-ignore
     return html`
+      ${preBreak ? html`<div class='row-break'></div>` : null}
+      ${preSpace ? html`<div class='word-spacer'> </div>` : null}
       <div class=${tokenClass} style=${tokenStyle} @click=${tokenInfo.onClick}
         @mouseover=${tokenInfo.onMouseover} @mouseout=${tokenInfo.onMouseout}>
         <lit-tooltip content=${tokenInfo.weight.toPrecision(3)}
           ?forceShow=${Boolean(tokenInfo.forceShowTooltip)}
           ?disabled=${Boolean(tokenInfo.disableHover)}>
-          <span class='pre-wrap' slot="tooltip-anchor">${tokenInfo.token}</span>
+          <span class='pre-wrap' slot="tooltip-anchor">${tokenText}</span>
         </lit-tooltip>
-      </div>`;
-    // clang-format on
+      </div>
+      ${postBreak ? html`<div class='row-break'></div>` : null}
+      `;
   }
 
   override render() {
@@ -92,9 +155,10 @@ export class TokenChips extends LitElement {
     const holderClass = classMap({
       'tokens-holder': true,
       'tokens-holder-dense': this.dense,
+      'tokens-holder-display-block': this.displayBlock,
     });
 
-    // clang-format off
+    // prettier-ignore
     return html`
       <div class="tokens-group">
         ${this.tokenGroupTitle ? this.tokenGroupTitle : ''}
@@ -102,7 +166,6 @@ export class TokenChips extends LitElement {
           ${tokensDOM}
         </div>
       </div>`;
-    // clang-format on
   }
 }
 

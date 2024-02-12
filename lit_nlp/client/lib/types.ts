@@ -410,8 +410,10 @@ export declare interface LitCanonicalLayout {
  */
 export declare interface LayoutSettings {
   hideToolbar?: boolean;
-  /** The default height of #upper-right, as a percentage of the parent. */
+  /** The default height of the 'upper' section, as a percentage. */
   mainHeight?: number;
+  /** The default width of the  'left' section, as a percentage. */
+  leftWidth?: number;
   centerPage?: boolean;
 }
 

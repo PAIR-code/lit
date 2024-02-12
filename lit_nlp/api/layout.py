@@ -91,6 +91,7 @@ LitTabGroupLayout = Mapping[str, LitModuleList]
 class LayoutSettings(dtypes.DataTuple):
   hideToolbar: bool = False
   mainHeight: int = 45
+  leftWidth: int = 50
   centerPage: bool = False
 
 

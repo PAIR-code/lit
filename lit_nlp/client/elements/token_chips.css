@@ -53,3 +53,50 @@
 .pre-wrap {
   white-space: pre-wrap;
 }
+
+.row-break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.word-spacer {
+  width: 1em;
+}
+
+.tokens-holder-dense .word-spacer {
+  width: 0.5em;
+}
+
+/* block mode */
+.tokens-holder-display-block {
+  display: block;
+  font-size: 0; /* hack to get zero spacing between elements */
+  line-height: 22px;
+}
+
+.tokens-holder-display-block > * {
+  /* TODO: set this for all modes? */
+  font-size: 13px;  /* restore standard font size */
+}
+
+.tokens-holder-display-block .salient-token {
+  display: inline;
+  min-height: 1lh;
+  vertical-align: baseline;
+}
+
+.tokens-holder-display-block.tokens-holder-dense .salient-token span {
+   /* hack to remove extra whitespace. ugh. */
+  margin-right: -0.445ch;
+}
+
+.tokens-holder-display-block .word-spacer {
+  display: inline;
+  vertical-align: baseline;
+  white-space: pre-wrap;
+}
+
+.tokens-holder-display-block lit-tooltip {
+  --anchor-display-mode: 'inline';
+  --tooltip-position-left: 0;
+}
