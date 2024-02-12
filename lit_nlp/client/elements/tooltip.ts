@@ -71,6 +71,7 @@ export class LitTooltip extends ReactiveElement {
       'disabled': this.disabled,
     });
 
+    // prettier-ignore
     return html`<div class='lit-tooltip'>
         <slot name="tooltip-anchor">
           ${this.content === '' ? '' : html`

@@ -10,6 +10,10 @@
    * with tooltip positioning.
    */
   --anchor-display-mode: inline-block;
+  --tooltip-position-left: unset;
+  --tooltip-position-right: unset;
+  --tooltip-position-top: unset;
+  --tooltip-position-bottom: unset;
 }
 
 /* Tooltip */
@@ -34,6 +38,10 @@
   font-size: 12px;
   font-weight: normal;
   line-height: 16px;
+  left: var(--tooltip-position-left);
+  right: var(--tooltip-position-right);
+  top: var(--tooltip-position-top);
+  bottom: var(--tooltip-position-bottom);
 
   display: -webkit-box;
   -webkit-line-clamp: 6;
