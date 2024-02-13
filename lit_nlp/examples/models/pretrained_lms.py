@@ -6,6 +6,8 @@ This wrapper loads a model into memory and implements the a number of helper
 functions to predict a batch of examples and extract information such as
 hidden states and attention.
 """
+from collections.abc import Sequence
+import functools
 import re
 
 from lit_nlp.api import model as lit_model
@@ -147,6 +149,7 @@ class BertMLM(lit_model.BatchedModel):
     }
 
 
+# TODO(lit-dev): merge with below, inherit from GPT2BaseModel.
 class GPT2LanguageModel(lit_model.BatchedModel):
   """Wrapper for a Huggingface Transformers GPT-2 model.
 
@@ -203,7 +206,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     else:
       return tok.replace("Ġ", "")
 
-  def _detokenize(self, ids):
+  def ids_to_clean_tokens(self, ids):
     tokens = self.tokenizer.convert_ids_to_tokens(ids)
     return [self.clean_bpe_token(t) for t in tokens]
 
@@ -255,7 +258,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     """Post-process single-example preds. Operates on numpy arrays."""
     ntok = preds.pop("ntok")
     ids = preds.pop("input_ids")[:ntok]
-    preds["tokens"] = self._detokenize(ids)
+    preds["tokens"] = self.ids_to_clean_tokens(ids)
 
     # Decode predicted top-k tokens.
     # token_topk_preds will be a list[list[(word, prob)]]
@@ -264,7 +267,7 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     pred_ids = preds.pop("top_k_indices")[:ntok]  # <int>[num_tokens, k]
     pred_probs = preds.pop("top_k_probs")[:ntok]  # <float32>[num_tokens, k]
     for token_pred_ids, token_pred_probs in zip(pred_ids, pred_probs):
-      token_pred_words = self._detokenize(token_pred_ids)
+      token_pred_words = self.ids_to_clean_tokens(token_pred_ids)
       token_topk_preds.append(list(zip(token_pred_words, token_pred_probs)))
     preds["pred_tokens"] = token_topk_preds
 
@@ -326,46 +329,38 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     return spec
 
 
-class GPT2GenerativeModel(lit_model.BatchedModel):
-  """Wrapper for a Huggingface Transformers GPT-2 model.
+class GPT2BaseModel(lit_model.BatchedModel):
+  """Base class for GPT2 model wrappers."""
 
-  This class loads a tokenizer and model using the Huggingface library and
-  provides the LIT-required functions to generate text responses given input
-  prompts.
-
-  Note that the default model generation config is used such that the response
-  is produced using multinomial sampling.
-  """
+  @property
+  def num_layers(self):
+    return self.model.config.n_layer
 
   @classmethod
   def init_spec(cls) -> lit_model.Spec:
     return {
         "model_name_or_path": lit_types.String(default="gpt2"),
-        "max_new_tokens": lit_types.Integer(default=50, min_val=1, max_val=500),
-        "batch_size": lit_types.Integer(default=6, min_val=1, max_val=25),
+        "batch_size": lit_types.Integer(default=6, min_val=1, max_val=64),
     }
 
   def __init__(
       self,
+      model_name_or_path="gpt2",
+      batch_size=6,
       model=None,
       tokenizer=None,
-      model_name_or_path="gpt2",
-      max_new_tokens=50,
-      batch_size=6,
   ):
-    """Constructor for GPT2LanguageModel.
+    """Constructor for GPT2 model wrappers.
 
     Note: args "model" and "tokenizer" take priority if both are specified.
     Otherwise, "model_name_or_path" is used to initialize the model and
     tokenizer.
 
     Args:
-      model: an initialized GPT2 model compatible with Tensorflow.
-      tokenizer: an initialized GPT2 tokenizer.
-      model_name_or_path: gpt2, gpt2-medium, gpt2-large, gpt2-xl, distilgpt2,
-        etc.
-      max_new_tokens: the maximum number of new tokens to generate.
+      model_name_or_path: gpt2, gpt2-medium, gpt2-large, distilgpt2, etc.
       batch_size: the number of items to process per `predict_minibatch` call.
+      model: an initialized transformers.TFGPT2LMHeadModel.
+      tokenizer: an initialized GPT2 tokenizer.
     """
     super().__init__()
 
@@ -380,28 +375,103 @@ class GPT2GenerativeModel(lit_model.BatchedModel):
             model_name_or_path, extract_compressed_file=True
         )
 
+      # Note: we need to left-pad for generation to work properly.
+      # Other modes such as scoring and salience should handle this as well;
+      # see example in GPT2SalienceModel._postprocess().
       self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-          model_name_or_path, use_fast=False
+          model_name_or_path,
+          use_fast=False,
+          padding_side="left",
       )
       # Set this after init, as if pad_token= is passed to
       # AutoTokenizer.from_pretrained() above it will create a new token with
       # with id = max_vocab_length and cause out-of-bounds errors in
       # the embedding lookup.
-      self.tokenizer.pad_token = self.tokenizer.eos_token
-      self.model = transformers.TFAutoModelForCausalLM.from_pretrained(
-          model_name_or_path
+      self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
+          model_name_or_path, output_hidden_states=True, output_attentions=False
       )
 
-    self.max_new_tokens = max_new_tokens
+    self.tokenizer.pad_token = self.tokenizer.eos_token
     self.batch_size = batch_size
 
-  ##
-  # LIT API implementations
+  @property
+  def pad_left(self):
+    return self.tokenizer.padding_side == "left"
+
+  @classmethod
+  def from_loaded(cls, existing: "GPT2BaseModel", *args, **kw):
+    """Share weights and underlying Keras model with another instance."""
+    return cls(model=existing.model, tokenizer=existing.tokenizer, *args, **kw)
+
+  def clean_bpe_token(self, tok):
+    tok = tok.replace("Ċ", "\n")  # newlines
+    tok = tok.replace("Ġ", "▁")  # start of word -> magic underscore
+    return tok
+
+  def ids_to_clean_tokens(self, ids: Sequence[int]) -> list[str]:
+    tokens = self.tokenizer.convert_ids_to_tokens(ids)
+    return [self.clean_bpe_token(t) for t in tokens]
+
   def max_minibatch_size(self) -> int:
     # The BatchedModel base class handles batching automatically in the
     # implementation of predict(), and uses this value as the batch size.
     return self.batch_size
 
+  def input_spec(self):
+    return {
+        "prompt": lit_types.TextSegment(),
+        "target": lit_types.TextSegment(required=False),
+    }
+
+
+class GPT2GenerativeModel(GPT2BaseModel):
+  """Wrapper for a Huggingface Transformers GPT-2 model.
+
+  This class loads a tokenizer and model using the Huggingface library and
+  provides the LIT-required functions to generate text responses given input
+  prompts.
+
+  Note that the default model generation config is used such that the response
+  is produced using multinomial sampling.
+  """
+
+  @classmethod
+  def init_spec(cls) -> lit_model.Spec:
+    return super().init_spec() | {
+        "max_new_tokens": lit_types.Integer(default=50, min_val=1, max_val=500)
+    }
+
+  def __init__(self, *args, max_new_tokens=50, **kw):
+    """Constructor for GPT2LanguageModel.
+
+    Args:
+      *args: as to GPT2BaseModel.__init__
+      max_new_tokens: the maximum number of new tokens to generate.
+      **kw: as to GPT2BaseModel.__init__
+    """
+    super().__init__(*args, **kw)
+    self.max_new_tokens = max_new_tokens
+
+  def _postprocess(self, preds):
+    """Post-process single-example preds. Operates on numpy arrays."""
+    # TODO(b/324957491): return actual decoder scores for each generation.
+    # GeneratedTextCandidates should be a list[(text, score)]
+    preds["response"] = [(preds["response"], 1.0)]
+    ntok_in = preds.pop("ntok_in")
+    embs = preds.pop("embs")
+    # Mean-pool over input tokens.
+    preds["prompt_embeddings"] = np.mean(
+        embs[-(self.max_new_tokens + ntok_in) : -self.max_new_tokens], axis=0
+    )
+    # Mean-pool over output (generated) tokens.
+    # TODO(b/324957491): slice this to only "real" output tokens,
+    # if generation length < max generation length.
+    preds["response_embeddings"] = np.mean(embs[-self.max_new_tokens :], axis=0)
+
+    return preds
+
+  ##
+  # LIT API implementations
   def predict_minibatch(self, inputs):
     prompts = [ex["prompt"] for ex in inputs]
     encoded_inputs = self.tokenizer.batch_encode_plus(
@@ -413,28 +483,210 @@ class GPT2GenerativeModel(lit_model.BatchedModel):
     )
     outputs = self.model.generate(
         encoded_inputs["input_ids"],
+        attention_mask=encoded_inputs["attention_mask"],
         max_new_tokens=self.max_new_tokens,
     )
+
     responses = self.tokenizer.batch_decode(
         outputs[:, -self.max_new_tokens :], skip_special_tokens=True
     )
+    # Input embeddings: <tf.float32>[batch_size, num_tokens, emb_dim]
     embeddings = self.model.transformer.wte(outputs)
-    return [
-        {
-            "response": responses[i],
-            "prompt_embeddings": embeddings[i, : -self.max_new_tokens],
-            "response_embeddings": embeddings[i, -self.max_new_tokens :]
-        } for i in range(len(outputs))
-    ]
+    batched_outputs = {
+        "embs": embeddings,
+        "ntok_in": tf.reduce_sum(encoded_inputs["attention_mask"], axis=1),
+        # TODO(b/324957491): compute ntok_out if < max_output_tokens ?
+    }
+
+    # Convert to numpy for post-processing.
+    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    detached_outputs["response"] = responses
+    # Split up batched outputs, then post-process each example.
+    unbatched_outputs = utils.unbatch_preds(detached_outputs)
+    return map(self._postprocess, unbatched_outputs)
+
+  def output_spec(self) -> lit_types.Spec:
+    return {
+        "response": lit_types.GeneratedTextCandidates(parent="target"),
+        "prompt_embeddings": lit_types.Embeddings(required=False),
+        "response_embeddings": lit_types.Embeddings(required=False),
+    }
+
+
+class GPT2SalienceModel(GPT2BaseModel):
+  """Wrapper for GPT-2 input (token) salience."""
+
+  def _pred(self, encoded_inputs, target_masks):
+    """Predicts one batch of tokenized text.
+
+    Also performs some batch-level post-processing in TF.
+    Single-example postprocessing is done in _postprocess(), and operates on
+    numpy arrays.
+
+    Args:
+      encoded_inputs: output of self.tokenizer.batch_encode_plus()
+      target_masks: list(array_like) of binary (0/1) masks for each input
+
+    Returns:
+      payload: Dictionary with items described above, each as single Tensor.
+    """
+    input_ids = encoded_inputs["input_ids"]
+
+    # <tf.float32>[batch_size, num_tokens]; ignore the last one in each row.
+    target_ids = tf.roll(encoded_inputs["input_ids"], shift=-1, axis=1)
+    ##
+    # Process target masks
+
+    # It doesn't make sense to interpret the first token, since it is not ever
+    # predicted. But we need to ensure that the mask[0] is zero, so it doesn't
+    # cause problems when 'rolled' to the last position below.
+    modified_masks = [[0] + list(mask[1:]) for mask in target_masks]
+    seq_len = target_ids.shape[1]
+    pad_fn = functools.partial(
+        utils.pad1d,
+        min_len=seq_len,
+        max_len=seq_len,
+        pad_val=0,
+        pad_left=self.pad_left,
+    )
+    padded_target_masks = np.stack(
+        [pad_fn(mask) for mask in modified_masks],
+        axis=0,
+    )
+
+    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.float32)
+    # Shift masks back so they align with target_ids.
+    loss_mask = tf.roll(padded_target_masks, shift=-1, axis=1)
+
+    with tf.GradientTape(watch_accessed_variables=True) as tape:
+      # We need to run the embedding layer ourselves so we can trace it.
+      # See here for how the model normally does this:
+      # http://google3/third_party/py/transformers/models/gpt2/modeling_tf_gpt2.py;l=450;rcl=578656271
+      embs = self.model.transformer.wte(input_ids, mode="embedding")
+      tape.watch(embs)
+
+      out = self.model(
+          input_ids=None,
+          inputs_embeds=embs,
+          attention_mask=encoded_inputs["attention_mask"],
+      )
+
+      loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(
+          from_logits=True, reduction="none"
+      )
+      # <tf.float32>[batch_size, num_tokens]
+      per_token_loss = loss_fn(target_ids, out.logits)
+      masked_loss = per_token_loss * loss_mask
+
+    grads = tape.gradient(
+        masked_loss, embs
+    )  # <tf.float32>[batch_size, num_tokens, hdim]
+
+    grad_l2 = tf.norm(grads, axis=2)  # <tf.float32>[batch_size, num_tokens]
+    grad_dot_input = tf.reduce_sum(
+        grads * embs, axis=2
+    )  # <tf.float32>[batch_size, num_tokens]
+
+    batched_outputs = {
+        "input_ids": encoded_inputs["input_ids"],
+        "attention_mask": encoded_inputs["attention_mask"],
+        # Gradients are already aligned to input tokens.
+        "grad_l2": grad_l2,
+        "grad_dot_input": grad_dot_input,
+        # Shift token loss to align with (input) tokens.
+        "token_loss": tf.roll(per_token_loss, shift=1, axis=1),
+    }
+
+    return batched_outputs
+
+  def _postprocess(self, preds):
+    """Post-process single-example preds. Operates on numpy arrays."""
+    # Be sure to cast to bool, otherwise this will select intger positions 0, 1
+    # rather than acting as a boolean mask.
+    mask = preds.pop("attention_mask").astype(bool)
+    ids = preds.pop("input_ids")[mask]
+    preds["tokens"] = self.ids_to_clean_tokens(ids)
+    for key in utils.find_spec_keys(self.output_spec(), lit_types.TokenScores):
+      preds[key] = preds[key][mask]
+    # First token (usually <s>) is not actually predicted, so return 0 for loss.
+    preds["token_loss"][0] = 0
+
+    return preds
+
+  # LIT API implementations
+  def predict_minibatch(self, inputs):
+    """Predict on a single minibatch of examples."""
+    # Preprocess inputs.
+    texts = [ex["prompt"] + ex.get("target", "") for ex in inputs]
+    encoded_inputs = self.tokenizer.batch_encode_plus(
+        texts,
+        return_tensors="tf",
+        add_special_tokens=True,
+        padding="longest",
+        truncation="longest_first",
+    )
+    target_masks = [ex.get("target_mask", []) for ex in inputs]
+
+    # Get the predictions.
+    batched_outputs = self._pred(encoded_inputs, target_masks)
+    # Convert to numpy for post-processing.
+    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    # Split up batched outputs, then post-process each example.
+    unbatched_outputs = utils.unbatch_preds(detached_outputs)
+    return map(self._postprocess, unbatched_outputs)
 
   def input_spec(self):
-    return {
-        "prompt": lit_types.TextSegment(),
+    return super().input_spec() | {
+        "target_mask": lit_types.TokenScores(align="", required=False),
     }
 
   def output_spec(self) -> lit_types.Spec:
     return {
-        "response": lit_types.GeneratedTextCandidates(),
-        "prompt_embeddings": lit_types.Embeddings(required=False),
-        "response_embeddings": lit_types.Embeddings(required=False)
+        "tokens": lit_types.Tokens(parent=""),  # all tokens
+        "grad_l2": lit_types.TokenScores(align="tokens"),
+        "grad_dot_input": lit_types.TokenScores(align="tokens"),
+        "token_loss": lit_types.TokenScores(align="tokens"),
+    }
+
+
+class GPT2TokenizerModel(GPT2BaseModel):
+  """Wrapper to run only the tokenizer.
+
+  Should exactly match tokens from GPT2SalienceModel.
+  """
+
+  def _postprocess(self, preds):
+    """Post-process single-example preds. Operates on numpy arrays."""
+    # Be sure to cast to bool, otherwise this will select intger positions 0, 1
+    # rather than acting as a boolean mask.
+    mask = preds.pop("attention_mask").astype(bool)
+    ids = preds.pop("input_ids")[mask]
+    preds["tokens"] = self.ids_to_clean_tokens(ids)
+    return preds
+
+  # LIT API implementations
+  def predict_minibatch(self, inputs):
+    """Predict on a single minibatch of examples."""
+    # Preprocess inputs.
+    texts = [ex["prompt"] + ex.get("target", "") for ex in inputs]
+    encoded_inputs = self.tokenizer.batch_encode_plus(
+        texts,
+        return_tensors="tf",
+        add_special_tokens=True,
+        padding="longest",
+        truncation="longest_first",
+    )
+    batched_outputs = {
+        "input_ids": encoded_inputs["input_ids"],
+        "attention_mask": encoded_inputs["attention_mask"],
+    }
+    # Convert to numpy for post-processing.
+    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    # Split up batched outputs, then post-process each example.
+    unbatched_outputs = utils.unbatch_preds(detached_outputs)
+    return map(self._postprocess, unbatched_outputs)
+
+  def output_spec(self) -> lit_types.Spec:
+    return {
+        "tokens": lit_types.Tokens(parent=""),  # all tokens
     }

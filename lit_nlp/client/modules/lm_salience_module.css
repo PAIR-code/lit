@@ -1,0 +1,98 @@
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.chip-container {
+  padding: 8px;
+}
+
+.chip-container-dense {
+  padding: 8px;
+}
+
+.pre-wrap {
+  white-space: pre-wrap;
+}
+
+.gray-text {
+  color: var(--lit-neutral-400);
+}
+
+.target-info-line {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+}
+
+lit-switch .icon-button {
+  vertical-align: middle;
+}
+
+/**
+ * Module controls
+ */
+.module-toolbar {
+  border-bottom: 1px solid #dadce0;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.module-footer {
+  justify-content: space-between;
+}
+
+.controls-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 4px;
+  gap: 4px;
+}
+
+.controls-group[disabled] {
+  color: rgb(60, 64, 67);
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* Allow contents to consume available space, but not to cause line wrapping. */
+.controls-group-variable {
+  flex: 1;
+  overflow-x: clip;
+  margin-right: 8px;
+}
+
+.controls-group-variable > label {
+  min-width: 45px;
+}
+
+.controls-group-variable .dropdown {
+  max-width: calc(100% - 45px);
+}
+
+.vertical-separator {
+  background: #dadce0;
+  width: 2px;
+  height: 1.2rem;
+  padding: 0;
+  margin: 0 8px;
+}
+
+/* Allow wrap. TODO move this to shared_styles as an option? */
+.module-footer-wrappable {
+  flex-wrap: wrap;
+  /* line-height: 30px; */  /* causes alignment issues */
+  height: unset;
+  min-height: 36px;
+}
+
+.module-footer > * { min-width: 0; }
+
+.controls-group > * { min-width: 0; }
+
+color-legend {
+  /* extra space to keep other controls from jumping when legend changes */
+  /* width: 400px; */
+  margin-right: 16px;
+}

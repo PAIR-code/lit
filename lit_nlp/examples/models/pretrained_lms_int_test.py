@@ -44,8 +44,10 @@ class PretrainedLmsIntTest(absltest.TestCase):
       self.assertIn(key, model_out[0].keys())
 
     # Check that the embedding dimension is the same for prompt and response.
-    self.assertEqual(model_out[0]["prompt_embeddings"].shape[1],
-                     model_out[0]["response_embeddings"].shape[1])
+    self.assertEqual(
+        model_out[0]["prompt_embeddings"].shape,
+        model_out[0]["response_embeddings"].shape,
+    )
 
 
 if __name__ == "__main__":
