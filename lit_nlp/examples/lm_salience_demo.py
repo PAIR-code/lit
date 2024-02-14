@@ -2,12 +2,14 @@
 
 from collections.abc import Sequence
 import functools
+import os
 import sys
 from typing import Optional
 
 from absl import app
 from absl import flags
 from absl import logging
+import keras
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
@@ -35,6 +37,10 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
         "Maximum number of examples to load from each evaluation set. Set to"
         " None to load the full set."
     ),
+)
+
+_KERAS_FLOATX = flags.DEFINE_string(
+    "keras_floatx", "bfloat16", "Floating-point type for Keras models."
 )
 
 # Custom frontend layout; see api/layout.py
@@ -108,6 +114,10 @@ def get_wsgi_app() -> Optional[dev_server.LitServerType]:
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
+
+  # Set Keras backend and floating-point precision.
+  os.environ["KERAS_BACKEND"] = "tensorflow"
+  keras.config.set_floatx(_KERAS_FLOATX.value)
 
   plaintextPrompts = functools.partial(  # pylint: disable=invalid-name
       lm_data.PlaintextSents, field_name="prompt"

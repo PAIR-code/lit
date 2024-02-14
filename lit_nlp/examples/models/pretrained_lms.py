@@ -490,7 +490,7 @@ class GPT2GenerativeModel(GPT2BaseModel):
     responses = self.tokenizer.batch_decode(
         outputs[:, -self.max_new_tokens :], skip_special_tokens=True
     )
-    # Input embeddings: <tf.float32>[batch_size, num_tokens, emb_dim]
+    # Input embeddings: <tf.float>[batch_size, num_tokens, emb_dim]
     embeddings = self.model.transformer.wte(outputs)
     batched_outputs = {
         "embs": embeddings,
@@ -532,7 +532,7 @@ class GPT2SalienceModel(GPT2BaseModel):
     """
     input_ids = encoded_inputs["input_ids"]
 
-    # <tf.float32>[batch_size, num_tokens]; ignore the last one in each row.
+    # <tf.int32>[batch_size, num_tokens]; ignore the last one in each row.
     target_ids = tf.roll(encoded_inputs["input_ids"], shift=-1, axis=1)
     ##
     # Process target masks
@@ -554,11 +554,11 @@ class GPT2SalienceModel(GPT2BaseModel):
         axis=0,
     )
 
-    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.float32)
+    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.bool)
     # Shift masks back so they align with target_ids.
     loss_mask = tf.roll(padded_target_masks, shift=-1, axis=1)
 
-    with tf.GradientTape(watch_accessed_variables=True) as tape:
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
       # We need to run the embedding layer ourselves so we can trace it.
       # See here for how the model normally does this:
       # http://google3/third_party/py/transformers/models/gpt2/modeling_tf_gpt2.py;l=450;rcl=578656271
@@ -574,18 +574,18 @@ class GPT2SalienceModel(GPT2BaseModel):
       loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(
           from_logits=True, reduction="none"
       )
-      # <tf.float32>[batch_size, num_tokens]
+      # <tf.float>[batch_size, num_tokens]
       per_token_loss = loss_fn(target_ids, out.logits)
-      masked_loss = per_token_loss * loss_mask
+      masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
 
     grads = tape.gradient(
         masked_loss, embs
-    )  # <tf.float32>[batch_size, num_tokens, hdim]
+    )  # <tf.float>[batch_size, num_tokens, hdim]
 
-    grad_l2 = tf.norm(grads, axis=2)  # <tf.float32>[batch_size, num_tokens]
+    grad_l2 = tf.norm(grads, axis=2)  # <tf.float>[batch_size, num_tokens]
     grad_dot_input = tf.reduce_sum(
         grads * embs, axis=2
-    )  # <tf.float32>[batch_size, num_tokens]
+    )  # <tf.float>[batch_size, num_tokens]
 
     batched_outputs = {
         "input_ids": encoded_inputs["input_ids"],

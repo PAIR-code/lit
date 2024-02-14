@@ -68,8 +68,8 @@ class _KerasBaseModel(lit_model.BatchedModel):
         self.model.preprocessor.tokenizer.id_to_token
     )
 
-    # map ids: <tf.int64>[batch_size, num_tokens]
-    # to embs: <tf.float32>[batch_size, num_tokens, emb_dim]
+    # map ids: <tf.int>[batch_size, num_tokens]
+    # to embs: <tf.float>[batch_size, num_tokens, emb_dim]
     self.embedder = self.model.backbone.token_embedding
 
   @classmethod
@@ -114,7 +114,7 @@ class KerasGenerationModel(_KerasBaseModel):
     processed_inputs = self.encode_inputs(
         texts, sequence_length=self.max_length
     )
-    # <tf.float32>[batch_size, num_tokens, emb_dim]
+    # <tf.float>[batch_size, num_tokens, emb_dim]
     embs = self.embedder(processed_inputs["token_ids"])
     # <tf.bool>[batch_size, num_tokens]
     mask = processed_inputs["padding_mask"]
@@ -123,13 +123,13 @@ class KerasGenerationModel(_KerasBaseModel):
   def embed_and_mean_pool(self, texts: Sequence[str]):
     """Return a single vector for each text."""
     embs, mask = self.embed_texts(texts)
-    # <tf.float32>[batch_size, num_tokens, 1]
-    mask = tf.expand_dims(tf.cast(mask, dtype=tf.float32), axis=2)
-    # <tf.float32>[batch_size, 1, emb_dim]
+    # <tf.float>[batch_size, num_tokens, 1]
+    mask = tf.expand_dims(tf.cast(mask, dtype=embs.dtype), axis=2)
+    # <tf.float>[batch_size, 1, emb_dim]
     pooled_embs = tf.reduce_sum(
         mask * embs, axis=1, keepdims=True
     ) / tf.reduce_sum(mask, axis=1, keepdims=True)
-    # <tf.float32>[batch_size, emb_dim]
+    # <tf.float>[batch_size, emb_dim]
     return tf.squeeze(pooled_embs, axis=1)
 
   def predict_minibatch(
@@ -203,7 +203,7 @@ class KerasSalienceModel(_KerasBaseModel):
 
   def _pred(self, input_ids, padding_mask, target_masks):
     """Predict a batch of tokenized text."""
-    # <tf.float32>[batch_size, num_tokens]; ignore the last one in each row.
+    # <tf.int>[batch_size, num_tokens]; ignore the last one in each row.
     target_ids = tf.roll(input_ids, shift=-1, axis=1)
 
     ##
@@ -226,13 +226,13 @@ class KerasSalienceModel(_KerasBaseModel):
         axis=0,
     )
 
-    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.float32)
+    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.bool)
     # Shift masks back so they align with target_ids.
     loss_mask = tf.roll(padded_target_masks, shift=-1, axis=1)
 
     embeddings = None
 
-    with tf.GradientTape(watch_accessed_variables=True) as tape:
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
 
       def layer_intercept_fn(x, i):
         if i == -1:
@@ -241,7 +241,7 @@ class KerasSalienceModel(_KerasBaseModel):
           tape.watch(embeddings)
         return x
 
-      # <tf.float32>[batch_size, num_tokens]
+      # <tf.float>[batch_size, num_tokens]
       per_token_loss = self.model.score(
           token_ids=input_ids,
           padding_mask=padding_mask,
@@ -249,13 +249,13 @@ class KerasSalienceModel(_KerasBaseModel):
           layer_intercept_fn=layer_intercept_fn,
           target_ids=target_ids,
       )
-      masked_loss = per_token_loss * loss_mask
+      masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
 
-    # <tf.float32>[batch_size, num_tokens, hdim]
+    # <tf.float>[batch_size, num_tokens, hdim]
     grads = tape.gradient(masked_loss, embeddings)
-    # <tf.float32>[batch_size, num_tokens]
+    # <tf.float>[batch_size, num_tokens]
     grad_l2 = tf.norm(grads, axis=2)
-    # <tf.float32>[batch_size, num_tokens]
+    # <tf.float>[batch_size, num_tokens]
     grad_dot_input = tf.reduce_sum(grads * embeddings, axis=2)
 
     batched_outputs = {
