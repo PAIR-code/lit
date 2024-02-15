@@ -84,7 +84,7 @@ export abstract class LitModule extends ReactiveElement {
       (model: string, selectionServiceIndex: number,
        shouldReact: number) => TemplateResult = () => html``;
 
-  @property({type: String}) model = '';
+  @observable @property({type: String}) model = '';
   @observable @property({type: Number}) selectionServiceIndex = 0;
 
   // tslint:disable-next-line:no-any

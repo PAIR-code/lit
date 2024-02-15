@@ -10,7 +10,7 @@ import '../elements/fused_button_bar';
 import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
-import {computed, observable, toJS} from 'mobx';
+import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
@@ -89,9 +89,10 @@ export class SingleExampleSingleModelModule extends LitModule {
     this.currentPreds = undefined;
   }
 
-  protected async updateToSelection(input: IndexedInput|null) {
+  protected async updateToSelection() {
     this.resetState();
 
+    const input = this.selectionService.primarySelectedInputData;
     if (input == null) return;
 
     // Before waiting for the backend call, update data.
@@ -104,7 +105,7 @@ export class SingleExampleSingleModelModule extends LitModule {
         this.appState.currentDataset,
         this.predsTypes,
         [],
-        'Getting model predictions.',
+        `Getting predictions from ${this.model}`,
     );
     const results = await this.loadLatest('modelPreds', promise);
     if (results === null) return;
@@ -118,9 +119,11 @@ export class SingleExampleSingleModelModule extends LitModule {
 
   override firstUpdated() {
     this.reactImmediately(
-        () => this.selectionService.primarySelectedInputData,
-        (data) => {
-          this.updateToSelection(data);
+        () =>
+            [this.selectionService.primarySelectedInputData, this.model,
+             this.appState.currentDataset],
+        () => {
+          this.updateToSelection();
         },
     );
   }
@@ -259,8 +262,8 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   // Get generations; populate this.currentPreds
-  protected override async updateToSelection(input: IndexedInput|null) {
-    await super.updateToSelection(input);
+  protected override async updateToSelection() {
+    await super.updateToSelection();
     this.resetTargetSpan();
 
     const dataSpec = this.appState.currentDatasetSpec;
@@ -415,9 +418,11 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return `${span[0]}:${span[1]}`;
   }
 
-  async updateTokens(input: IndexedInput|null) {
+  async updateTokens() {
+    this.currentTokens = [];
+
+    const input = this.modifiedData;
     if (input == null) {
-      this.currentTokens = [];
       return;
     }
 
@@ -427,24 +432,17 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         this.appState.currentDataset,
         [Tokens],
         [],
-        `Fetching tokens`,
+        `Fetching tokens for model ${this.model}`,
     );
-    const results = await promise;
+    const results = await this.loadLatest('updateTokens', promise);
     if (results === null) {
-      console.warn('No tokens returned for request', input);
+      console.warn('No tokens returned or stale request for example', input);
       return;
     }
 
     // TODO(b/324959547): get field name from spec, rather than hardcoding
     // 'tokens'.
-    const tokens: string[] = results[0]['tokens'];
-    if (this.modifiedData === input) {
-      this.currentTokens = tokens;
-    } else {
-      console.warn(
-          'Stale request; discarding result. Request does not match current target.',
-          input, toJS(this.modifiedData));
-    }
+    this.currentTokens = results[0]['tokens'];
   }
 
   async updateSalience(targetTokenSpan: number[]|undefined) {
@@ -503,11 +501,16 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // update completed, causing a new update to be scheduled."
     // This is okay here: this.modifiedData will be updated after
     // updateToSelection() runs, which will trigger this to update tokens.
-    this.reactImmediately(() => this.modifiedData, (data) => {
-      this.resetTargetSpan();
-      this.updateTokens(data);
-    });
+    this.reactImmediately(
+        () => [this.modifiedData, this.model, this.appState.currentDataset],
+        () => {
+          this.resetTargetSpan();
+          this.updateTokens();
+        });
 
+    // This can react only to targetTokenSpan, because changes to
+    // this.model or this.appState.currentDataset will trigger the target span
+    // to be reset.
     this.reactImmediately(() => this.targetTokenSpan, (targetTokenSpan) => {
       this.updateSalience(targetTokenSpan);
     });
@@ -648,7 +651,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             'segment(s)';
         // prettier-ignore
         return html`<span class="gray-text">
-          Click ${segmentType} above to select a target span.
+          Click ${segmentType} above to select a target to explain.
         </span>`;
       }
       const [start, end] = this.targetTokenSpan;

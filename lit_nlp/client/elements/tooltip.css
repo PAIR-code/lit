@@ -10,10 +10,10 @@
    * with tooltip positioning.
    */
   --anchor-display-mode: inline-block;
-  --tooltip-position-left: unset;
-  --tooltip-position-right: unset;
-  --tooltip-position-top: unset;
-  --tooltip-position-bottom: unset;
+  --tooltip-position-left: auto;
+  --tooltip-position-right: auto;
+  --tooltip-position-top: auto;
+  --tooltip-position-bottom: auto;
 }
 
 /* Tooltip */
@@ -49,11 +49,11 @@
   overflow: hidden;
 }
 
-.above {
+.tooltip-text.above {
   bottom: 28px;
 }
 
-.left {
+.tooltip-text.left {
   right: 12px;
 }
 

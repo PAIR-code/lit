@@ -25,7 +25,8 @@ FLAGS.set_default("development_demo", True)
 _MODELS = flags.DEFINE_list(
     "models",
     [
-        "gpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
+        "gpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
+        "distilgpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/distilgpt2.tar.gz",
     ],
     "Models to load, as <name>:<path>. Currently supports GPT-2 variants.",
 )
