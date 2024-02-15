@@ -97,12 +97,6 @@ export class TokenChips extends LitElement {
 
     let tokenText = tokenInfo.token;
 
-    let preSpace = false;
-    if (this.preSpace && tokenText.startsWith(' ')) {
-      preSpace = true;
-      tokenText = tokenText.slice(1);
-    }
-
     // TODO(b/324955623): render a gray '⏎' for newlines?
     // Maybe make this a toggleable option, as it can be distracting.
     // TODO(b/324955623): better rendering for multiple newlines, like \n\n\n ?
@@ -131,10 +125,21 @@ export class TokenChips extends LitElement {
       }
     }
 
+    let preSpace = false;
+    if (this.preSpace && tokenText.startsWith(' ')) {
+      preSpace = true;
+      tokenText = tokenText.slice(1);
+    }
+
+    // Don't let token text shrink that much.
+    if (tokenText === '') {
+      tokenText = ' ';
+    }
+
     // prettier-ignore
     return html`
-      ${preBreak ? html`<div class='row-break'></div>` : null}
       ${preSpace ? html`<div class='word-spacer'> </div>` : null}
+      ${preBreak ? html`<div class='row-break'></div>` : null}
       <div class=${tokenClass} style=${tokenStyle} @click=${tokenInfo.onClick}
         @mouseover=${tokenInfo.onMouseover} @mouseout=${tokenInfo.onMouseout}>
         <lit-tooltip content=${tokenInfo.weight.toPrecision(3)}

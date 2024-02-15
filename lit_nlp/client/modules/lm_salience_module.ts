@@ -164,7 +164,7 @@ class LMSalienceChips extends TokenChips {
           border: 0;
           box-shadow: unset;
           /* TODO see if we can get away from z-index here */
-          z-index: 10;
+          z-index: 1;
         }
       `,
     ];
