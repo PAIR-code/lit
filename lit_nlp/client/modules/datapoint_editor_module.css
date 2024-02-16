@@ -133,6 +133,12 @@ select.dropdown {
   min-width: 50px;
 }
 
+#edit-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .entry {
   align-items: center;
   box-sizing: border-box;
@@ -142,6 +148,15 @@ select.dropdown {
   margin: 4px;
   padding: 4px;
   border-radius: 4px;
+}
+
+.entry-long {
+  flex-grow: 1;
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-flow: column;
 }
 
 .entry-edited {
@@ -154,12 +169,23 @@ select.dropdown {
   justify-content: flex-end;
 }
 
-.entry-content-long {
+.entry-medium .entry-content {
   flex-grow: 1;
-  flex-basis: 100%;
+  max-width: max(50%, 500px);
 }
 
-.entry-content.left-align {
+.entry-long .entry-content {
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  width: 100%;
+}
+
+.entry-long .entry-content textarea {
+  height: 100%;
+}
+
+.entry-left-align .entry-content {
   justify-content: flex-start;
 }
 
@@ -170,7 +196,6 @@ input {
 
 textarea {
   resize: vertical;
-  height: 100px;
   font-family: 'Roboto', sans;
   line-height: 18px;
   color: var(--lit-gray-800);

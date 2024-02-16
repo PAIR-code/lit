@@ -382,7 +382,7 @@ export class DatapointEditorModule extends LitModule {
       </button>
     `;
     const compareButton = html`
-      <button id="compare" class='hairline-button'
+      <button id="compare" class='hairline-button' style="text-wrap: nowrap;"
         @click=${onClickCompare} ?disabled="${!compareEnabled}">
         Add and compare
       </button>
@@ -524,7 +524,7 @@ export class DatapointEditorModule extends LitModule {
     const errorInputClasses = renderError ? 'error-input' : '';
     const errorIconClasses = renderError ? 'error-icon' : '';
 
-    const inputStyle = {'height': this.inputHeights[key]};
+    const inputStyle = {'min-height': this.inputHeights[key]};
     // Render a multi-line text input.
     const renderFreeformInput = () => html`
       <textarea
@@ -612,25 +612,29 @@ export class DatapointEditorModule extends LitModule {
           !(fieldSpec instanceof Embeddings));
     };
 
-    let renderInput = renderFreeformInput;  // default: free text
-    const entryContentClasses = {
-      'entry-content': true,
-      'entry-content-long': false,
-      'left-align': false,
+    const entryClasses = {
+      'entry': true,
+      'entry-edited': this.dataEdits[key] !== undefined,
+      'entry-medium': false,
+      'entry-long': false,
+      'entry-left-align': false,
     };
+
+    let renderInput = renderFreeformInput;  // default: free text
     const fieldSpec = this.appState.currentDatasetSpec[key];
     const {vocab} = fieldSpec as LitTypeWithVocab;
     if (vocab != null && !(fieldSpec instanceof SparseMultilabel)) {
       renderInput = () => renderCategoricalInput(vocab);
     } else if (this.groupService.categoricalFeatureNames.includes(key)) {
       renderInput = renderShortformInput;
+      entryClasses['entry-medium'] = true;
     } else if (this.groupService.numericalFeatureNames.includes(key)) {
       renderInput = renderNumericInput;
     } else if (isLitSubtype(
                    fieldSpec, [Tokens, SequenceTags, SparseMultilabel])) {
       renderInput = renderTokensInput;
-      entryContentClasses['entry-content-long'] = true;
-      entryContentClasses['left-align'] = true;
+      entryClasses['entry-long'] = true;
+      entryClasses['entry-left-align'] = true;
     } else if (fieldSpec instanceof Embeddings) {
       renderInput = renderEmbeddingsNonEditable;
     } else if (fieldSpec instanceof SpanLabels) {
@@ -644,7 +648,7 @@ export class DatapointEditorModule extends LitModule {
     } else if (fieldSpec instanceof BooleanLitType) {
       renderInput = renderBoolean;
     } else {
-      entryContentClasses['entry-content-long'] = true;
+      entryClasses['entry-long'] = true;
     }
 
     // Shift + enter creates a newline; enter alone creates a new datapoint.
@@ -689,14 +693,11 @@ export class DatapointEditorModule extends LitModule {
         </a>`;
     }
 
-    const entryClasses = classMap(
-        {'entry': true, 'entry-edited': this.dataEdits[key] !== undefined});
-
     // Note the "." before "value" in the template below - this is to ensure
     // the value gets set by the template.
     // clang-format off
     return html`
-      <div class=${entryClasses}
+      <div class=${classMap(entryClasses)}
         @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}
         @keydown=${(e: KeyboardEvent) => {onKeyDown(e);}}
         >
@@ -709,7 +710,7 @@ export class DatapointEditorModule extends LitModule {
             </mwc-icon>
           </lit-tooltip>
         </div>
-        <div class=${classMap(entryContentClasses)}>
+        <div class='entry-content'>
           ${renderInput()}
         </div>
       </div>
