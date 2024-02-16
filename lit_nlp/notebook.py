@@ -7,20 +7,23 @@ instance. Set render=False to disable this, and manually render the UI in a cell
 through the render() method. Use the stop() method to stop the server when done.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import html
 import json
 import os
 import pathlib
 import random
-from typing import cast, Optional
+from typing import Any, Optional, cast
 import urllib.parse
+
 import attr
 from IPython import display
 from lit_nlp import dev_server
 from lit_nlp import server_config
 from lit_nlp.api import layout
 from lit_nlp.lib import wsgi_serving
+
+JsonDict = Mapping[str, Any]
 
 is_colab = False
 try:
@@ -66,6 +69,7 @@ class RenderConfig(object):
   layout: Optional[str] = None
   dataset: Optional[str] = None
   models: Optional[Sequence[str]] = None
+  datapoints: Optional[Sequence[JsonDict]] = None
 
   def get_query_str(self):
     """Convert config object to query string for LIT URL."""
@@ -75,8 +79,15 @@ class RenderConfig(object):
       return v
 
     string_params = {
-        k: _encode(v) for k, v in attr.asdict(self).items() if v is not None
+        k: _encode(v)
+        for k, v in attr.asdict(self).items()
+        if (v is not None and k != 'datapoints')
     }
+    if self.datapoints:
+      for i, ex in enumerate(self.datapoints):
+        for field in ex:
+          string_params[f'data{i}_{field}'] = _encode(ex[field])
+
     return '?' + urllib.parse.urlencode(string_params)
 
 
@@ -134,21 +145,32 @@ class LitWidget(object):
     """Stop the LIT server."""
     self._server.stop()
 
-  def render(self, height=None, open_in_new_tab=False,
-             ui_params: Optional[RenderConfig] = None):
+  def render(
+      self,
+      height=None,
+      open_in_new_tab=False,
+      ui_params: Optional[RenderConfig] = None,
+      data: Optional[Sequence[JsonDict]] = None,
+  ):
     """Render the LIT UI in the output cell.
+
+    To immediately analyze specifiic example(s), use the data= parameter:
+      widget.render(..., data=[{"prompt": "Hello world "}])
 
     Args:
       height: Optional height to display the LIT UI in pixels. If not specified,
-          then the height specified in the constructor is used.
+        then the height specified in the constructor is used.
       open_in_new_tab: Whether to show the UI in a new tab instead of in the
         output cell. Defaults to false.
       ui_params: Optional configuration options for the LIT UI's state.
+      data: Optional examples to load directly to the UI (via URL params).
     """
     if not height:
       height = self._height
     if not ui_params:
       ui_params = RenderConfig()
+    if data:
+      ui_params.datapoints = data
     if is_colab:
       _display_colab(self._server.port, height, open_in_new_tab, ui_params)
     else:

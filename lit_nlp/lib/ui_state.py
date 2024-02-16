@@ -19,6 +19,7 @@ to sync the UI selection state back to Python for further analysis.
 """
 from typing import Optional
 
+from absl import logging
 import attr
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types
@@ -64,14 +65,27 @@ class UIStateTracker(object):
     self._state.dataset_name = dataset_name
     self._state.dataset = dataset
 
+    # This may contain 'added' datapoints not in the base dataset.
+    input_index = {ex["data"]["_id"]: ex for ex in indexed_inputs}
+
+    def get_example(example_id):
+      ex = input_index.get(example_id)
+      if ex is None:
+        ex = dataset.index.get(example_id)
+      return ex
+
     if primary_id:
-      self._state.primary = dataset.index[primary_id]
+      self._state.primary = get_example(primary_id)
+      if self._state.primary is None:
+        logging.warn("State tracker: unable to find primary_id %s", primary_id)
     else:
       self._state.primary = None
 
     self._state.selection = indexed_inputs
 
     if pinned_id:
-      self._state.pinned = dataset.index[pinned_id]
+      self._state.pinned = get_example(pinned_id)
+      if self._state.pinned is None:
+        logging.warn("State tracker: unable to find pinned_id %s", pinned_id)
     else:
       self._state.pinned = None
