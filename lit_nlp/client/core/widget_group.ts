@@ -99,8 +99,7 @@ export class WidgetGroup extends ReactiveElement {
 
     // Maximization.
     const onMaxClick = () => {
-      this.maximized = !this.maximized;
-      this.setMaximized(this.maximized);
+      this.setMaximized(!this.maximized);
       this.setMinimized(false);
     };
 
@@ -114,7 +113,7 @@ export class WidgetGroup extends ReactiveElement {
     const onTitleClick = () => {
       if (this.minimized) {
         this.setMinimized(false);
-        this.maximized = false;
+        this.setMaximized(false);
       }
     };
 
@@ -220,7 +219,8 @@ export class WidgetGroup extends ReactiveElement {
     // For clicks on the maximized-module darkened background, undo the
     // module maximization.
     const onBackgroundClick = () => {
-      this.maximized = false;
+      this.setMaximized(false);
+      this.setMinimized(false);
     };
     // A listener to stop clicks on a maximized module from causing the
     // background click listener from firing.
