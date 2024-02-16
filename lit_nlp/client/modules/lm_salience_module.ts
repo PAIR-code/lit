@@ -10,6 +10,7 @@ import '../elements/fused_button_bar';
 import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
+import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -556,17 +557,21 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     `;
   }
 
+  /* Disabled for space reasons. */
+  // renderSelfScoreSelector() {
+  //   const onClickToggleSelfSalience = () => {
+  //     this.showSelfSalience = !this.showSelfSalience;
+  //   };
+  //   // prettier-ignore
+  //   return html`
+  //     <lit-switch labelLeft="Show self scores"
+  //       ?selected=${this.showSelfSalience}
+  //       @change=${onClickToggleSelfSalience}>
+  //     </lit-switch>
+  //   `;
+  // }
   renderSelfScoreSelector() {
-    const onClickToggleSelfSalience = () => {
-      this.showSelfSalience = !this.showSelfSalience;
-    };
-    // prettier-ignore
-    return html`
-      <lit-switch labelLeft="Show self scores"
-        ?selected=${this.showSelfSalience}
-        @change=${onClickToggleSelfSalience}>
-      </lit-switch>
-    `;
+    return null;
   }
 
   renderMethodSelector() {
@@ -632,14 +637,29 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
            </option>`;
     });
 
+    const targetSelectorHelp =
+        'Select a (response) from the model or a pre-defined (target) sequence from the dataset.';
+
     // prettier-ignore
     return html`
       <div class="controls-group controls-group-variable"
         title="Target string for salience.">
-        <label class="dropdown-label">Target:</label>
         <select class="dropdown" @change=${onChangeTarget}>
           ${options}
         </select>
+        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
+          <span class="help-icon material-icon-outlined icon-button">
+            help_outline
+          </span>
+        </lit-tooltip>
+      </div>`;
+  }
+
+  renderLoadingIndicator() {
+    // prettier-ignore
+    return html`
+      <div class='loading-indicator-container'>
+        <div class='loading-indicator'></div>
       </div>`;
   }
 
@@ -658,12 +678,22 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       return `Explaining ${this.printTargetForHuman(start, end)}`;
     };
 
+    const requestPending = this.targetTokenSpan !== undefined &&
+        this.salienceResultCache[this.spanToKey(this.targetTokenSpan)] ===
+            REQUEST_PENDING;
+    // const requestPending = true;
+    const infoLineClasses = classMap({
+      'target-info-line': true,
+      'gray-text': requestPending,
+    });
+
     // prettier-ignore
     return html`
       <div class="controls-group controls-group-variable"
         title="Selected target span.">
-        <div class="target-info-line">
+        <div class=${infoLineClasses}>
           ${printSelectedTargets()}
+          ${requestPending ? this.renderLoadingIndicator() : null}
         </div>
       </div>
     `;
@@ -741,12 +771,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       });
     }
 
-    // TODO: revert to 4px for non-dense view if we can figure out the
-    // display mode for token chips? Needs more padding for block mode,
-    // but also indentation and newlines are wonky.
     // prettier-ignore
     return html`
-      <div class=${this.denseView ? 'chip-container-dense' : 'chip-container'}>
+      <div class='chip-container'>
         <lm-salience-chips .tokensWithWeights=${segmentsWithWeights} 
           ?dense=${this.denseView} ?preSpace=${this.denseView}
           .cmap=${this.cmap} breakNewlines displayBlock>
@@ -793,7 +820,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         <lit-numeric-input min="0" max="6" step="0.25" id='gamma-slider'
           value="${this.cmapGamma}" @change=${onChangeGamma}>
         </lit-numeric-input>
-        <mwc-icon class='icon-button value-reset-icon' title='Reset gamma'
+        <mwc-icon class='icon-button value-reset-icon' title='Reset colormap'
           @click=${resetGamma}>
           restart_alt
         </mwc-icon>

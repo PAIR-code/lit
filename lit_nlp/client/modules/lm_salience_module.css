@@ -7,10 +7,6 @@
   padding: 8px;
 }
 
-.chip-container-dense {
-  padding: 8px;
-}
-
 .pre-wrap {
   white-space: pre-wrap;
 }
@@ -23,6 +19,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow-x: hidden;
+  line-height: 22px;
 }
 
 lit-switch .icon-button {
@@ -63,12 +60,10 @@ lit-switch .icon-button {
   margin-right: 8px;
 }
 
-.controls-group-variable > label {
-  min-width: 45px;
-}
-
 .controls-group-variable .dropdown {
-  max-width: calc(100% - 45px);
+  max-width: calc(100% - 22px);
+  margin-right: 4px;
+  text-overflow: ellipsis;
 }
 
 .vertical-separator {
@@ -95,4 +90,26 @@ color-legend {
   /* extra space to keep other controls from jumping when legend changes */
   /* width: 400px; */
   margin-right: 16px;
+}
+
+
+/* Pending request indicator */
+.loading-indicator-container {
+  position: relative;
+  width: 100%;
+  top: -2px;
+}
+
+@keyframes running-progress {
+  0% { margin-left: 0; margin-right: 100%; }
+  50% { margin-left: 35%; margin-right: 0%; }
+  100% { margin-left: 100%; margin-right: 0%; }
+}
+
+.loading-indicator {
+  position: absolute;
+  background-color: var(--lit-neutral-500);
+  width: 100%;
+  height: 2px;
+  animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

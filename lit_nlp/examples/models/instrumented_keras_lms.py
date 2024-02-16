@@ -307,7 +307,7 @@ class KerasSalienceModel(_KerasBaseModel):
         FieldNames.GRAD_NORM: grad_l2,
         FieldNames.GRAD_DOT_INPUT: grad_dot_input,
         # Shift token loss to align with (input) tokens.
-        FieldNames.TOKEN_LOSS: tf.roll(per_token_loss, shift=1, axis=1),
+        # FieldNames.TOKEN_LOSS: tf.roll(per_token_loss, shift=1, axis=1),
     }
 
     return batched_outputs
@@ -322,7 +322,7 @@ class KerasSalienceModel(_KerasBaseModel):
     ):
       preds[key] = preds[key][mask]
     # First token (<bos>) is not actually predicted, so return 0 for loss.
-    preds[FieldNames.TOKEN_LOSS][0] = 0
+    # preds[FieldNames.TOKEN_LOSS][0] = 0
 
     return preds
 
@@ -353,11 +353,11 @@ class KerasSalienceModel(_KerasBaseModel):
   def output_spec(self) -> lit_types.Spec:
     return {
         FieldNames.TOKENS: lit_types.Tokens(parent=""),  # All tokens.
+        FieldNames.GRAD_NORM: lit_types.TokenScores(align=FieldNames.TOKENS),
         FieldNames.GRAD_DOT_INPUT: lit_types.TokenScores(
             align=FieldNames.TOKENS
         ),
-        FieldNames.GRAD_NORM: lit_types.TokenScores(align=FieldNames.TOKENS),
-        FieldNames.TOKEN_LOSS: lit_types.TokenScores(align=FieldNames.TOKENS),
+        # FieldNames.TOKEN_LOSS: lit_types.TokenScores(align=FieldNames.TOKENS),
     }
 
 

@@ -594,7 +594,7 @@ class GPT2SalienceModel(GPT2BaseModel):
         "grad_l2": grad_l2,
         "grad_dot_input": grad_dot_input,
         # Shift token loss to align with (input) tokens.
-        "token_loss": tf.roll(per_token_loss, shift=1, axis=1),
+        # "token_loss": tf.roll(per_token_loss, shift=1, axis=1),
     }
 
     return batched_outputs
@@ -609,7 +609,7 @@ class GPT2SalienceModel(GPT2BaseModel):
     for key in utils.find_spec_keys(self.output_spec(), lit_types.TokenScores):
       preds[key] = preds[key][mask]
     # First token (usually <s>) is not actually predicted, so return 0 for loss.
-    preds["token_loss"][0] = 0
+    # preds["token_loss"][0] = 0
 
     return preds
 
@@ -645,7 +645,7 @@ class GPT2SalienceModel(GPT2BaseModel):
         "tokens": lit_types.Tokens(parent=""),  # all tokens
         "grad_l2": lit_types.TokenScores(align="tokens"),
         "grad_dot_input": lit_types.TokenScores(align="tokens"),
-        "token_loss": lit_types.TokenScores(align="tokens"),
+        # "token_loss": lit_types.TokenScores(align="tokens"),
     }
 
 
