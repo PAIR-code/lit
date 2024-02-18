@@ -1,3 +1,7 @@
+:host {
+  --block-line-height: 22px;
+}
+
 .tokens-group {
   position: relative;
 }
@@ -71,7 +75,7 @@
 .tokens-holder-display-block {
   display: block;
   font-size: 0; /* hack to get zero spacing between elements */
-  line-height: 22px;
+  line-height: var(--block-line-height);
 }
 
 .tokens-holder-display-block > * {

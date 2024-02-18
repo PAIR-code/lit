@@ -11,6 +11,7 @@ import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
+import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -39,6 +40,7 @@ enum SegmentationMode {
   WORDS = 'Words',
   SENTENCES = 'Sentences',
   LINES = 'Lines',
+  PARAGRAPHS = '¶',
   // TODO(b/324961811): add phrase or clause chunking?
   // TODO(b/324961803): add custom regex?
 }
@@ -148,9 +150,14 @@ class LMSalienceChips extends TokenChips {
           --token-outline-color: var(--lit-neutral-300); /* outline in non-dense mode */
         }
         .tokens-holder-display-block .salient-token {
-          padding: 3px 0;
+          padding: 3px 0; /* this controls the visible highlight */
           margin: 0;
           margin-right: 4px;
+        }
+        .tokens-holder-display-block .salient-token span {
+          /* this controls the mouseover area, so there are no gaps */
+          /* or flickering when hovering over multiline tokens */
+          padding: 6px 0;
         }
         .salient-token.selected {
           --token-outline-color: var(--lit-mage-700);
@@ -207,6 +214,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   @observable private selectedSalienceMethod? = 'grad_l2';
   @observable private cmapGamma = 1.0;
   @observable private denseView = true;
+  @observable private vDense = false; /* vertical spacing */
   @observable private showSelfSalience = false;
 
   @observable.ref private currentTokens: string[] = [];
@@ -302,6 +310,12 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       // - a run of consecutive \n as its own segment
       // - any non-\n following \n
       return groupTokensByRegexPrefix(this.currentTokens, /(\n+)|([^\n]+)/g);
+    } else if (this.segmentationMode === SegmentationMode.PARAGRAPHS) {
+      // Paragraph start is either:
+      // - two or more newlines as its own segment
+      // - any non-\n following \n\n
+      return groupTokensByRegexPrefix(
+          this.currentTokens, /(\n\n+)|(?<=\n\n)([^\n]+)/g);
     } else {
       throw new Error(
           `Unsupported segmentation mode ${this.segmentationMode}.`);
@@ -541,6 +555,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       };
     });
 
+    const onClickToggleVDense = () => {
+      this.vDense = !this.vDense;
+    };
+
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
@@ -559,6 +577,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             grid_view
           </mwc-icon>
         </lit-switch>
+        <mwc-icon class='icon-button large-icon' title='Vertical density'
+            @click=${onClickToggleVDense}>
+            ${this.vDense ? 'expand' : 'compress'}
+        </mwc-icon>
       </div>
     `;
   }
@@ -854,12 +876,16 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       });
     }
 
+    const chipHostStyle =
+        styleMap({'--block-line-height': this.vDense ? '16px' : '22px'});
+
     // prettier-ignore
     return html`
       <div class='chip-container'>
         <lm-salience-chips .tokensWithWeights=${segmentsWithWeights} 
           ?dense=${this.denseView} ?preSpace=${this.denseView}
-          .cmap=${this.cmap} breakNewlines displayBlock>
+          .cmap=${this.cmap} breakNewlines displayBlock
+          style=${chipHostStyle}>
         </lm-salience-chips>
       </div>
     `;
