@@ -211,7 +211,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
   @observable.ref private currentTokens: string[] = [];
   @observable.ref private salienceTargetOptions: TargetOption[] = [];
-  @observable private salienceTargetString = '';
+  @observable private salienceTargetOption?: number;  // index into above
   @observable.ref private targetSegmentSpan?: [number, number] = undefined;
 
 
@@ -254,7 +254,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // Generation & target string selection
     super.resetState();  // currentData and currentPreds
     this.salienceTargetOptions = [];
-    this.salienceTargetString = '';
+    this.salienceTargetOption = undefined;
     // Tokens and selected target span
     this.currentTokens = [];
     this.resetTargetSpan();
@@ -262,29 +262,15 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     this.salienceResultCache = {};
   }
 
-  // Get generations; populate this.currentPreds
-  protected override async updateToSelection() {
-    await super.updateToSelection();
-    this.resetTargetSpan();
-
-    const dataSpec = this.appState.currentDatasetSpec;
-    const outputSpec = this.appState.getModelSpec(this.model).output;
-    this.salienceTargetOptions = getAllTargetOptions(
-        dataSpec,
-        outputSpec,
-        this.currentData,
-        this.currentPreds,
-    );
-    this.salienceTargetString = this.salienceTargetOptions[0]?.text ?? '';
-  }
-
   // Modified input with selected target sequence. Use this for tokens and
   // salience.
   @computed
   get modifiedData(): IndexedInput|null {
     if (this.currentData == null) return null;
-    return makeModifiedInput(
-        this.currentData, {'target': this.salienceTargetString});
+    if (this.salienceTargetOption === undefined) return null;
+    const targetString =
+        this.salienceTargetOptions[this.salienceTargetOption].text;
+    return makeModifiedInput(this.currentData, {'target': targetString});
   }
 
   @computed
@@ -496,6 +482,20 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   override firstUpdated() {
     super.firstUpdated();
 
+    // Update target options based on current data and preds.
+    // TODO: could this just be @computed?
+    // If we maintain explicit state, we can support custom target strings.
+    this.reactImmediately(() => [this.currentData, this.currentPreds], () => {
+      const dataSpec = this.appState.currentDatasetSpec;
+      const outputSpec = this.appState.getModelSpec(this.model).output;
+      this.salienceTargetOptions = getAllTargetOptions(
+          dataSpec,
+          outputSpec,
+          this.currentData,
+          this.currentPreds,
+      );
+    });
+
     // If selected example OR selected target string change.
     // NOTE: you may see a console warning: "Element lm-salience-module
     // scheduled an update (generally because a property was set) after an
@@ -621,38 +621,53 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
   renderSalienceTargetStringSelector() {
     const onChangeTarget = (e: Event) => {
-      this.salienceTargetString = (e.target as HTMLInputElement).value;
+      const value = (e.target as HTMLInputElement).value;
+      this.salienceTargetOption = value !== '' ? +value : undefined;
     };
 
-    const options = this.salienceTargetOptions.map(target => {
+    const targetSelectorHelp =
+        'Select a (response) from the model or a pre-defined (target) sequence from the dataset.';
+
+    const options = this.salienceTargetOptions.map((target, i) => {
       // TODO(b/324959547): get field names 'target' and 'response' from spec
       // via generated_text_utils.ts, rather than hard-coding.
       // This information is available on the frontend, but we need to thread
       // it through a few layers of code in generated_text_utils.ts
       const sourceName =
           target.source === TargetSource.REFERENCE ? 'target' : 'response';
-      return html`<option value=${target.text}
-            ?selected=${target.text === this.salienceTargetString}>
+      // prettier-ignore
+      return html`
+          <option value=${i} ?selected=${i === this.salienceTargetOption}>
              (${sourceName}) "${target.text}"
-           </option>`;
+          </option>`;
     });
+    // Empty default option. Styled as select:invalid.
+    // prettier-ignore
+    options.unshift(html`
+        <option value='' disabled hidden ?selected=${
+        this.salienceTargetOption === undefined}>
+          ${targetSelectorHelp}
+        </option>`);
 
-    const targetSelectorHelp =
-        'Select a (response) from the model or a pre-defined (target) sequence from the dataset.';
+    const isLoadingPreds = this.latestLoadPromises.has('modelPreds');
 
     // prettier-ignore
     return html`
       <div class="controls-group controls-group-variable"
-        title="Target string for salience.">
-        <select class="dropdown" @change=${onChangeTarget}>
-          ${options}
-        </select>
+        title=${targetSelectorHelp}>
+        <div class='target-dropdown-holder'>
+          <select required class='dropdown' @change=${onChangeTarget}>
+            ${options}
+          </select>
+          ${isLoadingPreds ? this.renderLoadingIndicator() : null}
+        </div>
         <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
           <span class="help-icon material-icon-outlined icon-button">
             help_outline
           </span>
         </lit-tooltip>
-      </div>`;
+      </div>
+    `;
   }
 
   renderLoadingIndicator() {
@@ -681,7 +696,6 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     const requestPending = this.targetTokenSpan !== undefined &&
         this.salienceResultCache[this.spanToKey(this.targetTokenSpan)] ===
             REQUEST_PENDING;
-    // const requestPending = true;
     const infoLineClasses = classMap({
       'target-info-line': true,
       'gray-text': requestPending,
@@ -744,7 +758,70 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return i >= this.targetSegmentSpan[0] && i < this.targetSegmentSpan[1];
   }
 
+  renderTargetSelectorInterstitial() {
+    const formatOption = (target: TargetOption, i: number) => {
+      const onClickTarget = () => {
+        this.salienceTargetOption = i;
+      };
+      // prettier-ignore
+      return html`
+        <div class='interstitial-target-option' @click=${onClickTarget}>
+          <div class='interstitial-target-text'>${target.text}</div>
+        </div>`;
+    };
+
+    // Slightly awkward, but we need to process and /then/ filter, because
+    // the @click handler needs the original list index.
+    const optionsFromDataset =
+        this.salienceTargetOptions
+            .map((target, i) => {
+              if (target.source !== TargetSource.REFERENCE) return null;
+              return formatOption(target, i);
+            })
+            .filter(val => val != null);
+    const optionsFromModel =
+        this.salienceTargetOptions
+            .map((target, i) => {
+              if (target.source !== TargetSource.MODEL_OUTPUT) return null;
+              return formatOption(target, i);
+            })
+            .filter(val => val != null);
+
+    const isLoadingPreds = this.latestLoadPromises.has('modelPreds');
+
+    // TODO(b/324959547): get field names 'target' and 'response' from spec
+    // via generated_text_utils.ts, rather than hard-coding.
+    // This information is available on the frontend, but we need to thread
+    // it through a few layers of code in generated_text_utils.ts
+
+    // prettier-ignore
+    return html`
+      <div class='interstitial-container'>
+        <div class='interstitial-contents'>
+          <div class='interstitial-header'>
+            Choose a sequence to explain
+          </div>
+          <div class='interstitial-subtitle'>
+            Or select from the dropdown at the top of this module
+          </div>
+          <div class='interstitial-target-selector'>
+            <div class='interstitial-target-type'>From dataset (target):</div>
+            ${optionsFromDataset}
+            <div class='interstitial-target-type'>From model (response):</div>
+            ${isLoadingPreds ? this.renderLoadingIndicator() : null}
+            ${optionsFromModel}
+          </div>
+        </div>
+      </div>`;
+  }
+
   renderContent() {
+    if (this.currentData == null) return null;
+
+    if (this.salienceTargetOption === undefined) {
+      return this.renderTargetSelectorInterstitial();
+    }
+
     if (this.currentSegmentTexts.length === 0) return null;
 
     const segments: string[] = this.currentSegmentTexts;

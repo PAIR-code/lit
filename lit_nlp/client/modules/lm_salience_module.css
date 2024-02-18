@@ -26,6 +26,72 @@ lit-switch .icon-button {
   vertical-align: middle;
 }
 
+select:invalid {
+  color: var(--lit-neutral-400);
+}
+
+/**
+ * Interstitial for target selection
+ */
+.interstitial-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.interstitial-header {
+  font-size: 1.5em;
+  font-family: 'Google Sans', sans;
+  padding: 4px 2px;  /* 2px left shift vs. smaller fonts below */
+}
+
+.interstitial-subtitle {
+  font-family: 'Google Sans', sans;
+  color: var(--lit-neutral-500);
+  padding: 4px;
+  margin-bottom: 8px;
+}
+
+.interstitial-contents {
+  width: 80%;
+  /* color: #5f6368; */
+  color: var(--lit-neutral-700);
+}
+
+.interstitial-target-option {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 6px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+
+.interstitial-target-type {
+  /* width: 80px; */
+  /* font-weight: bold; */
+  color: var(--lit-neutral-500);
+  padding: 4px;
+}
+
+.interstitial-target-option .interstitial-target-text {
+  flex-grow: 1;
+  flex-basis: 100%;
+  padding: 4px;
+  border: 1px solid var(--lit-neutral-300);
+  border-radius: 4px;
+  overflow: hidden;
+  min-height: 28px;  /* one line of text */
+  max-height: 34px;  /* two lines of text */
+}
+
+.interstitial-target-option:hover .interstitial-target-text {
+  border: 1px solid var(--lit-neutral-400);
+  background-color: var(--lit-mintonal-p-1);
+}
+
 /**
  * Module controls
  */
@@ -60,9 +126,13 @@ lit-switch .icon-button {
   margin-right: 8px;
 }
 
-.controls-group-variable .dropdown {
-  max-width: calc(100% - 22px);
+.target-dropdown-holder {
+  width: calc(100% - 22px);
   margin-right: 4px;
+}
+
+.target-dropdown-holder .dropdown {
+  width: 100%;
   text-overflow: ellipsis;
 }
 
@@ -97,17 +167,18 @@ color-legend {
 .loading-indicator-container {
   position: relative;
   width: 100%;
-  top: -2px;
 }
 
+
 @keyframes running-progress {
-  0% { margin-left: 0; margin-right: 100%; }
-  50% { margin-left: 35%; margin-right: 0%; }
-  100% { margin-left: 100%; margin-right: 0%; }
+  0% { margin-left: 0; width: 0; }
+  50% { margin-left: 35%; width: 65%; }
+  100% { margin-left: 100%; width: 0; }
 }
 
 .loading-indicator {
   position: absolute;
+  top: -2px;
   background-color: var(--lit-neutral-500);
   width: 100%;
   height: 2px;
