@@ -198,7 +198,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return [sharedStyles, styles];
   }
 
-  // For generation model. For salience, see updateSalience() below.
+  // For generation model. For salience, see fetchSalience() below.
   override predsTypes = GENERATION_TYPES;
 
   @observable
@@ -219,13 +219,13 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
    * Cache for salience results for different target spans.
    * Because computing salience can be slow and we don't want to lock the
    * frontend, we use this cache as an intermediary between the API calls
-   * (updateSalience) and the rendering logic. API calls are asynchronous with
+   * (fetchSalience) and the rendering logic. API calls are asynchronous with
    * updates and populate this cache with their results; the rendering logic
    * then observes this cache and renders only the result with the current
    * selected span.
    *
    * Each cache entry can have three states:
-   * - undefined: we haven't seen it yet, so updateSalience will issue a backend
+   * - undefined: we haven't seen it yet, so fetchSalience will issue a backend
    * call.
    * - REQUEST_PENDING: sentinel value, set while a backend call is in progress.
    * - Otherwise, will contain a SalienceResults object with results for that
@@ -246,6 +246,11 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return `_${this.model}_tokenizer`;
   }
 
+  /* be sure to run this when the target string changes */
+  private clearResultCache() {
+    this.salienceResultCache = {};
+  }
+
   private resetTargetSpan() {
     this.targetSegmentSpan = undefined;
   }
@@ -259,7 +264,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     this.currentTokens = [];
     this.resetTargetSpan();
     // Salience results
-    this.salienceResultCache = {};
+    this.clearResultCache();
   }
 
   // Modified input with selected target sequence. Use this for tokens and
@@ -432,7 +437,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     this.currentTokens = results[0]['tokens'];
   }
 
-  async updateSalience(targetTokenSpan: number[]|undefined) {
+  async fetchSalience(targetTokenSpan: number[]|undefined) {
     if (this.modifiedData == null) return;
     if (targetTokenSpan === undefined) return;
 
@@ -505,6 +510,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     this.reactImmediately(
         () => [this.modifiedData, this.model, this.appState.currentDataset],
         () => {
+          this.clearResultCache();
           this.resetTargetSpan();
           this.updateTokens();
         });
@@ -513,7 +519,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // this.model or this.appState.currentDataset will trigger the target span
     // to be reset.
     this.reactImmediately(() => this.targetTokenSpan, (targetTokenSpan) => {
-      this.updateSalience(targetTokenSpan);
+      this.fetchSalience(targetTokenSpan);
     });
   }
 
@@ -528,7 +534,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         selected: this.segmentationMode === val,
         onClick: () => {
           if (this.segmentationMode !== val) {
-            this.targetSegmentSpan = undefined;
+            this.resetTargetSpan();
           }
           this.segmentationMode = val as SegmentationMode;
         },
