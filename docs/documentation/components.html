@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="LIT Python API" href="api.html" /><link rel="prev" title="UI Guide" href="ui_guide.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Components and Features - 🔥LIT 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
@@ -203,7 +203,7 @@
         <article role="main">
           <section class="tex2jax_ignore mathjax_ignore" id="components-and-features">
 <h1>Components and Features<a class="headerlink" href="#components-and-features" title="Link to this heading">#</a></h1>
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-07' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-17' } *-->
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 <section id="framework-and-model-support">
 <h2>Framework and Model Support<a class="headerlink" href="#framework-and-model-support" title="Link to this heading">#</a></h2>
@@ -461,45 +461,9 @@ module in the LIT UI, which allows for comparison of multiple methods at once:</
 <p><a class="reference internal" href="_images/salience-map.png"><img alt="Salience Map Module" class="align-center" src="_images/salience-map.png" style="width: 600px;" /></a></p>
 <p>For a demo with a BERT-based classifier, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the
 “Explanations” tab.</p>
-<p>Currently, salience is supported for classification ( <code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code>) and
-regression (<code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) outputs, though we hope to support seq2seq models
-soon.</p>
-<section id="note-on-target-selection">
-<h3>Note on Target Selection<a class="headerlink" href="#note-on-target-selection" title="Link to this heading">#</a></h3>
-<p>For all salience methods, we require that the class to explain is given as a
-label field in the input. For example, if the input example is:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;this movie was terrible!&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">}</span>
-</pre></div>
-</div>
-<p>Our model should return gradients with respect to the class 0. Conversely, we
-might want to ask what features would encourage the model to predict a different
-class. If we select class 1 from the UI:</p>
-<p><a class="reference internal" href="_images/salience-target-select.png"><img alt="Target Selection" class="align-center" src="_images/salience-target-select.png" style="width: 400px;" /></a></p>
-<p>Then the model will receive a modified input with this target:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;this movie was terrible!&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
-</pre></div>
-</div>
-<p>To support this, the model should have the label field in the <code class="docutils literal notranslate"><span class="pre">input_spec</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">input_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">Spec</span><span class="p">:</span>
-  <span class="k">return</span> <span class="p">{</span>
-    <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">TextSegment</span><span class="p">(),</span>
-    <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">CategoryLabel</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-    <span class="o">...</span>
-  <span class="p">}</span>
-</pre></div>
-</div>
-<p>and have an output field which references this using <code class="docutils literal notranslate"><span class="pre">parent=</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">output_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">Spec</span><span class="p">:</span>
-  <span class="k">return</span> <span class="p">{</span>
-    <span class="s1">&#39;probas&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">MulticlassPreds</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="s2">&quot;label&quot;</span><span class="p">),</span>
-    <span class="o">...</span>
-  <span class="p">}</span>
-</pre></div>
-</div>
-<p>You don’t have to call the field “label”, and it’s okay if this field isn’t
-present in the <em>dataset</em> - as long as it’s something that the model will
-recognize and use as the target to derive gradients.</p>
-</section>
+<p>Currently, salience is supported for classification ( <code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code>),
+regression (<code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) and generation (<code class="docutils literal notranslate"><span class="pre">GeneratedText</span></code> or
+<code class="docutils literal notranslate"><span class="pre">GeneratedTextCandidates</span></code>) outputs.</p>
 <section id="gradient-norm">
 <h3>Gradient Norm<a class="headerlink" href="#gradient-norm" title="Link to this heading">#</a></h3>
 <p>This is a simple method, in which salience scores are proportional to the L2
@@ -613,8 +577,78 @@ can increase the number of samples:</p>
 <p>LIME works out-of-the-box with any classification (<code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code>) or
 regression/scoring (<code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) model.</p>
 </section>
+<section id="target-selection-on-classification-output">
+<h3>Target Selection on Classification Output<a class="headerlink" href="#target-selection-on-classification-output" title="Link to this heading">#</a></h3>
+<p>For all salience methods, we require that the class to explain is given as a
+label field in the input. For example, if the input example is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;this movie was terrible!&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>Our model should return gradients with respect to the class 0. Conversely, we
+might want to ask what features would encourage the model to predict a different
+class. If we select class 1 from the UI:</p>
+<p><a class="reference internal" href="_images/salience-target-select.png"><img alt="Target Selection" class="align-center" src="_images/salience-target-select.png" style="width: 400px;" /></a></p>
+<p>Then the model will receive a modified input with this target:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;this movie was terrible!&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;1&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>To support this, the model should have the label field in the <code class="docutils literal notranslate"><span class="pre">input_spec</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">input_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">Spec</span><span class="p">:</span>
+  <span class="k">return</span> <span class="p">{</span>
+    <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">TextSegment</span><span class="p">(),</span>
+    <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">CategoryLabel</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+    <span class="o">...</span>
+  <span class="p">}</span>
+</pre></div>
+</div>
+<p>and have an output field which references this using <code class="docutils literal notranslate"><span class="pre">parent=</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">output_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">Spec</span><span class="p">:</span>
+  <span class="k">return</span> <span class="p">{</span>
+    <span class="s1">&#39;probas&#39;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">MulticlassPreds</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="s2">&quot;label&quot;</span><span class="p">),</span>
+    <span class="o">...</span>
+  <span class="p">}</span>
+</pre></div>
+</div>
+<p>You don’t have to call the field “label”, and it’s okay if this field isn’t
+present in the <em>dataset</em> - as long as it’s something that the model will
+recognize and use as the target to derive gradients.</p>
+</section>
+<section id="sequence-salience">
+<h3>Sequence salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">#</a></h3>
+<p>Sequence salience generalizes the salience methods mentioned above to
+text-to-text generative models and explains the impact of the preceding tokens
+on the generated tokens. Currently, we support sequence salience computation for
+various OSS modeling frameworks, including KerasNLP and Hugging Face
+Transformers.</p>
+<p>Sequence salience in the LIT UI provides multiple options for analysis,
+including:</p>
+<ul class="simple">
+<li><p>running the salience methods on the text from the dataset (target) or from
+the model (response).</p></li>
+<li><p>computing the sequence salience through <a class="reference internal" href="#gradient-norm">Gradient Norm</a> or
+<a class="reference internal" href="#gradient-dot-input">Gradient-dot-Input</a>.</p></li>
+<li><p>selecting different granularity levels for salience analysis, from the
+smallest possible level of tokens, to more interpretable larger spans, such
+as words, sentences, lines, or paragraphs.</p></li>
+</ul>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>(a) Options for sequence salience.</p></th>
+<th class="head"><p>(b) Sequence salience visualization.</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="_images/sequence-salience-selections.png"><img alt="Sequence salience selections" class="align-center" src="_images/sequence-salience-selections.png" style="width: 650px;" /></a></p></td>
+<td><p><a class="reference internal" href="_images/sequence-salience-vis.png"><img alt="Sequence salience vis" class="align-center" src="_images/sequence-salience-vis.png" style="width: 650px;" /></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
 <section id="salience-clustering">
-<h3>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">#</a></h3>
+<h2>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">#</a></h2>
 <p>LIT includes a basic implementation of the salience clustering method from
 <a class="reference external" href="https://arxiv.org/abs/2211.05485">Ebert et al. 2022</a>, which uses k-means on a
 salience-weighted bag-of-words representation to find patterns in model
@@ -626,6 +660,16 @@ salience method, and run using the “Apply” button. The result will be a set 
 top tokens for each cluster, as in Table 6 of
 <a class="reference external" href="https://arxiv.org/pdf/2211.05485.pdf">the paper</a>.</p>
 </section>
+<section id="tabular-feature-attribution">
+<h2>Tabular Feature Attribution<a class="headerlink" href="#tabular-feature-attribution" title="Link to this heading">#</a></h2>
+<p>Tabular feature attribution seeks to understand the importance of a column of
+data on a model’s predictions. LIT’s tabular feature attribution module supports
+this analysis using the <a class="reference external" href="https://github.com/slundberg/shap">SHAP interpreter</a>.
+Please check out
+<a class="reference external" href="https://pair-code.github.io/lit/tutorials/tab-feat-attr/">our tutorial</a> to
+learn more about how to use this module to analyze feature importance in the
+<a class="reference external" href="https://pair-code.github.io/lit/demos/penguins.html">Penguins demo</a>.</p>
+<p><a class="reference internal" href="_images/tabular-feature-attribution.png"><img alt="Tabular feature attribution module module" class="align-center" src="_images/tabular-feature-attribution.png" style="width: 500px;" /></a></p>
 </section>
 <section id="pixel-based-salience">
 <h2>Pixel-based Salience<a class="headerlink" href="#pixel-based-salience" title="Link to this heading">#</a></h2>
@@ -1052,14 +1096,16 @@ classification or regression model.</p></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#token-based-salience">Token-based Salience</a><ul>
-<li><a class="reference internal" href="#note-on-target-selection">Note on Target Selection</a></li>
 <li><a class="reference internal" href="#gradient-norm">Gradient Norm</a></li>
 <li><a class="reference internal" href="#gradient-dot-input">Gradient-dot-Input</a></li>
 <li><a class="reference internal" href="#integrated-gradients">Integrated Gradients</a></li>
 <li><a class="reference internal" href="#lime">LIME</a></li>
-<li><a class="reference internal" href="#salience-clustering">Salience Clustering</a></li>
+<li><a class="reference internal" href="#target-selection-on-classification-output">Target Selection on Classification Output</a></li>
+<li><a class="reference internal" href="#sequence-salience">Sequence salience</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#salience-clustering">Salience Clustering</a></li>
+<li><a class="reference internal" href="#tabular-feature-attribution">Tabular Feature Attribution</a></li>
 <li><a class="reference internal" href="#pixel-based-salience">Pixel-based Salience</a></li>
 <li><a class="reference internal" href="#attention">Attention</a></li>
 <li><a class="reference internal" href="#embedding-projector">Embedding Projector</a></li>
