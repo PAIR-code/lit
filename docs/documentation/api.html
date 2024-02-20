@@ -5,7 +5,7 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Frontend Developer Guide" href="frontend_development.html" /><link rel="prev" title="Components and Features" href="components.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2023.09.10 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>LIT Python API - 🔥LIT 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
@@ -939,8 +939,7 @@ would yield additional human-readable information as follows.</p>
 </section>
 <section id="available-types">
 <h3>Available types<a class="headerlink" href="#available-types" title="Link to this heading">#</a></h3>
-<p>The full set of <code class="docutils literal notranslate"><span class="pre">LitType</span></code>s is defined in
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py">types.py</a>, and summarized
+<p>The full set of <code class="docutils literal notranslate"><span class="pre">LitType</span></code>s is defined in <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py">types.py</a>. Numeric types such as <code class="docutils literal notranslate"><span class="pre">Integer</span></code> and <code class="docutils literal notranslate"><span class="pre">Scalar</span></code> have predefined ranges that can be overridden using corresponding <code class="docutils literal notranslate"><span class="pre">min_val</span></code> and <code class="docutils literal notranslate"><span class="pre">max_val</span></code> attributes as seen <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/penguin_data.py;l=19-22;rcl=574999438">here</a>. The different types available in LIT are summarized
 in the table below.</p>
 <p>Note: Bracket syntax, such as <code class="docutils literal notranslate"><span class="pre">&lt;float&gt;[num_tokens]</span></code>, refers to the shapes of
 NumPy arrays where each element inside the brackets is an integer.</p>
@@ -1002,7 +1001,7 @@ NumPy arrays where each element inside the brackets is an integer.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Integer</span></code></p></td>
-<td><p>Integer value.</p></td>
+<td><p>Integer, with a default range from -32768 to +32767. value.</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">int</span></code></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ImageBytes</span></code></p></td>

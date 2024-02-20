@@ -1,6 +1,6 @@
 # Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-12-02' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-26' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
