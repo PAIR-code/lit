@@ -126,7 +126,7 @@ export class TokenChips extends LitElement {
     }
 
     let preSpace = false;
-    if (this.preSpace && tokenText.startsWith(' ')) {
+    if (this.preSpace && tokenText.startsWith(' ') && !preBreak) {
       preSpace = true;
       tokenText = tokenText.slice(1);
     }
@@ -152,22 +152,28 @@ export class TokenChips extends LitElement {
       `;
   }
 
+  /**
+   * Classes for the tokens holder. Subclass can add to this to enable
+   * custom styling modes.
+   */
+  protected holderClass() {
+    return {
+      'tokens-holder': true,
+      'tokens-holder-dense': this.dense,
+      'tokens-holder-display-block': this.displayBlock,
+    };
+  }
+
   override render() {
     const tokensDOM = this.tokensWithWeights.map(
         (tokenWithWeight: TokenWithWeight, i: number) =>
             this.renderToken(tokenWithWeight, i));
 
-    const holderClass = classMap({
-      'tokens-holder': true,
-      'tokens-holder-dense': this.dense,
-      'tokens-holder-display-block': this.displayBlock,
-    });
-
     // prettier-ignore
     return html`
       <div class="tokens-group">
         ${this.tokenGroupTitle ? this.tokenGroupTitle : ''}
-        <div class=${holderClass}>
+        <div class=${classMap(this.holderClass())}>
           ${tokensDOM}
         </div>
       </div>`;

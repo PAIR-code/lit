@@ -1,7 +1,3 @@
-:host {
-  --block-line-height: 22px;
-}
-
 .tokens-group {
   position: relative;
 }
@@ -17,6 +13,7 @@
   /* color and background set individually vis styleMap */
   font-family: 'Roboto';
   border-radius: 2px;
+  /* TODO: switch to using outline: instead? */
   border: 1px solid var(--token-outline-color); /* for spacing */
   padding: 2px 4px; /* wider horizontally */
   margin: 3px;
@@ -75,7 +72,7 @@
 .tokens-holder-display-block {
   display: block;
   font-size: 0; /* hack to get zero spacing between elements */
-  line-height: var(--block-line-height);
+  line-height: 22px;
 }
 
 .tokens-holder-display-block > * {

@@ -9,9 +9,8 @@ import '../elements/fused_button_bar';
 
 import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {styleMap} from 'lit/directives/style-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
@@ -141,18 +140,16 @@ class LMSalienceChips extends TokenChips {
     return [
       ...TokenChips.styles,
       css`
-        .salient-token {
-          padding: 1px 3px; /* wider horizontally */
-          margin: 2px;
-          min-width: 4px;  /* easier to see whitespace tokens */
-        }
         .tokens-holder:not(.tokens-holder-dense) .salient-token:not(.selected) {
           --token-outline-color: var(--lit-neutral-300); /* outline in non-dense mode */
         }
         .tokens-holder-display-block .salient-token {
-          padding: 3px 0; /* this controls the visible highlight */
+          padding: 3px 0; /* this controls the visible highlight area */
           margin: 0;
           margin-right: 4px;
+          /* use outline instead of border for more consistent spacing */
+          outline: 1px solid var(--token-outline-color);
+          border: 0;
         }
         .tokens-holder-display-block .salient-token span {
           /* this controls the mouseover area, so there are no gaps */
@@ -161,21 +158,38 @@ class LMSalienceChips extends TokenChips {
         }
         .salient-token.selected {
           --token-outline-color: var(--lit-mage-700);
-          box-shadow: 0px 0px 3px var(--token-outline-color);
+          outline: 2px solid var(--token-outline-color);
         }
         .tokens-holder-dense .salient-token {
-          margin: 2px 0px;  /* vertical spacing only */
-          min-width: 6px;  /* not too small. Check if this causes issues inside words. */
+          margin: 0; /* no extra spacing; determine only from line-height */
         }
         .tokens-holder-dense .salient-token.selected {
-          outline: 2px solid var(--token-outline-color);
-          border: 0;
-          box-shadow: unset;
           /* TODO see if we can get away from z-index here */
           z-index: 1;
         }
+        /* vertical dense mode */
+        .tokens-holder-vdense {
+          line-height: 16px;
+        }
+        .tokens-holder-vdense .salient-token {
+          padding: 1.5px 0; /* avoid highlight area overlapping across lines */
+        }
       `,
     ];
+  }
+
+  /**
+   * Vertical dense mode, only affects vertical spacing.
+   */
+  @property({type: Boolean}) vDense = false;
+
+  /**
+   * Custom style for tokens-holder, so we can implement vDense mode without
+   * adding clutter to token_chips.ts.
+   */
+  override holderClass() {
+    return Object.assign(
+        {}, super.holderClass(), {'tokens-holder-vdense': this.vDense});
   }
 }
 
@@ -876,16 +890,13 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       });
     }
 
-    const chipHostStyle =
-        styleMap({'--block-line-height': this.vDense ? '16px' : '22px'});
-
     // prettier-ignore
     return html`
       <div class='chip-container'>
-        <lm-salience-chips .tokensWithWeights=${segmentsWithWeights} 
-          ?dense=${this.denseView} ?preSpace=${this.denseView}
-          .cmap=${this.cmap} breakNewlines displayBlock
-          style=${chipHostStyle}>
+        <lm-salience-chips 
+          .tokensWithWeights=${segmentsWithWeights} .cmap=${this.cmap}
+          ?dense=${this.denseView} ?vDense=${this.vDense}
+          ?preSpace=${this.denseView} breakNewlines displayBlock>
         </lm-salience-chips>
       </div>
     `;
