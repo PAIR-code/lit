@@ -4,7 +4,7 @@ This demo loads a small BERT model trained on a sentiment analysis task.
 It also uses a custom frontend build, which has a fun potato module!
 
 To run locally:
-  blaze run -c opt --config=cuda examples/custom_module:potato_demo -- --port=5432
+  python -m lit_nlp.examples.custom_module.potato_demo --port=5432
 
 Once you see the ASCII-art LIT logo, navigate to localhost:5432 to access the
 demo UI.
