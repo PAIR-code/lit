@@ -20,6 +20,7 @@
   text-overflow: ellipsis;
   overflow-x: hidden;
   line-height: 22px;
+  flex: 1;
 }
 
 lit-switch .icon-button {
@@ -46,13 +47,6 @@ select:invalid {
   font-size: 1.5em;
   font-family: 'Google Sans', sans;
   padding: 4px 2px;  /* 2px left shift vs. smaller fonts below */
-}
-
-.interstitial-subtitle {
-  font-family: 'Google Sans', sans;
-  color: var(--lit-neutral-500);
-  padding: 4px;
-  margin-bottom: 8px;
 }
 
 .interstitial-contents {
@@ -126,14 +120,9 @@ select:invalid {
   margin-right: 8px;
 }
 
-.target-dropdown-holder {
-  width: calc(100% - 22px);
-  margin-right: 4px;
-}
-
-.target-dropdown-holder .dropdown {
-  width: 100%;
-  text-overflow: ellipsis;
+.change-target-button {
+  white-space: nowrap;
+  margin: 0; /* have enough already from controls-group */
 }
 
 .vertical-separator {

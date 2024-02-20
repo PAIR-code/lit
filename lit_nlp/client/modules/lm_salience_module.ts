@@ -661,52 +661,50 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     }
   }
 
-  renderSalienceTargetStringSelector() {
-    const onChangeTarget = (e: Event) => {
-      const value = (e.target as HTMLInputElement).value;
-      this.salienceTargetOption = value !== '' ? +value : undefined;
-    };
+  renderSalienceTargetStringIndicator() {
+    const target = this.salienceTargetOption !== undefined ?
+        this.salienceTargetOptions[this.salienceTargetOption] :
+        null;
+    let sourceInfo = '';
+    let targetText = 'none selected.';
+    if (target != null) {
+      sourceInfo = target.source === TargetSource.REFERENCE ? ' (target)' :
+                                                              ' (response)';
+      targetText = target.text;
+    }
 
     const targetSelectorHelp =
         'Select a (response) from the model or a pre-defined (target) sequence from the dataset.';
 
-    const options = this.salienceTargetOptions.map((target, i) => {
-      // TODO(b/324959547): get field names 'target' and 'response' from spec
-      // via generated_text_utils.ts, rather than hard-coding.
-      // This information is available on the frontend, but we need to thread
-      // it through a few layers of code in generated_text_utils.ts
-      const sourceName =
-          target.source === TargetSource.REFERENCE ? 'target' : 'response';
-      // prettier-ignore
-      return html`
-          <option value=${i} ?selected=${i === this.salienceTargetOption}>
-             (${sourceName}) "${target.text}"
-          </option>`;
-    });
-    // Empty default option. Styled as select:invalid.
-    // prettier-ignore
-    options.unshift(html`
-        <option value='' disabled hidden ?selected=${
-        this.salienceTargetOption === undefined}>
-          ${targetSelectorHelp}
-        </option>`);
-
     const isLoadingPreds = this.latestLoadPromises.has('modelPreds');
+
+    const indicatorTextClass = classMap({
+      'target-info-line': true,
+      'gray-text': target == null,
+    });
+
+    const clearSalienceTarget = () => {
+      /* this will show the interstitial */
+      this.salienceTargetOption = undefined;
+    };
 
     // prettier-ignore
     return html`
       <div class="controls-group controls-group-variable"
         title=${targetSelectorHelp}>
-        <div class='target-dropdown-holder'>
-          <select required class='dropdown' @change=${onChangeTarget}>
-            ${options}
-          </select>
+        <label class="dropdown-label">Sequence${sourceInfo}:</label>
+        <div class=${indicatorTextClass}>
+          ${targetText}
           ${isLoadingPreds ? this.renderLoadingIndicator() : null}
         </div>
+      </div>
+      <div class='controls-group'>
         <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
-          <span class="help-icon material-icon-outlined icon-button">
-            help_outline
-          </span>
+          <button class='hairline-button change-target-button'
+            slot='tooltip-anchor' @click=${clearSalienceTarget}
+            ?disabled=${target == null}>
+            <span>Select sequence </span><span class='material-icon'>arrow_drop_down</span>
+          </button>
         </lit-tooltip>
       </div>
     `;
@@ -843,9 +841,6 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
           <div class='interstitial-header'>
             Choose a sequence to explain
           </div>
-          <div class='interstitial-subtitle'>
-            Or select from the dropdown at the top of this module
-          </div>
           <div class='interstitial-target-selector'>
             <div class='interstitial-target-type'>From dataset (target):</div>
             ${optionsFromDataset}
@@ -956,7 +951,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return html`
       <div class="module-container">
         <div class="module-toolbar">
-          ${this.renderSalienceTargetStringSelector()}
+          ${this.renderSalienceTargetStringIndicator()}
         </div>
         <div class="module-toolbar">
           ${this.renderGranularitySelector()}
