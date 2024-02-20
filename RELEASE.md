@@ -1,5 +1,66 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.1
+
+This release provides the capabilities to interpret and debug the behaviors of
+Generative AI models in LIT. Specifically, we added sequence salience, which
+explains the impact of the preceding tokens on the generated tokens produced by
+the GenAI models. Major changes include:
+* An `LM salience` module in the LIT UI that computes generations, tokenization,
+and sequence salience on-demand;
+* Computation of sequence salience at different granularities, from the smallest
+possible level of tokens, to more interpretable larger spans, such as words,
+sentences, lines, or paragraphs.
+* Support of OSS modeling frameworks, including KerasNLP and Hugging Face
+Transformers for sequence salience computation.
+This release would not have been possible without the work of our contributors.
+Many thanks to:
+[Ryan Mullins](https://github.com/RyanMullins),
+[Ian Tenney](https://github.com/iftenney),
+[Bin Du](https://github.com/bdu91), and
+[Cibi Arjun](https://github.com/cpka145).
+
+### New Stuff
+* LM salience module in the LIT UI -
+[ab294bd](https://github.com/PAIR-code/lit/commit/ab294bd3e15675c0e63e5a16ffe4b8cd4941c94f)
+[5cffc4d](https://github.com/PAIR-code/lit/commit/5cffc4d933e611587b00c25861c911d5f734fa22)
+[40bb57a](https://github.com/PAIR-code/lit/commit/40bb57a2531257c38137188090a24e70d47581c8)
+[d3980cc](https://github.com/PAIR-code/lit/commit/d3980cc5414e1f9be895defc4f967bee8a2480fc)
+[406fbc7](https://github.com/PAIR-code/lit/commit/406fbc7690ee72f6f96ecf68f1238822ae8951c2)
+[77583e7](https://github.com/PAIR-code/lit/commit/77583e74236aa443a21ad0779b0ab9c023821b93)
+[a758f98](https://github.com/PAIR-code/lit/commit/a758f98c5153f23955b0190a75dc1258ba57b645)
+* Sequence salience for decoder-only LM, with support for GPT-2 and KerasNLP -
+[27e6901](https://github.com/PAIR-code/lit/commit/27e6901164044c0d33658603369a55600da0b202)
+[80cf699](https://github.com/PAIR-code/lit/commit/80cf699f92cd77d58cb2a2a60b9314010b1f336c)
+[1df3ba8](https://github.com/PAIR-code/lit/commit/1df3ba8449e865edb5806c10c8054c246d1e38e3)
+[b6ab352](https://github.com/PAIR-code/lit/commit/b6ab3522b301810cab3c75723f3fe0dabf829577)
+[c97a710](https://github.com/PAIR-code/lit/commit/c97a710416538906ea6b269f90264c0602a15593)
+* Prompt examples for sequence salience -
+[4f19891](https://github.com/PAIR-code/lit/commit/4f1989180ee570642285682f843242be5bffb9ef)
+[000c844](https://github.com/PAIR-code/lit/commit/000c84486ed61439c98dbfdd92959bdbb6f5119f)
+[34aa110](https://github.com/PAIR-code/lit/commit/34aa110c36fe0c7ec670f06662078d2f572c79c6)
+[ca032ff](https://github.com/PAIR-code/lit/commit/ca032ffb3196e71fd0a7a09118635ca6dafc8153)
+
+
+### Non-breaking Changes, Bug Fixes, and Enhancements
+* Improvements to display various fields and their default ranges -
+[8a3f366](https://github.com/PAIR-code/lit/commit/8a3f366816833ead164ecfca778b465ef6d074bb)
+[e63b674](https://github.com/PAIR-code/lit/commit/e63b67484fc7f4dbfa3484126c355350d2127bf7)
+[d274508](https://github.com/PAIR-code/lit/commit/d2745088966c4ac31a3755f55096eeb8193c5a91)
+* Allow only displaying the UI layouts provided by users -
+[a219863](https://github.com/PAIR-code/lit/commit/a21986342d83ae64d58607e337fab9db7736242a)
+* Internal dependency changes -
+[f254fa8](https://github.com/PAIR-code/lit/commit/f254fa8500d6267278fa3dc32fb4bbf56beb7cf7)
+[724bdee](https://github.com/PAIR-code/lit/commit/724bdee1f9ea45ce998b9031eea4ad1169299efb)
+[2138bd9](https://github.com/PAIR-code/lit/commit/2138bd920e72553f9c920ba489962c8649738574)
+* Fix issues with adding more than one example from counterfactual generators -
+[d4302bd](https://github.com/PAIR-code/lit/commit/d4302bd6bfc7e4c778ba0e96397ac620242a8d21)
+* Fix issues with loading `SimpleSentimentModel` -
+[ac8ed59](https://github.com/PAIR-code/lit/commit/ac8ed5902a2c96019ea1137b5138d48017fabf4e)
+* Notebook widget improvements -
+[cdf79eb](https://github.com/PAIR-code/lit/commit/cdf79eb9048be3e6798e916d5e1ac4cc294929b0)
+* Docs updates
+
 ## Release 1.0
 
 This is a major release, covering many new features and API changes from the

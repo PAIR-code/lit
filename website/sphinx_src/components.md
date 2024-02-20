@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-07' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-17' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -264,55 +264,9 @@ module in the LIT UI, which allows for comparison of multiple methods at once:
 For a demo with a BERT-based classifier, see https://pair-code.github.io/lit/demos/glue.html and navigate to the
 "Explanations" tab.
 
-Currently, salience is supported for classification ( `MulticlassPreds`) and
-regression (`RegressionScore`) outputs, though we hope to support seq2seq models
-soon.
-
-#### Note on Target Selection
-
-For all salience methods, we require that the class to explain is given as a
-label field in the input. For example, if the input example is:
-
-```
-{"text": "this movie was terrible!", "label": "0"}
-```
-
-Our model should return gradients with respect to the class 0. Conversely, we
-might want to ask what features would encourage the model to predict a different
-class. If we select class 1 from the UI:
-
-![Target Selection](./images/components/salience-target-select.png){w=400px align=center}
-
-Then the model will receive a modified input with this target:
-
-```
-{"text": "this movie was terrible!", "label": "1"}
-```
-
-To support this, the model should have the label field in the `input_spec`:
-
-```
-def input_spec(self) -> types.Spec:
-  return {
-    'text': lit_types.TextSegment(),
-    'label': lit_types.CategoryLabel(..., required=False),
-    ...
-  }
-```
-
-and have an output field which references this using `parent=`:
-
-```
-def output_spec(self) -> types.Spec:
-  return {
-    'probas': lit_types.MulticlassPreds(..., parent="label"),
-    ...
-  }
-```
-
-You don't have to call the field "label", and it's okay if this field isn't
-present in the *dataset* - as long as it's something that the model will
-recognize and use as the target to derive gradients.
+Currently, salience is supported for classification ( `MulticlassPreds`),
+regression (`RegressionScore`) and generation (`GeneratedText` or
+`GeneratedTextCandidates`) outputs.
 
 ### Gradient Norm
 
@@ -433,7 +387,76 @@ can increase the number of samples:
 LIME works out-of-the-box with any classification (`MulticlassPreds`) or
 regression/scoring (`RegressionScore`) model.
 
-### Salience Clustering
+### Target Selection on Classification Output
+
+For all salience methods, we require that the class to explain is given as a
+label field in the input. For example, if the input example is:
+
+```
+{"text": "this movie was terrible!", "label": "0"}
+```
+
+Our model should return gradients with respect to the class 0. Conversely, we
+might want to ask what features would encourage the model to predict a different
+class. If we select class 1 from the UI:
+
+![Target Selection](./images/components/salience-target-select.png){w=400px align=center}
+
+Then the model will receive a modified input with this target:
+
+```
+{"text": "this movie was terrible!", "label": "1"}
+```
+
+To support this, the model should have the label field in the `input_spec`:
+
+```
+def input_spec(self) -> types.Spec:
+  return {
+    'text': lit_types.TextSegment(),
+    'label': lit_types.CategoryLabel(..., required=False),
+    ...
+  }
+```
+
+and have an output field which references this using `parent=`:
+
+```
+def output_spec(self) -> types.Spec:
+  return {
+    'probas': lit_types.MulticlassPreds(..., parent="label"),
+    ...
+  }
+```
+
+You don't have to call the field "label", and it's okay if this field isn't
+present in the *dataset* - as long as it's something that the model will
+recognize and use as the target to derive gradients.
+
+### Sequence salience
+
+Sequence salience generalizes the salience methods mentioned above to
+text-to-text generative models and explains the impact of the preceding tokens
+on the generated tokens. Currently, we support sequence salience computation for
+various OSS modeling frameworks, including KerasNLP and Hugging Face
+Transformers.
+
+Sequence salience in the LIT UI provides multiple options for analysis,
+including:
+
+*   running the salience methods on the text from the dataset (target) or from
+    the model (response).
+*   computing the sequence salience through [Gradient Norm](#gradient-norm) or
+    [Gradient-dot-Input](#gradient-dot-input).
+*   selecting different granularity levels for salience analysis, from the
+    smallest possible level of tokens, to more interpretable larger spans, such
+    as words, sentences, lines, or paragraphs.
+
+(a) Options for sequence salience.                                                                 | (b) Sequence salience visualization.
+-------------------------------------------------------------------------------------------------- | ------------------------------------
+![Sequence salience selections](./images/components/sequence-salience-selections.png){w=650px align=center} | ![Sequence salience vis](./images/components/sequence-salience-vis.png){w=650px align=center}
+
+## Salience Clustering
 
 LIT includes a basic implementation of the salience clustering method from
 [Ebert et al. 2022](https://arxiv.org/abs/2211.05485), which uses k-means on a
@@ -447,6 +470,18 @@ To run clustering, select a group of examples or the entire dataset, choose a
 salience method, and run using the "Apply" button. The result will be a set of
 top tokens for each cluster, as in Table 6 of
 [the paper](https://arxiv.org/pdf/2211.05485.pdf).
+
+## Tabular Feature Attribution
+
+Tabular feature attribution seeks to understand the importance of a column of
+data on a model's predictions. LIT's tabular feature attribution module supports
+this analysis using the [SHAP interpreter](https://github.com/slundberg/shap).
+Please check out
+[our tutorial](https://pair-code.github.io/lit/tutorials/tab-feat-attr/) to
+learn more about how to use this module to analyze feature importance in the
+[Penguins demo](https://pair-code.github.io/lit/demos/penguins.html).
+
+![Tabular feature attribution module module](./images/components/tabular-feature-attribution.png){w=500px align=center}
 
 ## Pixel-based Salience
 
