@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-17' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-20' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -455,6 +455,14 @@ including:
 (a) Options for sequence salience.                                                                 | (b) Sequence salience visualization.
 -------------------------------------------------------------------------------------------------- | ------------------------------------
 ![Sequence salience selections](./images/components/sequence-salience-selections.png){w=650px align=center} | ![Sequence salience vis](./images/components/sequence-salience-vis.png){w=650px align=center}
+
+
+**Code:**
+
+* Demo: [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+* KerasNLP model wrappers: [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
+* Transformers model wrappers: [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+
 
 ## Salience Clustering
 
