@@ -10,6 +10,10 @@
    * with tooltip positioning.
    */
   --anchor-display-mode: inline-block;
+  --tooltip-position-left: auto;
+  --tooltip-position-right: auto;
+  --tooltip-position-top: auto;
+  --tooltip-position-bottom: auto;
 }
 
 /* Tooltip */
@@ -34,6 +38,10 @@
   font-size: 12px;
   font-weight: normal;
   line-height: 16px;
+  left: var(--tooltip-position-left);
+  right: var(--tooltip-position-right);
+  top: var(--tooltip-position-top);
+  bottom: var(--tooltip-position-bottom);
 
   display: -webkit-box;
   -webkit-line-clamp: 6;
@@ -41,11 +49,11 @@
   overflow: hidden;
 }
 
-.above {
+.tooltip-text.above {
   bottom: 28px;
 }
 
-.left {
+.tooltip-text.left {
   right: 12px;
 }
 

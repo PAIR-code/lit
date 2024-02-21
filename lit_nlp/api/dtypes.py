@@ -112,6 +112,14 @@ class FeatureSalience(DataTuple):
   salience: dict[str, float]
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class FrameSalience(DataTuple):
+  """Dataclass for a salience map over image frames in a video."""
+
+  # A map of salience score and image bytes string by frame number
+  salience: dict[str, tuple[float, Sequence[str]]]
+
+
 # TODO(b/196886684): document API for salience interpreters.
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SequenceSalienceMap(DataTuple):

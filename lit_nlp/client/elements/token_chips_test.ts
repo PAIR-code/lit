@@ -31,7 +31,21 @@ const TESTDATA: Array<{tokensWithWeights: TokenWithWeight[]}> = [
       {token: 'hello', weight: 0.7, selected: true, pinned: true},
       {token: 'world', weight: 0.3}
     ],
-  }
+  },
+  {
+    // for testing preSpace mode
+    tokensWithWeights: [
+      {token: 'foo', weight: 0.7, selected: true, pinned: true},
+      {token: ' bar', weight: 0.3}, {token: 'baz', weight: 0.5}
+    ],
+  },
+  {
+    // for testing breakNewlines mode
+    tokensWithWeights: [
+      {token: 'foo', weight: 0.7}, {token: '\nbar', weight: 0.3},
+      {token: '\n\n', weight: 0.1}, {token: 'baz\n', weight: 0.5}
+    ],
+  },
 ];
 
 describe('token chips test', () => {
@@ -58,6 +72,58 @@ describe('token chips test', () => {
       expect(tokenElements.length).toEqual(tokensWithWeights.length);
       expect(tokenElements[0].innerText).toEqual(tokensWithWeights[0].token);
       expect(tokenElements[0].children[0]).toBeInstanceOf(LitTooltip);
+    });
+
+    it('should break spaces in preSpace mode', async () => {
+      tokenChips.preSpace = true;
+      await tokenChips.updateComplete;
+
+      const tokenElements =
+          tokenChips.renderRoot.querySelectorAll<HTMLDivElement>(
+              'div.salient-token');
+      expect(tokenElements.length).toEqual(tokensWithWeights.length);
+      for (let i = 0; i < tokenElements.length; i++) {
+        const elem = tokenElements[i];
+        const expectedToken = tokensWithWeights[i].token;
+        if (expectedToken.startsWith(' ')) {
+          // Space moved to a word spacer.
+          expect(elem.innerText).toEqual(expectedToken.slice(1));
+          expect(elem.previousElementSibling?.classList ?? [])
+              .toContain('word-spacer');
+        } else {
+          // Space intact, no word spacer.
+          expect(elem.innerText).toEqual(expectedToken);
+          if (i > 0) {
+            expect(elem.previousElementSibling?.classList ?? [])
+                .toContain('salient-token');
+          }
+        }
+      }
+    });
+
+    it('should break newlines in breakNewlines mode', async () => {
+      tokenChips.breakNewlines = true;
+      await tokenChips.updateComplete;
+
+      const tokenElements =
+          tokenChips.renderRoot.querySelectorAll<HTMLDivElement>(
+              'div.salient-token');
+      expect(tokenElements.length).toEqual(tokensWithWeights.length);
+      for (let i = 0; i < tokenElements.length; i++) {
+        const elem = tokenElements[i];
+        let expectedToken = tokensWithWeights[i].token;
+        if (expectedToken.endsWith('\n')) {
+          expectedToken = expectedToken.slice(0, -1) + ' ';
+          expect(elem.nextElementSibling?.classList ?? [])
+              .toContain('row-break');
+        }
+        if (expectedToken.startsWith('\n')) {
+          expectedToken = ' ' + expectedToken.slice(1);
+          expect(elem.previousElementSibling?.classList ?? [])
+              .toContain('row-break');
+        }
+        expect(elem.innerText).toEqual(expectedToken);
+      }
     });
 
     it('should mark a selected token', async () => {

@@ -84,11 +84,13 @@ export abstract class LitModule extends ReactiveElement {
       (model: string, selectionServiceIndex: number,
        shouldReact: number) => TemplateResult = () => html``;
 
-  @property({type: String}) model = '';
+  @observable @property({type: String}) model = '';
   @observable @property({type: Number}) selectionServiceIndex = 0;
 
-  // tslint:disable-next-line:no-any
+  // tslint:disable:no-any
+  @observable
   protected readonly latestLoadPromises = new Map<string, Promise<any>>();
+  // tslint:enable:no-any
 
   protected readonly apiService = app.getService(ApiService);
   protected readonly appState = app.getService(AppState);

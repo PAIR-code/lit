@@ -28,10 +28,10 @@ import {computed, observable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData, TableEntry} from '../elements/table';
-import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
+import {canonicalizeGenerationResults, type GeneratedTextResult, GENERATION_TYPES, getAllOutputTexts, getFlatTexts} from '../lib/generated_text_utils';
 import {FieldMatcher, InfluentialExamples, LitTypeWithParent} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, ComponentInfoMap, IndexedInput, Input, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, ComponentInfoMap, type IndexedInput, type Input, ModelInfoMap, Spec} from '../lib/types';
 import {cloneSpec, filterToKeys, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {AppState, SelectionService} from '../services/services';
 

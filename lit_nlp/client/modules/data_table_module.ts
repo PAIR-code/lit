@@ -30,7 +30,7 @@ import {LitModule} from '../core/lit_module';
 import {ColumnHeader, DataTable, SortableTemplateResult, TableData, TableEntry} from '../elements/table';
 import {BooleanLitType, LitType, LitTypeWithVocab, URLLitType} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {formatForDisplay, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {formatForDisplay, IndexedInput, ModelInfoMap, type Spec} from '../lib/types';
 import {compareArrays} from '../lib/utils';
 import {DataService, FocusService, SelectionService, SliceService} from '../services/services';
 import {STARRED_SLICE_NAME} from '../services/slice_service';

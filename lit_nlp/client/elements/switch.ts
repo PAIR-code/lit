@@ -85,12 +85,17 @@ export class LitSwitch extends LitElement {
       'selected': this.selected
     });
 
+    // prettier-ignore
     return html`
       <div class=${containerClasses} @click=${toggleState}>
-        <div class='switch-label label-left'>${this.labelLeft}</div>
+        <div class='switch-label label-left'>
+          ${this.labelLeft}<slot name="labelLeft"></slot>
+        </div>
         <mwc-switch ?selected=${this.selected} ?disabled=${this.disabled}>
         </mwc-switch>
-        <div class='switch-label label-right'>${this.labelRight}</div>
+        <div class='switch-label label-right'>
+          <slot name="labelRight"></slot>${this.labelRight}
+        </div>
       </div>
     `;
   }

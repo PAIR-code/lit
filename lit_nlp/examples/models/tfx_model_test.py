@@ -2,7 +2,7 @@
 import tempfile
 
 from lit_nlp.api import types as lit_types
-from lit_nlp.components import tfx_model
+from lit_nlp.examples.models import tfx_model
 import tensorflow as tf
 
 

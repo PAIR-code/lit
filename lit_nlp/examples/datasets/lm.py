@@ -1,11 +1,17 @@
 """Language modeling datasets."""
 
+import copy
+import json
+import os
 import glob
 from typing import Optional
 
+from absl import logging
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
 import tensorflow_datasets as tfds
+
+SAMPLE_DATA_DIR = os.path.dirname(__file__)
 
 
 class PlaintextSents(lit_dataset.Dataset):
@@ -16,7 +22,9 @@ class PlaintextSents(lit_dataset.Dataset):
       path_or_glob: str,
       skiplines: int = 0,
       max_examples: Optional[int] = None,
+      field_name: str = 'text',
   ):
+    self.field_name = field_name
     self._examples = self.load_datapoints(path_or_glob, skiplines=skiplines)[
         :max_examples
     ]
@@ -44,7 +52,7 @@ class PlaintextSents(lit_dataset.Dataset):
             continue
           line = line.strip()
           if line:  # skip blank lines, these are usually document breaks
-            examples.append({'text': line})
+            examples.append({self.field_name: line})
     return examples
 
   def load(self, path: str):
@@ -52,7 +60,46 @@ class PlaintextSents(lit_dataset.Dataset):
 
   def spec(self) -> lit_types.Spec:
     """Should match MLM's input_spec()."""
-    return {'text': lit_types.TextSegment()}
+    return {self.field_name: lit_types.TextSegment()}
+
+
+class PromptExamples(lit_dataset.Dataset):
+  """Prompt examples for modern LMs."""
+
+  SAMPLE_DATA_PATH = os.path.join(SAMPLE_DATA_DIR, 'prompt_examples.jsonl')
+
+  def load_datapoints(self, path: str):
+    if not path:
+      logging.warn(
+          'Empty path to PromptExamples.load_datapoints(). Returning empty'
+          ' dataset.'
+      )
+      return []
+
+    default_ex_values = {
+        k: copy.deepcopy(field_spec.default)
+        for k, field_spec in self.spec().items()
+    }
+
+    examples = []
+    with open(path) as fd:
+      for line in fd:
+        examples.append(default_ex_values | json.loads(line))
+
+    return examples
+
+  def __init__(self, path: str):
+    self._examples = self.load_datapoints(path)
+
+  def spec(self) -> lit_types.Spec:
+    return {
+        'source': lit_types.CategoryLabel(),
+        'prompt': lit_types.TextSegment(),
+        'target': lit_types.TextSegment(),
+    }
+
+  def load(self, path: str):
+    return lit_dataset.Dataset(base=self, examples=self.load_datapoints(path))
 
 
 class BillionWordBenchmark(lit_dataset.Dataset):

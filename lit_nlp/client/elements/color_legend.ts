@@ -28,7 +28,7 @@ import {computed, observable} from 'mobx';
 import {DEFAULT} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {D3Scale} from '../lib/types';
+import {type D3Scale} from '../lib/types';
 import {getTextWidth, linearSpace} from '../lib/utils';
 
 import {styles} from './color_legend.css';

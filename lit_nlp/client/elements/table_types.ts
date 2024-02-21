@@ -36,7 +36,7 @@ export interface SortableTemplateResult {
   value: SortableTableEntry;
 }
 /** Wrapper types for the data supplied to the data table */
-export type TableEntry = string|number|TemplateResult|SortableTemplateResult;
+export type TableEntry = string|number|string[]|TemplateResult|SortableTemplateResult;
 
 /** Wrapper types for the rows of data supplied to the data table */
 export type TableData = TableEntry[]|{[key: string]: TableEntry};

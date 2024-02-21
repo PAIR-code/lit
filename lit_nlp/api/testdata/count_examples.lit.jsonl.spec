@@ -20,8 +20,8 @@
   "value": {
     "required": true,
     "annotated": false,
-    "min_val": 0,
-    "max_val": 1,
+    "min_val": -32768,
+    "max_val": 32767,
     "default": 0,
     "step": 1,
     "__class__": "LitType",

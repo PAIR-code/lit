@@ -35,9 +35,9 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {InterpreterClick} from '../elements/interpreter_controls';
 import {TokenWithWeight} from '../elements/token_chips';
-import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience} from '../lib/lit_types';
+import {FeatureSalience, FieldMatcher, ImageGradients, ImageSalience, LitTypeTypesList, LitTypeWithParent, MulticlassPreds, RegressionScore, Salience, SalienceTargetInfo, TokenGradients, TokenSalience, FrameSalience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, ModelInfoMap, Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
+import {CallConfig, type IndexedInput, ModelInfoMap, type Preds, SCROLL_SYNC_CSS_CLASS, Spec} from '../lib/types';
 import {argmax, cloneSpec, findSpecKeys, makeModifiedInput} from '../lib/utils';
 import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../services/color_service';
 import {FocusService} from '../services/focus_service';
@@ -60,16 +60,18 @@ interface FeatureSalienceMap {
   [feature: string]: number;
 }
 
-interface FeatureSalienceResult {
+/**
+ * Results for calls to fetch salience for features.
+ */
+export interface FeatureSalienceResult {
   [key: string]: {salience: FeatureSalienceMap};
 }
 
-type SalienceResult = TokenSalienceResult | ImageSalienceResult |
+/** Different types of salience results supported in this module. */
+export type SalienceResult = TokenSalienceResult | ImageSalienceResult |
                       FeatureSalienceResult;
 
-// Notably, not SequenceSalience as that is handled by a different module.
-const SUPPORTED_SALIENCE_TYPES =
-    [TokenSalience, FeatureSalience, ImageSalience];
+const SUPPORTED_SALIENCE_TYPES = [TokenSalience, FeatureSalience, ImageSalience, FrameSalience];
 
 const TARGET_SELECTOR_SUPPORTED_TYPES: LitTypeTypesList =
     [MulticlassPreds, RegressionScore];
@@ -666,7 +668,7 @@ export class SalienceMapModule extends LitModule {
     // the label and the expander toggle.
     // clang-format off
     return html`
-      <div class='method-row'>
+      <div class='method-row' id='${name.toLowerCase()}'>
         <expansion-panel .label=${name} ?expanded=${this.state[name].autorun}
                          .description=${description}
                           @expansion-toggle=${toggleAutorun}>
@@ -676,6 +678,8 @@ export class SalienceMapModule extends LitModule {
           <div class='method-row-contents'>
             <div class='method-results'>
               ${this.selectionService.primarySelectedInputData != null ?
+                // TODO(b/319297222) Modify element such that we render each
+                // feature in the feature salience module in a separate line.
                 salienceContent : html`
                 <span class='salience-placeholder'>
                   Select a datapoint to see ${name} attributions.

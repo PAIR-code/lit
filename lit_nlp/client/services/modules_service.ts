@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {action, observable} from 'mobx';
 
-import {LayoutSettings, LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitModuleConfig, LitTabGroupLayout, ModelInfoMap, ResolvedModuleConfig, Spec} from '../lib/types';
+import {LayoutSettings, type LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitModuleConfig, LitTabGroupLayout, type ModelInfoMap, ResolvedModuleConfig, type Spec} from '../lib/types';
 
 import {LitService} from './lit_service';
 import {ModulesObservedByUrlService, UrlConfiguration} from './url_service';

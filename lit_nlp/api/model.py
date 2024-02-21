@@ -17,7 +17,7 @@ import abc
 from collections.abc import Iterable, Iterator
 import inspect
 import itertools
-import multiprocessing  # for ThreadPool
+import multiprocessing.pool  # for ThreadPool
 from typing import Optional, Union
 
 from absl import logging

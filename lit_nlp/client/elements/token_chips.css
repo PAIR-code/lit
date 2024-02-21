@@ -13,6 +13,7 @@
   /* color and background set individually vis styleMap */
   font-family: 'Roboto';
   border-radius: 2px;
+  /* TODO: switch to using outline: instead? */
   border: 1px solid var(--token-outline-color); /* for spacing */
   padding: 2px 4px; /* wider horizontally */
   margin: 3px;
@@ -52,4 +53,71 @@
 
 .pre-wrap {
   white-space: pre-wrap;
+}
+
+.row-break {
+  flex-basis: 100%;
+  height: 0;
+}
+
+.word-spacer {
+  width: 1em;
+}
+
+.tokens-holder-dense .word-spacer {
+  width: 0.5em;
+}
+
+/* block mode */
+.tokens-holder-display-block {
+  display: block;
+  font-size: 0; /* hack to get zero spacing between elements */
+  line-height: 22px;
+}
+
+.tokens-holder-display-block > * {
+  /* TODO: set this for all modes? */
+  font-size: 13px;  /* restore standard font size */
+}
+
+.tokens-holder-display-block .salient-token {
+  display: inline;
+  min-height: 1lh;
+  vertical-align: baseline;
+}
+
+/**
+ * This is the ugliest matcher I've ever written but it seems to fix the mess
+ * that is element spacing in inline mode. In particular: with the way we use
+ * word-spacer, any token followed by one would get extra trailing whitespace, 
+ * e.g. it would appear as |word | rather than |word|, making the highlighting
+ * awkward.
+ * 
+ * It's possible to fix this by scrupulously removing whitespace from the HTML,
+ * so long as the <span> are direct siblings of the word spacer. But this all 
+ * breaks down when they're nested inside <lit-tooltip> to provide the 
+ * mouseover.
+ * 
+ * So, instead we need to add a negative margin equal to the width 
+ * of a single space, only to those .salient-token elements that are followed
+ * by a .word-spacer. Of course, CSS provides only a next-sibling combinator
+ * (+), which would work to match the .word-spacer itself - but applying
+ * margin-left there does not have the desired effect (you just get twice the 
+ * spacing). So, we hack it with the unofficial but well-supported :has() 
+ * pseudo-class to match .salient-token that "has" a next-sibling .word-spacer.
+ */ 
+.tokens-holder-display-block.tokens-holder-dense .salient-token:has(+ .word-spacer) span {
+   /* hack to remove extra whitespace. ugh. */
+  margin-right: -0.445ch;
+}
+
+.tokens-holder-display-block .word-spacer {
+  display: inline;
+  vertical-align: baseline;
+  white-space: pre-wrap;
+}
+
+.tokens-holder-display-block lit-tooltip {
+  --anchor-display-mode: 'inline';
+  --tooltip-position-left: 0;
 }

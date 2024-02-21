@@ -436,6 +436,19 @@ describe('cumSumArray test', () => {
   });
 });
 
+describe('groupAlike test', () => {
+  it('groups items', () => {
+    const result = utils.groupAlike(
+        [0, 1, 2, 3, 4, 5], [['a', 'b'], ['c'], ['d', 'e', 'f']]);
+    expect(result).toEqual([[0, 1], [2], [3, 4, 5]]);
+  });
+  it('raises an error if lengths do not match', () => {
+    expect(() => utils.groupAlike([0, 1, 2, 3, 4, 5], [['a', 'b'], ['c']]))
+        .toThrow(
+            new Error('Total length of groups (3) !== number of items (6).'));
+  });
+});
+
 describe('compareArrays test', () => {
   it('Correctly tests normal comparison', () => {
     // Shorter arrays.

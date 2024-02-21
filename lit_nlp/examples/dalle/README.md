@@ -21,8 +21,8 @@ LIT repo.
 python -m venv .dalle-venv
 source .dalle-venv/bin/activate
 # This requirements.txt file will also install the core LIT library deps.
-pip install -r ./lit_nlp/examples/dalle-mini/requirements.txt
-# The LIT web app can still needs be built in the usual way.
+pip install -r ./lit_nlp/examples/dalle/requirements.txt
+# The LIT web app still needs to be built in the usual way.
 (cd ./lit_nlp && yarn && yarn build)
 ```
 

@@ -66,6 +66,8 @@ DEMO_LAYOUT = layout.LitCanonicalLayout(
     description='Basic layout for image demo',
 )
 
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {'default': DEMO_LAYOUT}
+
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:

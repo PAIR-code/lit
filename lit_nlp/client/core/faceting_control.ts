@@ -29,7 +29,7 @@ import {app} from '../core/app';
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {getStepSizeGivenRange} from '../lib/utils';
-import {FacetingConfig, FacetingMethod, GroupService, NumericFeatureBins} from '../services/group_service';
+import {FacetingConfig, FacetingMethod, GroupService, type NumericFeatureBins} from '../services/group_service';
 
 import {styles} from './faceting_control.css';
 

@@ -1,0 +1,13 @@
+.frames-window-image {
+  flex: 16.5%;
+  padding: 5px;
+}
+
+#frame {
+  max-width: 202px;
+  max-height: 360px;
+}
+
+.frames-window {
+  display: flex;
+}

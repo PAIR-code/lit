@@ -21,7 +21,6 @@ import attr
 from lit_nlp.api import dtypes
 
 
-# LINT.IfChange
 # pylint: disable=invalid-name
 @enum.unique
 class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
@@ -48,6 +47,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   GeneratedTextModule = 'generated-text-module'
   GeneratorModule = 'generator-module'
   LanguageModelPredictionModule = 'lm-prediction-module'
+  LMSalienceModule = 'lm-salience-module'
   MetricsModule = 'metrics-module'
   MultilabelModule = 'multilabel-module'
   PdpModule = 'pdp-module'
@@ -68,6 +68,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
     return ModuleConfig(self.value, **kw)
 
 
+# LINT.IfChange
 # TODO(lit-dev): consider making modules subclass this instead of LitModuleName.
 @attr.s(auto_attribs=True)
 class ModuleConfig(dtypes.DataTuple):
@@ -91,6 +92,7 @@ LitTabGroupLayout = Mapping[str, LitModuleList]
 class LayoutSettings(dtypes.DataTuple):
   hideToolbar: bool = False
   mainHeight: int = 45
+  leftWidth: int = 50
   centerPage: bool = False
 
 

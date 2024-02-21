@@ -60,6 +60,11 @@ export interface FeatureSalience extends DataTuple {
   salience: {[key: string]: number};
 }
 
+/** Dataclass for a salience map over image frames in a video. */
+export interface FrameSalience extends DataTuple {
+  salience: {[key: string]: [number, string[]]};
+}
+
 // TODO(b/196886684): document API for salience interpreters.
 /** Dataclass for a salience map over a target sequence. */
 export interface SequenceSalienceMap extends DataTuple {

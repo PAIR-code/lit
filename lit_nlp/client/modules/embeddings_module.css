@@ -24,6 +24,10 @@
 
 .module-footer > * { min-width: 0; }
 
+.selected-nearest-button {
+  text-wrap: nowrap;
+}
+
 .selected-nearest-button:disabled {
   pointer-events: auto;
 }

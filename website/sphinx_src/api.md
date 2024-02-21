@@ -807,8 +807,7 @@ _See the [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples)
 
 ### Available types
 
-The full set of `LitType`s is defined in
-[types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py), and summarized
+The full set of `LitType`s is defined in [types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types such as `Integer` and `Scalar` have predefined ranges that can be overridden using corresponding `min_val` and `max_val` attributes as seen [here](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/penguin_data.py;l=19-22;rcl=574999438). The different types available in LIT are summarized
 in the table below.
 
 Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
@@ -828,7 +827,7 @@ Name                      | Description                                         
 `TokenTopKPreds`          | Predicted tokens and their scores, as from a language model or seq2seq model.                                                                                         | `list[list[tuple[str, float]]]`
 `Boolean`                 | Boolean value.                                                                                                                                                        | `bool`
 `Scalar`                  | Scalar numeric value.                                                                                                                                                 | `float`
-`Integer`                 | Integer value.                                                                                                                                                        | `int`
+`Integer`                 | Integer, with a default range from -32768 to +32767. value.                                                                                                                                                        | `int`
 `ImageBytes`              | Image, represented by a base64 encoded string. LIT also provides `JPEGBytes` and `PNGBytes` types for those specific encodings.                                       | `str`
 `RegressionScore`         | Scalar value, treated as a regression target or prediction.                                                                                                           | `float`
 `ReferenceScores`         | Scores for one or more reference texts.                                                                                                                               | `list[float]`

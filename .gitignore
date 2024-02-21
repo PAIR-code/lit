@@ -15,5 +15,6 @@ docs/documentation/.doctrees/**
 
 **/.DS_Store
 .dalle-venv/
+.tydi-venv/
 .venv/
 .vscode/

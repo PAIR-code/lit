@@ -151,6 +151,12 @@ export class LitModules extends ReactiveElement {
       (mainHeight) => {
         if (mainHeight != null) {this.upperHeight = `${mainHeight}%`;}
       });
+    this.reactImmediately(
+        () => this.modulesService.getSetting('leftWidth'), (leftWidth) => {
+          if (leftWidth != null) {
+            this.leftColumnWidth = `${leftWidth}%`;
+          }
+        });
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -422,7 +428,13 @@ export class LitModules extends ReactiveElement {
     const columnSeparatorDoubleClick = (event: DragEvent) => {
       event.stopPropagation();
       event.preventDefault();
-      this.leftColumnWidth = LEFT_COLUMN_DEFAULT_WIDTH;
+      const layoutDefaultLeftWidth =
+          this.modulesService.getSetting('leftWidth');
+      if (layoutDefaultLeftWidth != null) {
+        this.leftColumnWidth = `${layoutDefaultLeftWidth}%`;
+      } else {
+        this.leftColumnWidth = LEFT_COLUMN_DEFAULT_WIDTH;
+      }
     };
 
     const leftColumnStyles = styleMap({

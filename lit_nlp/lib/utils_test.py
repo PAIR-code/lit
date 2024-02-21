@@ -252,11 +252,55 @@ class UtilsTest(parameterized.TestCase):
           pad_val="",
           expected=["one", "two", "three", "", ""],
       ),
+      dict(
+          testcase_name="truncate_max_len",
+          inputs=[1, 2, 3, 4, 5],
+          min_len=3,
+          pad_val=0,
+          max_len=3,
+          expected=[1, 2, 3],
+      ),
+      dict(
+          testcase_name="pad_left",
+          inputs=[1, 2, 3],
+          min_len=5,
+          pad_val=0,
+          pad_left=True,
+          expected=[0, 0, 1, 2, 3],
+      ),
+      dict(
+          testcase_name="truncate_max_len_left",
+          inputs=[1, 2, 3, 4, 5],
+          min_len=3,
+          pad_val=0,
+          pad_left=True,
+          max_len=3,
+          expected=[3, 4, 5],
+      ),
+      dict(
+          testcase_name="pad_left_with_strings",
+          inputs=["one", "two", "three"],
+          min_len=5,
+          pad_val="",
+          pad_left=True,
+          expected=["", "", "one", "two", "three"],
+      ),
   )
   def test_pad1d(
-      self, inputs: list[T], min_len: T, pad_val: T, expected: list[T]
+      self,
+      inputs: list[T],
+      min_len: T,
+      pad_val: T,
+      expected: list[T],
+      pad_left: bool = False,
+      max_len: int | None = None,
   ):
-    self.assertEqual(utils.pad1d(inputs, min_len, pad_val), expected)
+    self.assertEqual(
+        utils.pad1d(
+            inputs, min_len, pad_val, pad_left=pad_left, max_len=max_len
+        ),
+        expected,
+    )
 
   @parameterized.named_parameters(
       dict(

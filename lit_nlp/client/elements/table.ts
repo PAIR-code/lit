@@ -53,7 +53,7 @@ export type TemplateResultFn =
         TemplateResult;
 
 /** Export types from ./table_types. */
-export {ColumnHeader, SortableTableEntry, SortableTemplateResult, TableData, TableEntry, TableRowInternal};
+export {type ColumnHeader, type SortableTableEntry, type SortableTemplateResult, type TableData, type TableEntry, type TableRowInternal};
 
 /** Callback for selection */
 export type OnSelectCallback = (selectedIndices: number[]) => void;

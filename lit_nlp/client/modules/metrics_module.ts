@@ -30,7 +30,7 @@ import {MetricBestValue, MetricResult} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {MetricsResponse, MetricsValues} from '../services/api_service';
-import {GroupService, NumericFeatureBins} from '../services/group_service';
+import {GroupService, type NumericFeatureBins} from '../services/group_service';
 import {ClassificationService, SliceService} from '../services/services';
 
 // A dict of metrics type to the MetricsValues for one metric generator.

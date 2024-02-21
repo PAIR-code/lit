@@ -33,5 +33,5 @@
 }
 
 .button-bar-item button.active {
-  z-index: 2;  /* show active border above neighbors */
+  z-index: 1;  /* show active border above neighbors */
 }

@@ -20,7 +20,7 @@
 // their Python counterparts.
 // tslint:disable:no-new-decorators class-name enforce-name-casing
 
-import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, ScoredTextCandidates, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType} from './dtypes';
+import {AnnotationCluster, EdgeLabel, FeatureSalience as FeatureSalienceDType, ScoredTextCandidates, SequenceSalienceMap, SpanLabel, TokenSalience as TokenSalienceDType, FrameSalience as FrameSalienceDType} from './dtypes';
 
 /**
  * A dictionary of registered LitType names mapped to their constructor.
@@ -232,6 +232,8 @@ export class Scalar extends LitType {
  */
 @registered
 export class Integer extends Scalar {
+  override min_val = -32768;
+  override max_val = 32767;
   override step = 1;
 }
 
@@ -540,6 +542,14 @@ export class TokenSalience extends Salience {
 @registered
 export class FeatureSalience extends Salience {
   override default: FeatureSalienceDType|undefined = undefined;
+}
+
+/**
+ * Metadata about a returned frame salience map.
+ */
+@registered
+export class FrameSalience extends Salience {
+  override default: FrameSalienceDType|undefined = undefined;
 }
 
 /**

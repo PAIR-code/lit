@@ -198,9 +198,20 @@ def unbatch_preds(
       yield {key: value[i] for key, value in preds.items()}
 
 
-def pad1d(arr: list[T], min_len: int, pad_val: T) -> list[T]:
+def pad1d(
+    arr: list[T],
+    min_len: int,
+    pad_val: T,
+    pad_left: bool = False,
+    max_len: int | None = None,
+) -> list[T]:
   """Pad a list to the target length."""
-  return arr + [pad_val] * max(0, min_len - len(arr))
+  if pad_left:
+    padded = [pad_val] * max(0, min_len - len(arr)) + arr
+    return padded[-max_len:] if max_len is not None else padded
+  else:
+    padded = arr + [pad_val] * max(0, min_len - len(arr))
+    return padded[:max_len] if max_len is not None else padded
 
 
 def find_all_combinations(

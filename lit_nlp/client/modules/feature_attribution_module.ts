@@ -34,7 +34,7 @@ import {IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
 import {SignedSalienceCmap} from '../services/color_service';
-import {NumericFeatureBins} from '../services/group_service';
+import {type NumericFeatureBins} from '../services/group_service';
 import {AppState, GroupService} from '../services/services';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';

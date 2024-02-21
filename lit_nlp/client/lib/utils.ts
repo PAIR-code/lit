@@ -303,6 +303,27 @@ export function cumSumArray(array: number[]) {
 }
 
 /**
+ * Group elements of one list to match the partitions of another.
+ *
+ * Example:
+ *   groupAlike([0, 1, 2, 3, 4, 5], [['a', 'b'], ['c'], ['d', 'e', 'f']])
+ *
+ * Should return: [[0, 1], [2], [3, 4, 5]]
+ */
+export function groupAlike<T>(items: T[], groups: unknown[][]): T[][] {
+  const offsets = [0, ...cumSumArray(groups.map(g => g.length))];
+  if (offsets.at(-1) !== items.length) {
+    throw new Error(`Total length of groups (${
+        offsets.at(-1)}) !== number of items (${items.length}).`);
+  }
+  const ret = [];
+  for (let i = 0; i < groups.length; i++) {
+    ret.push(items.slice(offsets[i], offsets[i + 1]));
+  }
+  return ret;
+}
+
+/**
  * Python-style array comparison.
  * Compare on first element, then second, and so on until a mismatch is found.
  * If one array is a prefix of another, the longer one is treated as larger.

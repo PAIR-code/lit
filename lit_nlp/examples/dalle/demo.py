@@ -1,8 +1,7 @@
 r"""Example for dalle demo model.
 
 To run locally with a small number of examples:
-  python -m lit_nlp.examples.dalle_demo \
-      --alsologtostderr --port=5432
+  python -m lit_nlp.examples.dalle.demo
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -58,7 +57,8 @@ _DALLE_LAYOUT = layout.LitCanonicalLayout(
     },
     description="Custom layout for Text to Image models.",
 )
-_CUSTOM_LAYOUTS = {"DALLE_LAYOUT": _DALLE_LAYOUT}
+
+CUSTOM_LAYOUTS = layout.DEFAULT_LAYOUTS | {"DALLE_LAYOUT": _DALLE_LAYOUT}
 
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
@@ -92,7 +92,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   lit_demo = dev_server.Server(
       models,
       datasets,
-      layouts=_CUSTOM_LAYOUTS,
+      layouts=CUSTOM_LAYOUTS,
       **server_flags.get_flags(),
   )
   return lit_demo.serve()

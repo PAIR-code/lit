@@ -16,10 +16,10 @@ import {LegendType} from '../elements/color_legend';
 import {TokenWithWeight} from '../elements/token_chips';
 import {SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {SequenceSalienceMap} from '../lib/dtypes';
-import {canonicalizeGenerationResults, GeneratedTextResult, GENERATION_TYPES, getAllTargetOptions, TargetOption} from '../lib/generated_text_utils';
+import {canonicalizeGenerationResults, type GeneratedTextResult, GENERATION_TYPES, getAllTargetOptions, TargetOption} from '../lib/generated_text_utils';
 import {Salience} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {type IndexedInput, ModelInfoMap, type Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
 
 import {styles} from './sequence_salience_module.css';
