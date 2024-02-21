@@ -118,7 +118,12 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   # Set Keras backend and floating-point precision.
   os.environ["KERAS_BACKEND"] = "tensorflow"
-  keras.config.set_floatx(_KERAS_FLOATX.value)
+  if hasattr(keras, "config") and hasattr(keras.config, "set_floatx"):
+    keras.config.set_floatx(_KERAS_FLOATX.value)
+  else:
+    logging.warn(
+        "keras.config.set_floatx() not available; using default precision."
+    )
 
   plaintextPrompts = functools.partial(  # pylint: disable=invalid-name
       lm_data.PlaintextSents, field_name="prompt"
