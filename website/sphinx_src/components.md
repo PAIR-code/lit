@@ -433,7 +433,7 @@ You don't have to call the field "label", and it's okay if this field isn't
 present in the *dataset* - as long as it's something that the model will
 recognize and use as the target to derive gradients.
 
-## Sequence salience
+## Sequence Salience
 
 Sequence salience generalizes token-based salience to text-to-text models,
 allowing you to explain the impact of the prompt tokens on parts of the model
@@ -468,7 +468,8 @@ https://ai.google.dev/responsible/model_behavior.
 
 **Code:**
 
-*   Demo:
+*   LIT-for-Gemma Colab: [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
+*   Demo binary:
     [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
 *   KerasNLP model wrappers:
     [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
