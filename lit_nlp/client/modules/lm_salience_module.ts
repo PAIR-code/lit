@@ -4,6 +4,7 @@
 
 import '@material/mwc-icon';
 import '../elements/color_legend';
+import '../elements/interstitial';
 import '../elements/numeric_input';
 import '../elements/fused_button_bar';
 
@@ -852,8 +853,18 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       </div>`;
   }
 
+  renderNoExampleInterstitial() {
+    // prettier-ignore
+    return html`
+      <lit-interstitial headline="Sequence Salience">
+        Enter a prompt in the Editor or select an example from the Data Table to begin.
+      </lit-interstitial>`;
+  }
+
   renderContent() {
-    if (this.currentData == null) return null;
+    if (this.currentData == null) {
+      return this.renderNoExampleInterstitial();
+    }
 
     if (this.salienceTargetOption === undefined) {
       return this.renderTargetSelectorInterstitial();
