@@ -561,7 +561,7 @@ class GPT2SalienceModel(GPT2BaseModel):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       # We need to run the embedding layer ourselves so we can trace it.
       # See here for how the model normally does this:
-      # http://google3/third_party/py/transformers/models/gpt2/modeling_tf_gpt2.py;l=450;rcl=578656271
+      # https://github.com/huggingface/transformers/blob/v4.29.2/src/transformers/models/gpt2/modeling_tf_gpt2.py#L450
       embs = self.model.transformer.wte(input_ids, mode="embedding")
       tape.watch(embs)
 

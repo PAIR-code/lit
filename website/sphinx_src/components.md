@@ -440,11 +440,7 @@ allowing you to explain the impact of the prompt tokens on parts of the model
 output.
 
 LIT has a general-purpose sequence salience visualization designed for
-left-to-right ("causal") language models. Currently, this works out-of-the-box
-with
-[GPT-2 models](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
-and with the new Gemma LMs via
-[this Colab](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb).
+left-to-right ("causal") language models:
 
 ![Sequence salience - sequence selection](./images/components/sequence-salience-1.png){w=650px align=center}
 
@@ -475,6 +471,9 @@ https://ai.google.dev/responsible/model_behavior.
     [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
 *   Transformers model wrappers:
     [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+
+Currently, this works out-of-the-box
+with Gemma models (using Keras) as well as with GPT-2.
 
 ## Salience Clustering
 
