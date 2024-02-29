@@ -26,7 +26,7 @@ dependencies = [
   "ml-collections==0.1.1",
   "numpy==1.24.1",
   "pandas==1.5.3",
-  "Pillow==10.0.0",
+  "Pillow==10.2.0",
   "portpicker==1.5.2",
   "requests==2.31.0",
   "rouge-score==0.1.2",
