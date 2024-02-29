@@ -5,7 +5,8 @@ layout: layouts/main.liquid
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-{% include partials/display1 text:"The Learning Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
+{% include partials/display1 text:"
+The Learning Interpretability Tool (🔥LIT) is a <strong>visual, interactive ML model-understanding</strong> tool that supports text, image, and tabular data visualization and understanding of NLP models." %}
 
 {% include partials/home-cta-button text:"Take a tour", link:"/tutorials/tour" %}
 {% include partials/home-cta-button text:"Setup LIT", link:"/documentation/getting_started.html" %}
