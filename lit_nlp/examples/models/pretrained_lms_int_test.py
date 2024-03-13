@@ -34,7 +34,7 @@ class PretrainedLmsIntTest(absltest.TestCase):
   def test_gpt2_generation(self):
     # Run prediction to ensure no failure.
     model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
-    model = pretrained_lms.GPT2GenerativeModel(model_name_or_path=model_path)
+    model = pretrained_lms.HFGenerativeModel(model_name_or_path=model_path)
     model_in = [{"prompt": "Today is"}, {"prompt": "What is the color of"}]
     model_out = list(model.predict(model_in))
 

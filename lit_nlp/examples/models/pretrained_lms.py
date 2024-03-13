@@ -149,7 +149,7 @@ class BertMLM(lit_model.BatchedModel):
     }
 
 
-# TODO(lit-dev): merge with below, inherit from GPT2BaseModel.
+# TODO(lit-dev): merge with below, inherit from HFBaseModel.
 class GPT2LanguageModel(lit_model.BatchedModel):
   """Wrapper for a Huggingface Transformers GPT-2 model.
 
@@ -329,8 +329,8 @@ class GPT2LanguageModel(lit_model.BatchedModel):
     return spec
 
 
-class GPT2BaseModel(lit_model.BatchedModel):
-  """Base class for GPT2 model wrappers."""
+class HFBaseModel(lit_model.BatchedModel):
+  """Base class for HF generative, salience, tokenizer model wrappers."""
 
   @property
   def num_layers(self):
@@ -350,17 +350,20 @@ class GPT2BaseModel(lit_model.BatchedModel):
       model=None,
       tokenizer=None,
   ):
-    """Constructor for GPT2 model wrappers.
+    """Constructor for HF base model wrappers.
 
     Note: args "model" and "tokenizer" take priority if both are specified.
     Otherwise, "model_name_or_path" is used to initialize the model and
     tokenizer.
 
+    This class supports common HF transformer models such as GPT2, Llama,
+    Mistral, etc.
+
     Args:
       model_name_or_path: gpt2, gpt2-medium, gpt2-large, distilgpt2, etc.
       batch_size: the number of items to process per `predict_minibatch` call.
-      model: an initialized transformers.TFGPT2LMHeadModel.
-      tokenizer: an initialized GPT2 tokenizer.
+      model: an initialized transformer model.
+      tokenizer: an initialized tokenizer.
     """
     super().__init__()
 
@@ -377,7 +380,7 @@ class GPT2BaseModel(lit_model.BatchedModel):
 
       # Note: we need to left-pad for generation to work properly.
       # Other modes such as scoring and salience should handle this as well;
-      # see example in GPT2SalienceModel._postprocess().
+      # see example in HFSalienceModel._postprocess().
       self.tokenizer = transformers.AutoTokenizer.from_pretrained(
           model_name_or_path,
           use_fast=False,
@@ -387,7 +390,7 @@ class GPT2BaseModel(lit_model.BatchedModel):
       # AutoTokenizer.from_pretrained() above it will create a new token with
       # with id = max_vocab_length and cause out-of-bounds errors in
       # the embedding lookup.
-      self.model = transformers.TFGPT2LMHeadModel.from_pretrained(
+      self.model = transformers.TFAutoModelForCausalLM.from_pretrained(
           model_name_or_path, output_hidden_states=True, output_attentions=False
       )
 
@@ -399,11 +402,12 @@ class GPT2BaseModel(lit_model.BatchedModel):
     return self.tokenizer.padding_side == "left"
 
   @classmethod
-  def from_loaded(cls, existing: "GPT2BaseModel", *args, **kw):
-    """Share weights and underlying Keras model with another instance."""
+  def from_loaded(cls, existing: "HFBaseModel", *args, **kw):
+    """Share weights and underlying HF model with another instance."""
     return cls(model=existing.model, tokenizer=existing.tokenizer, *args, **kw)
 
   def clean_bpe_token(self, tok):
+    # For GPT2 tokenizer.
     tok = tok.replace("Ċ", "\n")  # newlines
     tok = tok.replace("Ġ", "▁")  # start of word -> magic underscore
     return tok
@@ -424,8 +428,8 @@ class GPT2BaseModel(lit_model.BatchedModel):
     }
 
 
-class GPT2GenerativeModel(GPT2BaseModel):
-  """Wrapper for a Huggingface Transformers GPT-2 model.
+class HFGenerativeModel(HFBaseModel):
+  """Wrapper for a HF Transformer model that generates texts.
 
   This class loads a tokenizer and model using the Huggingface library and
   provides the LIT-required functions to generate text responses given input
@@ -442,12 +446,12 @@ class GPT2GenerativeModel(GPT2BaseModel):
     }
 
   def __init__(self, *args, max_new_tokens=50, **kw):
-    """Constructor for GPT2LanguageModel.
+    """Constructor for HFGenerativeModel.
 
     Args:
-      *args: as to GPT2BaseModel.__init__
+      *args: as to HFBaseModel.__init__
       max_new_tokens: the maximum number of new tokens to generate.
-      **kw: as to GPT2BaseModel.__init__
+      **kw: as to HFBaseModel.__init__
     """
     super().__init__(*args, **kw)
     self.max_new_tokens = max_new_tokens
@@ -513,8 +517,8 @@ class GPT2GenerativeModel(GPT2BaseModel):
     }
 
 
-class GPT2SalienceModel(GPT2BaseModel):
-  """Wrapper for GPT-2 input (token) salience."""
+class HFSalienceModel(HFBaseModel):
+  """Wrapper for a HF Transformer model that computes input (token) salience."""
 
   def _pred(self, encoded_inputs, target_masks):
     """Predicts one batch of tokenized text.
@@ -601,7 +605,7 @@ class GPT2SalienceModel(GPT2BaseModel):
 
   def _postprocess(self, preds):
     """Post-process single-example preds. Operates on numpy arrays."""
-    # Be sure to cast to bool, otherwise this will select intger positions 0, 1
+    # Be sure to cast to bool, otherwise this will select integer positions 0, 1
     # rather than acting as a boolean mask.
     mask = preds.pop("attention_mask").astype(bool)
     ids = preds.pop("input_ids")[mask]
@@ -649,10 +653,10 @@ class GPT2SalienceModel(GPT2BaseModel):
     }
 
 
-class GPT2TokenizerModel(GPT2BaseModel):
+class HFTokenizerModel(HFBaseModel):
   """Wrapper to run only the tokenizer.
 
-  Should exactly match tokens from GPT2SalienceModel.
+  Should exactly match tokens from HFSalienceModel.
   """
 
   def _postprocess(self, preds):

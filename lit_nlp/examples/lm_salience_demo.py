@@ -223,14 +223,14 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name, path = model_string.split(":", 1)
     logging.info("Loading model '%s' from '%s'", model_name, path)
     if model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
-      models[model_name] = pretrained_lms.GPT2GenerativeModel(path)
+      models[model_name] = pretrained_lms.HFGenerativeModel(path)
       # Salience wrapper, using same underlying Keras models so as not to
       # load the weights twice.
       models[f"_{model_name}_salience"] = (
-          pretrained_lms.GPT2SalienceModel.from_loaded(models[model_name])
+          pretrained_lms.HFSalienceModel.from_loaded(models[model_name])
       )
       models[f"_{model_name}_tokenizer"] = (
-          pretrained_lms.GPT2TokenizerModel.from_loaded(models[model_name])
+          pretrained_lms.HFTokenizerModel.from_loaded(models[model_name])
       )
     elif model_name.startswith("gemma"):
       path = file_cache.cached_path(
