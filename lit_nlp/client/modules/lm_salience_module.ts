@@ -18,7 +18,7 @@ import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {NumericInput as LitNumericInput} from '../elements/numeric_input';
 import {TokenChips, TokenWithWeight} from '../elements/token_chips';
-import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap,} from '../lib/colors';
+import {CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {GENERATION_TYPES, getAllTargetOptions, TargetOption, TargetSource} from '../lib/generated_text_utils';
 import {LitType, LitTypeTypesList, Tokens, TokenScores} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -201,6 +201,8 @@ interface SalienceResults {
 // Sentinel value because mobx doesn't react directly to a promise completing.
 const REQUEST_PENDING: unique symbol = Symbol('REQUEST_PENDING');
 
+const CMAP_DEFAULT_RANGE = 0.4;
+
 /** LIT module for model output. */
 @customElement('lm-salience-module')
 export class LMSalienceModule extends SingleExampleSingleModelModule {
@@ -227,7 +229,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   private segmentationMode: SegmentationMode = SegmentationMode.WORDS;
   // TODO(b/324959547): get default from spec
   @observable private selectedSalienceMethod? = 'grad_l2';
-  @observable private cmapGamma = 1.0;
+  // Output range for colormap.
+  // cmapDomain is the input range, and is auto-computed from scores below.
+  @observable private cmapRange = CMAP_DEFAULT_RANGE;
   @observable private denseView = true;
   @observable private vDense = false; /* vertical spacing */
   @observable private showSelfSalience = false;
@@ -406,23 +410,30 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   @computed
-  get cmapRange(): number {
+  get cmapDomain(): number {
     if (this.activeSalience === undefined) return 1;
     // If nothing focused, use the max over all (absolute) scores.
     return Math.max(1e-3, maxAbs(this.activeSalience));
   }
 
   @computed
+  get cmapGamma(): number {
+    // Pin gamma as a function of the range, so we only need a single slider.
+    return this.cmapRange * (1.0 / CMAP_DEFAULT_RANGE);
+  }
+
+  @computed
   get signedSalienceCmap() {
-    return new SignedSalienceCmap(this.cmapGamma, [
-      -1 * this.cmapRange,
-      this.cmapRange,
-    ]);
+    return new SignedSalienceCmap(
+        this.cmapGamma, [-1 * this.cmapDomain, this.cmapDomain],
+        CONTINUOUS_SIGNED_LAB, [0, this.cmapRange]);
   }
 
   @computed
   get unsignedSalienceCmap() {
-    return new UnsignedSalienceCmap(this.cmapGamma, [0, this.cmapRange]);
+    return new UnsignedSalienceCmap(
+        this.cmapGamma, [0, this.cmapDomain], CONTINUOUS_UNSIGNED_LAB,
+        [0, this.cmapRange]);
   }
 
   @computed
@@ -928,26 +939,26 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   renderColorControls() {
-    const onChangeGamma = (e: Event) => {
+    const onChangeRange = (e: Event) => {
       // Note: HTMLInputElement.valueAsNumber does not work properly for
       // <lit-numeric-input>
-      this.cmapGamma = Number((e.target as LitNumericInput).value);
+      this.cmapRange = Number((e.target as LitNumericInput).value);
     };
 
-    const resetGamma = () => {
-      this.cmapGamma = 1.0;
+    const resetRange = () => {
+      this.cmapRange = CMAP_DEFAULT_RANGE;
     };
 
     // prettier-ignore
     return html`
       <div class="controls-group">
         ${this.renderColorLegend()}
-        <label for="gamma-slider">Colormap intensity:</label>
-        <lit-numeric-input min="0" max="6" step="0.25" id='gamma-slider'
-          value="${this.cmapGamma}" @change=${onChangeGamma}>
+        <label for="cmap-range-slider">Colormap intensity:</label>
+        <lit-numeric-input min="0" max="1" step="0.1" id='cmap-range-slider'
+          value="${this.cmapRange}" @change=${onChangeRange}>
         </lit-numeric-input>
         <mwc-icon class='icon-button value-reset-icon' title='Reset colormap'
-          @click=${resetGamma}>
+          @click=${resetRange}>
           restart_alt
         </mwc-icon>
       </div>`;

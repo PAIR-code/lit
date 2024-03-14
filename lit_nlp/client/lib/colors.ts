@@ -563,13 +563,22 @@ export abstract class SalienceCmap {
     return this.myColorScale;
   }
 
-  // Exponent for computing luminance values from salience scores.
-  // A higher value gives higher contrast for small (close to 0) salience
-  // scores.
-  // See https://en.wikipedia.org/wiki/Gamma_correction
+  /**
+   * Create a salience colormap.
+   * @param gamma Exponent for mapping scores to intensity values. A higher
+   *   value gives more intense (darker) colors, and higher contrast for small
+   *   (close to 0) scores. See https://en.wikipedia.org/wiki/Gamma_correction
+   * @param domain Domain [xmin, xmax] for input scores. Anything outside this
+   *   will be clipped.
+   * @param cRamp Color ramp; see above.
+   * @param range Range [ymin, ymax] to specify what part of the color ramp to
+   *   use. For example, using [0, 0.5] will use only the lighter values on
+   *   the first half of the color ramp.
+   */
   constructor(
       protected gamma = 1.0, protected domain: [number, number] = [0, 1],
-      protected cRamp = CONTINUOUS_UNSIGNED_LAB) {
+      protected cRamp = CONTINUOUS_UNSIGNED_LAB,
+      protected range: [number, number] = [0, 1]) {
     this.myColorScale = d3.scaleSequential(cRamp).domain(domain);
   }
 
@@ -586,7 +595,7 @@ export abstract class SalienceCmap {
    * for this datum
    */
   textCmap(d: number): string {
-    return (this.lightness(d) < 0.5) ? 'black' : 'white';
+    return (this.lightness(d) <= 0.5) ? 'black' : 'white';
   }
 
   /** Clamps the value of d to the color scale's domain */
@@ -608,7 +617,9 @@ export abstract class SalienceCmap {
     d = (1 - d) ** this.gamma;
     // Invert direction because HSL and our color scales place white on opposite
     // ends of the [0, 1] range.
-    return 1 - d;
+    d = 1 - d;
+    // Map to range.
+    return this.range[0] + (this.range[1] - this.range[0]) * d;
   }
 
   /** Color mapper. More extreme salience values get darker colors. */
@@ -634,7 +645,7 @@ export class InvertedUnsignedSalienceCmap extends UnsignedSalienceCmap {
 export class SignedSalienceCmap extends SalienceCmap {
   constructor(
       gamma = 1.0, domain: [number, number] = [-1, 1],
-      cRamp = CONTINUOUS_SIGNED_LAB) {
-    super(gamma, domain, cRamp);
+      cRamp = CONTINUOUS_SIGNED_LAB, range: [number, number] = [0, 1]) {
+    super(gamma, domain, cRamp, range);
   }
 }
