@@ -10,7 +10,7 @@ import '../elements/fused_button_bar';
 
 import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
@@ -137,10 +137,57 @@ export class SingleExampleSingleModelModule extends LitModule {
  */
 @customElement('lm-salience-chips')
 class LMSalienceChips extends TextChips {
+  @property({type: Boolean}) underline = false;
+
+  override holderClass() {
+    return Object.assign(
+        {}, super.holderClass(), {'underline': this.underline});
+  }
+
   static override get styles() {
     return [
       ...TokenChips.styles,
       css`
+        .text-chips.underline .salient-token {
+          --underline-height: 6px;
+          background-color: transparent;
+          color: black;
+        }
+
+        .text-chips.dense.underline .salient-token {
+          padding-bottom: var(--underline-height);
+        }
+
+        .text-chips.underline .salient-token.selected {
+          outline: 1px solid var(--token-outline-color);
+          --underline-height: 5px; /* subtract 1px for outline */
+        }
+
+        /* In dense mode we style the text span */
+        .text-chips.dense.underline .salient-token span {
+          /* have to use border- because there is no outline-bottom */
+          border-bottom: var(--underline-height) solid var(--token-bg-color);
+          border-radius: 2px;
+          padding-bottom: 0; /* used by border instead */
+        }
+
+        .text-chips.dense.underline .salient-token.selected span {
+          /* use mage-500 for underline block as mage-700 is too dark */
+          border-bottom: var(--underline-height) solid var(--lit-mage-500);
+        }
+
+        /* In non-dense mode we style the containing div */
+        .text-chips:not(.dense).underline .salient-token {
+          /* have to use border- because there is no outline-bottom */
+          border-bottom: var(--underline-height) solid var(--token-bg-color);
+          border-radius: 2px;
+          padding-bottom: 0; /* used by border instead */
+        }
+
+        .text-chips:not(.dense).underline .salient-token.selected {
+          /* use mage-500 for underline block as mage-700 is too dark */
+          border-bottom: var(--underline-height) solid var(--lit-mage-500);
+        }
       `,
     ];
   }
@@ -186,6 +233,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   @observable private cmapRange = CMAP_DEFAULT_RANGE;
   @observable private denseView = true;
   @observable private vDense = false; /* vertical spacing */
+  @observable private underline = false; /* highlight vs. underline */
   @observable private showSelfSalience = false;
 
   @observable.ref private currentTokens: string[] = [];
@@ -537,6 +585,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       this.vDense = !this.vDense;
     };
 
+    const onClickToggleUnderline = () => {
+      this.underline = !this.underline;
+    };
+
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
@@ -558,6 +610,13 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         <mwc-icon class='icon-button large-icon' title='Vertical density'
             @click=${onClickToggleVDense}>
             ${this.vDense ? 'expand' : 'compress'}
+        </mwc-icon>
+        <mwc-icon class='icon-button large-icon'
+            title=${
+        this.underline ? 'Switch to highlight mode' :
+                         'Switch to underline mode'}
+            @click=${onClickToggleUnderline}>
+            ${this.underline ? 'font_download' : 'format_color_text'}
         </mwc-icon>
       </div>
     `;
@@ -865,6 +924,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         <lm-salience-chips
           .tokensWithWeights=${segmentsWithWeights} .cmap=${this.cmap}
           ?dense=${this.denseView} ?vDense=${this.vDense}
+          ?underline=${this.underline}
           ?preSpace=${this.denseView} breakNewlines>
         </lm-salience-chips>
       </div>
