@@ -86,7 +86,7 @@ modules = layout.LitModuleName
 LEFT_RIGHT_LAYOUT = layout.LitCanonicalLayout(
     left={
         "Examples": [modules.DataTableModule],
-        "Editor": [modules.DatapointEditorModule],
+        "Editor": [modules.SingleDatapointEditorModule],
     },
     upper={  # if 'lower' not specified, this fills the right side
         "Salience": [modules.LMSalienceModule],
@@ -115,7 +115,7 @@ THREE_PANEL_LAYOUT = layout.LitCanonicalLayout(
         "Embeddings": [modules.EmbeddingsModule],
     },
     upper={
-        "Datapoint Editor": [modules.DatapointEditorModule],
+        "Datapoint Editor": [modules.SingleDatapointEditorModule],
         "Datapoint Generators": [modules.GeneratorModule],
     },
     lower={
