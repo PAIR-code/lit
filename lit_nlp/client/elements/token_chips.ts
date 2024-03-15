@@ -57,14 +57,6 @@ export class TokenChips extends LitElement {
    */
   @property({type: Boolean}) dense = false;
   /**
-   * Block mode uses display: block and inline elements for chips, instead of
-   * a flex-row layout. This allows chips to flow across line breaks, behaving
-   * more like <span> elements and giving a much better experience for larger
-   * segments like sentences. However, this comes at the cost of more spacing
-   * artifacts and occasional issues with tooltip positioning.
-   */
-  @property({type: Boolean}) displayBlock = false;
-  /**
    * breakNewlines removes \n at the beginning or end of a segment and inserts
    * explicit row break elements instead. Improves readability in many settings,
    * at the cost of "faithfulness" to the original token text.
@@ -91,8 +83,8 @@ export class TokenChips extends LitElement {
       'hover-enabled': !Boolean(tokenInfo.disableHover),
     });
     const tokenStyle = styleMap({
-      'background-color': this.cmap.bgCmap(tokenInfo.weight),
-      'color': this.cmap.textCmap(tokenInfo.weight),
+      '--token-bg-color': this.cmap.bgCmap(tokenInfo.weight),
+      '--token-text-color': this.cmap.textCmap(tokenInfo.weight),
     });
 
     let tokenText = tokenInfo.token;
@@ -159,8 +151,7 @@ export class TokenChips extends LitElement {
   protected holderClass() {
     return {
       'tokens-holder': true,
-      'tokens-holder-dense': this.dense,
-      'tokens-holder-display-block': this.displayBlock,
+      'dense': this.dense,
     };
   }
 
@@ -180,8 +171,30 @@ export class TokenChips extends LitElement {
   }
 }
 
+/**
+ * As above, but renders closer to running text - most notably by using
+ * display: block and inline elements instead of flexbox.
+ *
+ * <lit-text-chips dense> should give text that is nearly indistinguishable
+ * from that in a single div, while preserving all the click/hover/highlight
+ * functionality of <lit-token-chips>.
+ */
+@customElement('lit-text-chips')
+export class TextChips extends TokenChips {
+  /**
+   * Vertical dense mode, only affects vertical spacing.
+   */
+  @property({type: Boolean}) vDense = false;
+
+  override holderClass() {
+    return Object.assign(
+        {}, super.holderClass(), {'text-chips': true, 'vdense': this.vDense});
+  }
+}
+
 declare global {
   interface HTMLElementTagNameMap {
     'lit-token-chips': TokenChips;
+    'lit-text-chips': TextChips;
   }
 }

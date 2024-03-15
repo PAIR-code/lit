@@ -10,14 +10,14 @@ import '../elements/fused_button_bar';
 
 import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
-import {customElement, property} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {computed, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {NumericInput as LitNumericInput} from '../elements/numeric_input';
-import {TokenChips, TokenWithWeight} from '../elements/token_chips';
+import {TextChips, TokenChips, TokenWithWeight} from '../elements/token_chips';
 import {CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {GENERATION_TYPES, getAllTargetOptions, TargetOption, TargetSource} from '../lib/generated_text_utils';
 import {LitType, LitTypeTypesList, Tokens, TokenScores} from '../lib/lit_types';
@@ -136,61 +136,13 @@ export class SingleExampleSingleModelModule extends LitModule {
  * Custom styled version of <lit-token-chips> for rendering LM salience tokens.
  */
 @customElement('lm-salience-chips')
-class LMSalienceChips extends TokenChips {
+class LMSalienceChips extends TextChips {
   static override get styles() {
     return [
       ...TokenChips.styles,
       css`
-        .tokens-holder:not(.tokens-holder-dense) .salient-token:not(.selected) {
-          --token-outline-color: var(--lit-neutral-300); /* outline in non-dense mode */
-        }
-        .tokens-holder-display-block .salient-token {
-          padding: 3px 0; /* this controls the visible highlight area */
-          margin: 0;
-          margin-right: 4px;
-          /* use outline instead of border for more consistent spacing */
-          outline: 1px solid var(--token-outline-color);
-          border: 0;
-        }
-        .tokens-holder-display-block .salient-token span {
-          /* this controls the mouseover area, so there are no gaps */
-          /* or flickering when hovering over multiline tokens */
-          padding: 6px 0;
-        }
-        .salient-token.selected {
-          --token-outline-color: var(--lit-mage-700);
-          outline: 2px solid var(--token-outline-color);
-        }
-        .tokens-holder-dense .salient-token {
-          margin: 0; /* no extra spacing; determine only from line-height */
-        }
-        .tokens-holder-dense .salient-token.selected {
-          /* TODO see if we can get away from z-index here */
-          z-index: 1;
-        }
-        /* vertical dense mode */
-        .tokens-holder-vdense {
-          line-height: 16px;
-        }
-        .tokens-holder-vdense .salient-token {
-          padding: 1.5px 0; /* avoid highlight area overlapping across lines */
-        }
       `,
     ];
-  }
-
-  /**
-   * Vertical dense mode, only affects vertical spacing.
-   */
-  @property({type: Boolean}) vDense = false;
-
-  /**
-   * Custom style for tokens-holder, so we can implement vDense mode without
-   * adding clutter to token_chips.ts.
-   */
-  override holderClass() {
-    return Object.assign(
-        {}, super.holderClass(), {'tokens-holder-vdense': this.vDense});
   }
 }
 
@@ -910,10 +862,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class='chip-container'>
-        <lm-salience-chips 
+        <lm-salience-chips
           .tokensWithWeights=${segmentsWithWeights} .cmap=${this.cmap}
           ?dense=${this.denseView} ?vDense=${this.vDense}
-          ?preSpace=${this.denseView} breakNewlines displayBlock>
+          ?preSpace=${this.denseView} breakNewlines>
         </lm-salience-chips>
       </div>
     `;
