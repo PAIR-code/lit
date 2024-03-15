@@ -592,7 +592,8 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
-        <label class="dropdown-label" for="granularity-selector">Granularity:</label>
+        <label class="dropdown-label" id="granularity-label"
+         for="granularity-selector">Granularity:</label>
         <lit-fused-button-bar id="granularity-selector"
             .options=${segmentationOptions}
             ?disabled=${this.currentTokens.length === 0}>
@@ -655,7 +656,8 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
-        <label class="dropdown-label" for="method-selector">Method:</label>
+        <label class="dropdown-label" id="method-label"
+         for="method-selector">Method:</label>
         <lit-fused-button-bar .options=${methodOptions} id="method-selector">
         </lit-fused-button-bar>
         ${this.renderSelfScoreSelector()}
@@ -713,21 +715,27 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
     // prettier-ignore
     return html`
-      <div class="controls-group controls-group-variable"
-        title=${targetSelectorHelp}>
-        <label class="dropdown-label">Sequence${sourceInfo}:</label>
-        <div class=${indicatorTextClass}>
+      <div class="controls-group controls-group-variable">
+        <label class="dropdown-label" title=${targetSelectorHelp}>
+          Sequence${sourceInfo}:
+        </label>
+        <div class=${indicatorTextClass}
+         title=${target == null ? 'No target; select one below.' : targetText}>
           ${targetText}
           ${isLoadingPreds ? this.renderLoadingIndicator() : null}
         </div>
       </div>
       <div class='controls-group'>
         <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
-          <button class='hairline-button change-target-button'
+          <button class='hairline-button' id='change-target-button'
             slot='tooltip-anchor' @click=${clearSalienceTarget}
             ?disabled=${target == null}>
             <span>Select sequence </span><span class='material-icon'>arrow_drop_down</span>
           </button>
+          <mwc-icon class='icon-button' id='change-target-icon'
+            slot='tooltip-anchor' @click=${clearSalienceTarget}>
+            edit
+          </mwc-icon>
         </lit-tooltip>
       </div>
     `;
@@ -965,7 +973,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     return html`
       <div class="controls-group">
         ${this.renderColorLegend()}
-        <label for="cmap-range-slider">Colormap intensity:</label>
+        <mwc-icon class='icon'>opacity</mwc-icon>
+        <label id='colormap-slider-label' class='dropdown-label'
+         for="cmap-range-slider">Colormap intensity:</label>
         <lit-numeric-input min="0" max="1" step="0.1" id='cmap-range-slider'
           value="${this.cmapRange}" @change=${onChangeRange}>
         </lit-numeric-input>
