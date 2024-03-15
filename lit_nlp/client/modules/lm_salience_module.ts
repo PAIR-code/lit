@@ -205,7 +205,7 @@ const CMAP_DEFAULT_RANGE = 0.4;
 /** LIT module for model output. */
 @customElement('lm-salience-module')
 export class LMSalienceModule extends SingleExampleSingleModelModule {
-  static override title = 'LM Salience';
+  static override title = 'Sequence Salience';
   static override numCols = 6;  // 60% of screen width if DataTable on left
   static override duplicateAsRow = true;
   // prettier-ignore
