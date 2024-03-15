@@ -50,7 +50,7 @@ LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
             modules.SimpleDatapointEditorModule,
             *layout.MODEL_PREDS_MODULES,
             modules.SalienceMapModule,
-            modules.SequenceSalienceModule,
+            modules.LegacySequenceSalienceModule,
             modules.AttentionModule,
         ],
         'Analysis': [
@@ -58,7 +58,8 @@ LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
             modules.ConfusionMatrixModule,
             modules.ScalarModule,
         ],
-    })
+    }
+)
 
 
 @attr.s(auto_attribs=True, kw_only=True)

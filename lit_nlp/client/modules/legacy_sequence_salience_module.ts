@@ -1,5 +1,7 @@
 /**
  * @fileoverview Visualization for seq2seq salience maps.
+ *
+ * DEPRECATED; use sequence_salience_module.ts instead.
  */
 
 import '../elements/switch';
@@ -22,7 +24,7 @@ import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {type IndexedInput, ModelInfoMap, type Spec} from '../lib/types';
 import {sumArray} from '../lib/utils';
 
-import {styles} from './sequence_salience_module.css';
+import {styles} from './legacy_sequence_salience_module.css';
 
 interface TokenFocusState {
   idx: number; /* output token index */
@@ -37,28 +39,29 @@ enum ColorScalingMode {
 }
 
 const LEGEND_INFO_TITLE_SIGNED =
-    "Salience is relative to the model's prediction of a class. A positive " +
-    "score (more green) for a token means that token influenced the model to " +
-    "predict that class, whereas a negaitve score (more pink) means the " +
-    "token influenced the model to not predict that class.";
+    'Salience is relative to the model\'s prediction of a class. A positive ' +
+    'score (more green) for a token means that token influenced the model to ' +
+    'predict that class, whereas a negaitve score (more pink) means the ' +
+    'token influenced the model to not predict that class.';
 
 const LEGEND_INFO_TITLE_UNSIGNED =
-    "Salience is relative to the model's prediction of a class. A larger " +
-    "score (more purple) for a token means that token was more influential " +
-    "on the model's prediction of that class.";
+    'Salience is relative to the model\'s prediction of a class. A larger ' +
+    'score (more purple) for a token means that token was more influential ' +
+    'on the model\'s prediction of that class.';
 
 /** LIT module for model output. */
-@customElement('sequence-salience-module')
-export class SequenceSalienceModule extends LitModule {
-  static override title = 'Sequence Salience';
+@customElement('legacy-sequence-salience-module')
+export class LegacySequenceSalienceModule extends LitModule {
+  static override title = 'Sequence Salience (legacy)';
   static override duplicateForExampleComparison = true;
   static override duplicateForModelComparison = true;
   static override numCols = 4;
   static override template =
-      (model: string, selectionServiceIndex: number, shouldReact: number) => html`
-  <sequence-salience-module model=${model} .shouldReact=${shouldReact}
+      (model: string, selectionServiceIndex: number, shouldReact: number) =>
+          html`
+  <legacy-sequence-salience-module model=${model} .shouldReact=${shouldReact}
     selectionServiceIndex=${selectionServiceIndex}>
-  </sequence-salience-module>`;
+  </legacy-sequence-salience-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -327,7 +330,7 @@ export class SequenceSalienceModule extends LitModule {
   renderColorLegend() {
     const cmap = this.cmap;
     const isSigned = (cmap instanceof SignedSalienceCmap);
-    const labelName = "Token Salience";
+    const labelName = 'Token Salience';
 
     const tooltipText =
         isSigned ? LEGEND_INFO_TITLE_SIGNED : LEGEND_INFO_TITLE_UNSIGNED;
@@ -396,7 +399,8 @@ export class SequenceSalienceModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     for (const modelInfo of Object.values(modelSpecs)) {
       if (modelInfo.interpreters.indexOf('sequence_salience') !== -1) {
         return true;
@@ -408,6 +412,6 @@ export class SequenceSalienceModule extends LitModule {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'sequence-salience-module': SequenceSalienceModule;
+    'legacy-sequence-salience-module': LegacySequenceSalienceModule;
   }
 }
