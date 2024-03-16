@@ -598,6 +598,8 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             .options=${segmentationOptions}
             ?disabled=${this.currentTokens.length === 0}>
         </lit-fused-button-bar>
+      </div>
+      <div class="controls-group" style="gap: 8px;">
         <lit-switch
           ?selected=${!this.denseView}
           @change=${onClickToggleDensity}>
@@ -620,6 +622,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             ${this.underline ? 'font_download' : 'format_color_text'}
         </mwc-icon>
       </div>
+      <div class='flex-grow-spacer'></div>
     `;
   }
 

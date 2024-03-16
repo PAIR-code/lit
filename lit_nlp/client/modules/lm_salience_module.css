@@ -133,6 +133,11 @@ select:invalid {
   margin-right: 8px;
 }
 
+.flex-grow-spacer {
+  flex: 1;
+  margin: 0;
+}
+
 #change-target-button {
   white-space: nowrap;
   margin: 0; /* have enough already from controls-group */
@@ -173,13 +178,13 @@ select:invalid {
  * Helps in SxS mode when the module is replicated.
  */
 @container (width < 720px) {
-  #granularity-label {
+  #method-label {
     display: none;
   }
 }
 
 @container (width < 660px) {
-  #change-target-button, #method-label, #colormap-slider-label {
+  #change-target-button, #granularity-label, #colormap-slider-label {
     display: none;
   }
 
