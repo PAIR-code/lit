@@ -25,6 +25,9 @@ c-copy: "Get familiar with the interface of the Learning Interpretability Tool."
 
 ## Conducting analysis in LIT
 
+{% include partials/tutorial-link-element c-title: "Prompt Engineering with Sequence Salience", link: "/tutorials/sequence-salience",
+c-copy: "Learn how to debug and iterate on prompt designs in LIT with the Sequence Salience module." %}
+
 {% include partials/tutorial-link-element c-title: "Salience Maps for Text", link: "/tutorials/text-salience",
 c-copy: "Learn how to use salience maps for text data in LIT." %}
 

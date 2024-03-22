@@ -14,7 +14,7 @@ time: "15 minutes"
 takeaways: "Learn how to use salience maps for text data in LIT."
 ---
 
-## Tutorial : Salience Maps for Text
+## Salience Maps for Text
 
 {%  include partials/link-out,
     link: "../../demos/glue.html",
@@ -37,7 +37,7 @@ support a different number of these methods) -
 [Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG)
 and [LIME](https://arxiv.org/pdf/1602.04938v3.pdf).
 
-### Heuristics : Which salience method for which task?
+### Heuristics: Which salience method for which task?
 
 Salience methods are imperfect. Research has shown that salience methods are
 often
@@ -78,7 +78,7 @@ salience methods should be an entry point for developing hypotheses about your
 model’s behavior, and for identifying subsets of examples and/or creating
 counterfactual examples that test those hypotheses.
 
-### Salience Maps for Text : Theoretical background and LIT overview
+### Salience Maps for Text: Theoretical background and LIT overview
 
 All methods calculate salience, but there are subtle differences in their
 approaches towards calculating a salience score for each token. Grad L2 Norm
