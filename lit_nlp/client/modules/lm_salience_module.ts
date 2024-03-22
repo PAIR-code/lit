@@ -22,7 +22,7 @@ import {CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, SalienceCmap, SignedSali
 import {GENERATION_TYPES, getAllTargetOptions, TargetOption, TargetSource} from '../lib/generated_text_utils';
 import {LitType, LitTypeTypesList, Tokens, TokenScores} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {cleanSpmText, groupTokensByRegexPrefix} from '../lib/token_utils';
+import {cleanSpmText, groupTokensByRegexPrefix, groupTokensByRegexSeparator} from '../lib/token_utils';
 import {type IndexedInput, type Preds, SCROLL_SYNC_CSS_CLASS, type Spec} from '../lib/types';
 import {cumSumArray, filterToKeys, findSpecKeys, groupAlike, makeModifiedInput, sumArray} from '../lib/utils';
 
@@ -325,16 +325,11 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       return groupTokensByRegexPrefix(
           this.currentTokens, /(\n+)|((?<=\n)[^\n])|((?<=[.?!])([▁\s]+))/g);
     } else if (this.segmentationMode === SegmentationMode.LINES) {
-      // Line start is either:
-      // - a run of consecutive \n as its own segment
-      // - any non-\n following \n
-      return groupTokensByRegexPrefix(this.currentTokens, /(\n+)|([^\n]+)/g);
+      // Line separator is one or more newlines.
+      return groupTokensByRegexSeparator(this.currentTokens, /\n+/g);
     } else if (this.segmentationMode === SegmentationMode.PARAGRAPHS) {
-      // Paragraph start is either:
-      // - two or more newlines as its own segment
-      // - any non-\n following \n\n
-      return groupTokensByRegexPrefix(
-          this.currentTokens, /(\n\n+)|(?<=\n\n)([^\n]+)/g);
+      // Paragraph separator is two or more newlines.
+      return groupTokensByRegexSeparator(this.currentTokens, /\n\n+/g);
     } else {
       throw new Error(
           `Unsupported segmentation mode ${this.segmentationMode}.`);
