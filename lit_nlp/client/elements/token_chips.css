@@ -5,6 +5,8 @@
 }
 
 .tokens-holder {
+  --tokens-line-height: 22px;
+
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -68,6 +70,14 @@
   height: 0;
 }
 
+/**
+ * If there are multiple row breaks, subsequent ones should create full blank
+ * lines.
+ */
+.row-break + .row-break {
+  height: calc(var(--tokens-line-height) + 3.5px);
+}
+
 .word-spacer {
   width: 1em;
 }
@@ -82,7 +92,7 @@
 .text-chips {
   display: block;
   font-size: 0; /* hack to get zero spacing between elements */
-  line-height: 22px;
+  line-height: var(--tokens-line-height);
 }
 
 .text-chips > * {
@@ -168,7 +178,8 @@
 
 /* vertical dense mode */
 .text-chips.vdense {
-  line-height: 16px;
+  --tokens-line-height: 16px;
+  /* line-height: 16px; */
 }
 .text-chips.vdense .salient-token {
   padding: 1.5px 0; /* avoid highlight area overlapping across lines */

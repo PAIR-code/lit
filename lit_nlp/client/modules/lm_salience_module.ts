@@ -42,7 +42,7 @@ enum SegmentationMode {
   LINES = 'Lines',
   PARAGRAPHS = '¶',
   // TODO(b/324961811): add phrase or clause chunking?
-  // TODO(b/324961803): add custom regex?
+  CUSTOM = '⚙',
 }
 
 const LEGEND_INFO_TITLE_SIGNED =
@@ -202,6 +202,8 @@ const REQUEST_PENDING: unique symbol = Symbol('REQUEST_PENDING');
 
 const CMAP_DEFAULT_RANGE = 0.4;
 
+const DEFAULT_CUSTOM_SEGMENTATION_REGEX = '\\n+';
+
 /** LIT module for model output. */
 @customElement('lm-salience-module')
 export class LMSalienceModule extends SingleExampleSingleModelModule {
@@ -226,6 +228,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
   @observable
   private segmentationMode: SegmentationMode = SegmentationMode.WORDS;
+  @observable
+  private customSegmentationRegexString: string =
+      DEFAULT_CUSTOM_SEGMENTATION_REGEX;
   // TODO(b/324959547): get default from spec
   @observable private selectedSalienceMethod? = 'grad_l2';
   // Output range for colormap.
@@ -306,6 +311,17 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   @computed
+  get customSegmentationRegex(): RegExp|undefined {
+    try {
+      return RegExp(this.customSegmentationRegexString, 'g');
+    } catch (error) {
+      console.warn(
+          'Invalid segmentation regex: ', this.customSegmentationRegexString);
+      return undefined;
+    }
+  }
+
+  @computed
   get currentTokenGroups(): string[][] {
     if (this.segmentationMode === SegmentationMode.TOKENS) {
       return this.currentTokens.map(t => [t]);
@@ -330,6 +346,14 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     } else if (this.segmentationMode === SegmentationMode.PARAGRAPHS) {
       // Paragraph separator is two or more newlines.
       return groupTokensByRegexSeparator(this.currentTokens, /\n\n+/g);
+    } else if (this.segmentationMode === SegmentationMode.CUSTOM) {
+      if (this.customSegmentationRegex === undefined) {
+        // Just return tokens.
+        return this.currentTokens.map(t => [t]);
+      } else {
+        return groupTokensByRegexPrefix(
+            this.currentTokens, this.customSegmentationRegex);
+      }
     } else {
       throw new Error(
           `Unsupported segmentation mode ${this.segmentationMode}.`);
@@ -567,6 +591,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       return {
         text: val,
         selected: this.segmentationMode === val,
+        tooltipText:
+            (val === SegmentationMode.PARAGRAPHS ? 'Paragraphs' :
+                 val === SegmentationMode.CUSTOM ? 'Custom Regex' :
+                                                   ''),
         onClick: () => {
           if (this.segmentationMode !== val) {
             this.resetTargetSpan();
@@ -584,6 +612,38 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       this.underline = !this.underline;
     };
 
+    const updateSegmentationRegex = (e: Event) => {
+      const {value} = e.target as HTMLInputElement;
+      this.customSegmentationRegexString = value;
+      this.resetTargetSpan();
+    };
+
+    const regexEntryClasses = classMap({
+      'regex-input': true,
+      // Note: customSegmentationRegex is the RegExp object, it will be
+      // undefined if the customSegmentationRegexString does not define a valid
+      // regular expression.
+      'error-input': this.customSegmentationRegex === undefined
+    });
+
+    const resetSegmentationRegex = () => {
+      this.customSegmentationRegexString = DEFAULT_CUSTOM_SEGMENTATION_REGEX;
+    };
+
+    // prettier-ignore
+    const customRegexEntry = html`
+      <div class='regex-input-container'>
+        <input type='text' class=${regexEntryClasses} slot='tooltip-anchor'
+          title="Enter a regex to match segment prefix."
+          @input=${updateSegmentationRegex}
+          .value=${this.customSegmentationRegexString}>
+        <mwc-icon class='icon-button value-reset-icon' title='Reset regex'
+          @click=${resetSegmentationRegex}>
+          restart_alt
+        </mwc-icon>
+      </div>
+    `;
+
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
@@ -593,6 +653,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             .options=${segmentationOptions}
             ?disabled=${this.currentTokens.length === 0}>
         </lit-fused-button-bar>
+        ${
+        this.segmentationMode === SegmentationMode.CUSTOM ? customRegexEntry :
+                                                            null}
       </div>
       <div class="controls-group" style="gap: 8px;">
         <lit-switch
@@ -724,13 +787,17 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
         </div>
       </div>
       <div class='controls-group'>
-        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
-          <button class='hairline-button' id='change-target-button'
+        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left"
+          id='change-target-button'>
+          <button class='hairline-button'
             slot='tooltip-anchor' @click=${clearSalienceTarget}
             ?disabled=${target == null}>
             <span>Select sequence </span><span class='material-icon'>arrow_drop_down</span>
           </button>
-          <mwc-icon class='icon-button' id='change-target-icon'
+        </lit-tooltip>
+        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left"
+          id='change-target-icon'>
+          <mwc-icon class='icon-button'
             slot='tooltip-anchor' @click=${clearSalienceTarget}>
             edit
           </mwc-icon>
