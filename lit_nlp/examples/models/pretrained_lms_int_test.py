@@ -1,6 +1,7 @@
 """Integration tests for pretrained_lms."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from lit_nlp.examples.models import pretrained_lms
 
 
@@ -31,10 +32,26 @@ class PretrainedLmsIntTest(absltest.TestCase):
     for key in model.output_spec().keys():
       self.assertIn(key, model_out[0].keys())
 
-  def test_gpt2_generation(self):
-    # Run prediction to ensure no failure.
-    model_path = "https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz"
-    model = pretrained_lms.HFGenerativeModel(model_name_or_path=model_path)
+
+class GPT2Generation(parameterized.TestCase):
+  """Test that model classes can predict."""
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name="tensorflow",
+          framework="tensorflow",
+          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
+      ),
+      dict(
+          testcase_name="pytorch",
+          framework="pytorch",
+          model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2-pt.tar.gz",
+      ),
+  )
+  def test_gpt2_generation(self, framework, model_path):
+    model = pretrained_lms.HFGenerativeModel(
+        model_name_or_path=model_path, framework=framework
+    )
     model_in = [{"prompt": "Today is"}, {"prompt": "What is the color of"}]
     model_out = list(model.predict(model_in))
 
