@@ -4,10 +4,25 @@ import {TableEntry, TableRowInternal} from './table_types';
 import * as tableUtils from './table_utils';
 
 const REGEX_QUERY = '^test.*ng';
-const COLUMN_NAMES = ['colA', 'colB', 'colC'];
+const COLUMN_NAMES = [
+  'colA',
+  'colB',
+  'colC',
+  't2tgenai:response',
+  'multiclass:clspreds:class'
+];
 
 const JoinedQueryType = tableUtils.JoinedQueryType;
-type JoinedQuery = tableUtils.JoinedQuery;
+type JoinedQueryTestSpec = [
+  testName: string,
+  searchText: string,
+  expected: tableUtils.JoinedQuery | null
+];
+type SearchQueryTestSpec = [
+  testName: string,
+  searchText: string,
+  expected: tableUtils.SearchQuery
+];
 
 function searchQuery(
     matcher: string, columnName?: string): tableUtils.SearchQuery {
@@ -23,17 +38,53 @@ function searchExpr(searchText: string, columnName?: string) {
 
 
 describe('makeSearchQuery', () => {
-  const columnNames = ['colA', 'colB', 'colC'];
-  const testCases: Array<[string, tableUtils.SearchQuery]> = [
-    ['foo', searchQuery('foo')],
-    ['1', searchQuery('1')],
-    ['colA:foo.*', searchQuery('foo.*', 'colA')],
-    ['colB:^.*', searchQuery('^.*', 'colB')],
-    ['colX:123', searchQuery('colX:123')],
-    [':123', searchQuery(':123')],
+  const columnNames = [
+    'colA', 'colB', 'colC', 'model:field', 'model:field:derived'
   ];
-  for (const [searchText, expected] of testCases) {
-    it('makes search queries', () => {
+  const testCases: SearchQueryTestSpec[] = [
+    [
+      'any column text search',
+      'foo',
+      searchQuery('foo')
+    ],
+    [
+      'any column numeric search',
+      '1',
+      searchQuery('1')
+    ],
+    [
+      'specific column regex wildcard',
+      'colA:foo.*',
+      searchQuery('foo.*', 'colA')
+    ],
+    [
+      'specific column position regex',
+      'colB:^.*',
+      searchQuery('^.*', 'colB')
+    ],
+    [
+      'specific column numeric search',
+      'colX:123',
+      searchQuery('colX:123')
+    ],
+    [
+      'missing column coerced to any column text search',
+      ':123',
+      searchQuery(':123')
+    ],
+    [
+      'model column text search',
+      'model:field:123',
+      searchQuery('123', 'model:field')
+    ],
+    [
+      'derived column numeric search',
+      'model:field:derived:1',
+      searchQuery('1', 'model:field:derived')
+    ],
+  ];
+  for (const [testName, searchText, expected] of testCases) {
+    it(`makes search queries for ${testName}`, () => {
       expect(tableUtils.makeSearchQuery(searchText, columnNames))
           .toEqual(expected);
     });
@@ -45,26 +96,62 @@ describe('parseSearchTextIntoQueries', () => {
   const query2 = searchExpr('bar');
   const query3 = searchExpr('123', 'colB');
   const query4 = searchExpr('f.*');
+  const modelColumnQuery = searchExpr('bar', 't2tgenai:response');
+  const derivedModelColumnQuery =
+      searchExpr('bar', 'multiclass:clspreds:class');
 
-  const testCases: Array<[string, JoinedQuery]> = [
-    ['foo bar',
-     searchExpr('foo bar')],  // A single query.
+  const testCases: JoinedQueryTestSpec[] = [
     [
+      'a single query on any field',
+      'foo bar',
+      searchExpr('foo bar')
+    ],
+    [
+      'a single query on model field',
+      't2tgenai:response:bar',
+      modelColumnQuery
+    ],
+    [
+      'a single query on derived field for a model prediction',
+      'multiclass:clspreds:class:bar',
+      derivedModelColumnQuery
+    ],
+    [
+      'AND-separated dataset column and any column queries',
       'colA:foo AND bar',
       {type: JoinedQueryType.AND, children: [query1, query2]}
-    ],  // AND separated queries.
+    ],
     [
+      'AND-separated model column queries',
+      't2tgenai:response:bar AND multiclass:clspreds:class:bar',
+      {
+        type: JoinedQueryType.AND,
+        children: [modelColumnQuery, derivedModelColumnQuery]
+      }
+    ],
+    [
+      'OR-separated model column queries',
+      't2tgenai:response:bar OR multiclass:clspreds:class:bar',
+      {
+        type: JoinedQueryType.OR,
+        children: [modelColumnQuery, derivedModelColumnQuery]
+      }
+    ],
+    [
+      'Many OR-separated queries',
       'colA:foo OR bar OR f.*',
       {type: JoinedQueryType.OR, children: [query1, query2, query4]}
-    ],  // OR separated queries.
+    ],
     [
+      'joint AND-OR queries with a single OR',
       'colA:foo AND bar OR f.*', {
         type: JoinedQueryType.AND,
         children:
             [query1, {type: JoinedQueryType.OR, children: [query2, query4]}]
       }
-    ],  // Joint queries.
+    ],
     [
+      'joint AND-OR queries with a OR-queries on either side',
       'colB:123 OR bar AND colA:foo OR f.*', {
         type: JoinedQueryType.AND,
         children: [
@@ -74,36 +161,59 @@ describe('parseSearchTextIntoQueries', () => {
       }
     ],  // Joint queries.
     [
+      'joint AND-OR queries with two AND clauses and a single OR clause',
       'colA:foo AND f.* AND colB:123 OR bar', {
         type: JoinedQueryType.AND,
         children: [
-          query1, query4, {type: JoinedQueryType.OR, children: [query3, query2]}
+          query1,
+          query4,
+          {
+            type: JoinedQueryType.OR,
+            children: [query3, query2]
+          }
         ]
       }
     ]
   ];
-  for (const [searchText, expected] of testCases) {
-    it('correctly parses search text for expected cases', () => {
+  for (const [testName, searchText, expected] of testCases) {
+    it(`correctly parses search text for ${testName}`, () => {
       expect(tableUtils.parseSearchTextIntoQueries(searchText, COLUMN_NAMES))
           .toEqual(expected);
     });
   }
 
-  const cornerTestCases: Array<[string, tableUtils.JoinedQuery | null]> = [
-    ['', null],       // An empty string.
-    [' AND ', null],  // A single token.
-    [' OR ', null],
-    [' AND AND', searchExpr('AND')],
-    [' AND colA:foo', searchExpr('foo', 'colA')],
+  const cornerTestCases: JoinedQueryTestSpec[] = [
     [
-      'f.* AND bar OR ', {type: JoinedQueryType.AND, children: [query4, query2]}
+      'empty string', '', null
     ],
     [
+      'only the AND token', ' AND ', null
+    ],
+    [
+      'only the OR token', ' OR ', null
+    ],
+    [
+      'sequential AND tokens', ' AND AND', searchExpr('AND')
+    ],
+    [
+      'an AND token followed by a query',
+      ' AND colA:foo',
+      searchExpr('foo', 'colA')
+    ],
+    [
+      'an AND with an OR on the RHS where the RHS of the OR is empty',
+      'f.* AND bar OR ',
+      {type: JoinedQueryType.AND, children: [query4, query2]}
+    ],
+    [
+      'an AND where the LHS is empty and the RHS of the final OR is empty',
       ' AND colB:123 OR bar OR ',
       {type: JoinedQueryType.OR, children: [query3, query2]}
     ],
     [
-      'AND 100 OR bar ', {
+      'an invalid AND on the LHS of an OR',
+      'AND 100 OR bar ',
+      {
         type: JoinedQueryType.OR,
         children: [
           searchExpr('AND 100'),
@@ -113,8 +223,8 @@ describe('parseSearchTextIntoQueries', () => {
     ],
   ];
 
-  for (const [searchText, expected] of cornerTestCases) {
-    it('correctly parses search text for corner cases', () => {
+  for (const [testName, searchText, expected] of cornerTestCases) {
+    it(`correctly parses search text for ${testName}`, () => {
       expect(tableUtils.parseSearchTextIntoQueries(searchText, COLUMN_NAMES))
           .toEqual(expected);
     });
@@ -246,7 +356,9 @@ describe('filterDataByQueries', () => {
     {
       type: JoinedQueryType.AND,
       children: [
-        searchExpr('fizz', 'colA'), searchExpr('4.*6'), {
+        searchExpr('fizz', 'colA'),
+        searchExpr('4.*6'),
+        {
           type: JoinedQueryType.OR,
           children: [query6, searchExpr('b.*', 'colB')]
         }
@@ -263,7 +375,8 @@ describe('filterDataByQueries', () => {
   }
 
   const twoMatchCases = [
-    searchExpr('400-501'), {
+    searchExpr('400-501'),
+    {
       type: JoinedQueryType.OR,
       children: [searchExpr('500-550'), searchExpr('400-480')]
     },
