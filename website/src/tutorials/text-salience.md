@@ -14,7 +14,7 @@ time: "15 minutes"
 takeaways: "Learn how to use salience maps for text data in LIT."
 ---
 
-## Tutorial : Salience Maps for Text
+## Salience Maps for Text
 
 {%  include partials/link-out,
     link: "../../demos/glue.html",
@@ -27,7 +27,7 @@ salience maps, for which gradient-based and/or blackbox methods are available.
 In this tutorial, we will explore how to use salience maps to analyze a text
 classifier in the [Classification and Regression models demo](https://pair-code.github.io/lit/demos/glue.html)
 from the LIT website, and
-how these findings can support counterfactual analysis using LIT’s generators,
+how these findings can support counterfactual analysis using LIT's generators,
 such as Hotflip, to test hypotheses. The Salience Maps module can be found under
 the Explanations tab in the bottom half of this demo and it supports four
 different methods for the GLUE model under test (with other models it might
@@ -37,11 +37,11 @@ support a different number of these methods) -
 [Integrated Gradients](https://arxiv.org/pdf/1703.01365.pdf) (IG)
 and [LIME](https://arxiv.org/pdf/1602.04938v3.pdf).
 
-### Heuristics : Which salience method for which task?
+### Heuristics: Which salience method for which task?
 
 Salience methods are imperfect. Research has shown that salience methods are
 often
-“[sensitive to factors that do not contribute to a model’s prediction](https://arxiv.org/abs/1711.00867)”;
+“[sensitive to factors that do not contribute to a model's prediction](https://arxiv.org/abs/1711.00867)”;
 that people tend to
 [overly trust salience values or use methods they believe they know incorrectly](https://dl.acm.org/doi/10.1145/3313831.3376219);
 and that
@@ -75,10 +75,10 @@ parameterization to optimize results.
 Remember that a good investigative process will check for commonalities and
 patterns across salience values from multiple salience methods. Further,
 salience methods should be an entry point for developing hypotheses about your
-model’s behavior, and for identifying subsets of examples and/or creating
+model's behavior, and for identifying subsets of examples and/or creating
 counterfactual examples that test those hypotheses.
 
-### Salience Maps for Text : Theoretical background and LIT overview
+### Salience Maps for Text: Theoretical background and LIT overview
 
 All methods calculate salience, but there are subtle differences in their
 approaches towards calculating a salience score for each token. Grad L2 Norm
@@ -95,7 +95,7 @@ denoting positive.
 
 {%  include partials/info-box,
     title: 'Interpreting salience polarity',
-    text: "Salience is always relative to the model’s prediction of one class.
+    text: "Salience is always relative to the model's prediction of one class.
         Intuitively, a positive influence score (attribution) for a token (or
         word, depending on your method) in an example means that if this token
         was removed we expect a drop in model confidence in the prediction of
@@ -133,10 +133,10 @@ are the discrete building blocks of text sequences, but they can also be
 represented as vectors in a
 [continuous embedding space](https://colah.github.io/posts/2014-07-NLP-RNNs-Representations/).
 IG computes per-token salience as the average salience over a set of local
-gradients computed by interpolating between the token’s embedding vectors and a
+gradients computed by interpolating between the token's embedding vectors and a
 baseline (typically the zero vector). The tradeoff is that IG requires more
 effort to identify the right number of interpolation steps to be
-effective (configurable in LIT’s interface), with the number of steps
+effective (configurable in LIT's interface), with the number of steps
 correlating directly with runtime. It also requires more information,
 which the model may or may not be able to provide.
 
@@ -173,9 +173,9 @@ time.
         noise in the results, but also affect the time required for each run.'%}
 
 Another interesting difference between the gradient based methods and LIME lies
-in how they analyze the input. The gradient based methods use the model’s
+in how they analyze the input. The gradient based methods use the model's
 tokenizer, which splits up words into smaller constituents, whereas LIME splits
-the text into words at whitespaces. Thus, LIME’s word-level results are often
+the text into words at whitespaces. Thus, LIME's word-level results are often
 incomparable with the token-level results from other methods, as you can see in
 the salience maps below.
 
@@ -187,11 +187,11 @@ the salience maps below.
 
 ### Single example use-case : Interpreting the salience maps module
 
-Let’s take a concrete example and walkthrough how we might use the salience maps
+Let's take a concrete example and walkthrough how we might use the salience maps
 module and counterfactual generators to analyze the behavior of the `sst2-tiny`
 model on the classification task.
 
-First, let’s refer back to our heuristic for choosing appropriate methods.
+First, let's refer back to our heuristic for choosing appropriate methods.
 Because `sst2-tiny` does not have a LSTM architecture, we shouldn't rely too
 much on Grad · Input. So, we are left with Grad L2 Norm, Integrated Gradients
 and LIME to base our decisions on.
@@ -251,13 +251,13 @@ However, it turns out that there is very minimal (and hence negligible) change
 in the salience score values of any of the tokens. The model doesn't change its
 prediction either. It still predicts this to be a negative review sentiment with
 approximately the same prediction confidence. This indicates that at least for
-this particular example, our model isn’t displaying sexist behavior and is
+this particular example, our model isn't displaying sexist behavior and is
 actually making its prediction based on key tokens in the sentence which are not
 related to the gender of the actress/actor.
 
 #### Use Case 2: Pairwise Comparisons
 
-Let’s take another example. This time we consider the sentence “a sometimes
+Let's take another example. This time we consider the sentence “a sometimes
 tedious film” and generate three counterfactuals, first by replacing the two
 words “sometimes” and “tedious” with their respective antonyms one-by-one and
 then together to observe the changes in predictions and  salience.
@@ -289,7 +289,7 @@ module between the pinned and the selected examples.
 When we replace “sometimes” with “often”, it gets a negative score of almost
 equal magnitude (reversing polarity) from LIME which makes sense, because
 “often” makes the next word in the sentence more impactful, linguistically. The
-model prediction doesn’t change either, and this new review is still classified
+model prediction doesn't change either, and this new review is still classified
 as having a negative sentiment.
 
 {%  include partials/inset-image,
@@ -304,7 +304,7 @@ from positive score to negative in the LIME output. In the IG output,
 changes are also justified because in this new sentence “sometimes” counters the
 positive effect of the word “exciting”. The main negative word in our original
 datapoint was “tedious” and by replacing this with a positive word “exciting”,
-the model’s classification of this new sentence also changes and the new
+the model's classification of this new sentence also changes and the new
 sentence is classified as positive with a very high confidence score.
 
 {%  include partials/inset-image,
@@ -353,7 +353,7 @@ or checks) to solve the production failure.
 
 Three gradient-based salience methods and one black box method are provided out
 of the box to LIT users who need to use these post-hoc interpretations to make
-sense of their language model’s predictions. This diverse array of built-in
+sense of their language model's predictions. This diverse array of built-in
 techniques can be used in combination with other LIT modules like
 counterfactuals to support robust exploration of a model's behavior, as
 illustrated in this tutorial. And as always, LIT strives to enable users to
