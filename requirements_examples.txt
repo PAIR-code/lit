@@ -18,6 +18,6 @@ sentencepiece==0.1.99
 tensorflow==2.10.0
 tensorflow-datasets==4.8.0
 tensorflow-text==2.10.0
-torch==2.0.1
-transformers==4.27.1
+torch>=2.0.0
+transformers>=4.27.1
 # LINT.ThenChange(./pyproject.toml)

@@ -49,6 +49,13 @@ def maybe_copy_np(arr):
   # If this is not a view of another array.
   if arr.base is None:
     return arr
+  # Tensorflow provides a bridge to share memory between tensorflow and numpy
+  # arrays. This looks like a view into an array but the base is a
+  # tensorflow_wrapper not an array, so the view heuristics below don't work. We
+  # can check for this case by checking is arr.base has the ndim attribute.
+  # https://github.com/tensorflow/tensorflow/blob/6ed79e8429730c33dc894175da7a1849a8e3e57f/tensorflow/python/lib/core/ndarray_tensor_bridge.cc#L90
+  if not hasattr(arr.base, 'ndim'):
+    return np.copy(arr)
   # Heuristic to check if we should 'detach' this array from the parent blob.
   # We want to know if this array is a view that might leak memory.
   # The simplest check is if arr.base is larger than arr, but we don't want to

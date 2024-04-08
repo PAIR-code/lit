@@ -36,7 +36,7 @@ except (ModuleNotFoundError, ImportError):
 
 
 _DEFAULT_MAX_LENGTH = 1024
-_PYTORCH = "pytorch"
+_PYTORCH = "torch"
 _TENSORFLOW = "tensorflow"
 # HuggingFace uses two letter abbreviations for pytorch and tensorflow.
 _HF_PYTORCH = "pt"
@@ -400,7 +400,7 @@ class HFBaseModel(lit_model.BatchedModel):
       model_name_or_path: gpt2, gpt2-medium, gpt2-large, distilgpt2,
         meta-llama/Llama-2-7b-hf, mistralai/Mistral-7B-v0.1, etc.
       batch_size: the number of items to process per `predict_minibatch` call.
-      framework: the deep learning framework, only "tensorflow" and "pytorch"
+      framework: the deep learning framework, only "tensorflow" and "torch"
         are supported.
       model: an initialized transformer model.
       tokenizer: an initialized tokenizer.
@@ -866,3 +866,19 @@ class HFTokenizerModel(HFBaseModel):
     return {
         "tokens": lit_types.Tokens(parent=""),  # all tokens
     }
+
+
+def initialize_model_group_for_salience(
+    name, *args, max_new_tokens=512, **kw
+) -> dict[str, lit_model.Model]:
+  """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
+  generation_model = HFGenerativeModel(
+      *args, **kw, max_new_tokens=max_new_tokens
+  )
+  salience_model = HFSalienceModel.from_loaded(generation_model)
+  tokenizer_model = HFTokenizerModel.from_loaded(generation_model)
+  return {
+      name: generation_model,
+      f"_{name}_salience": salience_model,
+      f"_{name}_tokenizer": tokenizer_model,
+  }

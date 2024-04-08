@@ -6,11 +6,31 @@ import types
 from typing import Sequence
 
 from absl import logging
+import keras.backend
+import keras.ops
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import utils as lit_utils
 import numpy as np
-import tensorflow as tf
+
+
+# pylint: disable=g-import-not-at-top
+# pytype: disable=import-error
+# NOTE: The Keras backend must be set before loading the Keras library. You can
+# set the backend using the KERAS_BACKEND environment variable or your
+# ~/.keras/keras.json configuration file. For more information, see:
+# https://keras.io/getting_started/#configuring-your-backend
+if keras.backend.backend() == "tensorflow":
+  import tensorflow as tf
+elif keras.backend.backend() == "jax":
+  # TODO(lit-dev): Update imports once a solution to JAX salience is decided.
+  pass
+elif keras.backend.backend() == "torch":
+  import torch
+else:
+  raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
+# pytype: enable=import-error
+# pylint: enable=g-import-not-at-top
 
 
 _DEFAULT_MAX_LENGTH = 1024
@@ -54,7 +74,7 @@ class _KerasBaseModel(lit_model.BatchedModel):
     and manipulate activations between layers. We use this for salience, below.
 
     Args:
-      model: pre-loaded Keras LM using the TF backend
+      model: pre-loaded Keras LM
       max_length: max sequence length
       dynamic_sequence_length: if true, will trim padding to the length of the
         longest sequence in a batch. Recommended for CPU and GPU usage, but may
@@ -90,7 +110,7 @@ class _KerasBaseModel(lit_model.BatchedModel):
       texts: list of input strings
 
     Returns:
-      encoded_inputs compatible with model.score() or other functions
+      A dict[str, Tensor] compatible with model.score(), etc. functions.
     """
     # First: pack to max_length
     encoded_inputs = self.model.preprocessor.generate_preprocess(
@@ -101,20 +121,26 @@ class _KerasBaseModel(lit_model.BatchedModel):
 
     # Trim to the maximum length needed to contain any non-padding tokens.
     mask = encoded_inputs["padding_mask"]
+
+    if keras.backend.backend() == "tensorflow":
+      max_indices = [tf.reduce_max(tf.where(row)) for row in mask]
+    elif keras.backend.backend() == "torch":
+      max_indices = [torch.max(torch.where(row)[0]) for row in mask]
+    else:
+      raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
     # Find position of last 'True' in each row.
     seq_ends: Sequence[int] = [
-        1 + tf.reduce_max(tf.where(mask[i])).numpy().tolist()
-        for i in range(mask.shape[0])
+        keras.ops.convert_to_numpy(i).tolist() + 1 for i in max_indices
     ]
-    trimmed_length = max(seq_ends)
+    longest_sequence = max(seq_ends)
     # TODO(lit-dev): remove this line, or make it logging.debug ?
     logging.info(
         "Trimming batch to trimmed_length = %d based on sequence ends %s",
-        trimmed_length,
+        longest_sequence,
         seq_ends,
     )
     # Actually trim the input tensors.
-    return {k: v[:, :trimmed_length] for k, v in encoded_inputs.items()}
+    return {k: v[:, :longest_sequence] for k, v in encoded_inputs.items()}
 
   @classmethod
   def from_loaded(cls, existing: "_KerasBaseModel", *args, **kw):
@@ -156,23 +182,32 @@ class KerasGenerationModel(_KerasBaseModel):
 
   def embed_texts(self, texts: Sequence[str]):
     processed_inputs = self.encode_inputs(texts)
-    # <tf.float>[batch_size, num_tokens, emb_dim]
+    # <float>[batch_size, num_tokens, emb_dim]
     embs = self.embedder(processed_inputs["token_ids"])
-    # <tf.bool>[batch_size, num_tokens]
+    # <bool>[batch_size, num_tokens]
     mask = processed_inputs["padding_mask"]
     return embs, mask
 
   def embed_and_mean_pool(self, texts: Sequence[str]):
     """Return a single vector for each text."""
     embs, mask = self.embed_texts(texts)
-    # <tf.float>[batch_size, num_tokens, 1]
-    mask = tf.expand_dims(tf.cast(mask, dtype=embs.dtype), axis=2)
-    # <tf.float>[batch_size, 1, emb_dim]
-    pooled_embs = tf.reduce_sum(
-        mask * embs, axis=1, keepdims=True
-    ) / tf.reduce_sum(mask, axis=1, keepdims=True)
-    # <tf.float>[batch_size, emb_dim]
-    return tf.squeeze(pooled_embs, axis=1)
+    # <float>[batch_size, num_tokens, 1]
+    cast_mask = keras.ops.cast(mask, dtype=embs.dtype)
+
+    if keras.backend.backend() == "tensorflow":
+      expanded_mask = tf.expand_dims(cast_mask, axis=2)
+      pooled_embs = tf.reduce_sum(
+          expanded_mask * embs, axis=1, keepdims=True
+      ) / tf.reduce_sum(expanded_mask, axis=1, keepdims=True)
+      return tf.squeeze(pooled_embs, axis=1)
+    elif keras.backend.backend() == "torch":
+      expanded_mask = torch.unsqueeze(cast_mask, dim=2)
+      pooled_embs = torch.sum(
+          expanded_mask * embs, dim=1, keepdim=True
+      ) / torch.sum(expanded_mask, dim=1, keepdim=True)
+      return torch.squeeze(pooled_embs, dim=1)
+    else:
+      raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
 
   def predict_minibatch(
       self,
@@ -200,11 +235,9 @@ class KerasGenerationModel(_KerasBaseModel):
       # Or just embed full_response.
       response_embeddings = self.embed_and_mean_pool(responses)
 
-      for i in range(len(inputs)):
-        outputs[i][FieldNames.PROMPT_EMBEDDINGS] = prompt_embeddings[i].numpy()
-        outputs[i][FieldNames.RESPONSE_EMBEDDINGS] = response_embeddings[
-            i
-        ].numpy()
+      for o, p, r in zip(outputs, prompt_embeddings, response_embeddings):
+        o[FieldNames.PROMPT_EMBEDDINGS] = keras.ops.convert_to_numpy(p)
+        o[FieldNames.RESPONSE_EMBEDDINGS] = keras.ops.convert_to_numpy(r)
 
     return outputs
 
@@ -244,18 +277,22 @@ class KerasSalienceModel(_KerasBaseModel):
       )
 
   def _pred(self, input_ids, padding_mask, target_masks):
-    """Predict a batch of tokenized text."""
-    # <tf.int>[batch_size, num_tokens]; ignore the last one in each row.
-    target_ids = tf.roll(input_ids, shift=-1, axis=1)
+    """Predict a batch of tokenized text.
 
+    Args:
+      input_ids: A Tensor with shape <int>[batch_size, num_tokens]
+      padding_mask: A Tensor with shape <int>[batch_size, num_tokens]
+      target_masks: A Numpy Array with shape <bool>[batch_size, num_tokens]
+
+    Returns:
+      Batched outputs for post-processing.
+    """
     ##
     # Process target masks
-
     # It doesn't make sense to interpret the first token, since it is not ever
     # predicted. But we need to ensure that the mask[0] is zero, so it doesn't
     # cause problems when 'rolled' to the last position below.
-    modified_masks = [[0] + list(mask[1:]) for mask in target_masks]
-    seq_len = target_ids.shape[1]
+    seq_len = keras.ops.shape(input_ids)[1]
     pad_fn = functools.partial(
         lit_utils.pad1d,
         min_len=seq_len,
@@ -263,42 +300,30 @@ class KerasSalienceModel(_KerasBaseModel):
         pad_val=0,
         pad_left=False,
     )
-    padded_target_masks = np.stack(
+
+    modified_masks = [[0] + list(mask[1:]) for mask in target_masks]
+    stacked_padded_masks = keras.ops.stack(
         [pad_fn(mask) for mask in modified_masks],
         axis=0,
     )
+    # Shift masks back so they align with the target_ids generated in the
+    # backend-specific prediction functions.
+    rolled_masks = keras.ops.roll(stacked_padded_masks, shift=-1, axis=1)
+    loss_mask = keras.ops.convert_to_tensor(rolled_masks, dtype="bool")
 
-    padded_target_masks = tf.constant(padded_target_masks, dtype=tf.bool)
-    # Shift masks back so they align with target_ids.
-    loss_mask = tf.roll(padded_target_masks, shift=-1, axis=1)
-
-    embeddings = None
-
-    with tf.GradientTape(watch_accessed_variables=False) as tape:
-
-      def layer_intercept_fn(x, i):
-        if i == -1:
-          nonlocal embeddings, tape
-          embeddings = x
-          tape.watch(embeddings)
-        return x
-
-      # <tf.float>[batch_size, num_tokens]
-      per_token_loss = self.model.score(
-          token_ids=input_ids,
-          padding_mask=padding_mask,
-          scoring_mode="loss",
-          layer_intercept_fn=layer_intercept_fn,
-          target_ids=target_ids,
-      )
-      masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
-
-    # <tf.float>[batch_size, num_tokens, hdim]
-    grads = tape.gradient(masked_loss, embeddings)
-    # <tf.float>[batch_size, num_tokens]
-    grad_l2 = tf.norm(grads, axis=2)
-    # <tf.float>[batch_size, num_tokens]
-    grad_dot_input = tf.reduce_sum(grads * embeddings, axis=2)
+    pred_kw_args = {
+        "input_ids": input_ids,
+        "padding_mask": padding_mask,
+        "loss_mask": loss_mask,
+    }
+    if keras.backend.backend() == "tensorflow":
+      grad_l2, grad_dot_input = self._pred_tf(**pred_kw_args)
+    elif keras.backend.backend() == "jax":
+      grad_l2, grad_dot_input = self._pred_jax(**pred_kw_args)
+    elif keras.backend.backend() == "torch":
+      grad_l2, grad_dot_input = self._pred_torch(**pred_kw_args)
+    else:
+      raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
 
     batched_outputs = {
         "input_ids": input_ids,
@@ -311,6 +336,85 @@ class KerasSalienceModel(_KerasBaseModel):
     }
 
     return batched_outputs
+
+  def _pred_tf(self, input_ids, padding_mask, loss_mask):
+    # <int>[batch_size, num_tokens]; ignore the last one in each row.
+    target_ids = tf.roll(input_ids, shift=-1, axis=1)
+    embeddings = None
+
+    with tf.GradientTape(watch_accessed_variables=False) as tape:
+
+      def layer_intercept_fn(x, i):
+        if i == -1:
+          nonlocal embeddings, tape
+          embeddings = x
+          tape.watch(embeddings)
+        return x
+
+      # <float>[batch_size, num_tokens]
+      per_token_loss = self.model.score(
+          token_ids=input_ids,
+          padding_mask=padding_mask,
+          scoring_mode="loss",
+          layer_intercept_fn=layer_intercept_fn,
+          target_ids=target_ids,
+      )
+      masked_loss = per_token_loss * keras.ops.cast(
+          loss_mask, per_token_loss.dtype
+      )
+
+    # <float>[batch_size, num_tokens, hdim]
+    grads = tape.gradient(masked_loss, embeddings)
+    # <float>[batch_size, num_tokens]
+    grad_l2 = tf.norm(grads, axis=2)
+    # <float>[batch_size, num_tokens]
+    grad_dot_input = tf.reduce_sum(grads * embeddings, axis=2)
+    return grad_l2, grad_dot_input
+
+  # TODO(b/333373960): Implement salience computation for JAX.
+  def _pred_jax(self, input_ids, padding_mask, loss_mask):
+    # NOTE: JAX computes gradients automatically w.r.t function inputs and
+    # outputs. The score function takes token_ids as its input but salience is
+    # computed w.r.t. the embeddings, thus JAX cannot differentiate the loss
+    # w.r.t. the embeddings and taking gradients w.r.t. the token_ids is not
+    # equivalent. For now, we raise an error if using JAX.
+    raise NotImplementedError("JAX backend not supported for salience.")
+
+  def _pred_torch(self, input_ids, padding_mask, loss_mask):
+    target_ids = torch.roll(input_ids, shifts=-1, dims=1)
+    embeddings = None
+
+    def layer_intercept_fn(x, i):
+      if i == -1:
+        nonlocal embeddings
+        embeddings = x
+      return x
+
+    per_token_loss = self.model.score(
+        token_ids=input_ids,
+        padding_mask=padding_mask,
+        scoring_mode="loss",
+        layer_intercept_fn=layer_intercept_fn,
+        target_ids=target_ids,
+    )
+
+    if embeddings is None:
+      raise ValueError("Embeddings are None after scoring.")
+
+    masked_loss = per_token_loss * keras.ops.cast(
+        loss_mask, per_token_loss.dtype
+    )
+
+    # <float>[batch_size, num_tokens, hdim]
+    grads = torch.autograd.grad(
+        masked_loss, embeddings, grad_outputs=torch.ones_like(masked_loss)
+    )[0]
+    embeddings = embeddings.detach()
+    # <float>[batch_size, num_tokens]
+    grad_l2 = torch.norm(grads, dim=2)
+    # <float>[batch_size, num_tokens]
+    grad_dot_input = torch.sum(grads * embeddings, dim=2)
+    return grad_l2, grad_dot_input
 
   def _postprocess(self, preds):
     """Post-process single-example preds. Operates on numpy arrays."""
@@ -340,7 +444,9 @@ class KerasSalienceModel(_KerasBaseModel):
     # Get the predictions.
     batched_outputs = self._pred(sequence_ids, padding_mask, target_masks)
     # Convert to numpy for post-processing.
-    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    detached_outputs = {
+        k: keras.ops.convert_to_numpy(v) for k, v in batched_outputs.items()
+    }
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = lit_utils.unbatch_preds(detached_outputs)
     return map(self._postprocess, unbatched_outputs)
@@ -388,7 +494,9 @@ class KerasTokenizerModel(_KerasBaseModel):
         "padding_mask": preprocessed_texts["padding_mask"],
     }
     # Convert to numpy for post-processing.
-    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    detached_outputs = {
+        k: keras.ops.convert_to_numpy(v) for k, v in batched_outputs.items()
+    }
     # Split up batched outputs, then post-process each example.
     unbatched_outputs = lit_utils.unbatch_preds(detached_outputs)
     return map(self._postprocess, unbatched_outputs)

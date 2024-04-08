@@ -39,12 +39,12 @@ class GPT2Generation(parameterized.TestCase):
   @parameterized.named_parameters(
       dict(
           testcase_name="tensorflow",
-          framework="tensorflow",
+          framework=pretrained_lms.MLFramework.TF.value,
           model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
       ),
       dict(
           testcase_name="pytorch",
-          framework="pytorch",
+          framework=pretrained_lms.MLFramework.PT.value,
           model_path="https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2-pt.tar.gz",
       ),
   )
