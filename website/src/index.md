@@ -5,7 +5,7 @@ layout: layouts/main.liquid
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-{% include partials/display1 text:"The Learning Interpretability Tool (LIT) is an open-source platform for <strong>visualization and understanding of NLP models</strong>." %}
+{% include partials/display1 text:"The Learning Interpretability Tool (🔥LIT) is a <strong>visual, interactive ML model-understanding</strong> tool that supports text, image, and tabular data." %}
 
 {% include partials/home-cta-button text:"Take a tour", link:"/tutorials/tour" %}
 {% include partials/home-cta-button text:"Setup LIT", link:"/documentation/getting_started.html" %}
@@ -20,7 +20,7 @@ layout: layouts/main.liquid
 
 <div class="mdl-cell--8-col mdl-cell--12-col-tablet mdl-cell--8-col-phone">
 
-The Learning Interpretability Tool (LIT) is for researchers and practitioners looking to understand NLP model behavior through a visual, interactive, and extensible tool.
+The Learning Interpretability Tool (🔥LIT) is for researchers and practitioners looking to understand NLP model behavior through a visual, interactive, and extensible tool.
 
 Use LIT to ask and answer questions like:
 - What kind of examples does my model perform poorly on?
@@ -103,16 +103,28 @@ And more...
 ## What's the latest
 
 <div class="mdl-grid no-padding">
-  {% include partials/home-card image: '/assets/images/LIT_Updates.png', action: 'UPDATES',
-  title: 'Version 1.0', desc: 'New three-panel layout, dynamic model & data loading, improved APIs, and more.',
-  cta-text:"See release notes", link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md' external:"true" %}
+  {% include partials/home-card image: '/assets/images/LIT_Updates.png',
+      action: 'UPDATES',
+      title: 'Version 1.1',
+      desc: 'Input salience for text-to-text LLMs, with wrappers for HuggingFace Transformers and KerasNLP models.',
+      cta-text:"See release notes",
+      link: 'https://github.com/PAIR-code/lit/blob/main/RELEASE.md'
+      external:"true" %}
 
-  {% include partials/home-card image: '/assets/images/LIT_Contribute.png', action: 'DOCS',
-  title: 'Documentation', desc: 'LIT is open-source and easily extensible to new models, tasks, and more.',
-  cta-text:"View documentation", link: '/documentation/', external:"true" %}
+  {% include partials/home-card image: '/assets/images/LIT_Contribute.png',
+      action: 'DOCS',
+      title: 'Documentation',
+      desc: 'LIT is open-source and easily extensible to new models, tasks, and more.',
+      cta-text:"View documentation",
+      link: '/documentation/',
+      external:"true" %}
 
-  {% include partials/home-card image: '/assets/images/LIT_Paper.png', action: 'RESEARCH',
-  title: 'Demo Paper at EMNLP ‘20', desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.',
-  cta-text:"Read the paper", link: 'https://www.aclweb.org/anthology/2020.emnlp-demos.15.pdf' external:"true" %}
+  {% include partials/home-card image: '/assets/images/LIT_Paper.png',
+      action: 'RESEARCH',
+      title: 'Demo Paper at EMNLP ‘20',
+      desc: 'Read about what went into LIT in our demo paper, presented at EMNLP ‘20.',
+      cta-text:"Read the paper",
+      link: 'https://www.aclweb.org/anthology/2020.emnlp-demos.15.pdf'
+      external:"true" %}
 
 </div>
