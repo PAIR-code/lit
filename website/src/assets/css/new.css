@@ -483,9 +483,31 @@ h5 {
   display: inline-block;
 }
 
-
 .tutorial-image {
   width: 100%;
+  cursor: zoom-in;
+}
+
+.tutorial-image-popover {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none; /* click to close image */
+}
+
+.tutorial-image-popover .tutorial-image {
+  max-width: calc(100vw - 80px);
+  max-height: calc(100vh - 80px);
+
+  cursor: zoom-out;
+  /* block the default popover close; we'll use js instead */
+  pointer-events: all;
+  /* in case image itself has transparency */
+  background: white;
+}
+
+.tutorial-image-popover::backdrop {
+  background: rgba(0, 0, 0, 0.60);
 }
 
 .tutorial-page-container p,
