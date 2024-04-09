@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Do we need additional share metadata included here? -->
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q74F5RJLXB"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q74F5RJLXB');
+</script>
+
+    <title>Prompt Engineering with Sequence Salience</title>
+    
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/material.min.css">
+    <link rel="stylesheet" href="/lit/assets/css/prism-material-light.css">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Manrope:400,400italic,500,500italic,700,700italic" rel="stylesheet" type="text/css">
+
+    <!-- <link href='/lit/assets/css/main.css' rel='stylesheet' type='text/css'> -->
+    <link href='/lit/assets/css/new.css' rel='stylesheet' type='text/css'>
+    <link rel="icon" href="/lit/assets/images/favicon.png" type="image/png"/>
+
+  </head>
+
+  <body>
+    <div class="mdl-layout mdl-layout--no-desktop-drawer-button mdl-js-layout mdl-layout--fixed-header">
+      
+      <header class="mdl-layout__header">
+        <div class="mdl-layout__header-row">
+          <!-- Title -->
+          <img class='status-emoji' src="/lit/assets/images/favicon.png"></img>
+          <span class="mdl-layout__title">
+            <a href="/lit/">
+              Learning Interpretability Tool
+            </a>
+          </span>
+          <!-- Add spacer, to align navigation to the right -->
+          <div class="mdl-layout-spacer"></div>
+          <!-- Navigation. We hide it in small screens. -->
+          <nav class="mdl-navigation mdl-layout--large-screen-only">
+            <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
+            <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+            <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+            <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
+            <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="-_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+            <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          </nav>
+        </div>
+      </header>
+      <div class="mdl-layout__drawer">
+        <span class="mdl-layout__title"><a href="/lit/">Learning Interpretability Tool</a></span>
+        <nav class="mdl-navigation">
+          <a class="mdl-navigation__link" href="/lit/documentation/getting_started.html">GETTING STARTED</a>
+          <a class="mdl-navigation__link" href="/lit/tutorials/">TUTORIALS</a>
+          <a class="mdl-navigation__link" href="/lit/demos/">DEMOS</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/">DOCUMENTATION</a>
+          <a class="mdl-navigation__link" href="/lit/documentation/faq.html">FAQs</a>
+          <a class="mdl-navigation__link" href="https://groups.google.com/g/lit-annoucements" target="_blank">STAY UP TO DATE<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+          <a class="mdl-navigation__link" href="https://github.com/pair-code/lit" target="-_blank">GITHUB<img class="header-arrow" src="/lit/assets/images/arrow-link-out.png"/></a>
+        </nav>
+      </div>
+
+      
+      <main class="mdl-layout__content hero-banner">
+        <div class="tutorial-page-container mdl-grid">
+          <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            <div class="tutorial-breadcrumbs">
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Prompt Engineering with Sequence Salience
+</div>
+            <h2>Prompt Engineering with Sequence Salience</h2>
+<div class="link-out"><a href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb" target="_blank">Follow along in Google Colab.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<p>Or, run this locally with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code>examples/lm_salience_demo.py</code></a></p>
+<p>Large language models (LLMs), such as <a href="https://gemini.google.com/">Gemini</a> and <a href="https://arxiv.org/abs/2303.08774">GPT-4</a>, have
+become ubiquitous. Recent releases of &quot;open weights&quot; models, including
+<a href="https://llama.meta.com/">Llama 2</a>, <a href="https://mistral.ai/news/announcing-mistral-7b/">Mistral</a>, and <a href="https://ai.google.dev/gemma">Gemma</a>, have made it easier
+for hobbyists, professionals, and researchers alike to access, use, and study
+the complex and diverse capabilities of LLMs.</p>
+<p>Many LLM interactions use <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/learn/introduction-prompt-design">prompt engineering</a> methods to control the
+model's generation behavior. <a href="https://cloud.google.com/generative-ai-studio?hl=en">Generative AI Studio</a> and other tools
+have made it easier to construct prompts, and model interpretability can help
+engineer prompt designs more effectively by showing us which parts on the prompt
+the model is using during generation.</p>
+<p>In this tutorial, you will learn to use the
+<a href="../../documentation/components.html#sequence-salience">Sequence Salience module</a>, introduced in
+<a href="https://github.com/PAIR-code/lit/blob/main/RELEASE.md#release-11">LIT v1.1</a>, to explore the impact of your prompt designs
+on model generation behavior in three case studies. In short, this module allows
+you to select a segment of the model's output and see a heatmap depicting how
+much influence each preceding segment had on the selection.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-hero.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-hero.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">LIT's Language Model Salience demo. Use the Data Table (left) and
+        Datapoint Editor (not shown) to select or create prompt designs, and
+        visualize the salient information therein using the Sequence Salience
+        module (right).</div>
+</div>
+<p>All examples in this tutorial use the <a href="https://ai.google.dev/gemma">Gemma</a> LLM as the analysis target.
+Most of the time, this is Gemma Instruct 2B, but we also use Gemma Instruct 7B
+in Case Study 3; <a href="https://ai.google.dev/gemma/docs#models">more info about variants</a> is available online.
+LIT supports additional LLMs, including <a href="https://llama.meta.com/">Llama 2</a> and <a href="https://mistral.ai/news/announcing-mistral-7b/">Mistral</a>,
+via the HuggingFace Transformers and KerasNLP libraries.</p>
+<p>This tutorial was adapted from and expands upon LIT's contributions to the
+<a href="https://ai.google.dev/responsible">Responsible Generative AI Tookit</a> and the related paper and
+<a href="https://youtu.be/EZgUlnWdh0w">video</a> submitted to the ACL 2024 Systems Demonstration track.
+This is an active and ongoing research area for the LIT team, so expect changes
+and further expansions to this tutorial over time.</p>
+<h2>Case Study 1: Debugging Few-Shot Prompts</h2>
+<p>Few-shot prompting was introduced with <a href="https://cdn.openai.com/better-language-models/language-models.pdf">GPT-2</a>: an ML developer provides
+examples of how to perform a task in a prompt, affixes user-provided content at
+the end, and sends the prompt to the LLM so it will generate the desired output.
+This technique has been useful for a number of use cases, including
+<a href="https://proceedings.neurips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html">solving math problems</a>, <a href="https://scholarspace.manoa.hawaii.edu/items/65312e48-5954-4a5f-a1e8-e5119e6abc0a">code synthesis</a>, and more.</p>
+<p>Imagine yourself as a developer working on an AI-powered recommendation system.
+The goal is to recommend dishes from a restaurant's menu based on a user's
+preferences—what they like and do not like. You are designing and few-shot
+prompt to enable an LLM to complete this task. Your prompt design, shown below,
+includes five clauses: <code>Taste-likes</code> and <code>Taste-dislikes</code> are provided by the
+user, <code>Suggestion</code> is the item from the restaurant's menu, and <code>Analysis</code> and
+<code>Recommendation</code> are generated by the LLM. The dynamic content for the final
+example is injected before the prompt is sent to the model.</p>
+<pre class="language-text"><code class="language-text">Analyze a menu item in a restaurant.<br><br>## For example:<br><br>Taste-likes: I've a sweet-tooth<br>Taste-dislikes: Don't like onions or garlic<br>Suggestion: Onion soup<br>Analysis: it has cooked onions in it, which you don't like.<br>Recommendation: You have to try it.<br><br>Taste-likes: I've a sweet-tooth<br>Taste-dislikes: Don't like onions or garlic<br>Suggestion: Baguette maison au levain<br>Analysis: Home-made leaven bread in France is usually great<br>Recommendation: Likely good.<br><br>Taste-likes: I've a sweet-tooth<br>Taste-dislikes: Don't like onions or garlic<br>Suggestion: Macaron in France<br>Analysis: Sweet with many kinds of flavours<br>Recommendation: You have to try it.<br><br>## Now analyse one more example:<br><br>Taste-likes: users-food-like-preferences<br>Taste-dislikes: users-food-dislike-preferences<br>Suggestion: menu-item-to-analyse<br>Analysis:</code></pre>
+<p>There's a problem with this prompt. Can you spot it? If you find it, how long
+do you think it took before you noticed it? Let's see how Sequence Salience can
+speed up bug identification and triage with a simple example.</p>
+<p>Consider the following values for the variables in the prompt template above.</p>
+<pre class="language-text"><code class="language-text">users-food-like-preferences = Cheese<br>users-food-dislike-preferences = Can't eat eggs<br>menu-item-to-analyse = Quiche Lorraine</code></pre>
+<p>When you run this through the model it generates the following (we show the
+entire example, but the model only generated the text after <code>Analysis</code>):</p>
+<pre class="language-text"><code class="language-text">Taste-likes: Cheese<br>Taste-dislikes: Can't eat eggs<br>Suggestion: Quiche Lorraine<br>Analysis: A savoury tart with cheese and eggs<br>Recommendation: You might not like it, but it's worth trying.</code></pre>
+<p>Why is the model suggesting something that contains an ingredient that the user
+cannot eat (eggs)? Is this a problem with the model or a problem with the
+prompt? The Sequence Salience module can help us find out.</p>
+<p>If you are following along <a href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb">in Colab</a>, you can select this example
+from the <a href="../../documentation/ui_guide.html#data-table">Data Table</a> by selecting the example with the <code>source</code>
+value <code>fewshot-mistake</code>. Alternatively, you can add the example directly using
+the <a href="../../documentation/ui_guide.html#datapoint-editor">Datapoint Editor</a>.</p>
+<p>Once selected, the Sequence Salience module will allow you to choose the
+<code>response</code> field from the model (bottom) and see a running-text view of the
+prompt. The module defaults to word-level granularity, but this prompt design is
+more suitable for sentence-level analysis since the data it contained in each
+example is separated into distinct, sentence-like clauses. After enabling
+sentence-level aggregation with <a href="../../documentation/components.html#sequence-salience">Granularity controls</a>, select the
+<code>Recommendation</code> line from the model's generated response to see a heatmap that
+shows the impact preceding lines have on that line. You can also use
+paragraph-level aggregation to help quickly identify the most influential
+examples and then switch to a finer-grained aggregation to see how different
+statements in the prompt influence generation. These two perspectives are shown
+in the figure below.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-fewshot-wrong.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-fewshot-wrong.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">Sequence Salience maps depicting the influence from few-shot
+        examples at two levels. Paragraph-level aggregation (left) allows us to
+        quickly identify the most influential complete example, and
+        sentence-level (right) aids in differentiating the influence of
+        constituent clauses. Notice that the most influential example is the
+        first one, and that the most salient clause in that example is the
+        Analysis line. However, the Recommendation that follows contradicts the
+        stated taste preferences and Analysis.</div>
+</div>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <details>
+    <summary class="info-box-title">Adjusting Segment Granularity</summary>
+    <span class="info-box-text">Input salience methods for text-to-text generation tasks operate over
+the subword tokens used by the model. However, human tend not to reason
+effectively over these tokenized representations, so we provide a
+granularity control that (roughly) aggregates tokens into words,
+sentences, and paragraphs, or into custom segments using a regular
+expression parser. The salience score for each aggregate segment is the
+sum of the scores for its constituent tokens. Selecting an aggregate
+segment is equivalent to selecting all constituent tokens.</span>
+  </details>
+</div>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <details>
+    <summary class="info-box-title">Adjusting Color Map Intensity</summary>
+    <span class="info-box-text">The Sequence Salience module allows you to control the intensity of
+the color map, which can balance the visual presence of segments at
+different granularities. We've tried to set a suitable default
+intensity, but encourage you to play around with these controls to see
+what works well for your needs.</span>
+  </details>
+</div>
+<p>As you scan up through the sentence-level heatmap, you will notice two
+things:  1) the strongest influence on the recommendation in the instruction at
+the top to analyze the menu item; and 2) the next most influential segments are
+the <code>Analysis</code> lines in each of the few-shot examples. These suggest that the
+model is correctly attending to the task and leaning on the analyses to guide
+generation, so what could be going wrong? The most influential <code>Analysis</code> clause
+is from the <code>Onion soup</code> example. Looking at this example more closely we see
+that the <code>Recommendation</code> clause for this example does not align with the user's
+tastes; they dislike onions but the model recommends the onion soup anyway.</p>
+<p><a href="https://par.nsf.gov/servlets/purl/10462310">Research suggests</a> that the relatively tight distribution over
+the taste and recommendation spaces in the limited examples in the prompt can
+affect the model's ability to learn the recommendation task. The other examples
+in the prompt appear to have the correct recommendation given the user's tastes.
+If we fix the <code>Onion soup</code> example recommendation, maybe the model will perform
+better.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-fewshot-fixed.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-fewshot-fixed.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">The Datapoint Editor (left) allows you to edit the prompt text
+        directly in LIT, with any edited fields highlighted in yellow until they
+        are added to the dataset. After adding the edited prompt, the Sequence
+        Salience module (right) will update and allow you to view the influence
+        of prior clauses in the corrected prompt. Fixing the few-shot example
+        appears to have correctly adjusted model behavior.</div>
+</div>
+<p>After making adjustments in the Datapoint Editor (or selecting the
+<code>fewshot-fixed</code> example in the Data Table if you're following along in Colab),
+we can again load the example into the Sequence Salience module and, with
+sentence-level granularity selected, select the new <code>Recommendation</code> line in
+the model's generated response. We can immediately see that the response is now
+correct. The heatmap looks largely the same as before, but the corrected
+examples have improved the models performance.</p>
+<h2>Case Study 2: Assessing Constitutional Principles in Prompts</h2>
+<p><a href="https://arxiv.org/abs/2212.08073">Constitutional principles</a> are a more recent development in the
+pantheon of prompt engineering. The core concept is that clear, concise
+instructions describing the qualities of a good output can improve model
+performance and increase developers' ability to control generations. Initial
+research has shown that self-critique from the model is best for this, and
+<a href="https://arxiv.org/abs/2310.15428">tools</a> have been developed to help humans have control over
+the principles that are added into prompts. The Sequence Salience module can
+take this one step further by providing a feedback loop to assess the influence
+of constitutional principles on generations.</p>
+<p>Building on the task from Case Study 1, let's consider how the following
+constitutional principles might impact a prompt designed for food
+recommendations from a restaurant menu.</p>
+<pre class="language-text"><code class="language-text">* The analysis should be brief and to the point.<br>* The analysis and recommendation should both be clear about the suitability for someone with a specified dietary restriction.</code></pre>
+<p>The location of principles in a prompt can directly affect model performance.
+To start, let's look at how they impact generations when placed between the
+instruction (<code>Analyze a menu...</code>) and the start of the few-shot examples. The
+heatmap shown in the figure below shows a desirable pattern; the model is being
+strongly influenced by the task instruction and the principle related to the
+<code>Recommendation</code> component of the generation, with support from the <code>Analysis</code>
+clauses in the few-shot examples.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-constitutions.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-constitutions.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">A Sequence Salience map depicting the influence of constitutional
+        principles on a model generation with few-shot examples. Notice that
+        placing the principles near the task instruction seems to give them
+        significant influence compared to the heatmaps in Case Study 1.</div>
+</div>
+<p>What happens if we change the location of these principles? You can use LIT's
+<a href="../../documentation/ui_guide.html#datapoint-editor">Datapoint Editor</a> to move the principles to their own section
+in the prompt, between the few-shot examples and the completion, a shown in the
+figure below.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-constitutions-moved.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-constitutions-moved.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">This Sequence Salience maps suggests that moving principles around
+        in the prompt does not seem to affect model generation on this example,
+        but it does change the influence pattern changes dramatically.</div>
+</div>
+<p>After moving the principles, the influence seems to be more diffuse across all
+of the <code>Analysis</code> sections and the relevant principle. The sentiment conveyed in
+the <code>Recommendation</code> is similar to the original, and even more terse after
+they were moved, which better aligns with the principle. If similar patterns
+were found across multiple test examples, this might suggest the model does a
+better job of following the principles when they come later on in the prompt.</p>
+<p>Constitutional principles are still very new, and the interactions between them
+and model size, for example, are not well understood at this time. We hope that
+LIT's Sequence Salience module will help develop and validate methods for using
+them in prompt engineering use cases.</p>
+<h2>Case Study 3: Side-by-Side Behavior Comparisons</h2>
+<p>LIT support a <a href="../../documentation/ui_guide.html#comparing-datapoints">side-by-side (SxS) mode</a> that can be used to compare two
+models, or here, compare model behavior on two related examples. (Check out the
+<a href="../../tutorials/coref/">gender bias tutorial</a> for another case study in SxS analysis.)
+Let's see how we can use this to understand differences in prompt designs with
+Sequence Salience.</p>
+<p><a href="https://github.com/openai/grade-school-math">GSM8K</a> is a benchmark dataset of grade school math problems commonly
+used to evaluate LLMs' mathematical reasoning abilities. Most evaluations employ
+a <a href="https://proceedings.neurips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html">chain-of-thought prompt design</a> where a set of few-shot examples
+demonstrate how to decompose a word problem into subproblems and then combine
+the results from the various subproblems to arrive at the desired answer. GSM8K
+and other work has shown that LLMs often need assistance to perform
+calculations, introducing the idea of <a href="https://arxiv.org/abs/2302.04761">tool use</a> by LLMs.</p>
+<p>Less explored is the Socratic form of the dataset, where subproblems are framed
+as questions instead of declarative statements. One might assume that a model
+will perform similarly or even better on the Socratic form than the conventional
+form, especially when you consider modifying the prompt design to include the
+preceding Socratic questions in the prompt, isolating the work the model must
+perform to the final question, as shown in the following example.</p>
+<pre class="language-text"><code class="language-text">A carnival snack booth made $50 selling popcorn each day. It made three times as much selling cotton candy. For a 5-day activity, the booth has to pay $30 rent and $75 for the cost of the ingredients. How much did the booth earn for 5 days after paying the rent and the cost of ingredients?<br>How much did the booth make selling cotton candy each day? ** The booth made $50 x 3 = $<<50*3=150>>150 selling cotton candy each day.<br>How much did the booth make in a day? ** In a day, the booth made a total of $150 + $50 = $<<150+50=200>>200.<br>How much did the booth make in 5 days? ** In 5 days, they made a total of $200 x 5 = $<<200*5=1000>>1000.<br>How much did the booth have to pay? ** The booth has to pay a total of $30 + $75 = $<<30+75=105>>105.<br>How much did the booth earn after paying the rent and the cost of ingredients? **</code></pre>
+<p>When we inspect the model's response to a zero-shot prompt in the Sequence
+Salience module, we notice two things. First, the model failed to compute the
+correct answer. It was able to correctly set up the problem as the difference
+between two values, but the calculated value is incorrect ($995 when it should
+be $895). Second, we see a fairly diffuse heatmap attending near equally to the
+operands for the final problem and all of the preceding answers to the Socratic
+questions.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-target-select.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-target-select.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">On load, the Sequence Salience module lets you choose which target
+        sequence to analyze. Sequences from the dataset are shown on top, there
+        is typically only one of these as it acts as the ground truth against
+        which predictions are compared. Sequences from the model are shown on
+        the bottom; there may be more than one of these depending on the
+        sampling strategy used by the model.</div>
+</div>
+<p>This dataset does provide ground truth, so let's use SxS mode to compare the
+generated response with the ground truth. The fastest way to enter SxS mode for
+the selected datapoint is by using the pin button in the
+<a href="../../documentation/ui_guide.html#main-toolbar">main toolbar</a>. When you enable SxS mode, the Sequence Salience
+module will ask you to choose which target sequence to view on each side. The
+order doesn't matter, but ground truth is on the left and the models' response
+is on the right in the figure below.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-gt-resp.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-gt-resp.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">Side-by-side Sequence Salience maps for the ground truth (left)
+        and model generated response (right) for a zero-shot prompt of a GSM8K
+        example. Note the similarities between these heatmaps, with diffuse
+        influence over the preceding answers and the incorrect calculation to
+        the final question.</div>
+</div>
+<p>Next, ensure that the same granularity (word-level) is being used on both
+Sequence Salience visualizations, and then select the segment for the last
+calculation on both sides. The heatmap is quite similar on both sides; the same
+diffuse pattern suggesting the model isn't quite sure what to pay attention to.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-gt-resp.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-gt-resp.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">Side-by-side Sequence Salience maps for the ground truth (left)
+        and model generated response (right) for a zero-shot prompt of a GSM8K
+        example. Note the similarities between these heatmaps, with diffuse
+        influence over the preceding answers and the incorrect calculation to
+        the final question.</div>
+</div>
+<p>One possibility that might improve performance is to adjust the prompt so that
+the segments used in the calculations are more salient. GSM8K uses a
+<a href="https://arxiv.org/abs/2110.14168">special calculation annotation</a> to tell the model when it should
+employ an external calculator tool during generation. The naive zero-shot prompt
+above left these annotations intact and they might be confusing the model. Let's
+see what happens when we remove these annotations. Using the
+<a href="../../documentation/ui_guide.html#datapoint-editor">Datapoint Editor</a> we can remove all of the <code>&lt;&lt; ... &gt;&gt;</code>
+content from the prompt, then use the &quot;Add&quot; button to add it to our dataset, run
+generation, and load the example in the Sequence Salience module as the
+&quot;selected&quot; datapoint on the right. Choose to view the model's response field in
+the Sequence Salience module, ensure the same granularity is being used, and
+then select the segment containing the calculated value on both sides, as shown
+in the figure below.</p>
+<p>We can immediately see that the modified prompt has a much more intense salience
+map focusing on the operands to the calculation and the preceding answers from
+which they originate. That said, the model still gets the calculation wrong.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-no-annos.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-no-annos.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">Side-by-side Sequence Salience maps of the model's response for
+        the original zero-shot prompt (left) and a revised prompt (right) that
+        removes the special calculation annotations. Despite the more focused
+        influence of the segments relevant to the final question, the model
+        still fails to calculate the correct answer.</div>
+</div>
+<p>In addition to these between-examples comparisons, LIT's SxS mode also supports
+comparison between two models. <a href="https://github.com/openai/grade-school-math">Prior</a> <a href="https://arxiv.org/abs/2302.04761">research</a>
+investigating the necessity of tool use by models has noted that model size does
+seem to correlate with performance on mathematical reasoning benchmarks. Let's
+test that hypothesis here.</p>
+<div class="mdl-cell info-box mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <div class="info-box-title">Resource Needs for Between-Model Comparisons</div>
+  <div class="info-box-text">Side-by-side comparison requires loading both models at once, which
+requires additional memory. To load both Gemma 2B and 7B, we recommend a
+GPU or TPU with 40GB of memory, such as the Nvidia A100 available
+through Colab Pro.</div>
+</div>
+<p>To enable between-model comparison, first unpin the original example using the
+button in the <a href="../../documentation/ui_guide.html#main-toolbar">main toolbar</a>, then enable the 7B and 2B model
+instances using the checkboxes (also in the main toolbar). This will duplicate
+the Sequence Salience module, with the 7B model on the left and the 2B model on
+the right. Select model response for both, and then select the final calculation
+result segment to see their respective heatmaps.</p>
+<div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+  <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-between-model.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/seqsal-gsm8k-sxs-between-model.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
+  <div class="tutorial-caption">Side-by-side Sequence Salience maps for the responses from two
+        models&mdash;Gemma 7B IT (left) and Gemma 2B IT (right)&mdash;to the
+        revised zero-shot prompt from above.</div>
+</div>
+<p>Notice that the heatmaps are quite similar, suggesting the models have similar
+behavioral characteristics, but that both still get the answer wrong. At this
+point, it may be possible to improve performance by revisiting different
+<a href="https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompt-design-strategies">prompting strategies</a> or by training the model to
+<a href="https://arxiv.org/abs/2302.04761">use tools</a>.</p>
+<h2>Conclusion</h2>
+<p>The case studies above demonstrate how to use LIT's Sequence Salience module to
+evaluate prompt designs rapidly and iteratively, in combination with LIT's tools
+for side-by-side comparison and datapoint editing.</p>
+<p>Salience methods for LLMs is an <a href="https://dl.acm.org/doi/full/10.1145/3639372">active</a>
+<a href="https://dl.acm.org/doi/full/10.1145/3639372">research</a> area. The LIT team has provided reference
+implementations for computing gradient-based salience—
+<a href="https://aclanthology.org/P18-1032/">Grad L2 Norm</a> and <a href="https://arxiv.org/abs/1412.6815">Grad · Input</a>—for LLMs in two
+popular frameworks: <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py">KerasNLP</a> and
+<a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py">HuggingFace Transformers</a>.</p>
+<p>There is considerable opportunity to research how the model analysis foundations
+described in this tutorial can support richer workflows, particularly as they
+relate to aggregate analysis of salience results over many examples, and the
+semi-automated generation of new prompt designs. Consider contributing
+your ideas, prototypes, and implementations with us <a href="https://github.com/PAIR-code/lit/issues">via GitHub</a>.</p>
+<h3>Further Reading</h3>
+<p>In addition to the links above, the Google Cloud, Responsible AI and
+Human-Centered Technologies, and the People + AI Research teams have several
+helpful guides that can help you develop better prompts, including:</p>
+<ul>
+<li>Cloud's overview of <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/learn/prompt-design-strategies">prompt design strategies</a>;</li>
+<li>Cloud's <a href="https://cloud.google.com/blog/products/application-development/five-best-practices-for-prompt-engineering">best practices</a> for prompt engineering;</li>
+<li>The <a href="https://ai.google.dev/responsible">Responsible Generative AI Tookit</a>;</li>
+<li>The <a href="https://pair.withgoogle.com/guidebook/">PAIR Guidebook</a> discusses the importance of iterative
+testing and revision; and</li>
+<li>The interactive <a href="https://pair.withgoogle.com/explorables/saliency/">saliency explorable</a> dives deep into the
+inner working of salience methods, and how they can be used.</li>
+</ul>
+<!-- Links -->
+
+          </div>
+          <div class="mdl-cell--4-col hide-me">
+            <div class="tutorial-info-container">
+              <div class="tutorial-info-header">time to read</div>
+              <div class="tutorial-info-copy">20 minutes</div>
+              <div class="tutorial-info-header">takeaways</div>
+              <div class="tutorial-info-copy">Learn to use LIT's Sequence Salience module for prompt engineering.</div>
+            </div>
+          </div>
+          <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+            The Learning Interpretability Tool is being actively developed and documentation is likely to change as we improve the tool. We want to hear from you! Leave us a note, feedback, or suggestion on our <a href="https://github.com/pair-code/lit/issues/new" target="_blank">Github</a>.
+          </div>
+        </div>
+
+        <div class="footer-container mdl-grid">
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://pair.withgoogle.com/" target="_blank"><img src="/lit/assets/images/pair-logo.svg"/></a></div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone">
+    <a href="https://research.google/teams/language/" target="_blank">Google Research - Language</a>
+  </div>
+  <div class="mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-cell--4-col-phone"><a href="https://github.com/pair-code" target="_blank">Github</a></div>
+  <div class="footer-icons mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
+    <a href="mailto:peopleai@google.com" target="_blank"><img src="/lit/assets/images/mail.png"/></a>
+    <a href="https://medium.com/people-ai-research" target="_blank"><img src="/lit/assets/images/medium.png"/></a>
+    <a href="https://www.youtube.com/channel/UCnnns-uu4yy9BXfYSPIX5AA" target="_blank"><img src="/lit/assets/images/youtube.png"/></a>
+  </div>
+</div>
+
+      </main>
+
+    </div>
+  </body>
+
+  
+
+  <script defer src="/lit/assets/js/material.min.js"></script>
+  <script defer src="/lit/assets/js/material-components-web.min.js"></script>
+</html>

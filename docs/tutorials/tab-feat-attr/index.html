@@ -137,13 +137,23 @@ data. We will get into the specifics of this with an example later on in
 this tutorial.</li>
 </ol>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-1.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-1.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-1.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">An overview of the Penguins demo, notice the tabular feature
         attribution (1) and salience maps (2) modules in the bottom right and
         center, respectively.</div>
 </div>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-2.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-2.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-2.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">The tabular feature attribution module has three main elements of
         interactivity: an expansion panel where you can configure the SHAP
         parameters (1), a heatmap toggle to activate color the cells in the
@@ -197,12 +207,22 @@ are many features in a dataset this space will get crowded, so LIT offers a
 filter button for each of the columns to look up a particular feature or value
 directly.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-4.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-4.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-4.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Start by reducing the sample size from 30 to 10, this will speed
         up the SHAP computations.</div>
 </div>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-5.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-5.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-5.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">The results of the SHAP run over a sample of 10 inputs from the
         entire dataset. Notice how subtle the salience values are in the "mean"
         column.</div>
@@ -220,7 +240,12 @@ Biscoe, Dream and Torgersen), then LIT will create 6 facets for (Male, Biscoe),
 Torgersen) and show the SHAP values for whichever facets have a non-zero number
 of samples.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-6.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-6.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-6.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Each facet of the dataset is given its own expansion panel. Click
         on the down arrow on the right to expand the section and see the results
         for that facet.</div>
@@ -238,7 +263,12 @@ demo.</p>
 <p>Categorical and boolean features do not have controllable binning behavior. A
 bin is created for each label in their vocabulary.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-7.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-7.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-7.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Clicking the facets button will open the configuration controls.
         Use these to configure how divide the dataset into subsets.</div>
 </div>
@@ -249,7 +279,12 @@ settings.</p>
 selection of elements (let’s say 10 penguins), then facets won’t split it
 further.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-9.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-9.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-9.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">LIT limits the number of facets to 100 bins for performance
         reasons. Attempting to exceed this limit will cause the active features
         to highlight red so you can adjust their configurations.</div>
@@ -273,7 +308,12 @@ module for the selected point, we can see that the values in the mean column of
 Tabular SHAP output match the saliency scores exactly. Note also that the mean,
 min, median and max values are all the same when a single datapoint is selected.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-11.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-11.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-11.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">The results in the tabular feature attribution and salience maps
         modules will be the same for single datapoint selections.</div>
 </div>
@@ -301,7 +341,12 @@ selection” checkbox. This allows us to use the salience map module as a kind o
 magnifying glass to focus on any individual example even when we are considering
 a slice of examples in our exploration of the dataset.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-12.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-12.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tab-feat-attr-image-12.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">The salience maps module is a great way to compare the scores for
         each datapoint in a selection against the scores for that entire
         selection from. the tabular feature attribution module.</div>

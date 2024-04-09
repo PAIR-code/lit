@@ -433,12 +433,7 @@ class GlueModel(lit_model.BatchedModel):
       # Gathers word embeddings from BERT model embedding layer using input ids
       # of the tokens.
       input_ids = encoded_input["input_ids"]
-      # TODO(b/236276775): Unify on the TFBertEmbeddings.weight API after
-      # transformers is updated to v4.25.1 (or newer).
-      if hasattr(self.model.bert.embeddings, "word_embeddings"):
-        word_embeddings = self.model.bert.embeddings.word_embeddings
-      else:
-        word_embeddings = self.model.bert.embeddings.weight
+      word_embeddings = self.model.bert.embeddings.weight
       # <tf.float32>[batch_size, num_tokens, emb_size]
       input_embs = tf.gather(word_embeddings, input_ids)
 

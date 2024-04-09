@@ -4,6 +4,7 @@
 
 import '@material/mwc-icon';
 import '../elements/color_legend';
+import '../elements/interstitial';
 import '../elements/numeric_input';
 import '../elements/fused_button_bar';
 
@@ -16,12 +17,12 @@ import {computed, observable} from 'mobx';
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
 import {NumericInput as LitNumericInput} from '../elements/numeric_input';
-import {TokenChips, TokenWithWeight} from '../elements/token_chips';
-import {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap,} from '../lib/colors';
+import {TextChips, TokenChips, TokenWithWeight} from '../elements/token_chips';
+import {CONTINUOUS_SIGNED_LAB, CONTINUOUS_UNSIGNED_LAB, SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {GENERATION_TYPES, getAllTargetOptions, TargetOption, TargetSource} from '../lib/generated_text_utils';
 import {LitType, LitTypeTypesList, Tokens, TokenScores} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {cleanSpmText, groupTokensByRegexPrefix} from '../lib/token_utils';
+import {cleanSpmText, groupTokensByRegexPrefix, groupTokensByRegexSeparator} from '../lib/token_utils';
 import {type IndexedInput, type Preds, SCROLL_SYNC_CSS_CLASS, type Spec} from '../lib/types';
 import {cumSumArray, filterToKeys, findSpecKeys, groupAlike, makeModifiedInput, sumArray} from '../lib/utils';
 
@@ -41,7 +42,7 @@ enum SegmentationMode {
   LINES = 'Lines',
   PARAGRAPHS = '¶',
   // TODO(b/324961811): add phrase or clause chunking?
-  // TODO(b/324961803): add custom regex?
+  CUSTOM = '⚙',
 }
 
 const LEGEND_INFO_TITLE_SIGNED =
@@ -135,61 +136,60 @@ export class SingleExampleSingleModelModule extends LitModule {
  * Custom styled version of <lit-token-chips> for rendering LM salience tokens.
  */
 @customElement('lm-salience-chips')
-class LMSalienceChips extends TokenChips {
+class LMSalienceChips extends TextChips {
+  @property({type: Boolean}) underline = false;
+
+  override holderClass() {
+    return Object.assign(
+        {}, super.holderClass(), {'underline': this.underline});
+  }
+
   static override get styles() {
     return [
       ...TokenChips.styles,
       css`
-        .tokens-holder:not(.tokens-holder-dense) .salient-token:not(.selected) {
-          --token-outline-color: var(--lit-neutral-300); /* outline in non-dense mode */
+        .text-chips.underline .salient-token {
+          --underline-height: 6px;
+          background-color: transparent;
+          color: black;
         }
-        .tokens-holder-display-block .salient-token {
-          padding: 3px 0; /* this controls the visible highlight area */
-          margin: 0;
-          margin-right: 4px;
-          /* use outline instead of border for more consistent spacing */
+
+        .text-chips.dense.underline .salient-token {
+          padding-bottom: var(--underline-height);
+        }
+
+        .text-chips.underline .salient-token.selected {
           outline: 1px solid var(--token-outline-color);
-          border: 0;
+          --underline-height: 5px; /* subtract 1px for outline */
         }
-        .tokens-holder-display-block .salient-token span {
-          /* this controls the mouseover area, so there are no gaps */
-          /* or flickering when hovering over multiline tokens */
-          padding: 6px 0;
+
+        /* In dense mode we style the text span */
+        .text-chips.dense.underline .salient-token span {
+          /* have to use border- because there is no outline-bottom */
+          border-bottom: var(--underline-height) solid var(--token-bg-color);
+          border-radius: 2px;
+          padding-bottom: 0; /* used by border instead */
         }
-        .salient-token.selected {
-          --token-outline-color: var(--lit-mage-700);
-          outline: 2px solid var(--token-outline-color);
+
+        .text-chips.dense.underline .salient-token.selected span {
+          /* use mage-500 for underline block as mage-700 is too dark */
+          border-bottom: var(--underline-height) solid var(--lit-mage-500);
         }
-        .tokens-holder-dense .salient-token {
-          margin: 0; /* no extra spacing; determine only from line-height */
+
+        /* In non-dense mode we style the containing div */
+        .text-chips:not(.dense).underline .salient-token {
+          /* have to use border- because there is no outline-bottom */
+          border-bottom: var(--underline-height) solid var(--token-bg-color);
+          border-radius: 2px;
+          padding-bottom: 0; /* used by border instead */
         }
-        .tokens-holder-dense .salient-token.selected {
-          /* TODO see if we can get away from z-index here */
-          z-index: 1;
-        }
-        /* vertical dense mode */
-        .tokens-holder-vdense {
-          line-height: 16px;
-        }
-        .tokens-holder-vdense .salient-token {
-          padding: 1.5px 0; /* avoid highlight area overlapping across lines */
+
+        .text-chips:not(.dense).underline .salient-token.selected {
+          /* use mage-500 for underline block as mage-700 is too dark */
+          border-bottom: var(--underline-height) solid var(--lit-mage-500);
         }
       `,
     ];
-  }
-
-  /**
-   * Vertical dense mode, only affects vertical spacing.
-   */
-  @property({type: Boolean}) vDense = false;
-
-  /**
-   * Custom style for tokens-holder, so we can implement vDense mode without
-   * adding clutter to token_chips.ts.
-   */
-  override holderClass() {
-    return Object.assign(
-        {}, super.holderClass(), {'tokens-holder-vdense': this.vDense});
   }
 }
 
@@ -200,10 +200,14 @@ interface SalienceResults {
 // Sentinel value because mobx doesn't react directly to a promise completing.
 const REQUEST_PENDING: unique symbol = Symbol('REQUEST_PENDING');
 
+const CMAP_DEFAULT_RANGE = 0.4;
+
+const DEFAULT_CUSTOM_SEGMENTATION_REGEX = '\\n+';
+
 /** LIT module for model output. */
 @customElement('lm-salience-module')
 export class LMSalienceModule extends SingleExampleSingleModelModule {
-  static override title = 'LM Salience';
+  static override title = 'Sequence Salience';
   static override numCols = 6;  // 60% of screen width if DataTable on left
   static override duplicateAsRow = true;
   // prettier-ignore
@@ -224,11 +228,17 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
   @observable
   private segmentationMode: SegmentationMode = SegmentationMode.WORDS;
+  @observable
+  private customSegmentationRegexString: string =
+      DEFAULT_CUSTOM_SEGMENTATION_REGEX;
   // TODO(b/324959547): get default from spec
   @observable private selectedSalienceMethod? = 'grad_l2';
-  @observable private cmapGamma = 1.0;
+  // Output range for colormap.
+  // cmapDomain is the input range, and is auto-computed from scores below.
+  @observable private cmapRange = CMAP_DEFAULT_RANGE;
   @observable private denseView = true;
   @observable private vDense = false; /* vertical spacing */
+  @observable private underline = false; /* highlight vs. underline */
   @observable private showSelfSalience = false;
 
   @observable.ref private currentTokens: string[] = [];
@@ -301,6 +311,17 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   @computed
+  get customSegmentationRegex(): RegExp|undefined {
+    try {
+      return RegExp(this.customSegmentationRegexString, 'g');
+    } catch (error) {
+      console.warn(
+          'Invalid segmentation regex: ', this.customSegmentationRegexString);
+      return undefined;
+    }
+  }
+
+  @computed
   get currentTokenGroups(): string[][] {
     if (this.segmentationMode === SegmentationMode.TOKENS) {
       return this.currentTokens.map(t => [t]);
@@ -320,16 +341,19 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       return groupTokensByRegexPrefix(
           this.currentTokens, /(\n+)|((?<=\n)[^\n])|((?<=[.?!])([▁\s]+))/g);
     } else if (this.segmentationMode === SegmentationMode.LINES) {
-      // Line start is either:
-      // - a run of consecutive \n as its own segment
-      // - any non-\n following \n
-      return groupTokensByRegexPrefix(this.currentTokens, /(\n+)|([^\n]+)/g);
+      // Line separator is one or more newlines.
+      return groupTokensByRegexSeparator(this.currentTokens, /\n+/g);
     } else if (this.segmentationMode === SegmentationMode.PARAGRAPHS) {
-      // Paragraph start is either:
-      // - two or more newlines as its own segment
-      // - any non-\n following \n\n
-      return groupTokensByRegexPrefix(
-          this.currentTokens, /(\n\n+)|(?<=\n\n)([^\n]+)/g);
+      // Paragraph separator is two or more newlines.
+      return groupTokensByRegexSeparator(this.currentTokens, /\n\n+/g);
+    } else if (this.segmentationMode === SegmentationMode.CUSTOM) {
+      if (this.customSegmentationRegex === undefined) {
+        // Just return tokens.
+        return this.currentTokens.map(t => [t]);
+      } else {
+        return groupTokensByRegexPrefix(
+            this.currentTokens, this.customSegmentationRegex);
+      }
     } else {
       throw new Error(
           `Unsupported segmentation mode ${this.segmentationMode}.`);
@@ -405,23 +429,30 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   @computed
-  get cmapRange(): number {
+  get cmapDomain(): number {
     if (this.activeSalience === undefined) return 1;
     // If nothing focused, use the max over all (absolute) scores.
     return Math.max(1e-3, maxAbs(this.activeSalience));
   }
 
   @computed
+  get cmapGamma(): number {
+    // Pin gamma as a function of the range, so we only need a single slider.
+    return this.cmapRange * (1.0 / CMAP_DEFAULT_RANGE);
+  }
+
+  @computed
   get signedSalienceCmap() {
-    return new SignedSalienceCmap(this.cmapGamma, [
-      -1 * this.cmapRange,
-      this.cmapRange,
-    ]);
+    return new SignedSalienceCmap(
+        this.cmapGamma, [-1 * this.cmapDomain, this.cmapDomain],
+        CONTINUOUS_SIGNED_LAB, [0, this.cmapRange]);
   }
 
   @computed
   get unsignedSalienceCmap() {
-    return new UnsignedSalienceCmap(this.cmapGamma, [0, this.cmapRange]);
+    return new UnsignedSalienceCmap(
+        this.cmapGamma, [0, this.cmapDomain], CONTINUOUS_UNSIGNED_LAB,
+        [0, this.cmapRange]);
   }
 
   @computed
@@ -560,6 +591,10 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       return {
         text: val,
         selected: this.segmentationMode === val,
+        tooltipText:
+            (val === SegmentationMode.PARAGRAPHS ? 'Paragraphs' :
+                 val === SegmentationMode.CUSTOM ? 'Custom Regex' :
+                                                   ''),
         onClick: () => {
           if (this.segmentationMode !== val) {
             this.resetTargetSpan();
@@ -573,14 +608,56 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       this.vDense = !this.vDense;
     };
 
+    const onClickToggleUnderline = () => {
+      this.underline = !this.underline;
+    };
+
+    const updateSegmentationRegex = (e: Event) => {
+      const {value} = e.target as HTMLInputElement;
+      this.customSegmentationRegexString = value;
+      this.resetTargetSpan();
+    };
+
+    const regexEntryClasses = classMap({
+      'regex-input': true,
+      // Note: customSegmentationRegex is the RegExp object, it will be
+      // undefined if the customSegmentationRegexString does not define a valid
+      // regular expression.
+      'error-input': this.customSegmentationRegex === undefined
+    });
+
+    const resetSegmentationRegex = () => {
+      this.customSegmentationRegexString = DEFAULT_CUSTOM_SEGMENTATION_REGEX;
+    };
+
+    // prettier-ignore
+    const customRegexEntry = html`
+      <div class='regex-input-container'>
+        <input type='text' class=${regexEntryClasses} slot='tooltip-anchor'
+          title="Enter a regex to match segment prefix."
+          @input=${updateSegmentationRegex}
+          .value=${this.customSegmentationRegexString}>
+        <mwc-icon class='icon-button value-reset-icon' title='Reset regex'
+          @click=${resetSegmentationRegex}>
+          restart_alt
+        </mwc-icon>
+      </div>
+    `;
+
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
-        <label class="dropdown-label" for="granularity-selector">Granularity:</label>
+        <label class="dropdown-label" id="granularity-label"
+         for="granularity-selector">Granularity:</label>
         <lit-fused-button-bar id="granularity-selector"
             .options=${segmentationOptions}
             ?disabled=${this.currentTokens.length === 0}>
         </lit-fused-button-bar>
+        ${
+        this.segmentationMode === SegmentationMode.CUSTOM ? customRegexEntry :
+                                                            null}
+      </div>
+      <div class="controls-group" style="gap: 8px;">
         <lit-switch
           ?selected=${!this.denseView}
           @change=${onClickToggleDensity}>
@@ -595,7 +672,15 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
             @click=${onClickToggleVDense}>
             ${this.vDense ? 'expand' : 'compress'}
         </mwc-icon>
+        <mwc-icon class='icon-button large-icon'
+            title=${
+        this.underline ? 'Switch to highlight mode' :
+                         'Switch to underline mode'}
+            @click=${onClickToggleUnderline}>
+            ${this.underline ? 'font_download' : 'format_color_text'}
+        </mwc-icon>
       </div>
+      <div class='flex-grow-spacer'></div>
     `;
   }
 
@@ -632,7 +717,8 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class="controls-group" style="gap: 8px;">
-        <label class="dropdown-label" for="method-selector">Method:</label>
+        <label class="dropdown-label" id="method-label"
+         for="method-selector">Method:</label>
         <lit-fused-button-bar .options=${methodOptions} id="method-selector">
         </lit-fused-button-bar>
         ${this.renderSelfScoreSelector()}
@@ -690,21 +776,31 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
     // prettier-ignore
     return html`
-      <div class="controls-group controls-group-variable"
-        title=${targetSelectorHelp}>
-        <label class="dropdown-label">Sequence${sourceInfo}:</label>
-        <div class=${indicatorTextClass}>
+      <div class="controls-group controls-group-variable">
+        <label class="dropdown-label" title=${targetSelectorHelp}>
+          Sequence${sourceInfo}:
+        </label>
+        <div class=${indicatorTextClass}
+         title=${target == null ? 'No target; select one below.' : targetText}>
           ${targetText}
           ${isLoadingPreds ? this.renderLoadingIndicator() : null}
         </div>
       </div>
       <div class='controls-group'>
-        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left">
-          <button class='hairline-button change-target-button'
+        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left"
+          id='change-target-button'>
+          <button class='hairline-button'
             slot='tooltip-anchor' @click=${clearSalienceTarget}
             ?disabled=${target == null}>
             <span>Select sequence </span><span class='material-icon'>arrow_drop_down</span>
           </button>
+        </lit-tooltip>
+        <lit-tooltip content=${targetSelectorHelp} tooltipPosition="left"
+          id='change-target-icon'>
+          <mwc-icon class='icon-button'
+            slot='tooltip-anchor' @click=${clearSalienceTarget}>
+            edit
+          </mwc-icon>
         </lit-tooltip>
       </div>
     `;
@@ -852,8 +948,18 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       </div>`;
   }
 
+  renderNoExampleInterstitial() {
+    // prettier-ignore
+    return html`
+      <lit-interstitial headline="Sequence Salience">
+        Enter a prompt in the Editor or select an example from the Data Table to begin.
+      </lit-interstitial>`;
+  }
+
   renderContent() {
-    if (this.currentData == null) return null;
+    if (this.currentData == null) {
+      return this.renderNoExampleInterstitial();
+    }
 
     if (this.salienceTargetOption === undefined) {
       return this.renderTargetSelectorInterstitial();
@@ -888,10 +994,11 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class='chip-container'>
-        <lm-salience-chips 
+        <lm-salience-chips
           .tokensWithWeights=${segmentsWithWeights} .cmap=${this.cmap}
           ?dense=${this.denseView} ?vDense=${this.vDense}
-          ?preSpace=${this.denseView} breakNewlines displayBlock>
+          ?underline=${this.underline}
+          ?preSpace=${this.denseView} breakNewlines>
         </lm-salience-chips>
       </div>
     `;
@@ -917,26 +1024,28 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
   }
 
   renderColorControls() {
-    const onChangeGamma = (e: Event) => {
+    const onChangeRange = (e: Event) => {
       // Note: HTMLInputElement.valueAsNumber does not work properly for
       // <lit-numeric-input>
-      this.cmapGamma = Number((e.target as LitNumericInput).value);
+      this.cmapRange = Number((e.target as LitNumericInput).value);
     };
 
-    const resetGamma = () => {
-      this.cmapGamma = 1.0;
+    const resetRange = () => {
+      this.cmapRange = CMAP_DEFAULT_RANGE;
     };
 
     // prettier-ignore
     return html`
       <div class="controls-group">
         ${this.renderColorLegend()}
-        <label for="gamma-slider">Colormap intensity:</label>
-        <lit-numeric-input min="0" max="6" step="0.25" id='gamma-slider'
-          value="${this.cmapGamma}" @change=${onChangeGamma}>
+        <mwc-icon class='icon'>opacity</mwc-icon>
+        <label id='colormap-slider-label' class='dropdown-label'
+         for="cmap-range-slider">Colormap intensity:</label>
+        <lit-numeric-input min="0" max="1" step="0.1" id='cmap-range-slider'
+          value="${this.cmapRange}" @change=${onChangeRange}>
         </lit-numeric-input>
         <mwc-icon class='icon-button value-reset-icon' title='Reset colormap'
-          @click=${resetGamma}>
+          @click=${resetRange}>
           restart_alt
         </mwc-icon>
       </div>`;

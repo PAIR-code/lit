@@ -1,5 +1,52 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.1.1
+
+This release covers various improvements for sequence salience, including new
+features in the UI module, support of more LLMs, and detailed tutorial and
+documentation on how to use the sequence salience module for prompt engineering.
+
+### New stuff
+* New features in the sequence salience UI module -
+[62f18b2](https://github.com/PAIR-code/lit/commit/62f18b2ff62bf77fa47205cffddf0d072a73c366),
+[f0417c9](https://github.com/PAIR-code/lit/commit/f0417c93da282a4699253f335c2643be5e50567f),
+[fe5a705](https://github.com/PAIR-code/lit/commit/fe5a705bfb013ac782e87351af08bc5b03204e71),
+[1ec8626](https://github.com/PAIR-code/lit/commit/1ec8626da0e2a1922fb7812913f2677b232043ef),
+[15184a1](https://github.com/PAIR-code/lit/commit/15184a18da69dacfb657c238ef8f5bac79ed7863),
+[84af141](https://github.com/PAIR-code/lit/commit/84af141c7cf8a6ddb4db6ececec787ac235ddd17),
+[27cafd8](https://github.com/PAIR-code/lit/commit/27cafd85636b3d18f40d15a01ffd5d0857ff0daa),
+[3591e61](https://github.com/PAIR-code/lit/commit/3591e614fb09264ee03ae0c73510f1d0a4b74cdf),
+[d108b59](https://github.com/PAIR-code/lit/commit/d108b596658f456f43e0b19473ab1c70c59cc065),
+[309c4f2](https://github.com/PAIR-code/lit/commit/309c4f283af559ca34570e044d77d5c4a7cce540),
+[99821d3](https://github.com/PAIR-code/lit/commit/99821d3b5505d857f919fe2455830e6c2338fd68),
+[c8ee224](https://github.com/PAIR-code/lit/commit/c8ee224a445f925a9a7d6d7dc4472436190d0174)
+
+* Support of more models (GPT2, Gemma, Llama, Mistral) on deep learning frameworks (Tensorflow, Pytorch) for Keras and Hugging Face -
+[b26256a](https://github.com/PAIR-code/lit/commit/b26256a7c339c9e0940eb7a806528da23098ed03),
+[45887d3](https://github.com/PAIR-code/lit/commit/45887d35d3880289595613224524157b19481ac0),
+[b9941ed](https://github.com/PAIR-code/lit/commit/b9941ed7aea315022426710ccd32e8e1c7ff6c04),
+[5ee7064](https://github.com/PAIR-code/lit/commit/5ee7064ec23933c41b4233061f9cc65b851fa7bb),
+[8ea325b](https://github.com/PAIR-code/lit/commit/8ea325b292b09aecbb074abc877525dcdf4f4cd0)
+
+* A tutorial to use sequence salience at [our website](https://pair-code.github.io/lit/tutorials/) and documentation updates -
+[962faaa](https://github.com/PAIR-code/lit/commit/962faaabcf209f9cf024df5cc9684d8d4e4e64d8),
+[96eff29](https://github.com/PAIR-code/lit/commit/96eff29198e69a8a9f2203d88f9027f5596f1614),
+[f731e6d](https://github.com/PAIR-code/lit/commit/f731e6dfdeeb26f959022ed5aeda71e4f1f377d0),
+[f4d7cac](https://github.com/PAIR-code/lit/commit/f4d7cacda3399d3e474420facd1a75d5b6af4824),
+[49e7736](https://github.com/PAIR-code/lit/commit/49e77369fabd820b3f213f2d846efb5e81dbeafe)
+
+### Non-breaking Changes, Bug Fixes, and Enhancements
+* Py typing fix -
+[d70e3d3](https://github.com/PAIR-code/lit/commit/d70e3d3c64671dfd5da034d3a47a34aedeef6469)
+* Improvements on the curves UI module -
+[3d61a09](https://github.com/PAIR-code/lit/commit/3d61a09b684b3d57fc23b1362091d5293d8e6d19)
+[2efe62b](https://github.com/PAIR-code/lit/commit/2efe62b77dbfddf698b0a79408c0227bd21dc959)
+* Support model-column search in LIT Data Table -
+[525bf5e](https://github.com/PAIR-code/lit/commit/525bf5e7c005fe1f931867bc1206b527544865b3)
+* Obsolete code cleanup -
+[82abec6](https://github.com/PAIR-code/lit/commit/82abec688836b8e6d136de83e56660ea055dc91d)
+
+
 ## Release 1.1
 
 This release provides the capabilities to interpret and debug the behaviors of

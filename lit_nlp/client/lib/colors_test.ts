@@ -405,10 +405,17 @@ describe('UnsignedSalienceCmap', () => {
     expect(cmap.bgCmap(1.5)).toBe(cmap.bgCmap(1.0));
   });
 
-  it('handlesWiderRange', () => {
+  it('handlesWiderDomain', () => {
     const cmap3 = new UnsignedSalienceCmap(1.0, [0, 3.0]);
     for (const val of [0.0, 0.4, 0.6, 1.0]) {
       expect(cmap3.bgCmap(3.0 * val)).toBe(expectedScale(val));
+    }
+  });
+
+  it('handlesNarrowRange', () => {
+    const cmap05 = new UnsignedSalienceCmap(1.0, [0, 1.0], CONTINUOUS_UNSIGNED_LAB, [0, 0.5]);
+    for (const val of [0.0, 0.4, 0.6, 1.0]) {
+      expect(cmap05.bgCmap(val)).toBe(expectedScale(0.5 * val));
     }
   });
 });
@@ -446,10 +453,17 @@ describe('SignedSalienceCmap', () => {
     expect(cmap.bgCmap(1.5)).toBe(cmap.bgCmap(1.0));
   });
 
-  it('handlesWiderRange', () => {
+  it('handlesWiderDomain', () => {
     const cmap3 = new SignedSalienceCmap(1.0, [-3.0, 3.0]);
     for (const val of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
       expect(cmap3.bgCmap(3.0 * val)).toBe(expectedScale(val));
+    }
+  });
+
+  it('handlesNarrowRange', () => {
+    const cmap05 = new UnsignedSalienceCmap(1.0, [-1.0, 1.0], CONTINUOUS_SIGNED_LAB, [0, 0.5]);
+    for (const val of [-1.0, -0.5, 0.0, 0.5, 1.0]) {
+      expect(cmap05.bgCmap(val)).toBe(expectedScale(0.5 * val));
     }
   });
 });

@@ -433,35 +433,47 @@ You don't have to call the field "label", and it's okay if this field isn't
 present in the *dataset* - as long as it's something that the model will
 recognize and use as the target to derive gradients.
 
-### Sequence salience
+## Sequence Salience
 
-Sequence salience generalizes the salience methods mentioned above to
-text-to-text generative models and explains the impact of the preceding tokens
-on the generated tokens. Currently, we support sequence salience computation for
-various OSS modeling frameworks, including KerasNLP and Hugging Face
-Transformers.
+Sequence salience generalizes token-based salience to text-to-text models,
+allowing you to explain the impact of the prompt tokens on parts of the model
+output.
 
-Sequence salience in the LIT UI provides multiple options for analysis,
-including:
+LIT has a general-purpose sequence salience visualization designed for
+left-to-right ("causal") language models:
 
-*   running the salience methods on the text from the dataset (target) or from
-    the model (response).
-*   computing the sequence salience through [Gradient Norm](#gradient-norm) or
+![Sequence salience - sequence selection](./images/components/sequence-salience-1.png){w=650px align=center}
+
+![Sequence salience - visualization](./images/components/sequence-salience-2.png){w=650px align=center}
+
+The UI supports multiple options for analysis, including:
+
+*   Select from pre-defined target sequences, or explain generations from the
+    model.
+*   Different salience methods, including [Gradient Norm](#gradient-norm) and
     [Gradient-dot-Input](#gradient-dot-input).
-*   selecting different granularity levels for salience analysis, from the
-    smallest possible level of tokens, to more interpretable larger spans, such
-    as words, sentences, lines, or paragraphs.
+*   Multiple granularity levels for analysis, from individual sub-word tokens up
+    to words, sentences, lines, or paragraphs. Quickly switch between different
+    views to refine your analysis to different parts of a prompt.
+*   Display density options to enable working with longer sequences, such as
+    document text, few-shot eaxmples, or chain-of-thought prompts.
 
-(a) Options for sequence salience.                                                                 | (b) Sequence salience visualization.
--------------------------------------------------------------------------------------------------- | ------------------------------------
-![Sequence salience selections](./images/components/sequence-salience-selections.png){w=650px align=center} | ![Sequence salience vis](./images/components/sequence-salience-vis.png){w=650px align=center}
-
+For a walkthrough of how to use sequence salience to debug LLMs, check out the
+Responsible Generative AI Toolkit at
+https://ai.google.dev/responsible/model_behavior.
 
 **Code:**
 
-* Demo: [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
-* KerasNLP model wrappers: [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
-* Transformers model wrappers: [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+*   LIT-for-Gemma Colab: [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
+*   Demo binary:
+    [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+*   KerasNLP model wrappers:
+    [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
+*   Transformers model wrappers:
+    [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+
+Currently, this works out-of-the-box
+with Gemma models (using Keras) as well as with GPT-2.
 
 
 ## Salience Clustering

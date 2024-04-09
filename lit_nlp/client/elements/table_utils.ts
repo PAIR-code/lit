@@ -67,22 +67,41 @@ export function getSortableEntry(colEntry: TableEntry): SortableTableEntry {
  */
 export function makeSearchQuery(
     searchText: string, columnNames: string[] = []): SearchQuery {
-  // Query has no ' AND ' or ' OR ' tokens.
-  // Determine if col_name:search_query syntax matches.
-  if (searchText.includes(':') &&
-      searchText.indexOf(':') !== searchText.length - 1) {
-    const [queriedColumn, ...columnSearchTextComponents] =
-        searchText.split(':');
-    if (columnNames.indexOf(queriedColumn) !== -1) {
-      return {
-        columnName: queriedColumn,
-        matcher: columnSearchTextComponents.join(':')
-      } as SearchQuery;
-    }
+  // The searchText contains no ' AND ' or ' OR ' tokens.
+  // Determine if /[\w:]+search_query/ syntax matches.
+  const lastColonIndex = searchText.lastIndexOf(':');
+
+  if (lastColonIndex === -1) {
+    return {matcher: searchText};
   }
 
-  const searchFilter: SearchQuery = {matcher: searchText};
-  return searchFilter;
+  // String contains a colon. Attempt to find the longest possible column name
+  // from the elements returned by splitting on the colon, starting with the
+  // penultimate element.
+  const searchComponents = searchText.split(':');
+  let longestValidColumnName = '';
+  let searchComponentIndex = searchComponents.length - 1;
+  while (searchComponentIndex >= 0) {
+    const candidateColumnName =
+        searchComponents.slice(0, searchComponentIndex).join(':');
+    if (columnNames.indexOf(candidateColumnName) !== -1) {
+      longestValidColumnName = candidateColumnName;
+      break;
+    }
+    searchComponentIndex -= 1;
+  }
+
+  // We found a valid column name, so return the search query with the column
+  // name and the remaining search text.
+  if (longestValidColumnName !== '') {
+    return {
+      columnName: longestValidColumnName,
+      matcher: searchComponents.slice(searchComponentIndex).join(':')
+    };
+  }
+
+  // Otherwise, return the full search text as the matcher.
+  return {matcher: searchText};
 }
 
 /** Returns a JoinedQuery instance parsed from the search text. */

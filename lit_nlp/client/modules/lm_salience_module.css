@@ -93,10 +93,21 @@ select:invalid {
   border-bottom: 1px solid #dadce0;
   box-sizing: border-box;
   justify-content: space-between;
+
+  /* should match min-height? Consider moving this to shared_styles */
+  line-height: 36px;
+  container-type: inline-size;
+}
+
+.module-container .module-toolbar:first-child {
+  /* fix for tooltip occlusion issues caused by container-type */
+  z-index: 1;
 }
 
 .module-footer {
   justify-content: space-between;
+
+  container-type: inline-size;
 }
 
 .controls-group {
@@ -105,6 +116,8 @@ select:invalid {
   align-items: center;
   margin: 0 4px;
   gap: 4px;
+
+  height: 36px; /* for proper height when wrapping */
 }
 
 .controls-group[disabled] {
@@ -120,9 +133,21 @@ select:invalid {
   margin-right: 8px;
 }
 
-.change-target-button {
+.flex-grow-spacer {
+  flex: 1;
+  margin: 0;
+}
+
+#change-target-button {
   white-space: nowrap;
   margin: 0; /* have enough already from controls-group */
+}
+
+#change-target-icon {
+  display: none; /* hide by default */
+  mwc-icon {
+    line-height: 36px; /* vertical alignment issue */
+  }
 }
 
 .vertical-separator {
@@ -136,14 +161,49 @@ select:invalid {
 /* Allow wrap. TODO move this to shared_styles as an option? */
 .module-footer-wrappable {
   flex-wrap: wrap;
-  /* line-height: 30px; */  /* causes alignment issues */
   height: unset;
   min-height: 36px;
+  /* should match min-height? Consider moving this to shared_styles */
+  line-height: 36px;
 }
 
 .module-footer > * { min-width: 0; }
 
 .controls-group > * { min-width: 0; }
+
+.controls-group label {
+  white-space: nowrap;
+}
+
+/**
+ * Container queries to hide some labels in narrow windows.
+ * Helps in SxS mode when the module is replicated.
+ *
+ * Adjust the size of these so the labels are hidden in a graceful way as the
+ * module is resized:
+ * - Method label is on the right, hide this first as fewer things will jump.
+ * - Remaining things can hide at a narrower width
+ *
+ * Adjust sizes based on the actual width of toolbar elements so that labels
+ * will be hidden /before/ items wrap to the next row. For example, if adding
+ * an additional button that is 20px wide (including margins), add 20px to
+ * the widths so that the labels hide sooner.
+ */
+@container (width < 745px) {
+  #method-label {
+    display: none;
+  }
+}
+
+@container (width < 685px) {
+  #change-target-button, #granularity-label, #colormap-slider-label {
+    display: none;
+  }
+
+  #change-target-icon {
+    display: block; /* show */
+  }
+}
 
 color-legend {
   /* extra space to keep other controls from jumping when legend changes */
@@ -152,12 +212,13 @@ color-legend {
 }
 
 
-/* Pending request indicator */
+/**
+ * Pending request indicator
+ */
 .loading-indicator-container {
   position: relative;
   width: 100%;
 }
-
 
 @keyframes running-progress {
   0% { margin-left: 0; width: 0; }
@@ -172,4 +233,24 @@ color-legend {
   width: 100%;
   height: 2px;
   animation: running-progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.regex-input-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+}
+
+.regex-input {
+  max-width: 100px;
+}
+
+.error-input {
+  border-color: var(--google-red-600);
+  border-style: solid;
+  border-radius: 3px;
+  border-width: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }

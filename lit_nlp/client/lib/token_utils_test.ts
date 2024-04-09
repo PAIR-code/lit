@@ -86,3 +86,39 @@ describe('groupTokensByRegexPrefix test', () => {
     });
   });
 });
+
+
+describe('groupTokensByRegexSeparator test', () => {
+  [{
+    testcaseName: 'groups tokens by line',
+    tokens: [
+      'Sum', 'mar', 'ize', '▁this', '▁sent', 'ence', ':', '\n', '\n', 'Once',
+      '▁upon', '▁a', '▁time', '\n', '▁there', '▁was'
+    ],
+    // Line separator is one or more \n
+    regex: /\n+/g,
+    expectedGroups: [
+      ['Sum', 'mar', 'ize', '▁this', '▁sent', 'ence', ':'], ['\n', '\n'],
+      ['Once', '▁upon', '▁a', '▁time'], ['\n'], ['▁there', '▁was']
+    ],
+  },
+   {
+     testcaseName: 'groups tokens by paragraph',
+     tokens: [
+       'Sum', 'mar', 'ize', '▁this', '▁sent', 'ence', ':', '\n', '\n', 'Once',
+       '▁upon', '▁a', '▁time', '\n', '▁there', '▁was'
+     ],
+     // Line separator is two or more \n
+     regex: /\n\n+/g,
+     expectedGroups: [
+       ['Sum', 'mar', 'ize', '▁this', '▁sent', 'ence', ':'], ['\n', '\n'],
+       ['Once', '▁upon', '▁a', '▁time', '\n', '▁there', '▁was']
+     ],
+   },
+  ].forEach(({testcaseName, tokens, regex, expectedGroups}) => {
+    it(testcaseName, () => {
+      const groups = tokenUtils.groupTokensByRegexSeparator(tokens, regex);
+      expect(groups).toEqual(expectedGroups);
+    });
+  });
+});

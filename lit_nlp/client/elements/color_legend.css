@@ -5,6 +5,7 @@
   height: 30px;
   overflow-x: auto;
   overflow-y: hidden;
+  line-height: 18px; /* pin this to avoid alignment issues */
 }
 
 .legend-container.align-right {

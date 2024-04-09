@@ -40,7 +40,8 @@ def update_prediction(
     label_names = pred_spec.vocab
     pred_class = np.argmax(prediction)
     example_label = label_names[pred_class]
-    example[label_key] = example_label
+    if label_key is not None:
+      example[label_key] = example_label
 
 
 def is_prediction_flip(

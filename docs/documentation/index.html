@@ -135,7 +135,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -195,7 +195,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
@@ -203,10 +203,25 @@
         <article role="main">
           <section class="tex2jax_ignore mathjax_ignore" id="learning-interpretability-tool-lit">
 <h1>Learning Interpretability Tool (LIT)<a class="headerlink" href="#learning-interpretability-tool-lit" title="Link to this heading">#</a></h1>
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-26' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-21' } *-->
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 <p>Welcome to 🔥LIT, the Learning Interpretability Tool!</p>
 <p>If you want to jump in and start playing with the LIT UI, check out the hosted demos at <a class="reference external" href="https://pair-code.github.io/lit/demos/">https://pair-code.github.io/lit/demos/</a>.</p>
+<section id="research">
+<h2>Research<a class="headerlink" href="#research" title="Link to this heading">#</a></h2>
+<p>Found LIT useful in your research? Please cite our
+<a class="reference external" href="https://aclanthology.org/2020.emnlp-demos.15/">system demonstration paper</a>!</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@misc</span><span class="p">{</span><span class="n">tenney2020language</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">The</span> <span class="n">Language</span> <span class="n">Interpretability</span> <span class="n">Tool</span><span class="p">:</span> <span class="n">Extensible</span><span class="p">,</span> <span class="n">Interactive</span> <span class="n">Visualizations</span> <span class="ow">and</span> <span class="n">Analysis</span> <span class="k">for</span> <span class="p">{</span><span class="n">NLP</span><span class="p">}</span> <span class="n">Models</span><span class="p">},</span>
+    <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Ian</span> <span class="n">Tenney</span> <span class="ow">and</span> <span class="n">James</span> <span class="n">Wexler</span> <span class="ow">and</span> <span class="n">Jasmijn</span> <span class="n">Bastings</span> <span class="ow">and</span> <span class="n">Tolga</span> <span class="n">Bolukbasi</span> <span class="ow">and</span> <span class="n">Andy</span> <span class="n">Coenen</span> <span class="ow">and</span> <span class="n">Sebastian</span> <span class="n">Gehrmann</span> <span class="ow">and</span> <span class="n">Ellen</span> <span class="n">Jiang</span> <span class="ow">and</span> <span class="n">Mahima</span> <span class="n">Pushkarna</span> <span class="ow">and</span> <span class="n">Carey</span> <span class="n">Radebaugh</span> <span class="ow">and</span> <span class="n">Emily</span> <span class="n">Reif</span> <span class="ow">and</span> <span class="n">Ann</span> <span class="n">Yuan</span><span class="p">},</span>
+    <span class="n">booktitle</span> <span class="o">=</span> <span class="s2">&quot;Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations&quot;</span><span class="p">,</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="s2">&quot;2020&quot;</span><span class="p">,</span>
+    <span class="n">publisher</span> <span class="o">=</span> <span class="s2">&quot;Association for Computational Linguistics&quot;</span><span class="p">,</span>
+    <span class="n">pages</span> <span class="o">=</span> <span class="s2">&quot;107--118&quot;</span><span class="p">,</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://www.aclweb.org/anthology/2020.emnlp-demos.15&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://pair-code.github.io/lit/">   Main Site</a></li>
@@ -243,6 +258,7 @@
 <li class="toctree-l2"><a class="reference internal" href="components.html#framework-and-model-support">Framework and Model Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="components.html#input-and-output-types">Input and Output Types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="components.html#token-based-salience">Token-based Salience</a></li>
+<li class="toctree-l2"><a class="reference internal" href="components.html#sequence-salience">Sequence Salience</a></li>
 <li class="toctree-l2"><a class="reference internal" href="components.html#salience-clustering">Salience Clustering</a></li>
 <li class="toctree-l2"><a class="reference internal" href="components.html#tabular-feature-attribution">Tabular Feature Attribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="components.html#pixel-based-salience">Pixel-based Salience</a></li>
@@ -293,6 +309,7 @@
 </ul>
 </div>
 </section>
+</section>
 
         </article>
       </div>
@@ -327,8 +344,27 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Learning Interpretability Tool (LIT)</a><ul>
+<li><a class="reference internal" href="#research">Research</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

@@ -1,20 +1,60 @@
-"""Demo for sequence salience with a left-to-right language model."""
+r"""Demo for sequence salience with a left-to-right language model.
+
+To use with the Gemma, Llama, or Mistral models, install the latest versions of
+Keras, KerasNLP, and/or HuggingFace Transformers:
+
+  pip install keras>=3.1.0 keras-nlp>=0.9.0 transformers>=4.38.0
+
+To run with the default configuration (Gemma on TensorFlow via Keras):
+
+  blaze run -c opt examples:lm_salience_demo -- \
+    --models=gemma_1.1_instruct_2b_en:gemma_1.1_instruct_2b_en \
+    --port=8890 --alsologtostderr
+
+MODELS:
+
+We strongly recommend a GPU or other accelerator to run this server with LLMs.
+The table below shows the model names and presets for common models. Use these
+to parameterize the --models flag with comma-separated `{model}:{preset}`
+strings, and remember the number of models loaded will be limited by the memory
+available on your accelerator.
+
+| Model   | dl_framework | dl_backend=tensorflow Preset | dl_backend=torch Preset              |
+| ------- | ------------ | ---------------------------- | ------------------------------------ |
+| Gemma   | kerasnlp     | gemma_1.1_instruct_7b_en     | gemma_1.1_instruct_7b_en             |
+| Gemma   | transformers | Unavailable                  | google/gemma-1.1-7b-it               |
+| Llama 2 | kerasnlp     | llama2_instruct_7b_en        | llama2_instruct_7b_en                |
+| Llama 2 | transformers | Unavailable                  | meta-llama/Llama-2-7b-hf             |
+| Mistral | kerasnlp     | mistral_instruct_7b_en       | mistral_instruct_7b_en               |
+| Mistral | transformers | Unavailable                  | mistralai/Mistral-7B-Instruct-v0.2   |
+
+Additional model presets can be found at the following locations, though
+compatibility with the LIT model wrappers is not guaranteed:
+
+* KerasNLP: https://keras.io/api/keras_nlp/models/
+* HuggingFace Transformers: https://huggingface.co/models
+
+DATASETS:
+
+By default this includes a small set of sample prompts. You can load your own
+examples using the --datasets flag or through the "Configure" menu in the UI.
+"""
 
 from collections.abc import Sequence
 import functools
 import os
+import re
 import sys
 from typing import Optional
 
 from absl import app
 from absl import flags
 from absl import logging
-import keras
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.examples.datasets import lm as lm_data
-from lit_nlp.examples.models import pretrained_lms
+from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -24,11 +64,22 @@ FLAGS.set_default("development_demo", True)
 
 _MODELS = flags.DEFINE_list(
     "models",
-    [
-        "gpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/gpt2.tar.gz",
-        "distilgpt2:https://storage.googleapis.com/what-if-tool-resources/lit-models/distilgpt2.tar.gz",
-    ],
-    "Models to load, as <name>:<path>. Currently supports GPT-2 variants.",
+    ["gemma_1.1_instruct_2b_en:gemma_1.1_instruct_2b_en"],
+    "Models to load, as <name>:<path>. Path can be a URL, a local file path, or"
+    " the name of a preset for the configured Deep Learning framework (either"
+    " KerasNLP or HuggingFace Transformers; see --dl_framework for more). This"
+    " demo is tested with Gemma, GPT2, Llama, and Mistral on all supported"
+    " --dl_framework values. Other models should work, but adjustments might be"
+    " needed on their tokenizers (e.g., to define custom pad_token"
+    " when eos_token is not available to use as pad_token).",
+)
+
+_DATASETS = flags.DEFINE_list(
+    "datasets",
+    ["sample_prompts"],
+    "Datasets to load, as <name>:<path>. Format should be either .jsonl where"
+    " each record contains 'prompt' and optional 'target' and optional"
+    " 'source', or .txt with one prompt per line.",
 )
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
@@ -40,32 +91,53 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
     ),
 )
 
-_KERAS_FLOATX = flags.DEFINE_string(
-    "keras_floatx", "bfloat16", "Floating-point type for Keras models."
+_BATCH_SIZE = flags.DEFINE_integer(
+    "batch_size", 4, "The number of examples to process per batch.",
 )
 
+_DL_BACKEND = flags.DEFINE_enum(
+    "dl_backend",
+    "tensorflow",
+    ["jax", "torch", "tensorflow"],
+    "The deep learning backend framework that the model runs on. All models"
+    " loaded by this server will use the same backend, incompatibilities will"
+    " result in errors.",
+)
+
+_DL_FRAMEWORK = flags.DEFINE_enum(
+    "dl_framework",
+    "kerasnlp",
+    ["kerasnlp", "transformers"],
+    "The deep learning framework that loads and runs the model on the backend."
+    " This server will attempt to load all models specified by the --models"
+    " flag with the configured framework, incompatibilities will result in"
+    " errors.",
+)
+
+_PRECISION = flags.DEFINE_enum(
+    "precision",
+    "bfloat16",
+    ["bfloat16", "float32"],
+    "Floating point precision for the models, only `bfloat16` and `float32` are"
+    " supported for now.",
+)
+
+
+# TODO(lit-dev): move these layouts to a separate .py file.
 # Custom frontend layout; see api/layout.py
 modules = layout.LitModuleName
-LM_LAYOUT = layout.LitCanonicalLayout(
+LEFT_RIGHT_LAYOUT = layout.LitCanonicalLayout(
     left={
-        "Data Table": [modules.DataTableModule],
-        "Embeddings": [modules.EmbeddingsModule],
+        "Examples": [modules.DataTableModule],
+        "Editor": [modules.SingleDatapointEditorModule],
     },
-    upper={
-        "Datapoint Editor": [modules.DatapointEditorModule],
-        "Datapoint Generators": [modules.GeneratorModule],
-    },
-    lower={
+    upper={  # if 'lower' not specified, this fills the right side
         "Salience": [modules.LMSalienceModule],
-        "Metrics": [modules.MetricsModule],
     },
-    layoutSettings=layout.LayoutSettings(
-        mainHeight=40,
-        leftWidth=40,
-    ),
-    description="Custom layout for language model salience.",
+    layoutSettings=layout.LayoutSettings(leftWidth=40),
+    description="Left/right layout for language model salience.",
 )
-SIMPLE_LM_LAYOUT = layout.LitCanonicalLayout(
+TOP_BOTTOM_LAYOUT = layout.LitCanonicalLayout(
     upper={
         "Examples": [modules.SimpleDataTableModule],
         "Editor": [modules.SimpleDatapointEditorModule],
@@ -80,21 +152,41 @@ SIMPLE_LM_LAYOUT = layout.LitCanonicalLayout(
     ),
     description="Simplified layout for language model salience.",
 )
+THREE_PANEL_LAYOUT = layout.LitCanonicalLayout(
+    left={
+        "Data Table": [modules.DataTableModule],
+        "Embeddings": [modules.EmbeddingsModule],
+    },
+    upper={
+        "Datapoint Editor": [modules.SingleDatapointEditorModule],
+        "Datapoint Generators": [modules.GeneratorModule],
+    },
+    lower={
+        "Salience": [modules.LMSalienceModule],
+        "Metrics": [modules.MetricsModule],
+    },
+    layoutSettings=layout.LayoutSettings(
+        mainHeight=40,
+        leftWidth=40,
+    ),
+    description="Custom layout for language model salience.",
+)
 
 CUSTOM_LAYOUTS = {
-    "simple": SIMPLE_LM_LAYOUT,
-    "three_panel": LM_LAYOUT,
+    "left_right": LEFT_RIGHT_LAYOUT,
+    "top_bottom": TOP_BOTTOM_LAYOUT,
+    "three_panel": THREE_PANEL_LAYOUT,
 }
 
 FLAGS.set_default("page_title", "LM Salience Demo")
-FLAGS.set_default("default_layout", "simple")
+FLAGS.set_default("default_layout", "left_right")
 
 _SPLASH_SCREEN_DOC = """
 # Language Model Salience
 
-To begin, select an example, then click the segment(s) (tokens, words, etc.) 
-of the output that you would like to explain. Preceding segments(s) will be 
-highlighted according to their importance to the selected target segment(s), 
+To begin, select an example, then click the segment(s) (tokens, words, etc.)
+of the output that you would like to explain. Preceding segments(s) will be
+highlighted according to their importance to the selected target segment(s),
 with darker colors indicating a greater influence (salience) of that segment on
 the model's likelihood of the target segment.
 """
@@ -117,12 +209,27 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     raise app.UsageError("Too many command-line arguments.")
 
   # Set Keras backend and floating-point precision.
-  os.environ["KERAS_BACKEND"] = "tensorflow"
-  if hasattr(keras, "config") and hasattr(keras.config, "set_floatx"):
-    keras.config.set_floatx(_KERAS_FLOATX.value)
-  else:
-    logging.warn(
-        "keras.config.set_floatx() not available; using default precision."
+  if _DL_FRAMEWORK.value == "kerasnlp":
+    # NOTE: Keras and KerasNLP require that certain environment variables are
+    # set before they are imported.
+    # TODO(b/327281789): Remove FORCE_KERAS_3 once Keras 3 is the default.
+    os.environ["FORCE_KERAS_3"] = "True"
+    os.environ["KERAS_BACKEND"] = _DL_BACKEND.value
+
+    # NOTE: Imported here and not at the top of the file to avoid
+    # initialization issues with the environment variables above. We should also
+    # import keras before any other Keras-related modules (e.g., KerasNLP or the
+    # LIT wrappers) to limit the potenital for improperly configured backends.
+    import keras  # pylint: disable=g-import-not-at-top
+
+    keras.config.set_floatx(_PRECISION.value)
+  elif _DL_BACKEND.value == "torch":
+    # NOTE: Keras sets precision for all backends with set_floatx(), but for
+    # HuggingFace Transformers with PyTorch we need to set it explicitly.
+    import torch  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
+
+    torch.set_default_dtype(
+        torch.bfloat16 if _PRECISION.value == "bfloat16" else torch.float32
     )
 
   plaintextPrompts = functools.partial(  # pylint: disable=invalid-name
@@ -133,11 +240,24 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   plaintextPrompts.__name__ = "PlaintextSents"
 
   # Pre-loaded datasets.
-  datasets = {
-      "sample_prompts": lm_data.PromptExamples(
-          lm_data.PromptExamples.SAMPLE_DATA_PATH
-      ),
-  }
+  datasets = {}
+  for dataset_string in _DATASETS.value:
+    if dataset_string == "sample_prompts":
+      dataset_name = "sample_prompts"
+      path = lm_data.PromptExamples.SAMPLE_DATA_PATH
+    else:
+      # Only split on the first ':', because path may be a URL
+      # containing 'https://'
+      dataset_name, path = dataset_string.split(":", 1)
+    logging.info("Loading dataset '%s' from '%s'", dataset_name, path)
+
+    if path.endswith(".jsonl"):
+      datasets[dataset_name] = lm_data.PromptExamples(path)
+    # .txt or .txt-#####-of-#####
+    elif path.endswith(".txt") or re.match(r".*\.txt-\d{5}-of-\d{5}$", path):
+      datasets[dataset_name] = plaintextPrompts(path)
+    else:
+      raise ValueError(f"Unsupported dataset format for {dataset_string}")
 
   # For loading from the UI.
   dataset_loaders = {
@@ -155,23 +275,40 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   # Load models, according to the --models flag.
   models = {}
   for model_string in _MODELS.value:
-    # Only split on the first ':', because path may be a URL
-    # containing 'https://'
+    # Only split on the first ':' as path may be a URL containing 'https://'
     model_name, path = model_string.split(":", 1)
     logging.info("Loading model '%s' from '%s'", model_name, path)
-    if model_name.startswith("gpt2") or model_name in ["distilgpt2"]:
-      models[model_name] = pretrained_lms.GPT2GenerativeModel(path)
-      # Salience wrapper, using same underlying Keras models so as not to
-      # load the weights twice.
-      models[f"_{model_name}_salience"] = (
-          pretrained_lms.GPT2SalienceModel.from_loaded(models[model_name])
+
+    path = file_cache.cached_path(
+        path,
+        extract_compressed_file=path.endswith(".tar.gz"),
+    )
+
+    if _DL_FRAMEWORK.value == "kerasnlp":
+      # pylint: disable=g-import-not-at-top
+      from keras_nlp import models as keras_models
+      from lit_nlp.examples.models import instrumented_keras_lms as lit_keras
+      # pylint: enable=g-import-not-at-top
+      # Load the weights once for the underlying Keras model.
+      model = keras_models.CausalLM.from_preset(path)
+      models |= lit_keras.initialize_model_group_for_salience(
+          model_name, model, max_length=512, batch_size=_BATCH_SIZE.value
       )
-      models[f"_{model_name}_tokenizer"] = (
-          pretrained_lms.GPT2TokenizerModel.from_loaded(models[model_name])
-      )
+      # Disable embeddings from the generation model.
+      # TODO(lit-dev): re-enable embeddings if we can figure out why UMAP was
+      # crashing? Maybe need n > 2 examples.
+      models[model_name].output_embeddings = False
     else:
-      raise ValueError(
-          f"Unsupported model name '{model_name}' from path '{path}'"
+      # NOTE: (Style Deviation) Imported here to limit uncessary imports.
+      from lit_nlp.examples.models import pretrained_lms  # pylint: disable=g-import-not-at-top
+      # Assuming a valid decoder model name supported by
+      # `transformers.AutoModelForCausalLM` is provided to "path".
+      models |= pretrained_lms.initialize_model_group_for_salience(
+          model_name,
+          path,
+          batch_size=_BATCH_SIZE.value,
+          framework=_DL_BACKEND.value,
+          max_new_tokens=512,
       )
 
   for name in datasets:

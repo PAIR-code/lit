@@ -38,6 +38,9 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   DataTableModule = 'data-table-module'
   SimpleDataTableModule = 'simple-data-table-module'
   DatapointEditorModule = 'datapoint-editor-module'
+  # Non-replicating version of Datapoint Editor
+  SingleDatapointEditorModule = 'single-datapoint-editor-module'
+  # Simplified, non-replicating version of Datapoint Editor
   SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
   DiveModule = 'dive-module'
   DocumentationModule = 'documentation-module'
@@ -55,7 +58,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SalienceClusteringModule = 'salience-clustering-module'
   SalienceMapModule = 'salience-map-module'
   ScalarModule = 'scalar-module'
-  SequenceSalienceModule = 'sequence-salience-module'
+  LegacySequenceSalienceModule = 'legacy-sequence-salience-module'
   SpanGraphGoldModule = 'span-graph-gold-module'
   SpanGraphModule = 'span-graph-module'
   SpanGraphGoldModuleVertical = 'span-graph-gold-module-vertical'
@@ -157,7 +160,7 @@ SIMPLE_LAYOUT = LitCanonicalLayout(
         ],
         'Sequence Salience': [
             *MODEL_PREDS_MODULES,
-            modules.SequenceSalienceModule(requiredForTab=True),
+            modules.LegacySequenceSalienceModule(requiredForTab=True),
         ],
         'Influence': [modules.TrainingDataAttributionModule],
     },
@@ -170,7 +173,8 @@ SIMPLE_LAYOUT = LitCanonicalLayout(
         'A basic layout just containing a datapoint creator/editor, the '
         'predictions, and the data table. There are also some visual '
         'simplifications: the toolbar is hidden, and the modules are centered '
-        'on the page rather than being full width.'),
+        'on the page rather than being full width.'
+    ),
 )
 
 THREE_PANEL_LAYOUT = LitCanonicalLayout(
@@ -199,7 +203,7 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
         ],
         'Explanations': [
             modules.SalienceMapModule,
-            modules.SequenceSalienceModule,
+            modules.LegacySequenceSalienceModule,
             modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
@@ -233,7 +237,7 @@ STANDARD_LAYOUT = LitCanonicalLayout(
         'Explanations': [
             *MODEL_PREDS_MODULES,
             modules.SalienceMapModule,
-            modules.SequenceSalienceModule,
+            modules.LegacySequenceSalienceModule,
             modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],

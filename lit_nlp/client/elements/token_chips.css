@@ -1,8 +1,12 @@
+/* TODO(b/329716900): consider CSS nesting to make this more readable */
+
 .tokens-group {
   position: relative;
 }
 
 .tokens-holder {
+  --tokens-line-height: 22px;
+
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -11,6 +15,12 @@
 .salient-token {
   --token-outline-color: transparent;
   /* color and background set individually vis styleMap */
+  --token-bg-color: transparent;
+  --token-text-color: black;
+
+  background-color: var(--token-bg-color);
+  color: var(--token-text-color);
+
   font-family: 'Roboto';
   border-radius: 2px;
   /* TODO: switch to using outline: instead? */
@@ -44,7 +54,7 @@
   --token-outline-color: var(--lit-neutral-900);
 }
 
-.tokens-holder-dense .salient-token {
+.tokens-holder.dense .salient-token {
   padding: 0;
   margin: 0;
   border: 0;
@@ -60,64 +70,117 @@
   height: 0;
 }
 
+/**
+ * If there are multiple row breaks, subsequent ones should create full blank
+ * lines.
+ */
+.row-break + .row-break {
+  height: calc(var(--tokens-line-height) + 3.5px);
+}
+
 .word-spacer {
   width: 1em;
 }
 
-.tokens-holder-dense .word-spacer {
+.tokens-holder.dense .word-spacer {
   width: 0.5em;
 }
 
-/* block mode */
-.tokens-holder-display-block {
+/**
+ * Styles for <lit-text-chips>
+ */
+.text-chips {
   display: block;
   font-size: 0; /* hack to get zero spacing between elements */
-  line-height: 22px;
+  line-height: var(--tokens-line-height);
 }
 
-.tokens-holder-display-block > * {
+.text-chips > * {
   /* TODO: set this for all modes? */
   font-size: 13px;  /* restore standard font size */
 }
 
-.tokens-holder-display-block .salient-token {
+.text-chips:not(.dense) .salient-token:not(.selected) {
+  /* outline in non-dense mode */
+  --token-outline-color: var(--lit-neutral-300);
+}
+
+.text-chips .salient-token {
   display: inline;
   min-height: 1lh;
   vertical-align: baseline;
+
+  padding: 3px 0; /* this controls the visible highlight area */
+  margin: 0;
+  margin-right: 4px;
+
+  /* use outline instead of border for more consistent spacing */
+  outline: 1px solid var(--token-outline-color);
+  border: 0;
+}
+
+.text-chips .salient-token span {
+  /* this controls the mouseover area, so there are no gaps */
+  /* or flickering when hovering over multiline tokens */
+  padding: 6px 0;
+}
+
+.text-chips .salient-token.selected {
+  --token-outline-color: var(--lit-mage-700);
+  outline: 2px solid var(--token-outline-color);
 }
 
 /**
  * This is the ugliest matcher I've ever written but it seems to fix the mess
  * that is element spacing in inline mode. In particular: with the way we use
- * word-spacer, any token followed by one would get extra trailing whitespace, 
+ * word-spacer, any token followed by one would get extra trailing whitespace,
  * e.g. it would appear as |word | rather than |word|, making the highlighting
  * awkward.
- * 
+ *
  * It's possible to fix this by scrupulously removing whitespace from the HTML,
- * so long as the <span> are direct siblings of the word spacer. But this all 
- * breaks down when they're nested inside <lit-tooltip> to provide the 
+ * so long as the <span> are direct siblings of the word spacer. But this all
+ * breaks down when they're nested inside <lit-tooltip> to provide the
  * mouseover.
- * 
- * So, instead we need to add a negative margin equal to the width 
+ *
+ * So, instead we need to add a negative margin equal to the width
  * of a single space, only to those .salient-token elements that are followed
  * by a .word-spacer. Of course, CSS provides only a next-sibling combinator
  * (+), which would work to match the .word-spacer itself - but applying
- * margin-left there does not have the desired effect (you just get twice the 
- * spacing). So, we hack it with the unofficial but well-supported :has() 
+ * margin-left there does not have the desired effect (you just get twice the
+ * spacing). So, we hack it with the unofficial but well-supported :has()
  * pseudo-class to match .salient-token that "has" a next-sibling .word-spacer.
- */ 
-.tokens-holder-display-block.tokens-holder-dense .salient-token:has(+ .word-spacer) span {
+ */
+.text-chips.dense .salient-token:has(+ .word-spacer) span {
    /* hack to remove extra whitespace. ugh. */
   margin-right: -0.445ch;
 }
 
-.tokens-holder-display-block .word-spacer {
+.text-chips.dense .salient-token {
+  padding: 3px 0; /* this controls the visible highlight area */
+  margin: 0; /* no extra spacing; determine only from line-height */
+}
+
+.text-chips.dense .salient-token.selected {
+  /* TODO see if we can get away from z-index here */
+  z-index: 1;
+}
+
+.text-chips .word-spacer {
   display: inline;
   vertical-align: baseline;
   white-space: pre-wrap;
 }
 
-.tokens-holder-display-block lit-tooltip {
+.text-chips lit-tooltip {
   --anchor-display-mode: 'inline';
   --tooltip-position-left: 0;
+}
+
+/* vertical dense mode */
+.text-chips.vdense {
+  --tokens-line-height: 16px;
+  /* line-height: 16px; */
+}
+.text-chips.vdense .salient-token {
+  padding: 1.5px 0; /* avoid highlight area overlapping across lines */
 }

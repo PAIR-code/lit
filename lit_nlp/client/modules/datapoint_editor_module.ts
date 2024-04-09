@@ -843,21 +843,32 @@ export class DatapointEditorModule extends LitModule {
 }
 
 /**
+ * Regular datapoint editor, but does not duplicate in example SxS mode.
+ */
+@customElement('single-datapoint-editor-module')
+export class SingleDatapointEditorModule extends DatapointEditorModule {
+  static override duplicateForExampleComparison = false;
+  static override template = () => {
+    return html`<single-datapoint-editor-module></single-datapoint-editor-module>`;
+  };
+}
+
+/**
  * Simplified version of the above; omits add-and-compare button.
  */
 @customElement('simple-datapoint-editor-module')
-export class SimpleDatapointEditorModule extends DatapointEditorModule {
+export class SimpleDatapointEditorModule extends SingleDatapointEditorModule {
   protected override addButtonText = 'Analyze';
   protected override showAddAndCompare = false;
-  static override template = (model = '', selectionServiceIndex = 0) => {
-    return html`<simple-datapoint-editor-module selectionServiceIndex=${
-        selectionServiceIndex}></simple-datapoint-editor-module>`;
+  static override template = () => {
+    return html`<simple-datapoint-editor-module></simple-datapoint-editor-module>`;
   };
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'datapoint-editor-module': DatapointEditorModule;
+    'single-datapoint-editor-module': SingleDatapointEditorModule;
     'simple-datapoint-editor-module': SimpleDatapointEditorModule;
   }
 }
