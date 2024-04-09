@@ -90,16 +90,31 @@
 <p>Let's try to determine if there is any correlation between other language features, such as the use of the terms “acting”, “actor”, and “actress”, or mentions of music, with the classification of sentiment. This can help us understand what concepts a model is sensitive to, and when and how errors may occur.</p>
 <h4>Create a Concept</h4>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit_tcav_screen_annotated.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit_tcav_screen_annotated.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit_tcav_screen_annotated.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">LIT modules used in our demo. 1: The data table to search for and select datapoints. 2: The Slice Editor to save the selected datapoints to a named slice. 3. The TCAV Explorer in the TCAV tab to run TCAV on our slice.</div>
 </div>
 <p>First, let’s test if the mention of the phrases “acting”, “actor”, or “actress” has any influence on the model’s predictions. To test a concept in LIT, we need to create a slice containing exemplary datapoints of the concept we are curious about. We can go to the data table, and use the search feature of the “sentence” field and search for “acting|actor|actress” to search for all mentions of those three terms. We then select all those examples using the “select all” button in the Data Table, expand the minimized Slice Editor, and use it to create a new slice named “acting”, containing those 28 datapoints matching our query.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit_data_table_annotated.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit_data_table_annotated.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit_data_table_annotated.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">1: Searching for a datapoints containing certain words and 2: selecting all matching datapoints</div>
 </div>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit_slice_editor_annotated.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit_slice_editor_annotated.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit_slice_editor_annotated.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">1: Naming a slice and 2: Creating the named slice from the selected datapoints.</div>
 </div>
 <p>Now we can go to the TCAV module and select our options to run the method. There are three sets of options to select.</p>
@@ -116,7 +131,12 @@
 </ol>
 <p>For our use-case, we click on our “acting” slice as the concept to test, and can use the default selections of explaining class 1 and using the “cls_grad” embedding, which is the only per-datapoint embedding returned by this model. In our BERT-based model, the “cls_grad” embedding is the activation of the “[CLS]” token, which captures information about the entire sentence to be used for the final classification layer of the model.</p>
 <div class="mdl-cell mdl-cell--6-col mdl-cell--3-col-tablet mdl-cell--2-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit_tcav_settings_annotated.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit_tcav_settings_annotated.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit_tcav_settings_annotated.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">1: Selecting a slice as a concept and 2: running TCAV with the specified options</div>
 </div>
 <h4>Interpreting TCAV scores</h4>
@@ -124,12 +144,22 @@
 <p>A blue bar extending right or left of the black line means the concept is influencing the prediction. If the blue bar extends to the right of the black line, the concept is positively influencing the prediction. Conversely, if the bar extended to the left, it is negatively influencing. In either case, the larger the bar, the greater the influence.</p>
 <p>In our example, the CAV score of ~0.91 indicates that our “acting” concept has a strong positive effect on the prediction of this class. So we have found that this concept has a positive effect on predicting positive sentiment for our classifier.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tcav_result.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tcav_result.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tcav_result.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">TCAV results for our “acting” concept</div>
 </div>
 <p>Now, let’s try a different concept.  We’ll go through the same process, except with datapoints containing the word “music”, so we can see if mentions of music in a review have a significant effect on prediction. We can repeat the steps above to select matching datapoints, create a slice of these datapoints, and run TCAV on that slice. After doing so, we get a new line in the TCAV table, but it indicates “this run was not statistically significant”. That means that TCAV did not find a statistically significant difference between the effect of this concept versus concepts made of randomly sampled datapoints. So, we have found that mentions of music don’t seem to have any specific effect on predicting positive sentiment in this classifier. For details on this check, read the <a href="../../documentation/components.html#tcav">LIT TCAV documentation</a>.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/tcav_results_2.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/tcav_results_2.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/tcav_results_2.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Updated TCAV results including our “music” concept</div>
 </div>
 <h3>Creating Useful Concepts</h3>
@@ -142,11 +172,21 @@
 <p>In the “Select Slices” menu, you’ll notice that there are checkboxes to select a slice as a “Negative slice” in addition to the checkboxes to select the concepts to test. You can test a “relative concept” by selecting one slice as the positive slice and another slice as the “negative slice” and running TCAV that way. Testing a relative concept allows you to see if adjusting datapoints from containing one concept to containing another will generally have an impact on classification.</p>
 <p>For example, what if we wanted to test if the use of the gendered terms for acting professionals – “actor” for males and “actress” for females – has an impact on sentiment prediction? Instead of testing concepts of “actor” and “actress” separately for significance, you could generate a set of gender-flipped examples and use Relative TCAV to explore the differences. To start, create an “actor” slice with all datapoints containing the word “actor”. Then use the Word Replacer counterfactual generator to change all instances of “actor” to “actress” in those datapoints, add those newly generated datapoints to the dataset, and save them as a slice named “actress”. Next, in the TCAV module, set the positive slice to “actor” and the negative slice to “actress” and run TCAV. The resulting concept is shown to be not-significant. This means that our classifier doesn’t seem to be sensitive to using the gendered terms actor over actress in the predictions of review sentiment.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/actor_to_actress.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/actor_to_actress.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/actor_to_actress.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Using the Word Replacer datapoint generator to replace instances of “actor” with “actress”, in support of testing a relative concept.</div>
 </div>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/actress_relative_cav.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/actress_relative_cav.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/actress_relative_cav.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">TCAV settings and results for our relative concept of “actor” vs.“actress”, which is deemed not statistically significant.</div>
 </div>
 <h3>Conclusion</h3>

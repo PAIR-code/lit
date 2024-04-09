@@ -80,6 +80,20 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 ## Sequence-to-Sequence <!-- DO NOT REMOVE {#seq2seq .demo-section-header} -->
 
+### Gemma <!-- DO NOT REMOVE {#gemma .demo-header} -->
+
+**Code:** [examples/lm_salience_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+
+*   Supports Gemma 2B and 7B models using KerasNLP and TensorFlow.
+*   Interactively debug LLM prompts using
+    [sequence salience](./components.md#sequence-salience).
+*   Multiple salience methods (grad-l2 and grad-dot-input), at multiple
+    granularities: token-, word-, sentence-, and paragraph-level.
+
+Tip: check out the in-depth walkthrough at
+https://ai.google.dev/responsible/model_behavior, part of the Responsible
+Generative AI Toolkit.
+
 ### T5 <!-- DO NOT REMOVE {#t5 .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/t5.html \
