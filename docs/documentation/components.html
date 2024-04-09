@@ -613,45 +613,43 @@ class. If we select class 1 from the UI:</p>
 present in the <em>dataset</em> - as long as it’s something that the model will
 recognize and use as the target to derive gradients.</p>
 </section>
+</section>
 <section id="sequence-salience">
-<h3>Sequence salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">#</a></h3>
-<p>Sequence salience generalizes the salience methods mentioned above to
-text-to-text generative models and explains the impact of the preceding tokens
-on the generated tokens. Currently, we support sequence salience computation for
-various OSS modeling frameworks, including KerasNLP and Hugging Face
-Transformers.</p>
-<p>Sequence salience in the LIT UI provides multiple options for analysis,
-including:</p>
+<h2>Sequence Salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">#</a></h2>
+<p>Sequence salience generalizes token-based salience to text-to-text models,
+allowing you to explain the impact of the prompt tokens on parts of the model
+output.</p>
+<p>LIT has a general-purpose sequence salience visualization designed for
+left-to-right (“causal”) language models:</p>
+<p><a class="reference internal" href="_images/sequence-salience-1.png"><img alt="Sequence salience - sequence selection" class="align-center" src="_images/sequence-salience-1.png" style="width: 650px;" /></a></p>
+<p><a class="reference internal" href="_images/sequence-salience-2.png"><img alt="Sequence salience - visualization" class="align-center" src="_images/sequence-salience-2.png" style="width: 650px;" /></a></p>
+<p>The UI supports multiple options for analysis, including:</p>
 <ul class="simple">
-<li><p>running the salience methods on the text from the dataset (target) or from
-the model (response).</p></li>
-<li><p>computing the sequence salience through <a class="reference internal" href="#gradient-norm">Gradient Norm</a> or
+<li><p>Select from pre-defined target sequences, or explain generations from the
+model.</p></li>
+<li><p>Different salience methods, including <a class="reference internal" href="#gradient-norm">Gradient Norm</a> and
 <a class="reference internal" href="#gradient-dot-input">Gradient-dot-Input</a>.</p></li>
-<li><p>selecting different granularity levels for salience analysis, from the
-smallest possible level of tokens, to more interpretable larger spans, such
-as words, sentences, lines, or paragraphs.</p></li>
+<li><p>Multiple granularity levels for analysis, from individual sub-word tokens up
+to words, sentences, lines, or paragraphs. Quickly switch between different
+views to refine your analysis to different parts of a prompt.</p></li>
+<li><p>Display density options to enable working with longer sequences, such as
+document text, few-shot eaxmples, or chain-of-thought prompts.</p></li>
 </ul>
-<div class="table-wrapper colwidths-auto docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>(a) Options for sequence salience.</p></th>
-<th class="head"><p>(b) Sequence salience visualization.</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><a class="reference internal" href="_images/sequence-salience-selections.png"><img alt="Sequence salience selections" class="align-center" src="_images/sequence-salience-selections.png" style="width: 650px;" /></a></p></td>
-<td><p><a class="reference internal" href="_images/sequence-salience-vis.png"><img alt="Sequence salience vis" class="align-center" src="_images/sequence-salience-vis.png" style="width: 650px;" /></a></p></td>
-</tr>
-</tbody>
-</table>
-</div>
+<p>For a walkthrough of how to use sequence salience to debug LLMs, check out the
+Responsible Generative AI Toolkit at
+<a class="reference external" href="https://ai.google.dev/responsible/model_behavior">https://ai.google.dev/responsible/model_behavior</a>.</p>
 <p><strong>Code:</strong></p>
 <ul class="simple">
-<li><p>Demo: <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_salience_demo.py</span></code></a></p></li>
-<li><p>KerasNLP model wrappers: <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py"><code class="docutils literal notranslate"><span class="pre">instrumented_keras_lms.py</span></code></a></p></li>
-<li><p>Transformers model wrappers: <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py"><code class="docutils literal notranslate"><span class="pre">pretrained_lms.py</span></code></a></p></li>
+<li><p>LIT-for-Gemma Colab: <a class="reference external" href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb"><code class="docutils literal notranslate"><span class="pre">lit_gemma.ipynb</span></code></a></p></li>
+<li><p>Demo binary:
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_salience_demo.py</span></code></a></p></li>
+<li><p>KerasNLP model wrappers:
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py"><code class="docutils literal notranslate"><span class="pre">instrumented_keras_lms.py</span></code></a></p></li>
+<li><p>Transformers model wrappers:
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py"><code class="docutils literal notranslate"><span class="pre">pretrained_lms.py</span></code></a></p></li>
 </ul>
-</section>
+<p>Currently, this works out-of-the-box
+with Gemma models (using Keras) as well as with GPT-2.</p>
 </section>
 <section id="salience-clustering">
 <h2>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">#</a></h2>
@@ -1107,9 +1105,9 @@ classification or regression model.</p></li>
 <li><a class="reference internal" href="#integrated-gradients">Integrated Gradients</a></li>
 <li><a class="reference internal" href="#lime">LIME</a></li>
 <li><a class="reference internal" href="#target-selection-on-classification-output">Target Selection on Classification Output</a></li>
-<li><a class="reference internal" href="#sequence-salience">Sequence salience</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#sequence-salience">Sequence Salience</a></li>
 <li><a class="reference internal" href="#salience-clustering">Salience Clustering</a></li>
 <li><a class="reference internal" href="#tabular-feature-attribution">Tabular Feature Attribution</a></li>
 <li><a class="reference internal" href="#pixel-based-salience">Pixel-based Salience</a></li>

@@ -86,7 +86,12 @@
 <h3>Building blocks - modules, groups, and workspaces</h3>
 <p><strong>Modules, groups, and workspaces</strong> form the building blocks of LIT. Modules are discrete windows in which you can perform a specific set of tasks or analyses. Workspaces display combinations of modules known as groups, so you can view different visualizations and interpretability methods side-by-side.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit-workspaces.png"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit-workspaces.png"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit-workspaces.png"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Above: Building blocks of the Learning Interpretability Tool: (1) Modules, (2) Groups, (3) Static workspace, (4) Group-based workspace.</div>
 </div>
 <p>LIT is divided into two workspaces - a Main workspace in the upper half of the interface, and a Group-based workspace in the lower half.</p>
@@ -114,7 +119,12 @@
 <li>Select the active models and dataset, including multiple models to compare.</li>
 </ul>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit-toolbars.gif"/>
+  <img class="tutorial-image" src="/lit/assets/images/lit-toolbars.gif"
+    onclick="event.target.nextElementSibling.showPopover()" />
+  <div class="tutorial-image-popover" popover>
+    <img class="tutorial-image" src="/lit/assets/images/lit-toolbars.gif"
+      onclick="event.target.parentElement.hidePopover()" />
+  </div>
   <div class="tutorial-caption">Above: Use toolbars to quickly select or re-color data points, and switch to comparison mode.</div>
 </div>
 <p>The footer at the very bottom of the interface will display any error messages. If anything goes wrong, you can also use the feedback button to let us know on GitHub.</p>
