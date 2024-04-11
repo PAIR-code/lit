@@ -12,7 +12,8 @@ class TfxModelTest(tf.test.TestCase):
     super(TfxModelTest, self).setUp()
     self._path = tempfile.mkdtemp()
     input_layer = tf.keras.layers.Input(
-        shape=(1), dtype=tf.string, name='example')
+        shape=(1,), dtype=tf.string, name='example'
+    )
     parsed_input = tf.io.parse_example(
         tf.reshape(input_layer, [-1]),
         {'input_0': tf.io.FixedLenFeature([1], dtype=tf.float32)})
