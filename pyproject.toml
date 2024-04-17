@@ -79,7 +79,7 @@ keywords = [
 [project.optional-dependencies]
 # LINT.IfChange
 examples = [
-  "gunicorn==20.1.0",
+  "gunicorn==22.0.0",
   "tensorflow==2.10.0",
   "tensorflow-datasets==4.8.0",
   "tensorflow-text==2.10.0",
