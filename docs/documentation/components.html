@@ -637,10 +637,23 @@ document text, few-shot eaxmples, or chain-of-thought prompts.</p></li>
 </ul>
 <p>For a walkthrough of how to use sequence salience to debug LLMs, check out the
 Responsible Generative AI Toolkit at
-<a class="reference external" href="https://ai.google.dev/responsible/model_behavior">https://ai.google.dev/responsible/model_behavior</a>.</p>
+<a class="reference external" href="https://ai.google.dev/responsible/model_behavior">https://ai.google.dev/responsible/model_behavior</a> and for more on design of the
+system see our paper at <a class="reference external" href="https://arxiv.org/abs/2404.07498">https://arxiv.org/abs/2404.07498</a>.</p>
+<p>If you find this useful in your work, please cite Sequence Salience as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@article</span><span class="p">{</span><span class="n">tenney2024interactive</span><span class="p">,</span>
+  <span class="n">title</span><span class="o">=</span><span class="p">{</span><span class="n">Interactive</span> <span class="n">Prompt</span> <span class="n">Debugging</span> <span class="k">with</span> <span class="n">Sequence</span> <span class="n">Salience</span><span class="p">},</span>
+  <span class="n">author</span><span class="o">=</span><span class="p">{</span><span class="n">Tenney</span><span class="p">,</span> <span class="n">Ian</span> <span class="ow">and</span> <span class="n">Mullins</span><span class="p">,</span> <span class="n">Ryan</span> <span class="ow">and</span> <span class="n">Du</span><span class="p">,</span> <span class="n">Bin</span> <span class="ow">and</span> <span class="n">Pandya</span><span class="p">,</span> <span class="n">Shree</span> <span class="ow">and</span> <span class="n">Kahng</span><span class="p">,</span> <span class="n">Minsuk</span> <span class="ow">and</span> <span class="n">Dixon</span><span class="p">,</span> <span class="n">Lucas</span><span class="p">},</span>
+  <span class="n">journal</span><span class="o">=</span><span class="p">{</span><span class="n">arXiv</span> <span class="n">preprint</span> <span class="n">arXiv</span><span class="p">:</span><span class="mf">2404.07498</span><span class="p">},</span>
+  <span class="n">year</span><span class="o">=</span><span class="p">{</span><span class="mi">2024</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 <p><strong>Code:</strong></p>
+<p>Currently, this works out-of-the-box with Gemma, Llama 2, Mistral, and GPT-2,
+using either KerasNLP or Transformers.</p>
 <ul class="simple">
-<li><p>LIT-for-Gemma Colab: <a class="reference external" href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb"><code class="docutils literal notranslate"><span class="pre">lit_gemma.ipynb</span></code></a></p></li>
+<li><p>LIT-for-Gemma Colab:
+<a class="reference external" href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb"><code class="docutils literal notranslate"><span class="pre">lit_gemma.ipynb</span></code></a></p></li>
 <li><p>Demo binary:
 <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_salience_demo.py</span></code></a></p></li>
 <li><p>KerasNLP model wrappers:
@@ -648,8 +661,6 @@ Responsible Generative AI Toolkit at
 <li><p>Transformers model wrappers:
 <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py"><code class="docutils literal notranslate"><span class="pre">pretrained_lms.py</span></code></a></p></li>
 </ul>
-<p>Currently, this works out-of-the-box
-with Gemma models (using Keras) as well as with GPT-2.</p>
 </section>
 <section id="salience-clustering">
 <h2>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">#</a></h2>

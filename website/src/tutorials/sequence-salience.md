@@ -55,10 +55,11 @@ LIT supports additional LLMs, including [Llama 2][llama] and [Mistral][mistral],
 via the HuggingFace Transformers and KerasNLP libraries.
 
 This tutorial was adapted from and expands upon LIT's contributions to the
-[Responsible Generative AI Tookit][rai_toolkit] and the related paper and
-[video][seqsal_video] submitted to the ACL 2024 Systems Demonstration track.
-This is an active and ongoing research area for the LIT team, so expect changes
-and further expansions to this tutorial over time.
+[Responsible Generative AI Tookit][rai_toolkit] and the related
+[paper][seqsal_paper] and [video][seqsal_video] submitted to the ACL 2024
+System Demonstrations track. This is an active and ongoing research area for
+the LIT team, so expect changes and further expansions to this tutorial over
+time.
 
 ## Case Study 1: Debugging Few-Shot Prompts
 
@@ -486,6 +487,7 @@ helpful guides that can help you develop better prompts, including:
 [salience_research_1]: https://dl.acm.org/doi/full/10.1145/3639372
 [salience_research_2]: https://arxiv.org/abs/2402.01761
 [seqsal_docs]: ../../documentation/components.html#sequence-salience
+[seqsal_paper]: https://arxiv.org/abs/2404.07498
 [seqsal_video]: https://youtu.be/EZgUlnWdh0w
 [synapis]: https://scholarspace.manoa.hawaii.edu/items/65312e48-5954-4a5f-a1e8-e5119e6abc0a
 [toolformer]: https://arxiv.org/abs/2302.04761
