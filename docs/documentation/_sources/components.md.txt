@@ -460,11 +460,27 @@ The UI supports multiple options for analysis, including:
 
 For a walkthrough of how to use sequence salience to debug LLMs, check out the
 Responsible Generative AI Toolkit at
-https://ai.google.dev/responsible/model_behavior.
+https://ai.google.dev/responsible/model_behavior and for more on design of the
+system see our paper at https://arxiv.org/abs/2404.07498.
+
+If you find this useful in your work, please cite Sequence Salience as:
+
+```
+@article{tenney2024interactive,
+  title={Interactive Prompt Debugging with Sequence Salience},
+  author={Tenney, Ian and Mullins, Ryan and Du, Bin and Pandya, Shree and Kahng, Minsuk and Dixon, Lucas},
+  journal={arXiv preprint arXiv:2404.07498},
+  year={2024}
+}
+```
 
 **Code:**
 
-*   LIT-for-Gemma Colab: [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
+Currently, this works out-of-the-box with Gemma, Llama 2, Mistral, and GPT-2,
+using either KerasNLP or Transformers.
+
+*   LIT-for-Gemma Colab:
+    [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
 *   Demo binary:
     [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
 *   KerasNLP model wrappers:
@@ -472,8 +488,6 @@ https://ai.google.dev/responsible/model_behavior.
 *   Transformers model wrappers:
     [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
 
-Currently, this works out-of-the-box
-with Gemma models (using Keras) as well as with GPT-2.
 
 
 ## Salience Clustering
