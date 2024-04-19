@@ -6,8 +6,7 @@ import types
 from typing import Sequence
 
 from absl import logging
-import keras.backend
-import keras.ops
+import keras
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import utils as lit_utils
