@@ -1,5 +1,5 @@
 /**
- * @fileoverview Custom viz module for causal LM salience.
+ * @fileoverview Custom viz module for sequence salience with causal LMs.
  */
 
 import '@material/mwc-icon';
@@ -26,7 +26,7 @@ import {cleanSpmText, groupTokensByRegexPrefix, groupTokensByRegexSeparator} fro
 import {type IndexedInput, type Preds, SCROLL_SYNC_CSS_CLASS, type Spec} from '../lib/types';
 import {cumSumArray, filterToKeys, findSpecKeys, groupAlike, makeModifiedInput, sumArray} from '../lib/utils';
 
-import {styles} from './lm_salience_module.css';
+import {styles} from './sequence_salience_module.css';
 
 /**
  * Max of absolute value
@@ -133,10 +133,10 @@ export class SingleExampleSingleModelModule extends LitModule {
 }
 
 /**
- * Custom styled version of <lit-token-chips> for rendering LM salience tokens.
+ * Custom styles for <lit-token-chips> to render sequence salience tokens.
  */
-@customElement('lm-salience-chips')
-class LMSalienceChips extends TextChips {
+@customElement('sequence-salience-chips')
+class SequenceSalienceChips extends TextChips {
   @property({type: Boolean}) underline = false;
 
   override holderClass() {
@@ -205,8 +205,8 @@ const CMAP_DEFAULT_RANGE = 0.4;
 const DEFAULT_CUSTOM_SEGMENTATION_REGEX = '\\n+';
 
 /** LIT module for model output. */
-@customElement('lm-salience-module')
-export class LMSalienceModule extends SingleExampleSingleModelModule {
+@customElement('sequence-salience-module')
+export class SequenceSalienceModule extends SingleExampleSingleModelModule {
   static override title = 'Sequence Salience';
   static override numCols = 6;  // 60% of screen width if DataTable on left
   static override duplicateAsRow = true;
@@ -215,9 +215,9 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
       model: string,
       selectionServiceIndex: number,
       shouldReact: number,
-      ) => html`<lm-salience-module model=${model} .shouldReact=${shouldReact}
+      ) => html`<sequence-salience-module model=${model} .shouldReact=${shouldReact}
                   selectionServiceIndex=${selectionServiceIndex}>
-                </lm-salience-module>`;
+                </sequence-salience-module>`;
 
   static override get styles() {
     return [sharedStyles, styles];
@@ -561,7 +561,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     });
 
     // If selected example OR selected target string change.
-    // NOTE: you may see a console warning: "Element lm-salience-module
+    // NOTE: you may see a console warning: "Element sequence-salience-module
     // scheduled an update (generally because a property was set) after an
     // update completed, causing a new update to be scheduled."
     // This is okay here: this.modifiedData will be updated after
@@ -994,12 +994,12 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
     // prettier-ignore
     return html`
       <div class='chip-container'>
-        <lm-salience-chips
+        <sequence-salience-chips
           .tokensWithWeights=${segmentsWithWeights} .cmap=${this.cmap}
           ?dense=${this.denseView} ?vDense=${this.vDense}
           ?underline=${this.underline}
           ?preSpace=${this.denseView} breakNewlines>
-        </lm-salience-chips>
+        </sequence-salience-chips>
       </div>
     `;
   }
@@ -1081,7 +1081,7 @@ export class LMSalienceModule extends SingleExampleSingleModelModule {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'lm-salience-chips': LMSalienceChips;
-    'lm-salience-module': LMSalienceModule;
+    'sequence-salience-chips': SequenceSalienceChips;
+    'sequence-salience-module': SequenceSalienceModule;
   }
 }

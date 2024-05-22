@@ -54,7 +54,10 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.examples.datasets import lm as lm_data
-from lit_nlp.lib import file_cache
+
+# TODO(b/333698148): file_cache doesn't work well with certain HF and KerasNLP
+# preset names. Disabling until resolved.
+# from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -132,7 +135,7 @@ LEFT_RIGHT_LAYOUT = layout.LitCanonicalLayout(
         "Editor": [modules.SingleDatapointEditorModule],
     },
     upper={  # if 'lower' not specified, this fills the right side
-        "Salience": [modules.LMSalienceModule],
+        "Salience": [modules.SequenceSalienceModule],
     },
     layoutSettings=layout.LayoutSettings(leftWidth=40),
     description="Left/right layout for language model salience.",
@@ -143,7 +146,7 @@ TOP_BOTTOM_LAYOUT = layout.LitCanonicalLayout(
         "Editor": [modules.SimpleDatapointEditorModule],
     },
     lower={
-        "Salience": [modules.LMSalienceModule],
+        "Salience": [modules.SequenceSalienceModule],
     },
     layoutSettings=layout.LayoutSettings(
         hideToolbar=True,
@@ -162,7 +165,7 @@ THREE_PANEL_LAYOUT = layout.LitCanonicalLayout(
         "Datapoint Generators": [modules.GeneratorModule],
     },
     lower={
-        "Salience": [modules.LMSalienceModule],
+        "Salience": [modules.SequenceSalienceModule],
         "Metrics": [modules.MetricsModule],
     },
     layoutSettings=layout.LayoutSettings(
@@ -279,10 +282,12 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name, path = model_string.split(":", 1)
     logging.info("Loading model '%s' from '%s'", model_name, path)
 
-    path = file_cache.cached_path(
-        path,
-        extract_compressed_file=path.endswith(".tar.gz"),
-    )
+    # TODO(b/333698148): file_cache doesn't work well with certain HF and
+    # KerasNLP preset names. Disabling until resolved.
+    # path = file_cache.cached_path(
+    #     path,
+    #     extract_compressed_file=path.endswith(".tar.gz"),
+    # )
 
     if _DL_FRAMEWORK.value == "kerasnlp":
       # pylint: disable=g-import-not-at-top
