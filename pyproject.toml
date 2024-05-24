@@ -11,13 +11,13 @@ authors = [
 description = "🔥LIT: The Learning Interpretability Tool"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 # LINT.IfChange
 dependencies = [
   "absl-py>=1.4.0",
   "annoy>=1.17.3",
   "attrs>=22.1.0",
-  "etils[epath]>=1.7.0",
+  "etils[epath]>=1.5.0",
   "filelock>=3.12.3",
   "google-cloud-translate>=3.11.1",
   "ipython>=7.34.0",

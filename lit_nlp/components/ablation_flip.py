@@ -209,7 +209,7 @@ class AblationFlip(lit_components.Generator):
           self._create_cf(example, input_spec, [(field, idx)])
           for idx in idxs
       ])
-      for idx, cf_output in zip(idxs, cf_outputs, strict=True):
+      for idx, cf_output in zip(idxs, cf_outputs):
         loo_score = cf_utils.prediction_difference(
             cf_output, orig_output, output_spec, pred_key
         )

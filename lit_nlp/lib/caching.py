@@ -269,7 +269,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       )
     outputs = list(wrapped.fit_transform(inputs_as_list))
     with self._cache.lock:
-      for cache_key, output in zip(cache_keys, outputs, strict=True):
+      for cache_key, output in zip(cache_keys, outputs):
         self._cache.put(output, cache_key)
     return outputs
 

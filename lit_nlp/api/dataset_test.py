@@ -179,7 +179,6 @@ class IndexedDatasetTest(absltest.TestCase):
         examples=examples
     )
 
-    # TODO(b/266681945): Enabled zip(..., strict=true) once updated to Py3.10
     for indexed_example, example, original in zip(
         dataset.indexed_examples, dataset.examples, examples
     ):

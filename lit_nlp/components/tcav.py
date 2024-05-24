@@ -142,7 +142,7 @@ class TCAV(lit_components.Interpreter):
         t for t in target_fields if getattr(output_spec[t], 'parent')
     ]
     modified_inputs = []
-    for ex, preds in zip(inputs, predictions, strict=True):
+    for ex, preds in zip(inputs, predictions):
       overrides = {}
       for field in valid_target_fields:
         label_idx = np.argmax(preds[field])
