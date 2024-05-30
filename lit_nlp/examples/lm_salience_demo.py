@@ -54,10 +54,7 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.examples.datasets import lm as lm_data
-
-# TODO(b/333698148): file_cache doesn't work well with certain HF and KerasNLP
-# preset names. Disabling until resolved.
-# from lit_nlp.lib import file_cache
+from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -282,12 +279,14 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     model_name, path = model_string.split(":", 1)
     logging.info("Loading model '%s' from '%s'", model_name, path)
 
-    # TODO(b/333698148): file_cache doesn't work well with certain HF and
-    # KerasNLP preset names. Disabling until resolved.
-    # path = file_cache.cached_path(
-    #     path,
-    #     extract_compressed_file=path.endswith(".tar.gz"),
-    # )
+    # Limit scope of caching to archive files and remote paths, as some preset
+    # names like "google/gemma-1.1-7b-it" look like file paths but should not
+    # be handled as such.
+    if path.endswith(".tar.gz") or file_cache.is_remote(path):
+      path = file_cache.cached_path(
+          path,
+          extract_compressed_file=path.endswith(".tar.gz"),
+      )
 
     if _DL_FRAMEWORK.value == "kerasnlp":
       # pylint: disable=g-import-not-at-top
