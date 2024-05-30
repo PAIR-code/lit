@@ -23,8 +23,7 @@ the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
 [`gunicorn_config.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
-[`glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py) or
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+[`glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
 
 Use the following shell commands to build the default Docker image for LIT from
 the provided `Dockerfile`, and then run a container from that image. Comments
@@ -66,7 +65,6 @@ docker run --rm -p 2345:2345 -e DEMO_PORT=2345 lit-nlp
 # DEMO_PORT arguments, and docker run with the -d flag to run the container in
 # the background.
 docker run -d -p 5432:5432 -e DEMO_NAME=t5_demo lit-nlp
-docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-nlp
 ```
 
 ## Integrating Custom LIT Instances with the Default Docker Image

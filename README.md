@@ -161,22 +161,6 @@ but you can switch to
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
 gear icon in the upper right.
 
-### Quick-start: language modeling
-
-To explore predictions from a pre-trained language model (BERT or GPT-2), run:
-
-```sh
-python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
-```
-
-Or, using `docker`:
-
-```sh
-docker run --rm -e DEMO_NAME=lm_demo -p 5432:5432 -t lit-nlp --models=bert-base-uncased
-```
-
-And navigate to http://localhost:5432 for the UI.
-
 ### Notebook usage
 
 Colab notebooks showing the use of LIT inside of notebooks can be found at

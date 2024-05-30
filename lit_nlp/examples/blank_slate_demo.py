@@ -29,13 +29,10 @@ from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.datasets import mt
 from lit_nlp.examples.datasets import summarization
 from lit_nlp.examples.models import glue_models
-from lit_nlp.examples.models import pretrained_lms
 from lit_nlp.examples.models import t5
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.examples.penguin import model as penguin_model
@@ -98,16 +95,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       t5.T5Translation.init_spec(),
   )
 
-  # lm demo model loaders.
-  model_loaders["bert"] = (
-      pretrained_lms.BertMLM,
-      pretrained_lms.BertMLM.init_spec(),
-  )
-  model_loaders["gpt2"] = (
-      pretrained_lms.GPT2LanguageModel,
-      pretrained_lms.GPT2LanguageModel.init_spec(),
-  )
-
   datasets = {}
   dataset_loaders: lit_app.DatasetLoadersMap = {}
 
@@ -128,24 +115,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       summarization.CNNDMData.init_spec(),
   )
   dataset_loaders["WMT 14 (t5)"] = (mt.WMT14Data, mt.WMT14Data.init_spec())
-
-  # lm demo dataset loaders.
-  dataset_loaders["sst (lm)"] = (
-      glue.SST2DataForLM,
-      glue.SST2DataForLM.init_spec(),
-  )
-  dataset_loaders["imdb (lm)"] = (
-      classification.IMDBData,
-      classification.IMDBData.init_spec(),
-  )
-  dataset_loaders["plain text sentences (lm)"] = (
-      lm.PlaintextSents,
-      lm.PlaintextSents.init_spec(),
-  )
-  dataset_loaders["bwb (lm)"] = (
-      lm.BillionWordBenchmark,
-      lm.BillionWordBenchmark.init_spec(),
-  )
 
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(

@@ -9,7 +9,6 @@ from typing import Optional
 from absl import logging
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.api import types as lit_types
-import tensorflow_datasets as tfds
 
 SAMPLE_DATA_DIR = os.path.dirname(__file__)
 
@@ -100,32 +99,3 @@ class PromptExamples(lit_dataset.Dataset):
 
   def load(self, path: str):
     return lit_dataset.Dataset(base=self, examples=self.load_datapoints(path))
-
-
-class BillionWordBenchmark(lit_dataset.Dataset):
-  """Billion Word Benchmark (lm1b); see http://www.statmt.org/lm-benchmark/."""
-
-  AVAILABLE_SPLITS = ['test', 'train']
-
-  def __init__(self, split: str = 'train', max_examples: Optional[int] = None):
-    ds = tfds.load('lm1b', split=split)
-    if max_examples is not None:
-      # Normally we can just slice the resulting dataset, but lm1b is very large
-      # so we can use ds.take() to only load a portion of it.
-      ds = ds.take(max_examples)
-    raw_examples = list(tfds.as_numpy(ds))
-    self._examples = [{
-        'text': ex['text'].decode('utf-8')
-    } for ex in raw_examples]
-
-  @classmethod
-  def init_spec(cls) -> lit_types.Spec:
-    return {
-        'split': lit_types.CategoryLabel(vocab=cls.AVAILABLE_SPLITS),
-        'max_examples': lit_types.Integer(
-            default=1000, min_val=0, max_val=10_000, required=False
-        ),
-    }
-
-  def spec(self) -> lit_types.Spec:
-    return {'text': lit_types.TextSegment()}

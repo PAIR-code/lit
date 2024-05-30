@@ -1,3 +1,4 @@
+
 # LIT Python API
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
@@ -916,9 +917,6 @@ lit_demo = dev_server.Server(
     **server_flags.get_flags())
 return lit_demo.serve()
 ```
-
-For a full example, see
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 You can see the pre-configured layouts provided by LIT, as well as the list of
 modules that can be included in your custom layout in

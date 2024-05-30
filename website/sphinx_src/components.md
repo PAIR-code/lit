@@ -478,8 +478,6 @@ using either KerasNLP or Transformers.
     [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
 *   KerasNLP model wrappers:
     [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
-*   Transformers model wrappers:
-    [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
 
 ## Salience Clustering
 
