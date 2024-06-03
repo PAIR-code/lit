@@ -1,7 +1,7 @@
 """Integration tests for penguin_model."""
 
 from absl.testing import absltest
-from lit_nlp.examples.models import penguin_model
+from lit_nlp.examples.penguin import model as penguin_model
 
 
 class PenguinModelIntTest(absltest.TestCase):

@@ -2,7 +2,7 @@
 
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.examples.datasets import penguin_data
+from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.lib import file_cache
 import numpy as np
 import tensorflow as tf

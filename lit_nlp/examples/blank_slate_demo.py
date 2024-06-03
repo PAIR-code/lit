@@ -35,13 +35,13 @@ from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.datasets import imagenette
 from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.datasets import mt
-from lit_nlp.examples.datasets import penguin_data
 from lit_nlp.examples.datasets import summarization
 from lit_nlp.examples.models import glue_models
 from lit_nlp.examples.models import mobilenet
-from lit_nlp.examples.models import penguin_model
 from lit_nlp.examples.models import pretrained_lms
 from lit_nlp.examples.models import t5
+from lit_nlp.examples.penguin import data as penguin_data
+from lit_nlp.examples.penguin import model as penguin_model
 
 # NOTE: additional flags defined in server_flags.py
 
