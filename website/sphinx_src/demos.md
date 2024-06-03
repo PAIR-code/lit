@@ -159,7 +159,7 @@ https://pair-code.github.io/lit/tutorials/coref
 ### Tabular Data: Penguin Classification <!-- DO NOT REMOVE {#penguin .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/penguins.html \
-**Code:** [examples/penguin_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
+**Code:** [examples/penguin/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py)
 
 *   Binary classification on
     [penguin dataset](https://www.tensorflow.org/datasets/catalog/penguins).

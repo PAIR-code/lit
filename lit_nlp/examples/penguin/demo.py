@@ -1,7 +1,7 @@
 """🐧 LIT demo for tabular data using penguin classification.
 
 To run:
-  python -m lit_nlp.examples.penguin_demo --port=5432
+  blaze run -c opt --config=cuda examples/penguin:demo -- --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -17,8 +17,8 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.components import minimal_targeted_counterfactuals
-from lit_nlp.examples.datasets import penguin_data
-from lit_nlp.examples.models import penguin_model
+from lit_nlp.examples.penguin import data as penguin_data
+from lit_nlp.examples.penguin import model as penguin_model
 
 MODEL_PATH = 'https://storage.googleapis.com/what-if-tool-resources/lit-models/penguin.h5'  # pylint: disable=line-too-long
 

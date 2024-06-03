@@ -233,7 +233,7 @@ these cases, LIT validates model compatibility by checking that:
     (`SparseMultilabel`) field.
 
 For a demo using a penguin stats dataset/binary classification task, see
-[examples/penguin_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py).
+[examples/penguin/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py).
 
 ### Images
 
