@@ -147,8 +147,6 @@ LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
-*   For a basic example on an image labeling task, see
-    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -246,11 +244,8 @@ NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See [examples/datasets/open_images.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/open_images.py) for a
-    dataset containing images, including converting images to base64 encoded
-    strings.
-*   For a demo of an image classifier, see
-    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
+*   See [examples/dalle/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/dalle/demo.py) for a demo on
+    image generation and how LIT handles image bytes.
 
 ## Token-based Salience
 
@@ -487,8 +482,6 @@ using either KerasNLP or Transformers.
     [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
 *   Transformers model wrappers:
     [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
-
-
 
 ## Salience Clustering
 

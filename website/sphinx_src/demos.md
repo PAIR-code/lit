@@ -169,13 +169,3 @@ https://pair-code.github.io/lit/tutorials/coref
 *   Use binary classifier threshold setters to find best thresholds for slices
     of examples to achieve specific fairness constraints, such as demographic
     parity.
-
-### Image Classification with MobileNet <!-- DO NOT REMOVE {#mobilenet .demo-header} -->
-
-**Hosted instance:** https://pair-code.github.io/lit/demos/images.html \
-**Code:** [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py)
-
-*   Classification on ImageNet labels using a MobileNet model.
-*   Showing using of LIT on image data.
-*   Explore results of multiple gradient-based image saliency techniques in the
-    Salience Maps module.

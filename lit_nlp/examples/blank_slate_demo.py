@@ -12,7 +12,6 @@ The currently supported models and datasets are:
   left-to-right language model, with the Stanford Sentiment Treebank dataset,
   the IMDB reviews dataset, Billion Word Benchmark (lm1b) dataset and the option
   to load sentences from a flat text file.
-- MobileNet model, with the Imagenette TFDS dataset.
 
 To run:
   python -m lit_nlp.examples.blank_slate_demo --port=5432
@@ -32,12 +31,10 @@ from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.datasets import imagenette
 from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.datasets import mt
 from lit_nlp.examples.datasets import summarization
 from lit_nlp.examples.models import glue_models
-from lit_nlp.examples.models import mobilenet
 from lit_nlp.examples.models import pretrained_lms
 from lit_nlp.examples.models import t5
 from lit_nlp.examples.penguin import data as penguin_data
@@ -111,12 +108,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       pretrained_lms.GPT2LanguageModel.init_spec(),
   )
 
-  # image model loaders.
-  model_loaders["image"] = (
-      mobilenet.MobileNet,
-      mobilenet.MobileNet.init_spec(),
-  )
-
   datasets = {}
   dataset_loaders: lit_app.DatasetLoadersMap = {}
 
@@ -154,12 +145,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   dataset_loaders["bwb (lm)"] = (
       lm.BillionWordBenchmark,
       lm.BillionWordBenchmark.init_spec(),
-  )
-
-  # image demo dataset loaders.
-  dataset_loaders["image"] = (
-      imagenette.ImagenetteDataset,
-      imagenette.ImagenetteDataset.init_spec(),
   )
 
   # Start the LIT server. See server_flags.py for server options.

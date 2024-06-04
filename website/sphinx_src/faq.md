@@ -17,8 +17,8 @@ works with any modern ML framework. For more information, see
 In addition to text, LIT has good support for different modalities, including
 images and tabular data. For examples, see:
 
-*   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
-    image classification, using a Mobilenet model.
+*   [DALL·E demo](google3/third_party/py/lit_nlp/examples/dalle/) - image
+    generation, using DALL·E Mini model.
 *   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
     multi-class classification on tabular (numeric and categorical string) data,
     using the
@@ -99,8 +99,8 @@ manually entered in the web UI) are stored in server memory, and if `--data_dir`
 is specified, may be cached to disk.
 
 LIT has the ability to create or edit datapoints in the UI and then save them to
-disk. If you do not want the tool to be able to write edited datapoints to
-disk, then pass the `--demo_mode` runtime flag to the LIT server.
+disk. If you do not want the tool to be able to write edited datapoints to disk,
+then pass the `--demo_mode` runtime flag to the LIT server.
 
 ### I have proprietary data. Is LIT secure for my team to use?
 
