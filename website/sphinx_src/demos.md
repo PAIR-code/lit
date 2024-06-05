@@ -43,19 +43,6 @@ https://pair-code.github.io/lit/demos/.
 Tip: check out a case study for this demo on the public LIT website:
 https://pair-code.github.io/lit/tutorials/sentiment
 
-### Multilingual (XNLI) <!-- DO NOT REMOVE {#xnli .demo-header} -->
-
-**Code:** [examples/xnli_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py)
-
-*   [XNLI](https://cims.nyu.edu/~sbowman/xnli/) dataset translates a subset of
-    MultiNLI into 14 different languages.
-*   Specify `--languages=en,jp,hi,...` flag to select which languages to load.
-*   NLI as a three-way classification task with two-segment input (premise,
-    hypothesis).
-*   Fine-tuned multilingual BERT model.
-*   Salience methods work with non-whitespace-delimited text, by using the
-    model's wordpiece tokenization.
-
 --------------------------------------------------------------------------------
 
 ## Regression / Scoring <!-- DO NOT REMOVE {#regression-scoring .demo-section-header} -->

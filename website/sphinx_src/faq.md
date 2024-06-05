@@ -34,9 +34,6 @@ All strings in LIT are unicode and most components use model-provided
 tokenization if available, so in most cases non-English languages and non-Latin
 scripts should work without any modifications. For examples, see:
 
-*   [XNLI demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py) -
-    cross-lingual NLI, with up to 15 languages supported via a multilingual BERT
-    model.
 *   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
     includes WMT data for machine translation
 
