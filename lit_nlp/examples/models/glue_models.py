@@ -648,25 +648,3 @@ class STSBModel(GlueModel):
     ret = super().input_spec()
     ret[self.config.label_name] = lit_types.Scalar(min_val=0, max_val=5)
     return ret
-
-
-class ToxicityModel(GlueModel):
-  """Classification model on Jigsaw Toxicity Dataset."""
-
-  def __init__(self, *args, **kw):
-    super().__init__(
-        *args,
-        text_a_name="sentence",
-        text_b_name=None,
-        labels=["non-toxic", "toxic"],
-        null_label_idx=0,
-        **kw)
-
-  def output_spec(self) -> Spec:
-    ret = super().output_spec()
-    ret["probas"] = lit_types.MulticlassPreds(
-        parent=self.config.label_name,
-        vocab=self.config.labels,
-        null_idx=self.config.null_label_idx,
-        threshold=0.3)
-    return ret

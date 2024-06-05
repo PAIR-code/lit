@@ -116,9 +116,7 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
 *   A negative class can be designated using the `null_idx` attribute of
     `MulticlassPreds` (most commonly, `null_idx=0`), and metrics such as
     precision, recall, F1 will be computed for the remaining classes. AUC and
-    AUCPR will be computed for binary classification tasks. For an example, see
-    the
-    [comment toxicity model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
+    AUCPR will be computed for binary classification tasks.
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be
     used to change the classification threshold. If `null_idx` is set and there
