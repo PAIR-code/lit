@@ -280,8 +280,7 @@ them in prompt engineering use cases.
 ## Case Study 3: Side-by-Side Behavior Comparisons
 
 LIT support a [side-by-side (SxS) mode][lit_sxs] that can be used to compare two
-models, or here, compare model behavior on two related examples. (Check out the
-[gender bias tutorial][coref_tutorial] for another case study in SxS analysis.)
+models, or here, compare model behavior on two related examples.
 Let's see how we can use this to understand differences in prompt designs with
 Sequence Salience.
 
@@ -451,7 +450,6 @@ helpful guides that can help you develop better prompts, including:
 [ai_studio]: https://cloud.google.com/generative-ai-studio?hl=en
 [constitution_maker]: https://arxiv.org/abs/2310.15428
 [constitutions]: https://arxiv.org/abs/2212.08073
-[coref_tutorial]: ../../tutorials/coref/
 [cot]: https://proceedings.neurips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html
 [data_table]: ../../documentation/ui_guide.html#data-table
 [datapoint_editor]: ../../documentation/ui_guide.html#datapoint-editor

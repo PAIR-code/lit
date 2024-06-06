@@ -859,7 +859,7 @@ naming collisions with protected TypeScript keywords.*
 Some properties of the LIT frontend can be configured from Python as
 **arguments to `dev_server.Server()`**. These include:
 
-*   `page_title`: set a custom page title, such as "Coreference Demo".
+*   `page_title`: set a custom page title.
 *   `canonical_url`: set a "canonical" URL (such as a shortlink) that will be
     used as the base when copying links from the LIT UI.
 *   `default_layout`: set the default UI layout, by name. See `layout.ts` and

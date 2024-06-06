@@ -54,7 +54,6 @@ below.
 # lit_nlp/examples directory, such as
 #
 #   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.
-#   * And nested children -- coref.coref_demo, is_eval.is_eval_demo, etc.
 docker run --rm -p 5432:5432 -e DEMO_NAME=lm_demo lit-nlp
 
 # Use the DEMO_PORT environment variable as to change the port that LIT uses in

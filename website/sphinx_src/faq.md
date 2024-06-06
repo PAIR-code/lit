@@ -32,10 +32,7 @@ For more details, see
 
 All strings in LIT are unicode and most components use model-provided
 tokenization if available, so in most cases non-English languages and non-Latin
-scripts should work without any modifications. For examples, see:
-
-*   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
-    includes WMT data for machine translation
+scripts should work without any modifications.
 
 ## Scale
 

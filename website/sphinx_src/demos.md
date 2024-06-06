@@ -121,24 +121,6 @@ https://pair-code.github.io/lit/tutorials/generation
 
 ## Structured Prediction <!-- DO NOT REMOVE {#structured .demo-section-header} -->
 
-### Gender Bias in Coreference <!-- DO NOT REMOVE {#coref .demo-header} -->
-
-**Hosted instance:** https://pair-code.github.io/lit/demos/coref.html \
-**Code:** [examples/coref/coref_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/coref/coref_demo.py)
-
-*   Gold-mention coreference model, trained on
-    [OntoNotes](https://catalog.ldc.upenn.edu/LDC2013T19).
-*   Evaluate on the Winogender schemas
-    ([Rudinger et al. 2018](https://arxiv.org/abs/1804.09301)) which test for
-    gendered associations with profession names.
-*   Visualizations of coreference edges, as well as binary classification
-    between two candidate referents.
-*   Stratified metrics for quantifying model bias as a function of pronoun
-    gender or Bureau of Labor Statistics profession data.
-
-Tip: check out a case study for this demo on the public LIT website:
-https://pair-code.github.io/lit/tutorials/coref
-
 --------------------------------------------------------------------------------
 
 ## Multimodal <!-- DO NOT REMOVE {#multimodal .demo-section-header} -->
