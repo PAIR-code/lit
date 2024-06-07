@@ -32,11 +32,8 @@ from lit_nlp import server_flags
 from lit_nlp.examples.datasets import classification
 from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.datasets import lm
-from lit_nlp.examples.datasets import mt
-from lit_nlp.examples.datasets import summarization
 from lit_nlp.examples.models import glue_models
 from lit_nlp.examples.models import pretrained_lms
-from lit_nlp.examples.models import t5
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.examples.penguin import model as penguin_model
 
@@ -88,16 +85,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       penguin_model.PenguinModel.init_spec(),
   )
 
-  # t5 demo model loaders.
-  model_loaders["T5 summarization"] = (
-      t5.T5Summarization,
-      t5.T5Summarization.init_spec(),
-  )
-  model_loaders["T5 translation"] = (
-      t5.T5Translation,
-      t5.T5Translation.init_spec(),
-  )
-
   # lm demo model loaders.
   model_loaders["bert"] = (
       pretrained_lms.BertMLM,
@@ -121,13 +108,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       penguin_data.PenguinDataset,
       penguin_data.PenguinDataset.init_spec(),
   )
-
-  # t5 demo dataset loaders.
-  dataset_loaders["CNN DailyMail (t5)"] = (
-      summarization.CNNDMData,
-      summarization.CNNDMData.init_spec(),
-  )
-  dataset_loaders["WMT 14 (t5)"] = (mt.WMT14Data, mt.WMT14Data.init_spec())
 
   # lm demo dataset loaders.
   dataset_loaders["sst (lm)"] = (

@@ -2,6 +2,8 @@
 
 <!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-20' } *-->
 
+TODO(b/343678324): Remove the files after cl/629748253 is submitted.
+
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
 ## Framework and Model Support
@@ -44,10 +46,9 @@ every invocation.) Generally, you'll need to:
     directly.
 
 Alternatively, you can export to a `SavedModel` and load this in an eager mode
-runtime. This leads to much simpler code (see
-[this example](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
-but may require changes to your `SavedModel` exporter in order to access model
-internals like embeddings, gradients, or attention.
+runtime. This leads to much simpler code, but may require changes to your
+`SavedModel` exporter in order to access model internals like embeddings,
+gradients, or attention.
 
 ### Remote or hosted models
 
@@ -175,8 +176,6 @@ or decoder.
     the model can also output a `ReferenceScores` field (with values as
     `list[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
-*   For modeling examples, see
-    [examples/models/t5.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py)
 
 ![Generated Text Module](images/components/generation-results.png){w=600px align=center}
 

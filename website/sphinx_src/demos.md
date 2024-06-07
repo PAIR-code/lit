@@ -81,27 +81,6 @@ Tip: check out the in-depth walkthrough at
 https://ai.google.dev/responsible/model_behavior, part of the Responsible
 Generative AI Toolkit.
 
-### T5 <!-- DO NOT REMOVE {#t5 .demo-header} -->
-
-**Hosted instance:** https://pair-code.github.io/lit/demos/t5.html \
-**Code:** [examples/t5_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py)
-
-*   Supports HuggingFace TF2 (Keras) models as well as TensorFlow SavedModel
-    formats.
-*   Visualize beam candidates and highlight diffs against references.
-*   Visualize per-token decoder hypotheses to see where the model veers away
-    from desired output.
-*   Filter examples by ROUGE score against reference.
-*   Embeddings from last layer of model, visualized with UMAP or PCA.
-*   Task wrappers to handle pre- and post-processing for summarization and
-    machine translation tasks.
-*   Pre-loaded eval sets for CNNDM and WMT.
-
-Tip: check out a case study for this demo on the public LIT website:
-https://pair-code.github.io/lit/tutorials/generation
-
---------------------------------------------------------------------------------
-
 ## Language Modeling <!-- DO NOT REMOVE {#lm .demo-section-header} -->
 
 ### BERT and GPT-2 <!-- DO NOT REMOVE {#bert .demo-header} -->
