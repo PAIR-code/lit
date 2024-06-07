@@ -69,7 +69,8 @@ https://pair-code.github.io/lit/tutorials/sentiment
 
 ### Gemma <!-- DO NOT REMOVE {#gemma .demo-header} -->
 
-**Code:** [examples/lm_salience_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+**Code:**
+[examples/prompt_debugging/server.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py)
 
 *   Supports Gemma 2B and 7B models using KerasNLP and TensorFlow.
 *   Interactively debug LLM prompts using

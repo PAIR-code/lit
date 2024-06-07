@@ -1,20 +1,20 @@
 ---
-title: Prompt Engineering with Sequence Salience
+title: Prompt Debugging with Sequence Salience
 layout: layouts/tutorial.liquid
 
 hero-image: /assets/images/sample-banner.png
-hero-title: "Prompt Engineering with Sequence Salience"
-hero-copy: "Learn to use LIT's Sequence Salience module for prompt engineering."
+hero-title: "Prompt Debugging with Sequence Salience"
+hero-copy: "Learn to use LIT's Sequence Salience module for prompt debugging."
 
 bc-anchor-category: "analysis"
 bc-category-title: "Analysis"
-bc-title: "Prompt Engineering with Sequence Salience"
+bc-title: "Prompt Debugging with Sequence Salience"
 
 time: "20 minutes"
-takeaways: "Learn to use LIT's Sequence Salience module for prompt engineering."
+takeaways: "Learn to use LIT's Sequence Salience module for prompt debugging."
 ---
 
-## Prompt Engineering with Sequence Salience
+## Prompt Debugging with Sequence Salience
 
 {%  include partials/link-out,
     link: "https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb",

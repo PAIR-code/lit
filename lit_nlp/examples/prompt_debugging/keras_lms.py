@@ -1,12 +1,14 @@
 """LIT model wrappers for generic instrumented Keras LMs."""
 
+from collections.abc import Sequence
 import functools
 import inspect
 import types
-from typing import Sequence
+from typing import Optional
 
 from absl import logging
 import keras
+from keras_nlp import models as keras_models
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.lib import utils as lit_utils
@@ -20,12 +22,10 @@ from lit_nlp.lib import utils as lit_utils
 # https://keras.io/getting_started/#configuring-your-backend
 if keras.backend.backend() == "tensorflow":
   import tensorflow as tf
-elif keras.backend.backend() == "jax":
-  # TODO(lit-dev): Update imports once a solution to JAX salience is decided.
-  pass
 elif keras.backend.backend() == "torch":
   import torch
 else:
+  # TODO(b/333373960): Update imports once a JAX salience is supported.
   raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
 # pytype: enable=import-error
 # pylint: enable=g-import-not-at-top
@@ -54,12 +54,13 @@ class _KerasBaseModel(lit_model.BatchedModel):
   # Should be keras_nlp.models.generative_task.GenerativeTask
   def __init__(
       self,
-      model,
+      model: Optional[keras_models.CausalLM] = None,
+      model_name_or_path: Optional[str] = None,
       max_length: int = _DEFAULT_MAX_LENGTH,
       dynamic_sequence_length: bool = True,
       batch_size: int = 16,
   ):
-    """Base wrapper for a Keras/TF2 LM supporting the layer_intercept_fn API.
+    """Base wrapper for a Keras CausalLM supporting the layer_intercept_fn API.
 
     Model should support the following methods:
     - .generate()
@@ -72,7 +73,8 @@ class _KerasBaseModel(lit_model.BatchedModel):
     and manipulate activations between layers. We use this for salience, below.
 
     Args:
-      model: pre-loaded Keras LM
+      model: A pre-loaded Keras CausalLM, prioritized over model_name_or_path.
+      model_name_or_path: A URL, path, or preset name for the model to load,
       max_length: max sequence length
       dynamic_sequence_length: if true, will trim padding to the length of the
         longest sequence in a batch. Recommended for CPU and GPU usage, but may
@@ -81,7 +83,13 @@ class _KerasBaseModel(lit_model.BatchedModel):
     """
     super().__init__()
 
-    self.model = model
+    if model is not None:
+      self.model = model
+    elif model_name_or_path is not None:
+      self.model = keras_models.CausalLM.from_preset(model_name_or_path)
+    else:
+      raise ValueError("Must provide either model or model_name_or_path.")
+
     self.batch_size = batch_size
     self.max_length = max_length
     self.dynamic_sequence_length = dynamic_sequence_length
@@ -290,7 +298,7 @@ class KerasSalienceModel(_KerasBaseModel):
     if score_fn is None or not inspect.ismethod(score_fn):
       raise TypeError(
           "Salience is computed via a .score() API, which is not supported by "
-          "all GenerativeTask models in KerasNLP. Please provide a model that "
+          "all KerasNLP CausalLM models. Please provide a model that "
           "supports this API."
       )
 
@@ -530,8 +538,10 @@ def initialize_model_group_for_salience(
 ) -> dict[str, lit_model.Model]:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
   generation_model = KerasGenerationModel(*args, **kw)
-  salience_model = KerasSalienceModel(*args, **kw)
-  tokenizer_model = KerasTokenizerModel(*args, **kw)
+  salience_model = KerasSalienceModel(model=generation_model.model, *args, **kw)
+  tokenizer_model = KerasTokenizerModel(
+      model=generation_model.model, *args, **kw
+  )
   return {
       name: generation_model,
       f"_{name}_salience": salience_model,

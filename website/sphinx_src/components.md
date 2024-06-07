@@ -440,7 +440,7 @@ left-to-right ("causal") language models:
 
 The UI supports multiple options for analysis, including:
 
-*   Select from pre-defined target sequences, or explain generations from the
+*   Select from predefined target sequences, or explain generations from the
     model.
 *   Different salience methods, including [Gradient Norm](#gradient-norm) and
     [Gradient-dot-Input](#gradient-dot-input).
@@ -448,7 +448,7 @@ The UI supports multiple options for analysis, including:
     to words, sentences, lines, or paragraphs. Quickly switch between different
     views to refine your analysis to different parts of a prompt.
 *   Display density options to enable working with longer sequences, such as
-    document text, few-shot eaxmples, or chain-of-thought prompts.
+    document text, few-shot examples, or chain-of-thought prompts.
 
 For a walkthrough of how to use sequence salience to debug LLMs, check out the
 Responsible Generative AI Toolkit at
@@ -474,11 +474,11 @@ using either KerasNLP or Transformers.
 *   LIT-for-Gemma Colab:
     [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
 *   Demo binary:
-    [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py
 *   KerasNLP model wrappers:
-    [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
+    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
 *   Transformers model wrappers:
-    [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
 
 ## Salience Clustering
 
