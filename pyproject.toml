@@ -103,3 +103,6 @@ test = [
 [tool.setuptools.packages.find]
 include = ["lit_nlp*"]
 exclude = ["*_test"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"

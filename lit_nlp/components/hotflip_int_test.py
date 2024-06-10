@@ -18,7 +18,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.components import hotflip
 # TODO(lit-dev): Move glue_models out of lit_nlp/examples
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 import numpy as np
 
 from lit_nlp.lib import file_cache

@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-19' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-03' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -171,7 +171,5 @@ official training APIs. However, to facilitate code reuse you can easily add
 training methods to your model class. In fact, several of our demos do exactly
 this, using LIT's `Dataset` objects to manage training data along with standard
 training APIs (such as Keras' `model.fit()`). See
-[`quickstart_sst_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/quickstart_sst_demo.py)
-and/or
-[`glue_models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
+[`glue/models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for examples.

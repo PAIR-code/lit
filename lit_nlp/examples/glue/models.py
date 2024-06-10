@@ -1,4 +1,5 @@
 """Wrapper for fine-tuned HuggingFace models in LIT."""
+
 # TODO(b/261736863): Update to PEP 585 typings, consider using f-strings, and
 # make common substrings into module CONSTANTS.
 
@@ -28,6 +29,7 @@ TFSequenceClassifierOutput = (
 @attr.s(auto_attribs=True, kw_only=True)
 class GlueModelConfig(object):
   """Config options for a GlueModel."""
+
   # Preprocessing options
   max_seq_length: int = 128
   inference_batch_size: int = 32
@@ -79,7 +81,6 @@ class GlueModel(lit_model.BatchedModel):
 
   This is a full-featured implementation, which includes embeddings, attention,
   gradients, as well as support for the different input and output types above.
-  For a more minimal example, see ../simple_tf2_demo.py.
   """
 
   def _verify_num_layers(self, hidden_states: Sequence[Any]):
@@ -102,9 +103,7 @@ class GlueModel(lit_model.BatchedModel):
 
   # TODO(b/254110131): Move file_cache.cached_path() call inside this __init__
   # function to reduce boilerplate in other locations (e.g., TCAV tests).
-  def __init__(self,
-               model_name_or_path="bert-base-uncased",
-               **config_kw):
+  def __init__(self, model_name_or_path="bert-base-uncased", **config_kw):
     self.config = GlueModelConfig(**config_kw)
     self._load_model(model_name_or_path)
     self._lock = threading.Lock()
@@ -119,9 +118,11 @@ class GlueModel(lit_model.BatchedModel):
       )
 
     self.tokenizer = transformers.AutoTokenizer.from_pretrained(
-        model_name_or_path)
+        model_name_or_path
+    )
     self.vocab = self.tokenizer.convert_ids_to_tokens(
-        range(len(self.tokenizer)))
+        range(len(self.tokenizer))
+    )
     model_config = transformers.AutoConfig.from_pretrained(
         model_name_or_path,
         num_labels=1 if self.is_regression else len(self.config.labels),
@@ -131,12 +132,14 @@ class GlueModel(lit_model.BatchedModel):
     self.model = model_utils.load_pretrained(
         transformers.TFAutoModelForSequenceClassification,
         model_name_or_path,
-        config=model_config)
+        config=model_config,
+    )
 
   def _get_tokens(self, ex: JsonDict, field_name: str) -> list[str]:
     with self._lock:
-      return (ex.get("tokens_" + field_name) or
-              self.tokenizer.tokenize(ex[field_name]))
+      return ex.get("tokens_" + field_name) or self.tokenizer.tokenize(
+          ex[field_name]
+      )
 
   def _preprocess(self, inputs: Iterable[JsonDict]) -> dict[str, tf.Tensor]:
     # Use pretokenized input if available.
@@ -152,20 +155,26 @@ class GlueModel(lit_model.BatchedModel):
         self.tokenizer,
         tokens_a,
         tokens_b,
-        max_length=self.config.max_seq_length)
+        max_length=self.config.max_seq_length,
+    )
     return encoded_input  # pytype: disable=bad-return-type
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
     """Make a tf.data.Dataset from inputs in LIT format."""
     encoded_input = self._preprocess(inputs)
     if self.is_regression:
-      labels = tf.constant([ex[self.config.label_name] for ex in inputs],
-                           dtype=tf.float32)
+      labels = tf.constant(
+          [ex[self.config.label_name] for ex in inputs], dtype=tf.float32
+      )
     else:
-      labels = tf.constant([
-          self.config.labels.index(ex[self.config.label_name]) for ex in inputs
-      ],
-                           dtype=tf.int64)
+      indexes = []
+      if self.config.labels is not None:
+        for ex in inputs:
+          indexes.append(self.config.labels.index(ex[self.config.label_name]))
+      labels = tf.constant(
+          indexes,
+          dtype=tf.int64,
+      )
     # encoded_input is actually a transformers.BatchEncoding
     # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
     return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
@@ -180,13 +189,18 @@ class GlueModel(lit_model.BatchedModel):
       keras_callbacks=None,
   ):
     """Run fine-tuning."""
-    train_dataset = self._make_dataset(train_inputs).shuffle(128).batch(
-        batch_size).repeat(-1)
+    train_dataset = (
+        self._make_dataset(train_inputs)
+        .shuffle(128)
+        .batch(batch_size)
+        .repeat(-1)
+    )
     # Use larger batch for validation since inference is about 1/2 memory usage
     # of backprop.
     eval_batch_size = 2 * batch_size
     validation_dataset = self._make_dataset(validation_inputs).batch(
-        eval_batch_size)
+        eval_batch_size
+    )
 
     # Prepare model for training.
     opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=1e-08)
@@ -207,7 +221,8 @@ class GlueModel(lit_model.BatchedModel):
         validation_data=validation_dataset,
         validation_steps=validation_steps,
         callbacks=keras_callbacks,
-        verbose=2)
+        verbose=2,
+    )
     return history
 
   def save(self, path: str):
@@ -248,7 +263,8 @@ class GlueModel(lit_model.BatchedModel):
     """Per-example postprocessing, on NumPy output."""
     ntok = output.pop("ntok")
     output["tokens"] = self.tokenizer.convert_ids_to_tokens(
-        output.pop("input_ids")[:ntok])
+        output.pop("input_ids")[:ntok]
+    )
 
     # Tokens for each segment, individually.
     slicer_a, slicer_b = self._segment_slicers(output["tokens"])
@@ -258,21 +274,25 @@ class GlueModel(lit_model.BatchedModel):
 
     # Embeddings for each segment, individually.
     if self.config.output_embeddings:
-      output["input_embs_" + self.config.text_a_name] = (
-          output["input_embs"][slicer_a])
+      output["input_embs_" + self.config.text_a_name] = output["input_embs"][
+          slicer_a
+      ]
       if self.config.text_b_name:
-        output["input_embs_" + self.config.text_b_name] = (
-            output["input_embs"][slicer_b])
+        output["input_embs_" + self.config.text_b_name] = output["input_embs"][
+            slicer_b
+        ]
 
     # Gradients for each segment, individually.
     if self.config.compute_grads:
       # Gradients for the CLS token.
       output["cls_grad"] = output["input_emb_grad"][0]
-      output["token_grad_" +
-             self.config.text_a_name] = output["input_emb_grad"][slicer_a]
+      output["token_grad_" + self.config.text_a_name] = output[
+          "input_emb_grad"
+      ][slicer_a]
       if self.config.text_b_name:
-        output["token_grad_" +
-               self.config.text_b_name] = output["input_emb_grad"][slicer_b]
+        output["token_grad_" + self.config.text_b_name] = output[
+            "input_emb_grad"
+        ][slicer_b]
 
       # TODO(b/294613507): remove output[self.config.label_name] once TCAV
       # is updated.
@@ -302,8 +322,9 @@ class GlueModel(lit_model.BatchedModel):
 
     return output
 
-  def _scatter_embs(self, passed_input_embs, input_embs, batch_indices,
-                    offsets):
+  def _scatter_embs(
+      self, passed_input_embs, input_embs, batch_indices, offsets
+  ):
     """Scatters custom passed embeddings into the default model embeddings.
 
     Args:
@@ -331,9 +352,10 @@ class GlueModel(lit_model.BatchedModel):
     # values that should be scattered in, i.e. one for each of the
     # (scatter_batch_size * num_tokens) word embeddings.
     scatter_indices = []
-    for (batch_index, sentence_embs, offset) in zip(batch_indices,
-                                                    filtered_embs, offsets):
-      for (token_index, _) in enumerate(sentence_embs):
+    for batch_index, sentence_embs, offset in zip(
+        batch_indices, filtered_embs, offsets
+    ):
+      for token_index, _ in enumerate(sentence_embs):
         scatter_indices.append([batch_index, token_index + offset])
 
     # Scatters passed word embeddings into embeddings gathered from tokens.
@@ -351,26 +373,36 @@ class GlueModel(lit_model.BatchedModel):
       The default model embeddings with scattered custom embeddings.
     """
     # Gets batch indices of any word embeddings that were passed for text_a.
-    passed_input_embs_a = [ex.get("input_embs_" + self.config.text_a_name)
-                           for ex in inputs]
-    batch_indices_a = [index for (index, emb) in enumerate(
-        passed_input_embs_a) if emb is not None]
+    passed_input_embs_a = [
+        ex.get("input_embs_" + self.config.text_a_name) for ex in inputs
+    ]
+    batch_indices_a = [
+        index
+        for (index, emb) in enumerate(passed_input_embs_a)
+        if emb is not None
+    ]
 
     # If word embeddings were passed in for text_a, scatter them into the
     # embeddings, gathered from the input ids. 1 is passed in as the offset
     # for each, since text_a starts at index 1, after the [CLS] token.
     if batch_indices_a:
       input_embs = self._scatter_embs(
-          passed_input_embs_a, input_embs, batch_indices_a,
-          offsets=np.ones(len(batch_indices_a), dtype=np.int64))
+          passed_input_embs_a,
+          input_embs,
+          batch_indices_a,
+          offsets=np.ones(len(batch_indices_a), dtype=np.int64),
+      )
 
     if self.config.text_b_name:
       # Gets batch indices of any word embeddings that were passed for text_b.
-      passed_input_embs_b = [ex.get("input_embs_" + self.config.text_b_name)
-                             for ex in inputs]
+      passed_input_embs_b = [
+          ex.get("input_embs_" + self.config.text_b_name) for ex in inputs
+      ]
       batch_indices_b = [
-          index for (index, emb) in enumerate(passed_input_embs_b)
-          if emb is not None]
+          index
+          for (index, emb) in enumerate(passed_input_embs_b)
+          if emb is not None
+      ]
 
       # If word embeddings were also passed in for text_b, scatter them into the
       # embeddings gathered from the input ids. The offsets are the [lengths
@@ -378,11 +410,15 @@ class GlueModel(lit_model.BatchedModel):
       # [CLS] [text_a tokens] [SEP]. (This assumes that text_b embeddings
       # will only be passed together with text_a embeddings.)
       if batch_indices_b:
-        lengths = np.array([len(embed) for embed in passed_input_embs_a
-                            if embed is not None])
+        lengths = np.array(
+            [len(embed) for embed in passed_input_embs_a if embed is not None]
+        )
         input_embs = self._scatter_embs(
-            passed_input_embs_b, input_embs, batch_indices_b,
-            offsets=(lengths + 2))
+            passed_input_embs_b,
+            input_embs,
+            batch_indices_b,
+            offsets=(lengths + 2),
+        )
     return input_embs
 
   def get_target_scores(self, inputs: Iterable[JsonDict], scores):
@@ -401,10 +437,12 @@ class GlueModel(lit_model.BatchedModel):
         for (i, ex) in enumerate(inputs)
     ]
     # Convert the class names to indices if needed.
-    grad_idxs = [
-        self.config.labels.index(label) if isinstance(label, str) else label
-        for label in grad_classes
-    ]
+    grad_idxs = []
+    for label in grad_classes:
+      if isinstance(label, str) and self.config.labels is not None:
+        grad_idxs.append(self.config.labels.index(label))
+      else:
+        grad_idxs.append(label)
     # list of tuples (batch idx, label idx)
     gather_indices = list(enumerate(grad_idxs))
     # <tf.float32>[batch_size]
@@ -427,7 +465,8 @@ class GlueModel(lit_model.BatchedModel):
     # Use watch_accessed_variables to save memory by having the tape do nothing
     # if we don't need gradients.
     with tf.GradientTape(
-        watch_accessed_variables=self.config.compute_grads) as tape:
+        watch_accessed_variables=self.config.compute_grads
+    ) as tape:
       encoded_input = self._preprocess(inputs)
 
       # Gathers word embeddings from BERT model embedding layer using input ids
@@ -451,7 +490,8 @@ class GlueModel(lit_model.BatchedModel):
           training=False,
           output_hidden_states=True,
           output_attentions=True,
-          return_dict=True)
+          return_dict=True,
+      )
 
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
@@ -466,21 +506,25 @@ class GlueModel(lit_model.BatchedModel):
 
         # <float32>[batch_size, num_tokens, 1]
         token_mask = tf.expand_dims(
-            tf.cast(encoded_input["attention_mask"], tf.float32), axis=2)
+            tf.cast(encoded_input["attention_mask"], tf.float32), axis=2
+        )
         # <float32>[batch_size, 1]
         denom = tf.reduce_sum(token_mask, axis=1)
         for i, layer_output in enumerate(out.hidden_states):
           # layer_output is <float32>[batch_size, num_tokens, emb_dim]
           # average over tokens to get <float32>[batch_size, emb_dim]
-          batched_outputs[f"layer_{i}/avg_emb"] = tf.reduce_sum(
-              layer_output * token_mask, axis=1) / denom
+          batched_outputs[f"layer_{i}/avg_emb"] = (
+              tf.reduce_sum(layer_output * token_mask, axis=1) / denom
+          )
 
       if self.config.output_attention:
         if len(out.attentions) != self.model.config.num_hidden_layers:
-          raise ValueError("Unexpected size of attentions. Should be the same "
-                           "size as the number of hidden layers. Expected "
-                           f"{self.model.config.num_hidden_layers}, got "
-                           f"{len(out.attentions)}.")
+          raise ValueError(
+              "Unexpected size of attentions. Should be the same "
+              "size as the number of hidden layers. Expected "
+              f"{self.model.config.num_hidden_layers}, got "
+              f"{len(out.attentions)}."
+          )
         for i, layer_attention in enumerate(out.attentions):
           batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
@@ -511,7 +555,11 @@ class GlueModel(lit_model.BatchedModel):
           scalar_targets, input_embs
       )
 
-    detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
+    detached_outputs = {
+        k: v.numpy()
+        for k, v in batched_outputs.items()
+        if v is not None
+    }
     # Sequence of dicts, one per example.
     unbatched_outputs = utils.unbatch_preds(detached_outputs)
     return map(self._postprocess, unbatched_outputs)
@@ -520,24 +568,28 @@ class GlueModel(lit_model.BatchedModel):
     ret = {}
     ret[self.config.text_a_name] = lit_types.TextSegment()
     ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
-        parent=self.config.text_a_name, required=False)
+        parent=self.config.text_a_name, required=False
+    )
 
     if self.config.text_b_name:
       ret[self.config.text_b_name] = lit_types.TextSegment()
       ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
-          parent=self.config.text_b_name, required=False)
+          parent=self.config.text_b_name, required=False
+      )
 
     if self.is_regression:
       ret[self.config.label_name] = lit_types.Scalar(required=False)
     else:
       ret[self.config.label_name] = lit_types.CategoryLabel(
-          required=False, vocab=self.config.labels)
+          required=False, vocab=self.config.labels
+      )
 
     if self.config.output_embeddings:
       # The input_embs_ fields are used for Integrated Gradients.
       text_a_embs = "input_embs_" + self.config.text_a_name
       ret[text_a_embs] = lit_types.TokenEmbeddings(
-          align="tokens", required=False)
+          align="tokens", required=False
+      )
       if self.config.text_b_name:
         text_b_embs = "input_embs_" + self.config.text_b_name
         ret[text_b_embs] = lit_types.TokenEmbeddings(
@@ -548,17 +600,20 @@ class GlueModel(lit_model.BatchedModel):
   def output_spec(self) -> Spec:
     ret = {"tokens": lit_types.Tokens()}
     ret["tokens_" + self.config.text_a_name] = lit_types.Tokens(
-        parent=self.config.text_a_name)
+        parent=self.config.text_a_name
+    )
     if self.config.text_b_name:
       ret["tokens_" + self.config.text_b_name] = lit_types.Tokens(
-          parent=self.config.text_b_name)
+          parent=self.config.text_b_name
+      )
     if self.is_regression:
       ret["score"] = lit_types.RegressionScore(parent=self.config.label_name)
     else:
       ret["probas"] = lit_types.MulticlassPreds(
           parent=self.config.label_name,
           vocab=self.config.labels,
-          null_idx=self.config.null_label_idx)
+          null_idx=self.config.null_label_idx,
+      )
 
     if self.config.output_embeddings:
       ret["cls_emb"] = lit_types.Embeddings()
@@ -568,11 +623,13 @@ class GlueModel(lit_model.BatchedModel):
 
       # The input_embs_ fields are used for Integrated Gradients.
       ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
-          align="tokens_" + self.config.text_a_name)
+          align="tokens_" + self.config.text_a_name
+      )
       if self.config.text_b_name:
         text_b_embs = "input_embs_" + self.config.text_b_name
-        ret[text_b_embs] = lit_types.TokenEmbeddings(align="tokens_" +
-                                                     self.config.text_b_name)
+        ret[text_b_embs] = lit_types.TokenEmbeddings(
+            align="tokens_" + self.config.text_b_name
+        )
 
     # Gradients, if requested.
     if self.config.compute_grads:
@@ -604,7 +661,8 @@ class GlueModel(lit_model.BatchedModel):
       # Attention heads, one field for each layer.
       for i in range(self.model.config.num_hidden_layers):
         ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
-            align_in="tokens", align_out="tokens")
+            align_in="tokens", align_out="tokens"
+        )
     return ret
 
 
@@ -618,7 +676,8 @@ class SST2Model(GlueModel):
         text_b_name=None,
         labels=["0", "1"],
         null_label_idx=0,
-        **kw)
+        **kw,
+    )
 
 
 class MNLIModel(GlueModel):
@@ -630,7 +689,8 @@ class MNLIModel(GlueModel):
         text_a_name="premise",
         text_b_name="hypothesis",
         labels=["entailment", "neutral", "contradiction"],
-        **kw)
+        **kw,
+    )
 
 
 class STSBModel(GlueModel):
@@ -642,7 +702,8 @@ class STSBModel(GlueModel):
         text_a_name="sentence1",
         text_b_name="sentence2",
         labels=None,
-        **kw)
+        **kw,
+    )
 
   def input_spec(self):
     ret = super().input_spec()

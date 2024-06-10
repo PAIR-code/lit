@@ -1,6 +1,6 @@
 # Running LIT in a Docker container
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-07-10' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-04' } *-->
 
 Users might want to deploy LIT onto servers for public-facing, long-running
 instances. This is how we host the LIT demos found on
@@ -23,12 +23,14 @@ the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
 [`gunicorn_config.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
-[`glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py) or
+[`glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py) or
 [`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
-Use the following shell commands to build the default Docker image for LIT from
-the provided `Dockerfile`, and then run a container from that image. Comments
-are provided in-line to help explain what each step does.
+Use the following shell
+[.github/workflows/ci.ymlcommands](https://github.com/PAIR-code/lit/blob/main/lit_nlp/.github/workflows/ci.ymlcommands) to build the
+default Docker image for LIT from the provided `Dockerfile`, and then run a
+container from that image. Comments are provided in-line to help explain what
+each step does.
 
 ```shell
 # Build the docker image using the -t argument to name the image. Remember to

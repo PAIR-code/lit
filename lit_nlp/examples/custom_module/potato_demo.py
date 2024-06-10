@@ -23,8 +23,8 @@ from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
-from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import data as glue_data
+from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import file_cache
 
 # NOTE: additional flags defined in server_flags.py
@@ -84,7 +84,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
         model, extract_compressed_file=True)
 
   models = {"sst": glue_models.SST2Model(model)}
-  datasets = {"sst_dev": glue.SST2Data("validation")}
+  datasets = {"sst_dev": glue_data.SST2Data("validation")}
 
   # Start the LIT server. See server_flags.py for server options.
   lit_demo = dev_server.Server(

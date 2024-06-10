@@ -106,8 +106,6 @@ LIT supports many features for classification tasks, including common metrics,
 confusion matrices, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
-*   For a basic example on a binary sentiment task, see
-    [examples/simple_tf2_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/simple_tf2_demo.py).
 *   Models should define a `MulticlassPreds` field in their output spec with the
     `vocab=` attribute as the set of class labels, and for each example should
     return a vector of probabilities for each class.
@@ -138,7 +136,7 @@ faceting, and scatterplots of scalar output. Regression is implemented with the
     which contains numerical targets, and the model's `RegressionScore` field
     should set `parent=` to the name of this field.
 *   For an example, see the STS-B textual similarity task in
-    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
+    [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
 
 ### Multi-label classification
 
@@ -210,7 +208,7 @@ and otherwise to different parts of the input.
     [Dataset class documentation](./api.md#datasets) and the corresponding
     [Model](./api.md#models).
 *   For a more involved code example including per-token gradients, see
-    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
+    [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
 
 ### Tabular data
 
@@ -358,7 +356,7 @@ An example spec would look like:
 
 For a more concrete example that also supports multiple segments with separate
 gradients, see our
-[BERT classifier demo model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py),
+[BERT classifier demo model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py),
 or contact the LIT team for assistance.
 
 ### LIME

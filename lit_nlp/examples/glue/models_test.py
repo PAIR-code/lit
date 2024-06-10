@@ -3,7 +3,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 import attr
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 import numpy as np
 
 
@@ -60,10 +60,7 @@ class GlueModelsTest(parameterized.TestCase):
       # Common multiple cases
       dict(
           testcase_name="no_attention_or_embeddings",
-          config={
-              "output_attention": False,
-              "output_embeddings": False
-          },
+          config={"output_attention": False, "output_embeddings": False},
           expect_attention=False,
           expect_embs=False,
           expect_grads=True,
@@ -73,18 +70,23 @@ class GlueModelsTest(parameterized.TestCase):
           config={
               "compute_grads": False,
               "output_attention": False,
-              "output_embeddings": False
+              "output_embeddings": False,
           },
           expect_attention=False,
           expect_embs=False,
           expect_grads=False,
       ),
   )
-  def test_spec_affecting_config_options(self, config: dict[str, bool],
-                                         expect_attention: bool,
-                                         expect_embs: bool, expect_grads: bool):
+  def test_spec_affecting_config_options(
+      self,
+      config: dict[str, bool],
+      expect_attention: bool,
+      expect_embs: bool,
+      expect_grads: bool,
+  ):
     model = GlueModelForTesting(
-        model_name_or_path="bert-base-uncased", **config)
+        model_name_or_path="bert-base-uncased", **config
+    )
     input_spec = model.input_spec()
     output_spec = model.output_spec()
 
@@ -139,27 +141,34 @@ class GlueModelsTest(parameterized.TestCase):
 
   def test_scatter_all_embeddings_single_input(self):
     glue_model = GlueModelForTesting(
-        model_name_or_path="bert-base-uncased",
-        text_a_name="sentence1")
+        model_name_or_path="bert-base-uncased", text_a_name="sentence1"
+    )
     emb_size = 10
     # We'll inject zeros for the embeddings of 'hi',
     # while special tokens get vectors of 1s.
     embs_a = np.zeros((1, emb_size))
     input_embs = np.ones((1, 3, emb_size))
     # Scatter embs_a into input_embs
-    result = glue_model.scatter_all_embeddings([{"sentence1": "hi",
-                                                 "input_embs_sentence1": embs_a,
-                                                 }], input_embs)
-    target = [[[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]]
+    result = glue_model.scatter_all_embeddings(
+        [{
+            "sentence1": "hi",
+            "input_embs_sentence1": embs_a,
+        }],
+        input_embs,
+    )
+    target = [[
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ]]
     np.testing.assert_almost_equal(result, target)
 
   def test_scatter_all_embeddings_both_inputs(self):
     glue_model = GlueModelForTesting(
         model_name_or_path="bert-base-uncased",
         text_a_name="sentence1",
-        text_b_name="sentence2")
+        text_b_name="sentence2",
+    )
     emb_size = 10
     # Inject zeros at positions corresponding to real tokens
     # in each segment. Special tokens get vectors of 1s.
@@ -167,74 +176,86 @@ class GlueModelsTest(parameterized.TestCase):
     embs_b = np.zeros((3, emb_size))
     input_embs = np.ones((1, 7, emb_size))
     # Scatter embs_a and embs_b into input_embs
-    result = glue_model.scatter_all_embeddings([{"sentence1": "hi",
-                                                 "input_embs_sentence1": embs_a,
-                                                 "sentence2": "how are you",
-                                                 "input_embs_sentence2": embs_b
-                                                 }], input_embs)
-    target = [[[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]]
+    result = glue_model.scatter_all_embeddings(
+        [{
+            "sentence1": "hi",
+            "input_embs_sentence1": embs_a,
+            "sentence2": "how are you",
+            "input_embs_sentence2": embs_b,
+        }],
+        input_embs,
+    )
+    target = [[
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ]]
     np.testing.assert_almost_equal(result, target)
 
   def test_scatter_all_embeddings_multi_batch(self):
     glue_model = GlueModelForTesting(
-        model_name_or_path="bert-base-uncased",
-        text_a_name="sentence1")
+        model_name_or_path="bert-base-uncased", text_a_name="sentence1"
+    )
     emb_size = 4
     embs_a = np.zeros((1, emb_size))
     embs_b = np.zeros((2, emb_size))
     input_embs = np.ones((2, 4, emb_size))
     # Scatter embs_a and embs_b into input_embs
-    result = glue_model.scatter_all_embeddings([{"sentence1": "hi",
-                                                 "input_embs_sentence1": embs_a,
-                                                 },
-                                                {"sentence1": "hi there",
-                                                 "input_embs_sentence1": embs_b,
-                                                 }], input_embs)
-    target = [[[1, 1, 1, 1],
-               [0, 0, 0, 0],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1]],
-              [[1, 1, 1, 1],
-               [0, 0, 0, 0],
-               [0, 0, 0, 0],
-               [1, 1, 1, 1]]]
+    result = glue_model.scatter_all_embeddings(
+        [
+            {
+                "sentence1": "hi",
+                "input_embs_sentence1": embs_a,
+            },
+            {
+                "sentence1": "hi there",
+                "input_embs_sentence1": embs_b,
+            },
+        ],
+        input_embs,
+    )
+    target = [
+        [[1, 1, 1, 1], [0, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1]],
+        [[1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]],
+    ]
     np.testing.assert_almost_equal(result, target)
 
     # Scatter only embs_a into input_embs
-    result = glue_model.scatter_all_embeddings([{"sentence1": "hi",
-                                                 "input_embs_sentence1": embs_a,
-                                                 },
-                                                {"sentence1": "hi there"
-                                                 }], input_embs)
-    target = [[[1, 1, 1, 1],
-               [0, 0, 0, 0],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1]],
-              [[1, 1, 1, 1],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1]]]
+    result = glue_model.scatter_all_embeddings(
+        [
+            {
+                "sentence1": "hi",
+                "input_embs_sentence1": embs_a,
+            },
+            {"sentence1": "hi there"},
+        ],
+        input_embs,
+    )
+    target = [
+        [[1, 1, 1, 1], [0, 0, 0, 0], [1, 1, 1, 1], [1, 1, 1, 1]],
+        [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]],
+    ]
     np.testing.assert_almost_equal(result, target)
 
     # Scatter only embs_b into input_embs
-    result = glue_model.scatter_all_embeddings([{"sentence1": "hi"},
-                                                {"sentence1": "hi there",
-                                                 "input_embs_sentence1": embs_b,
-                                                 }], input_embs)
-    target = [[[1, 1, 1, 1],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1],
-               [1, 1, 1, 1]],
-              [[1, 1, 1, 1],
-               [0, 0, 0, 0],
-               [0, 0, 0, 0],
-               [1, 1, 1, 1]]]
+    result = glue_model.scatter_all_embeddings(
+        [
+            {"sentence1": "hi"},
+            {
+                "sentence1": "hi there",
+                "input_embs_sentence1": embs_b,
+            },
+        ],
+        input_embs,
+    )
+    target = [
+        [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]],
+        [[1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]],
+    ]
     np.testing.assert_almost_equal(result, target)
 
 

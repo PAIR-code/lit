@@ -18,15 +18,14 @@ from typing import Optional
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.api import layout
 from lit_nlp.components import word_replacer
 from lit_nlp.examples.datasets import classification
-from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.datasets import lm
+from lit_nlp.examples.glue import data as glue_data
 from lit_nlp.examples.models import pretrained_lms
 
 # NOTE: additional flags defined in server_flags.py
@@ -46,7 +45,8 @@ _MODELS = flags.DEFINE_list(
 )
 
 _TOP_K = flags.DEFINE_integer(
-    "top_k", 10, "Rank to which the output distribution is pruned.")
+    "top_k", 10, "Rank to which the output distribution is pruned."
+)
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
     "max_examples",
@@ -130,7 +130,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   datasets = {
       # Single sentences from movie reviews (SST dev set).
-      "sst_dev": glue.SST2Data("validation").remap({"sentence": "text"}),
+      "sst_dev": glue_data.SST2Data("validation").remap({"sentence": "text"}),
       # Longer passages from movie reviews (IMDB dataset, test split).
       "imdb_train": classification.IMDBData("test"),
       # Empty dataset, if you just want to type sentences into the UI.
@@ -138,7 +138,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   }
 
   dataset_loaders: lit_app.DatasetLoadersMap = {
-      "sst_dev": (glue.SST2DataForLM, glue.SST2DataForLM.init_spec()),
+      "sst_dev": (glue_data.SST2DataForLM, glue_data.SST2DataForLM.init_spec()),
       "imdb_train": (
           classification.IMDBData,
           classification.IMDBData.init_spec(),
@@ -154,14 +154,15 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if _LOAD_BWB.value:
     # A few sentences from the Billion Word Benchmark (Chelba et al. 2013).
     datasets["bwb"] = lm.BillionWordBenchmark(
-        "train", max_examples=_MAX_EXAMPLES.value)
+        "train", max_examples=_MAX_EXAMPLES.value
+    )
     dataset_loaders["bwb"] = (
         lm.BillionWordBenchmark,
         lm.BillionWordBenchmark.init_spec(),
     )
 
   for name in datasets:
-    datasets[name] = datasets[name].slice[:_MAX_EXAMPLES.value]
+    datasets[name] = datasets[name].slice[: _MAX_EXAMPLES.value]
     logging.info("Dataset: '%s' with %d examples", name, len(datasets[name]))
 
   generators = {"word_replacer": word_replacer.WordReplacer()}

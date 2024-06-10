@@ -1,4 +1,4 @@
-r"""An blank demo ready to load models and datasets.
+r"""A blank demo ready to load models and datasets.
 
 The currently supported models and datasets are:
 - classification model on SST-2, with the Stanford Sentiment Treebank dataset.
@@ -30,9 +30,9 @@ from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
 from lit_nlp.examples.datasets import classification
-from lit_nlp.examples.datasets import glue
 from lit_nlp.examples.datasets import lm
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import data as glue_data
+from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.examples.models import pretrained_lms
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.examples.penguin import model as penguin_model
@@ -99,9 +99,9 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   dataset_loaders: lit_app.DatasetLoadersMap = {}
 
   # glue demo dataset loaders.
-  dataset_loaders["sst2"] = (glue.SST2Data, glue.SST2Data.init_spec())
-  dataset_loaders["stsb"] = (glue.STSBData, glue.STSBData.init_spec())
-  dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
+  dataset_loaders["sst2"] = (glue_data.SST2Data, glue_data.SST2Data.init_spec())
+  dataset_loaders["stsb"] = (glue_data.STSBData, glue_data.STSBData.init_spec())
+  dataset_loaders["mnli"] = (glue_data.MNLIData, glue_data.MNLIData.init_spec())
 
   # penguin demo dataset loaders.
   dataset_loaders["penguin"] = (
@@ -111,8 +111,8 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
 
   # lm demo dataset loaders.
   dataset_loaders["sst (lm)"] = (
-      glue.SST2DataForLM,
-      glue.SST2DataForLM.init_spec(),
+      glue_data.SST2DataForLM,
+      glue_data.SST2DataForLM.init_spec(),
   )
   dataset_loaders["imdb (lm)"] = (
       classification.IMDBData,

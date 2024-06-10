@@ -1,14 +1,15 @@
 r"""Example demo loading a handful of GLUE models.
 
 For a quick-start set of models, run:
-  python -m lit_nlp.examples.glue_demo \
+  blaze run -c opt --config=cuda examples/glue:demo -- \
     --quickstart --port=5432
 
 To run with the 'normal' defaults, including full-size BERT models:
-  python -m lit_nlp.examples.glue_demo --port=5432
+  blaze run -c opt --config=cuda examples/glue:demo -- --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
+
 from collections.abc import Sequence
 import sys
 from typing import Optional
@@ -19,8 +20,8 @@ from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import data as glue_data
+from lit_nlp.examples.glue import models as glue_models
 
 # NOTE: additional flags defined in server_flags.py
 
@@ -29,8 +30,10 @@ FLAGS = flags.FLAGS
 FLAGS.set_default("development_demo", True)
 
 _QUICKSTART = flags.DEFINE_bool(
-    "quickstart", False,
-    "Quick-start mode, loads smaller models and a subset of the full data.")
+    "quickstart",
+    False,
+    "Quick-start mode, loads smaller models and a subset of the full data.",
+)
 
 _MODELS = flags.DEFINE_list(
     "models",
@@ -50,9 +53,12 @@ _MODELS = flags.DEFINE_list(
 )
 
 _MAX_EXAMPLES = flags.DEFINE_integer(
-    "max_examples", None, "Maximum number of examples to load into LIT. "
+    "max_examples",
+    None,
+    "Maximum number of examples to load into LIT. "
     "Note: MNLI eval set is 10k examples, so will take a while to run and may "
-    "be slow on older machines. Set --max_examples=200 for a quick start.")
+    "be slow on older machines. Set --max_examples=200 for a quick start.",
+)
 
 MODELS_BY_TASK = {
     "sst2": glue_models.SST2Model,
@@ -123,24 +129,33 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     # split = 'validation' will also work, but this will cause TDFS to download
     # the entire dataset which can be very slow.
     split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/sst2.validation.csv"
-    datasets["sst_dev"] = glue.SST2Data(split)
-    dataset_loaders["sst2"] = (glue.SST2Data, glue.SST2Data.init_spec())
+    datasets["sst_dev"] = glue_data.SST2Data(split)
+    dataset_loaders["sst2"] = (
+        glue_data.SST2Data,
+        glue_data.SST2Data.init_spec(),
+    )
 
   if "stsb" in tasks_to_load:
     logging.info("Loading data for STS-B task.")
     # split = 'validation' will also work, but this will cause TDFS to download
     # the entire dataset which can be very slow.
     split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/stsb.validation.csv"
-    datasets["stsb_dev"] = glue.STSBData(split)
-    dataset_loaders["stsb"] = (glue.STSBData, glue.STSBData.init_spec())
+    datasets["stsb_dev"] = glue_data.STSBData(split)
+    dataset_loaders["stsb"] = (
+        glue_data.STSBData,
+        glue_data.STSBData.init_spec(),
+    )
 
   if "mnli" in tasks_to_load:
     logging.info("Loading data for MultiNLI task.")
     # split = 'validation_matched' will also work, but this will cause TDFS to
     # download the entire dataset which can be very slow.
     split = "https://storage.googleapis.com/what-if-tool-resources/lit-data/mnli.validation_matched.csv"
-    datasets["mnli_dev"] = glue.MNLIData(split)
-    dataset_loaders["mnli"] = (glue.MNLIData, glue.MNLIData.init_spec())
+    datasets["mnli_dev"] = glue_data.MNLIData(split)
+    dataset_loaders["mnli"] = (
+        glue_data.MNLIData,
+        glue_data.MNLIData.init_spec(),
+    )
 
   # Truncate datasets if --max_examples is set.
   if _MAX_EXAMPLES.value is not None:
