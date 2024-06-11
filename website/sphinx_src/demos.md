@@ -82,21 +82,6 @@ Tip: check out the in-depth walkthrough at
 https://ai.google.dev/responsible/model_behavior, part of the Responsible
 Generative AI Toolkit.
 
-## Language Modeling <!-- DO NOT REMOVE {#lm .demo-section-header} -->
-
-### BERT and GPT-2 <!-- DO NOT REMOVE {#bert .demo-header} -->
-
-**Hosted instance:** https://pair-code.github.io/lit/demos/lm.html \
-**Code:** [examples/lm_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py)
-
-*   Compare multiple BERT and GPT-2 models side-by-side on a variety of
-    plain-text corpora.
-*   LM visualization supports different modes:
-    *   BERT masked language model: click-to-mask, and query model at that
-        position.
-    *   GPT-2 shows left-to-right hypotheses for each target token.
-*   Embedding projector to show latent space of the model.
-
 --------------------------------------------------------------------------------
 
 ## Structured Prediction <!-- DO NOT REMOVE {#structured .demo-section-header} -->

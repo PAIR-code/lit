@@ -30,8 +30,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   as declared in HTMLElementTagNameMap in the .ts file defining each LitModule.
   """
   # keep-sorted start
-  AnnotatedTextGoldModule = 'annotated-text-gold-module'
-  AnnotatedTextModule = 'annotated-text-module'
   AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
@@ -39,19 +37,14 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   DataTableModule = 'data-table-module'
   DatapointEditorModule = 'datapoint-editor-module'
   DiveModule = 'dive-module'
-  DocumentationModule = 'documentation-module'
   EmbeddingsModule = 'embeddings-module'
   FeatureAttributionModule = 'feature-attribution-module'
-  GeneratedImageModule = 'generated-image-module'
   GeneratedTextModule = 'generated-text-module'
   GeneratorModule = 'generator-module'
-  LanguageModelPredictionModule = 'lm-prediction-module'
   LegacySequenceSalienceModule = 'legacy-sequence-salience-module'
   MetricsModule = 'metrics-module'
   MultilabelModule = 'multilabel-module'
   PdpModule = 'pdp-module'
-  RegressionModule = 'regression-module'
-  SalienceClusteringModule = 'salience-clustering-module'
   SalienceMapModule = 'salience-map-module'
   ScalarModule = 'scalar-module'
   SequenceSalienceModule = 'sequence-salience-module'
@@ -60,11 +53,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
   # Non-replicating version of Datapoint Editor
   SingleDatapointEditorModule = 'single-datapoint-editor-module'
-  SpanGraphGoldModule = 'span-graph-gold-module'
-  SpanGraphGoldModuleVertical = 'span-graph-gold-module-vertical'
-  SpanGraphModule = 'span-graph-module'
-  SpanGraphModuleVertical = 'span-graph-module-vertical'
-  TCAVModule = 'tcav-module'
   ThresholderModule = 'thresholder-module'
   TrainingDataAttributionModule = 'tda-module'
   # keep-sorted end
@@ -127,16 +115,9 @@ LitComponentLayouts = Mapping[str, LitCanonicalLayout]
 modules = LitModuleName  # pylint: disable=invalid-name
 
 MODEL_PREDS_MODULES = (
-    modules.SpanGraphGoldModuleVertical,
-    modules.SpanGraphModuleVertical,
     modules.ClassificationModule,
     modules.MultilabelModule,
-    modules.RegressionModule,
-    modules.LanguageModelPredictionModule,
     modules.GeneratedTextModule,
-    modules.AnnotatedTextGoldModule,
-    modules.AnnotatedTextModule,
-    modules.GeneratedImageModule,
 )
 
 DEFAULT_MAIN_GROUP = (
@@ -149,7 +130,6 @@ DEFAULT_MAIN_GROUP = (
 SIMPLE_LAYOUT = LitCanonicalLayout(
     upper={
         'Editor': [
-            modules.DocumentationModule,
             modules.SimpleDatapointEditorModule,
         ],
         'Examples': [modules.SimpleDataTableModule],
@@ -185,7 +165,6 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
         'Current Example': [modules.DatapointEditorModule],
         'Visual Exploration': [modules.DiveModule],
         'Embeddings': [modules.EmbeddingsModule],
-        'Documentation': [modules.DocumentationModule],
     },
     upper={
         'Predictions': MODEL_PREDS_MODULES,
@@ -209,9 +188,7 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
             modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
-        'Clustering': [modules.SalienceClusteringModule],
         'Influence': [modules.TrainingDataAttributionModule],
-        'TCAV': [modules.TCAVModule],
     },
     description=(
         'A three-panel layout with tools for exploring data in the aggregate or'
@@ -225,7 +202,6 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
 STANDARD_LAYOUT = LitCanonicalLayout(
     upper={
         'Main': [
-            modules.DocumentationModule,
             modules.EmbeddingsModule,
             *DEFAULT_MAIN_GROUP,
         ]
@@ -243,7 +219,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
             modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
-        'Salience Clustering': [modules.SalienceClusteringModule],
         'Metrics': [
             modules.MetricsModule,
             modules.ConfusionMatrixModule,
@@ -254,7 +229,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
         'Counterfactuals': [
             modules.GeneratorModule,
         ],
-        'TCAV': [modules.TCAVModule],
     },
     description=(
         'The default LIT layout, which includes the data table and data point '

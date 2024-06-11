@@ -76,8 +76,8 @@ pre-configured layouts in
 
 You can also add [custom layouts](./api.md#customizing-the-layout) to your LIT
 instance by defining one or more `LitCanonicalLayout` instances and passing them
-to the server. For an example, see `CUSTOM_LAYOUTS` in
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+to the server. For an example, see
+[`prompt_debugging/layouts.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/layouts.py).
 
 Note: The pre-configured layouts are added to every `LitApp` instance using
 [dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict) where
@@ -356,10 +356,7 @@ export class ExampleModule extends LitModule {
     that interfaces with the LIT framework, and another element which subclasses
     `LitElement`, `MobxLitElement`, or preferably,
     [`ReactiveElement`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/elements.ts?),
-    and implements self-contained visualization code. For an example, see
-    [modules/annotated_text_module.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/modules/annotated_text_module.ts)
-    and
-    [elements/annotated_text_vis.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/elements/annotated_text_vis.ts).
+    and implements self-contained visualization code.
 
 *   On supported components (`ReactiveElement` and `LitModule`), use
     `this.react()` or `this.reactImmediately()` instead of registering reactions

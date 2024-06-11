@@ -23,8 +23,7 @@ the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
 [`gunicorn_config.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
-[`glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py) or
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+[`glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
 
 Use the following shell
 [.github/workflows/ci.ymlcommands](https://github.com/PAIR-code/lit/blob/main/lit_nlp/.github/workflows/ci.ymlcommands) to build the
