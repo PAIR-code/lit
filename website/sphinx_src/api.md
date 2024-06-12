@@ -675,7 +675,7 @@ Each `LitType` subclass encapsulates its own semantics (see
 *   A field that appears in _both_ the model's input and output specs is assumed
     to represent the same value. This pattern is used for model-based input
     manipulation. For example, a
-    [language model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+    [language model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
     might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
     input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
     component could take output from the former, swap one or more tokens (e.g.
@@ -886,22 +886,16 @@ You can specify custom web app layouts from Python via the `layouts=` attribute.
 The value should be a `Mapping[str, LitCanonicalLayout]`, such as:
 
 ```python
-LM_LAYOUT = layout.LitCanonicalLayout(
+PENGUIN_LAYOUT = layout.LitCanonicalLayout(
     upper={
-        "Main": [
-            modules.EmbeddingsModule,
+        'Main': [
+            modules.DiveModule,
             modules.DataTableModule,
             modules.DatapointEditorModule,
         ]
     },
-    lower={
-        "Predictions": [
-            modules.LanguageModelPredictionModule,
-            modules.ConfusionMatrixModule,
-        ],
-        "Counterfactuals": [modules.GeneratorModule],
-    },
-    description="Custom layout for language models.",
+    lower=layout.STANDARD_LAYOUT.lower,
+    description='Custom layout for the Palmer Penguins demo.',
 )
 ```
 
@@ -912,13 +906,11 @@ lit_demo = dev_server.Server(
     models,
     datasets,
     # other args...
-    layouts={"lm": LM_LAYOUT},
+    layouts=layout.DEFAULT_LAYOUTS | {'penguins': PENGUIN_LAYOUT},
+    default_layout='penguins',
     **server_flags.get_flags())
 return lit_demo.serve()
 ```
-
-For a full example, see
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 You can see the pre-configured layouts provided by LIT, as well as the list of
 modules that can be included in your custom layout in

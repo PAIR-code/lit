@@ -76,8 +76,8 @@ pre-configured layouts in
 
 You can also add [custom layouts](./api.md#customizing-the-layout) to your LIT
 instance by defining one or more `LitCanonicalLayout` instances and passing them
-to the server. For an example, see `CUSTOM_LAYOUTS` in
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+to the server. For an example, see
+[`prompt_debugging/layouts.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/layouts.py).
 
 Note: The pre-configured layouts are added to every `LitApp` instance using
 [dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict) where

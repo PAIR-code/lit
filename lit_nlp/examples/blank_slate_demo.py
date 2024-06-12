@@ -29,11 +29,8 @@ from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.examples.datasets import classification
-from lit_nlp.examples.datasets import lm
 from lit_nlp.examples.glue import data as glue_data
 from lit_nlp.examples.glue import models as glue_models
-from lit_nlp.examples.models import pretrained_lms
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.examples.penguin import model as penguin_model
 
@@ -85,16 +82,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
       penguin_model.PenguinModel.init_spec(),
   )
 
-  # lm demo model loaders.
-  model_loaders["bert"] = (
-      pretrained_lms.BertMLM,
-      pretrained_lms.BertMLM.init_spec(),
-  )
-  model_loaders["gpt2"] = (
-      pretrained_lms.GPT2LanguageModel,
-      pretrained_lms.GPT2LanguageModel.init_spec(),
-  )
-
   datasets = {}
   dataset_loaders: lit_app.DatasetLoadersMap = {}
 
@@ -113,18 +100,6 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   dataset_loaders["sst (lm)"] = (
       glue_data.SST2DataForLM,
       glue_data.SST2DataForLM.init_spec(),
-  )
-  dataset_loaders["imdb (lm)"] = (
-      classification.IMDBData,
-      classification.IMDBData.init_spec(),
-  )
-  dataset_loaders["plain text sentences (lm)"] = (
-      lm.PlaintextSents,
-      lm.PlaintextSents.init_spec(),
-  )
-  dataset_loaders["bwb (lm)"] = (
-      lm.BillionWordBenchmark,
-      lm.BillionWordBenchmark.init_spec(),
   )
 
   # Start the LIT server. See server_flags.py for server options.
