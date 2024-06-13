@@ -2,7 +2,7 @@
 import os
 
 from absl.testing import absltest
-from lit_nlp.examples.models import model_utils
+from lit_nlp.examples.glue import model_utils
 import numpy as np
 import transformers
 

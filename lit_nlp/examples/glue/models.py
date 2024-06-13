@@ -12,7 +12,7 @@ from typing import Any, Optional
 import attr
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.examples.models import model_utils
+from lit_nlp.examples.glue import model_utils
 from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
