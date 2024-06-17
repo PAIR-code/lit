@@ -1,6 +1,6 @@
 """Wrapper for HuggingFace models in LIT.
 
-Includes BERT masked LM, GPT-2, and T5.
+Supported models include Gemma, GPT-2, Llama, Mistral, etc.
 
 This wrapper loads a model into memory and implements the a number of helper
 functions to predict a batch of examples and extract information such as

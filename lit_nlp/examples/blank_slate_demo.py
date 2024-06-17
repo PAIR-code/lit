@@ -6,12 +6,6 @@ The currently supported models and datasets are:
 - classification model on MultiNLI, with the MultiNLI dataset.
 - TensorFlow Keras model for penguin classification, with the Penguin tabular
   dataset from TFDS.
-- T5 models using HuggingFace Transformers and Keras, with the English CNNDM
-  summarization dataset and the WMT '14 machine-translation dataset.
-- BERT (bert-*) as a masked language model and GPT-2 (gpt2* or distilgpt2) as a
-  left-to-right language model, with the Stanford Sentiment Treebank dataset,
-  the IMDB reviews dataset, Billion Word Benchmark (lm1b) dataset and the option
-  to load sentences from a flat text file.
 
 To run:
   python -m lit_nlp.examples.blank_slate_demo --port=5432
