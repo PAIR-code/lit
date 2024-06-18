@@ -45,7 +45,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   GeneratedImageModule = 'generated-image-module'
   GeneratedTextModule = 'generated-text-module'
   GeneratorModule = 'generator-module'
-  LanguageModelPredictionModule = 'lm-prediction-module'
   LegacySequenceSalienceModule = 'legacy-sequence-salience-module'
   MetricsModule = 'metrics-module'
   MultilabelModule = 'multilabel-module'
@@ -132,7 +131,6 @@ MODEL_PREDS_MODULES = (
     modules.ClassificationModule,
     modules.MultilabelModule,
     modules.RegressionModule,
-    modules.LanguageModelPredictionModule,
     modules.GeneratedTextModule,
     modules.AnnotatedTextGoldModule,
     modules.AnnotatedTextModule,
