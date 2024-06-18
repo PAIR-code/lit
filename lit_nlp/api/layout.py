@@ -59,10 +59,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
   # Non-replicating version of Datapoint Editor
   SingleDatapointEditorModule = 'single-datapoint-editor-module'
-  SpanGraphGoldModule = 'span-graph-gold-module'
-  SpanGraphGoldModuleVertical = 'span-graph-gold-module-vertical'
-  SpanGraphModule = 'span-graph-module'
-  SpanGraphModuleVertical = 'span-graph-module-vertical'
   TCAVModule = 'tcav-module'
   ThresholderModule = 'thresholder-module'
   TrainingDataAttributionModule = 'tda-module'
@@ -126,8 +122,6 @@ LitComponentLayouts = Mapping[str, LitCanonicalLayout]
 modules = LitModuleName  # pylint: disable=invalid-name
 
 MODEL_PREDS_MODULES = (
-    modules.SpanGraphGoldModuleVertical,
-    modules.SpanGraphModuleVertical,
     modules.ClassificationModule,
     modules.MultilabelModule,
     modules.RegressionModule,
