@@ -22,8 +22,8 @@ import {toJS} from 'mobx';
 import {LitApp} from '../core/app';
 import {mockMetadata} from '../lib/testing_utils';
 import {IndexedInput, LitCanonicalLayout} from '../lib/types';
-import {AttentionModule} from '../modules/attention_module';
 import {DatapointEditorModule} from '../modules/datapoint_editor_module';
+import {SequenceSalienceModule} from '../modules/sequence_salience_module';
 
 import {ApiService} from './api_service';
 import {ModulesService} from './modules_service';
@@ -38,7 +38,7 @@ const MOCK_LAYOUT: LitCanonicalLayout = {
   lower: {
     'internals': [
       // Duplicated per model and in compareDatapoints mode.
-      'attention-module',
+      'sequence-salience-module',
     ],
   },
   left: {},
@@ -94,9 +94,10 @@ describe('modules service test', () => {
 
     // Check that the two modules we added to the layout are reflected in
     // allModuleKeys.
-    const keys =
-        new Set([`Main_${DatapointEditorModule.title}`,
-                 `internals_${AttentionModule.title}`]);
+    const keys = new Set([
+      `Main_${DatapointEditorModule.title}`,
+      `internals_${SequenceSalienceModule.title}`
+    ]);
     expect(modulesService.allModuleKeys).toEqual(keys);
   });
 

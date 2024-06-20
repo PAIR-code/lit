@@ -32,7 +32,6 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   # keep-sorted start
   AnnotatedTextGoldModule = 'annotated-text-gold-module'
   AnnotatedTextModule = 'annotated-text-module'
-  AttentionModule = 'attention-module'
   ClassificationModule = 'classification-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
   CurvesModule = 'curves-module'
@@ -198,7 +197,6 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
         'Explanations': [
             modules.SalienceMapModule,
             modules.LegacySequenceSalienceModule,
-            modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
         'Clustering': [modules.SalienceClusteringModule],
@@ -232,7 +230,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
             *MODEL_PREDS_MODULES,
             modules.SalienceMapModule,
             modules.LegacySequenceSalienceModule,
-            modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
         'Salience Clustering': [modules.SalienceClusteringModule],
