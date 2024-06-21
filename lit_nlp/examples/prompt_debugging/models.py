@@ -12,7 +12,7 @@ from lit_nlp.lib import file_cache
 DEFAULT_BATCH_SIZE = 1
 DEFAULT_DL_FRAMEWORK = "kerasnlp"
 DEFAULT_DL_RUNTIME = "tensorflow"
-DEFAULT_MODELS = ["gemma_1.1_instruct_2b_en:gemma_1.1_instruct_2b_en"],
+DEFAULT_MODELS = ["gemma_1.1_instruct_2b_en:gemma_1.1_instruct_2b_en"]
 DEFAULT_PRECISION = "bfloat16"
 
 

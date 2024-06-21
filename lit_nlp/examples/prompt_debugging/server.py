@@ -8,7 +8,7 @@ Keras, KerasNLP, and/or HuggingFace Transformers:
 To run with the default configuration (Gemma on TensorFlow via Keras):
 
   python3 -m lit_nlp.examples.prompt_debugging.server -- \
-    --models=gemma:gemma_1.1_instruct_2b_en \
+    --models=gemma:gemma_1.1_instruct_2b_en, \
     --alsologtostderr
 
 MODELS:
