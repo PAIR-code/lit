@@ -16,7 +16,7 @@ import '../elements/annotated_text_vis';
 
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {type AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
@@ -104,8 +104,14 @@ export class AnnotatedTextModule extends LitModule {
     return sharedStyles;
   }
 
-  @observable private currentData?: IndexedInput;
+  @observable private currentData?: IndexedInput = undefined;
   @observable private currentPreds: AnnotationGroups = {};
+
+  constructor() {
+    super();
+    // TODO(b/319249148): Assess whether these need to be @observable vs @state.
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     const getPrimarySelectedInputData = () =>

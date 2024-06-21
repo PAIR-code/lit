@@ -21,7 +21,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {computed, observable, reaction} from 'mobx';
+import {computed, makeObservable, observable, reaction} from 'mobx';
 import {LitService} from './lit_service';
 import {SelectionService} from './selection_service';
 
@@ -47,17 +47,17 @@ export class FocusService extends LitService {
   /**
    * Gets the current focus data, or null if nothing is focused.
    */
-  @computed
-  get focusData(): FocusData|null {
+  @computed get focusData(): FocusData|null {
     return this.focusDataInternal;
   }
 
   constructor(selectionService: SelectionService) {
     super();
+    makeObservable(this);
     // If the primary selected input changes, reset the focus data.
-    reaction(() => selectionService.primarySelectedInputData, selectedInput => {
-      this.clearFocus();
-    });
+    reaction(
+        () => selectionService.primarySelectedInputData,
+        () => {this.clearFocus();});
   }
 
   /**

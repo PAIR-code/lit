@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable, toJS} from 'mobx';
+import {action, computed, makeObservable, observable, toJS} from 'mobx';
 
 import {FieldMatcher, ImageBytes} from '../lib/lit_types';
 import {defaultValueByField, IndexedInput, Input, type LitCanonicalLayout, type LitComponentLayouts, type LitMetadata, ModelInfo, type ModelInfoMap, ModelSpec, NONE_DS_DICT_KEY, type Spec} from '../lib/types';
@@ -46,22 +46,29 @@ export class AppState extends LitService implements StateObservedByUrlService {
       private readonly apiService: ApiService,
       private readonly statusService: StatusService) {
     super();
+    makeObservable(this);
   }
 
+  // TODO(b/204677206): While cleaning up console warnings, find a better way to
+  // initialize the app so that we don't need these non-null assertions.
+  // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
+  @observable.ref metadata!: LitMetadata;
+  @observable layoutName!: string;
   /** Set by urlService.syncStateToUrl */
   private urlConfiguration!: UrlConfiguration;
 
   @observable initialized = false;
-
   @observable documentationOpen = false;
-  // TODO(b/204677206): While cleaning up console warnings, find a better way to
-  // initialize the app so that we don't need this non-null assertion here
-  // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-2-0.html#non-null-assertion-operator
-  @observable metadata!: LitMetadata;
   @observable currentModels: string[] = [];
   @observable compareExamplesEnabled = false;
-  @observable layoutName!: string;
-  @observable layouts: LitComponentLayouts = {};
+  @observable.ref layouts: LitComponentLayouts = {};
+  /**
+   * Enforce setting currentDataset through the setCurrentDataset method by
+   * making the currentDatasetInternal private...
+   */
+  @observable private currentDatasetInternal = '';
+  @observable private readonly inputData =
+      new Map<DatasetName, IndexedInputMap>();
   private readonly newDatapointsCallbacks: NewDatapointsFn[] = [];
 
   @computed
@@ -69,11 +76,6 @@ export class AppState extends LitService implements StateObservedByUrlService {
     return this.layouts[this.layoutName];
   }
 
-  /**
-   * Enforce setting currentDataset through the setCurrentDataset method by
-   * making the currentDatasetInternal private...
-   */
-  @observable private currentDatasetInternal = '';
   @computed
   get currentDataset(): string {
     return this.currentDatasetInternal;
@@ -111,9 +113,6 @@ export class AppState extends LitService implements StateObservedByUrlService {
   get datasetHasImages(): boolean {
     return findSpecKeys(this.currentDatasetSpec, ImageBytes).length > 0;
   }
-
-  @observable
-  private readonly inputData = new Map<DatasetName, IndexedInputMap>();
 
   private makeEmptyInputs(): IndexedInputMap {
     return new Map<Id, IndexedInput>();

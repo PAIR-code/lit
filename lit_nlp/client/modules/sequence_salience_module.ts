@@ -12,7 +12,7 @@ import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
@@ -81,6 +81,11 @@ export class SingleExampleSingleModelModule extends LitModule {
 
   @observable protected currentData?: IndexedInput;
   @observable protected currentPreds?: Preds;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   // Override this for any post-processing.
   protected postprocessPreds(input: IndexedInput, preds: Preds): Preds {

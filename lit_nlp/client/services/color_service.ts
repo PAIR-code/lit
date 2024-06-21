@@ -17,7 +17,7 @@
 
 // tslint:disable:no-new-decorators
 import * as d3 from 'd3';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {CATEGORICAL_NORMAL, DEFAULT, MULTIHUE_CONTINUOUS, SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap} from '../lib/colors';
 import {ColorOption, D3Scale, IndexedInput} from '../lib/types';
@@ -32,38 +32,31 @@ export {SalienceCmap, SignedSalienceCmap, UnsignedSalienceCmap};
 /**
  * A singleton class that handles all coloring options.
  */
-export class ColorService extends LitService implements
-ColorObservedByUrlService {
+export class ColorService extends LitService
+    implements ColorObservedByUrlService {
   constructor(
       private readonly groupService: GroupService,
       private readonly dataService: DataService) {
     super();
+    makeObservable(this);
   }
 
   private readonly defaultColor = DEFAULT;
 
   private readonly defaultOption: ColorOption = {
     name: 'None',
-    getValue: (input: IndexedInput) => 'all',
+    getValue: () => 'all',
     scale: d3.scaleOrdinal([this.defaultColor]).domain(['all']) as D3Scale,
   };
 
-  // Name of selected feature to color datapoints by, or default not coloring by
-  // features.
-  @observable mySelectedColorOption = this.defaultOption;
-  // It's used for the url service. When urlService.syncStateToUrl is invoked,
-  // colorableOptions are not available. There, this variable is used to
-  // preserve the url param value entered by users.
-  @observable
-  selectedColorOptionName: string = '';
-
-  // All variables that affect color settings, so clients can listen for when
-  // they may need to rerender.
-  @computed get all() {
-    return [
-      this.selectedColorOption,
-    ];
-  }
+  /**
+   * Name of the selected coloring option.
+   *
+   * Coloring options depend on data retrieved asynchronoously from the LIT
+   * server, so this feature is also used to preserve the value of the color_by
+   * URL parameter while those coloring options load.
+   */
+  @observable selectedColorOptionName = '';
 
   // Return the selectedColorOption based on the selectedColorOptionName
   @computed get selectedColorOption() {
@@ -136,8 +129,7 @@ ColorObservedByUrlService {
     ];
   }
 
-  @computed
-  get defaultClassificationColorOption() {
+  @computed get defaultClassificationColorOption() {
     return this.dataService.predictedClassFeatureName;
   }
 

@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable, reaction} from 'mobx';
+import {action, computed, makeObservable, observable, reaction} from 'mobx';
 
 import {IndexedInput, type ServiceUser} from '../lib/types';
 import {arrayContainsSame} from '../lib/utils';
@@ -40,6 +40,7 @@ export class SliceService extends LitService {
       private readonly selectionService: SelectionService,
       private readonly appState: AppState) {
     super();
+    makeObservable(this);
 
     reaction(() => selectionService.selectedInputData, selectedInputData => {
       // If selection doesn't match a slice, then reset selected slice to
@@ -55,8 +56,7 @@ export class SliceService extends LitService {
   }
 
   // Initialize with an empty slice to hold favorited items.
-  @observable
-  namedSlices =
+  @observable namedSlices =
       new Map<SliceName, Set<Id>>([[STARRED_SLICE_NAME, new Set<Id>()]]);
   @observable private selectedSliceNameInternal: string|null = null;
 

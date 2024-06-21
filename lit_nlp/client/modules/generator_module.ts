@@ -23,7 +23,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -36,6 +36,10 @@ import {GroupService} from '../services/group_service';
 import {SelectionService, SliceService} from '../services/services';
 
 import {styles} from './generator_module.css';
+
+interface GlobalParameters {
+  [key: string]: string;
+}
 
 /**
  * Custom element for in-table add/remove controls.
@@ -107,12 +111,10 @@ export class GeneratorModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  @observable editedData: Input = {};
   @observable isGenerating = false;
-
   @observable generated: IndexedInput[][] = [];
   @observable appliedGenerator: string|null = null;
-  @observable sliceName: string = '';
+  @observable sliceName = '';
 
   @computed
   get datasetName() {
@@ -125,16 +127,21 @@ export class GeneratorModule extends LitModule {
   }
 
   @computed
-  get globalParams() {
+  get globalParams(): GlobalParameters {
     return {
       'model_name': this.modelName,
       'dataset_name': this.datasetName,
-    };
+    } ;
   }
 
   @computed
   get totalNumGenerated() {
     return this.generated.reduce((a, b) => a + b.length, 0);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {
@@ -170,11 +177,12 @@ export class GeneratorModule extends LitModule {
 
   private makeAutoSliceName(generator: string, config?: CallConfig) {
     const segments: string[] = [generator];
+    const {globalParams} = this;
     if (config != null) {
-      for (const key of Object.keys(config)) {
+      for (const [key, value] of Object.entries(config)) {
         // Skip these since they don't come from the actual controls form.
-        if (this.globalParams.hasOwnProperty(key)) continue;
-        segments.push(`${key}=${config[key]}`);
+        if (Object.hasOwn(globalParams, key)) continue;
+        segments.push(`${key}=${value}`);
       }
     }
     return segments.join(':');
@@ -193,7 +201,7 @@ export class GeneratorModule extends LitModule {
       // parentId and source should already be set from the backend.
       for (const examples of generated) {
         for (const ex of examples) {
-          Object.assign(ex['meta'], {added: 1});
+          Object.assign(ex.meta, {added: 1});
         }
       }
       this.generated = generated;
@@ -215,7 +223,7 @@ export class GeneratorModule extends LitModule {
     }
 
     const parentIds =
-        new Set<string>(newExamples.map(ex => ex.meta['parentId']!));
+        new Set<string>(newExamples.map(ex => ex.meta.parentId!));
 
     // Select parents and children, and set primary to the first child.
     this.selectionService.selectIds([...parentIds, ...newIds], this);
@@ -229,7 +237,7 @@ export class GeneratorModule extends LitModule {
       referenceSelectionService.selectIds([...parentIds, ...newIds], this);
       // parentIds[0] is not necessarily the parent of newIds[0], if
       // generated[0] is [].
-      const parentId = newExamples[0].meta['parentId']!;
+      const parentId = newExamples[0].meta.parentId!;
       referenceSelectionService.setPrimarySelection(parentId, this);
     }
   }
@@ -427,7 +435,7 @@ export class GeneratorModule extends LitModule {
           Add and compare
         </button>
         <button class="hairline-button" ?disabled=${controlsDisabled}
-           @click=${this.resetEditedData}>
+           @click=${() => {this.resetEditedData();}}>
            Clear
         </button>
       </div>`;

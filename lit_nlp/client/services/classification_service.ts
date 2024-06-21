@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable, reaction} from 'mobx';
+import {action, computed, makeObservable, observable, reaction} from 'mobx';
 
 import {MulticlassPreds} from '../lib/lit_types';
 import {type FacetedData, type GroupedExamples, type SpecMap} from '../lib/types';
@@ -69,6 +69,7 @@ export class ClassificationService extends LitService {
 
   constructor(private readonly appState: AppState) {
     super();
+    makeObservable(this);
 
     // Reset classification margins when the models change.
     reaction(
@@ -181,18 +182,19 @@ export class ClassificationService extends LitService {
     }
   }
 
-  getMargin(model: string, fieldName: string, facet?: FacetedData) {
-    if (this.marginSettings[model] == null ||
-        this.marginSettings[model][fieldName] == null) {
-      return 0;
-    }
-    const fieldMargins = this.marginSettings[model][fieldName];
-    if (facet == null) {
-      return fieldMargins[GLOBAL_FACET]?.margin || 0;
-    } else if (facet.displayName != null) {
-      return fieldMargins[facet.displayName]?.margin || 0;
-    } else {
-      return 0;
-    }
+  /**
+   * Returns the margins for a given model, possibly empty.
+   */
+  getMargins(model: string): MarginsPerField {
+    return this.marginSettings[model] ?? {};
+  }
+
+  /**
+   * Returns the margin for a given model, field, and facet, or 0 if untracked.
+   */
+  getMargin(model: string, fieldName: string, facet?: FacetedData): number {
+    const fieldMargins = this.getMargins(model)[fieldName];
+    const facetString = facet?.displayName ?? GLOBAL_FACET;
+    return fieldMargins[facetString]?.margin ?? 0;
   }
 }

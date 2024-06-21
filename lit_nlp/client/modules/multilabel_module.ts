@@ -19,7 +19,7 @@
 import '../elements/score_bar';
 import {customElement} from 'lit/decorators.js';
 import { html} from 'lit';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -59,10 +59,15 @@ export class MultilabelModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  @observable private resultsInfo: AllResultsInfo = {};
+  @observable.ref private resultsInfo: AllResultsInfo = {};
   private datapoints: IndexedInput[] = [];
   private readonly groundTruthLabels = new Set<string>();
   private maxValues: {[predKey: string]: number} = {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     const getSelectedInput = () =>

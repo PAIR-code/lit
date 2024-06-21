@@ -21,7 +21,7 @@ import '../elements/switch';
 
 import {css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {styles as visStyles} from '../elements/generated_text_vis.css';
@@ -85,10 +85,10 @@ export class GeneratedTextModule extends LitModule {
   }
 
   @observable private inputData: Input|null = null;
-  @observable private generatedText: GeneratedTextResult = {};
-  @observable private referenceScores: ReferenceScoresResult = {};
+  @observable.ref private generatedText: GeneratedTextResult = {};
+  @observable.ref private referenceScores: ReferenceScoresResult = {};
   @observable private diffMode: DiffMode = DiffMode.NONE;
-  @observable private invertDiffs: boolean = false;
+  @observable private invertDiffs = false;
 
   @computed
   get referenceFields(): Map<string, string> {
@@ -119,6 +119,11 @@ export class GeneratedTextModule extends LitModule {
       }
     }
     return refMap;
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {

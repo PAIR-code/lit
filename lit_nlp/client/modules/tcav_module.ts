@@ -22,14 +22,14 @@ import '../elements/tcav_score_bar';
 import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {TableData} from '../elements/table';
 import {Embeddings, Gradients, MulticlassPreds, Scalar} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
-import {CallConfig, IndexedInput, ModelInfoMap, Spec} from '../lib/types';
+import {CallConfig, IndexedInput, ModelInfoMap} from '../lib/types';
 import {createLitType, doesOutputSpecContain, findSpecKeys} from '../lib/utils';
 import {ColumnData} from '../services/data_service';
 import {DataService, SliceService} from '../services/services';
@@ -66,7 +66,6 @@ interface TcavResults {
   cav: number[];
 }
 
-
 /**
  * The TCAV module.
  */
@@ -100,26 +99,22 @@ export class TCAVModule extends LitModule {
   private resultsTableData: TableData[] = [];
   private cavCounter = 0;
 
-  @computed
-  get modelSpec() {
+  @computed get modelSpec() {
     return this.appState.getModelSpec(this.model);
   }
 
-  @computed
-  get gradKeys() {
+  @computed get gradKeys() {
     return findSpecKeys(this.modelSpec.output, Gradients);
   }
 
-  @computed
-  get TCAVSliceNames() {
+  @computed get TCAVSliceNames() {
     return this.sliceService.sliceNames.filter(
         name => name !== STARRED_SLICE_NAME);
   }
 
   // Returns pairs in the format [positive slice, negative slice (or null)]
   // for slices selected in the settings.
-  @computed
-  get slicePairs(): Array<[string, string|null]> {
+  @computed get slicePairs(): Array<[string, string|null]> {
     const positiveSlices: string[] = Array.from(this.selectedSlices.values());
     const negativeSlices: string[] = Array.from(this.negativeSlices.values());
 
@@ -139,22 +134,23 @@ export class TCAVModule extends LitModule {
     return pairs;
   }
 
-
-
-  @computed
-  get predClasses() {
+  @computed get predClasses() {
     const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
     return predKey == null ?
         [] : (this.modelSpec.output[predKey] as MulticlassPreds).vocab;
   }
 
-  @computed
-  get nullIndex() {
+  @computed get nullIndex() {
     const [predKey] = findSpecKeys(this.modelSpec.output, MulticlassPreds);
     // TODO(lit-dev): Handle the multi-headed case with more than one pred key.
     return predKey == null ?
         undefined : (this.modelSpec.output[predKey] as MulticlassPreds).null_idx;
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {
@@ -482,8 +478,7 @@ export class TCAVModule extends LitModule {
     this.requestUpdate();
   }
 
-  static override shouldDisplayModule(
-      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(modelSpecs: ModelInfoMap) {
     // Ensure the models can support TCAV and that the TCAV interpreter is
     // loaded.
     if (!doesOutputSpecContain(

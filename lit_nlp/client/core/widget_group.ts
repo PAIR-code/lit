@@ -210,7 +210,7 @@ export class WidgetGroup extends ReactiveElement {
     });
 
     // Set sub-component dimensions based on the container.
-    const widgetStyle = {width: '100%', height: '100%'};
+    const widgetStyle = {'width': '100%', 'height': '100%'};
     if (this.duplicateAsRow) {
       widgetStyle.width = `${100 / configGroup.length}%`;
     } else {
@@ -237,7 +237,9 @@ export class WidgetGroup extends ReactiveElement {
         <div class='wrapper' @click=${onWrapperClick} >
           ${this.renderHeader(configGroup)}
           <div class=${holderClasses}>
-            ${configGroup.map(config => this.renderModule(config, widgetStyle, showSubtitle))}
+            ${configGroup.map(
+                (config) => this.renderModule(config, widgetStyle, showSubtitle)
+            )}
           </div>
         </div>
        </div>
@@ -247,9 +249,16 @@ export class WidgetGroup extends ReactiveElement {
 
 
   renderModule(
-      config: RenderConfig, styles: {[key: string]: string},
-      showSubtitle: boolean) {
+      config: RenderConfig,
+      styles: {[key: string]: string},
+      showSubtitle: boolean
+  ) {
     const moduleType = config.moduleType;
+    if (typeof moduleType.template !== 'function') {
+      console.log(typeof config, typeof moduleType, typeof moduleType.template);
+      return;
+    }
+
     const modelName = config.modelName || '';
     const selectionServiceIndex = config.selectionServiceIndex || 0;
     const shouldReact = this.visible && !this.minimized;
@@ -320,6 +329,7 @@ export class WidgetGroup extends ReactiveElement {
  * A wrapper for a LIT module that renders the contents in a box with
  * expand/contract capabilities.
  */
+// TODO(b/319249148): Determine if this inherit from LitElement instead.
 @customElement('lit-widget')
 export class LitWidget extends MobxLitElement {
   @property({type: String}) displayTitle = '';

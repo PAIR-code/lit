@@ -23,7 +23,7 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {css, html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement, property} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -109,16 +109,16 @@ export class TrainingDataAttributionModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  @observable private currentData?: IndexedInput;
+  @observable.ref private currentData?: IndexedInput = undefined;
   // Field overrides from label controls.
   @observable private customLabels: Input = {};
   // Used to find target label options
   // TODO(b/224802615): generalize this to other label types (classification,
   // scoring, multilabel)
-  @observable private currentPreds?: GeneratedTextResult;
+  @observable.ref private currentPreds?: GeneratedTextResult = undefined;
 
   @observable isRunning = false;
-  @observable retrievedExamples: IndexedInput[][] = [];
+  @observable.ref retrievedExamples: IndexedInput[][] = [];
   @observable appliedGenerator: string|null = null;
 
   @computed
@@ -210,6 +210,11 @@ export class TrainingDataAttributionModule extends LitModule {
     return this.retrievedExamples.reduce((a, b) => a + b.length, 0);
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   override firstUpdated() {
     const getSelectedData = () =>
         this.selectionService.primarySelectedInputData;
@@ -281,7 +286,7 @@ export class TrainingDataAttributionModule extends LitModule {
       // parentId and source should already be set from the backend.
       for (const examples of generated) {
         for (const ex of examples) {
-          Object.assign(ex['meta'], {added: 1});
+          Object.assign(ex.meta, {added: 1});
         }
       }
       this.retrievedExamples = generated;
@@ -297,7 +302,7 @@ export class TrainingDataAttributionModule extends LitModule {
     if (newIds.length === 0) return;
 
     const parentIds =
-        new Set<string>(newExamples.map(ex => ex.meta['parentId']!));
+        new Set<string>(newExamples.map(ex => ex.meta.parentId!));
 
     // Select parents and children, and set primary to the first child.
     this.selectionService.selectIds([...parentIds, ...newIds], this);
@@ -311,7 +316,7 @@ export class TrainingDataAttributionModule extends LitModule {
       referenceSelectionService.selectIds([...parentIds, ...newIds], this);
       // parentIds[0] is not necessarily the parent of newIds[0], if
       // generated[0] is [].
-      const parentId = newExamples[0].meta['parentId']!;
+      const parentId = newExamples[0].meta.parentId!;
       referenceSelectionService.setPrimarySelection(parentId, this);
     }
   }
