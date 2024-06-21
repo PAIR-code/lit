@@ -2,7 +2,7 @@
 from collections.abc import Iterable
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.examples.datasets import question_answering
+from lit_nlp.examples.tydi import data as tydi_data
 import numpy as np
 import transformers
 
@@ -104,7 +104,7 @@ class TyDiModel(lit_model.Model):
         "question": lit_types.TextSegment(),
         "answers_text": lit_types.MultiSegmentAnnotations(),
         "language": lit_types.CategoryLabel(
-            required=False, vocab=question_answering.TYDI_LANG_VOCAB
+            required=False, vocab=tydi_data.TYDI_LANG_VOCAB
         ),
     }
 
