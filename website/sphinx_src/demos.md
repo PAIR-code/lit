@@ -17,7 +17,7 @@ https://pair-code.github.io/lit/demos/.
 ### Sentiment and NLI <!-- DO NOT REMOVE {#glue .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html \
-**Code:** [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
+**Code:** [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py)
 
 *   Multi-task demo:
     *   Sentiment analysis as a binary classification task
@@ -50,7 +50,7 @@ https://pair-code.github.io/lit/tutorials/sentiment
 ### Textual Similarity (STS-B) <!-- DO NOT REMOVE {#stsb .demo-header} -->
 
 **Hosted instance:** https://pair-code.github.io/lit/demos/glue.html?models=stsb&dataset=stsb_dev \
-**Code:** [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
+**Code:** [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py)
 
 *   STS-B textual similarity task, predicting scores on a range from 0
     (unrelated) to 5 (very similar).
