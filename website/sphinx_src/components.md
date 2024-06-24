@@ -239,9 +239,6 @@ NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
 
-*   See [examples/dalle/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/dalle/demo.py) for a demo on
-    image generation and how LIT handles image bytes.
-
 ## Token-based Salience
 
 LIT supports several methods for token-based input salience, including

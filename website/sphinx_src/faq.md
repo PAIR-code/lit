@@ -17,8 +17,6 @@ works with any modern ML framework. For more information, see
 In addition to text, LIT has good support for different modalities, including
 images and tabular data. For examples, see:
 
-*   [DALL·E demo](google3/third_party/py/lit_nlp/examples/dalle/) - image
-    generation, using DALL·E Mini model.
 *   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py) -
     multi-class classification on tabular (numeric and categorical string) data,
     using the
