@@ -51,7 +51,6 @@ LIT_NOTEBOOK_LAYOUT = layout.LitCanonicalLayout(
             *layout.MODEL_PREDS_MODULES,
             modules.SalienceMapModule,
             modules.LegacySequenceSalienceModule,
-            modules.AttentionModule,
         ],
         'Analysis': [
             modules.MetricsModule,
