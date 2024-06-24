@@ -13,5 +13,4 @@
 # limitations under the License.
 # ==============================================================================
 -r requirements_core.txt
--r requirements_examples.txt
 -r requirements_test.txt
