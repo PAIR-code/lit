@@ -15,6 +15,6 @@
 
 -r ../../../requirements_core.txt
 
-jax==0.4.6
-jaxlib==0.4.6
-flax>=0.5.3
+tensorflow>=2.10.0,<2.16.0
+tensorflow-datasets>=4.9.0
+transformers>=4.27.1
