@@ -15,5 +15,6 @@
 
 -r ../../../requirements_core.txt
 
+Jinja2>=3.1.4
 tensorflow>=2.10.0,<2.16.0
 tensorflow-datasets>=4.9.0
