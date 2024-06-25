@@ -1,8 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-20' } *-->
-
-TODO(b/343678324): Remove the files after cl/629748253 is submitted.
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -258,7 +256,7 @@ regression (`RegressionScore`) and generation (`GeneratedText` or
 ### Gradient Norm
 
 This is a simple method, in which salience scores are proportional to the L2
-norm of the gradient, i.e. the score for token $i$ is:
+norm of the gradient, i.e. the score for token $$i$$ is:
 
 $$S(i) \propto ||\nabla_{x_i} \hat{y}||_2$$
 
@@ -270,26 +268,26 @@ To enable this method, your model should, as part of the
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`). Values should be arrays
     of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
-    $\hat{y}$.
+    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
+    $$\hat{y}$$.
 
 Because LIT is framework-agnostic, the model code is responsible for performing
 the gradient computation and returning the result as a NumPy array. The choice
-of $\hat{y}$ is up to the developer; typically for regression/scoring this is
+of $$\hat{y}$$ is up to the developer; typically for regression/scoring this is
 the raw score and for classification this is the score of the predicted (argmax)
 class.
 
 ### Gradient-dot-Input
 
 In this method, salience scores are proportional to the dot product of the input
-embeddings and their gradients, i.e. for token $i$ we compute:
+embeddings and their gradients, i.e. for token $$i$$ we compute:
 
 $$S(i) \propto x_i \cdot \nabla_{x_i} \hat{y}$$
 
 Compared to grad-norm, this gives directional scores: a positive score is can be
 interpreted as that token having a positive influence on the prediction
-$\hat{y}$, while a negative score suggests that the prediction would be stronger
-if that token was removed.
+$$\hat{y}$$, while a negative score suggests that the prediction would be
+stronger if that token was removed.
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -297,13 +295,13 @@ To enable this method, your model should, as part of the
 *   Return a `Tokens` field with values (as `list[str]`) containing the
     tokenized input.
 *   Return a `TokenEmbeddings` field with values as arrays of shape
-    `<float>[num_tokens, emb_dim]` containing the input embeddings $x$.
+    `<float>[num_tokens, emb_dim]` containing the input embeddings $$x$$.
 *   Return a `TokenGradients` field with the `align` attribute pointing to the
     name of the `Tokens` field (i.e. `align="tokens"`), and the `grad_for`
     attribute pointing to the name of the `TokenEmbeddings` field. Values should
     be arrays of shape `<float>[num_tokens, emb_dim]` representing the gradient
-    $\nabla_{x} \hat{y}$ of the embeddings with respect to the prediction
-    $\hat{y}$.
+    $$\nabla_{x} \hat{y}$$ of the embeddings with respect to the prediction
+    $$\hat{y}$$.
 
 As with grad-norm, the model should return embeddings and gradients as NumPy
 arrays. The LIT `GradientDotInput` component will compute the dot products and
@@ -525,9 +523,7 @@ your model should, as part of the
     input image.
 
     The model should be able to accept input images as numpy arrays in addition
-    to accepting base64 URL encoded format. See
-    [mobilenet.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/mobilenet.py)
-    for an example.
+    to accepting base64 URL encoded format.
 
 A variety of image saliency techniques are implemented for models that return
 image gradients, through use of the
@@ -537,36 +533,6 @@ and XRAI.
 
 Each of these techniques returns a saliency map image as a base64-encoded string
 through the `ImageSalience` type.
-
-## Attention
-
-LIT can display a visualization of attention heads from transformers and other
-models:
-
-![Attention Visualization](./images/components/attention.png){w=400px align=center}
-
-To enable this, your model should return one or more fields of the type
-`AttentionHeads`, with values as arrays of shape `<float>[num_heads, num_tokens,
-num_tokens]`. Each field represents a set of heads at a single layer of the
-model, so models will often have more than one:
-
-```python
-   def output_spec(self) -> types.Spec:
-     return {
-         # ...
-         "tokens": lit_types.Tokens(parent="input_text"),
-         "layer_0/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
-         "layer_1/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
-         "layer_2/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
-         # ...
-     }
-```
-
-The `align_in` and `align_out` attributes are the names of `Tokens` fields for
-the source and target tokens for that layer. For self-attention (such as in
-BERT) these would name the same field, but for encoder-decoder attention they
-could reference different token sets (such as "input_tokens" and
-"target_tokens").
 
 ## Embedding Projector
 
@@ -599,7 +565,7 @@ example, we could facet by class label:
 
 ![Metrics Table](./images/components/metrics-table.png)
 
-To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
+To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Metrics" tab.
 
 To enable metrics, your model should set the `parent` attribute on one or more
 output fields, pointing to the name of the input field that it should be
@@ -638,7 +604,7 @@ analysis.
 
 ![Confusion Matrix](./images/components/confusion-matrix.png){w=600px align=center}
 
-To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
+To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Metrics" tab.
 
 The confusion matrix is supported for classification models, or if the input
 data includes any categorical features (`CategoryLabel`).
@@ -723,6 +689,8 @@ If no datapoints are selected, then the calculations are done across all
 datapoints, giving a global view of feature effects.
 
 ![Partial Dependence Plots Module](./images/components/lit-pdps.png){w=400px align=center}
+
+To try this out, see https://pair-code.github.io/lit/demos/penguins.html and navigate to the "Predictions" tab.
 
 ### Dive
 

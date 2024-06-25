@@ -1,6 +1,6 @@
 # Getting Started with LIT
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-17' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-25' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 

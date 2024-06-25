@@ -1,6 +1,6 @@
 # Demos
 
-<!-- freshness: { owner: 'lit-dev' reviewed: '2023-08-29' } -->
+<!-- freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } -->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -36,7 +36,6 @@ https://pair-code.github.io/lit/demos/.
         the margin.
     *   Embedding projector to find clusters in representation space.
     *   Integrated Gradients, LIME, and other salience methods.
-    *   Attention visualization.
     *   Counterfactual generators, including HotFlip for targeted adversarial
         perturbations.
 
@@ -61,7 +60,6 @@ https://pair-code.github.io/lit/tutorials/sentiment
         quick filtering.
     *   Embedding projector to find clusters in representation space.
     *   Integrated Gradients, LIME, and other salience methods.
-    *   Attention visualization.
 
 --------------------------------------------------------------------------------
 
@@ -72,19 +70,16 @@ https://pair-code.github.io/lit/tutorials/sentiment
 **Code:**
 [examples/prompt_debugging/server.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py)
 
-*   Supports Gemma 2B and 7B models using KerasNLP and TensorFlow.
+*   Supports Gemma 2B and 7B models using KerasNLP (with TensorFlow or PyTorch)
+    and Transformers (with PyTorch).
 *   Interactively debug LLM prompts using
     [sequence salience](./components.md#sequence-salience).
 *   Multiple salience methods (grad-l2 and grad-dot-input), at multiple
-    granularities: token-, word-, sentence-, and paragraph-level.
+    granularities: token-, word-, line-, sentence-, and paragraph-level.
 
 Tip: check out the in-depth walkthrough at
 https://ai.google.dev/responsible/model_behavior, part of the Responsible
 Generative AI Toolkit.
-
---------------------------------------------------------------------------------
-
-## Structured Prediction <!-- DO NOT REMOVE {#structured .demo-section-header} -->
 
 --------------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -349,7 +349,7 @@ list of scores for each token. The Integrated Gradients saliency method
 additionally requires a `TokenEmbeddings` input and corresponding output, as
 well as a label field `Target` to pin the gradient target to the same class as
 an input and corresponding output. See the
-[GLUE models class](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
+[GLUE models class](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for an example of these spec requirements.
 
 The core API involves implementing the `run()` method:
@@ -712,11 +712,9 @@ this can cause jitter (UI modules appearing, disappearing, reordering, resizing,
 etc.) when switching between models or datasets with heterogeneous `Spec`s.
 
 When implementing your own LIT components and modules, you can use
-[`utils.find_spec_keys()`][utils-lib]
-(Python) and
-[`findSpecKeys()`][utils-lib]
-(TypeScript) to identify fields of interest in a `Spec`. These methods recognize
-and respect subclasses. For example,
+[`utils.find_spec_keys()`][utils-lib-py] (Python) and
+[`findSpecKeys()`][utils-lib] (TypeScript) to identify fields of interest in a
+`Spec`. These methods recognize and respect subclasses. For example,
 `utils.find_spec_keys(spec, Scalar)` will also match any `RegressionScore`
 fields, but `utils.find_spec_keys(spec, RegressionScore)` will not return all
 `Scalar` fields in the `Spec`.
@@ -807,8 +805,12 @@ _See the [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples)
 
 ### Available types
 
-The full set of `LitType`s is defined in [types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types such as `Integer` and `Scalar` have predefined ranges that can be overridden using corresponding `min_val` and `max_val` attributes as seen [here](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/penguin_data.py;l=19-22;rcl=574999438). The different types available in LIT are summarized
-in the table below.
+The full set of `LitType`s is defined in
+[types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types
+such as `Integer` and `Scalar` have predefined ranges that can be overridden
+using corresponding `min_val` and `max_val` attributes as seen
+[here](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/data.py;l=19-22;rcl=639554825).
+The different types available in LIT are summarized in the table below.
 
 Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
 NumPy arrays where each element inside the brackets is an integer.
@@ -981,15 +983,15 @@ needing to reload the server or click the UI.
 For example, to view examples in a dataset:
 
 ```python
-from lit_nlp.examples.datasets import glue
-dataset = glue.SST2Data('validation')
+from lit_nlp.examples.glue import data as glue_data
+dataset = glue_data.SST2Data('validation')
 print(dataset.examples)  # list of records {"sentence": ..., "label": ...}
 ```
 
 And to run inference on a few of them:
 
 ```python
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 
 model = glue_models.SST2Model("/path/to/model/files")
 preds = list(model.predict(dataset.examples[:5]))
@@ -1013,16 +1015,19 @@ For a full working example in Colab, see [LIT_components_example.ipynb](https://
 <!-- Links -->
 
 [build-metadata]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/app.py
-[components-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+[components-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/components.py
 [curves-interp]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/curves.py
 [dataset-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
 [grad-maps]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/gradient_maps.py
 [json]: https://www.json.org
 [mnli-dataset]: https://cims.nyu.edu/~sbowman/multinli/
+
 [mnli-demo]: https://pair-code.github.io/lit/demos/glue.html
-[model-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+
+[model-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/model.py
 [should_display_module]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts
 [types_py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py
 [types_ts]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/lit_types.ts
 [utils-lib]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/utils.ts
+[utils-lib-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/lib/utils.py
 [word-replacer]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/word_replacer.py

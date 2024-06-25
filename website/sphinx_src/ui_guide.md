@@ -1,6 +1,6 @@
 # UI Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 
 This is a user guide for the Learning Interpretability Tool (LIT) UI.
 
@@ -42,7 +42,7 @@ LIT provides three pre-configured layouts:
 *   `default`: The original LIT layout with a single group of modules on top for
     exploring and selecting data, and a collection of tabs supporting different
     analytical tasks on the bottom; and
-*   `experimental`: A three-panel layout that puts exploratory data
+*   `three_panel`: A three-panel layout that puts exploratory data
     visualizations at full-page height on the left, tools for inspecting and
     manipulating examples and their associated predictions in the upper right,
     and a collection of tabs supporting different analytical tasks in the lower
@@ -130,19 +130,26 @@ controls and information. The left side of the toolbar contains a set of menus
 for quickly controlling datapoint selection and coloring. This includes the
 following controls:
 
-*   The **"Select related"** option adds any datapoints "related" to the current
-    selection. In LIT, "related" is defined as datapoints created from some
-    source datapoint (through manual editing or a datapoint generator), or a
-    source datapoint that a selected datapoint was created from.
-*   The **"Clear selection"** button deselects all selected datapoints. The
-    dropdown also contains a color legend for the current color setting.
-*   The **Slices** option allows quick selection of an already-created slice of
-    datapoints.
-*   The **"Datapoint color"** menu enables setting of the color of each
-    datapoint in the modules that visualize all datapoints (such as the
-    *Embeddings* and *Scalars* modules) by any number of datapoint features or
-    model outputs on those datapoints (such as coloring by some categorical
-    input feature, or by prediction error for a regression task).
+*   The **"Select datapoint"** menu provides a drop-down of several options:
+    *   the **"Random"** option selects a random datapoint,
+    *   the **"All related"** option adds any datapoints "related" to the
+        current selection. In LIT, "related" is defined as datapoints created
+        from some source datapoint (through manual editing or a datapoint
+        generator), or a source datapoint that a selected datapoint was created
+        from,
+    *   the **"Parents"** option adds the source datapoints that the selected
+        datapoints were created from,
+    *   the **"Children"** option adds the datapoints created from the selected
+        datapoints (through manual editing or a datapoint generator),
+    *   the **Slices** option allows quick selection of an already-created slice
+        of datapoints,
+    *   the **"Clear selection"** button deselects all selected datapoints.
+*   The **"Color by"** menu enables setting of the color of each datapoint in
+    the modules that visualize all datapoints (such as the *Embeddings* and
+    *Scalars* modules) by any number of datapoint features or model outputs on
+    those datapoints (such as coloring by some categorical input feature, or by
+    prediction error for a regression task).
+*   The **Slices** menu allows adding/selecting/removing slices of datapoints.
 
 Next to the menus is a button for pinning/unpinning a datapoint. Pinning a
 datapoint puts LIT into datapoint comparison mode, where two datapoints can be
@@ -322,9 +329,9 @@ such as model predictions, enable them from the "Columns" dropdown.
 
 The datapoint editor shows the details of the primary selected datapoint, if one
 is selected. Any field can be edited, and a new datapoint created with those
-edits through the **"Make new datapoint"** button. Any edit to an existing
-datapoint must be saved as a new datapoint to be explored, to keep datapoints
-immutable for simplicity of use.
+edits through the **"Add"** button. Any edit to an existing datapoint must be
+saved as a new datapoint to be explored, to keep datapoints immutable for
+simplicity of use.
 
 When no datapoint is selected, the editor shows a blank datapoint that can be
 filled out by hand to create a completely new datapoint.
@@ -473,23 +480,14 @@ background of each text piece is colored by the salience of that piece on the
 prediction, and hovering on any piece will display the exact value calculated
 for that piece.
 
-There is an **"autorun"** button by each methodology. If it is checked, then
-that calculation is made when a new primary datapoint is selected. If it is
+There is an **"autorun"** button by each methodology on the right side of the
+bar (the methodoloy name is on the left side). If it is checked, then that
+calculation is made when a new primary datapoint is selected. If it is
 unchecked, the calculation isn't made until it is checked. This can be valuable
 so that expensive, long-running saliency calculations (such as LIME) aren't
 performed on every datapoint selection, but only when explicitly asked for.
 
 ![LIT saliency maps](./images/lit-salience.png "LIT saliency maps")
-
-### Attention
-
-For models that return attention head information along with predictions, the
-attention module shows which tokens are attended to between layers of a model.
-Dropdowns allow you to select which layer and attention head is being
-visualized. Line opacity is controlled by the magnitude of the attention between
-those tokens.
-
-![LIT attention](./images/lit-attention.png "LIT attention"){w=500px align=center}
 
 ## User Journeys
 
@@ -514,30 +512,6 @@ worst depression-era gangster movie.” elicits a mildly positive score from our
 model.
 
 ![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")
-
-### Gender Bias in Coreference
-
-Does a system encode gendered associations, which might lead to incorrect
-predictions? We load a coreference model trained on OntoNotes, and load the
-Winogender dataset into LIT for evaluation. Each Winogender example has a
-pronoun and two candidate referents, one a occupation term like (“technician”)
-and one is an “other participant” (like “customer”). Our model predicts
-coreference probabilities for each candidate. We can explore the model’s
-sensitivity to pronouns by comparing two examples side-by-side (see structured
-predictions in screenshot). We can see how commonly the model makes similar
-errors by paging through the dataset, or by selecting specific slices of
-interest.
-
-![Winogender analysis](./images/lit-winogender.png "Winogender analysis")
-
-In the *Metrics* table, we can slice this selection by pronoun type and by the
-true referent. On the set of male-dominated occupations (< 25% female by BLS),
-we see the model performs well when the ground-truth agrees with the
-stereotype - e.g. when the answer is the occupation term, male pronouns are
-correctly resolved 83% of the time, compared to female pronouns only 37.5% of
-the time (screenshot section (c)).
-
-![Winogender analysis](./images/lit-winogender-metrics.png "Winogender analysis")
 
 ### Debugging Text Generation
 
