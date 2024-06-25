@@ -36,7 +36,7 @@ FLAGS.set_default("default_layout", "potato")
 _MODEL = flags.DEFINE_string(
     "model",
     "https://storage.googleapis.com/what-if-tool-resources/lit-models/sst2_tiny.tar.gz",
-    "Path to model, as in glue_demo.py")
+    "Path to model, as in examples/glue/demo.py")
 
 # Use our custom frontend build from this directory.
 FLAGS.set_default(
