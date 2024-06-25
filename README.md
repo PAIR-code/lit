@@ -90,8 +90,8 @@ git clone https://github.com/PAIR-code/lit.git && cd lit
 ```
 
 
-Note: be sure you are running Python 3.10. If you have a different version on  
-your system, use the `conda` instructions below to set up a Python 3.10 
+Note: be sure you are running Python 3.10. If you have a different version on
+your system, use the `conda` instructions below to set up a Python 3.10
 environment.
 
 Set up a Python environment with `venv`:
@@ -142,13 +142,13 @@ To explore classification and regression models tasks from the popular
 [GLUE benchmark](https://gluebenchmark.com/):
 
 ```sh
-python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
+python -m lit_nlp.examples.glue.demo --port=5432 --quickstart
 ```
 
 Or, using `docker`:
 
 ```sh
-docker run --rm -e DEMO_NAME=glue_demo -p 5432:5432 -t lit-nlp --quickstart
+docker run --rm -e DEMO_NAME=glue -p 5432:5432 -t lit-nlp
 ```
 
 Navigate to http://localhost:5432 to access the LIT UI.
@@ -160,19 +160,6 @@ but you can switch to
 [STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
 gear icon in the upper right.
-
-### Quick-start: language modeling
-
-To explore predictions from a pre-trained language model (BERT or GPT-2), run:
-
-```sh
-python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
-```
-
-Or, using `docker`:
-
-```sh
-docker run --rm -e DEMO_NAME=lm_demo -p 5432:5432 -t lit-nlp --models=bert-base-uncased
 ```
 
 And navigate to http://localhost:5432 for the UI.
@@ -192,7 +179,7 @@ See [lit_nlp/examples](./lit_nlp/examples). Most are run similarly to the
 quickstart example above:
 
 ```sh
-python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
+python -m lit_nlp.examples.<example_name>.demo --port=5432 [optional --args]
 ```
 
 ## User Guide

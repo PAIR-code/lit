@@ -49,13 +49,13 @@ below.
 ```shell
 # DEMO_NAME is used to complete the Python module path
 #
-#     "lit_nlp.examples.$DEMO_NAME"
+#     "lit_nlp.examples.$DEMO_NAME.demo:get_wsgi_app()"
 #
 # Therefore, valid values for DEMO_NAME are Python module paths in the
 # lit_nlp/examples directory, such as
 #
-#   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.
-docker run --rm -p 5432:5432 -e DEMO_NAME=lm_demo lit-nlp
+#   * direct children -- glue, penguin, tydi, etc.
+docker run --rm -p 5432:5432 -e DEMO_NAME=peng lit-nlp
 
 # Use the DEMO_PORT environment variable as to change the port that LIT uses in
 # the container. Be sure to also change the -p option to map the container's
@@ -66,8 +66,8 @@ docker run --rm -p 2345:2345 -e DEMO_PORT=2345 lit-nlp
 # containers on your machine using the combination of the DEMO_NAME and
 # DEMO_PORT arguments, and docker run with the -d flag to run the container in
 # the background.
-docker run -d -p 5432:5432 -e DEMO_NAME=t5_demo lit-nlp
-docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-nlp
+docker run -d -p 5432:5432 -e DEMO_NAME=penguin lit-nlp
+docker run -d -p 2345:2345 -e DEMO_NAME=tydi -e DEMO_PORT=2345 lit-nlp
 ```
 
 ## Integrating Custom LIT Instances with the Default Docker Image
