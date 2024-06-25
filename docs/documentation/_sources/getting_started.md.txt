@@ -76,7 +76,7 @@ Most demos can be run with a single blaze command. To run the default one, you
 can do:
 
 ```sh
-python -m lit_nlp.examples.glue_demo \
+python -m lit_nlp.examples.glue.demo \
   --quickstart --port=4321 --alsologtostderr
 ```
 

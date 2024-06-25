@@ -1,7 +1,7 @@
 """🐧 LIT demo for tabular data using penguin classification.
 
 To run:
-  blaze run -c opt --config=cuda examples/penguin:demo -- --port=5432
+  python -m lit_nlp.examples.penguin.demo --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """

@@ -1,11 +1,11 @@
 r"""Example demo loading a handful of GLUE models.
 
 For a quick-start set of models, run:
-  blaze run -c opt --config=cuda examples/glue:demo -- \
+  python -m lit_nlp.examples.glue.demo \
     --quickstart --port=5432
 
 To run with the 'normal' defaults, including full-size BERT models:
-  blaze run -c opt --config=cuda examples/glue:demo -- --port=5432
+  python -m lit_nlp.examples.glue.demo --port=5432
 
 Then navigate to localhost:5432 to access the demo UI.
 """
