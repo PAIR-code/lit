@@ -18,7 +18,7 @@ takeaways: "Learn about how the metrics table and saliency maps assisted an anal
 
 {% include partials/link-out link: "../../demos/glue.html", text: "Explore this demo yourself." %}
 
-Or, run your own with [`examples/glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
+Or, run your own with [`examples/glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py)
 
 How well does a sentiment classifier handle negation? We can use LIT to interactively ask this question and get answers. We loaded up LIT the development set of the Stanford Sentiment Treebank (SST), which contains sentences from movie reviews that have been human-labeled as having a negative sentiment (0), or a positive sentiment (1). For a model, we are using a BERT-based binary classifier that has been trained to classify sentiment.
 

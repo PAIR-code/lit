@@ -20,7 +20,7 @@ takeaways: "Learn to use LIT's Sequence Salience module for prompt debugging."
     link: "https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb",
     text: "Follow along in Google Colab." %}
 
-Or, run this locally with [`examples/lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+Or, run this locally with [`examples/prompt_debugging/server.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py)
 
 Large language models (LLMs), such as [Gemini][gemini] and [GPT-4][gpt4], have
 become ubiquitous. Recent releases of "open weights" models, including
@@ -470,9 +470,9 @@ helpful guides that can help you develop better prompts, including:
 [howitworks_icl]: https://par.nsf.gov/servlets/purl/10462310
 [lit_1_1_release_notes]:https://github.com/PAIR-code/lit/blob/main/RELEASE.md#release-11
 [lit_colab]: https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb
-[lit_hf]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py
+[lit_hf]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
 [lit_issues]: https://github.com/PAIR-code/lit/issues
-[lit_keras]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py
+[lit_keras]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
 [lit_sxs]: ../../documentation/ui_guide.html#comparing-datapoints
 [llama]: https://llama.meta.com/
 [main_toolbar]: ../../documentation/ui_guide.html#main-toolbar

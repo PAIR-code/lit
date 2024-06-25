@@ -808,9 +808,10 @@ _See the [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples)
 The full set of `LitType`s is defined in
 [types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types
 such as `Integer` and `Scalar` have predefined ranges that can be overridden
-using corresponding `min_val` and `max_val` attributes as seen
-[here](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/data.py;l=19-22;rcl=639554825).
-The different types available in LIT are summarized in the table below.
+using corresponding `min_val` and `max_val` attributes as seen in
+[penguin data](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/data.py)
+`INPUT_SPEC`. The different types available in LIT are summarized in the table
+below.
 
 Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
 NumPy arrays where each element inside the brackets is an integer.

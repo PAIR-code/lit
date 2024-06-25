@@ -513,27 +513,11 @@ model.
 
 ![Sentiment analysis](./images/lit-sentiment-analysis.png "Sentiment analysis")
 
-### Debugging Text Generation
+### Sequence salience
 
-<!-- TODO(lit-dev): T5 no longer makes the mistake documented below. Find a
-     example that fits better with the text generation debugging story -->
+Sequence salience generalizes token-based salience to text-to-text models,
+allowing you to explain the impact of the prompt tokens on parts of the model
+output.
 
-Does the training data explain a particular error in text generation? We analyze
-an older T5 model on the CNN-DM summarization task. LIT’s *Scalars* module
-allows us to look at per-example ROUGE scores, and quickly select an example
-with middling performance (screenshot section (a)). We find the generated text
-(screenshot section (b)) contains an erroneous constituent: “alastair cook was
-replaced as captain by former captain ...”. We can dig deeper, using LIT’s
-language modeling module (screenshot section (c)) to see that the token “by” is
-predicted with high probability (28.7%).
-
-To find out how T5 arrived at this prediction, we utilize the “similarity
-searcher” component through the datapoint generator (screenshot section (d)).
-This performs a fast approximate nearest-neighbor lookup from a pre-built index
-over the training corpus, using embeddings from the T5 decoder. With one click,
-we can retrieve 25 nearest neighbors and add them to the LIT UI for inspection.
-We see that the words “captain” and “former” appear 34 and 16 times in these
-examples–along with 3 occurrences of “replaced by” (screenshot section (e)),
-suggesting a strong prior toward our erroneous phrase.
-
-![LIT sequence-to-sequence analysis](./images/lit-s2s-journey.png "LIT sequence-to-sequence analysis"){w=500px align=center}
+Check out [here](components.md#sequence-salience) for more details on how to
+navigate the Sequence Salience UI module.
