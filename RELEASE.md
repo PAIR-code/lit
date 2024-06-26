@@ -1,5 +1,68 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.2
+
+This release covers clean-ups on various obsolete demos, as well as improved
+packaging and isolated dependencies on the GLUE, Penguin, Prompt Debugging with
+Sequence Salience and TyDi demos for easier launch.
+
+### New Stuff
+* Improved packaging and instructions for launching Prompt Debugging with
+Sequence Salience demo, as well as minor bug fixes -
+[08289df](https://github.com/PAIR-code/lit/commit/08289df0dd9927dee7147e5aad6e8b51bbe74f9e),
+[675ca2d](https://github.com/PAIR-code/lit/commit/675ca2de21b68dc62e4909c80a2cd57d8ee8b601),
+[15eccb1](https://github.com/PAIR-code/lit/commit/15eccb1197366c925a5beff310fb5d7d369bde0c),
+[e0e35c3](https://github.com/PAIR-code/lit/commit/e0e35c3ffcfd9ad5331d4154e7d33d0b1d0daf89),
+[c7970fb](https://github.com/PAIR-code/lit/commit/c7970fb8c51d2a8bd3647cc7eedd15cca285ac08),
+[cee3b58](https://github.com/PAIR-code/lit/commit/cee3b58baea2de27633109e6dd5b3e4211fa46ea)
+
+* Clean up of obsolete demos -
+[b16059f](https://github.com/PAIR-code/lit/commit/b16059fbd0320d411298009c0226489e1f548a69),
+[f4c0990](https://github.com/PAIR-code/lit/commit/f4c099082f0e89986aad162cc3cd0ac9bc2214c7),
+[6aa2eb6](https://github.com/PAIR-code/lit/commit/6aa2eb64eddb8ca154401bfd6a039762bc374d6d),
+[c2fb41b](https://github.com/PAIR-code/lit/commit/c2fb41b4945edb91fac973cf0ddbca48c6257511),
+[dd196e9](https://github.com/PAIR-code/lit/commit/dd196e941058a1d4246b3df3a3c37595f9791b18),
+[72fd772](https://github.com/PAIR-code/lit/commit/72fd772fa02c7445f27fb517e667987ea8ab34d7),
+[71d88fb](https://github.com/PAIR-code/lit/commit/71d88fb86eb88ffb80d665cf7571b21d7ae06bd2),
+[aa49340](https://github.com/PAIR-code/lit/commit/aa493409c454a2ed269fdedd15353404c14b4936),
+[fc7b0d0](https://github.com/PAIR-code/lit/commit/fc7b0d0624f6cc8e456ac0a1d75a4149927bef2f),
+[2475b3b](https://github.com/PAIR-code/lit/commit/2475b3bb677c8685ab9a291c490783ae2ccce5b8),
+[a59641c](https://github.com/PAIR-code/lit/commit/a59641c014b17409e8e5cfdac1cc1e6916d6da15),
+[1ed82d4](https://github.com/PAIR-code/lit/commit/1ed82d4e81ff6a6ff5146b6198e35444960d326b),
+[7d5ef58](https://github.com/PAIR-code/lit/commit/7d5ef5831427de71416c096a6dbcd46ea064457e),
+[992823b](https://github.com/PAIR-code/lit/commit/992823b027fca8c60edabe837248a508ac04da22),
+[3dad2b0](https://github.com/PAIR-code/lit/commit/3dad2b061b45cb44b1c3f9b9364660e907662069),
+[0656386](https://github.com/PAIR-code/lit/commit/0656386188d6e4b6c83dab58fb4e6569ebea217e),
+[27d7a84](https://github.com/PAIR-code/lit/commit/27d7a841cf6d514e67ebfb2af9f603398499f6e3),
+[8863019](https://github.com/PAIR-code/lit/commit/886301972ec1e7ed274040b46ec0e0c3f34c8ace),
+[71cbdba](https://github.com/PAIR-code/lit/commit/71cbdbaee0fee8e96f52cd4df7a269a0873b9259),
+[416d573](https://github.com/PAIR-code/lit/commit/416d573d79f84b9a6964d36e498b850a249ef452)
+
+* Python requirements update and isolated setup for individual demos -
+[bcc481e](https://github.com/PAIR-code/lit/commit/bcc481e44185d04268f5f8bb4ba762ec2cd35907),
+[bb29f43](https://github.com/PAIR-code/lit/commit/bb29f430ff7be55d74a82aec5dee1e54fa27bed0),
+[fbd8874](https://github.com/PAIR-code/lit/commit/fbd88746263fec0f72f2f01bcc382e88e902ab50),
+[b3c120b](https://github.com/PAIR-code/lit/commit/b3c120b22138fb03a712f11778197cf4966d0c3a),
+[5188c8c](https://github.com/PAIR-code/lit/commit/5188c8c835328efcc9dff5a0a4cf4cd79fabe099),
+[5639e3b](https://github.com/PAIR-code/lit/commit/5639e3b1b71b1c0ddf4a3c9e1bd25517fba18375)
+
+* Documentation cleanup and updates -
+[afd51fe](https://github.com/PAIR-code/lit/commit/afd51fe299c0070a19946a789984957f14a9b5bb),
+[7dda659](https://github.com/PAIR-code/lit/commit/7dda659bec4e933d187b0d7afc04d954ae262cc2),
+[79ada6e](https://github.com/PAIR-code/lit/commit/79ada6edf8b2e485ec6a6425d4c60720b4dab8d1),
+[1c8d6a0](https://github.com/PAIR-code/lit/commit/1c8d6a0269ce5637e05e79ae435f770e2a0da147),
+[2e9d267](https://github.com/PAIR-code/lit/commit/2e9d26738d9344cde0eebd66d49dfc14cd800e74)
+
+### Non-breaking Changes, Bug Fixes, and Enhancements
+* Refactor DataService reactions - [483082d](https://github.com/PAIR-code/lit/commit/483082dcb0beb39795c0fc093fe93036bb6a274c)
+* Add warm_start option to LitWidget - [a5265a4](https://github.com/PAIR-code/lit/commit/a5265a4feeb701b878986f79665d5fdf9ddc244c)
+* Pretty-printing of Model objects - [4fb3bde](https://github.com/PAIR-code/lit/commit/4fb3bde897c68fdeb3bd829f6e5a88223bc131a4)
+* Avoid equivalent shuffles in Scrambler - [0d8c0d9](https://github.com/PAIR-code/lit/commit/0d8c0d948480e0835fd3f451b95b7ec306b6409d)
+* Updated gunicorn config for demos running in Docker - [b14e3b1](https://github.com/PAIR-code/lit/commit/b14e3b1a81d7b6305063f778f46666a4d1326045)
+* Disable embeddings for TyDi - [7ff377f](https://github.com/PAIR-code/lit/commit/7ff377f92820748476e796994fd207e1b5dba1d9)
+* Cast embeddings to float32 before computing distances - [5456011](https://github.com/PAIR-code/lit/commit/5456011db8ead5d53db6f39bcdca3fc388802fbe)
+* Update colab examples to include installation of the lit-nlp package - [48b029c](https://github.com/PAIR-code/lit/commit/48b029c3a1a3f25d4d2611a9b0e94355d41078ef)
+
 ## Release 1.1.1
 
 This release covers various improvements for sequence salience, including new

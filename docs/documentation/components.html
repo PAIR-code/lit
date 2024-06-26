@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="LIT Python API" href="api.html" /><link rel="prev" title="UI Guide" href="ui_guide.html" />
 
-    <!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Components and Features - 🔥LIT 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=387cc868" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
     <link rel="stylesheet" type="text/css" href="_static/furo_custom.css?v=6173ce67" />
     
@@ -69,7 +69,7 @@
   <symbol id="svg-sun" viewBox="0 0 24 24">
     <title>Light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -84,7 +84,7 @@
   <symbol id="svg-moon" viewBox="0 0 24 24">
     <title>Dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
@@ -92,7 +92,7 @@
   <symbol id="svg-sun-half" viewBox="0 0 24 24">
     <title>Auto light/dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
       <circle cx="12" cy="12" r="9" />
       <path d="M13 12h5" />
@@ -100,60 +100,6 @@
       <path d="M13 18h1" />
       <path d="M13 9h4" />
       <path d="M13 6h1" />
-    </svg>
-  </symbol>
-  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
-    <title>Auto light/dark, in light mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
-      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
-      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
-      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
-      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
-      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
-      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
-      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
-      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
-      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
-      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
-      <circle cx="14.5" cy="9.55" r="3.6"/>
-    </svg>
-  </symbol>
-  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
-    <title>Auto light/dark, in dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
-      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
-      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
-      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
-      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
-      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
-      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
-      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
-      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
-      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
-      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
-      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
-    </svg>
-  </symbol>
-  <symbol id="svg-pencil" viewBox="0 0 24 24">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
-      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
-      <path d="M13.5 6.5l4 4" />
-      <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" /
-    </svg>
-  </symbol>
-  <symbol id="svg-eye" viewBox="0 0 24 24">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-      <path
-        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
-      <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
 </svg>
@@ -166,8 +112,6 @@
 <label class="overlay toc-overlay" for="__toc">
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
-
-<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
@@ -186,8 +130,7 @@
       <div class="theme-toggle-container theme-toggle-header">
         <button class="theme-toggle">
           <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
-          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
@@ -243,17 +186,11 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="view-this-page">
-  <a class="muted-link" href="_sources/components.md.txt" title="View this page">
-    <svg><use href="#svg-eye"></use></svg>
-    <span class="visually-hidden">View this page</span>
-  </a>
-</div>
+          
 <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
-              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
@@ -263,13 +200,13 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <article role="main" id="furo-main-content">
+        <article role="main">
           <section class="tex2jax_ignore mathjax_ignore" id="components-and-features">
-<h1>Components and Features<a class="headerlink" href="#components-and-features" title="Link to this heading">¶</a></h1>
-<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
+<h1>Components and Features<a class="headerlink" href="#components-and-features" title="Link to this heading">#</a></h1>
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-20' } *-->
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 <section id="framework-and-model-support">
-<h2>Framework and Model Support<a class="headerlink" href="#framework-and-model-support" title="Link to this heading">¶</a></h2>
+<h2>Framework and Model Support<a class="headerlink" href="#framework-and-model-support" title="Link to this heading">#</a></h2>
 <p>LIT is framework-agnostic and is compatible with any model that can be wrapped
 in a Python class for inference. In particular, we’ve tested with TF1.x, TF2,
 JAX, and PyTorch, as well as models that use custom C++ inference code (wrapped
@@ -282,7 +219,7 @@ as GPU memory). For working with very large models, also see the
 <a class="reference internal" href="api.html#adding-models-and-data"><span class="std std-ref">model and dataset classes</span></a>, but we also have
 out-of-the-box support for a few modeling frameworks, described below.</p>
 <section id="huggingface-transformers">
-<h3>HuggingFace Transformers<a class="headerlink" href="#huggingface-transformers" title="Link to this heading">¶</a></h3>
+<h3>HuggingFace Transformers<a class="headerlink" href="#huggingface-transformers" title="Link to this heading">#</a></h3>
 <p>Many of the
 <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/">open-source LIT examples</a> use
 HuggingFace Transformers via their TF2/Keras model classes. These give easy
@@ -293,7 +230,7 @@ LIT wrappers for these support many interpretability methods - such as
 working on academic projects.</p>
 </section>
 <section id="tf1-x-estimator">
-<h3>TF1.x Estimator<a class="headerlink" href="#tf1-x-estimator" title="Link to this heading">¶</a></h3>
+<h3>TF1.x Estimator<a class="headerlink" href="#tf1-x-estimator" title="Link to this heading">#</a></h3>
 <p>LIT supports Estimator and other TF1.x models, but the model wrappers can be
 more involved due to the need to explicitly manage the graph and sessions. (In
 particular: <code class="docutils literal notranslate"><span class="pre">Estimator.predict()</span></code> cannot be used because it reloads the model on
@@ -305,12 +242,13 @@ session, and load the model weights.</p></li>
 directly.</p></li>
 </ul>
 <p>Alternatively, you can export to a <code class="docutils literal notranslate"><span class="pre">SavedModel</span></code> and load this in an eager mode
-runtime. This leads to much simpler code, but may require changes to your
-<code class="docutils literal notranslate"><span class="pre">SavedModel</span></code> exporter in order to access model internals like embeddings,
-gradients, or attention.</p>
+runtime. This leads to much simpler code (see
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py?l=72&amp;amp;rcl=378713625">this example</a>),
+but may require changes to your <code class="docutils literal notranslate"><span class="pre">SavedModel</span></code> exporter in order to access model
+internals like embeddings, gradients, or attention.</p>
 </section>
 <section id="remote-or-hosted-models">
-<h3>Remote or hosted models<a class="headerlink" href="#remote-or-hosted-models" title="Link to this heading">¶</a></h3>
+<h3>Remote or hosted models<a class="headerlink" href="#remote-or-hosted-models" title="Link to this heading">#</a></h3>
 <p>LIT can easily interact with models hosted via an RPC or HTTP endpoint,
 including Servomatic. In this usage, the model weights and computation remain on
 the server, while the LIT <code class="docutils literal notranslate"><span class="pre">Model</span></code> implementation simply manages the RPC stub and
@@ -321,7 +259,7 @@ see <a class="reference external" href="https://github.com/PAIR-code/lit/blob/ma
 </ul>
 </section>
 <section id="static-predictions">
-<h3>Static predictions<a class="headerlink" href="#static-predictions" title="Link to this heading">¶</a></h3>
+<h3>Static predictions<a class="headerlink" href="#static-predictions" title="Link to this heading">#</a></h3>
 <p>LIT works best when the model can be queried interactively, but this isn’t
 always possible for all situations. The
 <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/static_preds.py"><code class="docutils literal notranslate"><span class="pre">StaticPredictions</span></code></a>
@@ -332,7 +270,7 @@ while still retaining access to LIT’s rich visualizations.</p>
 as LIME which involve querying the model on new examples.</p>
 </section>
 <section id="data-loading">
-<h3>Data loading<a class="headerlink" href="#data-loading" title="Link to this heading">¶</a></h3>
+<h3>Data loading<a class="headerlink" href="#data-loading" title="Link to this heading">#</a></h3>
 <p>LIT can load data from almost any format, including TFRecord, Capacitor,
 SSTable, or even SQL queries, via a custom Python class that implements the
 <a class="reference internal" href="api.html#datasets"><span class="std std-ref">Dataset API</span></a>. Many of our demos use TFDS, and the LIT loader
@@ -345,7 +283,7 @@ details.</p>
 </section>
 </section>
 <section id="input-and-output-types">
-<h2>Input and Output Types<a class="headerlink" href="#input-and-output-types" title="Link to this heading">¶</a></h2>
+<h2>Input and Output Types<a class="headerlink" href="#input-and-output-types" title="Link to this heading">#</a></h2>
 <p>LIT uses an extensible system of semantic types to describe data and models.
 This allows for flexible support of a number of different input and output
 modalities common to NLP and other domains. For a full reference, see the
@@ -359,11 +297,13 @@ some features (such as metrics and output visualizations) are specific to an
 output type, many LIT features - such as datapoint exploration, side-by-side
 functionality, and counterfactual generation - are available for any model.</p>
 <section id="classification">
-<h3>Classification<a class="headerlink" href="#classification" title="Link to this heading">¶</a></h3>
+<h3>Classification<a class="headerlink" href="#classification" title="Link to this heading">#</a></h3>
 <p>LIT supports many features for classification tasks, including common metrics,
 confusion matrices, and custom thresholding via the UI. Classification is
 implemented with the <code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code> and <code class="docutils literal notranslate"><span class="pre">CategoryLabel</span></code> types.</p>
 <ul class="simple">
+<li><p>For a basic example on a binary sentiment task, see
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/simple_tf2_demo.py">examples/simple_tf2_demo.py</a>.</p></li>
 <li><p>Models should define a <code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code> field in their output spec with the
 <code class="docutils literal notranslate"><span class="pre">vocab=</span></code> attribute as the set of class labels, and for each example should
 return a vector of probabilities for each class.</p></li>
@@ -373,7 +313,9 @@ field should set the <code class="docutils literal notranslate"><span class="pre
 <li><p>A negative class can be designated using the <code class="docutils literal notranslate"><span class="pre">null_idx</span></code> attribute of
 <code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code> (most commonly, <code class="docutils literal notranslate"><span class="pre">null_idx=0</span></code>), and metrics such as
 precision, recall, F1 will be computed for the remaining classes. AUC and
-AUCPR will be computed for binary classification tasks.</p></li>
+AUCPR will be computed for binary classification tasks. For an example, see
+the
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py?l=518&amp;amp;rcl=386779180">comment toxicity model</a>.</p></li>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">null_idx</span></code> is set and there is only one other class, the other class
 (often, class <code class="docutils literal notranslate"><span class="pre">1</span></code>) is treated as a positive class, and the LIT UI can be
 used to change the classification threshold. If <code class="docutils literal notranslate"><span class="pre">null_idx</span></code> is set and there
@@ -383,7 +325,7 @@ log space) for the negative class.</p></li>
 <p><a class="reference internal" href="_images/classification-results.png"><img alt="Classification Results Module" class="align-center" src="_images/classification-results.png" style="width: 600px;" /></a></p>
 </section>
 <section id="regression-scoring">
-<h3>Regression / Scoring<a class="headerlink" href="#regression-scoring" title="Link to this heading">¶</a></h3>
+<h3>Regression / Scoring<a class="headerlink" href="#regression-scoring" title="Link to this heading">#</a></h3>
 <p>Regression or scoring models also are well-supported with metrics, bucketed
 faceting, and scatterplots of scalar output. Regression is implemented with the
 <code class="docutils literal notranslate"><span class="pre">Scalar</span></code> (input) and <code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code> (output) types.</p>
@@ -394,15 +336,17 @@ each example should return a numerical score.</p></li>
 which contains numerical targets, and the model’s <code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code> field
 should set <code class="docutils literal notranslate"><span class="pre">parent=</span></code> to the name of this field.</p></li>
 <li><p>For an example, see the STS-B textual similarity task in
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py">examples/glue/demo.py</a>.</p></li>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py">examples/glue_demo.py</a>.</p></li>
 </ul>
 </section>
 <section id="multi-label-classification">
-<h3>Multi-label classification<a class="headerlink" href="#multi-label-classification" title="Link to this heading">¶</a></h3>
+<h3>Multi-label classification<a class="headerlink" href="#multi-label-classification" title="Link to this heading">#</a></h3>
 <p>LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 <code class="docutils literal notranslate"><span class="pre">SparseMultilabelPreds</span></code> and <code class="docutils literal notranslate"><span class="pre">SparseMultilabel</span></code> types.</p>
 <ul class="simple">
+<li><p>For a basic example on an image labeling task, see
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py">examples/image_demo.py</a>.</p></li>
 <li><p>Models should define a <code class="docutils literal notranslate"><span class="pre">SparseMultilabelPreds</span></code> field in their output spec
 with the<code class="docutils literal notranslate"><span class="pre">vocab=</span></code> attribute as the set of class labels, and for each example
 should return a list of class score tuples. Each tuple contains two
@@ -415,7 +359,7 @@ the name of this field.</p></li>
 </ul>
 </section>
 <section id="seq2seq-generation">
-<h3>Seq2Seq / Generation<a class="headerlink" href="#seq2seq-generation" title="Link to this heading">¶</a></h3>
+<h3>Seq2Seq / Generation<a class="headerlink" href="#seq2seq-generation" title="Link to this heading">#</a></h3>
 <p>LIT has a number of features for sequence generation models, though support is
 not quite as mature as for classification or regression. In particular, LIT can
 display single generations as well as scored candidates from beam search, and
@@ -434,11 +378,13 @@ accordingly.</p></li>
 the model can also output a <code class="docutils literal notranslate"><span class="pre">ReferenceScores</span></code> field (with values as
 <code class="docutils literal notranslate"><span class="pre">list[float]</span></code>) with <code class="docutils literal notranslate"><span class="pre">parent=</span></code> set to reference a <code class="docutils literal notranslate"><span class="pre">TextSegment</span></code> or
 <code class="docutils literal notranslate"><span class="pre">ReferenceTexts</span></code> field from the input.</p></li>
+<li><p>For modeling examples, see
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py">examples/models/t5.py</a></p></li>
 </ul>
 <p><a class="reference internal" href="_images/generation-results.png"><img alt="Generated Text Module" class="align-center" src="_images/generation-results.png" style="width: 600px;" /></a></p>
 </section>
 <section id="span-labeling-and-structured-prediction">
-<h3>Span Labeling and Structured Prediction<a class="headerlink" href="#span-labeling-and-structured-prediction" title="Link to this heading">¶</a></h3>
+<h3>Span Labeling and Structured Prediction<a class="headerlink" href="#span-labeling-and-structured-prediction" title="Link to this heading">#</a></h3>
 <p>LIT can support a variety of structured prediction types, and provides rich,
 interactive visualizations.</p>
 <ul class="simple">
@@ -458,7 +404,7 @@ SRL and dependency parsing that consist of relations between two spans.</p></li>
 <p><a class="reference internal" href="_images/structured-preds.png"><img alt="Structured Predictions Module" class="align-center" src="_images/structured-preds.png" style="width: 400px;" /></a></p>
 </section>
 <section id="multiple-input-segments">
-<h3>Multiple input segments<a class="headerlink" href="#multiple-input-segments" title="Link to this heading">¶</a></h3>
+<h3>Multiple input segments<a class="headerlink" href="#multiple-input-segments" title="Link to this heading">#</a></h3>
 <p>LIT can easily handle multiple text fields, or a mix of text, categorical,
 scalar, and other input features. LIT does not explicitly “privilege” one input
 field, and metadata in the model spec can be used to align gradients, attention,
@@ -468,11 +414,11 @@ and otherwise to different parts of the input.</p>
 <a class="reference internal" href="api.html#datasets"><span class="std std-ref">Dataset class documentation</span></a> and the corresponding
 <a class="reference internal" href="api.html#models"><span class="std std-ref">Model</span></a>.</p></li>
 <li><p>For a more involved code example including per-token gradients, see
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py">examples/glue/demo.py</a>.</p></li>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py">examples/glue_demo.py</a>.</p></li>
 </ul>
 </section>
 <section id="tabular-data">
-<h3>Tabular data<a class="headerlink" href="#tabular-data" title="Link to this heading">¶</a></h3>
+<h3>Tabular data<a class="headerlink" href="#tabular-data" title="Link to this heading">#</a></h3>
 <p>LIT can be used as a replacement for the <a class="reference external" href="https://whatif-tool.dev">What-If Tool</a>
 but with more extensibility, when working with predictions over tabular data.</p>
 <p>Some interpreters, such as Kernel SHAP, require models that use tabular data. In
@@ -486,10 +432,10 @@ regression (<code class="docutils literal notranslate"><span class="pre">Regress
 (<code class="docutils literal notranslate"><span class="pre">SparseMultilabel</span></code>) field.</p></li>
 </ul>
 <p>For a demo using a penguin stats dataset/binary classification task, see
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py">examples/penguin/demo.py</a>.</p>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py">examples/penguin_demo.py</a>.</p>
 </section>
 <section id="images">
-<h3>Images<a class="headerlink" href="#images" title="Link to this heading">¶</a></h3>
+<h3>Images<a class="headerlink" href="#images" title="Link to this heading">#</a></h3>
 <p>LIT also contains support for models with images as input features or generated
 images as model output. The LIT type <code class="docutils literal notranslate"><span class="pre">ImageBytes</span></code> can be used as a feature in
 datasets and as part of an input spec or output spec for a model. That feature’s
@@ -497,10 +443,17 @@ value must be a base64 encoded string for an image.</p>
 <p>NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don’t break existing checked-in code with
 such a change.</p>
+<ul class="simple">
+<li><p>See <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/open_images.py">examples/datasets/open_images.py</a> for a
+dataset containing images, including converting images to base64 encoded
+strings.</p></li>
+<li><p>For a demo of an image classifier, see
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py">examples/image_demo.py</a>.</p></li>
+</ul>
 </section>
 </section>
 <section id="token-based-salience">
-<h2>Token-based Salience<a class="headerlink" href="#token-based-salience" title="Link to this heading">¶</a></h2>
+<h2>Token-based Salience<a class="headerlink" href="#token-based-salience" title="Link to this heading">#</a></h2>
 <p>LIT supports several methods for token-based input salience, including
 gradient-based methods as well as black-box techniques like LIME that don’t
 require any access to model internals. Output is rendered in the Salience Maps
@@ -512,7 +465,7 @@ module in the LIT UI, which allows for comparison of multiple methods at once:</
 regression (<code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) and generation (<code class="docutils literal notranslate"><span class="pre">GeneratedText</span></code> or
 <code class="docutils literal notranslate"><span class="pre">GeneratedTextCandidates</span></code>) outputs.</p>
 <section id="gradient-norm">
-<h3>Gradient Norm<a class="headerlink" href="#gradient-norm" title="Link to this heading">¶</a></h3>
+<h3>Gradient Norm<a class="headerlink" href="#gradient-norm" title="Link to this heading">#</a></h3>
 <p>This is a simple method, in which salience scores are proportional to the L2
 norm of the gradient, i.e. the score for token <span class="math notranslate nohighlight">\(i\)</span> is:</p>
 <div class="math-wrapper docutils container">
@@ -537,7 +490,7 @@ the raw score and for classification this is the score of the predicted (argmax)
 class.</p>
 </section>
 <section id="gradient-dot-input">
-<h3>Gradient-dot-Input<a class="headerlink" href="#gradient-dot-input" title="Link to this heading">¶</a></h3>
+<h3>Gradient-dot-Input<a class="headerlink" href="#gradient-dot-input" title="Link to this heading">#</a></h3>
 <p>In this method, salience scores are proportional to the dot product of the input
 embeddings and their gradients, i.e. for token <span class="math notranslate nohighlight">\(i\)</span> we compute:</p>
 <div class="math-wrapper docutils container">
@@ -546,8 +499,8 @@ embeddings and their gradients, i.e. for token <span class="math notranslate noh
 </div>
 <p>Compared to grad-norm, this gives directional scores: a positive score is can be
 interpreted as that token having a positive influence on the prediction
-<span class="math notranslate nohighlight">\(\hat{y}\)</span>, while a negative score suggests that the prediction would be
-stronger if that token was removed.</p>
+<span class="math notranslate nohighlight">\(\hat{y}\)</span>, while a negative score suggests that the prediction would be stronger
+if that token was removed.</p>
 <p>To enable this method, your model should, as part of the
 <a class="reference internal" href="api.html#models"><span class="std std-ref">output spec and <code class="docutils literal notranslate"><span class="pre">predict()</span></code> implementation</span></a>:</p>
 <ul class="simple">
@@ -567,7 +520,7 @@ arrays. The LIT <code class="docutils literal notranslate"><span class="pre">Gra
 appropriate normalization.</p>
 </section>
 <section id="integrated-gradients">
-<h3>Integrated Gradients<a class="headerlink" href="#integrated-gradients" title="Link to this heading">¶</a></h3>
+<h3>Integrated Gradients<a class="headerlink" href="#integrated-gradients" title="Link to this heading">#</a></h3>
 <p>Integrated gradients is a more robust method for estimating feature
 contribution, based on integrating a gradients along a path in embedding space.
 See <a class="reference external" href="https://arxiv.org/abs/1703.01365">Sundararajan et al. 2017</a> for additional
@@ -606,11 +559,11 @@ feed in the interpolated inputs as arrays of shape <code class="docutils literal
 </div>
 <p>For a more concrete example that also supports multiple segments with separate
 gradients, see our
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py">BERT classifier demo model</a>,
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py">BERT classifier demo model</a>,
 or contact the LIT team for assistance.</p>
 </section>
 <section id="lime">
-<h3>LIME<a class="headerlink" href="#lime" title="Link to this heading">¶</a></h3>
+<h3>LIME<a class="headerlink" href="#lime" title="Link to this heading">#</a></h3>
 <p><a class="reference external" href="https://arxiv.org/abs/1602.04938">LIME</a> is a black-box salience method that
 does not require access to any model internals. It works by generating a set of
 perturbed inputs - generally, by dropping out or masking tokens - and training a
@@ -625,7 +578,7 @@ can increase the number of samples:</p>
 regression/scoring (<code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) model.</p>
 </section>
 <section id="target-selection-on-classification-output">
-<h3>Target Selection on Classification Output<a class="headerlink" href="#target-selection-on-classification-output" title="Link to this heading">¶</a></h3>
+<h3>Target Selection on Classification Output<a class="headerlink" href="#target-selection-on-classification-output" title="Link to this heading">#</a></h3>
 <p>For all salience methods, we require that the class to explain is given as a
 label field in the input. For example, if the input example is:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;this movie was terrible!&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;0&quot;</span><span class="p">}</span>
@@ -662,7 +615,7 @@ recognize and use as the target to derive gradients.</p>
 </section>
 </section>
 <section id="sequence-salience">
-<h2>Sequence Salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">¶</a></h2>
+<h2>Sequence Salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">#</a></h2>
 <p>Sequence salience generalizes token-based salience to text-to-text models,
 allowing you to explain the impact of the prompt tokens on parts of the model
 output.</p>
@@ -672,7 +625,7 @@ left-to-right (“causal”) language models:</p>
 <p><a class="reference internal" href="_images/sequence-salience-2.png"><img alt="Sequence salience - visualization" class="align-center" src="_images/sequence-salience-2.png" style="width: 650px;" /></a></p>
 <p>The UI supports multiple options for analysis, including:</p>
 <ul class="simple">
-<li><p>Select from predefined target sequences, or explain generations from the
+<li><p>Select from pre-defined target sequences, or explain generations from the
 model.</p></li>
 <li><p>Different salience methods, including <a class="reference internal" href="#gradient-norm">Gradient Norm</a> and
 <a class="reference internal" href="#gradient-dot-input">Gradient-dot-Input</a>.</p></li>
@@ -680,7 +633,7 @@ model.</p></li>
 to words, sentences, lines, or paragraphs. Quickly switch between different
 views to refine your analysis to different parts of a prompt.</p></li>
 <li><p>Display density options to enable working with longer sequences, such as
-document text, few-shot examples, or chain-of-thought prompts.</p></li>
+document text, few-shot eaxmples, or chain-of-thought prompts.</p></li>
 </ul>
 <p>For a walkthrough of how to use sequence salience to debug LLMs, check out the
 Responsible Generative AI Toolkit at
@@ -702,15 +655,15 @@ using either KerasNLP or Transformers.</p>
 <li><p>LIT-for-Gemma Colab:
 <a class="reference external" href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb"><code class="docutils literal notranslate"><span class="pre">lit_gemma.ipynb</span></code></a></p></li>
 <li><p>Demo binary:
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py">https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py</a></p></li>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_salience_demo.py</span></code></a></p></li>
 <li><p>KerasNLP model wrappers:
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py">https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py</a></p></li>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py"><code class="docutils literal notranslate"><span class="pre">instrumented_keras_lms.py</span></code></a></p></li>
 <li><p>Transformers model wrappers:
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py">https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py</a></p></li>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py"><code class="docutils literal notranslate"><span class="pre">pretrained_lms.py</span></code></a></p></li>
 </ul>
 </section>
 <section id="salience-clustering">
-<h2>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">¶</a></h2>
+<h2>Salience Clustering<a class="headerlink" href="#salience-clustering" title="Link to this heading">#</a></h2>
 <p>LIT includes a basic implementation of the salience clustering method from
 <a class="reference external" href="https://arxiv.org/abs/2211.05485">Ebert et al. 2022</a>, which uses k-means on a
 salience-weighted bag-of-words representation to find patterns in model
@@ -723,7 +676,7 @@ top tokens for each cluster, as in Table 6 of
 <a class="reference external" href="https://arxiv.org/pdf/2211.05485.pdf">the paper</a>.</p>
 </section>
 <section id="tabular-feature-attribution">
-<h2>Tabular Feature Attribution<a class="headerlink" href="#tabular-feature-attribution" title="Link to this heading">¶</a></h2>
+<h2>Tabular Feature Attribution<a class="headerlink" href="#tabular-feature-attribution" title="Link to this heading">#</a></h2>
 <p>Tabular feature attribution seeks to understand the importance of a column of
 data on a model’s predictions. LIT’s tabular feature attribution module supports
 this analysis using the <a class="reference external" href="https://github.com/slundberg/shap">SHAP interpreter</a>.
@@ -734,7 +687,7 @@ learn more about how to use this module to analyze feature importance in the
 <p><a class="reference internal" href="_images/tabular-feature-attribution.png"><img alt="Tabular feature attribution module module" class="align-center" src="_images/tabular-feature-attribution.png" style="width: 500px;" /></a></p>
 </section>
 <section id="pixel-based-salience">
-<h2>Pixel-based Salience<a class="headerlink" href="#pixel-based-salience" title="Link to this heading">¶</a></h2>
+<h2>Pixel-based Salience<a class="headerlink" href="#pixel-based-salience" title="Link to this heading">#</a></h2>
 <p>LIT also supports pixel-based salience methods, for models that take images as
 inputs. Output is rendered in the Salience Maps module in the LIT UI, which
 allows for comparison of multiple methods at once.</p>
@@ -754,7 +707,9 @@ field (as <code class="docutils literal notranslate"><span class="pre">&lt;float
 the gradients with respect to each pixel in each color channel in the 2D
 input image.</p>
 <p>The model should be able to accept input images as numpy arrays in addition
-to accepting base64 URL encoded format.</p>
+to accepting base64 URL encoded format. See
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/mobilenet.py">mobilenet.py</a>
+for an example.</p>
 </li>
 </ul>
 <p>A variety of image saliency techniques are implemented for models that return
@@ -765,8 +720,33 @@ and XRAI.</p>
 <p>Each of these techniques returns a saliency map image as a base64-encoded string
 through the <code class="docutils literal notranslate"><span class="pre">ImageSalience</span></code> type.</p>
 </section>
+<section id="attention">
+<h2>Attention<a class="headerlink" href="#attention" title="Link to this heading">#</a></h2>
+<p>LIT can display a visualization of attention heads from transformers and other
+models:</p>
+<p><a class="reference internal" href="_images/attention.png"><img alt="Attention Visualization" class="align-center" src="_images/attention.png" style="width: 400px;" /></a></p>
+<p>To enable this, your model should return one or more fields of the type
+<code class="docutils literal notranslate"><span class="pre">AttentionHeads</span></code>, with values as arrays of shape <code class="docutils literal notranslate"><span class="pre">&lt;float&gt;[num_heads,</span> <span class="pre">num_tokens,</span> <span class="pre">num_tokens]</span></code>. Each field represents a set of heads at a single layer of the
+model, so models will often have more than one:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>   <span class="k">def</span> <span class="nf">output_spec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">types</span><span class="o">.</span><span class="n">Spec</span><span class="p">:</span>
+     <span class="k">return</span> <span class="p">{</span>
+         <span class="c1"># ...</span>
+         <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">Tokens</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="s2">&quot;input_text&quot;</span><span class="p">),</span>
+         <span class="s2">&quot;layer_0/attention&quot;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">AttentionHeads</span><span class="p">(</span><span class="n">align_in</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">,</span> <span class="n">align_out</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">),</span>
+         <span class="s2">&quot;layer_1/attention&quot;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">AttentionHeads</span><span class="p">(</span><span class="n">align_in</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">,</span> <span class="n">align_out</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">),</span>
+         <span class="s2">&quot;layer_2/attention&quot;</span><span class="p">:</span> <span class="n">lit_types</span><span class="o">.</span><span class="n">AttentionHeads</span><span class="p">(</span><span class="n">align_in</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">,</span> <span class="n">align_out</span><span class="o">=</span><span class="s2">&quot;tokens&quot;</span><span class="p">),</span>
+         <span class="c1"># ...</span>
+     <span class="p">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">align_in</span></code> and <code class="docutils literal notranslate"><span class="pre">align_out</span></code> attributes are the names of <code class="docutils literal notranslate"><span class="pre">Tokens</span></code> fields for
+the source and target tokens for that layer. For self-attention (such as in
+BERT) these would name the same field, but for encoder-decoder attention they
+could reference different token sets (such as “input_tokens” and
+“target_tokens”).</p>
+</section>
 <section id="embedding-projector">
-<h2>Embedding Projector<a class="headerlink" href="#embedding-projector" title="Link to this heading">¶</a></h2>
+<h2>Embedding Projector<a class="headerlink" href="#embedding-projector" title="Link to this heading">#</a></h2>
 <p>LIT includes a version of the
 <a class="reference external" href="https://projector.tensorflow.org/">embedding projector</a> which can be used to
 visualize the latent space of your model, in order to find clusters or patterns
@@ -782,16 +762,16 @@ label, the model’s predictions, or another categorical feature from the input.
 <code class="docutils literal notranslate"><span class="pre">&lt;float&gt;[emb_dim]</span></code> for each example.</p>
 </section>
 <section id="aggregate-analysis">
-<h2>Aggregate Analysis<a class="headerlink" href="#aggregate-analysis" title="Link to this heading">¶</a></h2>
+<h2>Aggregate Analysis<a class="headerlink" href="#aggregate-analysis" title="Link to this heading">#</a></h2>
 <section id="metrics">
-<h3>Metrics<a class="headerlink" href="#metrics" title="Link to this heading">¶</a></h3>
+<h3>Metrics<a class="headerlink" href="#metrics" title="Link to this heading">#</a></h3>
 <p>LIT includes common metrics for classification, regression, and seq2seq (BLEU)
 by default, which will appear in the table when the appropriate types are
 present in the model output and input data. Metrics can be computed on the whole
 dataset, a selected subset, or on facets defined by particular features. For
 example, we could facet by class label:</p>
 <p><img alt="Metrics Table" src="_images/metrics-table.png" /></p>
-<p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the “Metrics” tab.</p>
+<p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the “Performance” tab.</p>
 <p>To enable metrics, your model should set the <code class="docutils literal notranslate"><span class="pre">parent</span></code> attribute on one or more
 output fields, pointing to the name of the input field that it should be
 evaluated against. For example, for classification, the data spec might have:</p>
@@ -816,19 +796,19 @@ evaluated against. For example, for classification, the data spec might have:</p
 <a class="reference internal" href="api.html#metrics"><span class="std std-ref">API documentation</span></a> for more.</p>
 </section>
 <section id="confusion-matrix">
-<h3>Confusion Matrix<a class="headerlink" href="#confusion-matrix" title="Link to this heading">¶</a></h3>
+<h3>Confusion Matrix<a class="headerlink" href="#confusion-matrix" title="Link to this heading">#</a></h3>
 <p>LIT includes a powerful and flexible confusion matrix, which can be used to
 compare predictions to gold labels as well as to compare between two models or
 between different categorical features. You can click cells or row/column
 headers to select a subset of examples, which is useful for intersectional
 analysis.</p>
 <p><a class="reference internal" href="_images/confusion-matrix.png"><img alt="Confusion Matrix" class="align-center" src="_images/confusion-matrix.png" style="width: 600px;" /></a></p>
-<p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the “Metrics” tab.</p>
+<p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the “Performance” tab.</p>
 <p>The confusion matrix is supported for classification models, or if the input
 data includes any categorical features (<code class="docutils literal notranslate"><span class="pre">CategoryLabel</span></code>).</p>
 </section>
 <section id="scalar-plots">
-<h3>Scalar Plots<a class="headerlink" href="#scalar-plots" title="Link to this heading">¶</a></h3>
+<h3>Scalar Plots<a class="headerlink" href="#scalar-plots" title="Link to this heading">#</a></h3>
 <p>LIT includes scatterplots for scalar features, including plain scalars (<code class="docutils literal notranslate"><span class="pre">Scalar</span></code>
 or <code class="docutils literal notranslate"><span class="pre">RegressionScore</span></code>) as well as per-class probabilities from classification
 output (<code class="docutils literal notranslate"><span class="pre">MulticlassPreds</span></code>).</p>
@@ -840,7 +820,7 @@ color points by categorical features or the model’s predicted class.</p>
 <p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/glue.html">https://pair-code.github.io/lit/demos/glue.html</a> and navigate to the “Predictions” tab.</p>
 </section>
 <section id="binary-classification-thresholds">
-<h3>Binary Classification Thresholds<a class="headerlink" href="#binary-classification-thresholds" title="Link to this heading">¶</a></h3>
+<h3>Binary Classification Thresholds<a class="headerlink" href="#binary-classification-thresholds" title="Link to this heading">#</a></h3>
 <p>For binary classification models, LIT contains a module for setting
 classification thresholds, which determine at what score for the positive class
 the model determines that an example should be classified as belonging to the
@@ -876,7 +856,7 @@ truth label.</p>
 <p><img alt="Binary Classifier Thresholds Module" src="_images/lit-thresholder.png" /></p>
 </section>
 <section id="partial-dependence-plots">
-<h3>Partial Dependence Plots<a class="headerlink" href="#partial-dependence-plots" title="Link to this heading">¶</a></h3>
+<h3>Partial Dependence Plots<a class="headerlink" href="#partial-dependence-plots" title="Link to this heading">#</a></h3>
 <p>For classification or regression models with <code class="docutils literal notranslate"><span class="pre">CategoryLabel</span></code> or <code class="docutils literal notranslate"><span class="pre">Scalar</span></code> input
 features, the Partial Dependence Plots module shows plots indicating the effect
 that changing those individual features has on model output.</p>
@@ -894,10 +874,9 @@ effect of that feature on model output, given the datapoints chosen.</p>
 <p>If no datapoints are selected, then the calculations are done across all
 datapoints, giving a global view of feature effects.</p>
 <p><a class="reference internal" href="_images/lit-pdps.png"><img alt="Partial Dependence Plots Module" class="align-center" src="_images/lit-pdps.png" style="width: 400px;" /></a></p>
-<p>To try this out, see <a class="reference external" href="https://pair-code.github.io/lit/demos/penguins.html">https://pair-code.github.io/lit/demos/penguins.html</a> and navigate to the “Predictions” tab.</p>
 </section>
 <section id="dive">
-<h3>Dive<a class="headerlink" href="#dive" title="Link to this heading">¶</a></h3>
+<h3>Dive<a class="headerlink" href="#dive" title="Link to this heading">#</a></h3>
 <p>Dive is a visualization module, inspired by our prior work on
 <a class="reference external" href="https://pair-code.github.io/facets/">Facets Dive</a> and its use in the
 <a class="reference external" href="https://pair-code.github.io/what-if-tool/">What-If Tool</a>, that enables
@@ -921,7 +900,7 @@ be supported in other demos in future releases.</p>
 </section>
 </section>
 <section id="tcav">
-<h2>TCAV<a class="headerlink" href="#tcav" title="Link to this heading">¶</a></h2>
+<h2>TCAV<a class="headerlink" href="#tcav" title="Link to this heading">#</a></h2>
 <p>Many interpretability methods provide importance values per input feature (e.g,
 token). By contrast, <a class="reference external" href="https://arxiv.org/abs/1711.11279">TCAV</a> shows the
 importance of high-level concepts (e.g., color, gender, race) for a prediction
@@ -939,7 +918,7 @@ TCAV, your model should return one or more example-level Embeddings fields for a
 layer, the predicted class, and the corresponding gradient values for that layer
 and class.</p>
 <section id="example">
-<h3>Example<a class="headerlink" href="#example" title="Link to this heading">¶</a></h3>
+<h3>Example<a class="headerlink" href="#example" title="Link to this heading">#</a></h3>
 <p>1.) To use TCAV, begin by creating one or more ‘concept’ slices.</p>
 <p>Every dataset/model is different, but for images, as low as 15 data points are
 shown to be sufficient. Start by adding at least 3 data points and add more as
@@ -965,7 +944,7 @@ baseline represents ‘null hypothesis’, calculated with random concepts.)</p>
 <p><a class="reference internal" href="_images/tcav-results-table.png"><img alt="TCAV2" class="align-center" src="_images/tcav-results-table.png" style="width: 800px;" /></a></p>
 </section>
 <section id="statistical-significance">
-<h3>Statistical Significance<a class="headerlink" href="#statistical-significance" title="Link to this heading">¶</a></h3>
+<h3>Statistical Significance<a class="headerlink" href="#statistical-significance" title="Link to this heading">#</a></h3>
 <p>One of the pitfalls with the TCAV method is the potential generating meaningless
 CAVs, since any randomly chosen set of images will still produce a CAV (even if
 it is not meaningful).</p>
@@ -989,13 +968,13 @@ min(concept set length, negative set length), and return the result without
 statistical testing (which is indicated in the UI).</p>
 </section>
 <section id="sorting-by-cosine-similarity">
-<h3>Sorting by Cosine Similarity<a class="headerlink" href="#sorting-by-cosine-similarity" title="Link to this heading">¶</a></h3>
+<h3>Sorting by Cosine Similarity<a class="headerlink" href="#sorting-by-cosine-similarity" title="Link to this heading">#</a></h3>
 <p>The option to sort examples by cosine similarity to a CAV will be available in
 an upcoming release.</p>
 </section>
 </section>
 <section id="counterfactual-analysis">
-<h2>Counterfactual Analysis<a class="headerlink" href="#counterfactual-analysis" title="Link to this heading">¶</a></h2>
+<h2>Counterfactual Analysis<a class="headerlink" href="#counterfactual-analysis" title="Link to this heading">#</a></h2>
 <p>While aggregate metrics can give a picture of overall behavior, and salience
 maps can give quick insight into a model’s local behavior, many questions about
 model behavior are best answered in a counterfactual setting: “How does my model
@@ -1006,7 +985,7 @@ adversarial attack - is applied to the whole dataset. LIT includes features to
 explore this, both through manual edits and through automatic “generator”
 components.</p>
 <section id="manual-editing">
-<h3>Manual Editing<a class="headerlink" href="#manual-editing" title="Link to this heading">¶</a></h3>
+<h3>Manual Editing<a class="headerlink" href="#manual-editing" title="Link to this heading">#</a></h3>
 <p>Examples can be edited manually in the Datapoint Editor module:</p>
 <p><a class="reference internal" href="_images/manual-edit.png"><img alt="Manual Edit in the Datapoint Editor" class="align-center" src="_images/manual-edit.png" style="width: 400px;" /></a></p>
 <p>The “Add and Compare” button can be used to enter comparison mode, which will
@@ -1020,7 +999,7 @@ controls to cycle through the available (original, edited) examples:</p>
 <p><a class="reference internal" href="_images/pair-selection.png"><img alt="Pair Selection Controls" class="align-center" src="_images/pair-selection.png" style="width: 700px;" /></a></p>
 </section>
 <section id="generators">
-<h3>Generators<a class="headerlink" href="#generators" title="Link to this heading">¶</a></h3>
+<h3>Generators<a class="headerlink" href="#generators" title="Link to this heading">#</a></h3>
 <p>The <strong>Generator Module</strong> supports automatic generation of counterfactuals
 through a variety of plug-in components:</p>
 <p><img alt="Generator Module" src="_images/generator-module.png" /></p>
@@ -1143,6 +1122,7 @@ classification or regression model.</p></li>
 <li><a class="reference internal" href="#salience-clustering">Salience Clustering</a></li>
 <li><a class="reference internal" href="#tabular-feature-attribution">Tabular Feature Attribution</a></li>
 <li><a class="reference internal" href="#pixel-based-salience">Pixel-based Salience</a></li>
+<li><a class="reference internal" href="#attention">Attention</a></li>
 <li><a class="reference internal" href="#embedding-projector">Embedding Projector</a></li>
 <li><a class="reference internal" href="#aggregate-analysis">Aggregate Analysis</a><ul>
 <li><a class="reference internal" href="#metrics">Metrics</a></li>
@@ -1176,9 +1156,9 @@ classification or regression model.</p></li>
     </aside>
   </div>
 </div><script src="_static/documentation_options.js?v=f2a433a1"></script>
-    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
     <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     </body>

@@ -1,6 +1,6 @@
 # Components and Features
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-02-20' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -44,9 +44,10 @@ every invocation.) Generally, you'll need to:
     directly.
 
 Alternatively, you can export to a `SavedModel` and load this in an eager mode
-runtime. This leads to much simpler code, but may require changes to your
-`SavedModel` exporter in order to access model internals like embeddings,
-gradients, or attention.
+runtime. This leads to much simpler code (see
+[this example](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py?l=72&rcl=378713625)),
+but may require changes to your `SavedModel` exporter in order to access model
+internals like embeddings, gradients, or attention.
 
 ### Remote or hosted models
 
@@ -104,6 +105,8 @@ LIT supports many features for classification tasks, including common metrics,
 confusion matrices, and custom thresholding via the UI. Classification is
 implemented with the `MulticlassPreds` and `CategoryLabel` types.
 
+*   For a basic example on a binary sentiment task, see
+    [examples/simple_tf2_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/simple_tf2_demo.py).
 *   Models should define a `MulticlassPreds` field in their output spec with the
     `vocab=` attribute as the set of class labels, and for each example should
     return a vector of probabilities for each class.
@@ -113,7 +116,9 @@ implemented with the `MulticlassPreds` and `CategoryLabel` types.
 *   A negative class can be designated using the `null_idx` attribute of
     `MulticlassPreds` (most commonly, `null_idx=0`), and metrics such as
     precision, recall, F1 will be computed for the remaining classes. AUC and
-    AUCPR will be computed for binary classification tasks.
+    AUCPR will be computed for binary classification tasks. For an example, see
+    the
+    [comment toxicity model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py?l=518&rcl=386779180).
 *   If `null_idx` is set and there is only one other class, the other class
     (often, class `1`) is treated as a positive class, and the LIT UI can be
     used to change the classification threshold. If `null_idx` is set and there
@@ -134,7 +139,7 @@ faceting, and scatterplots of scalar output. Regression is implemented with the
     which contains numerical targets, and the model's `RegressionScore` field
     should set `parent=` to the name of this field.
 *   For an example, see the STS-B textual similarity task in
-    [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
+    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
 
 ### Multi-label classification
 
@@ -142,6 +147,8 @@ LIT supports multi-label tasks, when a model can label a single example with
 more than one label. Multi-label classification is implemented with the
 `SparseMultilabelPreds` and `SparseMultilabel` types.
 
+*   For a basic example on an image labeling task, see
+    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
 *   Models should define a `SparseMultilabelPreds` field in their output spec
     with the`vocab=` attribute as the set of class labels, and for each example
     should return a list of class score tuples. Each tuple contains two
@@ -172,6 +179,8 @@ or decoder.
     the model can also output a `ReferenceScores` field (with values as
     `list[float]`) with `parent=` set to reference a `TextSegment` or
     `ReferenceTexts` field from the input.
+*   For modeling examples, see
+    [examples/models/t5.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/t5.py)
 
 ![Generated Text Module](images/components/generation-results.png){w=600px align=center}
 
@@ -206,7 +215,7 @@ and otherwise to different parts of the input.
     [Dataset class documentation](./api.md#datasets) and the corresponding
     [Model](./api.md#models).
 *   For a more involved code example including per-token gradients, see
-    [examples/glue/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
+    [examples/glue_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py).
 
 ### Tabular data
 
@@ -224,7 +233,7 @@ these cases, LIT validates model compatibility by checking that:
     (`SparseMultilabel`) field.
 
 For a demo using a penguin stats dataset/binary classification task, see
-[examples/penguin/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py).
+[examples/penguin_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py).
 
 ### Images
 
@@ -236,6 +245,12 @@ value must be a base64 encoded string for an image.
 NOTE: We may transition images away from encoded strings, moving to individual
 pixel color values. We will ensure we don't break existing checked-in code with
 such a change.
+
+*   See [examples/datasets/open_images.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/open_images.py) for a
+    dataset containing images, including converting images to base64 encoded
+    strings.
+*   For a demo of an image classifier, see
+    [examples/image_demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py).
 
 ## Token-based Salience
 
@@ -286,8 +301,8 @@ $$S(i) \propto x_i \cdot \nabla_{x_i} \hat{y}$$
 
 Compared to grad-norm, this gives directional scores: a positive score is can be
 interpreted as that token having a positive influence on the prediction
-$\hat{y}$, while a negative score suggests that the prediction would be
-stronger if that token was removed.
+$\hat{y}$, while a negative score suggests that the prediction would be stronger
+if that token was removed.
 
 To enable this method, your model should, as part of the
 [output spec and `predict()` implementation](./api.md#models):
@@ -351,7 +366,7 @@ An example spec would look like:
 
 For a more concrete example that also supports multiple segments with separate
 gradients, see our
-[BERT classifier demo model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py),
+[BERT classifier demo model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py),
 or contact the LIT team for assistance.
 
 ### LIME
@@ -433,7 +448,7 @@ left-to-right ("causal") language models:
 
 The UI supports multiple options for analysis, including:
 
-*   Select from predefined target sequences, or explain generations from the
+*   Select from pre-defined target sequences, or explain generations from the
     model.
 *   Different salience methods, including [Gradient Norm](#gradient-norm) and
     [Gradient-dot-Input](#gradient-dot-input).
@@ -441,7 +456,7 @@ The UI supports multiple options for analysis, including:
     to words, sentences, lines, or paragraphs. Quickly switch between different
     views to refine your analysis to different parts of a prompt.
 *   Display density options to enable working with longer sequences, such as
-    document text, few-shot examples, or chain-of-thought prompts.
+    document text, few-shot eaxmples, or chain-of-thought prompts.
 
 For a walkthrough of how to use sequence salience to debug LLMs, check out the
 Responsible Generative AI Toolkit at
@@ -467,11 +482,13 @@ using either KerasNLP or Transformers.
 *   LIT-for-Gemma Colab:
     [`lit_gemma.ipynb`](https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb)
 *   Demo binary:
-    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py
+    [`lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
 *   KerasNLP model wrappers:
-    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
+    [`instrumented_keras_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py)
 *   Transformers model wrappers:
-    https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
+    [`pretrained_lms.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+
+
 
 ## Salience Clustering
 
@@ -523,7 +540,9 @@ your model should, as part of the
     input image.
 
     The model should be able to accept input images as numpy arrays in addition
-    to accepting base64 URL encoded format.
+    to accepting base64 URL encoded format. See
+    [mobilenet.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/mobilenet.py)
+    for an example.
 
 A variety of image saliency techniques are implemented for models that return
 image gradients, through use of the
@@ -533,6 +552,36 @@ and XRAI.
 
 Each of these techniques returns a saliency map image as a base64-encoded string
 through the `ImageSalience` type.
+
+## Attention
+
+LIT can display a visualization of attention heads from transformers and other
+models:
+
+![Attention Visualization](./images/components/attention.png){w=400px align=center}
+
+To enable this, your model should return one or more fields of the type
+`AttentionHeads`, with values as arrays of shape `<float>[num_heads, num_tokens,
+num_tokens]`. Each field represents a set of heads at a single layer of the
+model, so models will often have more than one:
+
+```python
+   def output_spec(self) -> types.Spec:
+     return {
+         # ...
+         "tokens": lit_types.Tokens(parent="input_text"),
+         "layer_0/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
+         "layer_1/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
+         "layer_2/attention": lit_types.AttentionHeads(align_in="tokens", align_out="tokens"),
+         # ...
+     }
+```
+
+The `align_in` and `align_out` attributes are the names of `Tokens` fields for
+the source and target tokens for that layer. For self-attention (such as in
+BERT) these would name the same field, but for encoder-decoder attention they
+could reference different token sets (such as "input_tokens" and
+"target_tokens").
 
 ## Embedding Projector
 
@@ -565,7 +614,7 @@ example, we could facet by class label:
 
 ![Metrics Table](./images/components/metrics-table.png)
 
-To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Metrics" tab.
+To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
 
 To enable metrics, your model should set the `parent` attribute on one or more
 output fields, pointing to the name of the input field that it should be
@@ -604,7 +653,7 @@ analysis.
 
 ![Confusion Matrix](./images/components/confusion-matrix.png){w=600px align=center}
 
-To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Metrics" tab.
+To try this out, see https://pair-code.github.io/lit/demos/glue.html and navigate to the "Performance" tab.
 
 The confusion matrix is supported for classification models, or if the input
 data includes any categorical features (`CategoryLabel`).
@@ -689,8 +738,6 @@ If no datapoints are selected, then the calculations are done across all
 datapoints, giving a global view of feature effects.
 
 ![Partial Dependence Plots Module](./images/components/lit-pdps.png){w=400px align=center}
-
-To try this out, see https://pair-code.github.io/lit/demos/penguins.html and navigate to the "Predictions" tab.
 
 ### Dive
 
