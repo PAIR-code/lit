@@ -293,7 +293,7 @@ class UtilsTest(parameterized.TestCase):
       pad_val: T,
       expected: list[T],
       pad_left: bool = False,
-      max_len: int | None = None,
+      max_len: Optional[int] = None,
   ):
     self.assertEqual(
         utils.pad1d(

@@ -20,7 +20,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.api import dataset as lit_dataset
 from lit_nlp.components import tcav
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import caching  # for hash id fn
 from lit_nlp.lib import testing_utils
 

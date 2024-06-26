@@ -89,6 +89,18 @@ class Model(metaclass=abc.ABCMeta):
     """
     return inspect.getdoc(self) or ''
 
+  def __str__(self) -> str:
+    classname = self.__class__.__module__ + '.' + self.__class__.__qualname__
+    indented_description = '  ' + self.description().replace('\n', '\n  ')
+    return f'{classname}(...):\n{indented_description}'
+
+  def _repr_pretty_(self, p, cycle):
+    """Pretty-printing for IPython environments, both notebooks and repl."""
+    if not cycle:
+      p.text(str(self))
+    else:
+      p.text('...')
+
   @classmethod
   def init_spec(cls) -> Optional[Spec]:
     """Attempts to infer a Spec describing a Model's constructor parameters.

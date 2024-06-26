@@ -217,6 +217,7 @@ def filename_fom_url(url: str, etag: Optional[str] = None) -> str:
 
 
 def is_remote(url_of_filepath: str) -> bool:
+  """Check if a path represents a remote URL or non-local file."""
   parsed = urllib_parse.urlparse(url_of_filepath)
   return parsed.scheme in ('http', 'https')
 

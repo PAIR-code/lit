@@ -14,6 +14,7 @@
 # ==============================================================================
 """Simple scrambling test generator."""
 
+import copy
 import random
 from typing import Optional
 
@@ -30,8 +31,12 @@ FIELDS_TO_SCRAMBLE_KEY = 'Fields to scramble'
 
 def _scramble(val: str) -> str:
   words = val.split(' ')
-  random.shuffle(words)
-  return ' '.join(words)
+  shuffled = copy.deepcopy(words)
+  while True:
+    random.shuffle(shuffled)
+    if shuffled != words:
+      break
+  return ' '.join(shuffled)
 
 
 class Scrambler(lit_components.Generator):

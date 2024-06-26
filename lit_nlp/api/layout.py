@@ -29,19 +29,14 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   Entries should map the TypeScript class name to the HTML element name,
   as declared in HTMLElementTagNameMap in the .ts file defining each LitModule.
   """
-  AnnotatedTextModule = 'annotated-text-module'
+  # keep-sorted start
   AnnotatedTextGoldModule = 'annotated-text-gold-module'
-  AttentionModule = 'attention-module'
+  AnnotatedTextModule = 'annotated-text-module'
   ClassificationModule = 'classification-module'
   ConfusionMatrixModule = 'confusion-matrix-module'
   CurvesModule = 'curves-module'
   DataTableModule = 'data-table-module'
-  SimpleDataTableModule = 'simple-data-table-module'
   DatapointEditorModule = 'datapoint-editor-module'
-  # Non-replicating version of Datapoint Editor
-  SingleDatapointEditorModule = 'single-datapoint-editor-module'
-  # Simplified, non-replicating version of Datapoint Editor
-  SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
   DiveModule = 'dive-module'
   DocumentationModule = 'documentation-module'
   EmbeddingsModule = 'embeddings-module'
@@ -49,8 +44,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   GeneratedImageModule = 'generated-image-module'
   GeneratedTextModule = 'generated-text-module'
   GeneratorModule = 'generator-module'
-  LanguageModelPredictionModule = 'lm-prediction-module'
-  LMSalienceModule = 'lm-salience-module'
+  LegacySequenceSalienceModule = 'legacy-sequence-salience-module'
   MetricsModule = 'metrics-module'
   MultilabelModule = 'multilabel-module'
   PdpModule = 'pdp-module'
@@ -58,14 +52,16 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
   SalienceClusteringModule = 'salience-clustering-module'
   SalienceMapModule = 'salience-map-module'
   ScalarModule = 'scalar-module'
-  LegacySequenceSalienceModule = 'legacy-sequence-salience-module'
-  SpanGraphGoldModule = 'span-graph-gold-module'
-  SpanGraphModule = 'span-graph-module'
-  SpanGraphGoldModuleVertical = 'span-graph-gold-module-vertical'
-  SpanGraphModuleVertical = 'span-graph-module-vertical'
+  SequenceSalienceModule = 'sequence-salience-module'
+  SimpleDataTableModule = 'simple-data-table-module'
+  # Simplified, non-replicating version of Datapoint Editor
+  SimpleDatapointEditorModule = 'simple-datapoint-editor-module'
+  # Non-replicating version of Datapoint Editor
+  SingleDatapointEditorModule = 'single-datapoint-editor-module'
   TCAVModule = 'tcav-module'
-  TrainingDataAttributionModule = 'tda-module'
   ThresholderModule = 'thresholder-module'
+  TrainingDataAttributionModule = 'tda-module'
+  # keep-sorted end
 
   def __call__(self, **kw):
     return ModuleConfig(self.value, **kw)
@@ -125,12 +121,9 @@ LitComponentLayouts = Mapping[str, LitCanonicalLayout]
 modules = LitModuleName  # pylint: disable=invalid-name
 
 MODEL_PREDS_MODULES = (
-    modules.SpanGraphGoldModuleVertical,
-    modules.SpanGraphModuleVertical,
     modules.ClassificationModule,
     modules.MultilabelModule,
     modules.RegressionModule,
-    modules.LanguageModelPredictionModule,
     modules.GeneratedTextModule,
     modules.AnnotatedTextGoldModule,
     modules.AnnotatedTextModule,
@@ -204,7 +197,6 @@ THREE_PANEL_LAYOUT = LitCanonicalLayout(
         'Explanations': [
             modules.SalienceMapModule,
             modules.LegacySequenceSalienceModule,
-            modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
         'Clustering': [modules.SalienceClusteringModule],
@@ -238,7 +230,6 @@ STANDARD_LAYOUT = LitCanonicalLayout(
             *MODEL_PREDS_MODULES,
             modules.SalienceMapModule,
             modules.LegacySequenceSalienceModule,
-            modules.AttentionModule,
             modules.FeatureAttributionModule,
         ],
         'Salience Clustering': [modules.SalienceClusteringModule],

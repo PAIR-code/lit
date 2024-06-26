@@ -6,7 +6,7 @@
  * spans in running text, which is well-suited for tasks like QA or entity
  * recognition which have a small number of spans over a longer passage.
  *
- * Similar to span_graph_module, we provide two module classes:
+ * We provide two module classes:
  * - AnnotatedTextGoldModule for gold annotations (in the input data)
  * - AnnotatedTextModule for model predictions
  */
@@ -14,17 +14,16 @@
 // tslint:disable:no-new-decorators
 import '../elements/annotated_text_vis';
 
+import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import { html} from 'lit';
 import {observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {type AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
 import {MultiSegmentAnnotations, TextSegment} from '../lib/lit_types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {type IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
-
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 
 /** LIT module for model output. */
 @customElement('annotated-text-gold-module')
@@ -80,7 +79,8 @@ export class AnnotatedTextGoldModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return findSpecKeys(datasetSpec, MultiSegmentAnnotations).length > 0;
   }
 }
@@ -159,7 +159,8 @@ export class AnnotatedTextModule extends LitModule {
     // clang-format on
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap, datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec) {
     return doesOutputSpecContain(modelSpecs, MultiSegmentAnnotations);
   }
 }

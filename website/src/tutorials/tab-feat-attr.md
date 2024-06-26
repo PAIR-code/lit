@@ -21,7 +21,7 @@ takeaways: "Learn how to use the Kernel SHAP based Tabular Feature Attribution m
     text: "Explore this demo yourself." %}
 
 Or, run your own with
-[`examples/penguin_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py)
+[`examples/penguin/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py)
 
 LIT supports many techniques like salience maps and counterfactual generators
 for text data. But what if you have a tabular dataset? You might want to find

@@ -53,7 +53,6 @@ class ClassificationResultsTest(parameterized.TestCase):
         {'probas': dtypes.ClassificationResult([0.2, 0.8], '1', None)},
     ]
     self.assertListEqual(['probas'], list(results[0].keys()))
-    # TODO(b/266681945): Add strict=True to ensure equal lengths
     for result, expected in zip(results, expected_results):
       np.testing.assert_array_equal(
           expected['probas'].scores, result['probas'].scores
@@ -77,7 +76,6 @@ class ClassificationResultsTest(parameterized.TestCase):
         {'probas': dtypes.ClassificationResult([0.2, 0.8], '1', False)},
     ]
     self.assertListEqual(['probas'], list(results[0].keys()))
-    # TODO(b/266681945): Add strict=True to ensure equal lengths
     for result, expected in zip(results, expected_results):
       np.testing.assert_array_equal(
           expected['probas'].scores, result['probas'].scores
@@ -105,7 +103,6 @@ class ClassificationResultsTest(parameterized.TestCase):
         {'probas': dtypes.ClassificationResult([0.2, 0.8], '0', True)},
     ]
     self.assertListEqual(['probas'], list(results[0].keys()))
-    # TODO(b/266681945): Add strict=True to ensure equal lengths
     for result, expected in zip(results, expected_results):
       np.testing.assert_array_equal(
           expected['probas'].scores, result['probas'].scores
@@ -145,7 +142,6 @@ class ClassificationResultsTest(parameterized.TestCase):
         {'probas': dtypes.ClassificationResult([0.2, 0.8], '1', False)},
     ]
     self.assertListEqual(['probas'], list(results[0].keys()))
-    # TODO(b/266681945): Add strict=True to ensure equal lengths
     for result, expected in zip(results, expected_results):
       np.testing.assert_array_equal(
           expected['probas'].scores, result['probas'].scores
@@ -188,7 +184,6 @@ class ClassificationResultsTest(parameterized.TestCase):
         {'probas': dtypes.ClassificationResult([0.2, 0.8], '1', False)},
     ]
     self.assertListEqual(['probas'], list(results[0].keys()))
-    # TODO(b/266681945): Add strict=True to ensure equal lengths
     for result, expected in zip(results, expected_results):
       np.testing.assert_array_equal(
           expected['probas'].scores, result['probas'].scores

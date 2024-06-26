@@ -1,26 +1,26 @@
 ---
-title: Prompt Engineering with Sequence Salience
+title: Prompt Debugging with Sequence Salience
 layout: layouts/tutorial.liquid
 
 hero-image: /assets/images/sample-banner.png
-hero-title: "Prompt Engineering with Sequence Salience"
-hero-copy: "Learn to use LIT's Sequence Salience module for prompt engineering."
+hero-title: "Prompt Debugging with Sequence Salience"
+hero-copy: "Learn to use LIT's Sequence Salience module for prompt debugging."
 
 bc-anchor-category: "analysis"
 bc-category-title: "Analysis"
-bc-title: "Prompt Engineering with Sequence Salience"
+bc-title: "Prompt Debugging with Sequence Salience"
 
 time: "20 minutes"
-takeaways: "Learn to use LIT's Sequence Salience module for prompt engineering."
+takeaways: "Learn to use LIT's Sequence Salience module for prompt debugging."
 ---
 
-## Prompt Engineering with Sequence Salience
+## Prompt Debugging with Sequence Salience
 
 {%  include partials/link-out,
     link: "https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb",
     text: "Follow along in Google Colab." %}
 
-Or, run this locally with [`examples/lm_salience_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py)
+Or, run this locally with [`examples/prompt_debugging/server.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py)
 
 Large language models (LLMs), such as [Gemini][gemini] and [GPT-4][gpt4], have
 become ubiquitous. Recent releases of "open weights" models, including
@@ -280,8 +280,7 @@ them in prompt engineering use cases.
 ## Case Study 3: Side-by-Side Behavior Comparisons
 
 LIT support a [side-by-side (SxS) mode][lit_sxs] that can be used to compare two
-models, or here, compare model behavior on two related examples. (Check out the
-[gender bias tutorial][coref_tutorial] for another case study in SxS analysis.)
+models, or here, compare model behavior on two related examples.
 Let's see how we can use this to understand differences in prompt designs with
 Sequence Salience.
 
@@ -451,7 +450,6 @@ helpful guides that can help you develop better prompts, including:
 [ai_studio]: https://cloud.google.com/generative-ai-studio?hl=en
 [constitution_maker]: https://arxiv.org/abs/2310.15428
 [constitutions]: https://arxiv.org/abs/2212.08073
-[coref_tutorial]: ../../tutorials/coref/
 [cot]: https://proceedings.neurips.cc/paper_files/paper/2022/hash/9d5609613524ecf4f15af0f7b31abca4-Abstract-Conference.html
 [data_table]: ../../documentation/ui_guide.html#data-table
 [datapoint_editor]: ../../documentation/ui_guide.html#datapoint-editor
@@ -472,9 +470,9 @@ helpful guides that can help you develop better prompts, including:
 [howitworks_icl]: https://par.nsf.gov/servlets/purl/10462310
 [lit_1_1_release_notes]:https://github.com/PAIR-code/lit/blob/main/RELEASE.md#release-11
 [lit_colab]: https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb
-[lit_hf]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py
+[lit_hf]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py
 [lit_issues]: https://github.com/PAIR-code/lit/issues
-[lit_keras]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py
+[lit_keras]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py
 [lit_sxs]: ../../documentation/ui_guide.html#comparing-datapoints
 [llama]: https://llama.meta.com/
 [main_toolbar]: ../../documentation/ui_guide.html#main-toolbar

@@ -19,7 +19,7 @@ from collections.abc import Iterable, Iterator
 from absl.testing import absltest
 from lit_nlp.api import types
 from lit_nlp.components import ablation_flip
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 import numpy as np
 
 
@@ -66,12 +66,12 @@ class ModelBasedAblationFlipTest(absltest.TestCase):
     self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
     self.classification_config = {ablation_flip.PREDICTION_KEY: 'probas'}
 
-    # Clasification model with the 'sentence' field marked as
+    # Classification model with the 'sentence' field marked as
     # non-required.
     self.classification_model_non_required_field = SST2ModelNonRequiredField(
         BERT_TINY_PATH)
 
-    # Clasification model with a counter to count number of predict calls.
+    # Classification model with a counter to count number of predict calls.
     # TODO(ataly): Consider setting up a Mock object to count number of
     # predict calls.
     self.classification_model_with_predict_counter = (

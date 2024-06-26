@@ -1,6 +1,6 @@
 # Getting Started with LIT
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2022-08-17' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-25' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -72,11 +72,10 @@ variety of model types. The code for these is under [examples](https://github.co
 ;
 each is a small script that loads one or more models and starts a LIT server.
 
-Most demos can be run with a single blaze command. To run the default one, you
-can do:
+Most demos can be run with a single command. To run the default one, you can do:
 
 ```sh
-python -m lit_nlp.examples.glue_demo \
+python -m lit_nlp.examples.glue.demo \
   --quickstart --port=4321 --alsologtostderr
 ```
 

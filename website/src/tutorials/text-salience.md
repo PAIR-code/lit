@@ -20,7 +20,7 @@ takeaways: "Learn how to use salience maps for text data in LIT."
     link: "../../demos/glue.html",
     text: "Explore this demo yourself." %}
 
-Or, run your own with [`examples/glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py)
+Or, run your own with [`examples/glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py)
 
 LIT enables users to analyze individual predictions for text input using
 salience maps, for which gradient-based and/or blackbox methods are available.

@@ -94,7 +94,7 @@ class Backtranslator(lit_components.Generator):
     # Generate by substituting in each field.
     # TODO(lit-team): substitute on a combination of fields?
     for field_name, candidates in candidates_by_field.items():
-      for i, (inp, cands) in enumerate(zip(inputs, candidates, strict=True)):
+      for i, (inp, cands) in enumerate(zip(inputs, candidates)):
         for cand in cands:
           all_outputs[i].append(utils.make_modified_input(
               inp, {field_name: cand}, 'Backtranslator'

@@ -1,6 +1,6 @@
 # Running LIT in a Docker container
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-07-10' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-04' } *-->
 
 Users might want to deploy LIT onto servers for public-facing, long-running
 instances. This is how we host the LIT demos found on
@@ -13,22 +13,21 @@ LIT can be run as a containerized app using [Docker](https://www.docker.com/) or
 your preferred engine. This is how we run our
 [hosted demos](https://pair-code.github.io/lit/demos/).
 
-We provide a basic
-[`Dockerfile`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/Dockerfile) that you can
-use to build and run any of the demos in the `lit_nlp/examples` directory. The
-`Dockerfile` installs all necessary dependencies for LIT and builds the
+We provide a basic Dockerfile https://github.com/PAIR-code/lit/blob/main/Dockerfile that you can use to build and run any of the demos in the `lit_nlp/examples` directory.
+The `Dockerfile` installs all necessary dependencies for LIT and builds the
 front-end code from source. Then it runs [gunicorn](https://gunicorn.org/) as
 the HTTP server, invoking the `get_wsgi_app()` method from our demo file to get
 the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
 [`gunicorn_config.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py).
 You can find a reference implementation in
-[`glue_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py) or
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+[`glue/demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py).
 
-Use the following shell commands to build the default Docker image for LIT from
-the provided `Dockerfile`, and then run a container from that image. Comments
-are provided in-line to help explain what each step does.
+Use the following shell
+https://github.com/PAIR-code/lit/blob/main/.github/workflows/ci.yml commands to build the
+default Docker image for LIT from the provided `Dockerfile`, and then run a
+container from that image. Comments are provided in-line to help explain what
+each step does.
 
 ```shell
 # Build the docker image using the -t argument to name the image. Remember to
@@ -48,14 +47,11 @@ below.
 ```shell
 # DEMO_NAME is used to complete the Python module path
 #
-#     "lit_nlp.examples.$DEMO_NAME"
+#     "lit_nlp.examples.$DEMO_NAME.demo:get_wsgi_app()"
 #
 # Therefore, valid values for DEMO_NAME are Python module paths in the
-# lit_nlp/examples directory, such as
-#
-#   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.
-#   * And nested children -- coref.coref_demo, is_eval.is_eval_demo, etc.
-docker run --rm -p 5432:5432 -e DEMO_NAME=lm_demo lit-nlp
+# lit_nlp/examples directory, such as glue, penguin, tydi, etc.
+docker run --rm -p 5432:5432 -e DEMO_NAME=penguin lit-nlp
 
 # Use the DEMO_PORT environment variable as to change the port that LIT uses in
 # the container. Be sure to also change the -p option to map the container's
@@ -66,15 +62,15 @@ docker run --rm -p 2345:2345 -e DEMO_PORT=2345 lit-nlp
 # containers on your machine using the combination of the DEMO_NAME and
 # DEMO_PORT arguments, and docker run with the -d flag to run the container in
 # the background.
-docker run -d -p 5432:5432 -e DEMO_NAME=t5_demo lit-nlp
-docker run -d -p 2345:2345 -e DEMO_NAME=lm_demo -e DEMO_PORT=2345 lit-nlp
+docker run -d -p 5432:5432 -e DEMO_NAME=penguin lit-nlp
+docker run -d -p 2345:2345 -e DEMO_NAME=tydi -e DEMO_PORT=2345 lit-nlp
 ```
 
 ## Integrating Custom LIT Instances with the Default Docker Image
 
 Many LIT users create their own custom LIT server script to demo or serve, which
 involves creating an executable Python module with a `main()` method, as
-described in the [Python API docs](https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data).
+described in the [Python API docs](api.md#adding-models-and-data).
 
 These custom server scripts can be easily integrated with LIT's default image as
 long as your server meets two requirements:

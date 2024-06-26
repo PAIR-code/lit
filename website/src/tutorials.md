@@ -40,12 +40,6 @@ c-copy: "Learn about examining model behavior through user-curated concepts." %}
 {% include partials/tutorial-link-element c-title: "Exploring a Sentiment Classifier", link: "/tutorials/sentiment",
 c-copy: "Learn about how we used LIT to analyze a sentiment classifier." %}
 
-{% include partials/tutorial-link-element c-title: "Debugging a Text Generator", link: "/tutorials/generation",
-c-copy: "Learn about how we used LIT to debug summarization by a text generation model." %}
-
-{% include partials/tutorial-link-element c-title: "Gender Bias in Coreference", link: "/tutorials/coref",
-c-copy: "Learn how we used LIT to explore gendered associations in a pronoun resolution model." %}
-
 {% include partials/spacer height:50 %}
 
 </div>

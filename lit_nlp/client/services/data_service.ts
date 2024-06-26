@@ -95,40 +95,39 @@ export class DataService extends LitService {
       this.columnData.clear();
     });
 
-    // Run classification interpreter when the inputs or margins change.
-    const getClassificationInputs = () =>
-        [this.appState.currentInputData, this.appState.currentModels,
-         this.classificationService.allMarginSettings];
-    reaction(getClassificationInputs, () => {
-      if (this.appState.currentInputData == null ||
-          this.appState.currentInputData.length === 0 ||
-          this.appState.currentModels.length === 0 ||
-          !this.settingsService.isValidCurrentDataAndModels) {
-        return;
-      }
-      for (const model of this.appState.currentModels) {
-        this.runClassification(model, this.appState.currentInputData);
-      }
-    }, {fireImmediately: true});
+    // Fetch predicitons when the current dataset or model changes.
+    reaction(
+      () => [
+        this.appState.currentInputData, this.appState.currentModels
+      ] as const,
+      ([currentInputData, currentModels]) => {
+        if (!currentInputData?.length ||
+            !currentModels.length ||
+            !this.settingsService.isValidCurrentDataAndModels) {
+          return;
+        }
+        for (const model of currentModels) {
+          this.runClassification(model, currentInputData);
+          this.runGeneratedTextPreds(model, currentInputData);
+          this.runMultiLabelPreds(model, currentInputData);
+          this.runRegression(model, currentInputData);
+          this.runScalarPreds(model, currentInputData);
+        }
+      },
+      {fireImmediately: true}
+    );
 
-    // Run other prediction interpreters when necessary.
-    const getPredictionInputs =
-        () => [this.appState.currentInputData, this.appState.currentModels];
-    reaction(getPredictionInputs, () => {
-      if (this.appState.currentInputData == null ||
-          this.appState.currentInputData.length === 0 ||
-          this.appState.currentModels.length === 0 ||
-          !this.settingsService.isDatasetValidForModels(
-              this.appState.currentDataset, this.appState.currentModels)) {
-        return;
-      }
-      for (const model of this.appState.currentModels) {
-        this.runGeneratedTextPreds(model, this.appState.currentInputData);
-        this.runRegression(model, this.appState.currentInputData);
-        this.runScalarPreds(model, this.appState.currentInputData);
-        this.runMultiLabelPreds(model, this.appState.currentInputData);
-      }
-    }, {fireImmediately: true});
+    // Additonally, run the classification interpreter when the margins change.
+    reaction(
+      () => this.classificationService.allMarginSettings,
+      () => {
+        if (!this.settingsService.isValidCurrentDataAndModels) {return;}
+        for (const model of this.appState.currentModels) {
+          this.runClassification(model, this.appState.currentInputData);
+        }
+      },
+      {fireImmediately: true}
+    );
 
     this.appState.addNewDatapointsCallback(async (newDatapoints) =>
       this.setValuesForNewDatapoints(newDatapoints));
@@ -403,9 +402,14 @@ export class DataService extends LitService {
    */
   @action
   addColumn(
-      columnVals: ColumnData, key: string, name: string, dataType: LitType,
-      source: Source, getValueFn: ValueFn = () => null,
-      colorRange?: ColorRange) {
+      columnVals: ColumnData,
+      key: string,
+      name: string,
+      dataType: LitType,
+      source: Source,
+      getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange
+  ) {
     if (!this.columnHeaders.has(name)) {
       this.columnHeaders.set(
           name, {dataType, source, name, key, getValueFn, colorRange});
@@ -426,9 +430,15 @@ export class DataService extends LitService {
    */
   @action
   addColumnFromList(
-      values: ValueType[], data: IndexedInput[], key: string, name: string,
-      dataType: LitType, source: Source, getValueFn: ValueFn = () => null,
-      colorRange?: ColorRange) {
+      values: ValueType[],
+      data: IndexedInput[],
+      key: string,
+      name: string,
+      dataType: LitType,
+      source: Source,
+      getValueFn: ValueFn = () => null,
+      colorRange?: ColorRange
+  ) {
     if (values.length !== data.length) {
       throw new Error(`Attempted to add data column ${
           name} with incorrect number of values.`);

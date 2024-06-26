@@ -1,6 +1,6 @@
 # 🔥 Learning Interpretability Tool (LIT)
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-22' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-25' } *-->
 
 The Learning Interpretability Tool (🔥LIT, formerly known as the Language
 Interpretability Tool) is a visual, interactive ML model-understanding tool that
@@ -21,8 +21,8 @@ LIT is built to answer questions such as:
 LIT supports a variety of debugging workflows through a browser-based UI.
 Features include:
 
-*   **Local explanations** via salience maps, attention, and rich visualization
-    of model predictions.
+*   **Local explanations** via salience maps and rich visualization of model
+    predictions.
 *   **Aggregate analysis** including custom metrics, slicing and binning, and
     visualization of embedding spaces.
 *   **Counterfactual generation** via manual edits or generator plug-ins to
@@ -90,8 +90,8 @@ git clone https://github.com/PAIR-code/lit.git && cd lit
 ```
 
 
-Note: be sure you are running Python 3.10. If you have a different version on  
-your system, use the `conda` instructions below to set up a Python 3.10 
+Note: be sure you are running Python 3.9+. If you have a different version on
+your system, use the `conda` instructions below to set up a Python 3.9
 environment.
 
 Set up a Python environment with `venv`:
@@ -106,7 +106,7 @@ Or set up a Python environment using `conda`:
 ```sh
 conda create --name lit-nlp
 conda activate lit-nlp
-conda install python=3.10
+conda install python=3.9
 conda install pip
 ```
 
@@ -142,13 +142,7 @@ To explore classification and regression models tasks from the popular
 [GLUE benchmark](https://gluebenchmark.com/):
 
 ```sh
-python -m lit_nlp.examples.glue_demo --port=5432 --quickstart
-```
-
-Or, using `docker`:
-
-```sh
-docker run --rm -e DEMO_NAME=glue_demo -p 5432:5432 -t lit-nlp --quickstart
+python -m lit_nlp.examples.glue.demo --port=5432 --quickstart
 ```
 
 Navigate to http://localhost:5432 to access the LIT UI.
@@ -160,19 +154,6 @@ but you can switch to
 [STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
 gear icon in the upper right.
-
-### Quick-start: language modeling
-
-To explore predictions from a pre-trained language model (BERT or GPT-2), run:
-
-```sh
-python -m lit_nlp.examples.lm_demo --models=bert-base-uncased --port=5432
-```
-
-Or, using `docker`:
-
-```sh
-docker run --rm -e DEMO_NAME=lm_demo -p 5432:5432 -t lit-nlp --models=bert-base-uncased
 ```
 
 And navigate to http://localhost:5432 for the UI.
@@ -192,7 +173,7 @@ See [lit_nlp/examples](./lit_nlp/examples). Most are run similarly to the
 quickstart example above:
 
 ```sh
-python -m lit_nlp.examples.<example_name> --port=5432 [optional --args]
+python -m lit_nlp.examples.<example_name>.demo --port=5432 [optional --args]
 ```
 
 ## User Guide

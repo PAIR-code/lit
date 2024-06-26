@@ -1,2 +1,2 @@
 recursive-include lit_nlp/client/build/default *.js* *.gif *.html *.png *.svg
-include lit_nlp/examples/datasets/prompt_examples.jsonl
+include lit_nlp/examples/prompt_debugging/prompt_examples.jsonl

@@ -203,7 +203,7 @@ def pad1d(
     min_len: int,
     pad_val: T,
     pad_left: bool = False,
-    max_len: int | None = None,
+    max_len: Optional[int] = None,
 ) -> list[T]:
   """Pad a list to the target length."""
   if pad_left:

@@ -25,9 +25,8 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from lit_nlp.examples.datasets import classification
-from lit_nlp.examples.datasets import glue
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import data as glue_data
+from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import serialize
 import tensorflow as tf
 
@@ -119,21 +118,17 @@ def main(argv: Sequence[str]) -> None:
   # TODO(lit-dev): add remaining GLUE tasks? These three cover all the major
   # features (single segment, two segment, classification, regression).
   if _TASK.value == "sst2":
-    train_data = glue.SST2Data("train")
-    val_data = glue.SST2Data("validation")
+    train_data = glue_data.SST2Data("train")
+    val_data = glue_data.SST2Data("validation")
     model = glue_models.SST2Model(_ENCODER_NAME.value)
   elif _TASK.value == "mnli":
-    train_data = glue.MNLIData("train")
-    val_data = glue.MNLIData("validation_matched")
+    train_data = glue_data.MNLIData("train")
+    val_data = glue_data.MNLIData("validation_matched")
     model = glue_models.MNLIModel(_ENCODER_NAME.value)
   elif _TASK.value == "stsb":
-    train_data = glue.STSBData("train")
-    val_data = glue.STSBData("validation")
+    train_data = glue_data.STSBData("train")
+    val_data = glue_data.STSBData("validation")
     model = glue_models.STSBModel(_ENCODER_NAME.value)
-  elif _TASK.value == "toxicity":
-    train_data = classification.ToxicityData("train")
-    val_data = classification.ToxicityData("test")
-    model = glue_models.ToxicityModel(_ENCODER_NAME.value)
   else:
     raise ValueError(f"Unrecognized task name: '{_TASK.value:s}'")
 
