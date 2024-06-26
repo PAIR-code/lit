@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-09-19' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-03' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -17,9 +17,7 @@ works with any modern ML framework. For more information, see
 In addition to text, LIT has good support for different modalities, including
 images and tabular data. For examples, see:
 
-*   [Image demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/image_demo.py) -
-    image classification, using a Mobilenet model.
-*   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin_demo.py) -
+*   [Tabular demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/demo.py) -
     multi-class classification on tabular (numeric and categorical string) data,
     using the
     [Palmer Penguins](https://www.tensorflow.org/datasets/catalog/penguins)
@@ -32,13 +30,7 @@ For more details, see
 
 All strings in LIT are unicode and most components use model-provided
 tokenization if available, so in most cases non-English languages and non-Latin
-scripts should work without any modifications. For examples, see:
-
-*   [XNLI demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/xnli_demo.py) -
-    cross-lingual NLI, with up to 15 languages supported via a multilingual BERT
-    model.
-*   [T5 demo](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py) -
-    includes WMT data for machine translation
+scripts should work without any modifications.
 
 ## Scale
 
@@ -99,8 +91,8 @@ manually entered in the web UI) are stored in server memory, and if `--data_dir`
 is specified, may be cached to disk.
 
 LIT has the ability to create or edit datapoints in the UI and then save them to
-disk. If you do not want the tool to be able to write edited datapoints to
-disk, then pass the `--demo_mode` runtime flag to the LIT server.
+disk. If you do not want the tool to be able to write edited datapoints to disk,
+then pass the `--demo_mode` runtime flag to the LIT server.
 
 ### I have proprietary data. Is LIT secure for my team to use?
 
@@ -177,7 +169,5 @@ official training APIs. However, to facilitate code reuse you can easily add
 training methods to your model class. In fact, several of our demos do exactly
 this, using LIT's `Dataset` objects to manage training data along with standard
 training APIs (such as Keras' `model.fit()`). See
-[`quickstart_sst_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/quickstart_sst_demo.py)
-and/or
-[`glue_models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
+[`glue/models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for examples.
