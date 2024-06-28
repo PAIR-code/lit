@@ -14,7 +14,7 @@
   gtag('config', 'G-Q74F5RJLXB');
 </script>
 
-    <title>Exploring a Sentiment Classifier</title>
+    <title>Debugging a Text Generator</title>
     
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="/lit/assets/css/material.min.css">
@@ -73,42 +73,42 @@
         <div class="tutorial-page-container mdl-grid">
           <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
             <div class="tutorial-breadcrumbs">
-  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Sentiment
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Generator
 </div>
-            <h2>Exploring a Sentiment Classifier</h2>
-<div class="link-out"><a href="../../demos/glue.html" target="_blank">Explore this demo yourself.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
-<p>Or, run your own with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py"><code>examples/glue_demo.py</code></a></p>
-<p>How well does a sentiment classifier handle negation? We can use LIT to interactively ask this question and get answers. We loaded up LIT the development set of the Stanford Sentiment Treebank (SST), which contains sentences from movie reviews that have been human-labeled as having a negative sentiment (0), or a positive sentiment (1). For a model, we are using a BERT-based binary classifier that has been trained to classify sentiment.</p>
-<p>Using the search function in LIT’s data table, we find the 67 datapoints containing the word “not”. By selecting these datapoints and looking at the Metrics Table, we find that our BERT model gets 91% of these correct, which is slightly higher than the accuracy across the entire dataset.</p>
+            <h2>Debugging a Text Generator</h2>
+<div class="link-out"><a href="../../demos/t5.html" target="_blank">Explore this demo yourself.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
+<p>Or, run your own with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/t5_demo.py"><code>examples/t5_demo.py</code></a></p>
+<p>Does the training data explain a particular error in text generation? We can use LIT to analyze a T5 model on the CNN-DM summarization task. LIT’s scalar plot module allows us to look at per-example ROUGE scores, and quickly select an example with middling performance.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit-metrics-not.png"
+  <img class="tutorial-image" src="/lit/assets/images/lit-t5.png"
     onclick="event.target.nextElementSibling.showPopover()" />
   <div class="tutorial-image-popover" popover>
-    <img class="tutorial-image" src="/lit/assets/images/lit-metrics-not.png"
+    <img class="tutorial-image" src="/lit/assets/images/lit-t5.png"
       onclick="event.target.parentElement.hidePopover()" />
   </div>
-  <div class="tutorial-caption">Above: A comparison of metrics on datapoints containing "not" versus the entire dataset.</div>
+  <div class="tutorial-caption">Above: The datapoint of interest, with its inaccurate summarization.</div>
 </div>
-<p>But we might want to know if this is truly robust. We can select individual datapoints and look for explanations. For example, take the negative review, “It’s not the ultimate depression-era gangster movie.”. As shown below, salience maps suggest that “not” and “ultimate” are important to the prediction. We can verify this by creating modified inputs, using LIT’s datapoint editor. Removing “not” gets a strongly positive prediction from “It’s the ultimate depression-era gangster movie.”.</p>
+<p>We find the generated text contains an erroneous subject: &quot;[A]lastair [C]ook was replaced as captain by former captain ...&quot;. In reading the input text, we can see that he was replaced as captain by Eoin Morgan, and not by a former captain. Another former captain does have a quote in the input text, and the model seemed to confuse these two subjects when generating its summary.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit-not-saliency.png"
+  <img class="tutorial-image" src="/lit/assets/images/lit-sim-search.png"
     onclick="event.target.nextElementSibling.showPopover()" />
   <div class="tutorial-image-popover" popover>
-    <img class="tutorial-image" src="/lit/assets/images/lit-not-saliency.png"
+    <img class="tutorial-image" src="/lit/assets/images/lit-sim-search.png"
       onclick="event.target.parentElement.hidePopover()" />
   </div>
-  <div class="tutorial-caption">Above: Prediction saliency of the original sentence, including "not".</div>
+  <div class="tutorial-caption">Above: Finding the most similar datapoints from the training set.</div>
 </div>
+<p>To investigate how T5 arrived at this prediction, we utilize the “similarity searcher” component through the counterfactual generator tab. This performs a fast approximate nearest-neighbor lookup from a pre-built index over the training corpus, using embeddings
+from the T5 decoder. With one click, we retrieve the 25 nearest neighbors to our datapoint of interest from the training set and add them to the LIT UI for inspection. We can see through the search capability in the data table that the words “captain” and “former” appear 34 and 16 times in these examples–along with 3 occurrences of “replaced by” and two occurrences of “by former”. This suggests a strong prior toward our erroneous phrase from the training data most related to our datapoint of interest.</p>
 <div class="mdl-cell mdl-cell--12-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
-  <img class="tutorial-image" src="/lit/assets/images/lit-saliency.png"
+  <img class="tutorial-image" src="/lit/assets/images/lit-datatable-search.png"
     onclick="event.target.nextElementSibling.showPopover()" />
   <div class="tutorial-image-popover" popover>
-    <img class="tutorial-image" src="/lit/assets/images/lit-saliency.png"
+    <img class="tutorial-image" src="/lit/assets/images/lit-datatable-search.png"
       onclick="event.target.parentElement.hidePopover()" />
   </div>
-  <div class="tutorial-caption">Above: Prediction saliency of the altered sentence, with "not" removed.</div>
+  <div class="tutorial-caption">Above: An example of the existence of "by former" in a similar datapoint from the training set.</div>
 </div>
-<p>Using the LIT features of data table searching, the metrics table, salience maps, and manual editing, we’re able to show both in aggregate and in a specific instance, that our model handles negation correctly.</p>
 
           </div>
           <div class="mdl-cell--4-col hide-me">
@@ -116,7 +116,7 @@
               <div class="tutorial-info-header">time to read</div>
               <div class="tutorial-info-copy">3 minutes</div>
               <div class="tutorial-info-header">takeaways</div>
-              <div class="tutorial-info-copy">Learn about how the metrics table and saliency maps assisted an analysis of a sentiment classifier's performance when dealing with negation.</div>
+              <div class="tutorial-info-copy">Learn about how to debug a prediction on a datapoint by searching for similar datapoints from the training set.</div>
             </div>
           </div>
           <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">

@@ -5,10 +5,10 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Glossary" href="glossary.html" /><link rel="prev" title="Frontend Developer Guide" href="frontend_development.html" />
 
-    <!-- Generated with Sphinx 7.3.7 and Furo 2024.05.06 -->
+    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
         <title>Running LIT in a Docker container - 🔥LIT 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=387cc868" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
     <link rel="stylesheet" type="text/css" href="_static/furo_custom.css?v=6173ce67" />
     
@@ -69,7 +69,7 @@
   <symbol id="svg-sun" viewBox="0 0 24 24">
     <title>Light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -84,7 +84,7 @@
   <symbol id="svg-moon" viewBox="0 0 24 24">
     <title>Dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
@@ -92,7 +92,7 @@
   <symbol id="svg-sun-half" viewBox="0 0 24 24">
     <title>Auto light/dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
+      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
       <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
       <circle cx="12" cy="12" r="9" />
       <path d="M13 12h5" />
@@ -100,60 +100,6 @@
       <path d="M13 18h1" />
       <path d="M13 9h4" />
       <path d="M13 6h1" />
-    </svg>
-  </symbol>
-  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
-    <title>Auto light/dark, in light mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
-      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
-      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
-      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
-      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
-      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
-      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
-      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
-      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
-      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
-      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
-      <circle cx="14.5" cy="9.55" r="3.6"/>
-    </svg>
-  </symbol>
-  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
-    <title>Auto light/dark, in dark mode</title>
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
-      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
-      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
-      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
-      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
-      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
-      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
-      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
-      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
-      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
-      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
-      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
-    </svg>
-  </symbol>
-  <symbol id="svg-pencil" viewBox="0 0 24 24">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
-      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
-      <path d="M13.5 6.5l4 4" />
-      <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" /
-    </svg>
-  </symbol>
-  <symbol id="svg-eye" viewBox="0 0 24 24">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
-      <path
-        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
-      <path d="M20 21l2 -2l-2 -2" />
-      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
 </svg>
@@ -166,8 +112,6 @@
 <label class="overlay toc-overlay" for="__toc">
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
-
-<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
@@ -186,8 +130,7 @@
       <div class="theme-toggle-container theme-toggle-header">
         <button class="theme-toggle">
           <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
-          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
@@ -243,17 +186,11 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          <div class="view-this-page">
-  <a class="muted-link" href="_sources/docker.md.txt" title="View this page">
-    <svg><use href="#svg-eye"></use></svg>
-    <span class="visually-hidden">View this page</span>
-  </a>
-</div>
+          
 <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
-              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
@@ -263,33 +200,34 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <article role="main" id="furo-main-content">
+        <article role="main">
           <section class="tex2jax_ignore mathjax_ignore" id="running-lit-in-a-docker-container">
-<h1>Running LIT in a Docker container<a class="headerlink" href="#running-lit-in-a-docker-container" title="Link to this heading">¶</a></h1>
-<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-04' } *-->
+<h1>Running LIT in a Docker container<a class="headerlink" href="#running-lit-in-a-docker-container" title="Link to this heading">#</a></h1>
+<!--* freshness: { owner: 'lit-dev' reviewed: '2023-07-10' } *-->
 <p>Users might want to deploy LIT onto servers for public-facing, long-running
 instances. This is how we host the LIT demos found on
 <a class="reference external" href="https://pair-code.github.io/lit/demos/">https://pair-code.github.io/lit/demos/</a>. This doc describes the basic usage of
 LIT’s built-in demos, how to integrate your custom demo into this</p>
 <section id="basic-usage">
-<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<h2>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading">#</a></h2>
 <p>LIT can be run as a containerized app using <a class="reference external" href="https://www.docker.com/">Docker</a> or
 your preferred engine. This is how we run our
 <a class="reference external" href="https://pair-code.github.io/lit/demos/">hosted demos</a>.</p>
-<p>We provide a basic Dockerfile <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/Dockerfile">https://github.com/PAIR-code/lit/blob/main/Dockerfile</a> that you can use to build and run any of the demos in the <code class="docutils literal notranslate"><span class="pre">lit_nlp/examples</span></code> directory.
-The <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> installs all necessary dependencies for LIT and builds the
+<p>We provide a basic
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/Dockerfile"><code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code></a> that you can
+use to build and run any of the demos in the <code class="docutils literal notranslate"><span class="pre">lit_nlp/examples</span></code> directory. The
+<code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code> installs all necessary dependencies for LIT and builds the
 front-end code from source. Then it runs <a class="reference external" href="https://gunicorn.org/">gunicorn</a> as
 the HTTP server, invoking the <code class="docutils literal notranslate"><span class="pre">get_wsgi_app()</span></code> method from our demo file to get
 the WSGI app to serve. The options provided to gunicorn for our use-case can be
 found in
 <a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/gunicorn_config.py"><code class="docutils literal notranslate"><span class="pre">gunicorn_config.py</span></code></a>.
 You can find a reference implementation in
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/demo.py"><code class="docutils literal notranslate"><span class="pre">glue/demo.py</span></code></a>.</p>
-<p>Use the following shell
-<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/.github/workflows/ci.yml">https://github.com/PAIR-code/lit/blob/main/.github/workflows/ci.yml</a> commands to build the
-default Docker image for LIT from the provided <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code>, and then run a
-container from that image. Comments are provided in-line to help explain what
-each step does.</p>
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue_demo.py"><code class="docutils literal notranslate"><span class="pre">glue_demo.py</span></code></a> or
+<a class="reference external" href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py"><code class="docutils literal notranslate"><span class="pre">lm_demo.py</span></code></a>.</p>
+<p>Use the following shell commands to build the default Docker image for LIT from
+the provided <code class="docutils literal notranslate"><span class="pre">Dockerfile</span></code>, and then run a container from that image. Comments
+are provided in-line to help explain what each step does.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the docker image using the -t argument to name the image. Remember to</span>
 <span class="c1"># include the trailing . so Docker knows where to look for the Dockerfile.</span>
 docker<span class="w"> </span>build<span class="w"> </span>--file<span class="w"> </span>Dockerfile<span class="w"> </span>--tag<span class="w"> </span>lit-nlp<span class="w"> </span>.
@@ -305,11 +243,14 @@ override this using the DEMO_NAME and DEMO_PORT environment variables, as shown
 below.</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="c1"># DEMO_NAME is used to complete the Python module path</span>
 <span class="c1">#</span>
-<span class="c1">#     &quot;lit_nlp.examples.$DEMO_NAME.demo:get_wsgi_app()&quot;</span>
+<span class="c1">#     &quot;lit_nlp.examples.$DEMO_NAME&quot;</span>
 <span class="c1">#</span>
 <span class="c1"># Therefore, valid values for DEMO_NAME are Python module paths in the</span>
-<span class="c1"># lit_nlp/examples directory, such as glue, penguin, tydi, etc.</span>
-docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>penguin<span class="w"> </span>lit-nlp
+<span class="c1"># lit_nlp/examples directory, such as</span>
+<span class="c1">#</span>
+<span class="c1">#   * direct children -- glue_demo, lm_demo, image_demo, t5_demo, etc.</span>
+<span class="c1">#   * And nested children -- coref.coref_demo, is_eval.is_eval_demo, etc.</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>lm_demo<span class="w"> </span>lit-nlp
 
 <span class="c1"># Use the DEMO_PORT environment variable as to change the port that LIT uses in</span>
 <span class="c1"># the container. Be sure to also change the -p option to map the container&#39;s</span>
@@ -320,16 +261,16 @@ docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </
 <span class="c1"># containers on your machine using the combination of the DEMO_NAME and</span>
 <span class="c1"># DEMO_PORT arguments, and docker run with the -d flag to run the container in</span>
 <span class="c1"># the background.</span>
-docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>penguin<span class="w"> </span>lit-nlp
-docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">2345</span>:2345<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>tydi<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_PORT</span><span class="o">=</span><span class="m">2345</span><span class="w"> </span>lit-nlp
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">5432</span>:5432<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>t5_demo<span class="w"> </span>lit-nlp
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-p<span class="w"> </span><span class="m">2345</span>:2345<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_NAME</span><span class="o">=</span>lm_demo<span class="w"> </span>-e<span class="w"> </span><span class="nv">DEMO_PORT</span><span class="o">=</span><span class="m">2345</span><span class="w"> </span>lit-nlp
 </pre></div>
 </div>
 </section>
 <section id="integrating-custom-lit-instances-with-the-default-docker-image">
-<h2>Integrating Custom LIT Instances with the Default Docker Image<a class="headerlink" href="#integrating-custom-lit-instances-with-the-default-docker-image" title="Link to this heading">¶</a></h2>
+<h2>Integrating Custom LIT Instances with the Default Docker Image<a class="headerlink" href="#integrating-custom-lit-instances-with-the-default-docker-image" title="Link to this heading">#</a></h2>
 <p>Many LIT users create their own custom LIT server script to demo or serve, which
 involves creating an executable Python module with a <code class="docutils literal notranslate"><span class="pre">main()</span></code> method, as
-described in the <a class="reference internal" href="api.html#adding-models-and-data"><span class="std std-ref">Python API docs</span></a>.</p>
+described in the <a class="reference external" href="https://pair-code.github.io/lit/documentation/api.md#adding-models-and-data">Python API docs</a>.</p>
 <p>These custom server scripts can be easily integrated with LIT’s default image as
 long as your server meets two requirements:</p>
 <ol class="arabic simple">
@@ -392,7 +333,7 @@ run command.</p>
 </div>
 </section>
 <section id="building-your-own-image">
-<h2>Building Your Own Image<a class="headerlink" href="#building-your-own-image" title="Link to this heading">¶</a></h2>
+<h2>Building Your Own Image<a class="headerlink" href="#building-your-own-image" title="Link to this heading">#</a></h2>
 <p>Coming soon.</p>
 </section>
 </section>
@@ -468,8 +409,8 @@ run command.</p>
     </aside>
   </div>
 </div><script src="_static/documentation_options.js?v=f2a433a1"></script>
-    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/furo.js?v=4e2eecee"></script>
+    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
     </body>
 </html>
