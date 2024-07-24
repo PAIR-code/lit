@@ -20,4 +20,5 @@ tensorflow-datasets>=4.9.0
 tensorflow-text>=2.10.0,<2.16.0
 torch>=2.0.0
 transformers>=4.27.1
+vertexai>=1.49.0
 # LINT.ThenChange(./pyproject.toml)
