@@ -119,6 +119,12 @@ _PRECISION = flags.DEFINE_enum(
     " supported at this time.",
 )
 
+_SEQUENCE_LENGTH = flags.DEFINE_integer(
+    "sequence_length",
+    models.DEFAULT_SEQUENCE_LENGTH,
+    "The maximum sequence length of the input prompt + generated text",
+)
+
 _FLAGS = flags.FLAGS
 _FLAGS.set_default("development_demo", True)
 _FLAGS.set_default("page_title", "LM Prompt Debugging")
@@ -158,6 +164,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           dl_runtime=_DL_RUNTIME.value,
           precision=_PRECISION.value,
           batch_size=_BATCH_SIZE.value,
+          sequence_length=_SEQUENCE_LENGTH.value,
       ),
       datasets=datasets.get_datasets(
           datasets_config=_DATASETS.value, max_examples=_MAX_EXAMPLES.value

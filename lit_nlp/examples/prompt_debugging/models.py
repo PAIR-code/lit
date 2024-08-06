@@ -14,6 +14,7 @@ DEFAULT_DL_FRAMEWORK = "kerasnlp"
 DEFAULT_DL_RUNTIME = "tensorflow"
 DEFAULT_MODELS = ["gemma_1.1_instruct_2b_en:gemma_1.1_instruct_2b_en"]
 DEFAULT_PRECISION = "bfloat16"
+DEFAULT_SEQUENCE_LENGTH = 512
 
 
 def _initialize_modeling_environment(
@@ -47,6 +48,7 @@ def get_models(
     dl_runtime: str = DEFAULT_DL_RUNTIME,
     precision: str = DEFAULT_PRECISION,
     batch_size: int = DEFAULT_BATCH_SIZE,
+    sequence_length: int = DEFAULT_SEQUENCE_LENGTH,
 ) -> Mapping[str, lit_model.Model]:
   """Loads models from the given configs.
 
@@ -62,6 +64,7 @@ def get_models(
     precision: Floating point precision for the models, either `bfloat16` or
       `float32`.
     batch_size: The number of examples to process per batch.
+    sequence_length: The maximum sequence length of the input.
 
   Returns:
     A mapping from model name to initialized LIT model.
@@ -92,7 +95,7 @@ def get_models(
       models |= keras_lms.initialize_model_group_for_salience(
           model_name,
           model_name_or_path=path,
-          max_length=512,
+          max_length=sequence_length,
           batch_size=batch_size,
       )
     else:
@@ -103,7 +106,7 @@ def get_models(
           path,
           batch_size=batch_size,
           framework=dl_runtime,
-          max_new_tokens=512,
+          max_length=sequence_length,
       )
 
   return models
