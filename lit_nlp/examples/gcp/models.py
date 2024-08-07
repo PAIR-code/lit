@@ -53,6 +53,7 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
   def query_model(self, input_text: str) -> lit_types.ScoredTextCandidates:
     num_attempts = 0
     predictions = None
+    exception = None
 
     while num_attempts < _MAX_NUM_RETRIES and predictions is None:
       num_attempts += 1
@@ -64,11 +65,14 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
         )
       except Exception as e:  # pylint: disable=broad-except
         wait_time = 2**num_attempts
+        exception = e
         logging.warning('Waiting %ds to retry... (%s)', wait_time, e)
         time.sleep(2**num_attempts)
 
     if predictions is None:
-      raise ValueError('Failed to get predictions.')
+      raise ValueError(
+          f'Failed to get predictions. ({exception})'
+      ) from exception
 
     if not isinstance(predictions, Iterable):
       predictions = [predictions]
@@ -83,6 +87,17 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
         for input_dict in inputs
     ]
     return res
+
+  @classmethod
+  def init_spec(cls) -> lit_types.Spec:
+    return {
+        'model_name': lit_types.String(default='gemini-1.0-pro', required=True),
+        'max_concurrent_requests': lit_types.Integer(default=4, required=False),
+        'max_qps': lit_types.Integer(default=25, required=False),
+        'temperature': lit_types.Scalar(default=0.7, required=False),
+        'candidate_count': lit_types.Integer(default=1, required=False),
+        'max_output_tokens': lit_types.Integer(default=256, required=False),
+    }
 
   def input_spec(self) -> lit_types.Spec:
     return {
