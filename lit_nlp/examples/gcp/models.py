@@ -193,11 +193,9 @@ class SelfHostedGenerativeModel(lit_model.BatchedRemoteModel):
     return res
 
   @classmethod
-  def init_spec(cls, aip_endpoint_name: str) -> lit_types.Spec:
+  def init_spec(cls) -> lit_types.Spec:
     return {
-        'aip_endpoint_name': lit_types.String(
-            default=aip_endpoint_name, required=True
-        ),
+        'aip_endpoint_name': lit_types.String(default='', required=True),
         'max_concurrent_requests': lit_types.Integer(default=4, required=False),
         'max_qps': lit_types.Integer(default=25, required=False),
         'temperature': lit_types.Scalar(default=0.7, required=False),
