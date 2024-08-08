@@ -148,8 +148,6 @@ export class ClassificationModule extends LitModule {
     const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
     const colorOption = this.colorService.selectedColorOption;
-    // tslint:disable-next-line:no-any
-    const colorRange = (colorOption.scale as any).range();
 
     // Iterate over the multiclass prediction heads
     for (const predKey of multiclassKeys) {
@@ -172,6 +170,13 @@ export class ClassificationModule extends LitModule {
       );
       const colorableKeys = [predClassKey, predCorrectKey, parent];
       const applyColor = colorableKeys.includes(colorOption.name);
+      // colorOption.scale can be a d3.scaleSequential (numeric features) or
+      // d3.scaleOrdinal (categorical or boolean features). In the version of D3
+      // LIT uses, d3.scaleSequential does not have a .range() method, so we
+      // need to default to an empty array for numeric features.
+      // https://d3js.org/d3-scale/sequential#scaleSequential
+      const colorRange: string[] =  // tslint:disable-next-line:no-any
+          applyColor ? (colorOption.scale as any).range() : [];
 
       labeledPredictions[topLevelKey] = {};
 
