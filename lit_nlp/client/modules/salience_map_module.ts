@@ -28,7 +28,7 @@ import {html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -146,11 +146,11 @@ export class SalienceMapModule extends LitModule {
   @observable
   private state: {[name: string]: InterpreterState} = {};
 
-  @observable private currentData?: IndexedInput;
-  @observable private currentPreds?: Preds;
+  @observable.ref private currentData?: IndexedInput = undefined;
+  @observable.ref private currentPreds?: Preds = undefined;
   // Index into possible labels.
-  @observable private targetField?: string;
-  @observable private salienceTarget?: number;
+  @observable private targetField?: string = undefined;
+  @observable private salienceTarget?: number = undefined;
 
   // Check that the target selector is available for gradient-based salience.
   // TODO(b/205996131): remove this and always show dropdown, once everything
@@ -227,6 +227,11 @@ export class SalienceMapModule extends LitModule {
       const newLabel = this.labelVocab[this.salienceTarget];
       return makeModifiedInput(
           input, {[this.inputLabelField]: newLabel}, 'SalienceMapModule');
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   shouldRunInterpreter(name: string) {

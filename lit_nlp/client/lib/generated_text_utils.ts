@@ -131,8 +131,11 @@ export interface TargetOption {
  * Get all possible target strings from reference and model output.
  */
 export function getAllTargetOptions(
-    dataSpec: Spec, outputSpec: Spec, input?: IndexedInput|null,
-    preds?: GeneratedTextResult|null): TargetOption[] {
+    dataSpec: Spec,
+    outputSpec: Spec,
+    input?: IndexedInput|null,
+    preds?: GeneratedTextResult|null
+): TargetOption[] {
   const ret: TargetOption[] = [];
   for (const text of getAllReferenceTexts(dataSpec, outputSpec, input)) {
     ret.push({text, source: TargetSource.REFERENCE});

@@ -11,7 +11,7 @@ import '../elements/token_chips';
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
@@ -68,19 +68,19 @@ export class LegacySequenceSalienceModule extends LitModule {
   }
 
   // Current data
-  @observable private currentData?: IndexedInput;
-  @observable private currentPreds?: GeneratedTextResult;
-  @observable private salienceTarget?: string;
-  @observable
+  @observable.ref private currentData?: IndexedInput = undefined;
+  @observable.ref private currentPreds?: GeneratedTextResult = undefined;
+  @observable private salienceTarget?: string = undefined;
+  @observable.ref
   private currentSalience: {[fieldName: string]: SequenceSalienceMap} = {};
   @observable private selectedSalienceField?: string = undefined;
-  @observable private focusState?: TokenFocusState = undefined;
+  @observable.ref private focusState?: TokenFocusState = undefined;
 
   // Options
-  @observable private cmapGamma: number = 2.0;
+  @observable private cmapGamma = 2.0;
   @observable
   private cmapScalingMode: ColorScalingMode = ColorScalingMode.NORMALIZE;
-  @observable private denseView: boolean = false;
+  @observable private denseView = false;
 
   @computed
   get salienceSpecInfo(): Spec {
@@ -107,6 +107,11 @@ export class LegacySequenceSalienceModule extends LitModule {
         dataSpec, outputSpec, this.currentData, this.currentPreds);
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   override firstUpdated() {
     if (this.selectedSalienceField === undefined) {
       this.selectedSalienceField = Object.keys(this.salienceSpecInfo)[0];
@@ -126,14 +131,14 @@ export class LegacySequenceSalienceModule extends LitModule {
   }
 
   private async updateToSelection(input: IndexedInput|null) {
+    this.currentPreds = undefined;
+
     if (input == null) {
       this.currentData = undefined;
-      this.currentPreds = undefined;
       return;
     }
     // Before waiting for the backend call, update data and clear annotations.
     this.currentData = input;
-    this.currentPreds = undefined;
 
     const promise = this.apiService.getPreds(
         [input], this.model, this.appState.currentDataset, GENERATION_TYPES, [],

@@ -29,7 +29,7 @@
     "lit": "2.7.6",
     "marked": "5.1.2",
     "megaplot": "github:PAIR-code/megaplot#ca8210d",
-    "mobx": "5.15.4",
+    "mobx": "6.1.8",
     "node-polyfill-webpack-plugin": "^2.0.1",
     "papaparse": "4.1.2",
     "scatter-gl": "0.0.13",

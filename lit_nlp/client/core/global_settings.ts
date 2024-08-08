@@ -32,11 +32,11 @@ import {MobxLitElement} from '@adobe/lit-mobx';
 import {html, TemplateResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {action, computed, observable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {StringLitType} from '../lib/lit_types';
-import {type CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, Spec} from '../lib/types';
+import {type CallConfig, datasetDisplayName, LitTabGroupLayout, NONE_DS_DICT_KEY, type Spec} from '../lib/types';
 import {getTemplateStringFromMarkdown, validateCallConfig} from '../lib/utils';
 import {LitInputField} from '../elements/lit_input_field';
 import {resolveModuleConfig} from '../services/modules_service';
@@ -61,6 +61,7 @@ const COMPATIBLE_TXT = 'Compatible';
 const INCOMPATIBLE_TXT = 'Incompatible';
 
 const NEW_NAME_FIELD = 'new_name';
+const NEW_NAME_SPEC: Spec = {[NEW_NAME_FIELD]: new StringLitType()};
 const LOAD_DISABLED_TXT = 'Provide a value for "new_name" to load';
 
 function initializeCallConfig(spec: Spec): CallConfig {
@@ -89,7 +90,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @observable private selectedLayout = '';
   @observable private readonly modelCheckboxValues = new Map<string, boolean>();
   @observable selectedTab: TabName = 'Models';
-  @observable private status?: string;
+  @observable private status?: string = undefined;
 
   // TODO(b/207137261): Determine if datapointsStatus, modelStatus,
   // pathForDatapoints, and pathForModel are still necessary/how to use convey
@@ -104,24 +105,24 @@ export class GlobalSettingsComponent extends MobxLitElement {
   @observable private readonly openDatasetKeys: Set<string> = new Set();
   @observable private readonly openLayoutKeys: Set<string> = new Set();
 
-  @observable private datasetToLoad?: string;
-  @observable private modelToLoad?: string;
+  @observable private datasetToLoad?: string = undefined;
+  @observable private modelToLoad?: string = undefined;
   @observable private loadingCallConfig: CallConfig = {};
   @observable private missingCallConfigFields: string[] = [];
 
   @computed get loadableDatasets(): string[] {
     const {datasets} = this.appState.metadata.initSpecs;
     const loadable = Object.entries(datasets)
-        .filter(([unused, spec]) => spec != null)
-        .map(([name, unused]) => name);
+        .filter(([, spec]) => spec != null)
+        .map(([name, ]) => name);
     return loadable;
   }
 
   @computed get loadableModels(): string[] {
     const {models} = this.appState.metadata.initSpecs;
     const loadable = Object.entries(models)
-        .filter(([unused, spec]) => spec != null)
-        .map(([name, unused]) => name);
+        .filter(([, spec]) => spec != null)
+        .map(([name, ]) => name);
     return loadable;
   }
 
@@ -129,6 +130,11 @@ export class GlobalSettingsComponent extends MobxLitElement {
     const modelEntries = [...this.modelCheckboxValues.entries()];
     return modelEntries.filter(([, isSelected]) => isSelected)
         .map(([modelName,]) => modelName);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   // TODO(b/207137261): Determine where and how dataset saving happens after the
@@ -684,23 +690,27 @@ export class GlobalSettingsComponent extends MobxLitElement {
    * @param load A callback function for telling the LIT server to load a new
    *    instance of the selected component given the configured parameters.
    */
-  private renderLoader(panel: string, options: string[], selectedOption: string,
-                       spec: Spec, select: EventHandler, load: EventHandler) {
+  private renderLoader(
+      panel: string,
+      options: string[],
+      selectedOption: string,
+      spec: Spec,
+      select: EventHandler,
+      load: EventHandler
+  ) {
     const disableReset =
         Object.entries(this.loadingCallConfig)
           .map(([name, value]) =>
               name === NEW_NAME_FIELD ? !value : spec[name]?.default === value)
           .reduce((a, b) => a && b, true);
     const disableSubmit = !this.loadingCallConfig[NEW_NAME_FIELD];
-    const specEntries = Object.entries(spec);
+    const aggregateSpec: Spec = {...NEW_NAME_SPEC, ...spec};
+    const specEntries = Object.entries(aggregateSpec);
     const reset = () => {this.resetLoadingCallConfig();};
     const selectionChanged = (e: Event) => {select(e);};
 
     const configInputs = specEntries.length ?
-      Object.entries({
-        [NEW_NAME_FIELD]: new StringLitType(),
-        ...spec
-      }).map(([fieldName, fieldType]) => {
+      Object.entries(aggregateSpec).map(([fieldName, fieldType]) => {
         const value = this.loadingCallConfig[fieldName];
         const updateConfig = (e: Event) => {
           const {value} = e.target as LitInputField;
@@ -859,10 +869,16 @@ export class GlobalSettingsComponent extends MobxLitElement {
   }
 
   private renderLine(
-      name: string, selectorHtml: TemplateResult, selected: boolean,
-      disabled: boolean, expanderOpen: boolean, onExpanderClick: () => void,
-      renderStatus: boolean, expandedInfoHtml: TemplateResult,
-      description = '') {
+      name: string,
+      selectorHtml: TemplateResult,
+      selected: boolean,
+      disabled: boolean,
+      expanderOpen: boolean,
+      onExpanderClick: () => void,
+      renderStatus: boolean,
+      expandedInfoHtml: TemplateResult,
+      description = ''
+  ) {
     const expanderIcon =
         expanderOpen ? 'expand_less' : 'expand_more';  // Icons for arrows.
 
@@ -882,7 +898,7 @@ export class GlobalSettingsComponent extends MobxLitElement {
         classMap({'expanded-info': true, 'open': expanderOpen});
     const status = renderStatus ? this.renderStatus(selected, disabled) : '';
     return html`
-      <div class=${classes}>
+      <div id=${`config-line-for-${name}`} class=${classes}>
         <div class='fixed-third-col'>
           ${selectorHtml}
         </div>

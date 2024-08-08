@@ -28,7 +28,7 @@ import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed} from 'mobx';
+import {makeObservable, computed} from 'mobx';
 
 import {MenuItem} from '../elements/menu';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -231,6 +231,11 @@ export class LitMainToolbar extends MobxLitElement {
     const data = this.selectionService.selectedOrAllInputData;
     return data.filter(d => d.meta['parentId'])
         .map(d => [d.id, d.meta['parentId']!]);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   /**

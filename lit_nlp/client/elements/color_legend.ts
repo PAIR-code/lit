@@ -23,7 +23,7 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {DEFAULT} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
@@ -59,7 +59,7 @@ function stylePropToNumber(styles: CSSStyleDeclaration,
  */
 @customElement('color-legend')
 export class ColorLegend extends ReactiveElement {
-  @observable @property({type: Object}) scale: D3Scale =
+  @observable.ref @property({type: Object}) scale: D3Scale =
       d3.scaleOrdinal([DEFAULT]).domain(['all']) as D3Scale;
   @property({type: String}) legendType = LegendType.CATEGORICAL;
   @property({type: String}) label = '';
@@ -87,6 +87,11 @@ export class ColorLegend extends ReactiveElement {
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {

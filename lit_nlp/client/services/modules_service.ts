@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, observable} from 'mobx';
+import {action, makeObservable, observable} from 'mobx';
 
 import {LayoutSettings, type LitCanonicalLayout, LitComponentSpecifier, LitModuleClass, LitModuleConfig, LitTabGroupLayout, type ModelInfoMap, ResolvedModuleConfig, type Spec} from '../lib/types';
 
@@ -98,17 +98,22 @@ export function resolveModuleConfig(
  */
 export class ModulesService extends LitService implements
     ModulesObservedByUrlService {
-  @observable declaredLayout: LitCanonicalLayout = {
+  declaredLayout: LitCanonicalLayout = {
     upper: {}, lower: {}, left: {}, layoutSettings: {}, description: ''
   };
   @observable readonly selectedTabs = {upper: '', lower: '', left: ''};
-  @observable private renderLayout: LitRenderConfig = {
+  @observable.ref private renderLayout: LitRenderConfig = {
     upper: {}, lower: {}, left: {}
   };
   @observable hiddenModuleKeys = new Set<string>();
   @observable expandedModuleKey = '';
   allModuleKeys = new Set<string>();
   private renderModulesCallback: RenderModulesCallback = () => {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   // TODO(b/168201937): Remove imperative logic and use observables/reactions
   // for all module logic.
@@ -252,9 +257,12 @@ export class ModulesService extends LitService implements
         this.declaredLayout.left, currentModelInfos, datasetSpec,
         compareExamples);
 
+    console.log('module_service.updateRenderLayout', {upper, lower, left});
+
     const renderLayout: LitRenderConfig = {upper, lower, left};
 
     this.updateModuleKeys(renderLayout);
+    console.log('module_service.updateRenderLayout', {currentLayout: this.renderLayout, newLayout: renderLayout}, Date.now());
     this.renderLayout = renderLayout;
   }
 

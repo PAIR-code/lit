@@ -21,7 +21,7 @@ import '../elements/switch';
 
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -87,6 +87,11 @@ export class ClassificationModule extends LitModule {
 
   @observable private sparseMode = false;
   @observable private labeledPredictions: LabeledPredictions = {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override connectedCallback() {
     super.connectedCallback();

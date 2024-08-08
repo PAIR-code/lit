@@ -25,7 +25,7 @@ import '../elements/checkbox';
 import {html} from 'lit';
 import {customElement, query} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -48,7 +48,6 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   // Markdown of splash screen text to render.
-  @observable
   private readonly markdownPages = [
     `![](static/onboarding_1_welcome.gif)\n# Welcome to LIT!\nLIT is a ` +
         `visual, interactive tool to help ML researchers, engineers, product ` +
@@ -96,6 +95,7 @@ export class DocumentationComponent extends ReactiveElement {
 
   constructor(private readonly appState = app.getService(AppState)) {
     super();
+    makeObservable(this);
   }
 
   override firstUpdated() {
@@ -162,7 +162,7 @@ export class DocumentationComponent extends ReactiveElement {
   }
 
   override render() {
-    const hiddenClassMap = classMap({hide: !this.isOpen});
+    const hiddenClassMap = classMap({'hide': !this.isOpen});
     const docToDisplay = this.pagesToRender[this.currentPage];
     const onCloseClick = () => {
       this.isOpen = false;

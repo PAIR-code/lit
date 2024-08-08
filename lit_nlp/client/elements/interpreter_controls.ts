@@ -21,7 +21,7 @@ import '../elements/numeric_input';
 
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {BooleanLitType, CategoryLabel, LitType, LitTypeWithVocab, MultiFieldMatcher, Scalar, SingleFieldMatcher, SparseMultilabel, Tokens} from '../lib/lit_types';
@@ -88,6 +88,11 @@ export class InterpreterControls extends ReactiveElement {
       }
     }
     return settings;
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override connectedCallback() {

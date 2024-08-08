@@ -19,7 +19,7 @@
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {DiffMode, getTextDiff, type TextDiff} from '../lib/generated_text_utils';
@@ -77,6 +77,11 @@ export class GeneratedTextVis extends ReactiveElement {
     const byWord = (this.diffMode === DiffMode.WORD);
     const referenceText = this.referenceTexts[this.selectedRefIdx][0];
     return getTextDiff(referenceText, outputText, byWord);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   renderDiffString(strings: string[], equal: boolean[]) {

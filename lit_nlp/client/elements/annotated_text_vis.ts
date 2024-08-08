@@ -5,11 +5,11 @@
 // tslint:disable:no-new-decorators
 import {property} from 'lit/decorators.js';
 import {customElement} from 'lit/decorators.js';
-import { html, LitElement} from 'lit';
+import {html, LitElement} from 'lit';
 import {TemplateResult} from 'lit';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {getVizColor} from '../lib/colors';
 import {ReactiveElement} from '../lib/elements';
@@ -169,6 +169,11 @@ export class AnnotatedTextVis extends ReactiveElement {
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override connectedCallback() {
