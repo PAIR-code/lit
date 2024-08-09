@@ -11,11 +11,29 @@ credential must be set using the VertexAI API key.
 You can also configure the datasets and max_examples to load. If datasets and
 max_examples are not provided, the default datasets and max_examples will be used.
 
+This LIT demo does not preload any model by default, and you can either load
+them in the UI (using "Configure" menu) or preload them at demo launch time with
+the optional "--gemini_model" or "--generative_model_endpoints" flags.
+
+The "--gemini_model" flag allows loading gemini models only and is a list of
+strings with format as <any_name_provided_by_you>:<accepted_gemini_version>.
+The accepted Gemini version can be found at
+https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference.
+
+The "--generative_model_endpoints" flag allows loading self-hosted generative
+models, and is a list of strings with format as
+<any_name_provided_by_you>:<endpoint_name>. The endpoint name is the
+fully-qualified endpoint resource name or endpoint ID of aiplatform. The
+endpoint will be available after the model is deployed on VertexAI in GCP. The
+details of endpoint can be found at
+https://cloud.google.com/vertex-ai/docs/pipelines/model-endpoint-component.
+
 The following command can be used to run the demo:
   python -m lit_nlp.examples.gcp.demo \
     --project_id=$GCP_PROJECT_ID \
     --project_location=$GCP_PROJECT_LOCATION \
-    --credential=$VERTEX_AI_API_KEY \
+    --gemini_models=$GEMINI_MODEL_NAMES \
+    --generative_model_endpoints=$GENERATIVE_MODEL_ENDPOINTS \
     --datasets=$DATASETS \
     --max_examples=$MAX_EXAMPLES \
     --alsologtostderr
@@ -50,6 +68,26 @@ PROJECT_ID = flags.DEFINE_string(
     None,
     'Please enter your project id',
     required=True,
+)
+_GEMINI_MODELS = flags.DEFINE_list(
+    'gemini_models',
+    None,
+    ' List of gemini models to load, as <name>:<accepted_gemini_version>.'
+    ' The accepted Gemini version can be found at'
+    ' https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference.',
+    required=False,
+)
+_GENERATIVE_MODEL_ENDPOINTS = flags.DEFINE_list(
+    'generative_model_endpoints',
+    None,
+    (
+        ' List of fully-qualified endpoint resource name or endpoint ID of'
+        ' aiplatform, as <name>:<endpoint_name>.'
+        ' The endpoint will be provided after the model is deployed'
+        ' on VertexAI in GCP. The details of endpoint can be found at'
+        ' https://cloud.google.com/vertex-ai/docs/pipelines/model-endpoint-component.'
+    ),
+    required=False,
 )
 
 # Define dataset information.
@@ -92,10 +130,25 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   vertexai.init(project=PROJECT_ID.value, location=LOCATION.value)
 
   models = {}
+  if _GEMINI_MODELS.value:
+    for model_string in _GEMINI_MODELS.value:
+      name, gemini_model = model_string.split(':', 1)
+      models[name] = gcp_models.VertexModelGardenModel(gemini_model)
+  if _GENERATIVE_MODEL_ENDPOINTS.value:
+    for endpoint_string in _GENERATIVE_MODEL_ENDPOINTS.value:
+      name, endpoint_name = endpoint_string.split(':', 1)
+      models[name] = gcp_models.SelfHostedGenerativeModel(
+          aip_endpoint_name=endpoint_name,
+      )
+
   model_loaders: lit_app.ModelLoadersMap = {}
   model_loaders['gemini'] = (
       gcp_models.VertexModelGardenModel,
       gcp_models.VertexModelGardenModel.init_spec(),
+  )
+  model_loaders['self_hosted_generative_model'] = (
+      gcp_models.SelfHostedGenerativeModel,
+      gcp_models.SelfHostedGenerativeModel.init_spec(),
   )
 
   datasets = prompt_debugging_datasets.get_datasets(
