@@ -15,6 +15,8 @@ _DEFAULT_CANDIDATE_COUNT = 1
 
 _DEFAULT_MAX_OUTPUT_TOKENS = 256
 
+_DEFAULT_TEMPERATURE = 0.7
+
 
 # TODO(fanyecourage): Rename this class.
 class VertexModelGardenModel(lit_model.BatchedRemoteModel):
@@ -36,7 +38,7 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
       model_name: str,
       max_concurrent_requests: int = 4,
       max_qps: Union[int, float] = 25,
-      temperature: Optional[float] = None,
+      temperature: Optional[float] = _DEFAULT_TEMPERATURE,
       candidate_count: Optional[int] = _DEFAULT_CANDIDATE_COUNT,
       max_output_tokens: Optional[int] = _DEFAULT_MAX_OUTPUT_TOKENS,
   ):
@@ -95,7 +97,9 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
         'model_name': lit_types.String(default='gemini-1.0-pro', required=True),
         'max_concurrent_requests': lit_types.Integer(default=4, required=False),
         'max_qps': lit_types.Integer(default=25, required=False),
-        'temperature': lit_types.Scalar(default=0.7, required=False),
+        'temperature': lit_types.Scalar(
+            default=_DEFAULT_TEMPERATURE, required=False
+        ),
         'candidate_count': lit_types.Integer(default=1, required=False),
         'max_output_tokens': lit_types.Integer(default=256, required=False),
     }
@@ -138,7 +142,7 @@ class SelfHostedGenerativeModel(lit_model.BatchedRemoteModel):
       aip_endpoint_name: str,
       max_concurrent_requests: int = 4,
       max_qps: Union[int, float] = 25,
-      temperature: Optional[float] = None,
+      temperature: Optional[float] = _DEFAULT_TEMPERATURE,
       max_output_tokens: Optional[int] = _DEFAULT_MAX_OUTPUT_TOKENS,
   ):
     super().__init__(
@@ -198,7 +202,9 @@ class SelfHostedGenerativeModel(lit_model.BatchedRemoteModel):
         'aip_endpoint_name': lit_types.String(default='', required=True),
         'max_concurrent_requests': lit_types.Integer(default=4, required=False),
         'max_qps': lit_types.Integer(default=25, required=False),
-        'temperature': lit_types.Scalar(default=0.7, required=False),
+        'temperature': lit_types.Scalar(
+            default=_DEFAULT_TEMPERATURE, required=False
+        ),
         'max_output_tokens': lit_types.Integer(default=256, required=False),
     }
 
