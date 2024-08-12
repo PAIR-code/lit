@@ -73,4 +73,5 @@ jobs:
     - name: Build Docker image
       uses: docker/build-push-action@v4
       with:
+        target: lit-nlp-prod
         tags: lit-nlp:ci-${{ github.sha }}
