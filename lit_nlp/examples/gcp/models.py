@@ -51,8 +51,6 @@ class VertexModelGardenModel(lit_model.BatchedRemoteModel):
     )
     self._model = generative_models.GenerativeModel(model_name)
 
-  # TODO(fanyeycourage): Enable query_model to take a list of input_text, and
-  # return a list of predictions.
   def query_model(self, input_text: str) -> lit_types.ScoredTextCandidates:
     num_attempts = 0
     predictions = None
