@@ -1,6 +1,6 @@
 {
   "name": "lit-client",
-  "version": "1.0.0-rc1",
+  "version": "1.2",
   "description": "Client app for LIT, the Learning Interpretability Tool",
   "engines": {
     "node": ">=18.0.0"
