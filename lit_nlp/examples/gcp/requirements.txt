@@ -19,3 +19,4 @@ google-cloud-aiplatform>=1.60.0
 gunicorn>=20.1.0
 lit-nlp>=1.2
 vertexai>=1.49.0
+webtest>=2.0
