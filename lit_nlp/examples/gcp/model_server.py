@@ -52,7 +52,7 @@ def get_wsgi_app() -> wsgi_app.App:
 
   if len(DEFAULT_MODELS) < 1:
     raise ValueError('No models specified in DEFAULT_MODELS')
-  model_name = DEFAULT_MODELS[0].split(':')[0]
+  model_name = model_config[0].split(':')[0]
 
   predict_model = models[model_name]
   salience_model = models[f'{model_name}_salience']
