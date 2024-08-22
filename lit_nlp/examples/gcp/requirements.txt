@@ -14,6 +14,7 @@
 # ==============================================================================
 
 -r ../../../requirements_core.txt
+-r ../prompt_debugging/requirements.txt
 
 google-cloud-aiplatform>=1.60.0
 gunicorn>=20.1.0

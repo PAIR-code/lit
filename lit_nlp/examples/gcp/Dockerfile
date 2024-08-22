@@ -95,6 +95,8 @@ COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
 # TODO(b/353980272): Replace this with a requirements file specific to the GCP
 # exmaple, this should include the core lit-nlp package.
 COPY requirements_core.txt ./
+COPY lit_nlp/examples/prompt_debugging/requirements.txt \
+     lit_nlp/examples/prompt_debugging/requirements.txt
 COPY lit_nlp/examples/gcp/requirements.txt lit_nlp/examples/gcp/requirements.txt
 RUN python -m pip install -r lit_nlp/examples/gcp/requirements.txt
 
