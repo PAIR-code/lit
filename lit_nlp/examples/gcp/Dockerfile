@@ -73,7 +73,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 # ---- LIT on GCP from source ----
 
-FROM base AS lit-gcp-dev
+FROM base AS lit-gcp-model-server-dev
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
@@ -90,7 +90,7 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
 RUN apt update && apt -y install yarn
 
 # TODO(b/353980272): Replace the default config with the GCP-specific config
-COPY ./lit_nlp/examples/gunicorn_config.py ./
+COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
 
 # TODO(b/353980272): Replace this with a requirements file specific to the GCP
 # exmaple, this should include the core lit-nlp package.
@@ -109,4 +109,4 @@ RUN yarn && yarn build && rm -rf node_modules/*
 # TODO(b/353980272): Replace this with the GCP-specific config
 # See https://github.com/PAIR-code/lit/blob/main/Dockerfile
 WORKDIR $APP_HOME
-ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
+ENTRYPOINT ["gunicorn", "--config=model_server_gunicorn_config.py"]

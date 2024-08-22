@@ -5,24 +5,21 @@ import functools
 import os
 from typing import Optional
 from absl import app
-from absl import flags
 from lit_nlp import dev_server
 from lit_nlp.examples.prompt_debugging import models as prompt_debugging_models
 from lit_nlp.lib import serialize
 from lit_nlp.lib import wsgi_app
-
-_FLAGS = flags.FLAGS
 
 DEFAULT_DL_FRAMEWORK = 'kerasnlp'
 DEFAULT_DL_RUNTIME = 'tensorflow'
 DEFAULT_PRECISION = 'bfloat16'
 DEFAULT_SEQUENCE_LENGTH = 512
 DEFAULT_BATCH_SIZE = 1
-DEFAULT_MODELS = 'gemma_1.1_instruct_2b_en:/cns/je-d/home/mattdangerw/keras/gemma/gemma_1.1_instruct_2b_en/3/'
+DEFAULT_MODELS = 'gemma_1.1_2b_IT:gemma_1.1_instruct_2b_en'
 
 
 def get_wsgi_app() -> wsgi_app.App:
-  """Return WSGI app for container-hosted demos."""
+  """Return WSGI app for an LLM server."""
 
   def wrap_handler(predict_fn):
     @functools.wraps(predict_fn)
