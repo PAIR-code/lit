@@ -103,6 +103,7 @@ vertexai = [
 test = [
   "lime==0.2.0.1",
   "pytest>=7.4.0,<8.0.0",
+  "webtest>=2.0",
 ]
 # LINT.ThenChange(./requirements_test.txt)
 
