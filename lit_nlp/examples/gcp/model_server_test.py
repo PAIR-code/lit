@@ -26,8 +26,8 @@ class TestWSGIApp(absltest.TestCase):
 
     mock_get_models.return_value = {
         'gemma_1.1_2b_IT': mock_model,
-        'gemma_1.1_2b_IT_salience': salience_model,
-        'gemma_1.1_2b_IT_tokenize': tokenize_model,
+        '_gemma_1.1_2b_IT_salience': salience_model,
+        '_gemma_1.1_2b_IT_tokenize': tokenize_model,
     }
     app = webtest.TestApp(model_server.get_wsgi_app())
 

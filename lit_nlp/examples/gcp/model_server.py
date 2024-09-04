@@ -27,7 +27,7 @@ def get_wsgi_app() -> wsgi_app.App:
       data = serialize.from_json(request.data) if len(request.data) else None
       inputs = data['inputs']
       outputs = predict_fn(inputs)
-      response_body = serialize.to_json(outputs, simple=True)
+      response_body = serialize.to_json(outputs,  simple=True)
       return app.respond(request, response_body, 'application/json', 200)
 
     return _handler
@@ -55,8 +55,8 @@ def get_wsgi_app() -> wsgi_app.App:
   model_name = model_config[0].split(':')[0]
 
   predict_model = models[model_name]
-  salience_model = models[f'{model_name}_salience']
-  tokenize_model = models[f'{model_name}_tokenize']
+  salience_model = models[f'_{model_name}_salience']
+  tokenize_model = models[f'_{model_name}_tokenizer']
 
   handlers = {
       '/predict': predict_model.predict,
@@ -72,7 +72,6 @@ def get_wsgi_app() -> wsgi_app.App:
   return wsgi_app.App(
       wrapped_handlers, project_root='gcp', index_file='index.html'
   )
-
 
 def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
