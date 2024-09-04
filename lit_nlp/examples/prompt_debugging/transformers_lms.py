@@ -14,6 +14,7 @@ from typing import Any, Mapping
 from absl import logging
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
@@ -596,14 +597,15 @@ class HFTokenizerModel(HFBaseModel):
 
 
 def initialize_model_group_for_salience(
-    name, *args, max_length=512, **kw
+    name: str, *args, max_length: int = 512, **kw
 ) -> dict[str, lit_model.Model]:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
+  salience_name, tokenizer_name = pd_utils.generate_model_group_names(name)
   generation_model = HFGenerativeModel(*args, **kw, max_length=max_length)
   salience_model = HFSalienceModel.from_loaded(generation_model)
   tokenizer_model = HFTokenizerModel.from_loaded(generation_model)
   return {
       name: generation_model,
-      f"_{name}_salience": salience_model,
-      f"_{name}_tokenizer": tokenizer_model,
+      salience_name: salience_model,
+      tokenizer_name: tokenizer_model,
   }

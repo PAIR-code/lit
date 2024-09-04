@@ -11,6 +11,7 @@ import keras
 from keras_nlp import models as keras_models
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import utils as lit_utils
 
 
@@ -534,9 +535,10 @@ class KerasTokenizerModel(_KerasBaseModel):
 
 
 def initialize_model_group_for_salience(
-    name, *args, **kw
+    name: str, *args, **kw
 ) -> dict[str, lit_model.Model]:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
+  salience_name, tokenizer_name = pd_utils.generate_model_group_names(name)
   generation_model = KerasGenerationModel(*args, **kw)
   salience_model = KerasSalienceModel(model=generation_model.model, *args, **kw)
   tokenizer_model = KerasTokenizerModel(
@@ -544,6 +546,6 @@ def initialize_model_group_for_salience(
   )
   return {
       name: generation_model,
-      f"_{name}_salience": salience_model,
-      f"_{name}_tokenizer": tokenizer_model,
+      salience_name: salience_model,
+      tokenizer_name: tokenizer_model,
   }
