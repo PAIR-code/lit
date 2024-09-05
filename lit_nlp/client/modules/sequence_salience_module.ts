@@ -922,22 +922,25 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
         this.salienceTargetOption = i;
       };
       // prettier-ignore
-      return html`
-        <div class='interstitial-target-option' @click=${onClickTarget}>
-          <div class='interstitial-target-text'>${target.text}</div>
-        </div>`;
+      return {
+        source: target.source,
+        template: html`<div class='interstitial-target-option'
+            @click=${onClickTarget}>
+            <div class='interstitial-target-text'>${target.text}</div>
+          </div>`,
+      };
     };
 
     // Slightly awkward, but we need to process and /then/ filter, because
     // the @click handler needs the original list index.
-    const optionsFromDataset =
-        this.salienceTargetOptions
-            .filter((t) => t.source === TargetSource.REFERENCE)
-            .map((t, i) => formatOption(t, i));
-    const optionsFromModel =
-        this.salienceTargetOptions
-            .filter((t) => t.source === TargetSource.MODEL_OUTPUT)
-            .map((t, i) => formatOption(t, i));
+    const formattedOptions =
+        this.salienceTargetOptions.map((t, i) => formatOption(t, i));
+    const optionsFromDataset = formattedOptions
+        .filter((t) => t.source === TargetSource.REFERENCE)
+        .map((t) => t.template);
+    const optionsFromModel = formattedOptions
+        .filter((t) => t.source === TargetSource.MODEL_OUTPUT)
+        .map((t) => t.template);
 
     const isLoadingPreds = this.latestLoadPromises.has(MODEL_PREDS_KEY);
 
