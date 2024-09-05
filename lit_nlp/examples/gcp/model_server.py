@@ -6,7 +6,8 @@ import os
 from typing import Optional
 from absl import app
 from lit_nlp import dev_server
-from lit_nlp.examples.prompt_debugging import models as prompt_debugging_models
+from lit_nlp.examples.prompt_debugging import models as pd_models
+from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import serialize
 from lit_nlp.lib import wsgi_app
 
@@ -41,7 +42,7 @@ def get_wsgi_app() -> wsgi_app.App:
 
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
-  models = prompt_debugging_models.get_models(
+  models = pd_models.get_models(
       models_config=model_config,
       dl_framework=dl_framework,
       dl_runtime=dl_runtime,
@@ -53,13 +54,14 @@ def get_wsgi_app() -> wsgi_app.App:
   if len(DEFAULT_MODELS) < 1:
     raise ValueError('No models specified in DEFAULT_MODELS')
   model_name = model_config[0].split(':')[0]
+  sal_name, tok_name = pd_utils.generate_model_group_names(model_name)
 
-  predict_model = models[model_name]
-  salience_model = models[f'_{model_name}_salience']
-  tokenize_model = models[f'_{model_name}_tokenize']
+  generation_model = models[model_name]
+  salience_model = models[sal_name]
+  tokenize_model = models[tok_name]
 
   handlers = {
-      '/predict': predict_model.predict,
+      '/predict': generation_model.predict,
       '/salience': salience_model.predict,
       '/tokenize': tokenize_model.predict,
   }
