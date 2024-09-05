@@ -56,7 +56,7 @@ def get_wsgi_app() -> wsgi_app.App:
 
   predict_model = models[model_name]
   salience_model = models[f'_{model_name}_salience']
-  tokenize_model = models[f'_{model_name}_tokenizer']
+  tokenize_model = models[f'_{model_name}_tokenize']
 
   handlers = {
       '/predict': predict_model.predict,
