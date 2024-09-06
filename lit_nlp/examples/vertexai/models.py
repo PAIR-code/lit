@@ -123,8 +123,8 @@ class SelfHostedGenerativeModel(lit_model.BatchedRemoteModel):
   model.
 
   Attributes:
-    aip_endpoint_name: A fully-qualified GCP depolyed model endpoint resource
-      name or endpoint ID.
+    aip_endpoint_name: A fully-qualified VertexAI depolyed model endpoint
+      resource name or endpoint ID.
     max_concurrent_requests: The maximum number of concurrent requests to the
       model.
     max_qps: The maximum number of queries per second to the model.

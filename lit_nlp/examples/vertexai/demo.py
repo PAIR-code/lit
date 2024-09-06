@@ -29,7 +29,7 @@ details of endpoint can be found at
 https://cloud.google.com/vertex-ai/docs/pipelines/model-endpoint-component.
 
 The following command can be used to run the demo:
-  python -m lit_nlp.examples.gcp.demo \
+  python -m lit_nlp.examples.vertexai.demo \
     --project_id=$GCP_PROJECT_ID \
     --project_location=$GCP_PROJECT_LOCATION \
     --gemini_models=$GEMINI_MODEL_NAMES \
@@ -51,8 +51,8 @@ from google.cloud.aiplatform import vertexai
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.examples.gcp import models as gcp_models
 from lit_nlp.examples.prompt_debugging import datasets as prompt_debugging_datasets
+from lit_nlp.examples.vertexai import models as vertexai_models
 
 FLAGS = flags.FLAGS
 
@@ -133,22 +133,22 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if _GEMINI_MODELS.value:
     for model_string in _GEMINI_MODELS.value:
       name, gemini_model = model_string.split(':', 1)
-      models[name] = gcp_models.VertexModelGardenModel(gemini_model)
+      models[name] = vertexai_models.VertexModelGardenModel(gemini_model)
   if _GENERATIVE_MODEL_ENDPOINTS.value:
     for endpoint_string in _GENERATIVE_MODEL_ENDPOINTS.value:
       name, endpoint_name = endpoint_string.split(':', 1)
-      models[name] = gcp_models.SelfHostedGenerativeModel(
+      models[name] = vertexai_models.SelfHostedGenerativeModel(
           aip_endpoint_name=endpoint_name,
       )
 
   model_loaders: lit_app.ModelLoadersMap = {}
   model_loaders['gemini'] = (
-      gcp_models.VertexModelGardenModel,
-      gcp_models.VertexModelGardenModel.init_spec(),
+      vertexai_models.VertexModelGardenModel,
+      vertexai_models.VertexModelGardenModel.init_spec(),
   )
   model_loaders['self_hosted_generative_model'] = (
-      gcp_models.SelfHostedGenerativeModel,
-      gcp_models.SelfHostedGenerativeModel.init_spec(),
+      vertexai_models.SelfHostedGenerativeModel,
+      vertexai_models.SelfHostedGenerativeModel.init_spec(),
   )
 
   datasets = prompt_debugging_datasets.get_datasets(

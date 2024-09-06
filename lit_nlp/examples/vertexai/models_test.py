@@ -1,10 +1,10 @@
-"""Tests for lit_nlp.examples.gcp.models."""
+"""Tests for lit_nlp.examples.vertexai.models."""
 
 from unittest import mock
 from absl.testing import absltest
 from google.cloud import aiplatform
 from vertexai import generative_models
-from lit_nlp.examples.gcp import models
+from lit_nlp.examples.vertexai import models
 
 
 class ModelsTest(absltest.TestCase):
@@ -76,9 +76,7 @@ class ModelsTest(absltest.TestCase):
     )
     mock_generate_content.side_effect = [response1, response2]
 
-    model = models.SelfHostedGenerativeModel(
-        aip_endpoint_name="endpoint_name"
-    )
+    model = models.SelfHostedGenerativeModel(aip_endpoint_name="endpoint_name")
     model._endpoint = mock.MagicMock()
     model._endpoint.predict.side_effect = [response1, response2]
 
