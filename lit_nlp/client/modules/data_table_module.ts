@@ -532,8 +532,8 @@ export class DataTableModule extends LitModule {
           Reset view
         </button>
         <button class='hairline-button' @click=${onClickSelectFiltered}
-          ?disabled="${!this.table?.isFiltered ?? true}">
-          Select filtered
+          ?disabled="${!this.table?.isFiltered}">
+        Select filtered
         </button>
       </div>
     `;
