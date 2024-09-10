@@ -39,9 +39,11 @@ The following command can be used to run the demo:
     --alsologtostderr
 
 Then navigate to localhost:5432 to access the demo UI.
+
 """
 
 from collections.abc import Sequence
+import os
 import sys
 from typing import Optional
 from absl import app
@@ -54,16 +56,16 @@ from lit_nlp import server_flags
 from lit_nlp.examples.prompt_debugging import datasets as prompt_debugging_datasets
 from lit_nlp.examples.vertexai import models as vertexai_models
 
-FLAGS = flags.FLAGS
+_FLAGS = flags.FLAGS
 
 # Define GCP project information and vertex AI API key.
-LOCATION = flags.DEFINE_string(
+_LOCATION = flags.DEFINE_string(
     'project_location',
     None,
     'Please enter your GCP project location',
     required=True,
 )
-PROJECT_ID = flags.DEFINE_string(
+_PROJECT_ID = flags.DEFINE_string(
     'project_id',
     None,
     'Please enter your project id',
@@ -111,8 +113,36 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
 
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Return WSGI app for container-hosted demos."""
-  FLAGS.set_default('server_type', 'external')
-  FLAGS.set_default('demo_mode', True)
+  _FLAGS.set_default('server_type', 'external')
+  _FLAGS.set_default('demo_mode', True)
+
+  location = os.getenv('PROJECT_LOCATION', None)
+  _FLAGS['project_location'].value = location
+
+  project_id = os.getenv('PROJECT_ID', None)
+  _FLAGS['project_id'].value = project_id
+
+  gemini_models = os.getenv('GEMINI_MODELS', None)
+  if gemini_models:
+    gemini_model_list = gemini_models.split(',')
+    _FLAGS['gemini_models'].value = gemini_model_list
+
+  generative_model_endpoints = os.getenv('GENERATIVE_MODEL_ENDPOINTS', None)
+  if generative_model_endpoints:
+    generative_model_endpoints_list = generative_model_endpoints.split(',')
+    _FLAGS['generative_model_endpoints'].value = (
+        generative_model_endpoints_list
+    )
+
+  datasets = os.getenv('DATASETS', None)
+  if datasets:
+    datasets_list = datasets.split(',')
+    _FLAGS['datasets'].value = datasets_list
+
+  max_examples = os.getenv('MAX_EXAMPLES', None)
+  if max_examples:
+    _FLAGS['max_examples'].value = int(max_examples)
+
   # Parse flags without calling app.run(main), to avoid conflict with
   # gunicorn command line flags.
   unused = flags.FLAGS(sys.argv, known_only=True)
@@ -127,7 +157,7 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  vertexai.init(project=PROJECT_ID.value, location=LOCATION.value)
+  vertexai.init(project=_PROJECT_ID.value, location=_LOCATION.value)
 
   models = {}
   if _GEMINI_MODELS.value:

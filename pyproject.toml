@@ -77,9 +77,12 @@ keywords = [
 ]
 
 [project.optional-dependencies]
+examples-common = [
+  "gunicorn>=20.1.0",
+]
 # LINT.IfChange
 examples = [
-  "gunicorn>=20.1.0",
+  "lit-nlp[examples-common]",
   "sentencepiece==0.1.99",
   "tensorflow>=2.10.0,<2.16.0",
   "tensorflow-datasets>=4.9.0",
@@ -89,6 +92,13 @@ examples = [
   "vertexai>=1.49.0",
 ]
 # LINT.ThenChange(./requirements_examples.txt)
+# LINT.IfChange
+vertexai = [
+  "lit-nlp[examples-common]",
+  "google-cloud-aiplatform>=1.60.0",
+  "vertexai>=1.49.0",
+]
+# LINT.ThenChange(./lit_nlp/examples/vertexai/requirements.txt)
 # LINT.IfChange
 test = [
   "lime==0.2.0.1",

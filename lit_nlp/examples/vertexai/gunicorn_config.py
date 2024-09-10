@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# LINT.IfChange
-lime==0.2.0.1
-google-cloud-aiplatform>=1.60.0
-pytest>=7.4.0,<8.0.0
-# LINT.ThenChange(./pyproject.toml)
+"""gunicorn configuration for cloud-hosted demos."""
+
+import os
+
+_DEMO_PORT = os.getenv('DEMO_PORT', '5432')
+
+bind = f'0.0.0.0:{_DEMO_PORT}'
+timeout = 3600
+threads = 8
+worker_class = 'gthread'
+wsgi_app = 'lit_nlp.examples.vertexai.demo:get_wsgi_app()'
