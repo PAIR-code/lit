@@ -14,6 +14,7 @@
 # ==============================================================================
 """LIT backend, as a standard WSGI app."""
 
+import collections
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import functools
 import glob
