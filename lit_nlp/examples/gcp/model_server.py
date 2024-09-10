@@ -7,6 +7,7 @@ from typing import Optional
 
 from absl import app
 from lit_nlp import dev_server
+from lit_nlp.examples.gcp import constants as lit_gcp_constants
 from lit_nlp.examples.prompt_debugging import models as pd_models
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import serialize
@@ -18,6 +19,8 @@ DEFAULT_PRECISION = 'bfloat16'
 DEFAULT_SEQUENCE_LENGTH = 512
 DEFAULT_BATCH_SIZE = 1
 DEFAULT_MODELS = 'gemma_1.1_2b_IT:gemma_1.1_instruct_2b_en'
+
+_LlmHTTPEndpoints = lit_gcp_constants.LlmHTTPEndpoints
 
 
 def get_wsgi_app() -> wsgi_app.App:
@@ -60,9 +63,9 @@ def get_wsgi_app() -> wsgi_app.App:
   sal_name, tok_name = pd_utils.generate_model_group_names(gen_name)
 
   handlers = {
-      '/predict': models[gen_name].predict,
-      '/salience': models[sal_name].predict,
-      '/tokenize': models[tok_name].predict,
+      f'/{_LlmHTTPEndpoints.GENERATE.value}': models[gen_name].predict,
+      f'/{_LlmHTTPEndpoints.SALIENCE.value}': models[sal_name].predict,
+      f'/{_LlmHTTPEndpoints.TOKENIZE.value}': models[tok_name].predict,
   }
 
   wrapped_handlers = {
