@@ -14,6 +14,7 @@ from typing import Any, Mapping
 from absl import logging
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
+from lit_nlp.examples.prompt_debugging import constants as pd_constants
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
@@ -179,10 +180,7 @@ class HFBaseModel(lit_model.BatchedModel):
     return self.batch_size
 
   def input_spec(self):
-    return {
-        "prompt": lit_types.TextSegment(),
-        "target": lit_types.TextSegment(required=False),
-    }
+    return pd_constants.INPUT_SPEC
 
 
 class HFGenerativeModel(HFBaseModel):
@@ -229,19 +227,23 @@ class HFGenerativeModel(HFBaseModel):
     # TODO(b/324957491): return actual decoder scores for each generation.
     # GeneratedTextCandidates should be a list[(text, score)]
     processed_preds = {}
-    processed_preds["response"] = [(preds["response"], 1.0)]
+    processed_preds[pd_constants.FieldNames.RESPONSE] = [
+        (preds[pd_constants.FieldNames.RESPONSE], 1.0)
+    ]
     ntok_in = preds["ntok_in"]
     ntok_out = preds["ntok_out"]
     embs = preds["embs"]
     assert embs.shape[0] >= ntok_in + ntok_out
     # Mean-pool over input tokens.
-    processed_preds["prompt_embeddings"] = np.mean(
+    processed_preds[pd_constants.FieldNames.PROMPT_EMBEDDINGS] = np.mean(
         embs[-(ntok_out + ntok_in) : -ntok_out], axis=0
     )
     # Mean-pool over output (generated) tokens.
     # TODO(b/324957491): slice this to only "real" output tokens,
     # if generation length < max generation length.
-    processed_preds["response_embeddings"] = np.mean(embs[-ntok_out:], axis=0)
+    processed_preds[pd_constants.FieldNames.RESPONSE_EMBEDDINGS] = np.mean(
+        embs[-ntok_out:], axis=0
+    )
 
     return processed_preds
 
@@ -313,7 +315,7 @@ class HFGenerativeModel(HFBaseModel):
 
     # Convert to numpy for post-processing.
     detached_outputs = {k: v.numpy() for k, v in batched_outputs.items()}
-    detached_outputs["response"] = responses
+    detached_outputs[pd_constants.FieldNames.RESPONSE] = responses
     return detached_outputs
 
   ##
@@ -326,11 +328,10 @@ class HFGenerativeModel(HFBaseModel):
     return map(self._postprocess, unbatched_outputs)
 
   def output_spec(self) -> lit_types.Spec:
-    return {
-        "response": lit_types.GeneratedTextCandidates(parent="target"),
-        "prompt_embeddings": lit_types.Embeddings(required=False),
-        "response_embeddings": lit_types.Embeddings(required=False),
-    }
+    return (
+        pd_constants.OUTPUT_SPEC_GENERATION
+        | pd_constants.OUTPUT_SPEC_GENERATION_EMBEDDINGS
+    )
 
 
 class HFSalienceModel(HFBaseModel):
@@ -422,11 +423,8 @@ class HFSalienceModel(HFBaseModel):
     batched_outputs = {
         "input_ids": input_ids,
         "attention_mask": encoded_inputs["attention_mask"],
-        # Gradients are already aligned to input tokens.
-        "grad_l2": grad_l2,
-        "grad_dot_input": grad_dot_input,
-        # Shift token loss to align with (input) tokens.
-        # "token_loss": tf.roll(per_token_loss, shift=1, axis=1),
+        pd_constants.FieldNames.GRAD_NORM: grad_l2,
+        pd_constants.FieldNames.GRAD_DOT_INPUT: grad_dot_input,
     }
 
     return batched_outputs
@@ -486,11 +484,10 @@ class HFSalienceModel(HFBaseModel):
     batched_outputs = {
         "input_ids": input_ids.cpu().to(torch.int),
         "attention_mask": attention_mask.cpu().to(torch.int),
-        # Gradients are already aligned to input tokens.
-        "grad_l2": grad_l2.cpu().to(torch.float),
-        "grad_dot_input": grad_dot_input.cpu().to(torch.float),
-        # Shift token loss to align with (input) tokens.
-        # "token_loss": torch.roll(per_token_loss, shifts=1, dims=1),
+        pd_constants.FieldNames.GRAD_NORM: grad_l2.cpu().to(torch.float),
+        pd_constants.FieldNames.GRAD_DOT_INPUT: grad_dot_input.cpu().to(
+            torch.float
+        ),
     }
 
     return batched_outputs
@@ -501,7 +498,7 @@ class HFSalienceModel(HFBaseModel):
     # rather than acting as a boolean mask.
     mask = preds.pop("attention_mask").astype(bool)
     ids = preds.pop("input_ids")[mask]
-    preds["tokens"] = self.ids_to_clean_tokens(ids)
+    preds[pd_constants.FieldNames.TOKENS] = self.ids_to_clean_tokens(ids)
     for key in utils.find_spec_keys(self.output_spec(), lit_types.TokenScores):
       preds[key] = preds[key][mask]
     # First token (usually <s>) is not actually predicted, so return 0 for loss.
@@ -513,7 +510,11 @@ class HFSalienceModel(HFBaseModel):
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     # Preprocess inputs.
-    texts = [ex["prompt"] + ex.get("target", "") for ex in inputs]
+    texts = [
+        ex[pd_constants.FieldNames.PROMPT]
+        + ex.get(pd_constants.FieldNames.TARGET, "")
+        for ex in inputs
+    ]
     encoded_inputs = self.tokenizer(
         texts,
         return_tensors=_HF_PYTORCH
@@ -523,7 +524,9 @@ class HFSalienceModel(HFBaseModel):
         padding="longest",
         truncation="longest_first",
     )
-    target_masks = [ex.get("target_mask", []) for ex in inputs]
+    target_masks = [
+        ex.get(pd_constants.FieldNames.TARGET_MASK, []) for ex in inputs
+    ]
 
     # Get the predictions.
     if self.framework == MLFramework.PT:
@@ -538,17 +541,10 @@ class HFSalienceModel(HFBaseModel):
     return map(self._postprocess, unbatched_outputs)
 
   def input_spec(self):
-    return super().input_spec() | {
-        "target_mask": lit_types.TokenScores(align="", required=False),
-    }
+    return super().input_spec() | pd_constants.INPUT_SPEC_SALIENCE
 
   def output_spec(self) -> lit_types.Spec:
-    return {
-        "tokens": lit_types.Tokens(parent=""),  # all tokens
-        "grad_l2": lit_types.TokenScores(align="tokens"),
-        "grad_dot_input": lit_types.TokenScores(align="tokens"),
-        # "token_loss": lit_types.TokenScores(align="tokens"),
-    }
+    return pd_constants.OUTPUT_SPEC_SALIENCE
 
 
 class HFTokenizerModel(HFBaseModel):
@@ -563,14 +559,18 @@ class HFTokenizerModel(HFBaseModel):
     # rather than acting as a boolean mask.
     mask = preds.pop("attention_mask").astype(bool)
     ids = preds.pop("input_ids")[mask]
-    preds["tokens"] = self.ids_to_clean_tokens(ids)
+    preds[pd_constants.FieldNames.TOKENS] = self.ids_to_clean_tokens(ids)
     return preds
 
   # LIT API implementations
   def predict_minibatch(self, inputs):
     """Predict on a single minibatch of examples."""
     # Preprocess inputs.
-    texts = [ex["prompt"] + ex.get("target", "") for ex in inputs]
+    texts = [
+        ex[pd_constants.FieldNames.PROMPT]
+        + ex.get(pd_constants.FieldNames.TARGET, "")
+        for ex in inputs
+    ]
     encoded_inputs = self.tokenizer(
         texts,
         return_tensors=_HF_PYTORCH
@@ -591,9 +591,7 @@ class HFTokenizerModel(HFBaseModel):
     return map(self._postprocess, unbatched_outputs)
 
   def output_spec(self) -> lit_types.Spec:
-    return {
-        "tokens": lit_types.Tokens(parent=""),  # all tokens
-    }
+    return pd_constants.OUTPUT_SPEC_TOKENIZER
 
 
 def initialize_model_group_for_salience(
