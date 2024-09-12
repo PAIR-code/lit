@@ -27,7 +27,7 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
 RUN apt update && apt -y install yarn
 
 # Copy local code to the container image.
-ENV APP_HOME /app
+ENV APP_HOME=/app
 WORKDIR $APP_HOME
 
 # Set up python environment with production dependencies
@@ -40,7 +40,7 @@ COPY . ./
 
 # Build front-end with yarn
 WORKDIR $APP_HOME/lit_nlp/client
-ENV NODE_OPTIONS "--openssl-legacy-provider"
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 
 # Run LIT server

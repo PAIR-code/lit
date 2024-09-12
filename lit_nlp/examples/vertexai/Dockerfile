@@ -26,7 +26,7 @@ RUN apt-get update
 RUN apt-get install -y wget curl gnupg2 gcc g++ git
 
 # Copy local code to the container image.
-ENV APP_HOME /app
+ENV APP_HOME=/app
 WORKDIR $APP_HOME
 
 COPY ./lit_nlp/examples/vertexai/gunicorn_config.py ./
@@ -57,9 +57,8 @@ RUN apt update && apt -y install yarn
 # Set up python environment with production dependencies
 # This step is slow as it installs many packages.
 COPY requirements_core.txt ./
-RUN python -m pip install -r requirements_core.txt
-
-COPY lit_nlp/examples/vertexai/requirements.txt lit_nlp/examples/vertexai/requirements.txt
+COPY lit_nlp/examples/vertexai/requirements.txt \
+     lit_nlp/examples/vertexai/requirements.txt
 RUN python -m pip install -r lit_nlp/examples/vertexai/requirements.txt
 
 # Copy the rest of the lit_nlp package
@@ -67,7 +66,7 @@ COPY . ./
 
 # Build front-end with yarn
 WORKDIR $APP_HOME/lit_nlp/client
-ENV NODE_OPTIONS "--openssl-legacy-provider"
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 
 # Run LIT server
