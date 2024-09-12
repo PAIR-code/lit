@@ -114,7 +114,7 @@ _MAX_EXAMPLES = flags.DEFINE_integer(
 def get_wsgi_app() -> Optional[dev_server.LitServerType]:
   """Return WSGI app for container-hosted demos."""
   _FLAGS.set_default('server_type', 'external')
-  _FLAGS.set_default('demo_mode', True)
+  _FLAGS.set_default('demo_mode', False)
 
   location = os.getenv('PROJECT_LOCATION', None)
   _FLAGS['project_location'].value = location
