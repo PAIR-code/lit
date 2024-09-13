@@ -14,6 +14,7 @@
 # ==============================================================================
 """LIT backend, as a standard WSGI app."""
 
+import collections
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import functools
 import glob
@@ -1021,7 +1022,7 @@ class LitApp(object):
   def get_dataset_specs(self) -> dict[str, dict[str, str]]:
     datasets_with_spec = collections.defaultdict(dict)
     for name, ds in self._datasets.items():
-      for field_name, lit_data_class  in ds.spec().items():
+      for field_name, lit_data_class in ds.spec().items():
         datasets_with_spec[name][field_name] = type(lit_data_class).__name__
     return datasets_with_spec
 
