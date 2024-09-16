@@ -483,14 +483,19 @@ export class GlobalSettingsComponent extends MobxLitElement {
 
       if (newInfo == null) {return;}
 
-      const [metadata, modelName] = newInfo;
+
+      // TODO(b/270268760): Adding a model via the UI is profoundly slow for
+      // LLM use cases due to adding modelNames to the AppState.currentModels,
+      // which fetches preds for the entire dataset at once. Doing this on
+      // demand would dramatically improve performance and allow adding
+      // modelNames to the AppState.currentModels
+      const [metadata, /* modelNames */] = newInfo;
       if (loaderSpec != null) {
         this.loadingCallConfig = initializeCallConfig(loaderSpec);
       }
       this.appState.metadata = metadata;
-      this.appState.currentModels.push(modelName);
+      this.resetLoadingCallConfig();
       this.initializeLocalState();
-      // this.status = 'New model initialized and added auccessfully.';
     };
 
     const hideLoadingControls = this.appState.metadata.demoMode ||

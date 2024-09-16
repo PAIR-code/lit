@@ -51,11 +51,13 @@ class MLFramework(enum.Enum):
   TF = _TENSORFLOW
 
 
+SUPPORTED_ML_RUNTIMES = [framework.value for framework in MLFramework]
+
+
 class HFBaseModel(lit_model.BatchedModel):
   """Base class for HF generative, salience, tokenizer model wrappers."""
 
   # Enum str values for entries in MLFramework, used for init_spec and logging.
-  _ML_FRAMEWORK_VALUES = [framework.value for framework in MLFramework]
 
   @property
   def num_layers(self):
@@ -66,7 +68,7 @@ class HFBaseModel(lit_model.BatchedModel):
     return {
         "model_name_or_path": lit_types.String(default="gpt2"),
         "batch_size": lit_types.Integer(default=6, min_val=1, max_val=64),
-        "framework": lit_types.CategoryLabel(vocab=cls._ML_FRAMEWORK_VALUES),
+        "framework": lit_types.CategoryLabel(vocab=SUPPORTED_ML_RUNTIMES),
     }
 
   def __init__(
@@ -76,6 +78,7 @@ class HFBaseModel(lit_model.BatchedModel):
       framework=_PYTORCH,
       model=None,
       tokenizer=None,
+      **unused_kw,
   ):
     """Constructor for HF base model wrappers.
 
@@ -139,7 +142,7 @@ class HFBaseModel(lit_model.BatchedModel):
       else:
         raise ValueError(
             f"The provided value `{framework}` for arg `framework` is not"
-            f" supported, please choose from {self._ML_FRAMEWORK_VALUES}."
+            f" supported, please choose from {SUPPORTED_ML_RUNTIMES}."
         )
       self.model = auto_model.from_pretrained(
           model_name_or_path,
@@ -595,15 +598,16 @@ class HFTokenizerModel(HFBaseModel):
 
 
 def initialize_model_group_for_salience(
-    name: str, *args, max_length: int = 512, **kw
-) -> dict[str, lit_model.Model]:
+    new_name: str, **kw
+) -> lit_model.ModelMap:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
-  salience_name, tokenizer_name = pd_utils.generate_model_group_names(name)
-  generation_model = HFGenerativeModel(*args, **kw, max_length=max_length)
+  max_length = kw.pop("max_length", 512)
+  salience_name, tokenizer_name = pd_utils.generate_model_group_names(new_name)
+  generation_model = HFGenerativeModel(max_length=max_length, **kw)
   salience_model = HFSalienceModel.from_loaded(generation_model)
   tokenizer_model = HFTokenizerModel.from_loaded(generation_model)
   return {
-      name: generation_model,
+      new_name: generation_model,
       salience_name: salience_model,
       tokenizer_name: tokenizer_model,
   }

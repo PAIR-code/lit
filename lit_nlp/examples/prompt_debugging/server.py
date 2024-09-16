@@ -79,10 +79,11 @@ _BATCH_SIZE = flags.DEFINE_integer(
     "The number of examples to process per batch.",
 )
 
+_SUPPORTED_FRAMEWORKS = ("kerasnlp", "transformers")
 _DL_FRAMEWORK = flags.DEFINE_enum(
     "dl_framework",
     models.DEFAULT_DL_FRAMEWORK,
-    ("kerasnlp", "transformers"),
+    _SUPPORTED_FRAMEWORKS,
     "The deep learning framework that loads and runs the model on the backend."
     " This server will attempt to load all models specified by the --models"
     " flag with the configured framework, incompatibilities will result in"
@@ -164,12 +165,18 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
           dl_runtime=_DL_RUNTIME.value,
           precision=_PRECISION.value,
           batch_size=_BATCH_SIZE.value,
-          sequence_length=_SEQUENCE_LENGTH.value,
+          max_length=_SEQUENCE_LENGTH.value,
       ),
       datasets=datasets.get_datasets(
           datasets_config=_DATASETS.value, max_examples=_MAX_EXAMPLES.value
       ),
       layouts=layouts.PROMPT_DEBUGGING_LAYOUTS,
+      model_loaders=models.get_model_loaders(
+          dl_framework=_DL_FRAMEWORK.value,
+          dl_runtime=_DL_RUNTIME.value,
+          batch_size=_BATCH_SIZE.value,
+          max_length=_SEQUENCE_LENGTH.value,
+      ),
       dataset_loaders=datasets.get_dataset_loaders(),
       onboard_start_doc=_SPLASH_SCREEN_DOC,
       **server_flags.get_flags(),

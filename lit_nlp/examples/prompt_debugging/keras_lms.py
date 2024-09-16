@@ -514,17 +514,15 @@ class KerasTokenizerModel(_KerasBaseModel):
 
 
 def initialize_model_group_for_salience(
-    name: str, *args, **kw
-) -> dict[str, lit_model.Model]:
+    new_name: str, **kw
+) -> lit_model.ModelMap:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
-  salience_name, tokenizer_name = pd_utils.generate_model_group_names(name)
-  generation_model = KerasGenerationModel(*args, **kw)
-  salience_model = KerasSalienceModel(model=generation_model.model, *args, **kw)
-  tokenizer_model = KerasTokenizerModel(
-      model=generation_model.model, *args, **kw
-  )
+  salience_name, tokenizer_name = pd_utils.generate_model_group_names(new_name)
+  generation_model = KerasGenerationModel(**kw)
+  salience_model = KerasSalienceModel(model=generation_model.model, **kw)
+  tokenizer_model = KerasTokenizerModel(model=generation_model.model, **kw)
   return {
-      name: generation_model,
+      new_name: generation_model,
       salience_name: salience_model,
       tokenizer_name: tokenizer_model,
   }

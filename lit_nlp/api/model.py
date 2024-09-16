@@ -14,7 +14,7 @@
 # ==============================================================================
 """Base classes for LIT models."""
 import abc
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 import inspect
 import itertools
 import multiprocessing.pool  # for ThreadPool
@@ -201,6 +201,9 @@ class Model(metaclass=abc.ABCMeta):
   def predict(self, inputs: Iterable[JsonDict], **kw) -> Iterable[JsonDict]:
     """Run prediction on a list of inputs and return the outputs."""
     pass
+
+
+ModelMap = Mapping[str, Model]
 
 
 class ModelWrapper(Model):
