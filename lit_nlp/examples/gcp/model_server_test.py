@@ -3,6 +3,7 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from lit_nlp.examples.gcp import constants as lit_gcp_constants
 from lit_nlp.examples.gcp import model_server
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
 import webtest
@@ -41,13 +42,13 @@ class TestWSGIApp(parameterized.TestCase):
 
   @parameterized.named_parameters(
     dict(
-        testcase_name='predict',
-        endpoint='/predict',
+        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value,
+        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value}',
         expected=[{'response': 'test output text'}],
     ),
     dict(
-        testcase_name='salience',
-        endpoint='/salience',
+        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value,
+        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value}',
         expected=[{
             'tokens': ['test', 'output', 'text'],
             'grad_l2': [0.1234, 0.3456, 0.5678],
@@ -55,8 +56,8 @@ class TestWSGIApp(parameterized.TestCase):
         }],
     ),
     dict(
-        testcase_name='tokenize',
-        endpoint='/tokenize',
+        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE,
+        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE}',
         expected=[{'tokens': ['test', 'output', 'text']}],
     ),
   )

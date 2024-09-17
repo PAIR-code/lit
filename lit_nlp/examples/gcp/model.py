@@ -1,10 +1,8 @@
 """Wrapper for connetecting to LLMs on GCP via the model_server HTTP API."""
 
-import enum
-
+from lit_nlp import app as lit_app
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.api.types import Spec
 from lit_nlp.examples.gcp import constants as lit_gcp_constants
 from lit_nlp.examples.prompt_debugging import constants as pd_constants
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
@@ -14,17 +12,18 @@ import requests
 """
 Plan for this module:
 
-From GitHub:
-
-*   Rebase to include cl/672527408 and the CL described above
-*   Define an enum to track HTTP endpoints across Python modules
-*   Adopt HTTP endpoint enum across model_server.py and LlmOverHTTP
-*   Adopt model_specs.py in LlmOverHTTP, using HTTP endpoint enum for
-    conditional additions
-
 """
 
 _LlmHTTPEndpoints = lit_gcp_constants.LlmHTTPEndpoints
+
+LLM_ON_GCP_INIT_SPEC: lit_types.Spec = {
+    # Note that `new_name` is not actually passed to LlmOverHTTP but the
+    # `/create_model` API will validate the config with a `new_name` in it.
+    'new_name': lit_types.String(required=False),
+    'base_url': lit_types.String(),
+    'max_concurrent_requests': lit_types.Integer(default=1),
+    'max_qps': lit_types.Scalar(default=25),
+}
 
 
 class LlmOverHTTP(lit_model.BatchedRemoteModel):
@@ -84,10 +83,10 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
 
 
 def initialize_model_group_for_salience(
-    name: str, base_url: str, *args, **kw
-) -> dict[str, lit_model.Model]:
+    new_name: str, base_url: str, *args, **kw
+) -> lit_model.ModelMap:
   """Creates '{name}' and '_{name}_salience' and '_{name}_tokenizer'."""
-  salience_name, tokenizer_name = pd_utils.generate_model_group_names(name)
+  salience_name, tokenizer_name = pd_utils.generate_model_group_names(new_name)
 
   generation_model = LlmOverHTTP(
       *args, base_url=base_url, endpoint=_LlmHTTPEndpoints.GENERATE, **kw
@@ -100,7 +99,16 @@ def initialize_model_group_for_salience(
   )
 
   return {
-      name: generation_model,
+      new_name: generation_model,
       salience_name: salience_model,
       tokenizer_name: tokenizer_model,
+  }
+
+
+def get_model_loaders() -> lit_app.ModelLoadersMap:
+  return {
+      'LLM Over HTTP': (
+          initialize_model_group_for_salience,
+          LLM_ON_GCP_INIT_SPEC
+      )
   }

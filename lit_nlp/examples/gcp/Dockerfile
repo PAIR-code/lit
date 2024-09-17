@@ -15,7 +15,23 @@
 # Use the official lightweight Python image.
 # https://hub.docker.com/_/python
 
-FROM nvidia/cuda:12.5.1-base-ubuntu22.04 AS base
+# ---- LIT on GCP Base Images ----
+
+FROM python:3.11-slim AS lit-gcp-app-server-base
+
+# Update Ubuntu packages and install basic utils
+RUN apt-get update
+RUN apt-get install -y wget curl gnupg2 gcc g++ git
+
+# Copy local code to the container image.
+ENV APP_HOME /app
+WORKDIR $APP_HOME
+
+COPY ./lit_nlp/examples/gcp/server_gunicorn_config.py ./gunicorn_config.py
+
+
+
+FROM nvidia/cuda:12.5.1-base-ubuntu22.04 AS lit-gcp-model-server-base
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG C.UTF-8
 
@@ -71,9 +87,42 @@ RUN rm -rf /var/lib/apt/lists/*
 
 
 
-# ---- LIT on GCP from source ----
+# ---- LIT on GCP Development Images ----
 
-FROM base AS lit-gcp-model-server-dev
+FROM lit-gcp-app-server-base AS lit-gcp-app-server-dev
+
+# Install yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
+    tee /etc/apt/sources.list.d/yarn.list
+RUN apt update && apt -y install yarn
+
+# Set up python environment with production dependencies
+# This step is slow as it installs many packages.
+COPY requirements_core.txt ./
+COPY lit_nlp/examples/prompt_debugging/requirements.txt \
+     lit_nlp/examples/prompt_debugging/requirements.txt
+COPY lit_nlp/examples/gcp/requirements.txt \
+     lit_nlp/examples/gcp/requirements.txt
+RUN python -m pip install -r lit_nlp/examples/gcp/requirements.txt
+
+# Copy the rest of the lit_nlp package
+COPY . ./
+
+# Build front-end with yarn
+WORKDIR $APP_HOME/lit_nlp/client
+ENV NODE_OPTIONS "--openssl-legacy-provider"
+RUN yarn && yarn build && rm -rf node_modules/*
+
+# Run LIT server
+# Note that the config file supports configuring the LIT demo that is launched
+# via the DEMO_NAME and DEMO_PORT environment variables.
+WORKDIR $APP_HOME
+ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
+
+
+
+FROM lit-gcp-model-server-base AS lit-gcp-model-server-dev
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 
@@ -89,7 +138,6 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
     tee /etc/apt/sources.list.d/yarn.list
 RUN apt update && apt -y install yarn
 
-# TODO(b/353980272): Replace the default config with the GCP-specific config
 COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
 
 # TODO(b/353980272): Replace this with a requirements file specific to the GCP
@@ -97,7 +145,8 @@ COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
 COPY requirements_core.txt ./
 COPY lit_nlp/examples/prompt_debugging/requirements.txt \
      lit_nlp/examples/prompt_debugging/requirements.txt
-COPY lit_nlp/examples/gcp/requirements.txt lit_nlp/examples/gcp/requirements.txt
+COPY lit_nlp/examples/gcp/requirements.txt \
+     lit_nlp/examples/gcp/requirements.txt
 RUN python -m pip install -r lit_nlp/examples/gcp/requirements.txt
 
 # Copy the rest of the lit_nlp package
