@@ -56,8 +56,8 @@ class TestWSGIApp(parameterized.TestCase):
         }],
     ),
     dict(
-        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE,
-        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE}',
+        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value,
+        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value}',
         expected=[{'tokens': ['test', 'output', 'text']}],
     ),
   )
