@@ -77,7 +77,7 @@ class TransformersLMSGeneration(parameterized.TestCase):
             text=cur_input["prompt"], model=model, framework=framework
         )
         expected_output_embeddings = _get_text_mean_embeddings(
-            text=cur_output["response"][0][0], model=model, framework=framework
+            text=cur_output["response"], model=model, framework=framework
         )
         np.testing.assert_array_almost_equal(
             expected_input_embeddings,

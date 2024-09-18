@@ -230,11 +230,11 @@ class HFGenerativeModel(HFBaseModel):
       a dict of the processed model outputs, including the response texts and
         embeddings of the input and output tokens (separated into two arrays).
     """
-    # TODO(b/324957491): return actual decoder scores for each generation.
-    # GeneratedTextCandidates should be a list[(text, score)]
+    # TODO(b/324957491): return actual decoder scores for each generation. For
+    # now, we only output GeneratedText.
     processed_preds = {}
-    processed_preds[pd_constants.FieldNames.RESPONSE] = [
-        (preds[pd_constants.FieldNames.RESPONSE], 1.0)
+    processed_preds[pd_constants.FieldNames.RESPONSE] = preds[
+        pd_constants.FieldNames.RESPONSE
     ]
     ntok_in = preds["ntok_in"]
     ntok_out = preds["ntok_out"]
