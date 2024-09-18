@@ -53,6 +53,7 @@ from google.cloud.aiplatform import vertexai
 from lit_nlp import app as lit_app
 from lit_nlp import dev_server
 from lit_nlp import server_flags
+from lit_nlp.components import word_replacer
 from lit_nlp.examples.prompt_debugging import datasets as prompt_debugging_datasets
 from lit_nlp.examples.vertexai import models as vertexai_models
 
@@ -186,10 +187,12 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   )
   dataset_loaders = prompt_debugging_datasets.get_dataset_loaders()
 
-  # TODO(faneycourage): Design and add a layout for generative demos.
+  generators = {'word_replacer': word_replacer.WordReplacer()}
+
   lit_demo = dev_server.Server(
       models=models,
       model_loaders=model_loaders,
+      generators=generators,
       datasets=datasets,
       dataset_loaders=dataset_loaders,
       **server_flags.get_flags()
