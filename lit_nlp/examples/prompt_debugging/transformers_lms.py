@@ -116,9 +116,12 @@ class HFBaseModel(lit_model.BatchedModel):
     else:
       # Normally path is a directory; if it's an archive file, download and
       # extract to the transformers cache.
-      if model_name_or_path.endswith(".tar.gz"):
+      if (
+          is_tar_gz := model_name_or_path.endswith(".tar.gz")
+      ) or file_cache.is_remote(model_name_or_path):
         model_name_or_path = file_cache.cached_path(
-            model_name_or_path, extract_compressed_file=True
+            model_name_or_path,
+            extract_compressed_file=is_tar_gz,
         )
 
       # Note: we need to left-pad for generation to work properly.

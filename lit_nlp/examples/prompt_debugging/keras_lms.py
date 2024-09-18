@@ -12,6 +12,7 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.prompt_debugging import constants as pd_constants
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
+from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils as lit_utils
 
 
@@ -74,6 +75,13 @@ class _KerasBaseModel(lit_model.BatchedModel):
     if model is not None:
       self.model = model
     elif model_name_or_path is not None:
+      if (
+          is_tar_gz := model_name_or_path.endswith(".tar.gz")
+      ) or file_cache.is_remote(model_name_or_path):
+        model_name_or_path = file_cache.cached_path(
+            model_name_or_path,
+            extract_compressed_file=is_tar_gz,
+        )
       self.model = keras_models.CausalLM.from_preset(model_name_or_path)
     else:
       raise ValueError("Must provide either model or model_name_or_path.")

@@ -8,7 +8,6 @@ from absl import logging
 from lit_nlp import app as lit_app
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
-from lit_nlp.lib import file_cache
 
 
 DEFAULT_BATCH_SIZE = 1
@@ -84,12 +83,6 @@ def get_models(
     # Only split on the first ':' as path may be a URL containing 'https://'
     model_name, path = model_string.split(":", 1)
     logging.info("Loading model '%s' from '%s'", model_name, path)
-
-    if path.endswith(".tar.gz") or file_cache.is_remote(path):
-      path = file_cache.cached_path(
-          path,
-          extract_compressed_file=path.endswith(".tar.gz"),
-      )
 
     if dl_framework == "kerasnlp":
       from lit_nlp.examples.prompt_debugging import keras_lms  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
