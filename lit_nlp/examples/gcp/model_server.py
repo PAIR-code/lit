@@ -56,7 +56,7 @@ def get_wsgi_app() -> wsgi_app.App:
       dl_runtime=dl_runtime,
       precision=precision,
       batch_size=batch_size,
-      sequence_length=sequence_length,
+      max_length=sequence_length,
   )
 
   gen_name = model_config[0].split(':')[0]
