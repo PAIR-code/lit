@@ -22,7 +22,7 @@ LLM_ON_GCP_INIT_SPEC: lit_types.Spec = {
     'new_name': lit_types.String(required=False),
     'base_url': lit_types.String(),
     'max_concurrent_requests': lit_types.Integer(default=1),
-    'max_qps': lit_types.Scalar(default=25),
+    'max_qps': lit_types.Integer(default=25, required=False),
 }
 
 
@@ -71,8 +71,10 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
     Returns:
       list of outputs, following model.output_spec()
     """
+    inputs = {'inputs': inputs}
+
     response = requests.post(
-        self.url, data=serialize.to_json(list(inputs),  simple=True)
+        self.url, data=serialize.to_json(inputs, simple=True)
     )
 
     if not (200 <= response.status_code < 300):

@@ -45,9 +45,14 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
+
+  datasets = pd_datasets.get_datasets(
+      datasets_config=pd_datasets.DEFAULT_DATASETS, max_examples=pd_datasets.DEFAULT_MAX_EXAMPLES
+  )
+
   lit_demo = dev_server.Server(
       models={},
-      datasets={},
+      datasets=datasets,
       layouts=pd_layouts.PROMPT_DEBUGGING_LAYOUTS,
       model_loaders=lit_gcp_model.get_model_loaders(),
       dataset_loaders=pd_datasets.get_dataset_loaders(),

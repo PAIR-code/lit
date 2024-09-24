@@ -16,7 +16,7 @@
 
 import os
 
-_PORT = os.getenv('PORT', '5432')
+_PORT = os.getenv('PORT', '8080')
 
 bind = f'0.0.0.0:{_PORT}'
 timeout = 3600
