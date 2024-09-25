@@ -19,8 +19,8 @@ _DEFAULT_TEMPERATURE = 0.7
 
 
 # TODO(fanyecourage): Rename this class.
-class VertexModelGardenModel(lit_model.BatchedRemoteModel):
-  """VertexModelGardenModel is a wrapper for Vertex AI Model Garden model.
+class GeminiFoundationalModel(lit_model.BatchedRemoteModel):
+  """GeminiFoundationalModel is a wrapper for foundatoinal Gemini models in Vertex AI Model Garden model.
 
   Attributes:
     model_name: The name of the model to load.
