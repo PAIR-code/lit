@@ -115,7 +115,7 @@ def initialize_model_group_for_salience(
 
 def get_model_loaders() -> lit_app.ModelLoadersMap:
   return {
-      'LLM Over HTTP': (
+      'LLM (self hosted)': (
           initialize_model_group_for_salience,
           LLM_ON_GCP_INIT_SPEC
       )
