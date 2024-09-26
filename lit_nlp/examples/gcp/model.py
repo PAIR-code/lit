@@ -21,6 +21,7 @@ LLM_ON_GCP_INIT_SPEC: lit_types.Spec = {
     # `/create_model` API will validate the config with a `new_name` in it.
     'new_name': lit_types.String(required=False),
     'base_url': lit_types.String(),
+    'identity_token': lit_types.String(default=""),
     'max_concurrent_requests': lit_types.Integer(default=1),
     'max_qps': lit_types.Integer(default=25, required=False),
 }
@@ -31,6 +32,7 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
   def __init__(
     self,
     base_url: str,
+    identity_token: str,
     endpoint: str | _LlmHTTPEndpoints,
     max_concurrent_requests: int = 4,
     max_qps: int | float = 25
@@ -38,6 +40,7 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
     super().__init__(max_concurrent_requests, max_qps)
     self.endpoint = _LlmHTTPEndpoints(endpoint)
     self.url = f'{base_url}/{self.endpoint.value}'
+    self.identity_token = identity_token
 
   def input_spec(self) -> lit_types.Spec:
     input_spec = pd_constants.INPUT_SPEC
@@ -72,9 +75,12 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
       list of outputs, following model.output_spec()
     """
     inputs = {'inputs': inputs}
-
+    headers = {
+        'Authorization': f'Bearer {self.identity_token}',  
+        'Content-Type': 'application/json'
+    }
     response = requests.post(
-        self.url, data=serialize.to_json(inputs, simple=True)
+        self.url, headers=headers,data=serialize.to_json(inputs, simple=True)
     )
 
     if not (200 <= response.status_code < 300):
