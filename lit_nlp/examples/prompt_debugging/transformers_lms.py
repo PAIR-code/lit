@@ -279,12 +279,12 @@ class HFGenerativeModel(HFBaseModel):
     if self.framework == MLFramework.PT:
       encoded_inputs = encoded_inputs.to(self.device)
 
-    outputs = self.model.generate(
-        encoded_inputs["input_ids"],
-        attention_mask=encoded_inputs["attention_mask"],
-        max_length=self.max_length,
-    )
-    ntok_out = self.max_length - encoded_inputs["input_ids"].shape[1]
+    outputs = self.model.generate(**encoded_inputs, max_length=self.max_length)
+
+    if isinstance(outputs, transformers.utils.ModelOutput):
+      outputs = outputs.sequences
+
+    ntok_out = outputs.shape[1] - encoded_inputs["input_ids"].shape[1]
 
     responses = self.tokenizer.batch_decode(
         outputs[:, -ntok_out:], skip_special_tokens=True
