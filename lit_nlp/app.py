@@ -17,6 +17,7 @@
 import collections
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import functools
+import inspect
 import math
 import os
 import random
@@ -520,7 +521,10 @@ class LitApp(object):
           raise_for_unsupported=True,
       )
 
-    return_type = get_type_hints(model_initializer)['return']
+    return_type = lit_model.Model
+
+    if inspect.isfunction(model_initializer):
+      return_type = get_type_hints(model_initializer)['return']
 
     if Mapping in return_type.__mro__:
       model_initializer = cast(MultipleModelLoader, model_initializer)
