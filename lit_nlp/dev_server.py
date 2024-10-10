@@ -14,7 +14,7 @@
 # ==============================================================================
 """Development wrapper for LIT server."""
 import inspect
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from absl import logging
 from lit_nlp import app as lit_app
