@@ -13,12 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 # LINT.IfChange
-gunicorn>=20.1.0
-sentencepiece==0.1.99
-tensorflow>=2.10.0,<2.16.0
+-r requirements_examples_common.txt
+
 tensorflow-datasets>=4.9.0
-tensorflow-text>=2.10.0,<2.16.0
-torch>=2.0.0
-transformers>=4.27.1
-vertexai>=1.49.0
+tf-keras>=2.16
 # LINT.ThenChange(./pyproject.toml)

@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 
--r ../../../requirements_core.txt
+-r requirements.txt
 
-keras>=3.1.0
-keras-nlp>=0.9.0
-tensorflow-text>=2.10.0
-torch>=2.0.0
+# LINT.IfChange
+gunicorn>=20.1.0
+tensorflow>=2.16.0
 transformers>=4.27.1
+# LINT.ThenChange(./pyproject.toml)

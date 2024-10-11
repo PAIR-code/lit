@@ -1,11 +1,15 @@
 """🐧 TensorFlow Keras model for the Penguin dataset."""
 
+import os
+
 from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 from lit_nlp.examples.penguin import data as penguin_data
 from lit_nlp.lib import file_cache
 import numpy as np
-import tensorflow as tf
+import tf_keras as keras
+
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 _VOCABS = penguin_data.VOCABS
 
@@ -15,7 +19,7 @@ class PenguinModel(lit_model.BatchedModel):
 
   def __init__(self, path: str):
     path = file_cache.cached_path(path)
-    self.model = tf.keras.models.load_model(path)
+    self.model = keras.models.load_model(path)
     # Feature column means and variance to normalize values before
     # prediction.
     self.means = np.array([
