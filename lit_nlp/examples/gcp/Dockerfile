@@ -85,6 +85,24 @@ RUN python3 -m pip install --no-cache-dir --upgrade pip
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/*
 
+COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
+
+
+
+# ---- LIT on GCP Production Images ----
+
+FROM lit-gcp-app-server-base AS lit-gcp-app-server
+
+RUN python -m pip install 'lit-nlp[examples-genai]'
+ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
+
+
+
+FROM lit-gcp-model-server-base AS lit-gcp-model-server
+
+RUN python -m pip install 'lit-nlp[examples-genai]'
+ENTRYPOINT ["gunicorn", "--config=model_server_gunicorn_config.py"]
+
 
 
 # ---- LIT on GCP Development Images ----
@@ -99,12 +117,11 @@ RUN apt update && apt -y install yarn
 
 # Set up python environment with production dependencies
 # This step is slow as it installs many packages.
-COPY requirements_core.txt ./
-COPY lit_nlp/examples/prompt_debugging/requirements.txt \
-     lit_nlp/examples/prompt_debugging/requirements.txt
-COPY lit_nlp/examples/gcp/requirements.txt \
-     lit_nlp/examples/gcp/requirements.txt
-RUN python -m pip install -r lit_nlp/examples/gcp/requirements.txt
+COPY requirements.txt \
+     requirements_examples_common.txt \
+     requirements_examples_genai.txt \
+     ./
+RUN python -m pip install -r requirements_examples_genai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./
@@ -138,16 +155,11 @@ RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | \
     tee /etc/apt/sources.list.d/yarn.list
 RUN apt update && apt -y install yarn
 
-COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
-
-# TODO(b/353980272): Replace this with a requirements file specific to the GCP
-# exmaple, this should include the core lit-nlp package.
-COPY requirements_core.txt ./
-COPY lit_nlp/examples/prompt_debugging/requirements.txt \
-     lit_nlp/examples/prompt_debugging/requirements.txt
-COPY lit_nlp/examples/gcp/requirements.txt \
-     lit_nlp/examples/gcp/requirements.txt
-RUN python -m pip install -r lit_nlp/examples/gcp/requirements.txt
+COPY requirements.txt \
+     requirements_examples_common.txt \
+     requirements_examples_genai.txt \
+     ./
+RUN python -m pip install -r requirements_examples_genai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./
@@ -157,7 +169,5 @@ WORKDIR $APP_HOME/lit_nlp/client
 ENV NODE_OPTIONS "--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 
-# TODO(b/353980272): Replace this with the GCP-specific config
-# See https://github.com/PAIR-code/lit/blob/main/Dockerfile
 WORKDIR $APP_HOME
 ENTRYPOINT ["gunicorn", "--config=model_server_gunicorn_config.py"]

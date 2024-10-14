@@ -35,7 +35,7 @@ COPY ./lit_nlp/examples/gunicorn_config.py ./
 
 FROM lit-nlp-base AS lit-nlp-prod
 
-RUN python -m pip install 'lit-nlp[examples]'
+RUN python -m pip install 'lit-nlp[examples-descai]'
 
 WORKDIR $APP_HOME
 ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
@@ -54,8 +54,11 @@ RUN apt update && apt -y install yarn
 
 # Set up python environment with production dependencies
 # This step is slow as it installs many packages.
-COPY ./requirements*.txt ./
-RUN python -m pip install -r requirements.txt
+COPY requirements.txt \
+     requirements_examples_common.txt \
+     requirements_examples_descai.txt \
+     ./
+RUN python -m pip install -r requirements_examples_descai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./
