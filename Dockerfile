@@ -24,7 +24,7 @@ RUN apt-get update
 RUN apt-get install -y wget curl gnupg2 gcc g++ git
 
 # Copy local code to the container image.
-ENV APP_HOME /app
+ENV APP_HOME=/app
 WORKDIR $APP_HOME
 
 COPY ./lit_nlp/examples/gunicorn_config.py ./

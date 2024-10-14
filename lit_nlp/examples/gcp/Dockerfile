@@ -24,7 +24,7 @@ RUN apt-get update
 RUN apt-get install -y wget curl gnupg2 gcc g++ git
 
 # Copy local code to the container image.
-ENV APP_HOME /app
+ENV APP_HOME=/app
 WORKDIR $APP_HOME
 
 COPY ./lit_nlp/examples/gcp/server_gunicorn_config.py ./gunicorn_config.py
@@ -33,7 +33,7 @@ COPY ./lit_nlp/examples/gcp/server_gunicorn_config.py ./gunicorn_config.py
 
 FROM nvidia/cuda:12.5.1-base-ubuntu22.04 AS lit-gcp-model-server-base
 ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 ARG PYTHON_VERSION=python3.11
 
@@ -128,7 +128,7 @@ COPY . ./
 
 # Build front-end with yarn
 WORKDIR $APP_HOME/lit_nlp/client
-ENV NODE_OPTIONS "--openssl-legacy-provider"
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 
 # Run LIT server
@@ -140,7 +140,7 @@ ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
 
 
 FROM lit-gcp-model-server-base AS lit-gcp-model-server-dev
-ENV APP_HOME /app
+ENV APP_HOME=/app
 WORKDIR $APP_HOME
 
 # Install Node.js v18 (the base image ships with Node.js v12)
@@ -166,7 +166,7 @@ COPY . ./
 
 # Build front-end with yarn
 WORKDIR $APP_HOME/lit_nlp/client
-ENV NODE_OPTIONS "--openssl-legacy-provider"
+ENV NODE_OPTIONS="--openssl-legacy-provider"
 RUN yarn && yarn build && rm -rf node_modules/*
 
 WORKDIR $APP_HOME
