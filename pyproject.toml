@@ -105,8 +105,8 @@ examples-genai = [
 # LINT.ThenChange(./requirements_examples_genai.txt)
 # LINT.IfChange
 test = [
-  "lit-nlp[examples-gcp]",
-  "lit-nlp[examples-hosted]",
+  "lit-nlp[examples-descai]",
+  "lit-nlp[examples-genai]",
   "lime==0.2.0.1",
   "pytest>=7.4.0,<8.0.0",
   "webtest>=2.0",
