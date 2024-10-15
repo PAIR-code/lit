@@ -13,8 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Tests for lit_nlp.examples.vertexai.models."""
-
 from unittest import mock
 from absl.testing import absltest
 from google.cloud import aiplatform
