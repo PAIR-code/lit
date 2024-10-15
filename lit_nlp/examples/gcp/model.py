@@ -86,7 +86,7 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
       list of outputs, following model.output_spec()
 
     Raises:
-      RuntimeError for non-200 HTTP Status Codes in the response.
+      RuntimeError: Received non-200 HTTP Status Codes in the response.
     """
     inputs = {'inputs': inputs}
     headers = {

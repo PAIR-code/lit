@@ -13,6 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 
+"""Constants used across the Model Server and LIT Server code surfaces."""
+
 import enum
 
 
