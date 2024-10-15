@@ -24,7 +24,8 @@ from absl import flags
 from absl import logging
 from lit_nlp import dev_server
 from lit_nlp import server_flags
-from lit_nlp.components import word_replacer, scrambler
+from lit_nlp.components import scrambler
+from lit_nlp.components import word_replacer
 from lit_nlp.examples.gcp import model as lit_gcp_model
 from lit_nlp.examples.gcp import vertexai_models
 from lit_nlp.examples.prompt_debugging import datasets as pd_datasets
@@ -64,16 +65,20 @@ def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
     raise app.UsageError("Too many command-line arguments.")
 
   datasets = pd_datasets.get_datasets(
-      datasets_config=pd_datasets.DEFAULT_DATASETS, max_examples=pd_datasets.DEFAULT_MAX_EXAMPLES
+      datasets_config=pd_datasets.DEFAULT_DATASETS,
+      max_examples=pd_datasets.DEFAULT_MAX_EXAMPLES
   )
 
-  model_loaders=lit_gcp_model.get_model_loaders()
-  model_loaders['gemini'] = (
+  model_loaders = lit_gcp_model.get_model_loaders()
+  model_loaders["gemini"] = (
       vertexai_models.GeminiFoundationalModel,
       vertexai_models.GeminiFoundationalModel.init_spec(),
   )
 
-  generators = {'word_replacer': word_replacer.WordReplacer(), 'scrambler':scrambler.Scrambler()}
+  generators = {
+      "word_replacer": word_replacer.WordReplacer(),
+      "scrambler": scrambler.Scrambler(),
+  }
 
   lit_demo = dev_server.Server(
       models={},

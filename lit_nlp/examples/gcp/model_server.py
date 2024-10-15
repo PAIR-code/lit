@@ -36,12 +36,12 @@ def get_wsgi_app() -> wsgi_app.App:
 
   def wrap_handler(predict_fn):
     @functools.wraps(predict_fn)
-    def _handler(app: wsgi_app.App, request, unused_environ):
+    def _handler(wsgiapp: wsgi_app.App, request, unused_environ):
       data = serialize.from_json(request.data) if len(request.data) else None
       inputs = data['inputs']
       outputs = predict_fn(inputs)
-      response_body = serialize.to_json(list(outputs),  simple=True)
-      return app.respond(request, response_body, 'application/json', 200)
+      response_body = serialize.to_json(list(outputs), simple=True)
+      return wsgiapp.respond(request, response_body, 'application/json', 200)
 
     return _handler
 

@@ -15,7 +15,10 @@
 
 import enum
 
+
 class LlmHTTPEndpoints(enum.Enum):
+  """Names of HTTP endpoints provided by the Model Server conainer."""
+
   GENERATE = 'predict'
   SALIENCE = 'salience'
   TOKENIZE = 'tokenize'

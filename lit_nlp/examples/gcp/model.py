@@ -31,21 +31,22 @@ LLM_ON_GCP_INIT_SPEC: lit_types.Spec = {
     # `/create_model` API will validate the config with a `new_name` in it.
     'new_name': lit_types.String(required=False),
     'base_url': lit_types.String(),
-    'identity_token': lit_types.String(default=""),
+    'identity_token': lit_types.String(default=''),
     'max_concurrent_requests': lit_types.Integer(default=1),
     'max_qps': lit_types.Integer(default=25, required=False),
 }
 
 
 class LlmOverHTTP(lit_model.BatchedRemoteModel):
+  """Model wrapper LLMs hosted in a Model Server container."""
 
   def __init__(
-    self,
-    base_url: str,
-    identity_token: str,
-    endpoint: str | _LlmHTTPEndpoints,
-    max_concurrent_requests: int = 4,
-    max_qps: int | float = 25
+      self,
+      base_url: str,
+      identity_token: str,
+      endpoint: str | _LlmHTTPEndpoints,
+      max_concurrent_requests: int = 4,
+      max_qps: int | float = 25,
   ):
     super().__init__(max_concurrent_requests, max_qps)
     self.endpoint = _LlmHTTPEndpoints(endpoint)
@@ -83,6 +84,9 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
 
     Returns:
       list of outputs, following model.output_spec()
+
+    Raises:
+      RuntimeError for non-200 HTTP Status Codes in the response.
     """
     inputs = {'inputs': inputs}
     headers = {
@@ -90,7 +94,7 @@ class LlmOverHTTP(lit_model.BatchedRemoteModel):
         'Content-Type': 'application/json'
     }
     response = requests.post(
-        self.url, headers=headers,data=serialize.to_json(inputs, simple=True)
+        self.url, headers=headers, data=serialize.to_json(inputs, simple=True)
     )
 
     if not (200 <= response.status_code < 300):

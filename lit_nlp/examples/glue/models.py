@@ -3,8 +3,8 @@
 # TODO(b/261736863): Update to PEP 585 typings, consider using f-strings, and
 # make common substrings into module CONSTANTS.
 
-import os
 from collections.abc import Iterable, Sequence
+import os
 import re
 import threading
 from typing import Any, Optional

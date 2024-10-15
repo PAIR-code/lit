@@ -28,6 +28,8 @@ class TestWSGIApp(parameterized.TestCase):
 
   @classmethod
   def setUpClass(cls):
+    super().setUpClass()
+
     test_model_name = 'lit_on_gcp_test_model'
     sal_name, tok_name = pd_utils.generate_model_group_names(test_model_name)
     test_model_config = f'{test_model_name}:test_model_path'
@@ -54,27 +56,26 @@ class TestWSGIApp(parameterized.TestCase):
         tok_name: tokenize_model,
     }
 
-
   @parameterized.named_parameters(
-    dict(
-        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value,
-        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value}',
-        expected=[{'response': 'test output text'}],
-    ),
-    dict(
-        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value,
-        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value}',
-        expected=[{
-            'tokens': ['test', 'output', 'text'],
-            'grad_l2': [0.1234, 0.3456, 0.5678],
-            'grad_dot_input': [0.1234, -0.3456, 0.5678],
-        }],
-    ),
-    dict(
-        testcase_name=lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value,
-        endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value}',
-        expected=[{'tokens': ['test', 'output', 'text']}],
-    ),
+      dict(
+          testcase_name=lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value,
+          endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.GENERATE.value}',
+          expected=[{'response': 'test output text'}],
+      ),
+      dict(
+          testcase_name=lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value,
+          endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.SALIENCE.value}',
+          expected=[{
+              'tokens': ['test', 'output', 'text'],
+              'grad_l2': [0.1234, 0.3456, 0.5678],
+              'grad_dot_input': [0.1234, -0.3456, 0.5678],
+          }],
+      ),
+      dict(
+          testcase_name=lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value,
+          endpoint=f'/{lit_gcp_constants.LlmHTTPEndpoints.TOKENIZE.value}',
+          expected=[{'tokens': ['test', 'output', 'text']}],
+      ),
   )
   @mock.patch('lit_nlp.examples.prompt_debugging.models.get_models')
   def test_endpoint(self, mock_get_models, endpoint, expected):

@@ -91,7 +91,9 @@ class ModelsTest(absltest.TestCase):
     )
     mock_generate_content.side_effect = [response1, response2]
 
-    model = vertexai_models.SelfHostedGenerativeModel(aip_endpoint_name="endpoint_name")
+    model = vertexai_models.SelfHostedGenerativeModel(
+        aip_endpoint_name="endpoint_name"
+    )
     model._endpoint = mock.MagicMock()
     model._endpoint.predict.side_effect = [response1, response2]
 

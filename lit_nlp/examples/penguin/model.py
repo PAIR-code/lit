@@ -9,7 +9,7 @@ from lit_nlp.lib import file_cache
 import numpy as np
 import tf_keras as keras
 
-os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
 
 _VOCABS = penguin_data.VOCABS
 

@@ -28,7 +28,6 @@ from absl import logging
 from lit_nlp.examples.glue import data as glue_data
 from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import serialize
-import tensorflow as tf
 import tf_keras as keras
 
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
