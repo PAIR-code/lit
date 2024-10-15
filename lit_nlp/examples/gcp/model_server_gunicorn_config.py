@@ -22,4 +22,4 @@ bind = f'0.0.0.0:{_PORT}'
 timeout = 3600
 threads = 8
 worker_class = 'gthread'
-wsgi_app = f'lit_nlp.examples.gcp.model_server:get_wsgi_app()'
+wsgi_app = 'lit_nlp.examples.gcp.model_server:get_wsgi_app()'

@@ -25,15 +25,11 @@ from lit_nlp.api import model as lit_model
 from lit_nlp.api import types as lit_types
 
 _MAX_NUM_RETRIES = 5
-
 _DEFAULT_CANDIDATE_COUNT = 1
-
 _DEFAULT_MAX_OUTPUT_TOKENS = 256
-
 _DEFAULT_TEMPERATURE = 0.7
 
 
-# TODO(fanyecourage): Rename this class.
 class GeminiFoundationalModel(lit_model.BatchedRemoteModel):
   """GeminiFoundationalModel is a wrapper for foundatoinal Gemini models in Vertex AI Model Garden model.
 

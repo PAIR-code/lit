@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Wrapper for connetecting to LLMs on GCP via the model_server HTTP API."""
+"""Wrapper for connecting to LLMs on GCP via the model_server HTTP API."""
 
 from lit_nlp import app as lit_app
 from lit_nlp.api import model as lit_model
@@ -23,11 +23,6 @@ from lit_nlp.examples.prompt_debugging import constants as pd_constants
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import serialize
 import requests
-
-"""
-Plan for this module:
-
-"""
 
 _LlmHTTPEndpoints = lit_gcp_constants.LlmHTTPEndpoints
 

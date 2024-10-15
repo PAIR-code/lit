@@ -27,6 +27,6 @@ docker build -f ./lit_nlp/examples/gcp/Dockerfile -t lit-app:gcp-dev .
 ### Run GPT-2 in a Docker container
 
 ```shell
-# Runs GPT-2 in Keras on Tensorflow
+# Runs GPT-2 in Keras on PyTorch
 docker run --rm -p 5432:5432 -e MODEL_CONFIG=gpt2:gpt2_base_en lit-app:gcp-dev
 ```

@@ -18,21 +18,14 @@ r"""A model server for serving models on GCP via Gunicorn."""
 from collections.abc import Sequence
 import functools
 import os
-from typing import Optional
 
 from absl import app
-from lit_nlp import dev_server
 from lit_nlp.examples.gcp import constants as lit_gcp_constants
 from lit_nlp.examples.prompt_debugging import models as pd_models
 from lit_nlp.examples.prompt_debugging import utils as pd_utils
 from lit_nlp.lib import serialize
 from lit_nlp.lib import wsgi_app
 
-DEFAULT_DL_FRAMEWORK = 'kerasnlp'
-DEFAULT_DL_RUNTIME = 'tensorflow'
-DEFAULT_PRECISION = 'bfloat16'
-DEFAULT_SEQUENCE_LENGTH = 512
-DEFAULT_BATCH_SIZE = 1
 DEFAULT_MODELS = 'gemma_1.1_2b_IT:gemma_1.1_instruct_2b_en'
 
 _LlmHTTPEndpoints = lit_gcp_constants.LlmHTTPEndpoints
@@ -59,11 +52,13 @@ def get_wsgi_app() -> wsgi_app.App:
         f'Only 1 model configuration can be provided, got {num_configs}'
     )
 
-  dl_framework = os.getenv('DL_FRAMEWORK', DEFAULT_DL_FRAMEWORK)
-  dl_runtime = os.getenv('DL_RUNTIME', DEFAULT_DL_RUNTIME)
-  precision = os.getenv('PRECISION', DEFAULT_PRECISION)
-  batch_size = int(os.getenv('BATCH_SIZE', DEFAULT_BATCH_SIZE))
-  sequence_length = int(os.getenv('SEQUENCE_LENGTH', DEFAULT_SEQUENCE_LENGTH))
+  dl_framework = os.getenv('DL_FRAMEWORK', pd_models.DEFAULT_DL_FRAMEWORK)
+  dl_runtime = os.getenv('DL_RUNTIME', pd_models.DEFAULT_DL_RUNTIME)
+  precision = os.getenv('PRECISION', pd_models.DEFAULT_PRECISION)
+  batch_size = int(os.getenv('BATCH_SIZE', pd_models.DEFAULT_BATCH_SIZE))
+  sequence_length = int(
+      os.getenv('SEQUENCE_LENGTH', pd_models.DEFAULT_SEQUENCE_LENGTH)
+  )
 
   models = pd_models.get_models(
       models_config=model_config,
@@ -92,7 +87,8 @@ def get_wsgi_app() -> wsgi_app.App:
       wrapped_handlers, project_root='gcp', index_file='index.html'
   )
 
-def main(argv: Sequence[str]) -> Optional[dev_server.LitServerType]:
+
+def main(argv: Sequence[str]) -> wsgi_app.App:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
