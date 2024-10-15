@@ -1,5 +1,40 @@
 # Learning Interpretability Tool Release Notes
 
+## Release 1.3
+
+This release marks the deployment of LIT (Learning Interpretability Tool) on Google Cloud Platform (GCP).
+
+### New Stuff
+* LIT on GCP -
+[1075325](https://github.com/PAIR-code/lit/commit/1075325c6a08d8fdef3bcf66f193b8d5aef673fb),
+[1acc868](https://github.com/PAIR-code/lit/commit/1acc868d4a5fa0fd2a135f132f56bb4cb8ba3990),
+[55bfc99](https://github.com/PAIR-code/lit/commit/55bfc993cc27fd25ae5089d58ae822bfeca296a3),
+[180f68a](https://github.com/PAIR-code/lit/commit/180f68ad3774f8b276e262c0dcb7307ad87e42a3),
+[64114d5](https://github.com/PAIR-code/lit/commit/64114d553ffd2c0ffd7bc674fb32a36e564ea0f4),
+[2488aa7](https://github.com/PAIR-code/lit/commit/2488aa7cf8f8a112607ca0c8b40870efde73ec24),
+[9baac29](https://github.com/PAIR-code/lit/commit/9baac29b96970ef7fa64f2f36ce2c79ff73707b7),
+[60bdc7c](https://github.com/PAIR-code/lit/commit/60bdc7cf382bd0c5ead2576c119277230a6080c9),
+[7681476](https://github.com/PAIR-code/lit/commit/7681476d5056d927905f24333b890501a36df040),
+[4c81182](https://github.com/PAIR-code/lit/commit/4c81182a7db1fda7f8ba071a9542876f462a13fa),
+[4e5e8e2](https://github.com/PAIR-code/lit/commit/4e5e8e25c2abb658dc141f0d9c6059dd41e14535),
+
+* Python requirements update and isolated setup for LIT on GCP -
+[b9a0b82](https://github.com/PAIR-code/lit/commit/b9a0b8210263da9ee6d741e4e0f0444849e3a141),
+[424adce](https://github.com/PAIR-code/lit/commit/424adce9cf8c9cbabdf5d89d485cdc5f3fd098ed),
+[1d019c7](https://github.com/PAIR-code/lit/commit/1d019c7a1bf5f135ea42104889167b79c3f795cd),
+[f4436a2](https://github.com/PAIR-code/lit/commit/f4436a26ed79f481e16e2c53c0551703e7ba8c4f),
+
+* Documentation cleanup and updates -
+[f24b841](https://github.com/PAIR-code/lit/commit/f24b841959f0402498a056a5164a86ecae6dbb94),
+[2e9d267](https://github.com/PAIR-code/lit/commit/2e9d26738d9344cde0eebd66d49dfc14cd800e74),
+
+### Non-breaking Changes, Bug Fixes, and Enhancements
+* Upgrade LIT to MobX v6. - [c1f5055](https://github.com/PAIR-code/lit/commit/c1f5055eb7ee8b3671484c863a0967c05fa58338)
+* Fix indexing issue Fix indexing issue in Sequence Salience module. - [58b1d2](https://github.com/PAIR-code/lit/commit/58b1d2b6d0d27c6dca086520cef45bf75466a101)
+* Load multiple model wrappers with shared model. - [ba4d975](https://github.com/PAIR-code/lit/commit/ba4d975a90612b0c41a02b3dcb4dbb548261fdd7)
+* Add the custom model and dataset loaders to prompt debugging notebook. - [338c6b](https://github.com/PAIR-code/lit/commit/338c6b12de98b61287a25650ad2c6ad7f7bb80cd)
+* Convert hosted demos images to multi-stage builds. - [4bf1f8](https://github.com/PAIR-code/lit/commit/4bf1f81666fe546357f00c86a2315d2852346ebe)
+
 ## Release 1.2
 
 This release covers clean-ups on various obsolete demos, as well as improved
