@@ -3,8 +3,8 @@
 # TODO(b/261736863): Update to PEP 585 typings, consider using f-strings, and
 # make common substrings into module CONSTANTS.
 
-import os
 from collections.abc import Iterable, Sequence
+import os
 import re
 import threading
 from typing import Any, Optional
@@ -17,7 +17,10 @@ from lit_nlp.lib import file_cache
 from lit_nlp.lib import utils
 import numpy as np
 import tensorflow as tf
+import tf_keras as keras
 import transformers
+
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 JsonDict = lit_types.JsonDict
 Spec = lit_types.Spec
@@ -203,13 +206,13 @@ class GlueModel(lit_model.BatchedModel):
     )
 
     # Prepare model for training.
-    opt = tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=1e-08)
+    opt = keras.optimizers.Adam(learning_rate=learning_rate, epsilon=1e-08)
     if self.is_regression:
-      loss = tf.keras.losses.MeanSquaredError()
-      metric = tf.keras.metrics.RootMeanSquaredError("rmse")
+      loss = keras.losses.MeanSquaredError()
+      metric = keras.metrics.RootMeanSquaredError("rmse")
     else:
-      loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-      metric = tf.keras.metrics.SparseCategoricalAccuracy("accuracy")
+      loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+      metric = keras.metrics.SparseCategoricalAccuracy("accuracy")
     self.model.compile(optimizer=opt, loss=loss, metrics=[metric])
 
     steps_per_epoch = len(train_inputs) // batch_size

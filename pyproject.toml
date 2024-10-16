@@ -41,7 +41,7 @@ dependencies = [
   "umap-learn>=0.5.1",
   "werkzeug>=2.2.3",
 ]
-# LINT.ThenChange(./requirements_core.txt)
+# LINT.ThenChange(./requirements.txt)
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Framework :: Jupyter",
@@ -77,32 +77,39 @@ keywords = [
 ]
 
 [project.optional-dependencies]
+# LINT.IfChange
 examples-common = [
   "gunicorn>=20.1.0",
-]
-# LINT.IfChange
-examples = [
-  "lit-nlp[examples-common]",
-  "sentencepiece==0.1.99",
-  "tensorflow>=2.10.0,<2.16.0",
-  "tensorflow-datasets>=4.9.0",
-  "tensorflow-text>=2.10.0,<2.16.0",
-  "torch>=2.0.0",
+  "tensorflow>=2.16.0",
   "transformers>=4.27.1",
-  "vertexai>=1.49.0",
 ]
-# LINT.ThenChange(./requirements_examples.txt)
+# LINT.ThenChange(./requirements_examples_common.txt)
 # LINT.IfChange
-vertexai = [
+examples-descai = [
+  "lit-nlp[examples-common]",
+  "tensorflow-datasets>=4.9.0",
+  "tf-keras>=2.16",
+]
+# LINT.ThenChange(./requirements_examples_descai.txt)
+# LINT.IfChange
+examples-genai = [
   "lit-nlp[examples-common]",
   "google-cloud-aiplatform>=1.60.0",
+  "keras>=3.0.0",
+  "keras-nlp>=0.14.0",
+  "sentencepiece==0.1.99",
+  "tensorflow-text>=2.16.0",
+  "torch>=2.0.0",
   "vertexai>=1.49.0",
 ]
-# LINT.ThenChange(./examples/vertexai/requirements.txt)
+# LINT.ThenChange(./requirements_examples_genai.txt)
 # LINT.IfChange
 test = [
+  "lit-nlp[examples-descai]",
+  "lit-nlp[examples-genai]",
   "lime==0.2.0.1",
   "pytest>=7.4.0,<8.0.0",
+  "webtest>=2.0",
 ]
 # LINT.ThenChange(./requirements_test.txt)
 

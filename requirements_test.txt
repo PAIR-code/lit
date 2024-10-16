@@ -13,7 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 # LINT.IfChange
+-r requirements_examples_descai.txt
+-r requirements_examples_genai.txt
+
 lime==0.2.0.1
-google-cloud-aiplatform>=1.60.0
 pytest>=7.4.0,<8.0.0
+webtest>=2.0
 # LINT.ThenChange(./pyproject.toml)

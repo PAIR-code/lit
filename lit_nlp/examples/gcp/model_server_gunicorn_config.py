@@ -16,10 +16,10 @@
 
 import os
 
-_DEMO_PORT = os.getenv('DEMO_PORT', '5432')
+_PORT = os.getenv('PORT', '8080')
 
-bind = f'0.0.0.0:{_DEMO_PORT}'
+bind = f'0.0.0.0:{_PORT}'
 timeout = 3600
 threads = 8
 worker_class = 'gthread'
-wsgi_app = 'lit_nlp.examples.vertexai.demo:get_wsgi_app()'
+wsgi_app = 'lit_nlp.examples.gcp.model_server:get_wsgi_app()'

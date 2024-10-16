@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""gunicorn configuration for cloud-hosted demos."""
 
--r ../../../requirements_core.txt
+import os
 
-keras>=3.1.0
-keras-nlp>=0.9.0
-tensorflow-text>=2.10.0
-torch>=2.0.0
-transformers>=4.27.1
+_PORT = os.getenv('PORT', '5432')
+
+bind = f'0.0.0.0:{_PORT}'
+timeout = 3600
+threads = 8
+worker_class = 'gthread'
+wsgi_app = 'lit_nlp.examples.gcp.server:get_wsgi_app()'
