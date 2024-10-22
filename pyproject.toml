@@ -4,7 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lit-nlp"
+# LINT.IfChange
 version = "1.2"
+# LINT.ThenChange(./lit_nlp/package.json)
 authors = [
   { name="Google, LLC", email="lit-dev@google.com" }
 ]
@@ -85,14 +87,14 @@ examples-common = [
 ]
 # LINT.ThenChange(./requirements_examples_common.txt)
 # LINT.IfChange
-examples-descai = [
+examples-discriminative-ai = [
   "lit-nlp[examples-common]",
   "tensorflow-datasets>=4.9.0",
   "tf-keras>=2.16",
 ]
-# LINT.ThenChange(./requirements_examples_descai.txt)
+# LINT.ThenChange(./requirements_examples_discriminative_ai.txt)
 # LINT.IfChange
-examples-genai = [
+examples-generative-ai = [
   "lit-nlp[examples-common]",
   "google-cloud-aiplatform>=1.60.0",
   "keras>=3.0.0",
@@ -102,11 +104,11 @@ examples-genai = [
   "torch>=2.0.0",
   "vertexai>=1.49.0",
 ]
-# LINT.ThenChange(./requirements_examples_genai.txt)
+# LINT.ThenChange(./requirements_examples_generative_ai.txt)
 # LINT.IfChange
 test = [
-  "lit-nlp[examples-descai]",
-  "lit-nlp[examples-genai]",
+  "lit-nlp[examples-discriminative-ai]",
+  "lit-nlp[examples-generative-ai]",
   "lime==0.2.0.1",
   "pytest>=7.4.0,<8.0.0",
   "webtest>=2.0",
