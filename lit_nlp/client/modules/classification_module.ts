@@ -21,7 +21,7 @@ import '../elements/switch';
 
 import {html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -75,8 +75,9 @@ export class ClassificationModule extends LitModule {
     return [sharedStyles, styles];
   }
 
-  static override shouldDisplayModule(modelSpecs: ModelInfoMap,
-                                      datasetSpec: Spec) {
+  static override shouldDisplayModule(
+      modelSpecs: ModelInfoMap, datasetSpec: Spec
+  ) {
     return doesOutputSpecContain(modelSpecs, MulticlassPreds);
   }
 
@@ -87,6 +88,11 @@ export class ClassificationModule extends LitModule {
 
   @observable private sparseMode = false;
   @observable private labeledPredictions: LabeledPredictions = {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -135,14 +141,13 @@ export class ClassificationModule extends LitModule {
    * and the values are dictionaries with a key for each class in the vocabulary
    * and arrays of DisplayInfo values for the pinned and selected datapoints.
    */
-  private parseResult(model: string, inputs: IndexedInput[]):
-      LabeledPredictions {
+  private parseResult(
+      model: string, inputs: IndexedInput[]
+  ): LabeledPredictions {
     const {output} = this.appState.getModelSpec(model);
     const multiclassKeys = findSpecKeys(output, MulticlassPreds);
     const labeledPredictions: LabeledPredictions = {};
     const colorOption = this.colorService.selectedColorOption;
-    // tslint:disable-next-line:no-any
-    const colorRange = (colorOption.scale as any).range();
 
     // Iterate over the multiclass prediction heads
     for (const predKey of multiclassKeys) {
@@ -151,49 +156,67 @@ export class ClassificationModule extends LitModule {
           model, predKey, CalculatedColumnType.PREDICTED_CLASS);
       const predCorrectKey = this.dataService.getColumnName(
           model, predKey, CalculatedColumnType.CORRECT);
-      labeledPredictions[topLevelKey] = {};
       const {parent, vocab} = output[predKey] as MulticlassPreds;
-      const scores =
-          inputs.map(input => this.dataService.getVal(input.id, topLevelKey));
-      const predictedClasses =
-          inputs.map(input => this.dataService.getVal(input.id, predClassKey));
+
+      const inputData = inputs.map(i => ({
+        predScores: this.dataService.getVal(i.id, topLevelKey),
+        predClass: this.dataService.getVal(i.id, predClassKey),
+        truth: parent != null ? this.dataService.getVal(i.id, parent) : null,
+      }));
+
       // If no vocab provided, create a list of strings of the class indices.
-      const labels =
-          vocab || Array.from({length: scores[0].length}, (v, k) => `${k}`);
+      const labels = vocab || Array.from(
+          {length: inputData[0].predScores.length}, (v, k) => `${k}`
+      );
       const colorableKeys = [predClassKey, predCorrectKey, parent];
       const applyColor = colorableKeys.includes(colorOption.name);
+      // colorOption.scale can be a d3.scaleSequential (numeric features) or
+      // d3.scaleOrdinal (categorical or boolean features). In the version of D3
+      // LIT uses, d3.scaleSequential does not have a .range() method, so we
+      // need to default to an empty array for numeric features.
+      // https://d3js.org/d3-scale/sequential#scaleSequential
+      const colorRange: string[] =  // tslint:disable-next-line:no-any
+          applyColor ? (colorOption.scale as any).range() : [];
+
+      labeledPredictions[topLevelKey] = {};
 
       // Iterate over the vocabulary for this prediction head
-      for (let i = 0; i < labels.length; i++) {
-        const label = labels[i];
-        const color: string|undefined = applyColor ? colorRange[i] : undefined;
-
+      labels.forEach((label, i) =>  {
         // Map the predctions for each example into DisplayInfo objects
         const rowPreds: DisplayInfo[] = [];
 
-        for (let j = 0; j < scores.length; j++) {
-          const score = scores[j];
+        for (const {predScores, predClass, truth} of inputData) {
 
           // Only push null scores if not in sparseMode
-          if (score == null) {
+          if (predScores == null) {
             if (!this.sparseMode) {
               rowPreds.push({value: 0, isPredicted: false, isTruth: false});
             }
             continue;
           }
 
-          const value = score[i];
-          const isPredicted = label === predictedClasses[j];
-          const {data} = inputs[j];
-          const isTruth = (parent != null && data[parent] === labels[i]);
+          const value = predScores[i];
+          const isPredicted = label === predClass;
+          const isTruth = truth === label;
           // Push values if not in sparseMode or if above threshold
           if (!this.sparseMode || value >= SPARSE_MODE_THRESHOLD) {
-            rowPreds.push({value, isPredicted, isTruth, color});
+            const rowPred: DisplayInfo = {value, isPredicted, isTruth};
+
+            if (applyColor) {
+              if (colorOption.name === predCorrectKey) {
+                const colorIdx = isTruth ? 1 : 0;
+                rowPred.color = colorRange[colorIdx];
+              } else {
+                rowPred.color = colorRange[i];
+              }
+            }
+
+            rowPreds.push(rowPred);
           }
         }
 
         if (rowPreds.length) labeledPredictions[topLevelKey][label] = rowPreds;
-      }
+      });
     }
 
     return labeledPredictions;

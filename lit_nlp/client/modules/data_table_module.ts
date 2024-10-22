@@ -23,7 +23,7 @@ import {html} from 'lit';
 import {customElement, query} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -396,6 +396,11 @@ export class DataTableModule extends LitModule {
     });
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   override connectedCallback() {
     super.connectedCallback();
     const updateColsChange = () =>
@@ -527,8 +532,8 @@ export class DataTableModule extends LitModule {
           Reset view
         </button>
         <button class='hairline-button' @click=${onClickSelectFiltered}
-          ?disabled="${!this.table?.isFiltered ?? true}">
-          Select filtered
+          ?disabled="${!this.table?.isFiltered}">
+        Select filtered
         </button>
       </div>
     `;

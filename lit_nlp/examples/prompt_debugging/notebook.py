@@ -59,5 +59,12 @@ def make_notebook_widget(
       ),
       layouts=layouts.PROMPT_DEBUGGING_LAYOUTS,
       default_layout=layouts.LEFT_RIGHT,
+      model_loaders=models.get_model_loaders(
+          dl_framework=dl_framework,
+          dl_runtime=dl_runtime,
+          batch_size=batch_size,
+          max_length=models.DEFAULT_SEQUENCE_LENGTH,
+      ),
+      dataset_loaders=datasets.get_dataset_loaders(),
       **kwargs,
   )

@@ -23,7 +23,7 @@ import {html, TemplateResult} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {ReactiveElement} from '../lib/elements';
@@ -60,8 +60,8 @@ export class FacetingControl extends ReactiveElement {
   private readonly discreteCount = new Map<string, number>();
 
   @observable private hasExcessBins = false;
-  @observable private features: string[] = [];
-  @observable private bins: NumericFeatureBins = {};
+  @observable.ref private features: string[] = [];
+  @observable.ref private bins: NumericFeatureBins = {};
 
   @property({type: Boolean, reflect: true}) disabled = false;
   @property({type: String}) contextName?: string;
@@ -74,6 +74,7 @@ export class FacetingControl extends ReactiveElement {
 
   constructor(private readonly groupService = app.getService(GroupService)) {
     super();
+    makeObservable(this);
     this.initFeatureConfigs();
   }
 

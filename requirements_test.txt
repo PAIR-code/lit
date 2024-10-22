@@ -13,6 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 # LINT.IfChange
+-r requirements_examples_discriminative_ai.txt
+-r requirements_examples_generative_ai.txt
+
 lime==0.2.0.1
 pytest>=7.4.0,<8.0.0
+webtest>=2.0
 # LINT.ThenChange(./pyproject.toml)

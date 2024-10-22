@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 import {hashCode} from '../lib/utils';
 import {LitService} from './lit_service';
 
@@ -32,7 +32,7 @@ interface ErrorMessageHolder {
  * A singleton class that handles all API loading status messages.
  */
 export class StatusService extends LitService {
-  private loadingId: number = 0;
+  private loadingId = 0;
 
   /**
    * An observable map of loading messages by loading id.
@@ -88,6 +88,11 @@ export class StatusService extends LitService {
   @computed
   get loadingMessage() {
     return this.isLoading ? this.loadingMessages[0] : '';
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   startLoading(message: string) {

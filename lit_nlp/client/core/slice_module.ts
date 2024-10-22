@@ -20,7 +20,7 @@ import '../elements/export_controls';
 import {customElement} from 'lit/decorators.js';
 import {html} from 'lit';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from './app';
 import {LitModule} from './lit_module';
@@ -74,6 +74,7 @@ export class SliceModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
       this.sliceByFeatures = event.detail.features;

@@ -24,11 +24,12 @@ import os
 from absl import app
 from absl import flags
 from absl import logging
-
 from lit_nlp.examples.glue import data as glue_data
 from lit_nlp.examples.glue import models as glue_models
 from lit_nlp.lib import serialize
-import tensorflow as tf
+import tf_keras as keras
+
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 _ENCODER_NAME = flags.DEFINE_string(
     "encoder_name", "bert-base-uncased",
@@ -55,10 +56,10 @@ def history_to_dict(keras_history):
   }
 
 
-class EpochSaverCallback(tf.keras.callbacks.Callback):
+class EpochSaverCallback(keras.callbacks.Callback):
   """Save model at the beginning of training and after every epoch.
 
-  Similar to tf.keras.callbacks.ModelCheckpoint, but this allows us to specify
+  Similar to keras.callbacks.ModelCheckpoint, but this allows us to specify
   a custom save fn to call, such as the HuggingFace model.save() which writes
   .h5 files and config information.
   """
@@ -87,8 +88,9 @@ def train_and_save(model,
   # Set up logging for TensorBoard. To view, run:
   #   tensorboard --log_dir=<train_path>/tensorboard
   keras_callbacks = [
-      tf.keras.callbacks.TensorBoard(
-          log_dir=os.path.join(train_path, "tensorboard"))
+      keras.callbacks.TensorBoard(
+          log_dir=os.path.join(train_path, "tensorboard")
+      )
   ]
   if save_intermediates:
     keras_callbacks.append(EpochSaverCallback(train_path, save_fn=model.save))

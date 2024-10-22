@@ -32,7 +32,7 @@ import {customElement, property, queryAll} from 'lit/decorators.js';
 import {isTemplateResult} from 'lit/directive-helpers.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {action, computed, observable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 import * as papa from 'papaparse';
 
 import {ReactiveElement} from '../lib/elements';
@@ -142,7 +142,7 @@ export class DataTable extends ReactiveElement {
   }
 
   // Sort order precedence: 1) sortName, 2) input order
-  @observable private sortName?: string;
+  @observable private sortName?: string = undefined;
   @observable private sortAscending = true;
   @observable private showColumnMenu = false;
   @observable private columnMenuName = '';
@@ -167,6 +167,11 @@ export class DataTable extends ReactiveElement {
   // Timeout to not spam hover events as a mouse moves over the table.
   private readonly HOVER_TIMEOUT_MS = 3;
   private hoverTimeoutId: number|null = null;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override connectedCallback() {
     super.connectedCallback();
@@ -842,21 +847,20 @@ export class DataTable extends ReactiveElement {
     const headerId = this.columnNameToId(title);
 
     const toggleSort = (e: Event) => {
+      e.preventDefault();
       e.stopPropagation();
 
       // Table supports three sort states/transitions after a click:
       if (this.sortName !== title) {
-        //   1. If title !== sortName, sort by that title in ascending order
+        // 1. If title !== sortName, sort by that title in ascending order
         this.sortName = title;
         this.sortAscending = true;
+      } else if (this.sortAscending) {
+        // 2. If title === sortName && ascending, switch to descending
+        this.sortAscending = false;
       } else {
-        if (this.sortAscending) {
-          // 2. If title === sortName && ascending, switch to descending
-          this.sortAscending = false;
-        } else {
-          // 3. If title === sortName && descending, turn off sort
-          this.sortName = undefined;
-        }
+        // 3. If title === sortName && descending, turn off sort
+        this.sortName = undefined;
       }
     };
 

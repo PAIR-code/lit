@@ -23,7 +23,7 @@
 import {css, html} from 'lit';
 import {customElement, query} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView, TextSelection} from 'megaplot';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
@@ -235,6 +235,11 @@ export class DiveModule extends LitModule {
     rowLabels: undefined,
     points: undefined
   });
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   /**
    * Configures the Megaplot Selections for each facet in `this.groupedExamples`

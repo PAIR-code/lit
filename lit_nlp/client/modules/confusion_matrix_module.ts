@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
@@ -93,6 +93,7 @@ export class ConfusionMatrixModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
     this.setInitialOptions();
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
@@ -312,17 +313,17 @@ class ConfusionMatrix extends ReactiveElement {
   }
 
   /** Feature to use for the rows of the matrix */
-  @observable @property({type: Object}) row?: CmatOption;
+  @observable @property({type: Object}) row?: CmatOption = undefined;
   /** Feature to use for the columns of the matrix */
-  @observable @property({type: Object}) col?: CmatOption;
+  @observable @property({type: Object}) col?: CmatOption = undefined;
   /** Dataset to map into the cells of the matrix */
-  @observable @property({type: Array}) data?: IndexedInput[];
+  @observable @property({type: Array}) data?: IndexedInput[] = undefined;
   /** If true, don't show rows or columns containing only empty cells */
   @property({type: Boolean}) hideEmptyLabels = false;
   /** Label for the matrix */
   @property({type: String}) label = 'Confusion Matrix';
 
-  @observable private cells: MatrixCell[][] = [];
+  @observable.ref private cells: MatrixCell[][] = [];
 
 
   // tslint:disable-next-line:no-any
@@ -396,6 +397,11 @@ class ConfusionMatrix extends ReactiveElement {
       const bin = this.groups[facetMapToDictKey(facetsDict)];
       return {size: bin ? bin.data.length : 0, selected: false} as MatrixCell;
     }));
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override firstUpdated() {

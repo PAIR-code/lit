@@ -23,7 +23,7 @@ import * as d3 from 'd3';
 import {html, TemplateResult} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {Scene, Selection, SpriteView} from 'megaplot';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 // tslint:disable-next-line:ban-module-namespace-object-escape
 const seedrandom = require('seedrandom');  // from //third_party/javascript/typings/seedrandom:bundle
 
@@ -126,7 +126,7 @@ export class ScalarModule extends LitModule {
       new ResizeObserver(() => {this.resizePlots();});
 
   private numPlotsRendered = 0;
-  @observable private preds: IndexedScalars[] = [];
+  @observable.ref private preds: IndexedScalars[] = [];
 
   @computed get datasetScalarKeys(): string[] {
     return findSpecKeys(this.appState.currentDatasetSpec, Scalar);
@@ -140,6 +140,10 @@ export class ScalarModule extends LitModule {
     return `div.scatterplot[data-id="${id}"]`;
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override connectedCallback() {
     super.connectedCallback();

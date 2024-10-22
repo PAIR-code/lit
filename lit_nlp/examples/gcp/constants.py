@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,14 @@
 # limitations under the License.
 # ==============================================================================
 
--r ../../../requirements_core.txt
+"""Constants used across the Model Server and LIT Server code surfaces."""
 
-Jinja2>=3.1.4
-tensorflow>=2.10.0,<2.16.0
-tensorflow-datasets>=4.9.0
+import enum
+
+
+class LlmHTTPEndpoints(enum.Enum):
+  """Names of HTTP endpoints provided by the Model Server conainer."""
+
+  GENERATE = 'predict'
+  SALIENCE = 'salience'
+  TOKENIZE = 'tokenize'

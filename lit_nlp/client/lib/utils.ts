@@ -45,7 +45,7 @@ export function mean(values: number[]): number {
 
 /** Calculates the median for a list of numbers. */
 export function median(values: number[]): number {
-  const sorted = [...values].sort();
+  const sorted = [...values].sort((a, b) => a - b);
   const medIdx = Math.floor(sorted.length / 2);
   let median: number;
 

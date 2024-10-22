@@ -28,15 +28,15 @@ import {mockMetadata} from '../lib/testing_utils';
 
 import {ColorService, SignedSalienceCmap, UnsignedSalienceCmap} from './color_service';
 import {DataService} from './data_service';
-import {GroupService} from './group_service';
+import {CategoricalFeatures, GroupService, NumericFeatures} from './group_service';
 import {AppState} from './state_service';
 
 describe('Color service test', () => {
-  const categoricalFeatures = {
+  const categoricalFeatures: CategoricalFeatures = {
     'testFeat0': ['0', '1'],
     'testFeat1': ['a', 'b', 'c']
   };
-  const numericalFeatureRanges = {
+  const numericalFeatureRanges: NumericFeatures = {
     'testNumFeat0': [-5, 5],
     'testNumFeat1': [0, 1],
   };
@@ -92,7 +92,7 @@ describe('Color service test', () => {
 
     const appState = app.getService(AppState);
     // tslint:disable-next-line:no-any (to spyOn a private, readonly property)
-    spyOnProperty<any>(appState, 'inputData', 'get').and.returnValue(inputData);
+    spyOn<any>(appState, 'inputData').and.returnValue(inputData);
     appState.metadata = mockMetadata;
     appState.setDatasetForTest('color_test', dataMap);
 

@@ -12,7 +12,7 @@ import {css, html} from 'lit';
 // tslint:disable:no-new-decorators
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {LegendType} from '../elements/color_legend';
@@ -56,6 +56,8 @@ const LEGEND_INFO_TITLE_UNSIGNED =
     'score (more purple) for a token means that token was more influential ' +
     'on the model\'s prediction of the selected target.';
 
+const MODEL_PREDS_KEY = 'modelPreds';
+
 /**
  * A convenience implementation of LitModule for single model, single example
  * use. Implements some standard boilerplate to fetch model predictions.
@@ -77,10 +79,15 @@ export class SingleExampleSingleModelModule extends LitModule {
   static override duplicateForModelComparison = true;
 
   // Override this to request only specific types.
-  protected predsTypes: LitTypeTypesList = [LitType];
+  protected readonly predsTypes: LitTypeTypesList = [LitType];
 
-  @observable protected currentData?: IndexedInput;
-  @observable protected currentPreds?: Preds;
+  @observable protected currentData?: IndexedInput = undefined;
+  @observable protected currentPreds?: Preds = undefined;
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   // Override this for any post-processing.
   protected postprocessPreds(input: IndexedInput, preds: Preds): Preds {
@@ -102,6 +109,8 @@ export class SingleExampleSingleModelModule extends LitModule {
     // currentPreds should already be cleared by the resetState() call above.
     this.currentData = input;
 
+    // TODO(b/270268760): Get the generations from the DataService and use its
+    // async callback to get the data from the API if it's missing.
     const promise = this.apiService.getPreds(
         [input],
         this.model,
@@ -110,8 +119,8 @@ export class SingleExampleSingleModelModule extends LitModule {
         [],
         `Getting predictions from ${this.model}`,
     );
-    const results = await this.loadLatest('modelPreds', promise);
-    if (results === null) return;
+    const results = await this.loadLatest(MODEL_PREDS_KEY, promise);
+    if (results == null) return;
 
     const preds = this.postprocessPreds(input, results[0]);
 
@@ -122,9 +131,11 @@ export class SingleExampleSingleModelModule extends LitModule {
 
   override firstUpdated() {
     this.reactImmediately(
-        () =>
-            [this.selectionService.primarySelectedInputData, this.model,
-             this.appState.currentDataset],
+        () => [
+          this.selectionService.primarySelectedInputData,
+          this.model,
+          this.appState.currentDataset
+        ],
         () => {
           this.updateToSelection();
         },
@@ -243,7 +254,7 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
 
   @observable.ref private currentTokens: string[] = [];
   @observable.ref private salienceTargetOptions: TargetOption[] = [];
-  @observable private salienceTargetOption?: number;  // index into above
+  @observable private salienceTargetOption?: number = undefined;  // index into above
   @observable.ref private targetSegmentSpan?: [number, number] = undefined;
 
 
@@ -465,6 +476,11 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
         this.unsignedSalienceCmap;
   }
 
+  constructor() {
+    super();
+    makeObservable(this);
+  }
+
   spanToKey(span: number[]) {
     return `${span[0]}:${span[1]}`;
   }
@@ -477,6 +493,9 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
       return;
     }
 
+    // TODO(b/270268760): Get tokenization for each the generation from the
+    // DataService and use its async callback to get the data from the API if
+    // it's missing.
     const promise = this.apiService.getPreds(
         [input],
         this.tokenizerModelName,
@@ -549,16 +568,19 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
     // Update target options based on current data and preds.
     // TODO: could this just be @computed?
     // If we maintain explicit state, we can support custom target strings.
-    this.reactImmediately(() => [this.currentData, this.currentPreds], () => {
-      const dataSpec = this.appState.currentDatasetSpec;
-      const outputSpec = this.appState.getModelSpec(this.model).output;
-      this.salienceTargetOptions = getAllTargetOptions(
-          dataSpec,
-          outputSpec,
-          this.currentData,
-          this.currentPreds,
-      );
-    });
+    this.reactImmediately(
+        () => [this.currentData, this.currentPreds] as const,
+        ([currentData, currentPreds]) => {
+          const dataSpec = this.appState.currentDatasetSpec;
+          const outputSpec = this.appState.getModelSpec(this.model).output;
+          const targetOptions = getAllTargetOptions(
+              dataSpec,
+              outputSpec,
+              currentData,
+              currentPreds
+          );
+          this.salienceTargetOptions = targetOptions;
+        });
 
     // If selected example OR selected target string change.
     // NOTE: you may see a console warning: "Element sequence-salience-module
@@ -762,7 +784,7 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
     const targetSelectorHelp =
         'Select a (response) from the model or a pre-defined (target) sequence from the dataset.';
 
-    const isLoadingPreds = this.latestLoadPromises.has('modelPreds');
+    const isLoadingPreds = this.latestLoadPromises.has(MODEL_PREDS_KEY);
 
     const indicatorTextClass = classMap({
       'target-info-line': true,
@@ -900,30 +922,27 @@ export class SequenceSalienceModule extends SingleExampleSingleModelModule {
         this.salienceTargetOption = i;
       };
       // prettier-ignore
-      return html`
-        <div class='interstitial-target-option' @click=${onClickTarget}>
-          <div class='interstitial-target-text'>${target.text}</div>
-        </div>`;
+      return {
+        source: target.source,
+        template: html`<div class='interstitial-target-option'
+            @click=${onClickTarget}>
+            <div class='interstitial-target-text'>${target.text}</div>
+          </div>`,
+      };
     };
 
     // Slightly awkward, but we need to process and /then/ filter, because
     // the @click handler needs the original list index.
-    const optionsFromDataset =
-        this.salienceTargetOptions
-            .map((target, i) => {
-              if (target.source !== TargetSource.REFERENCE) return null;
-              return formatOption(target, i);
-            })
-            .filter(val => val != null);
-    const optionsFromModel =
-        this.salienceTargetOptions
-            .map((target, i) => {
-              if (target.source !== TargetSource.MODEL_OUTPUT) return null;
-              return formatOption(target, i);
-            })
-            .filter(val => val != null);
+    const formattedOptions =
+        this.salienceTargetOptions.map((t, i) => formatOption(t, i));
+    const optionsFromDataset = formattedOptions
+        .filter((t) => t.source === TargetSource.REFERENCE)
+        .map((t) => t.template);
+    const optionsFromModel = formattedOptions
+        .filter((t) => t.source === TargetSource.MODEL_OUTPUT)
+        .map((t) => t.template);
 
-    const isLoadingPreds = this.latestLoadPromises.has('modelPreds');
+    const isLoadingPreds = this.latestLoadPromises.has(MODEL_PREDS_KEY);
 
     // TODO(b/324959547): get field names 'target' and 'response' from spec
     // via generated_text_utils.ts, rather than hard-coding.

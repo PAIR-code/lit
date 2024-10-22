@@ -25,7 +25,7 @@ import {html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {ReactiveElement} from '../lib/elements';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -135,6 +135,11 @@ export class LitModules extends ReactiveElement {
 
   static override get styles() {
     return [sharedStyles, styles];
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override connectedCallback() {

@@ -1047,9 +1047,12 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
 
     # Otherwise, attempt to infer a type from the Paramater object.
     if param.annotation is param.empty and param.default is param.empty:
-      raise TypeError(f"Unable to infer a type for parameter '{param.name}' "
-                      f"of '{func.__name__}'. Please add a type hint or "
-                      "default value, or implement a Spec literal.")
+      fn_name = getattr(func, "__name__", repr(func))
+      raise TypeError(
+          f"Unable to infer a type for parameter '{param.name}' of '{fn_name}'."
+          " Please add a type hint or default value, or implement a Spec"
+          " literal."
+      )
 
     if param.annotation is param.empty:
       param_type = type(param.default)
@@ -1065,9 +1068,11 @@ def infer_spec_for_func(func: Callable[..., Any]) -> Spec:
         lit_type_params["default"] = param.default
       spec[param.name] = lit_type_cstr(**lit_type_params)
     else:
-      raise TypeError(f"Unsupported type '{param_type}' for parameter "
-                      f"'{param.name}' of '{func.__name__}'. If possible "
-                      "(e.g., this parameter is Optional), please implement a "
-                      "spec literal instead of using inferencing.")
+      fn_name = getattr(func, "__name__", repr(func))
+      raise TypeError(
+          f"Unsupported type '{param_type}' for parameter '{param.name}' of"
+          f" '{fn_name}'. If possible (e.g., this parameter is Optional),"
+          " please implement a spec literal instead of using inferencing."
+      )
 
   return spec

@@ -18,7 +18,7 @@
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
-import {observable} from 'mobx';
+import {makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
 import {GeneratedURL, ImageBytes, ImageBytesList} from '../lib/lit_types';
@@ -40,7 +40,7 @@ export class GeneratedImageModule extends LitModule {
     selectionServiceIndex=${selectionServiceIndex}>
   </generated-image-module>`;
 
-static supportedTypes = [ImageBytes, ImageBytesList];
+  static supportedTypes = [ImageBytes, ImageBytesList];
 
   static override get styles() {
     const styles = css`
@@ -61,7 +61,12 @@ static supportedTypes = [ImageBytes, ImageBytesList];
     return [sharedStyles, styles];
   }
 
-  @observable private generatedImages: {[key: string]: string} = {};
+  @observable.ref private generatedImages: {[key: string]: string} = {};
+
+  constructor() {
+    super();
+    makeObservable(this);
+  }
 
   override firstUpdated() {
     this.reactImmediately(

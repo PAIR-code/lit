@@ -22,7 +22,7 @@
 // tslint:disable:no-new-decorators
 import {customElement} from 'lit/decorators.js';
 import {css, html} from 'lit';
-import {computed} from 'mobx';
+import {computed, makeObservable} from 'mobx';
 import {app} from '../core/app';
 import {LitModule} from '../core/lit_module';
 import {ModelInfoMap, Spec} from '../lib/types';
@@ -58,6 +58,11 @@ export class DocumentationModule extends LitModule {
   @computed
   get markdownString() {
     return getTemplateStringFromMarkdown(this.appState.metadata.inlineDoc!);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   override renderImpl() {

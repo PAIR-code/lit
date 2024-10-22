@@ -21,7 +21,7 @@ import '../elements/line_chart';
 
 import {html, TemplateResult} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {action, computed, observable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
 import {app} from '../core/app';
 import {FacetsChange} from '../core/faceting_control';
@@ -79,7 +79,7 @@ export class CurvesModule extends LitModule {
   @state() private showSlices = false;
 
   @observable private readonly isPanelCollapsed = new Map();
-  @observable private datasetCurves?: CurvesData[];
+  @observable private datasetCurves?: CurvesData[] = undefined;
   @observable private sliceCurves: CurvesDataMap = {};
   @observable private groupedCurves: CurvesDataMap = {};
   @observable private selectedPredKeyIndex = 0;
@@ -101,6 +101,7 @@ export class CurvesModule extends LitModule {
 
   constructor() {
     super();
+    makeObservable(this);
 
     const facetsChange = (event: CustomEvent<FacetsChange>) => {
       this.setFacetInfo(event);

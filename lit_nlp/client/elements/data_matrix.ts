@@ -23,7 +23,7 @@ import {html, LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {classMap} from 'lit/directives/class-map.js';
 import {styleMap} from 'lit/directives/style-map.js';
-import {computed, observable} from 'mobx';
+import {computed, makeObservable, observable} from 'mobx';
 
 import {MAJOR_TONAL_COLORS, ramp} from '../lib/colors';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
@@ -32,7 +32,8 @@ import {styles} from './data_matrix.css';
 
 
 // Custom color ramp for the Data Matrix
-const LOW = 0, HIGH = 8;  // 0: -50, 1: -100, 2: -200, etc., HIGH gets excluded
+const LOW = 0;
+const HIGH = 8;  // 0: -50, 1: -100, 2: -200, etc., HIGH gets excluded
 // Text color flips (black => white) above -600, calc the % where that happens
 const COLOR_FLIP_PCT = Math.floor((6 - LOW) / (HIGH - 1 - LOW) * 100);
 const COLOR_RAMP = ramp([...MAJOR_TONAL_COLORS.primary.slice(LOW, HIGH)
@@ -86,6 +87,11 @@ export class DataMatrix extends LitElement {
     // are in this cell).
     // See https://github.com/d3/d3-scale#sequential-scales
     return d3.scaleSequential(COLOR_RAMP).domain([0, this.totalIds]);
+  }
+
+  constructor() {
+    super();
+    makeObservable(this);
   }
 
   private updateSelection() {

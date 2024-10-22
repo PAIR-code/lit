@@ -16,7 +16,7 @@
  */
 
 // tslint:disable:no-new-decorators
-import {action, computed, observable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
 import {type IndexedInput, type ServiceUser} from '../lib/types';
 
@@ -36,10 +36,11 @@ export interface AppState {
 /**
  * A singleton service for managing App selections of input data.
  */
-export class SelectionService extends LitService implements
-    SelectionObservedByUrlService {
+export class SelectionService extends LitService
+    implements SelectionObservedByUrlService {
   constructor(private readonly appState: AppState) {
     super();
+    makeObservable(this);
   }
 
   @observable private readonly selectedIdsSet = new Set<string>();
@@ -47,12 +48,12 @@ export class SelectionService extends LitService implements
 
   // Track the last user, so components can avoid resetting on selections they
   // triggered.
-  @observable private lastUserInternal?: ServiceUser;
+  @observable private lastUserInternal?: ServiceUser = undefined;
 
 
   // Tracks the last updated data indices to calculate selection.
-  @observable private shiftSelectionStartIndexInternal: number = 0;
-  @observable private shiftSelectionEndIndexInternal: number = 0;
+  @observable private shiftSelectionStartIndexInternal = 0;
+  @observable private shiftSelectionEndIndexInternal = 0;
 
   @computed
   get lastUser() {

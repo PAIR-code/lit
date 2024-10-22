@@ -22,7 +22,7 @@
 // tslint:disable:no-new-decorators
 import {MobxLitElement} from '@adobe/lit-mobx';
 import {property} from 'lit/decorators.js';
-import {IReactionDisposer, IReactionOptions, IReactionPublic, observable, reaction} from 'mobx';
+import {IReactionDisposer, IReactionOptions, IReactionPublic, makeObservable, observable, reaction} from 'mobx';
 
 type ReactionInputFn<T> = (r: IReactionPublic) => T;
 // tslint:disable:no-any
@@ -62,6 +62,8 @@ export abstract class ReactiveElement extends MobxLitElement {
 
   constructor() {
     super();
+    makeObservable(this);
+
     reaction(() => this.shouldReact, shouldReact => {
       if (shouldReact === 0) {
         return;
@@ -94,13 +96,15 @@ export abstract class ReactiveElement extends MobxLitElement {
    * disconnected.
    */
   protected react<T>(
-      fn: ReactionInputFn<T>, effect: (arg: T, r: IReactionPublic) => void,
-      opts: IReactionOptions = {}) {
+      fn: ReactionInputFn<T>,
+      effect: (arg: T, r: IReactionPublic) => void,
+      opts: IReactionOptions = {}
+  ) {
     // Wrapper function to pass to the mobx reaction call. If the element is
     // set to react, then the effect happens immediately. If not, the arguments
     // for the effect are stored in the map, keyed by the effect, so that
     // the latest reaction of each type is stored for later use.
-    const reactWrapper = (arg: T, r: IReactionPublic) => {
+    const reactWrapper = (arg: T, prev: T, r: IReactionPublic) => {
       if (this.shouldReact !== 0) {
         effect.apply(window, [arg, r]);
       } else {

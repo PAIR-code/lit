@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
--r ../../../requirements_core.txt
+-r ../../../requirements.txt
 
 flax>=0.5.3
 jax==0.4.6

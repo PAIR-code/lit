@@ -96,7 +96,7 @@ export class ApiService extends LitService {
    *    with and satisfy the requirements of the `Model.init_spec()`.
    */
   async createModel(model: string, config: CallConfig):
-      Promise<[LitMetadata, string]> {
+      Promise<[LitMetadata, string[]]> {
     const loadMessage = 'Loading new model';
     return this.queryServer(
         '/create_model',

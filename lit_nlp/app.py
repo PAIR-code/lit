@@ -14,15 +14,15 @@
 # ==============================================================================
 """LIT backend, as a standard WSGI app."""
 
+import collections
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import functools
-import glob
+import inspect
 import math
 import os
 import random
 import threading
-import time
-from typing import Any, Optional, TypedDict, Union
+from typing import Any, Optional, TypedDict, Union, cast, get_type_hints
 
 from absl import logging
 from lit_nlp.api import components as lit_components
@@ -52,7 +52,12 @@ ProgressIndicator = Callable[[Iterable], Iterable]
 DatasetLoader = tuple[Callable[..., lit_dataset.Dataset], Optional[types.Spec]]
 DatasetLoadersMap = dict[str, DatasetLoader]
 
-ModelLoader = tuple[Callable[..., lit_model.Model], Optional[types.Spec]]
+SingleModelLoader = Callable[..., lit_model.Model]
+MultipleModelLoader = Callable[..., lit_model.ModelMap]
+ModelLoader = tuple[
+    Union[SingleModelLoader, MultipleModelLoader],
+    Optional[types.Spec],
+]
 ModelLoadersMap = dict[str, ModelLoader]
 
 _EMPTY_DATASET_KEY = '_union_empty'
@@ -434,10 +439,11 @@ class LitApp(object):
     dataset_cls, dataset_init_spec = loader_info
 
     if dataset_init_spec is not None:
+      initializer_name = getattr(dataset_cls, '__name__', repr(dataset_cls))
       utils.validate_config_against_spec(
           config,
           dataset_init_spec,
-          f'{dataset_name} ({dataset_cls.__name__})',
+          f'{dataset_name} ({initializer_name})',
           raise_for_unsupported=True,
       )
 
@@ -449,49 +455,110 @@ class LitApp(object):
     self._info = self._build_metadata()
     return (self._info, new_name)
 
-  def _create_model(self,
-                    data: types.JsonDict,
-                    model_name: Optional[str] = None,
-                    **unused_kw):
-    """Create a model, updating and returning the metadata."""
+  def _create_model(
+      self, data: types.JsonDict, model_name: Optional[str] = None, **unused_kw
+  ):
+    """Create a model, updating and returning the metadata.
+
+    LIT supports two types of model loaders:
+
+    *   Single-model loaders that return an instance of `lit_model.Model`; and
+    *   Multiple-model loaders that return a `Mapping[str, lit_model.Model]`.
+
+    Multiple-model loaders are primarily used for LLM use cases, such as the
+    Prompt Debugging example, where LIT needs to access the generation,
+    tokenization, and salience computation features of a model separately, and
+    thus initializes one lit_model.Model wrapper for each of these purposes.
+    Note that the `Callable` associated with a given Multiple-model
+    `ModelLoader` must take `new_name` parameter as it is assumed that this
+    `Callable` will initialize multiple LIT Model wrappers for different
+    functions performed by a shared model, such as the generate, tokenize, and
+    salience functions of an LLM for prompt debugging use cases.
+
+    Single-model loaders are used in most other use cases, such as
+    classification and regression tasks where the prediction is more stable.
+
+    Args:
+      data: the JSON payload provided in the request.
+      model_name: the model intializer to use, a key of LitApp._model_loaders.
+
+    Returns:
+      A tuple containing the updated LitApp metadata and the name of the models
+      that were added.
+
+    Raises:
+      ValueError: If any of the following are missing: model_name, the config,
+        or a value for new_name in the config; if there is not a model loader
+        configured for the provided model_name; or if there is a name collision
+        with one of the models returned by a multiple-model loader.
+    """
     if model_name is None:
       raise ValueError('No base model specified.')
-
-    config: Optional[dict[str, Any]] = data.get('config')
-    if config is None:
-      raise ValueError('No config specified.')
-
-    new_name: Optional[str] = config.pop('new_name', None)
-    if new_name is None:
-      raise ValueError('No name provided for the new model.')
-    elif new_name in self._models:
-      return (self._info, new_name)  # Return the existing model
 
     if (loader_info := self._model_loaders.get(model_name)) is None:
       raise ValueError(
           f'No loader information (Cls + init_spec) found for {model_name}'
       )
 
-    model_cls, model_init_spec = loader_info
+    config: Optional[dict[str, Any]] = data.get('config')
+    if config is None:
+      raise ValueError('No config specified.')
+
+    new_name: Optional[str] = config.pop('new_name', None)
+    if not new_name:
+      raise ValueError('No name provided for the new model.')
+
+    model_initializer, model_init_spec = loader_info
 
     if model_init_spec is not None:
+      initializer_name = getattr(
+          model_initializer, '__name__', repr(model_initializer)
+      )
       utils.validate_config_against_spec(
           config,
           model_init_spec,
-          f'{model_name} ({model_cls.__name__})',
+          f'{model_name} ({initializer_name})',
           raise_for_unsupported=True,
       )
 
-    new_model = model_cls(**config)
-    self._models[new_name] = caching.CachingModelWrapper(
-        new_model, new_name, **self._caching_model_wrapper_kw
-    )
+    return_type = lit_model.Model
+
+    if inspect.isfunction(model_initializer):
+      return_type = get_type_hints(model_initializer)['return']
+
+    if Mapping in return_type.__mro__:
+      model_initializer = cast(MultipleModelLoader, model_initializer)
+      new_models = model_initializer(new_name=new_name, **config)
+      new_model_names: list[str] = list(new_models.keys())
+      model_name_collisions = [
+          model_name
+          for model_name in new_model_names
+          if model_name in self._models
+      ]
+      if model_name_collisions:
+        raise ValueError(f'Model(s) already exist: {model_name_collisions}.')
+
+      for model_name, model_instance in new_models.items():
+        self._models[model_name] = caching.CachingModelWrapper(
+            model_instance, model_name, **self._caching_model_wrapper_kw
+        )
+    else:
+      if new_name in self._models:
+        return (self._info, new_name)  # Return the existing model
+
+      new_model_names: list[str] = [new_name]
+      model_initializer = cast(SingleModelLoader, model_initializer)
+      new_model = model_initializer(**config)
+      self._models[new_name] = caching.CachingModelWrapper(
+          new_model, new_name, **self._caching_model_wrapper_kw
+      )
+
     empty_dataset = lit_dataset.NoneDataset(self._models)
     self._datasets[_EMPTY_DATASET_KEY] = lit_dataset.IndexedDataset(
         base=self._run_annotators(empty_dataset), id_fn=caching.input_hash
     )
     self._info = self._build_metadata()
-    return (self._info, new_name)
+    return (self._info, new_model_names)
 
   def _get_generated(
       self,
@@ -823,7 +890,7 @@ class LitApp(object):
       if (
           data
           and 'inputs' in data.keys()
-          and len(data.get('inputs'))
+          and data.get('inputs')
           and 'dataset_name' in kw
       ):
         data['inputs'] = self._reconstitute_inputs(
@@ -848,7 +915,7 @@ class LitApp(object):
 
   def __init__(
       self,
-      models: Mapping[str, lit_model.Model],
+      models: lit_model.ModelMap,
       datasets: Mapping[str, lit_dataset.Dataset],
       generators: Optional[Mapping[str, lit_components.Generator]] = None,
       interpreters: Optional[Mapping[str, lit_components.Interpreter]] = None,
@@ -1017,6 +1084,13 @@ class LitApp(object):
         project_root=client_root,
         index_file='static/index.html',
     )
+
+  def get_dataset_specs(self) -> dict[str, dict[str, str]]:
+    datasets_with_spec = collections.defaultdict(dict)
+    for name, ds in self._datasets.items():
+      for field_name, lit_data_class in ds.spec().items():
+        datasets_with_spec[name][field_name] = type(lit_data_class).__name__
+    return datasets_with_spec
 
   def save_cache(self):
     for m in self._models.values():

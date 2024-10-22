@@ -51,90 +51,80 @@ For a broader overview, check out [our paper](https://arxiv.org/abs/2008.05122) 
 
 ## Download and Installation
 
-LIT can be run via container image, installed via `pip` or built from source.
-Building from source is necessary if you update any of the front-end or core
-back-end code.
+LIT can be installed via `pip` or built from source. Building from source is
+necessary if you want to make code changes.
 
-### Build container image
-
-Build the image using `docker` or `podman`:
-```sh
-git clone https://github.com/PAIR-code/lit.git && cd lit
-docker build --file Dockerfile --tag lit-nlp .
-```
-
-See the [advanced guide](https://pair-code.github.io/lit/documentation/docker) for detailed instructions on using the
-default LIT Docker image, running LIT as a containerized web app in different
-scenarios, and how to creating your own LIT images.
-
-### pip installation
+### Install from PyPI with pip
 
 ```sh
 pip install lit-nlp
 ```
 
-The `pip` installation will install all necessary prerequisite packages for use
-of the core LIT package.
+The default `pip` installation will install all required packages to use the LIT
+Python API, built-in interpretability components, and web application. To
+install dependencies for the provided demos or test suite, install LIT with the
+appropriate optional dependencies.
 
-It **does not** install the prerequisites for the provided demos, so you need to
-install those yourself. See
-[requirements_examples.txt](./requirements_examples.txt) for the list of
-packages required to run the demos.
+```sh
+# To install dependencies for the discriminative AI examples (GLUE, Penguin)
+pip install 'lit-nlp[examples-discriminative-ai]'
+
+# To install dependencies for the generative AI examples (Prompt Debugging)
+pip install 'lit-nlp[examples-generative-ai]'
+
+# To install dependencies for all examples plus the test suite
+pip install 'lit-nlp[test]'
+```
 
 ### Install from source
 
 Clone the repo:
 
 ```sh
-git clone https://github.com/PAIR-code/lit.git && cd lit
+git clone https://github.com/PAIR-code/lit.git
+cd lit
 ```
-
 
 Note: be sure you are running Python 3.9+. If you have a different version on
 your system, use the `conda` instructions below to set up a Python 3.9
 environment.
 
-Set up a Python environment with `venv`:
+Set up a Python environment with `venv` (or your preferred environment manager).
+Note that these instructions assume you will be making code changes to LIT and
+includes the full requirements for all examples and the test suite. See the
+other optional dependency possibilities in the install with pip section.
 
 ```sh
 python -m venv .venv
 source .venv/bin/activate
+python -m pip install -e '.[test]'
 ```
 
-Or set up a Python environment using `conda`:
+The LIT repo does not include a distributable version of the LIT app. You must
+build it from source.
 
 ```sh
-conda create --name lit-nlp
-conda activate lit-nlp
-conda install python=3.9
-conda install pip
-```
-
-Once you have the environment, install LIT's dependencies:
-```sh
-python -m pip install -r requirements.txt
-python -m pip install cudnn cupti  # optional, for GPU support
-python -m pip install torch  # optional, for PyTorch
-
-# Build the frontend
 (cd lit_nlp; yarn && yarn build)
 ```
-
-Note: Use the `-r requirements.txt` option to install every dependency required
-for the LIT library, its test suite, and the built-in examples. You can also
-install subsets of these using the `-r requirements_core.txt` (core library),
-`-r requirements_test.txt` (test suite), `-r requirements_examples.txt`
-(examples), and/or any combination thereof.
 
 Note: if you see [an error](https://github.com/yarnpkg/yarn/issues/2821)
 running `yarn` on Ubuntu/Debian, be sure you have the
 [correct version installed](https://yarnpkg.com/en/docs/install#linux-tab).
 
-
 ## Running LIT
 
 Explore a collection of hosted demos on the
 [demos page](https://pair-code.github.io/lit/demos).
+
+### Using container images
+
+See the [containerization guide](https://pair-code.github.io/lit/documentation/docker) for instructions on using LIT
+locally in Docker, Podman, etc.
+
+LIT also provides pre-built images that can take advantage of accelerators,
+making Generative AI and LLM use cases easier to work with. Check out the
+[LIT on GCP docs](https://codelabs.developers.google.com/codelabs/responsible-ai/lit-on-gcp)
+for more.
 
 ### Quick-start: classification and regression
 
@@ -154,7 +144,6 @@ but you can switch to
 [STS-B](http://ixa2.si.ehu.es/stswiki/index.php/STSbenchmark) or
 [MultiNLI](https://cims.nyu.edu/~sbowman/multinli/) using the toolbar or the
 gear icon in the upper right.
-```
 
 And navigate to http://localhost:5432 for the UI.
 
@@ -220,18 +209,19 @@ Google's [Python](https://google.github.io/styleguide/pyguide.html) and
 
 ```sh
 # Run Pylint on your code using the following command from the root of this repo
-pushd lit_nlp & pylint & popd
+(cd lit_nlp; pylint)
 
 # Run ESLint on your code using the following command from the root of this repo
-pushd lit_nlp & yarn lint & popd
+(cd lit_nlp; yarn lint)
 ```
 
 ## Citing LIT
 
-If you use LIT as part of your work, please cite
-[our EMNLP paper](https://arxiv.org/abs/2008.05122):
+If you use LIT as part of your work, please cite the
+[EMNLP paper](https://arxiv.org/abs/2008.05122) or the
+[Sequence Salience paper](https://arxiv.org/abs/2404.07498)
 
-```
+```BibTeX
 @misc{tenney2020language,
     title={The Language Interpretability Tool: Extensible, Interactive Visualizations and Analysis for {NLP} Models},
     author={Ian Tenney and James Wexler and Jasmijn Bastings and Tolga Bolukbasi and Andy Coenen and Sebastian Gehrmann and Ellen Jiang and Mahima Pushkarna and Carey Radebaugh and Emily Reif and Ann Yuan},
@@ -243,12 +233,22 @@ If you use LIT as part of your work, please cite
 }
 ```
 
+```BibTeX
+@article{tenney2024interactive,
+  title={Interactive prompt debugging with sequence salience},
+  author={Tenney, Ian and Mullins, Ryan and Du, Bin and Pandya, Shree and Kahng, Minsuk and Dixon, Lucas},
+  journal={arXiv preprint arXiv:2404.07498},
+  year={2024}
+}
+```
+
 ## Disclaimer
 
 This is not an official Google product.
 
-LIT is a research project and under active development by a small team. There
-will be some bugs and rough edges, but we're releasing at an early stage because
-we think it's pretty useful already. We want LIT to be an open platform, not a
-walled garden, and we would love your suggestions and feedback - drop us a line
-in the [issues](https://github.com/pair-code/lit/issues).
+LIT is a research project and under active development by a small team. We want
+LIT to be an open platform, not a walled garden, and would love your suggestions
+and feedback &ndash; please
+[report any bugs](https://github.com/pair-code/lit/issues) and reach out on the
+[Discussions page](https://github.com/PAIR-code/lit/discussions/landing).
+

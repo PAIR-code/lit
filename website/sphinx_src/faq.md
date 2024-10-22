@@ -171,3 +171,56 @@ this, using LIT's `Dataset` objects to manage training data along with standard
 training APIs (such as Keras' `model.fit()`). See
 [`glue/models.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for examples.
+
+### Debug LIT UI in Colab
+
+The LIT instance launched from CLI typically has helpful error messages in the
+UI. However, this is not the case for the LIT UI in Colab and the error message
+does not report any stacktrace, which makes debugging very difficult.
+
+![LIT UI error in colab](./images/lit-ui-error-in-colab.png "LIT UI error in colab")
+
+While in
+[Chrome developer tools](https://support.google.com/campaignmanager/answer/2828688?hl=en),
+you will be able to debug issues solely related to the frontend, but not so for
+issues related to the backend or on the HTTP request path.
+
+Thus, to show the full stacktrace, you would need to find the HTTP request sent
+from the frontend to the backend, compose the same request in colab and send it
+to the server.
+
+1.  When rendering the UI, display it in a separate tab to make things a bit
+    easier to work with, e.g. `lit_widget.render(open_in_new_tab=True)`.
+2.  Open
+    [Chrome developer tools](https://support.google.com/campaignmanager/answer/2828688?hl=en),
+    go to "Sources" tab and find the file
+    [client/services/api_service.ts](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/services/api_service.ts) and set a
+    breakpoint right after where the HTTP request is set up in the `queryServer`
+    method, e.g. after this line `const res = await fetch(url, {method: 'POST',
+    body});`.
+    *   Note it is possible that the whole frontend source code is compiled into
+        a `main.js` file, and the code is not exactly the same as that in LIT
+        frontend source code. You might have to do a bit digging to find the
+        right line.
+3.  Go to the UI and trigger the behavior that causes the error. Now in Chrome
+    developer tools you will be able to see the variables and their values in
+    the `queryServer` method. Copy the values of the `url` and `body` variables
+    in the method.
+4.  Go back to Colab, compose your HTTP request method. Look for the main server
+    address printed out from `lit_widget.render(open_in_new_tab=True)`.
+
+![LIT colab server address](./images/lit-colab-server-address.png "LIT colab server address")
+
+Let's say the server address is "https://localhost:32943/?" as shown above, the
+`body` variable obtained earlier has value "request_body_text" and the `url`
+variable has value "./get_preds?param1=value1". Then your HTTP request will be
+like this:
+
+```sh
+! curl -H "Content-Type: application/json" \
+       -d "request_body_text" \
+       -X POST "http://localhost:32943/get_preds?param1=value1"
+```
+
+Run this in Colab and you should be able to retrieve the full stacktrace of the
+error.
