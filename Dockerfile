@@ -56,9 +56,9 @@ RUN apt update && apt -y install yarn
 # This step is slow as it installs many packages.
 COPY requirements.txt \
      requirements_examples_common.txt \
-     requirements_examples_descai.txt \
+     requirements_examples_discriminative_ai.txt \
      ./
-RUN python -m pip install -r requirements_examples_descai.txt
+RUN python -m pip install -r requirements_examples_discriminative_ai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./

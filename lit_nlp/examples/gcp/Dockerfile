@@ -119,9 +119,9 @@ RUN apt update && apt -y install yarn
 # This step is slow as it installs many packages.
 COPY requirements.txt \
      requirements_examples_common.txt \
-     requirements_examples_genai.txt \
+     requirements_examples_generative_ai.txt \
      ./
-RUN python -m pip install -r requirements_examples_genai.txt
+RUN python -m pip install -r requirements_examples_generative_ai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./
@@ -157,9 +157,9 @@ RUN apt update && apt -y install yarn
 
 COPY requirements.txt \
      requirements_examples_common.txt \
-     requirements_examples_genai.txt \
+     requirements_examples_generative_ai.txt \
      ./
-RUN python -m pip install -r requirements_examples_genai.txt
+RUN python -m pip install -r requirements_examples_generative_ai.txt
 
 # Copy the rest of the lit_nlp package
 COPY . ./

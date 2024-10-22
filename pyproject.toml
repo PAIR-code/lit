@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lit-nlp"
 # LINT.IfChange
-version = "1.2"
+version = "1.3"
 # LINT.ThenChange(./lit_nlp/package.json)
 authors = [
   { name="Google, LLC", email="lit-dev@google.com" }
