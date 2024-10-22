@@ -1,6 +1,6 @@
 # Frontend Developer Guide
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -46,9 +46,9 @@ and rendering the various `LitModule` components, a process about which we'll go
 into greater detail later.
 
 The JS bundle entry point is
-[`main.ts`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/default/main.ts), which
-first imports the loaded, the `<lit-app>` web component is declared, and
-attaches itself to the DOM, waiting for the app to be initialized.
+[`main.ts`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/main.ts), which first
+imports the loaded, the `<lit-app>` web component is declared, and attaches
+itself to the DOM, waiting for the app to be initialized.
 
 The second step is kicking off app initialization. The
 [`LitApp`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/app.ts) singleton
@@ -67,7 +67,7 @@ pre-configured layouts in
 *   `default`: The original LIT layout with a single group of modules on top for
     exploring and selecting data, and a collection of tabs supporting different
     analytical tasks on the bottom; and
-*   `experimental`: A three-panel layout that puts exploratory data
+*   `three_panel`: A three-panel layout that puts exploratory data
     visualizations at full-page height on the left, tools for inspecting and
     manipulating examples and their associated predictions in the upper right,
     and a collection of tabs supporting different analytical tasks in the lower
@@ -76,15 +76,15 @@ pre-configured layouts in
 
 You can also add [custom layouts](./api.md#customizing-the-layout) to your LIT
 instance by defining one or more `LitCanonicalLayout` instances and passing them
-to the server. For an example, see `CUSTOM_LAYOUTS` in
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
+to the server. For an example, see
+[`prompt_debugging/layouts.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/layouts.py).
 
 Note: The pre-configured layouts are added to every `LitApp` instance using
 [dictionary updates](https://docs.python.org/3/library/stdtypes.html#dict) where
 the Mapping passed to the `LitApp` constructor overrides the pre-configured
 layouts `Mapping`. Thus, you can remove or change these pre-configured layouts
 as you like by passing a `Mapping` where the values of `simple`, `default`,
-and/or `experimental` is `None` (to remove) or a `LitCanonicalLayout` instance
+and/or `three_panel` is `None` (to remove) or a `LitCanonicalLayout` instance
 (to override) as you desire.
 
 The actual layout of components in the LIT UI, see

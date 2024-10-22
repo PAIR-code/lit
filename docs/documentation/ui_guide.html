@@ -5,11 +5,11 @@
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Components and Features" href="components.html" /><link rel="prev" title="Demos" href="demos.html" />
 
-    <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
+    <!-- Generated with Sphinx 8.1.3 and Furo 2024.08.06 -->
         <title>UI Guide - 🔥LIT 1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
-    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=354aac6f" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=302659d7" />
     <link rel="stylesheet" type="text/css" href="_static/furo_custom.css?v=6173ce67" />
     
     
@@ -69,7 +69,7 @@
   <symbol id="svg-sun" viewBox="0 0 24 24">
     <title>Light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
       <circle cx="12" cy="12" r="5"></circle>
       <line x1="12" y1="1" x2="12" y2="3"></line>
       <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -84,22 +84,63 @@
   <symbol id="svg-moon" viewBox="0 0 24 24">
     <title>Dark mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
     </svg>
   </symbol>
-  <symbol id="svg-sun-half" viewBox="0 0 24 24">
-    <title>Auto light/dark mode</title>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-shadow">
-      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M13 12h5" />
-      <path d="M13 15h4" />
-      <path d="M13 18h1" />
-      <path d="M13 9h4" />
-      <path d="M13 6h1" />
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
     </svg>
   </symbol>
 </svg>
@@ -112,6 +153,8 @@
 <label class="overlay toc-overlay" for="__toc">
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
@@ -130,7 +173,8 @@
       <div class="theme-toggle-container theme-toggle-header">
         <button class="theme-toggle">
           <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-          <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
           <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
@@ -186,11 +230,17 @@
           <span>Back to top</span>
         </a>
         <div class="content-icon-container">
-          
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/ui_guide.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
 <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
-              <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
               <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
@@ -200,16 +250,16 @@
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
-        <article role="main">
+        <article role="main" id="furo-main-content">
           <section class="tex2jax_ignore mathjax_ignore" id="ui-guide">
-<h1>UI Guide<a class="headerlink" href="#ui-guide" title="Link to this heading">#</a></h1>
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
+<h1>UI Guide<a class="headerlink" href="#ui-guide" title="Link to this heading">¶</a></h1>
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 <p>This is a user guide for the Learning Interpretability Tool (LIT) UI.</p>
 <p>For a quick video tour of LIT, check out this
 <a class="reference external" href="https://www.youtube.com/watch?v=CuRI_VK83dU">video</a>.</p>
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 <section id="general-layout">
-<h2>General Layout<a class="headerlink" href="#general-layout" title="Link to this heading">#</a></h2>
+<h2>General Layout<a class="headerlink" href="#general-layout" title="Link to this heading">¶</a></h2>
 <p>LIT lives inside a single page web application, comprised of multiple toolbars
 and a main section consisting of individual modules. Modules will automatically
 display if they are applicable to the current model and dataset; for example,
@@ -227,7 +277,7 @@ tabs based on analytical task (e.g., metrics analysis vs. input salience
 visualization vs. counterfactual example generation), but you can adopt whatever
 organizational scheme you desire in your custom layouts.</p>
 <section id="layout-options">
-<h3>Layout Options<a class="headerlink" href="#layout-options" title="Link to this heading">#</a></h3>
+<h3>Layout Options<a class="headerlink" href="#layout-options" title="Link to this heading">¶</a></h3>
 <!--
   TODO: Add an image of the 3 LIT layouts side by side.
 -->
@@ -238,7 +288,7 @@ organizational scheme you desire in your custom layouts.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">default</span></code>: The original LIT layout with a single group of modules on top for
 exploring and selecting data, and a collection of tabs supporting different
 analytical tasks on the bottom; and</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">experimental</span></code>: A three-panel layout that puts exploratory data
+<li><p><code class="docutils literal notranslate"><span class="pre">three_panel</span></code>: A three-panel layout that puts exploratory data
 visualizations at full-page height on the left, tools for inspecting and
 manipulating examples and their associated predictions in the upper right,
 and a collection of tabs supporting different analytical tasks in the lower
@@ -248,7 +298,7 @@ your feedback is appreciated.</p></li>
 </section>
 </section>
 <section id="datapoint-selections">
-<h2>Datapoint Selections<a class="headerlink" href="#datapoint-selections" title="Link to this heading">#</a></h2>
+<h2>Datapoint Selections<a class="headerlink" href="#datapoint-selections" title="Link to this heading">¶</a></h2>
 <p>LIT displays a loaded dataset and its model results across the set of selected
 models. Users can dive into detailed results by selecting datapoints from the
 dataset.</p>
@@ -278,16 +328,16 @@ of metrics across subsets of datapoints, as described in the
 <em><a class="reference internal" href="#metrics-table">Metrics Module</a></em> section.</p>
 </section>
 <section id="toolbars">
-<h2>Toolbars<a class="headerlink" href="#toolbars" title="Link to this heading">#</a></h2>
+<h2>Toolbars<a class="headerlink" href="#toolbars" title="Link to this heading">¶</a></h2>
 <p>There are three toolbars provided in LIT. The top bar includes the selected
 model(s) and dataset, a settings button, and URL sharing functionality. Below
 that is the main toolbar with the menus and controls for navigation and
 selection. At the bottom of the page is a status bar.</p>
 <p><img alt="LIT toolbars" src="_images/lit-toolbars.png" /></p>
 <section id="top-bar">
-<h3>Top Bar<a class="headerlink" href="#top-bar" title="Link to this heading">#</a></h3>
+<h3>Top Bar<a class="headerlink" href="#top-bar" title="Link to this heading">¶</a></h3>
 <section id="global-settings">
-<h4>Global Settings<a class="headerlink" href="#global-settings" title="Link to this heading">#</a></h4>
+<h4>Global Settings<a class="headerlink" href="#global-settings" title="Link to this heading">¶</a></h4>
 <p>The global settings dialog is accessible through the <strong>“Configure”</strong> button in
 the top bar.</p>
 <p>LIT can be launched with a set of models and datasets. The settings screen
@@ -302,7 +352,7 @@ compatible modules that LIT contains.</p>
 <p><img alt="LIT global settings" src="_images/lit-settings.png" /></p>
 </section>
 <section id="url-sharing">
-<h4>URL Sharing<a class="headerlink" href="#url-sharing" title="Link to this heading">#</a></h4>
+<h4>URL Sharing<a class="headerlink" href="#url-sharing" title="Link to this heading">¶</a></h4>
 <p>Much of the LIT app’s state — the loaded models and datasets, selected
 datapoints, minimized and/or full-screen modules — is stored in URL
 parameters. The <strong>“Copy Link”</strong> button in the top bar allows a user to share
@@ -313,25 +363,35 @@ configured by passing the <code class="docutils literal notranslate"><span class
 </section>
 </section>
 <section id="main-toolbar">
-<h3>Main Toolbar<a class="headerlink" href="#main-toolbar" title="Link to this heading">#</a></h3>
+<h3>Main Toolbar<a class="headerlink" href="#main-toolbar" title="Link to this heading">¶</a></h3>
 <p>The main toolbar is right below the top bar and contains a number of different
 controls and information. The left side of the toolbar contains a set of menus
 for quickly controlling datapoint selection and coloring. This includes the
 following controls:</p>
 <ul class="simple">
-<li><p>The <strong>“Select related”</strong> option adds any datapoints “related” to the current
-selection. In LIT, “related” is defined as datapoints created from some
-source datapoint (through manual editing or a datapoint generator), or a
-source datapoint that a selected datapoint was created from.</p></li>
-<li><p>The <strong>“Clear selection”</strong> button deselects all selected datapoints. The
-dropdown also contains a color legend for the current color setting.</p></li>
-<li><p>The <strong>Slices</strong> option allows quick selection of an already-created slice of
-datapoints.</p></li>
-<li><p>The <strong>“Datapoint color”</strong> menu enables setting of the color of each
-datapoint in the modules that visualize all datapoints (such as the
-<em>Embeddings</em> and <em>Scalars</em> modules) by any number of datapoint features or
-model outputs on those datapoints (such as coloring by some categorical
-input feature, or by prediction error for a regression task).</p></li>
+<li><p>The <strong>“Select datapoint”</strong> menu provides a drop-down of several options:</p>
+<ul>
+<li><p>the <strong>“Random”</strong> option selects a random datapoint,</p></li>
+<li><p>the <strong>“All related”</strong> option adds any datapoints “related” to the
+current selection. In LIT, “related” is defined as datapoints created
+from some source datapoint (through manual editing or a datapoint
+generator), or a source datapoint that a selected datapoint was created
+from,</p></li>
+<li><p>the <strong>“Parents”</strong> option adds the source datapoints that the selected
+datapoints were created from,</p></li>
+<li><p>the <strong>“Children”</strong> option adds the datapoints created from the selected
+datapoints (through manual editing or a datapoint generator),</p></li>
+<li><p>the <strong>Slices</strong> option allows quick selection of an already-created slice
+of datapoints,</p></li>
+<li><p>the <strong>“Clear selection”</strong> button deselects all selected datapoints.</p></li>
+</ul>
+</li>
+<li><p>The <strong>“Color by”</strong> menu enables setting of the color of each datapoint in
+the modules that visualize all datapoints (such as the <em>Embeddings</em> and
+<em>Scalars</em> modules) by any number of datapoint features or model outputs on
+those datapoints (such as coloring by some categorical input feature, or by
+prediction error for a regression task).</p></li>
+<li><p>The <strong>Slices</strong> menu allows adding/selecting/removing slices of datapoints.</p></li>
 </ul>
 <p>Next to the menus is a button for pinning/unpinning a datapoint. Pinning a
 datapoint puts LIT into datapoint comparison mode, where two datapoints can be
@@ -349,7 +409,7 @@ arrows.The <strong>“Select all”</strong> and <strong>“Clear selection”</
 to easily select all or none of the datapoints, respectively.</p>
 </section>
 <section id="status-bar">
-<h3>Status Bar<a class="headerlink" href="#status-bar" title="Link to this heading">#</a></h3>
+<h3>Status Bar<a class="headerlink" href="#status-bar" title="Link to this heading">¶</a></h3>
 <p>The status bar at the bottom of the tool contains a text area on the left side.
 If the tool is currently waiting on the results of a call to the backend (such
 as for running predictions or getting embeddings), this information will be
@@ -362,7 +422,7 @@ displayed by clicking the error icon in the message.</p>
 </section>
 </section>
 <section id="comparing-models">
-<h2>Comparing Models<a class="headerlink" href="#comparing-models" title="Link to this heading">#</a></h2>
+<h2>Comparing Models<a class="headerlink" href="#comparing-models" title="Link to this heading">¶</a></h2>
 <p>By loading more than one model in the global settings controls, LIT can compare
 multiple models. A subset of modules that show per-model information are then
 duplicated to allow easy comparison across two models. Other modules, such the
@@ -371,7 +431,7 @@ models.</p>
 <p><img alt="LIT model comparison" src="_images/lit-model-compare.png" /></p>
 </section>
 <section id="comparing-datapoints">
-<h2>Comparing Datapoints<a class="headerlink" href="#comparing-datapoints" title="Link to this heading">#</a></h2>
+<h2>Comparing Datapoints<a class="headerlink" href="#comparing-datapoints" title="Link to this heading">¶</a></h2>
 <p>Pinning a datapoint, through either the toolbar button or controls in modules
 (e.g., the pin icons in Data Table rows), puts LIT into <strong>datapoint comparison
 mode</strong>. In this mode, the pinned datapoint is used as a reference to compare the
@@ -386,7 +446,7 @@ counterfactual datapoints, or any other datapoint from the loaded dataset.</p>
 <p><img alt="LIT datapoint comparison" src="_images/lit-datapoint-compare.png" /></p>
 </section>
 <section id="slices">
-<h2>Slices<a class="headerlink" href="#slices" title="Link to this heading">#</a></h2>
+<h2>Slices<a class="headerlink" href="#slices" title="Link to this heading">¶</a></h2>
 <p>The <em>Slice Editor</em> allow users to create, edit, select, and delete slices. The
 current selection can be saved as a slice by giving it a name and clicking
 “Create slice”. The slice list allows you to select any of the previously-saved
@@ -405,14 +465,14 @@ set to “1”.</p>
 <p><img alt="LIT slice controls" src="_images/lit-slices.png" /></p>
 </section>
 <section id="module-details">
-<h2>Module Details<a class="headerlink" href="#module-details" title="Link to this heading">#</a></h2>
+<h2>Module Details<a class="headerlink" href="#module-details" title="Link to this heading">¶</a></h2>
 <p>This section contains details on using and interacting with individual modules
 that are built into LIT. Note that this list may not be complete and additional
 modules can be created and used in LIT by clients.</p>
 <p>All modules can be toggled to be shown full-screen through use of the
 full-screen button in the top-right of each module.</p>
 <section id="embedding-projector">
-<h3>Embedding Projector<a class="headerlink" href="#embedding-projector" title="Link to this heading">#</a></h3>
+<h3>Embedding Projector<a class="headerlink" href="#embedding-projector" title="Link to this heading">¶</a></h3>
 <p>When using LIT with a model that returns embeddings (or activations) in addition
 to predictions, the embedding projector will show all datapoints by their
 embeddings projected down to 3 dimensions. This is useful for exploring and
@@ -430,7 +490,7 @@ interaction.</p>
 toolbar.</p>
 </section>
 <section id="data-table">
-<h3>Data Table<a class="headerlink" href="#data-table" title="Link to this heading">#</a></h3>
+<h3>Data Table<a class="headerlink" href="#data-table" title="Link to this heading">¶</a></h3>
 <p>The data table shows all datapoints in a simple table. Datapoints can be
 selected or unselected through a click. Shift+click allows selecting a set of
 consecutive datapoints, and control+click allows selecting a set of individual
@@ -483,12 +543,12 @@ selection, use the “Show only selected” toggle. To include additional column
 such as model predictions, enable them from the “Columns” dropdown.</p>
 </section>
 <section id="datapoint-editor">
-<h3>Datapoint Editor<a class="headerlink" href="#datapoint-editor" title="Link to this heading">#</a></h3>
+<h3>Datapoint Editor<a class="headerlink" href="#datapoint-editor" title="Link to this heading">¶</a></h3>
 <p>The datapoint editor shows the details of the primary selected datapoint, if one
 is selected. Any field can be edited, and a new datapoint created with those
-edits through the <strong>“Make new datapoint”</strong> button. Any edit to an existing
-datapoint must be saved as a new datapoint to be explored, to keep datapoints
-immutable for simplicity of use.</p>
+edits through the <strong>“Add”</strong> button. Any edit to an existing datapoint must be
+saved as a new datapoint to be explored, to keep datapoints immutable for
+simplicity of use.</p>
 <p>When no datapoint is selected, the editor shows a blank datapoint that can be
 filled out by hand to create a completely new datapoint.</p>
 <p>Features shown with a “(*)” next to their name are required as model input and
@@ -496,7 +556,7 @@ must be filled out to create a new datapoint. Other fields are optional.</p>
 <p><a class="reference internal" href="_images/lit-datapoint-editor.png"><img alt="LIT datapoint editor" class="align-center" src="_images/lit-datapoint-editor.png" style="width: 500px;" /></a></p>
 </section>
 <section id="datapoint-generator">
-<h3>Datapoint Generator<a class="headerlink" href="#datapoint-generator" title="Link to this heading">#</a></h3>
+<h3>Datapoint Generator<a class="headerlink" href="#datapoint-generator" title="Link to this heading">¶</a></h3>
 <p>The datapoint generator module allows creation of new datapoints from all
 currently-selected datapoints (or the entire dataset if no datapoints are
 selected) through a set of counterfactual datapoint generators. These generators
@@ -531,7 +591,7 @@ it to your dataset for analysis.</p>
 <p><img alt="LIT datapoint generator" src="_images/lit-datapoint-generator.png" /></p>
 </section>
 <section id="metrics-table">
-<h3>Metrics Table<a class="headerlink" href="#metrics-table" title="Link to this heading">#</a></h3>
+<h3>Metrics Table<a class="headerlink" href="#metrics-table" title="Link to this heading">¶</a></h3>
 <p>The metrics table shows model metrics for each model in a table format. The
 exact metric types are determined by the python metrics component that
 calculates metrics given the model types being evaluated. These can include
@@ -553,7 +613,7 @@ and also for two named slices that have been created by a user.</p>
 <p><img alt="LIT metrics" src="_images/lit-metrics.png" /></p>
 </section>
 <section id="confusion-matrix">
-<h3>Confusion Matrix<a class="headerlink" href="#confusion-matrix" title="Link to this heading">#</a></h3>
+<h3>Confusion Matrix<a class="headerlink" href="#confusion-matrix" title="Link to this heading">¶</a></h3>
 <p>The confusion matrix buckets all datapoints from the dataset (or the current
 selection, if one is made) into buckets in a 2D matrix. This is normally used to
 compare classification predictions on a model versus the ground truth classes of
@@ -571,7 +631,7 @@ models being compared disagree on classification.</p>
 <p><img alt="LIT confusion matrix" src="_images/lit-conf-matrix.png" /></p>
 </section>
 <section id="scalars">
-<h3>Scalars<a class="headerlink" href="#scalars" title="Link to this heading">#</a></h3>
+<h3>Scalars<a class="headerlink" href="#scalars" title="Link to this heading">¶</a></h3>
 <p>The scalars module shows a set of scatter or jitter plots, one for each scalar
 output of a loaded model (such as a regression score, or a classification score
 for a specific class). Each of them contains all datapoints in the dataset, laid
@@ -595,7 +655,7 @@ is the class the datapoint is inferred to be.</p>
 <p><img alt="LIT prediction scores" src="_images/lit-pred-score.png" /></p>
 </section>
 <section id="model-output">
-<h3>Model Output<a class="headerlink" href="#model-output" title="Link to this heading">#</a></h3>
+<h3>Model Output<a class="headerlink" href="#model-output" title="Link to this heading">¶</a></h3>
 <p>Model output modules show the result of a model on the primary selected
 datapoint. The visuals of these modules depend on the model task being
 performed. For a simple classification task, it will show the class scores from
@@ -608,7 +668,7 @@ the ground truth spans if one is available in the dataset.</p>
 <p><a class="reference internal" href="_images/lit-structured-prediction.png"><img alt="LIT structured prediction" class="align-center" src="_images/lit-structured-prediction.png" style="width: 800px;" /></a></p>
 </section>
 <section id="salience-maps">
-<h3>Salience Maps<a class="headerlink" href="#salience-maps" title="Link to this heading">#</a></h3>
+<h3>Salience Maps<a class="headerlink" href="#salience-maps" title="Link to this heading">¶</a></h3>
 <p>Salience maps show the influence of different parts of inputs features on a
 model’s prediction on the primary selection. This module can contain multiple
 methodologies for calculating this salience, depending on the capabilities of
@@ -618,28 +678,20 @@ gradient-based token-wise salience can be calculated and displayed – see
 background of each text piece is colored by the salience of that piece on the
 prediction, and hovering on any piece will display the exact value calculated
 for that piece.</p>
-<p>There is an <strong>“autorun”</strong> button by each methodology. If it is checked, then
-that calculation is made when a new primary datapoint is selected. If it is
+<p>There is an <strong>“autorun”</strong> button by each methodology on the right side of the
+bar (the methodoloy name is on the left side). If it is checked, then that
+calculation is made when a new primary datapoint is selected. If it is
 unchecked, the calculation isn’t made until it is checked. This can be valuable
 so that expensive, long-running saliency calculations (such as LIME) aren’t
 performed on every datapoint selection, but only when explicitly asked for.</p>
 <p><img alt="LIT saliency maps" src="_images/lit-salience.png" /></p>
 </section>
-<section id="attention">
-<h3>Attention<a class="headerlink" href="#attention" title="Link to this heading">#</a></h3>
-<p>For models that return attention head information along with predictions, the
-attention module shows which tokens are attended to between layers of a model.
-Dropdowns allow you to select which layer and attention head is being
-visualized. Line opacity is controlled by the magnitude of the attention between
-those tokens.</p>
-<p><a class="reference internal" href="_images/lit-attention.png"><img alt="LIT attention" class="align-center" src="_images/lit-attention.png" style="width: 500px;" /></a></p>
-</section>
 </section>
 <section id="user-journeys">
-<h2>User Journeys<a class="headerlink" href="#user-journeys" title="Link to this heading">#</a></h2>
+<h2>User Journeys<a class="headerlink" href="#user-journeys" title="Link to this heading">¶</a></h2>
 <p>In this section, we explore some example user journeys and how LIT enables them.</p>
 <section id="sentiment-analysis">
-<h3>Sentiment Analysis<a class="headerlink" href="#sentiment-analysis" title="Link to this heading">#</a></h3>
+<h3>Sentiment Analysis<a class="headerlink" href="#sentiment-analysis" title="Link to this heading">¶</a></h3>
 <p>How well does a sentiment classifier handle negation? We load the development
 set of the Stanford Sentiment Treebank, and use the search function in LIT’s
 data table to find the 56 datapoints containing the word “not”. Looking at the
@@ -656,48 +708,13 @@ worst depression-era gangster movie.” elicits a mildly positive score from our
 model.</p>
 <p><img alt="Sentiment analysis" src="_images/lit-sentiment-analysis.png" /></p>
 </section>
-<section id="gender-bias-in-coreference">
-<h3>Gender Bias in Coreference<a class="headerlink" href="#gender-bias-in-coreference" title="Link to this heading">#</a></h3>
-<p>Does a system encode gendered associations, which might lead to incorrect
-predictions? We load a coreference model trained on OntoNotes, and load the
-Winogender dataset into LIT for evaluation. Each Winogender example has a
-pronoun and two candidate referents, one a occupation term like (“technician”)
-and one is an “other participant” (like “customer”). Our model predicts
-coreference probabilities for each candidate. We can explore the model’s
-sensitivity to pronouns by comparing two examples side-by-side (see structured
-predictions in screenshot). We can see how commonly the model makes similar
-errors by paging through the dataset, or by selecting specific slices of
-interest.</p>
-<p><img alt="Winogender analysis" src="_images/lit-winogender.png" /></p>
-<p>In the <em>Metrics</em> table, we can slice this selection by pronoun type and by the
-true referent. On the set of male-dominated occupations (&lt; 25% female by BLS),
-we see the model performs well when the ground-truth agrees with the
-stereotype - e.g. when the answer is the occupation term, male pronouns are
-correctly resolved 83% of the time, compared to female pronouns only 37.5% of
-the time (screenshot section (c)).</p>
-<p><img alt="Winogender analysis" src="_images/lit-winogender-metrics.png" /></p>
-</section>
-<section id="debugging-text-generation">
-<h3>Debugging Text Generation<a class="headerlink" href="#debugging-text-generation" title="Link to this heading">#</a></h3>
-<!-- TODO(lit-dev): T5 no longer makes the mistake documented below. Find a
-     example that fits better with the text generation debugging story -->
-<p>Does the training data explain a particular error in text generation? We analyze
-an older T5 model on the CNN-DM summarization task. LIT’s <em>Scalars</em> module
-allows us to look at per-example ROUGE scores, and quickly select an example
-with middling performance (screenshot section (a)). We find the generated text
-(screenshot section (b)) contains an erroneous constituent: “alastair cook was
-replaced as captain by former captain …”. We can dig deeper, using LIT’s
-language modeling module (screenshot section (c)) to see that the token “by” is
-predicted with high probability (28.7%).</p>
-<p>To find out how T5 arrived at this prediction, we utilize the “similarity
-searcher” component through the datapoint generator (screenshot section (d)).
-This performs a fast approximate nearest-neighbor lookup from a pre-built index
-over the training corpus, using embeddings from the T5 decoder. With one click,
-we can retrieve 25 nearest neighbors and add them to the LIT UI for inspection.
-We see that the words “captain” and “former” appear 34 and 16 times in these
-examples–along with 3 occurrences of “replaced by” (screenshot section (e)),
-suggesting a strong prior toward our erroneous phrase.</p>
-<p><a class="reference internal" href="_images/lit-s2s-journey.png"><img alt="LIT sequence-to-sequence analysis" class="align-center" src="_images/lit-s2s-journey.png" style="width: 500px;" /></a></p>
+<section id="sequence-salience">
+<h3>Sequence salience<a class="headerlink" href="#sequence-salience" title="Link to this heading">¶</a></h3>
+<p>Sequence salience generalizes token-based salience to text-to-text models,
+allowing you to explain the impact of the prompt tokens on parts of the model
+output.</p>
+<p>Check out <a class="reference internal" href="components.html#sequence-salience"><span class="std std-ref">here</span></a> for more details on how to
+navigate the Sequence Salience UI module.</p>
 </section>
 </section>
 </section>
@@ -786,13 +803,11 @@ suggesting a strong prior toward our erroneous phrase.</p>
 <li><a class="reference internal" href="#scalars">Scalars</a></li>
 <li><a class="reference internal" href="#model-output">Model Output</a></li>
 <li><a class="reference internal" href="#salience-maps">Salience Maps</a></li>
-<li><a class="reference internal" href="#attention">Attention</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#user-journeys">User Journeys</a><ul>
 <li><a class="reference internal" href="#sentiment-analysis">Sentiment Analysis</a></li>
-<li><a class="reference internal" href="#gender-bias-in-coreference">Gender Bias in Coreference</a></li>
-<li><a class="reference internal" href="#debugging-text-generation">Debugging Text Generation</a></li>
+<li><a class="reference internal" href="#sequence-salience">Sequence salience</a></li>
 </ul>
 </li>
 </ul>
@@ -807,8 +822,8 @@ suggesting a strong prior toward our erroneous phrase.</p>
     </aside>
   </div>
 </div><script src="_static/documentation_options.js?v=f2a433a1"></script>
-    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
-    <script src="_static/scripts/furo.js?v=32e29ea5"></script>
+    <script src="_static/scripts/furo.js?v=5fa4622c"></script>
     </body>
 </html>
