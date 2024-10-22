@@ -1,6 +1,6 @@
 # LIT Python API
 
-<!--* freshness: { owner: 'lit-dev' reviewed: '2023-08-23' } *-->
+<!--* freshness: { owner: 'lit-dev' reviewed: '2024-06-24' } *-->
 
 <!-- [TOC] placeholder - DO NOT REMOVE -->
 
@@ -349,7 +349,7 @@ list of scores for each token. The Integrated Gradients saliency method
 additionally requires a `TokenEmbeddings` input and corresponding output, as
 well as a label field `Target` to pin the gradient target to the same class as
 an input and corresponding output. See the
-[GLUE models class](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/glue_models.py)
+[GLUE models class](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
 for an example of these spec requirements.
 
 The core API involves implementing the `run()` method:
@@ -675,7 +675,7 @@ Each `LitType` subclass encapsulates its own semantics (see
 *   A field that appears in _both_ the model's input and output specs is assumed
     to represent the same value. This pattern is used for model-based input
     manipulation. For example, a
-    [language model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py)
+    [language model](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/glue/models.py)
     might output `'tokens': lit_types.Tokens(...)`, and accept as (optional)
     input `'tokens': lit_types.Tokens(required=False, ...)`. An interpretability
     component could take output from the former, swap one or more tokens (e.g.
@@ -712,11 +712,9 @@ this can cause jitter (UI modules appearing, disappearing, reordering, resizing,
 etc.) when switching between models or datasets with heterogeneous `Spec`s.
 
 When implementing your own LIT components and modules, you can use
-[`utils.find_spec_keys()`][utils-lib]
-(Python) and
-[`findSpecKeys()`][utils-lib]
-(TypeScript) to identify fields of interest in a `Spec`. These methods recognize
-and respect subclasses. For example,
+[`utils.find_spec_keys()`][utils-lib-py] (Python) and
+[`findSpecKeys()`][utils-lib] (TypeScript) to identify fields of interest in a
+`Spec`. These methods recognize and respect subclasses. For example,
 `utils.find_spec_keys(spec, Scalar)` will also match any `RegressionScore`
 fields, but `utils.find_spec_keys(spec, RegressionScore)` will not return all
 `Scalar` fields in the `Spec`.
@@ -807,8 +805,13 @@ _See the [examples](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples)
 
 ### Available types
 
-The full set of `LitType`s is defined in [types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types such as `Integer` and `Scalar` have predefined ranges that can be overridden using corresponding `min_val` and `max_val` attributes as seen [here](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/datasets/penguin_data.py;l=19-22;rcl=574999438). The different types available in LIT are summarized
-in the table below.
+The full set of `LitType`s is defined in
+[types.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py). Numeric types
+such as `Integer` and `Scalar` have predefined ranges that can be overridden
+using corresponding `min_val` and `max_val` attributes as seen in
+[penguin data](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/penguin/data.py)
+`INPUT_SPEC`. The different types available in LIT are summarized in the table
+below.
 
 Note: Bracket syntax, such as `<float>[num_tokens]`, refers to the shapes of
 NumPy arrays where each element inside the brackets is an integer.
@@ -859,7 +862,7 @@ naming collisions with protected TypeScript keywords.*
 Some properties of the LIT frontend can be configured from Python as
 **arguments to `dev_server.Server()`**. These include:
 
-*   `page_title`: set a custom page title, such as "Coreference Demo".
+*   `page_title`: set a custom page title.
 *   `canonical_url`: set a "canonical" URL (such as a shortlink) that will be
     used as the base when copying links from the LIT UI.
 *   `default_layout`: set the default UI layout, by name. See `layout.ts` and
@@ -886,22 +889,16 @@ You can specify custom web app layouts from Python via the `layouts=` attribute.
 The value should be a `Mapping[str, LitCanonicalLayout]`, such as:
 
 ```python
-LM_LAYOUT = layout.LitCanonicalLayout(
+PENGUIN_LAYOUT = layout.LitCanonicalLayout(
     upper={
-        "Main": [
-            modules.EmbeddingsModule,
+        'Main': [
+            modules.DiveModule,
             modules.DataTableModule,
             modules.DatapointEditorModule,
         ]
     },
-    lower={
-        "Predictions": [
-            modules.LanguageModelPredictionModule,
-            modules.ConfusionMatrixModule,
-        ],
-        "Counterfactuals": [modules.GeneratorModule],
-    },
-    description="Custom layout for language models.",
+    lower=layout.STANDARD_LAYOUT.lower,
+    description='Custom layout for the Palmer Penguins demo.',
 )
 ```
 
@@ -912,13 +909,11 @@ lit_demo = dev_server.Server(
     models,
     datasets,
     # other args...
-    layouts={"lm": LM_LAYOUT},
+    layouts=layout.DEFAULT_LAYOUTS | {'penguins': PENGUIN_LAYOUT},
+    default_layout='penguins',
     **server_flags.get_flags())
 return lit_demo.serve()
 ```
-
-For a full example, see
-[`lm_demo.py`](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_demo.py).
 
 You can see the pre-configured layouts provided by LIT, as well as the list of
 modules that can be included in your custom layout in
@@ -989,15 +984,15 @@ needing to reload the server or click the UI.
 For example, to view examples in a dataset:
 
 ```python
-from lit_nlp.examples.datasets import glue
-dataset = glue.SST2Data('validation')
+from lit_nlp.examples.glue import data as glue_data
+dataset = glue_data.SST2Data('validation')
 print(dataset.examples)  # list of records {"sentence": ..., "label": ...}
 ```
 
 And to run inference on a few of them:
 
 ```python
-from lit_nlp.examples.models import glue_models
+from lit_nlp.examples.glue import models as glue_models
 
 model = glue_models.SST2Model("/path/to/model/files")
 preds = list(model.predict(dataset.examples[:5]))
@@ -1021,16 +1016,19 @@ For a full working example in Colab, see [LIT_components_example.ipynb](https://
 <!-- Links -->
 
 [build-metadata]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/app.py
-[components-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+[components-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/components.py
 [curves-interp]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/curves.py
 [dataset-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
 [grad-maps]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/gradient_maps.py
 [json]: https://www.json.org
 [mnli-dataset]: https://cims.nyu.edu/~sbowman/multinli/
+
 [mnli-demo]: https://pair-code.github.io/lit/demos/glue.html
-[model-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/dataset.py
+
+[model-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/model.py
 [should_display_module]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/core/lit_module.ts
 [types_py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/api/types.py
 [types_ts]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/lit_types.ts
 [utils-lib]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/client/lib/utils.ts
+[utils-lib-py]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/lib/utils.py
 [word-replacer]: https://github.com/PAIR-code/lit/blob/main/lit_nlp/components/word_replacer.py

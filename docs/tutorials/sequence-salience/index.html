@@ -14,7 +14,7 @@
   gtag('config', 'G-Q74F5RJLXB');
 </script>
 
-    <title>Prompt Engineering with Sequence Salience</title>
+    <title>Prompt Debugging with Sequence Salience</title>
     
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="/lit/assets/css/material.min.css">
@@ -73,11 +73,11 @@
         <div class="tutorial-page-container mdl-grid">
           <div class="mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
             <div class="tutorial-breadcrumbs">
-  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Prompt Engineering with Sequence Salience
+  <a href="/lit/tutorials">Tutorials</a> > <a href="/lit/tutorials/#analysis">Analysis</a> > Prompt Debugging with Sequence Salience
 </div>
-            <h2>Prompt Engineering with Sequence Salience</h2>
+            <h2>Prompt Debugging with Sequence Salience</h2>
 <div class="link-out"><a href="https://colab.research.google.com/github/google/generative-ai-docs/blob/main/site/en/gemma/docs/lit_gemma.ipynb" target="_blank">Follow along in Google Colab.</a><img class="external-arrow" src="/lit/assets/images/arrow-link-out.png"/></div>
-<p>Or, run this locally with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/lm_salience_demo.py"><code>examples/lm_salience_demo.py</code></a></p>
+<p>Or, run this locally with <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/server.py"><code>examples/prompt_debugging/server.py</code></a></p>
 <p>Large language models (LLMs), such as <a href="https://gemini.google.com/">Gemini</a> and <a href="https://arxiv.org/abs/2303.08774">GPT-4</a>, have
 become ubiquitous. Recent releases of &quot;open weights&quot; models, including
 <a href="https://llama.meta.com/">Llama 2</a>, <a href="https://mistral.ai/news/announcing-mistral-7b/">Mistral</a>, and <a href="https://ai.google.dev/gemma">Gemma</a>, have made it easier
@@ -294,8 +294,7 @@ LIT's Sequence Salience module will help develop and validate methods for using
 them in prompt engineering use cases.</p>
 <h2>Case Study 3: Side-by-Side Behavior Comparisons</h2>
 <p>LIT support a <a href="../../documentation/ui_guide.html#comparing-datapoints">side-by-side (SxS) mode</a> that can be used to compare two
-models, or here, compare model behavior on two related examples. (Check out the
-<a href="../../tutorials/coref/">gender bias tutorial</a> for another case study in SxS analysis.)
+models, or here, compare model behavior on two related examples.
 Let's see how we can use this to understand differences in prompt designs with
 Sequence Salience.</p>
 <p><a href="https://github.com/openai/grade-school-math">GSM8K</a> is a benchmark dataset of grade school math problems commonly
@@ -441,8 +440,8 @@ for side-by-side comparison and datapoint editing.</p>
 <a href="https://dl.acm.org/doi/full/10.1145/3639372">research</a> area. The LIT team has provided reference
 implementations for computing gradient-based salience—
 <a href="https://aclanthology.org/P18-1032/">Grad L2 Norm</a> and <a href="https://arxiv.org/abs/1412.6815">Grad · Input</a>—for LLMs in two
-popular frameworks: <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/instrumented_keras_lms.py">KerasNLP</a> and
-<a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/models/pretrained_lms.py">HuggingFace Transformers</a>.</p>
+popular frameworks: <a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/keras_lms.py">KerasNLP</a> and
+<a href="https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/prompt_debugging/transformers_lms.py">HuggingFace Transformers</a>.</p>
 <p>There is considerable opportunity to research how the model analysis foundations
 described in this tutorial can support richer workflows, particularly as they
 relate to aggregate analysis of salience results over many examples, and the
@@ -469,7 +468,7 @@ inner working of salience methods, and how they can be used.</li>
               <div class="tutorial-info-header">time to read</div>
               <div class="tutorial-info-copy">20 minutes</div>
               <div class="tutorial-info-header">takeaways</div>
-              <div class="tutorial-info-copy">Learn to use LIT's Sequence Salience module for prompt engineering.</div>
+              <div class="tutorial-info-copy">Learn to use LIT's Sequence Salience module for prompt debugging.</div>
             </div>
           </div>
           <div class="tutorial-footer mdl-cell--8-col mdl-cell--8-col-tablet mdl-cell--4-col-phone">
