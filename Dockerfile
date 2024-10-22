@@ -35,7 +35,7 @@ COPY ./lit_nlp/examples/gunicorn_config.py ./
 
 FROM lit-nlp-base AS lit-nlp-prod
 
-RUN python -m pip install 'lit-nlp[examples-descai]'
+RUN python -m pip install 'lit-nlp[examples-discriminative-ai]'
 
 WORKDIR $APP_HOME
 ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]

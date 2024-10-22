@@ -93,14 +93,14 @@ COPY ./lit_nlp/examples/gcp/model_server_gunicorn_config.py ./
 
 FROM lit-gcp-app-server-base AS lit-gcp-app-server
 
-RUN python -m pip install 'lit-nlp[examples-genai]'
+RUN python -m pip install 'lit-nlp[examples-generative-ai]'
 ENTRYPOINT ["gunicorn", "--config=gunicorn_config.py"]
 
 
 
 FROM lit-gcp-model-server-base AS lit-gcp-model-server
 
-RUN python -m pip install 'lit-nlp[examples-genai]'
+RUN python -m pip install 'lit-nlp[examples-generative-ai]'
 ENTRYPOINT ["gunicorn", "--config=model_server_gunicorn_config.py"]
 
 
