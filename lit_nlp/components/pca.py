@@ -38,7 +38,8 @@ class PCAModel(model.ProjectorModel):
 
     # Center columns around mean.
     self._mean = np.mean(x_train, 0)
-    x_train = x_train - self._mean
+    self._std = np.std(x_train, 0)
+    x_train = (x_train - self._mean) / self._std
 
     # Find PCA projection.
     cov = np.dot(x_train.T, x_train) / x_train.shape[0]
