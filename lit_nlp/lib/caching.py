@@ -307,7 +307,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
                    len(miss_idxs), len(cached_results))
     else:
       # If all results were already cached, return them.
-      return cached_results
+      return cached_results  # pytype: disable=bad-return-type
 
     with self._cache.get_pred_lock(input_keys):
       model_preds = list(self.wrapped.predict(progress_indicator(misses)))
@@ -326,7 +326,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       # Remove the prediction lock from the cache as the request is complete
       self._cache.delete_pred_lock(input_keys)
 
-    return cached_results
+    return cached_results  # pytype: disable=bad-return-type
 
   def _get_results_from_cache(self, input_keys: list[CacheKey]):
     with self._cache.lock:
