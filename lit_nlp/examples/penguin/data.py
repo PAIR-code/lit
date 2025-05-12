@@ -16,7 +16,7 @@ VOCABS = {
 }
 
 INPUT_SPEC: lit_types.Spec = {
-    'body_mass_g': lit_types.Scalar(min_val=2700, max_val=6300),
+    'body_mass_g': lit_types.Scalar(min_val=2800, max_val=6300),
     'culmen_depth_mm': lit_types.Scalar(min_val=13, max_val=22),
     'culmen_length_mm': lit_types.Scalar(min_val=32, max_val=60),
     'flipper_length_mm': lit_types.Scalar(min_val=172, max_val=231),
