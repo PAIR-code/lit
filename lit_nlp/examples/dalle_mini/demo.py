@@ -1,8 +1,42 @@
 r"""Example for dalle-mini demo model.
 
+First run following command to install required packages:
+  pip install -r ./lit_nlp/examples/dalle_mini/requirements.txt
+
 To run locally with a small number of examples:
   python -m lit_nlp.examples.dalle_mini.demo
 
+By default, this module uses the "cuda" device for image generation.
+The `requirements.txt` file installs a CUDA-enabled version of PyTorch for GPU
+acceleration.
+
+If you are running on a machine without a compatible GPU or CUDA drivers,
+you must switch the device to "cpu" and reinstall the CPU-only version of
+PyTorch.
+
+Usage:
+    - Default: device="cuda"
+    - On CPU-only machines:
+        1. Set device="cpu" during model initialization
+        2. Uninstall the CUDA version of PyTorch:
+               pip uninstall torch
+        3. Install the CPU-only version:
+               pip install torch==2.1.2+cpu --extra-index-url
+               https://download.pytorch.org/whl/cpu
+
+Example:
+    >>> model = MinDalle(..., device="cpu")
+
+Check CUDA availability:
+    >>> import torch
+    >>> torch.cuda.is_available()
+    False  # if no GPU support is present
+
+Error Handling:
+    - If CUDA is selected but unsupported, you will see:
+          AssertionError: Torch not compiled with CUDA enabled
+    - To fix this, either install the correct CUDA-enabled PyTorch or switch to
+    CPU mode.
 
 Then navigate to localhost:5432 to access the demo UI.
 """
@@ -25,8 +59,6 @@ from lit_nlp.examples.dalle_mini import model as dalle_model
 _FLAGS = flags.FLAGS
 _FLAGS.set_default("development_demo", True)
 _FLAGS.set_default("default_layout", "DALLE_LAYOUT")
-
-_FLAGS.DEFINE_integer("grid_size", 4, "The grid size to use for the model.")
 
 _MODELS = (["dalle-mini"],)
 

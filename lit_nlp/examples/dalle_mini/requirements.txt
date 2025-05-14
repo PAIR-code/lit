@@ -17,3 +17,5 @@
 
 # Dalle-Mini dependencies
 min_dalle==0.4.11
+torch==2.1.2+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118

@@ -97,12 +97,7 @@ class DalleMiniModel(lit_model.Model):
     return images
 
   def input_spec(self):
-    return {
-        "grid_size": lit_types.Scalar(),
-        "temperature": lit_types.Scalar(),
-        "top_k": lit_types.Scalar(),
-        "supercondition_factor": lit_types.Scalar(),
-    }
+    return {"prompt": lit_types.TextSegment()}
 
   def output_spec(self):
     return {
