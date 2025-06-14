@@ -15,7 +15,7 @@
 # LINT.IfChange
 -r requirements_examples_common.txt
 
-google-cloud-aiplatform>=1.60.0
+google-cloud-aiplatform==1.106.0
 keras>=3.0.0
 keras-nlp>=0.14.0
 sentencepiece==0.1.99
