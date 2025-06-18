@@ -44,6 +44,9 @@ interface AllPdpInfo {
 // Data for bar or line charts.
 type ChartInfo = Map<string|number, number>;
 
+// This should be removed.
+type AnyDuringMigration = any;
+
 /**
  * A LIT module that renders regression results.
  */
@@ -172,14 +175,16 @@ export class PdpModule extends LitModule {
       const yRange = isClassification ? [0, 1] : [];
       const renderChart = (chartData: ChartInfo) => {
         if (isNumeric) {
+          const chartMap: Map<number, number> = chartData as AnyDuringMigration;
           return html`
               <line-chart height=150 width=300
-                  .scores=${chartData} .yScale=${yRange}>
+                  .scores=${chartMap} .yScale=${yRange}>
               </line-chart>`;
         } else {
+          const chartMap: Map<string, number> = chartData as AnyDuringMigration;
           return html`
               <bar-chart height=150 width=300
-                  .scores=${chartData} .yScale=${yRange}>
+                  .scores=${chartMap} .yScale=${yRange}>
               </bar-chart>`;
         }
 

@@ -19,11 +19,14 @@ import {customElement} from 'lit/decorators.js';
 import {makeObservable, observable} from 'mobx';
 
 import {LitModule} from '../core/lit_module';
-import {type AnnotationGroups, TextSegments} from '../elements/annotated_text_vis';
+import {type AnnotationGroups, type AnnotationSpec, type SegmentSpec, TextSegments} from '../elements/annotated_text_vis';
 import {MultiSegmentAnnotations, TextSegment} from '../lib/lit_types';
 import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {type IndexedInput, ModelInfoMap, Spec} from '../lib/types';
 import {doesOutputSpecContain, filterToKeys, findSpecKeys} from '../lib/utils';
+
+// This should be removed.
+type AnyDuringMigration = any;
 
 /** LIT module for model output. */
 @customElement('annotated-text-gold-module')
@@ -53,13 +56,15 @@ export class AnnotatedTextGoldModule extends LitModule {
     // Text segment fields
     const segmentNames = findSpecKeys(dataSpec, TextSegment);
     const segments: TextSegments = filterToKeys(input.data, segmentNames);
-    const segmentSpec = filterToKeys(dataSpec, segmentNames);
+    const segmentSpec: SegmentSpec =
+        filterToKeys(dataSpec, segmentNames) as AnyDuringMigration;
 
     // Annotation fields
     const annotationNames = findSpecKeys(dataSpec, MultiSegmentAnnotations);
     const annotations: AnnotationGroups =
         filterToKeys(input.data, annotationNames);
-    const annotationSpec = filterToKeys(dataSpec, annotationNames);
+    const annotationSpec: AnnotationSpec =
+        filterToKeys(dataSpec, annotationNames) as AnyDuringMigration;
 
     // If more than one model is selected, AnnotatedTextModule will be offset
     // vertically due to the model name header, while this one won't be.
@@ -149,12 +154,15 @@ export class AnnotatedTextModule extends LitModule {
         findSpecKeys(this.appState.currentDatasetSpec, TextSegment);
     const segments: TextSegments =
         filterToKeys(this.currentData.data, segmentNames);
-    const segmentSpec =
-        filterToKeys(this.appState.currentDatasetSpec, segmentNames);
+    const segmentSpec: SegmentSpec =
+        filterToKeys(this.appState.currentDatasetSpec, segmentNames) as
+        AnyDuringMigration;
 
     const outputSpec = this.appState.getModelSpec(this.model).output;
-    const annotationSpec = filterToKeys(
-        outputSpec, findSpecKeys(outputSpec, MultiSegmentAnnotations));
+    const annotationSpec: AnnotationSpec =
+        filterToKeys(
+            outputSpec, findSpecKeys(outputSpec, MultiSegmentAnnotations)) as
+        AnyDuringMigration;
     // clang-format off
     return html`
       <annotated-text-vis .segments=${segments}
