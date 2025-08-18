@@ -17,6 +17,6 @@
 -r requirements.txt
 
 gunicorn>=20.1.0
-tensorflow>=2.16.0
+tensorflow>=2.17.1
 transformers>=4.27.1
 # LINT.ThenChange(./pyproject.toml)
