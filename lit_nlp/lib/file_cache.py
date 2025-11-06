@@ -182,7 +182,7 @@ def _get_from_cache(
     )
     with temp_file_manager() as temp_file:
       logging.info('%s not found in cache.', url)
-      _fetch_content(
+      _fetch_content(  # pytype: disable=wrong-arg-types
           url_to_download,
           temp_file,
           headers=headers,
