@@ -98,7 +98,7 @@ examples-generative-ai = [
   "google-cloud-aiplatform>=1.60.0",
   "keras>=3.0.0",
   "keras-nlp>=0.14.0",
-  "sentencepiece==0.1.99",
+  "sentencepiece==0.2.1",
   "tensorflow-text>=2.16.0",
   "torch>=2.0.0",
   "vertexai>=1.49.0",
