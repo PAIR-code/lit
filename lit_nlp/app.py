@@ -215,6 +215,18 @@ class LitApp(object):
     )
     return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
 
+  def _validate_data_path(self, path: str) -> str:
+    """Validate that a user-supplied path does not escape the data directory."""
+    resolved = os.path.realpath(path)
+    if self._data_dir:
+      base = os.path.realpath(self._data_dir)
+      if not resolved.startswith(base + os.sep) and resolved != base:
+        raise ValueError(
+            f'Path must be within data_dir ({self._data_dir})')
+    elif '..' in os.path.normpath(path).split(os.sep):
+      raise ValueError('Path traversal is not allowed')
+    return resolved
+
   def _save_datapoints(
       self,
       data,
@@ -231,6 +243,7 @@ class LitApp(object):
     if self._demo_mode:
       logging.warning('Attempted to save datapoints in demo mode.')
       return None
+    path = self._validate_data_path(path)
     return self._datasets[dataset_name].save(data['inputs'], path)
 
   def _load_datapoints(
@@ -249,6 +262,7 @@ class LitApp(object):
     if self._demo_mode:
       logging.warning('Attempted to load datapoints in demo mode.')
       return None
+    path = self._validate_data_path(path)
     dataset = self._datasets[dataset_name].load(path)
     return dataset.indexed_examples
 
