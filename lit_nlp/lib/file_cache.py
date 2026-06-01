@@ -90,6 +90,32 @@ def _fetch_content(
     progress.close()
 
 
+def _safe_zip_file_extractall(zip_file: zipfile.ZipFile, path: str) -> None:
+  """Extracts all members from a zip file to a directory, safely.
+
+  This function is a safer alternative to `zipfile.ZipFile.extractall` as it
+  prevents directory traversal exploits by ensuring that all extracted files
+  are within the specified `path`.
+
+  Args:
+    zip_file: The ZipFile object to extract from.
+    path: The destination directory.
+
+  Raises:
+    ValueError: If a member's name attempts to traverse outside the `path`.
+  """
+  for info in zip_file.infolist():
+    # Construct the full path where the member would be extracted.
+    extracted_path = os.path.join(path, info.filename)
+    # Ensure the constructed path is still within the designated 'path'.
+    # os.path.realpath is used to resolve any '..' components.
+    real_path = os.path.realpath(extracted_path)
+    base_path = os.path.realpath(path)
+    if os.path.commonpath([base_path, real_path]) != base_path:
+      raise ValueError(f'unsafe path encountered in zip file: {info.filename}')
+    zip_file.extract(info, path)
+
+
 def _get_extacted_dir(output_path: str) -> str:
   """Extracts and returns the directory containing the provided archive."""
   is_zip = zipfile.is_zipfile(output_path)
@@ -110,7 +136,7 @@ def _get_extacted_dir(output_path: str) -> str:
 
     if is_zip:
       with zipfile.ZipFile(output_path, 'r') as zip_file:
-        zip_file.extractall(output_extracted_path)
+        _safe_zip_file_extractall(zip_file, output_extracted_path)
         zip_file.close()
     else:
       tar_file = tarfile.open(output_path)
