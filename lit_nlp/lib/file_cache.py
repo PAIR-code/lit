@@ -114,7 +114,7 @@ def _get_extacted_dir(output_path: str) -> str:
         zip_file.close()
     else:
       tar_file = tarfile.open(output_path)
-      tar_file.extractall(output_extracted_path)
+      tar_file.extractall(output_extracted_path, filter='data')
       tar_file.close()
 
   return output_extracted_path
