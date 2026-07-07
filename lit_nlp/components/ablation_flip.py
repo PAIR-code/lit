@@ -122,7 +122,7 @@ class AblationFlip(lit_components.Generator):
     # we use ascending order for the former, and descending for the latter.
     loo_scores = sorted(loo_scores, key=lambda item: item[2])
     ablation_idxs = [(f, idx) for f, idx, _ in loo_scores]
-    if regression_thresh and orig_regression_score <= regression_thresh:
+    if regression_thresh and orig_regression_score <= regression_thresh:  # pyrefly: ignore[unsupported-operation]
       ablation_idxs = ablation_idxs[::-1]
 
     # Only consider the top tokens up to MAX_ABLATABLE_TOKENS.
@@ -176,7 +176,7 @@ class AblationFlip(lit_components.Generator):
       input_ty = input_spec[field]
       if isinstance(input_ty, types.URL):
         url = example[field]
-        modified_url = cf_utils.ablate_url_tokens(url, ablation_idxs)
+        modified_url = cf_utils.ablate_url_tokens(url, ablation_idxs)  # pyrefly: ignore[bad-argument-type]
         cf[field] = modified_url
       elif isinstance(input_ty, types.SparseMultilabel):
         cf[field] = modified_tokens

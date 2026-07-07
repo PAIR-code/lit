@@ -128,13 +128,13 @@ def get_class_to_explain(
   ):
     pred = list(model.predict([example]))[0][pred_key]
     if isinstance(pred_spec, types.MulticlassPreds):
-      return np.argmax(pred)
+      return np.argmax(pred)  # pyrefly: ignore[bad-return]
     else:
       # For sparse multi-label, sort class/score tuples to find the
       # highest-scoring class and get its vocab index.
       pred.sort(key=lambda elem: elem[1], reverse=True)
       class_name_to_explain = pred[0][0]
-      return pred_spec.vocab.index(class_name_to_explain)
+      return pred_spec.vocab.index(class_name_to_explain)  # pyrefly: ignore[missing-attribute]
   else:
     return provided_class_to_explain
 
@@ -258,7 +258,7 @@ class LIME(lit_components.Interpreter):
         scores = explanation.feature_importance
         # TODO(lit-dev): Move score normalization to the UI.
         scores = citrus_util.normalize_scores(scores)
-        result[text_key] = dtypes.TokenSalience(explanation.features, scores)
+        result[text_key] = dtypes.TokenSalience(explanation.features, scores)  # pyrefly: ignore[bad-argument-type]
 
       all_results.append(result)
 

@@ -210,7 +210,7 @@ def _get_from_cache(
       logging.info('%s not found in cache.', url)
       _fetch_content(  # pytype: disable=wrong-arg-types
           url_to_download,
-          temp_file,
+          temp_file,  # pyrefly: ignore[bad-argument-type]
           headers=headers,
           progress_indicator=progress_indicator
       )

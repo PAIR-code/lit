@@ -128,7 +128,7 @@ class GlueModel(lit_model.BatchedModel):
     )
     model_config = transformers.AutoConfig.from_pretrained(
         model_name_or_path,
-        num_labels=1 if self.is_regression else len(self.config.labels),
+        num_labels=1 if self.is_regression else len(self.config.labels),  # pyrefly: ignore[bad-argument-type]
         return_dict=False,  # default for training; overridden for predict
         output_attentions=self.config.output_attention,
     )
@@ -180,7 +180,7 @@ class GlueModel(lit_model.BatchedModel):
       )
     # encoded_input is actually a transformers.BatchEncoding
     # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
-    return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
+    return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))  # pyrefly: ignore[bad-argument-type]
 
   def train(
       self,
@@ -301,7 +301,7 @@ class GlueModel(lit_model.BatchedModel):
       # is updated.
       if not self.is_regression:
         # Return the label corresponding to the class index used for gradients.
-        output[self.config.label_name] = self.config.labels[
+        output[self.config.label_name] = self.config.labels[  # pyrefly: ignore[unsupported-operation]
             output[self.config.label_name]
         ]  # pytype: disable=container-type-mismatch
 
@@ -486,7 +486,7 @@ class GlueModel(lit_model.BatchedModel):
       tape.watch(input_embs)  # Watch input_embs for gradient calculation.
 
       model_inputs = encoded_input.copy()
-      model_inputs["input_ids"] = None
+      model_inputs["input_ids"] = None  # pyrefly: ignore[unsupported-operation]
       out: TFSequenceClassifierOutput = self.model(
           model_inputs,
           inputs_embeds=input_embs,
@@ -499,13 +499,13 @@ class GlueModel(lit_model.BatchedModel):
       batched_outputs = {
           "input_ids": encoded_input["input_ids"],
           "ntok": tf.reduce_sum(encoded_input["attention_mask"], axis=1),
-          "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token
+          "cls_emb": out.hidden_states[-1][:, 0],  # last layer, first token  # pyrefly: ignore[unsupported-operation]
       }
 
       if self.config.output_embeddings:
         batched_outputs["input_embs"] = input_embs
 
-        self._verify_num_layers(out.hidden_states)
+        self._verify_num_layers(out.hidden_states)  # pyrefly: ignore[bad-argument-type]
 
         # <float32>[batch_size, num_tokens, 1]
         token_mask = tf.expand_dims(
@@ -513,7 +513,7 @@ class GlueModel(lit_model.BatchedModel):
         )
         # <float32>[batch_size, 1]
         denom = tf.reduce_sum(token_mask, axis=1)
-        for i, layer_output in enumerate(out.hidden_states):
+        for i, layer_output in enumerate(out.hidden_states):  # pyrefly: ignore[bad-argument-type]
           # layer_output is <float32>[batch_size, num_tokens, emb_dim]
           # average over tokens to get <float32>[batch_size, emb_dim]
           batched_outputs[f"layer_{i}/avg_emb"] = (
@@ -521,14 +521,15 @@ class GlueModel(lit_model.BatchedModel):
           )
 
       if self.config.output_attention:
-        if len(out.attentions) != self.model.config.num_hidden_layers:
+        if len(out.attentions) != self.model.config.num_hidden_layers:  # pyrefly: ignore[bad-argument-type]
           raise ValueError(
+              # pyrefly: ignore[bad-argument-type]
               "Unexpected size of attentions. Should be the same "
               "size as the number of hidden layers. Expected "
               f"{self.model.config.num_hidden_layers}, got "
               f"{len(out.attentions)}."
           )
-        for i, layer_attention in enumerate(out.attentions):
+        for i, layer_attention in enumerate(out.attentions):  # pyrefly: ignore[bad-argument-type]
           batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
@@ -610,51 +611,51 @@ class GlueModel(lit_model.BatchedModel):
           parent=self.config.text_b_name
       )
     if self.is_regression:
-      ret["score"] = lit_types.RegressionScore(parent=self.config.label_name)
+      ret["score"] = lit_types.RegressionScore(parent=self.config.label_name)  # pyrefly: ignore[bad-assignment]
     else:
-      ret["probas"] = lit_types.MulticlassPreds(
+      ret["probas"] = lit_types.MulticlassPreds(  # pyrefly: ignore[bad-assignment]
           parent=self.config.label_name,
-          vocab=self.config.labels,
+          vocab=self.config.labels,  # pyrefly: ignore[bad-argument-type]
           null_idx=self.config.null_label_idx,
       )
 
     if self.config.output_embeddings:
-      ret["cls_emb"] = lit_types.Embeddings()
+      ret["cls_emb"] = lit_types.Embeddings()  # pyrefly: ignore[bad-assignment]
       # Average embeddings, one per layer including embeddings.
       for i in range(1 + self.model.config.num_hidden_layers):
-        ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()
+        ret[f"layer_{i}/avg_emb"] = lit_types.Embeddings()  # pyrefly: ignore[bad-assignment]
 
       # The input_embs_ fields are used for Integrated Gradients.
-      ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(
+      ret["input_embs_" + self.config.text_a_name] = lit_types.TokenEmbeddings(  # pyrefly: ignore[bad-assignment]
           align="tokens_" + self.config.text_a_name
       )
       if self.config.text_b_name:
         text_b_embs = "input_embs_" + self.config.text_b_name
-        ret[text_b_embs] = lit_types.TokenEmbeddings(
+        ret[text_b_embs] = lit_types.TokenEmbeddings(  # pyrefly: ignore[bad-assignment]
             align="tokens_" + self.config.text_b_name
         )
 
     # Gradients, if requested.
     if self.config.compute_grads:
-      ret["cls_grad"] = lit_types.Gradients(
+      ret["cls_grad"] = lit_types.Gradients(  # pyrefly: ignore[bad-assignment]
           align=("score" if self.is_regression else "probas"),
           grad_for="cls_emb",
           grad_target_field_key=self.config.label_name,
       )
       if not self.is_regression:
-        ret[self.config.label_name] = lit_types.CategoryLabel(
+        ret[self.config.label_name] = lit_types.CategoryLabel(  # pyrefly: ignore[bad-assignment]
             required=False, vocab=self.config.labels
         )
       if self.config.output_embeddings:
         text_a_token_grads = "token_grad_" + self.config.text_a_name
-        ret[text_a_token_grads] = lit_types.TokenGradients(
+        ret[text_a_token_grads] = lit_types.TokenGradients(  # pyrefly: ignore[bad-assignment]
             align="tokens_" + self.config.text_a_name,
             grad_for="input_embs_" + self.config.text_a_name,
             grad_target_field_key=self.config.label_name,
         )
         if self.config.text_b_name:
           text_b_token_grads = "token_grad_" + self.config.text_b_name
-          ret[text_b_token_grads] = lit_types.TokenGradients(
+          ret[text_b_token_grads] = lit_types.TokenGradients(  # pyrefly: ignore[bad-assignment]
               align="tokens_" + self.config.text_b_name,
               grad_for="input_embs_" + self.config.text_b_name,
               grad_target_field_key=self.config.label_name,
@@ -663,10 +664,10 @@ class GlueModel(lit_model.BatchedModel):
     if self.config.output_attention:
       # Attention heads, one field for each layer.
       for i in range(self.model.config.num_hidden_layers):
-        ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(
+        ret[f"layer_{i+1}/attention"] = lit_types.AttentionHeads(  # pyrefly: ignore[bad-assignment]
             align_in="tokens", align_out="tokens"
         )
-    return ret
+    return ret  # pyrefly: ignore[bad-return]
 
 
 class SST2Model(GlueModel):

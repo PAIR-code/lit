@@ -111,7 +111,7 @@ class LitApp(object):
       }
 
       # List compatible datasets.
-      info['datasets'] = [
+      info['datasets'] = [  # pyrefly: ignore[bad-assignment]
           name for name, dataset in self._datasets.items()
           if model.is_compatible_with_dataset(dataset)
       ]
@@ -134,13 +134,13 @@ class LitApp(object):
             _get_compatible_names(self._metrics, model, dataset)
         )
 
-      info['generators'] = [
+      info['generators'] = [  # pyrefly: ignore[bad-assignment]
           name for name in self._generators.keys() if name in compat_gens
       ]
-      info['interpreters'] = [
+      info['interpreters'] = [  # pyrefly: ignore[bad-assignment]
           name for name in self._interpreters.keys() if name in compat_interps
       ]
-      info['metrics'] = [
+      info['metrics'] = [  # pyrefly: ignore[bad-assignment]
           name for name in self._metrics.keys() if name in compat_metrics
       ]
       model_info[name] = info
@@ -213,7 +213,7 @@ class LitApp(object):
         len(inputs),
         dataset_name,
     )
-    return [index[ex] if isinstance(ex, str) else ex for ex in inputs]
+    return [index[ex] if isinstance(ex, str) else ex for ex in inputs]  # pyrefly: ignore[bad-index]
 
   def _save_datapoints(
       self,
@@ -297,16 +297,16 @@ class LitApp(object):
 
     # Figure out what to return to the frontend.
     output_spec = self._get_model_spec(model)['output']
-    requested_types = requested_types.split(',') if requested_types else []
-    requested_fields = requested_fields.split(',') if requested_fields else []
+    requested_types = requested_types.split(',') if requested_types else []  # pyrefly: ignore[bad-assignment]
+    requested_fields = requested_fields.split(',') if requested_fields else []  # pyrefly: ignore[bad-assignment]
     logging.info('Requested types: %s, fields: %s', str(requested_types),
                  str(requested_fields))
-    for t_name in requested_types:
+    for t_name in requested_types:  # pyrefly: ignore[not-iterable]
       t_class = getattr(types, t_name, None)
-      if not issubclass(t_class, types.LitType):
+      if not issubclass(t_class, types.LitType):  # pyrefly: ignore[bad-argument-type]
         raise TypeError(f"Class '{t_name}' is not a valid LitType.")
       requested_fields.extend(utils.find_spec_keys(output_spec, t_class))
-    ret_keys = set(requested_fields)  # de-dupe
+    ret_keys = set(requested_fields)  # de-dupe  # pyrefly: ignore[bad-argument-type]
 
     # Return selected keys.
     logging.info('Will return keys: %s', str(ret_keys))
@@ -861,7 +861,7 @@ class LitApp(object):
     for annotator in self._annotators:
       annotator.annotate(datapoints, dataset, annotated_spec)
     return lit_dataset.Dataset(
-        base=dataset, examples=datapoints, spec=annotated_spec)
+        base=dataset, examples=datapoints, spec=annotated_spec)  # pyrefly: ignore[bad-argument-type]
 
   def make_handler(self, fn):
     """Convenience wrapper to handle args and serialization.
@@ -1009,9 +1009,9 @@ class LitApp(object):
 
     # Interpreter initialization
     if interpreters is not None:
-      self._interpreters = core.required_interpreters() | interpreters
+      self._interpreters = core.required_interpreters() | interpreters  # pyrefly: ignore[unsupported-operation]
     else:
-      self._interpreters = core.default_interpreters(self._models)
+      self._interpreters = core.default_interpreters(self._models)  # pyrefly: ignore[bad-argument-type]
 
     if metrics is not None:
       self._metrics = metrics

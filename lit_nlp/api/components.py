@@ -137,7 +137,7 @@ class Metrics(Interpreter, metaclass=abc.ABCMeta):
     """True if the model and dataset support metric computation."""
     for pred_spec in model.output_spec().values():
       parent_key: Optional[str] = getattr(pred_spec, 'parent', None)
-      parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)
+      parent_spec: Optional[types.LitType] = dataset.spec().get(parent_key)  # pyrefly: ignore[bad-argument-type]
       if self.is_field_compatible(pred_spec, parent_spec):
         return True
     return False

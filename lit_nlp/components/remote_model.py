@@ -91,7 +91,7 @@ class RemoteModel(lit_model.BatchedModel):
     preds = query_lit_server(
         self._url,
         'get_preds',
-        params={
+        params={  # pyrefly: ignore[bad-argument-type]
             'model': self._name,
             'response_simple_json': False
         },
