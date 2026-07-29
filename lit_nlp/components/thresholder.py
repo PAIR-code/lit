@@ -238,7 +238,7 @@ class Thresholder(lit_components.Interpreter):
           list(inputs), model, dataset, model_outputs, metrics_config))
 
       # Get and store the metrics for each facet of the dataset for this margin.
-      if not (facets := config.facets):
+      if not (facets := config.facets):  # pyrefly: ignore[missing-attribute]
         continue
 
       for facet_key, facet_dict in facets.items():

@@ -305,7 +305,7 @@ class LitApp(object):
       t_class = getattr(types, t_name, None)
       if not issubclass(t_class, types.LitType):  # pyrefly: ignore[bad-argument-type]
         raise TypeError(f"Class '{t_name}' is not a valid LitType.")
-      requested_fields.extend(utils.find_spec_keys(output_spec, t_class))
+      requested_fields.extend(utils.find_spec_keys(output_spec, t_class))  # pyrefly: ignore[missing-attribute]
     ret_keys = set(requested_fields)  # de-dupe  # pyrefly: ignore[bad-argument-type]
 
     # Return selected keys.
