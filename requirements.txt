@@ -39,4 +39,8 @@ six>=1.16.0
 termcolor>=2.3.0
 tqdm>=4.64.0
 werkzeug>=2.2.3
+decorator>=4.4.0,
+contextlib2>=21.6.0,
+fsspec>=2023.9.0,
+colorama>=0.4.4,  
 # LINT.ThenChange(./pyproject.toml)

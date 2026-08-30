@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
+import io
 import os
 from unittest import mock
 
@@ -30,6 +31,7 @@ class TestWSGIApp(parameterized.TestCase):
   def setUpClass(cls):
     super().setUpClass()
 
+    _ = io.StringIO('temp data')
     test_model_name = 'lit_on_gcp_test_model'
     sal_name, tok_name = pd_utils.generate_model_group_names(test_model_name)
     test_model_config = f'{test_model_name}:test_model_path'
