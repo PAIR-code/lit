@@ -70,7 +70,7 @@ class LitModuleName(dtypes.EnumSerializableAsValues, enum.Enum):
 # LINT.IfChange
 # TODO(lit-dev): consider making modules subclass this instead of LitModuleName.
 @attr.s(auto_attribs=True)
-class ModuleConfig(dtypes.DataTuple):
+class ModuleConfig(dtypes.DataTuple):  # pyrefly: ignore[invalid-inheritance]
   module: Union[str, LitModuleName]
   requiredForTab: bool = False
   # TODO(b/172979677): support title, duplicateAsRow, numCols,
@@ -88,7 +88,7 @@ LitTabGroupLayout = Mapping[str, LitModuleList]
 
 
 @attr.s(auto_attribs=True)
-class LayoutSettings(dtypes.DataTuple):
+class LayoutSettings(dtypes.DataTuple):  # pyrefly: ignore[invalid-inheritance]
   hideToolbar: bool = False
   mainHeight: int = 45
   leftWidth: int = 50
@@ -96,7 +96,7 @@ class LayoutSettings(dtypes.DataTuple):
 
 
 @attr.s(auto_attribs=True)
-class LitCanonicalLayout(dtypes.DataTuple):
+class LitCanonicalLayout(dtypes.DataTuple):  # pyrefly: ignore[invalid-inheritance]
   """Frontend UI layout; should match client/lib/types.ts."""
   upper: LitTabGroupLayout
   lower: LitTabGroupLayout = attr.ib(factory=dict)

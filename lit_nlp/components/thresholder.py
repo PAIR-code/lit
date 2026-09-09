@@ -200,7 +200,7 @@ class Thresholder(lit_components.Interpreter):
         if (facet_data := facet_dict.get('data')):
           facet_dict['data'] = [ex.get('data', ex) for ex in facet_data]
 
-    config = ThresholderConfig(**(config or {}))
+    config = ThresholderConfig(**(config or {}))  # pyrefly: ignore[bad-assignment]
 
     pred_keys = []
     for pred_key, pred_spec in model.output_spec().items():
@@ -215,7 +215,7 @@ class Thresholder(lit_components.Interpreter):
         pred_keys.append(pred_key)
 
     indexed_outputs = {
-        ex['_id']: output for (ex, output) in zip(inputs, model_outputs)
+        ex['_id']: output for (ex, output) in zip(inputs, model_outputs)  # pyrefly: ignore[bad-argument-type]
     }
 
     # Try all margins for thresholds from 0 to 1, by hundreths.
@@ -238,7 +238,7 @@ class Thresholder(lit_components.Interpreter):
           list(inputs), model, dataset, model_outputs, metrics_config))
 
       # Get and store the metrics for each facet of the dataset for this margin.
-      if not (facets := config.facets):
+      if not (facets := config.facets):  # pyrefly: ignore[missing-attribute]
         continue
 
       for facet_key, facet_dict in facets.items():

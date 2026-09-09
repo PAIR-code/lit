@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 
-# LINT.IfChange
--r requirements.txt
+-r ../../../requirements.txt
 
-gunicorn>=20.1.0
-tensorflow>=2.16.0
-transformers>=4.27.1,<5.0.0
-# LINT.ThenChange(./pyproject.toml)
+# Dalle-Mini dependencies
+min_dalle==0.4.11
+torch==2.1.2+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118

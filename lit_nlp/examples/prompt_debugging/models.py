@@ -30,7 +30,7 @@ def _initialize_modeling_environment(
 
     # NOTE: Imported here and not at the top of the file to avoid
     # initialization issues with the environment variables above.
-    import keras  # pylint: disable=g-import-not-at-top
+    import keras  # pylint: disable=g-import-not-at-top # pytype: disable=import-error
 
     keras.config.set_floatx(precision)
   elif dl_runtime == "torch":

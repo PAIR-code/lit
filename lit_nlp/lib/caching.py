@@ -241,7 +241,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
     for ex in inputs:
       if not (given_id := ex.get("_id")):
         continue
-      if (computed_id := self._id_hash_fn(types.Input(ex))) != given_id:
+      if (computed_id := self._id_hash_fn(types.Input(ex))) != given_id:  # pyrefly: ignore[not-callable]
         raise ValueError(
             f"Given id '{given_id}' does not match computed id '{computed_id}'"
             f" for example {str(ex)}."
@@ -307,10 +307,10 @@ class CachingModelWrapper(lit_model.ModelWrapper):
                    len(miss_idxs), len(cached_results))
     else:
       # If all results were already cached, return them.
-      return cached_results
+      return cached_results  # pytype: disable=bad-return-type
 
     with self._cache.get_pred_lock(input_keys):
-      model_preds = list(self.wrapped.predict(progress_indicator(misses)))
+      model_preds = list(self.wrapped.predict(progress_indicator(misses)))  # pyrefly: ignore[not-callable]
       logging.info("Received %d predictions from model", len(model_preds))
 
       if len(model_preds) != len(misses):
@@ -326,7 +326,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       # Remove the prediction lock from the cache as the request is complete
       self._cache.delete_pred_lock(input_keys)
 
-    return cached_results
+    return cached_results  # pytype: disable=bad-return-type
 
   def _get_results_from_cache(self, input_keys: list[CacheKey]):
     with self._cache.lock:

@@ -83,6 +83,17 @@ Generative AI Toolkit.
 
 --------------------------------------------------------------------------------
 
+## Text To Image Demo <!-- DO NOT REMOVE {#text-to-image .demo-section-header} -->
+
+### min(DALL·E) <!-- DO NOT REMOVE {#min-dall-e .demo-header} -->
+
+**Code:** [examples/dalle_mini/demo.py](https://github.com/PAIR-code/lit/blob/main/lit_nlp/examples/dalle_mini/demo.py)
+
+*   Support text to image generation in LIT using
+    [min(DALL·E)](https://github.com/kuprel/min-dalle) model.
+
+--------------------------------------------------------------------------------
+
 ## Multimodal <!-- DO NOT REMOVE {#multimodal .demo-section-header} -->
 
 ### Tabular Data: Penguin Classification <!-- DO NOT REMOVE {#penguin .demo-header} -->

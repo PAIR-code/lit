@@ -68,7 +68,7 @@ def _obj_to_json_simple(o: object):
   elif isinstance(o, dtypes.DataTuple):
     return o.to_json()
   elif isinstance(o, dtypes.EnumSerializableAsValues):
-    return o.value
+    return o.value  # pyrefly: ignore[missing-attribute]
   elif isinstance(o, tuple):
     return list(o)
   elif isinstance(o, MappingProxyType):

@@ -93,7 +93,7 @@ class CurvesInterpreter(lit_components.Interpreter):
     parent_key = pred_spec.parent
     ground_truth_list = []
     for ex in inputs:
-      ground_truth_label = ex[parent_key]
+      ground_truth_label = ex[parent_key]  # pyrefly: ignore[bad-index]
       ground_truth = 1.0 if ground_truth_label == target_label else 0.0
       ground_truth_list.append(ground_truth)
 
