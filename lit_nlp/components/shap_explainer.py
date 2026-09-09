@@ -152,7 +152,7 @@ class TabularShapExplainer(lit_components.Interpreter):
 
     example_data = inputs or dataset.examples
     examples: pd.DataFrame = pd.DataFrame(example_data)[input_feats]
-    sample_size = int(config.get(SAMPLE_KEY, 0))
+    sample_size = int(config.get(SAMPLE_KEY, 0))  # pyrefly: ignore[bad-argument-type]
     if sample_size and len(examples) > sample_size:
       inputs_to_use: pd.DataFrame = examples.sample(sample_size)
     else:

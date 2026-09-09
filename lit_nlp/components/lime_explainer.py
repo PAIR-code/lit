@@ -177,11 +177,11 @@ class LIME(lit_components.Interpreter):
     config_defaults = {k: v.default for k, v in self.config_spec().items()}
     config = dict(config_defaults, **(config or {}))  # update and return
 
-    kernel_width = int(config[KERNEL_WIDTH_KEY])
-    num_samples = int(config[NUM_SAMPLES_KEY])
+    kernel_width = int(config[KERNEL_WIDTH_KEY])  # pyrefly: ignore[bad-argument-type]
+    num_samples = int(config[NUM_SAMPLES_KEY])  # pyrefly: ignore[bad-argument-type]
     mask_string = (config[MASK_KEY])
     # pylint: disable=g-explicit-bool-comparison
-    seed = int(config[SEED_KEY]) if config[SEED_KEY] != '' else None
+    seed = int(config[SEED_KEY]) if config[SEED_KEY] != '' else None  # pyrefly: ignore[bad-argument-type]
     # pylint: enable=g-explicit-bool-comparison
 
     # Find keys of input (text) segments to explain.
@@ -201,7 +201,7 @@ class LIME(lit_components.Interpreter):
       return None
 
     if (field := config[TARGET_HEAD_KEY]) and (
-        cls_idx := int(config[CLASS_KEY])
+        cls_idx := int(config[CLASS_KEY])  # pyrefly: ignore[bad-argument-type]
     ) != -1:
       # TODO(b/205996131): remove this case
       pred_key = field
@@ -249,10 +249,12 @@ class LIME(lit_components.Interpreter):
             class_to_explain=class_to_explain,
             num_samples=num_samples,
             tokenizer=str.split,
-            mask_token=mask_string,
+            mask_token=mask_string,  # pyrefly: ignore[bad-argument-type]
             kernel=functools.partial(
-                lime.exponential_kernel, kernel_width=kernel_width),
-            seed=seed)
+                lime.exponential_kernel, kernel_width=kernel_width
+            ),
+            seed=seed,
+        )
 
         # Turn the LIME explanation into a list following original word order.
         scores = explanation.feature_importance

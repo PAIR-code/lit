@@ -513,7 +513,7 @@ class GlueModel(lit_model.BatchedModel):
         )
         # <float32>[batch_size, 1]
         denom = tf.reduce_sum(token_mask, axis=1)
-        for i, layer_output in enumerate(out.hidden_states):  # pyrefly: ignore[bad-argument-type]
+        for i, layer_output in enumerate(out.hidden_states):  # pyrefly: ignore[bad-argument-type, not-iterable]
           # layer_output is <float32>[batch_size, num_tokens, emb_dim]
           # average over tokens to get <float32>[batch_size, emb_dim]
           batched_outputs[f"layer_{i}/avg_emb"] = (
@@ -529,7 +529,7 @@ class GlueModel(lit_model.BatchedModel):
               f"{self.model.config.num_hidden_layers}, got "
               f"{len(out.attentions)}."
           )
-        for i, layer_attention in enumerate(out.attentions):  # pyrefly: ignore[bad-argument-type]
+        for i, layer_attention in enumerate(out.attentions):  # pyrefly: ignore[bad-argument-type, not-iterable]
           batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
