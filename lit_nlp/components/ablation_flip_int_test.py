@@ -58,27 +58,33 @@ class SST2ModelWithPredictCounter(glue_models.SST2Model):
 
 class ModelBasedAblationFlipTest(absltest.TestCase):
 
-  def setUp(self):
-    super(ModelBasedAblationFlipTest, self).setUp()
-    self.ablation_flip = ablation_flip.AblationFlip()
-
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
     # Classification model that clasifies a given input sentence.
-    self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
-    self.classification_config = {ablation_flip.PREDICTION_KEY: 'probas'}
+    cls.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
 
     # Classification model with the 'sentence' field marked as
     # non-required.
-    self.classification_model_non_required_field = SST2ModelNonRequiredField(
-        BERT_TINY_PATH)
+    cls.classification_model_non_required_field = SST2ModelNonRequiredField(
+        BERT_TINY_PATH
+    )
 
     # Classification model with a counter to count number of predict calls.
     # TODO(ataly): Consider setting up a Mock object to count number of
     # predict calls.
-    self.classification_model_with_predict_counter = (
-        SST2ModelWithPredictCounter(BERT_TINY_PATH))
+    cls.classification_model_with_predict_counter = SST2ModelWithPredictCounter(
+        BERT_TINY_PATH
+    )
 
     # Regression model determining similarity between two input sentences.
-    self.regression_model = glue_models.STSBModel(STSB_PATH)
+    cls.regression_model = glue_models.STSBModel(STSB_PATH)
+
+  def setUp(self):
+    super().setUp()
+    self.ablation_flip = ablation_flip.AblationFlip()
+    self.classification_config = {ablation_flip.PREDICTION_KEY: 'probas'}
+    self.classification_model_with_predict_counter.predict_counter = 0
     self.regression_config = {ablation_flip.PREDICTION_KEY: 'score'}
 
   def test_ablation_flip_num_ex(self):
