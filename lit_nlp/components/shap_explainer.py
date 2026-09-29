@@ -176,7 +176,7 @@ class TabularShapExplainer(lit_components.Interpreter):
           preds.append(index)
         elif isinstance(pred_spec, types.SparseMultilabelPreds):
           pred_tuples: types.ScoredTextCandidates = pred[pred_key]
-          pred_list = list(map(lambda pred: pred[1], pred_tuples))
+          pred_list = list(map(lambda pred: pred[1], pred_tuples))  # pyrefly: ignore[bad-assignment]
           max_value: float = max(pred_list)
           index: int = pred_list.index(max_value)
           preds.append(index)
