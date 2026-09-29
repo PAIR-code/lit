@@ -134,7 +134,7 @@ def overlay_pixel_saliency(image_str: str, saliency: np.ndarray, cm_name: str,
       alphas = map(lambda e: abs(e - 0.5) * 2, norm_saliency.flatten())
     else:
       alphas = map(lambda e: 1.0 - e, norm_saliency.flatten())
-    alphas = np.reshape(list(alphas), newshape=norm_saliency.shape)
+    alphas = np.reshape(list(alphas), norm_saliency.shape)
   else:
     alphas = 1.0
 

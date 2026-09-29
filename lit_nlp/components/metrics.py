@@ -110,7 +110,7 @@ class SimpleMetrics(lit_components.Metrics):
           preds,
           label_spec=dataset.spec()[label_key],
           pred_spec=output_spec[pred_key],
-          indices=indices,
+          indices=indices,  # pyrefly: ignore[bad-argument-type]
           metas=metas,
           config=config.get(pred_key) if config else None,
       )
@@ -272,7 +272,7 @@ class MulticlassMetricsImpl(SimpleMetrics):
     y_true = [y_true[i] for i in labeled_example_indices]
     y_pred_probs = [y_pred_probs[i] for i in labeled_example_indices]
     y_pred = classification_results.get_classifications(y_pred_probs, pred_spec,
-                                                        config)
+                                                        config)  # pyrefly: ignore[bad-argument-type]
     y_pred = [y_pred[i] for i in labeled_example_indices]
 
     ret = collections.OrderedDict()
@@ -489,7 +489,7 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
 
     ret = collections.OrderedDict()
 
-    pairs = self.find_pairs(indices, metas)
+    pairs = self.find_pairs(indices, metas)  # pyrefly: ignore[bad-argument-type]
     ret['num_pairs'] = len(pairs)
     if ret['num_pairs'] == 0:
       return {}
@@ -499,7 +499,7 @@ class MulticlassPairedMetricsImpl(SimpleMetrics):
                       f'{type(pred_spec).__name__}')
 
     pred_idxs = classification_results.get_classifications(
-        preds, pred_spec, config)
+        preds, pred_spec, config)  # pyrefly: ignore[bad-argument-type]
 
     # 'swapped' just means the prediction changed.
     is_swapped = [(pred_idxs[i] != pred_idxs[j]) for i, j in pairs]
@@ -645,7 +645,7 @@ class MultilabelMetrics(SimpleMetrics):
       # labels are observed in a given sample.
       all_labels: list[Sequence[str]] = []
       all_labels.extend(labels)
-      all_labels.extend([{l for l, _ in p} for p in preds])
+      all_labels.extend([{l for l, _ in p} for p in preds])  # pyrefly: ignore[bad-argument-type]
 
     binarizer = _MultiLabelBinarizer()
     binarizer.fit(all_labels)
@@ -745,7 +745,7 @@ class CorpusBLEU(SimpleMetrics):
 
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
-      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]  # pyrefly: ignore[bad-argument-type]
       name_suffix = '@1'
     bleu = sacrebleu.raw_corpus_bleu(preds, [labels], self.BLEU_SMOOTHING_VAL)
 
@@ -830,7 +830,7 @@ class RougeL(SimpleMetrics):
 
     name_suffix = ''
     if isinstance(pred_spec, types.GeneratedTextCandidates):
-      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]
+      preds = [types.GeneratedTextCandidates.top_text(v) for v in preds]  # pyrefly: ignore[bad-argument-type]
       name_suffix = '@1'
     scores = list(map(self._score, labels, preds))
 
@@ -936,7 +936,7 @@ class BinaryConfusionMetricsImpl(SimpleMetrics):
     # Get classifications using possible margin value to control threshold
     # of positive classification.
     pred_idxs = classification_results.get_classifications(
-        preds, pred_spec, config)
+        preds, pred_spec, config)  # pyrefly: ignore[bad-argument-type]
 
     return self.get_all_metrics(
         label_idxs, pred_idxs, pred_spec.vocab, null_idx=pred_spec.null_idx)

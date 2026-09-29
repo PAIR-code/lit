@@ -266,7 +266,7 @@ class KerasGenerationModel(_KerasBaseModel):
             keras.ops.convert_to_numpy(r)
         )
 
-    return outputs
+    return outputs  # pyrefly: ignore[bad-return]
 
   def output_spec(self) -> lit_types.Spec:
     ret = pd_constants.OUTPUT_SPEC_GENERATION

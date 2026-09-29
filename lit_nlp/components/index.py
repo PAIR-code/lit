@@ -63,8 +63,8 @@ class Indexer(object):
     # Indicator whether to build new indices. If False, only load existing ones.
     self._initialize_new_indices = initialize_new_indices
     # Ensure directory to save indices exists.
-    if not os.path.isdir(data_dir):
-      os.mkdir(data_dir)
+    if not os.path.isdir(data_dir):  # pyrefly: ignore[bad-argument-type]
+      os.mkdir(data_dir)  # pyrefly: ignore[bad-argument-type]
     self._data_dir = data_dir
     self._models = models
 
@@ -93,12 +93,12 @@ class Indexer(object):
 
   def _get_index_path(self, index_key):
     """Get the file path for an index."""
-    file_path = os.path.join(self._data_dir, f"{index_key}.ann")
+    file_path = os.path.join(self._data_dir, f"{index_key}.ann")  # pyrefly: ignore[no-matching-overload]
     return file_path
 
   def _get_lookup_path(self, lookup_key):
     """Get the file path for the lookup index."""
-    file_path = os.path.join(self._data_dir, lookup_key + ".pkl")
+    file_path = os.path.join(self._data_dir, lookup_key + ".pkl")  # pyrefly: ignore[no-matching-overload]
     return file_path
 
   def _create_empty_indices(self, model_name, dataset_name):

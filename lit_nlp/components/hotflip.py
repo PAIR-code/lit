@@ -116,7 +116,7 @@ class HotFlip(lit_components.Generator):
 
     for grad_key in utils.find_spec_keys(output_spec, types.TokenGradients):
       grad_field = cast(types.TokenGradients, output_spec.get(grad_key))
-      aligned_field: Optional[types.LitType] = input_spec.get(grad_field.align)
+      aligned_field: Optional[types.LitType] = input_spec.get(grad_field.align)  # pyrefly: ignore[bad-argument-type]
       if isinstance(aligned_field, types.Tokens):
         return True
 
@@ -352,7 +352,7 @@ class HotFlip(lit_components.Generator):
         if cf_utils.is_prediction_flip(
             cf_output, orig_output, output_spec, pred_key, regression_thresh):
           # Prediciton flip found!
-          cf_utils.update_prediction(cf, cf_output, output_spec, pred_key)
+          cf_utils.update_prediction(cf, cf_output, output_spec, pred_key)  # pyrefly: ignore[bad-argument-type]
           successful_cfs.append(cf)
           successful_positions.append(set(token_idxs))
     return successful_cfs

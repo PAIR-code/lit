@@ -39,7 +39,7 @@ def update_prediction(
     label_key = pred_spec.parent
     label_names = pred_spec.vocab
     pred_class = np.argmax(prediction)
-    example_label = label_names[pred_class]
+    example_label = label_names[pred_class]  # pyrefly: ignore[bad-index]
     if label_key is not None:
       example[label_key] = example_label
 
@@ -115,7 +115,7 @@ def ablate_url_tokens(url: str, token_idxs_to_ablate: tuple[int, ...]) -> str:
   url_tokens = _tokenize_url(url)
   start = 0
   modified_url_pieces = []
-  token_idxs_to_ablate = sorted(token_idxs_to_ablate)
+  token_idxs_to_ablate = sorted(token_idxs_to_ablate)  # pyrefly: ignore[bad-assignment]
   for token_idx in token_idxs_to_ablate:
     assert token_idx < len(url_tokens), (
         "token_idxs_to_ablate must all fall in the range 0 to number of tokens"

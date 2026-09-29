@@ -153,7 +153,7 @@ class SalienceClustering(lit_components.Interpreter):
         token_weights = {}
 
         for token, score in zip(token_salience.tokens, token_salience.salience):
-          token_weights[token] = max([token_weights.get(token, score), score],
+          token_weights[token] = max([token_weights.get(token, score), score],  # pyrefly: ignore[no-matching-overload]
                                      key=abs)
 
         representation = self._convert_to_bow_vector(token_weights,
@@ -220,7 +220,7 @@ class SalienceClustering(lit_components.Interpreter):
     # If no specific inputs provided, use the entire dataset.
     inputs_to_use = inputs or dataset.examples
     token_saliencies = salience_interpreter.run(
-        inputs_to_use, model, dataset, model_outputs, config)
+        inputs_to_use, model, dataset, model_outputs, config)  # pyrefly: ignore[bad-argument-type]
 
     if not token_saliencies:
       return None

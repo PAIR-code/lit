@@ -283,7 +283,7 @@ class HFGenerativeModel(HFBaseModel):
     outputs = self.model.generate(**encoded_inputs, max_length=self.max_length)
 
     if isinstance(outputs, transformers.utils.ModelOutput):
-      outputs = outputs.sequences
+      outputs = outputs.sequences  # pyrefly: ignore[missing-attribute]
 
     ntok_out = outputs.shape[1] - ntok_in
 
@@ -345,7 +345,7 @@ class HFSalienceModel(HFBaseModel):
         pad_val=0,
         pad_left=self.pad_left,
     )
-    padded_target_masks = np.stack(
+    padded_target_masks = np.stack(  # pyrefly: ignore[no-matching-overload]
         [pad_fn(mask) for mask in modified_masks],
         axis=0,
     )
@@ -395,7 +395,7 @@ class HFSalienceModel(HFBaseModel):
           from_logits=True, reduction="none"
       )
       # <tf.float>[batch_size, num_tokens]
-      per_token_loss = loss_fn(target_ids, out.logits)
+      per_token_loss = loss_fn(target_ids, out.logits)  # pyrefly: ignore[not-callable]
       masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
 
     grads = tape.gradient(
@@ -466,7 +466,7 @@ class HFSalienceModel(HFBaseModel):
     # Remove the grad function from embs.
     embs = embs.detach()
     grad_l2 = torch.norm(grads, dim=2)  # [batch_size, num_tokens]
-    grad_dot_input = torch.sum(grads * embs, axis=2)  # [batch_size, num_tokens]
+    grad_dot_input = torch.sum(grads * embs, axis=2)  # [batch_size, num_tokens]  # pyrefly: ignore[no-matching-overload]
 
     batched_outputs = {
         "input_ids": input_ids.cpu().to(torch.int),

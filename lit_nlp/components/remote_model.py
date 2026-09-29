@@ -91,11 +91,12 @@ class RemoteModel(lit_model.BatchedModel):
     preds = query_lit_server(
         self._url,
         'get_preds',
-        params={
+        params={  # pyrefly: ignore[bad-argument-type]
             'model': self._name,
-            'response_simple_json': False
+            'response_simple_json': False,  # pyrefly: ignore[bad-assignment]
         },
-        inputs=indexed_inputs)
+        inputs=indexed_inputs,
+    )
     logging.info('Received %d predictions from remote model.', len(preds))
     return preds
 

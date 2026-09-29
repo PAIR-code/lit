@@ -236,7 +236,7 @@ class Dataset(object):
     """Return a copy of this dataset with some fields renamed."""
     new_spec = utils.remap_dict(self.spec(), field_map)
     new_examples = [utils.remap_dict(ex, field_map) for ex in self.examples]
-    return Dataset(new_spec, new_examples, base=self)
+    return Dataset(new_spec, new_examples, base=self)  # pyrefly: ignore[bad-argument-type]
 
   @staticmethod
   def lit_example_from_bytes(input_bytes: bytes) -> Optional[JsonDict]:
@@ -273,7 +273,7 @@ class IndexedDataset(Dataset):
       indexed.append(
           IndexedInput(
               data=types.MappingProxyType(
-                  example | {INPUT_ID_FIELD: ex_id, INPUT_META_FIELD: ex_meta}
+                  example | {INPUT_ID_FIELD: ex_id, INPUT_META_FIELD: ex_meta}  # pyrefly: ignore[unsupported-operation]
               ),
               id=ex_id,
               meta=ex_meta,
@@ -376,6 +376,7 @@ class IndexedDataset(Dataset):
       new_dataset = base_dataset.load(path) if base_dataset else None
 
       if new_dataset is not None:
+        # pyrefly: ignore[missing-attribute]
         description = (f'{len(new_dataset)} examples from '
                        f'{path}\n{self._base.description()}')
         return IndexedDataset(
@@ -438,7 +439,7 @@ def load_lit_format(
         **kw,
     )
   else:
-    return Dataset(spec=spec, examples=examples, *args, **kw)
+    return Dataset(spec=spec, examples=examples, *args, **kw)  # pyrefly: ignore[bad-argument-type]
 
 
 # TODO(b/202210900): Remove "NoneDataset" once the LIT front-end constructs its

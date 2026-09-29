@@ -84,7 +84,7 @@ def get_classifications(
       pred_idxs.append(pred_idx)
   else:
     pred_idxs = [np.argmax(p) for p in preds]
-  return pred_idxs
+  return pred_idxs  # pyrefly: ignore[bad-return]
 
 
 class ClassificationInterpreter(lit_components.Interpreter):

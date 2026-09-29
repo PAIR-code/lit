@@ -50,13 +50,14 @@ _STSB_EXAMPLE = {
 
 class HotflipIntegrationTest(parameterized.TestCase):
 
-  def __init__(self, *args, **kwargs):
-    super(HotflipIntegrationTest, self).__init__(*args, **kwargs)
-    self.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
-    self.regression_model = glue_models.STSBModel(STSB_PATH)
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    cls.classification_model = glue_models.SST2Model(BERT_TINY_PATH)
+    cls.regression_model = glue_models.STSBModel(STSB_PATH)
 
   def setUp(self):
-    super(HotflipIntegrationTest, self).setUp()
+    super().setUp()
     self.hotflip = hotflip.HotFlip()
 
   @parameterized.named_parameters(
