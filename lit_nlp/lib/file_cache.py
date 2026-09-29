@@ -133,15 +133,16 @@ def _get_extacted_dir(output_path: str) -> str:
   with filelock.FileLock(lock_path):
     shutil.rmtree(output_extracted_path, ignore_errors=True)
     os.makedirs(output_extracted_path)
-
-    if is_zip:
-      with zipfile.ZipFile(output_path, 'r') as zip_file:
-        _safe_zip_file_extractall(zip_file, output_extracted_path)
-        zip_file.close()
-    else:
-      tar_file = tarfile.open(output_path)
-      tar_file.extractall(output_extracted_path, filter='data')
-      tar_file.close()
+    try:
+      if is_zip:
+        with zipfile.ZipFile(output_path, 'r') as zip_file:
+          _safe_zip_file_extractall(zip_file, output_extracted_path)
+      else:
+        with tarfile.open(output_path) as tar_file:
+          tar_file.extractall(output_extracted_path, filter='data')
+    except Exception:
+      shutil.rmtree(output_extracted_path, ignore_errors=True)
+      raise
 
   return output_extracted_path
 

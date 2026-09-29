@@ -418,6 +418,10 @@ class LitApp(object):
       **unused_kw,
   ):
     """Create a dataset, updating and returning the metadata."""
+    if self._demo_mode:
+      logging.warning('Attempted to create a dataset in demo mode.')
+      return None
+
     if dataset_name is None:
       raise ValueError('No base dataset specified.')
 
@@ -484,7 +488,7 @@ class LitApp(object):
 
     Returns:
       A tuple containing the updated LitApp metadata and the name of the models
-      that were added.
+      that were added, or None if in demo mode.
 
     Raises:
       ValueError: If any of the following are missing: model_name, the config,
@@ -492,6 +496,10 @@ class LitApp(object):
         configured for the provided model_name; or if there is a name collision
         with one of the models returned by a multiple-model loader.
     """
+    if self._demo_mode:
+      logging.warning('Attempted to create a model in demo mode.')
+      return None
+
     if model_name is None:
       raise ValueError('No base model specified.')
 
