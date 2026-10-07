@@ -25,7 +25,7 @@
 import * as d3 from 'd3';  // Used for array helpers.
 import {unsafeHTML} from 'lit/directives/unsafe-html.js';
 
-import {marked} from 'marked';
+import {Marked, Renderer, Tokens} from 'marked';
 import {LIT_TYPES_REGISTRY, LitName, LitType, LitTypeTypesList, LitTypeWithParent, MulticlassPreds} from './lit_types';
 import {CallConfig, FacetMap, IndexedInput, ModelInfoMap, Spec} from './types';
 
@@ -527,13 +527,15 @@ export function getTemplateStringFromMarkdown(markdown: string) {
   // Render Markdown with link target _blank
   // See https://github.com/markedjs/marked/issues/144
   // and https://github.com/markedjs/marked/issues/655
-  const renderer = new marked.Renderer();
-  renderer.link = (href, title, text) => {
-    const linkHtml =
-        marked.Renderer.prototype.link.call(renderer, href, title, text);
-    return linkHtml.replace('<a', '<a target=\'_blank\' ');
+  const renderer = new Renderer();
+  renderer.link = function(this: Renderer, token: Tokens.Link): string {
+    const output = Renderer.prototype.link.call(this, token);
+    return output.replace(
+        /^<a /,
+        '<a target="_blank" rel="noopener noreferrer" ',
+    );
   };
-  const htmlStr = marked(markdown, {renderer});
+  const htmlStr = new Marked().use({renderer}).parse(markdown, {async: false});
 
   return unsafeHTML(htmlStr);
 }

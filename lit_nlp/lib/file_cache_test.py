@@ -13,6 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
+import io
+import os
+import tarfile
+import zipfile
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from lit_nlp.lib import file_cache
@@ -93,6 +98,122 @@ class FileCacheTest(parameterized.TestCase):
   def test_is_remote(self, url: str, expected: bool):
     is_remote = file_cache.is_remote(url)
     self.assertEqual(is_remote, expected)
+
+  def test_cached_path_extracts_valid_tar(self):
+    temp_dir = self.create_tempdir().full_path
+    tar_path = os.path.join(temp_dir, 'model.tar.gz')
+    payload = b'{"model": "ok"}'
+    with tarfile.open(tar_path, 'w:gz') as tar:
+      info = tarfile.TarInfo(name='subdir/config.json')
+      info.size = len(payload)
+      tar.addfile(info, io.BytesIO(payload))
+
+    extracted_dir = file_cache.cached_path(
+        tar_path, extract_compressed_file=True
+    )
+    extracted_file = os.path.join(extracted_dir, 'subdir', 'config.json')
+    self.assertTrue(os.path.isfile(extracted_file))
+    with open(extracted_file, 'rb') as f:
+      self.assertEqual(f.read(), payload)
+
+  def test_cached_path_extracts_valid_zip(self):
+    temp_dir = self.create_tempdir().full_path
+    zip_path = os.path.join(temp_dir, 'model.zip')
+    payload = b'{"model": "ok"}'
+    with zipfile.ZipFile(zip_path, 'w') as zf:
+      zf.writestr('subdir/config.json', payload)
+
+    extracted_dir = file_cache.cached_path(
+        zip_path, extract_compressed_file=True
+    )
+    extracted_file = os.path.join(extracted_dir, 'subdir', 'config.json')
+    self.assertTrue(os.path.isfile(extracted_file))
+    with open(extracted_file, 'rb') as f:
+      self.assertEqual(f.read(), payload)
+
+  @parameterized.named_parameters(
+      ('parent_traversal', '../escaped.txt'),
+      ('nested_parent_traversal', 'subdir/../../escaped.txt'),
+      ('absolute_parent_traversal', '/../escaped.txt'),
+  )
+  def test_cached_path_rejects_tar_traversal(self, malicious_name: str):
+    temp_dir = self.create_tempdir().full_path
+    archive_dir = os.path.join(temp_dir, 'cache')
+    os.makedirs(archive_dir)
+    tar_path = os.path.join(archive_dir, 'malicious.tar.gz')
+    with tarfile.open(tar_path, 'w:gz') as tar:
+      valid_info = tarfile.TarInfo(name='valid.txt')
+      valid_info.size = 2
+      tar.addfile(valid_info, io.BytesIO(b'ok'))
+      bad_info = tarfile.TarInfo(name=malicious_name)
+      bad_info.size = 4
+      tar.addfile(bad_info, io.BytesIO(b'evil'))
+
+    with self.assertRaises(tarfile.FilterError):
+      file_cache.cached_path(tar_path, extract_compressed_file=True)
+
+    self.assertFalse(os.path.exists(os.path.join(temp_dir, 'escaped.txt')))
+    self.assertFalse(os.path.exists(os.path.join(archive_dir, 'escaped.txt')))
+    expected_extracted = os.path.join(archive_dir, 'malicious-tar-gz-extracted')
+    self.assertFalse(os.path.exists(expected_extracted))
+
+  def test_cached_path_sanitizes_tar_absolute_path(self):
+    temp_dir = self.create_tempdir().full_path
+    archive_dir = os.path.join(temp_dir, 'cache')
+    os.makedirs(archive_dir)
+    outside_target = os.path.join(temp_dir, 'outside_abs.txt')
+    tar_path = os.path.join(archive_dir, 'abs_path.tar.gz')
+    with tarfile.open(tar_path, 'w:gz') as tar:
+      abs_info = tarfile.TarInfo(name=outside_target)
+      abs_info.size = 4
+      tar.addfile(abs_info, io.BytesIO(b'safe'))
+
+    extracted_dir = file_cache.cached_path(
+        tar_path, extract_compressed_file=True
+    )
+    self.assertFalse(os.path.exists(outside_target))
+    self.assertTrue(
+        os.path.isfile(os.path.join(extracted_dir, outside_target.lstrip('/')))
+    )
+
+  def test_cached_path_rejects_tar_external_symlink(self):
+    temp_dir = self.create_tempdir().full_path
+    archive_dir = os.path.join(temp_dir, 'cache')
+    os.makedirs(archive_dir)
+    tar_path = os.path.join(archive_dir, 'symlink.tar.gz')
+    with tarfile.open(tar_path, 'w:gz') as tar:
+      sym_info = tarfile.TarInfo(name='link_out')
+      sym_info.type = tarfile.SYMTYPE
+      sym_info.linkname = '../../outside_target'
+      tar.addfile(sym_info)
+
+    with self.assertRaises(tarfile.FilterError):
+      file_cache.cached_path(tar_path, extract_compressed_file=True)
+
+    expected_extracted = os.path.join(archive_dir, 'symlink-tar-gz-extracted')
+    self.assertFalse(os.path.exists(expected_extracted))
+
+  @parameterized.named_parameters(
+      ('parent_traversal', '../escaped.txt'),
+      ('nested_parent_traversal', 'subdir/../../escaped.txt'),
+      ('absolute_path', '/tmp/escaped_abs.txt'),
+  )
+  def test_cached_path_rejects_zip_traversal(self, malicious_name: str):
+    temp_dir = self.create_tempdir().full_path
+    archive_dir = os.path.join(temp_dir, 'cache')
+    os.makedirs(archive_dir)
+    zip_path = os.path.join(archive_dir, 'malicious.zip')
+    with zipfile.ZipFile(zip_path, 'w') as zf:
+      zf.writestr('valid.txt', b'ok')
+      zf.writestr(malicious_name, b'evil')
+
+    with self.assertRaises(ValueError):
+      file_cache.cached_path(zip_path, extract_compressed_file=True)
+
+    self.assertFalse(os.path.exists(os.path.join(temp_dir, 'escaped.txt')))
+    self.assertFalse(os.path.exists(os.path.join(archive_dir, 'escaped.txt')))
+    expected_extracted = os.path.join(archive_dir, 'malicious-zip-extracted')
+    self.assertFalse(os.path.exists(expected_extracted))
 
   # TODO(b/285157349, b/254110131): Add UT/ITs for file_cache.cached_path().
   # Conditions should include:

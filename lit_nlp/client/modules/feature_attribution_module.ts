@@ -30,14 +30,14 @@ import {LegendType} from '../elements/color_legend';
 import {InterpreterClick, InterpreterSettings} from '../elements/interpreter_controls';
 import {SortableTemplateResult, TableData} from '../elements/table';
 import {FeatureSalience as FeatureSalienceLitType, LitTypeWithVocab, SingleFieldMatcher} from '../lib/lit_types';
-import {IndexedInput, ModelInfoMap} from '../lib/types';
+import {styles as sharedStyles} from '../lib/shared_styles.css';
+import {type D3Scale, IndexedInput, ModelInfoMap} from '../lib/types';
 import * as utils from '../lib/utils';
 import {findSpecKeys} from '../lib/utils';
 import {SignedSalienceCmap} from '../services/color_service';
 import {type NumericFeatureBins} from '../services/group_service';
 import {AppState, GroupService} from '../services/services';
 
-import {styles as sharedStyles} from '../lib/shared_styles.css';
 import {styles} from './feature_attribution_module.css';
 
 const ALL_DATA = 'Entire Dataset';
@@ -74,6 +74,9 @@ interface SummariesMap {
 interface VisToggles {
   [name: string]: boolean;
 }
+
+// This should be removed.
+type AnyDuringMigration = any;
 
 /** Aggregate feature attribution for tabular ML models. */
 @customElement('feature-attribution-module')
@@ -440,7 +443,8 @@ export class FeatureAttributionModule extends LitModule {
   }
 
   override renderImpl() {
-    const scale = (val: number) => this.colorMap.bgCmap(val);
+    const scale: D3Scale =
+        ((val: number) => this.colorMap.bgCmap(val)) as AnyDuringMigration;
     scale.domain = () => this.colorMap.colorScale.domain();
 
     // clang-format off

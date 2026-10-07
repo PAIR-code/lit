@@ -192,7 +192,7 @@ def unbatch_preds(
   """
   if not isinstance(preds, dict):
     for pred in preds:
-      yield pred
+      yield pred  # pyrefly: ignore[invalid-yield]
   else:
     for i in range(_extract_batch_length(preds)):
       yield {key: value[i] for key, value in preds.items()}

@@ -106,13 +106,13 @@ class TCAV(lit_components.Interpreter):
 
     for grad_field in gradient_fields:
       field_spec = cast(types.Gradients, output_spec.get(grad_field))
-      preds = output_spec.get(field_spec.align)
+      preds = output_spec.get(field_spec.align)  # pyrefly: ignore[bad-argument-type]
       compat_preds = isinstance(preds, types.MulticlassPreds)
-      grad_for = output_spec.get(field_spec.grad_for)
+      grad_for = output_spec.get(field_spec.grad_for)  # pyrefly: ignore[bad-argument-type]
       compat_grad_for = isinstance(grad_for, types.Embeddings)
       # TODO(b/205996131, b/294613507): remove grad_target_field_key and just
       # use the target labels from the input, similar to salience methods.
-      grad_target = output_spec.get(field_spec.grad_target_field_key)
+      grad_target = output_spec.get(field_spec.grad_target_field_key)  # pyrefly: ignore[bad-argument-type]
       compat_grad_target = isinstance(grad_target, types.CategoryLabel)
       if compat_preds and compat_grad_for and compat_grad_target:
         return True
@@ -146,7 +146,7 @@ class TCAV(lit_components.Interpreter):
       overrides = {}
       for field in valid_target_fields:
         label_idx = np.argmax(preds[field])
-        label = cast(types.MulticlassPreds, output_spec[field]).vocab[label_idx]
+        label = cast(types.MulticlassPreds, output_spec[field]).vocab[label_idx]  # pyrefly: ignore[bad-index]
         parent_field = getattr(output_spec[field], 'parent')
         overrides[parent_field] = label
       modified_inputs.append(utils.make_modified_input(ex, overrides, 'TCAV'))
@@ -218,7 +218,7 @@ class TCAV(lit_components.Interpreter):
       return [{
           'cos_sim':
               self._get_cos_sim(
-                  np.array(tcav_config.cav), predictions, emb_layer)
+                  np.array(tcav_config.cav), predictions, emb_layer)  # pyrefly: ignore[bad-argument-type]
       }]
 
     ids_set = set(tcav_config.concept_set_ids)

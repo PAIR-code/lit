@@ -160,7 +160,7 @@ export class SliceModule extends LitModule {
     // clang-format off
     return html`
       <div class="row-container">
-        <input type="text" id="input-box" .value=${this.sliceName}
+        <input type="text" id="input-box" .value=${this.sliceName ?? ''}
           placeholder="Enter name" @input=${onInputChange}
           @keyup=${(e: KeyboardEvent) => {onKeyUp(e);}}/>
         <button class='hairline-button'

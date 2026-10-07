@@ -45,8 +45,8 @@ def batch_encode_pretokenized(
   """
   encoded_input = {}
   tokenized_pair_inputs = (
-      tokenized_pair_inputs or [None] * len(tokenized_inputs))
-  for tokens, pair_tokens in zip(tokenized_inputs, tokenized_pair_inputs):
+      tokenized_pair_inputs or [None] * len(tokenized_inputs))  # pyrefly: ignore[bad-assignment]
+  for tokens, pair_tokens in zip(tokenized_inputs, tokenized_pair_inputs):  # pyrefly: ignore[bad-argument-type]
     ids = tokenizer.convert_tokens_to_ids(tokens)
     pair_ids = (
         tokenizer.convert_tokens_to_ids(pair_tokens)
@@ -65,4 +65,4 @@ def batch_encode_pretokenized(
 
   encoded_input = tokenizer.pad(
       encoded_input, padding="longest", return_attention_mask=True)
-  return transformers.BatchEncoding(encoded_input, tensor_type=tensor_type)
+  return transformers.BatchEncoding(encoded_input, tensor_type=tensor_type)  # pyrefly: ignore[bad-argument-type]

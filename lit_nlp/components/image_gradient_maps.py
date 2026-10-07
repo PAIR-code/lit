@@ -96,7 +96,7 @@ def find_supported_fields(input_spec: Spec,
 
   # Find image fields that correspond to grad_field.
   image_field_key = grad_field_value.align
-  if not isinstance(input_spec.get(image_field_key), types.ImageBytes):
+  if not isinstance(input_spec.get(image_field_key), types.ImageBytes):  # pyrefly: ignore[bad-argument-type]
     logging.warning(
         'Could not find aligned ImageBytes field, %s, in input spec',
         str(grad_field_value.align))
@@ -109,7 +109,7 @@ def find_supported_fields(input_spec: Spec,
   if multiclass:
     grad_target_field_key = grad_field_value.grad_target_field_key
     if not isinstance(
-        input_spec.get(grad_target_field_key), types.CategoryLabel):
+        input_spec.get(grad_target_field_key), types.CategoryLabel):  # pyrefly: ignore[bad-argument-type]
       logging.warning(
           'Could not find compatible CategoryLabel field, %s, in input spec',
           str(grad_target_field_key))
@@ -130,8 +130,8 @@ def find_supported_fields(input_spec: Spec,
 
   return SupportedFields(
       grad_field_key=grad_field_key,
-      image_field_key=image_field_key,
-      grad_target_field_key=grad_target_field_key,
+      image_field_key=image_field_key,  # pyrefly: ignore[bad-argument-type]
+      grad_target_field_key=grad_target_field_key,  # pyrefly: ignore[bad-argument-type]
       preds_field_key=preds_field_key)
 
 CallModelFunction = Callable[
@@ -295,7 +295,7 @@ class SaliencyLibInterpreter(lit_components.Interpreter, metaclass=abc.ABCMeta):
           image_field_key=image_field_key,
           grad_field_key=grad_field_key,
           grad_target_field_key=grad_target_field_key,
-          grad_target_label=grad_target_label)
+          grad_target_label=grad_target_label)  # pyrefly: ignore[bad-argument-type]
       attribution = self.make_saliency_call(
           saliency_object=saliency_object,
           x_value=saliency_input,
