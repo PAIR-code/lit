@@ -127,7 +127,7 @@ class Dataset(object):
     Returns:
       (string) A human-readable description for display in the UI.
     """
-    return self._description or inspect.getdoc(self) or ''  # pytype: disable=bad-return-type
+    return self._description or inspect.getdoc(self) or ''
 
   @classmethod
   def init_spec(cls) -> Optional[lit_types.Spec]:

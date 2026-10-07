@@ -151,7 +151,7 @@ class ProjectionManager(lit_components.Interpreter):
   ) -> ProjectionInterpreter:
     # Ignore pytype warning about abstract methods, since this should always
     # be a subclass of ProjectorModel which has these implemented.
-    projector = self._model_factory(**config.get("proj_kw", {}))  # pytype: disable=not-instantiable
+    projector = self._model_factory(**config.get("proj_kw", {}))
     train_inputs = dataset.examples
 
     # If using input values, then treat inputs as outputs instead of running

@@ -322,7 +322,7 @@ class HotFlip(lit_components.Generator):
     # nested (and easier to track loop state).
     for token_field, v in tokens_and_gradients.items():
       tokens, grads = v
-      text_field = input_spec[token_field].parent  # pytype: disable=attribute-error
+      text_field = input_spec[token_field].parent  # pyrefly: ignore[missing-attribute]
       logging.info("Identifying Hotflips for input field: %s", str(text_field))
       direction = -1
       if is_regression:

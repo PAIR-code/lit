@@ -35,22 +35,20 @@ from lit_nlp.components import thresholder
 from lit_nlp.components import word_replacer
 
 # pylint: disable=g-import-not-at-top
-# pytype: disable=import-error
 try:
-  from lit_nlp.components import shap_explainer
+  from lit_nlp.components import shap_explainer  # pyrefly: ignore[missing-module-attribute]
 
   _SHAP_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):
   _SHAP_AVAILABLE = False
 
 try:
-  from lit_nlp.components import umap
+  from lit_nlp.components import umap  # pyrefly: ignore[missing-module-attribute]
 
   _UMAP_AVAILABLE = True
 except (ModuleNotFoundError, ImportError):
   _UMAP_AVAILABLE = False
 # pylint: enable=g-import-not-at-top
-# pytype: enable=import-error
 
 
 def default_generators() -> dict[str, lit_components.Generator]:

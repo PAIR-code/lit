@@ -22,17 +22,15 @@ import numpy as np
 import transformers
 
 # pylint: disable=g-import-not-at-top
-# pytype: disable=import-error
 try:
   import tensorflow as tf
 except (ModuleNotFoundError, ImportError):
   logging.warning("TensorFlow is not available.")
 
 try:
-  import torch
+  import torch  # pyrefly: ignore[missing-import]
 except (ModuleNotFoundError, ImportError):
   logging.warning("PyTorch is not available.")
-# pytype: enable=import-error
 # pylint: enable=g-import-not-at-top
 
 
@@ -345,7 +343,7 @@ class HFSalienceModel(HFBaseModel):
         pad_val=0,
         pad_left=self.pad_left,
     )
-    padded_target_masks = np.stack(  # pyrefly: ignore[no-matching-overload]
+    padded_target_masks = np.stack(
         [pad_fn(mask) for mask in modified_masks],
         axis=0,
     )
@@ -395,7 +393,7 @@ class HFSalienceModel(HFBaseModel):
           from_logits=True, reduction="none"
       )
       # <tf.float>[batch_size, num_tokens]
-      per_token_loss = loss_fn(target_ids, out.logits)  # pyrefly: ignore[not-callable]
+      per_token_loss = loss_fn(target_ids, out.logits)
       masked_loss = per_token_loss * tf.cast(loss_mask, per_token_loss.dtype)
 
     grads = tape.gradient(

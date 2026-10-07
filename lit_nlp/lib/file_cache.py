@@ -209,11 +209,11 @@ def _get_from_cache(
     )
     with temp_file_manager() as temp_file:
       logging.info('%s not found in cache.', url)
-      _fetch_content(  # pytype: disable=wrong-arg-types
+      _fetch_content(
           url_to_download,
           temp_file,  # pyrefly: ignore[bad-argument-type]
           headers=headers,
-          progress_indicator=progress_indicator
+          progress_indicator=progress_indicator,
       )
       logging.info('%s downloaded to %s', url, temp_file.name)
 

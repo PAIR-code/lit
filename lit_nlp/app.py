@@ -336,7 +336,7 @@ class LitApp(object):
       example['data'] = dict(annotated_dataset.examples[i], _id=new_id)
       example['id'] = new_id
 
-    return data['inputs']  # pytype: disable=bad-return-type  # always-use-return-annotations
+    return data['inputs']
 
   def _post_new_data(
       self,
@@ -595,11 +595,12 @@ class LitApp(object):
 
     dataset = self._datasets[dataset_name]
     # Nested list, containing generated examples from each input.
-    all_generated: list[list[Input]] = genny.run(  # pytype: disable=annotation-type-mismatch  # always-use-return-annotations
+    all_generated: list[list[Input]] = genny.run(
         [ex['data'] for ex in data['inputs']],
         self._models[model],
         dataset,
-        config=config)
+        config=config,
+    )
 
     # Annotate datapoints
     def annotate_generated(datapoints):

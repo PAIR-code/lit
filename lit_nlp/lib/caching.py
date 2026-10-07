@@ -72,7 +72,7 @@ class PickleCacheLoader(object):
     except IOError:
       logging.error("Failed loading cache at %s.", self._cache_path)
       data = {}
-    return data  # pytype: disable=name-error  # py310-upgrade
+    return data
 
 
 class PredsCache(object):
@@ -307,7 +307,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
                    len(miss_idxs), len(cached_results))
     else:
       # If all results were already cached, return them.
-      return cached_results  # pytype: disable=bad-return-type
+      return cached_results
 
     with self._cache.get_pred_lock(input_keys):
       model_preds = list(self.wrapped.predict(progress_indicator(misses)))  # pyrefly: ignore[not-callable]
@@ -326,7 +326,7 @@ class CachingModelWrapper(lit_model.ModelWrapper):
       # Remove the prediction lock from the cache as the request is complete
       self._cache.delete_pred_lock(input_keys)
 
-    return cached_results  # pytype: disable=bad-return-type
+    return cached_results
 
   def _get_results_from_cache(self, input_keys: list[CacheKey]):
     with self._cache.lock:

@@ -178,12 +178,13 @@ class TabularMTC(lit_components.Generator):
     original_pred = list(model.predict([example]))[0]
 
     # Find dataset examples that are flips.
-    filtered_examples = self._filter_ds_examples(  # pytype: disable=wrong-arg-types  # enable-nested-classes
+    filtered_examples = self._filter_ds_examples(
         dataset=dataset,  # pyrefly: ignore[bad-argument-type]
         model=model,
         reference_output=original_pred,
         pred_key=pred_key,
-        regression_thresh=regression_thresh)
+        regression_thresh=regression_thresh,
+    )
 
     supported_field_names = self._find_all_fields_to_consider(
         ds_spec=dataset.spec(),
@@ -516,7 +517,7 @@ class TabularMTC(lit_components.Generator):
     return field_stats
 
   def _calculate_std_dev(self, values: list[float]) -> float:
-    return np.std(values)  # pyrefly: ignore[bad-return]
+    return np.std(values)
 
   def _calculate_categorical_prob(self, values: list[float]) -> float:
     """Returns probability of two values from the list having the same value."""

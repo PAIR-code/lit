@@ -17,7 +17,6 @@ from lit_nlp.lib import utils as lit_utils
 
 
 # pylint: disable=g-import-not-at-top
-# pytype: disable=import-error
 # NOTE: The Keras backend must be set before loading the Keras library. You can
 # set the backend using the KERAS_BACKEND environment variable or your
 # ~/.keras/keras.json configuration file. For more information, see:
@@ -25,11 +24,10 @@ from lit_nlp.lib import utils as lit_utils
 if keras.backend.backend() == "tensorflow":
   import tensorflow as tf
 elif keras.backend.backend() == "torch":
-  import torch
+  import torch  # pyrefly: ignore[missing-import]
 else:
   # TODO(b/333373960): Update imports once a JAX salience is supported.
   raise ValueError(f"Unsupported backend: {keras.backend.backend()}")
-# pytype: enable=import-error
 # pylint: enable=g-import-not-at-top
 
 

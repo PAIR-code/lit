@@ -160,7 +160,7 @@ class GlueModel(lit_model.BatchedModel):
         tokens_b,
         max_length=self.config.max_seq_length,
     )
-    return encoded_input  # pytype: disable=bad-return-type
+    return encoded_input  # pyrefly: ignore[bad-return]
 
   def _make_dataset(self, inputs: Iterable[JsonDict]) -> tf.data.Dataset:
     """Make a tf.data.Dataset from inputs in LIT format."""
@@ -180,7 +180,7 @@ class GlueModel(lit_model.BatchedModel):
       )
     # encoded_input is actually a transformers.BatchEncoding
     # object, which tf.data.Dataset doesn't like. Convert to a regular dict.
-    return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))  # pyrefly: ignore[bad-argument-type]
+    return tf.data.Dataset.from_tensor_slices((dict(encoded_input), labels))
 
   def train(
       self,
@@ -303,7 +303,7 @@ class GlueModel(lit_model.BatchedModel):
         # Return the label corresponding to the class index used for gradients.
         output[self.config.label_name] = self.config.labels[  # pyrefly: ignore[unsupported-operation]
             output[self.config.label_name]
-        ]  # pytype: disable=container-type-mismatch
+        ]
 
       # Remove "input_emb_grad" since it's not in the output spec.
       del output["input_emb_grad"]
@@ -321,7 +321,7 @@ class GlueModel(lit_model.BatchedModel):
       output[key] = output[key][:, :ntok, :ntok].transpose((0, 2, 1))
       # Make a copy of this array to avoid memory leaks, since NumPy otherwise
       # keeps a pointer around that prevents the source array from being GCed.
-      output[key] = output[key].copy()  # pytype: disable=attribute-error
+      output[key] = output[key].copy()
 
     return output
 
@@ -513,7 +513,7 @@ class GlueModel(lit_model.BatchedModel):
         )
         # <float32>[batch_size, 1]
         denom = tf.reduce_sum(token_mask, axis=1)
-        for i, layer_output in enumerate(out.hidden_states):  # pyrefly: ignore[bad-argument-type, not-iterable]
+        for i, layer_output in enumerate(out.hidden_states):  # pyrefly: ignore[not-iterable]
           # layer_output is <float32>[batch_size, num_tokens, emb_dim]
           # average over tokens to get <float32>[batch_size, emb_dim]
           batched_outputs[f"layer_{i}/avg_emb"] = (
@@ -529,7 +529,7 @@ class GlueModel(lit_model.BatchedModel):
               f"{self.model.config.num_hidden_layers}, got "
               f"{len(out.attentions)}."
           )
-        for i, layer_attention in enumerate(out.attentions):  # pyrefly: ignore[bad-argument-type, not-iterable]
+        for i, layer_attention in enumerate(out.attentions):  # pyrefly: ignore[not-iterable]
           batched_outputs[f"layer_{i+1}/attention"] = layer_attention
 
       if self.is_regression:
